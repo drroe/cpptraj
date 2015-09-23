@@ -88,7 +88,7 @@ int FileName::SetFileName_NoExpansion(std::string const& nameIn) {
   size_t found = fullPathName_.find_last_of("/");
   if (found == std::string::npos) {
     baseName_ = fullPathName_;
-    dirPrefix_.clear();
+    dirPrefix_.assign(".");
   } else {
     baseName_ = fullPathName_.substr(found+1);
     dirPrefix_ = fullPathName_.substr(0, found+1);

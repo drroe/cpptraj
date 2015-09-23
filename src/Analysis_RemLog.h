@@ -52,5 +52,7 @@ class Analysis_RemLog : public Analysis {
     CpptrajFile* acceptout_;
     int calcRepFracSlope_;
     CpptrajFile* repFracSlope_;
+    FileName trajoutName_;
+    FileName parmoutName_;
 };
 #endif

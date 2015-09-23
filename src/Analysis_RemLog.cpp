@@ -2,9 +2,12 @@
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
 #include "Analysis_Lifetime.h"
-#include "StringRoutines.h" // integerToString
-#include "DataSet_Mesh.h" // Regression
-#include "DataSet_MatrixFlt.h"
+#include "StringRoutines.h"    // integerToString
+#include "DataSet_Mesh.h"      // slope Regression
+#include "DataSet_MatrixFlt.h" // replica time matrix
+#include "Trajout_Single.h"    // trajout
+#include "TrajectoryFile.h"    // trajout
+#include "ParmFile.h"          // trajout
 
 Analysis_RemLog::Analysis_RemLog() :
   debug_(0),
@@ -25,6 +28,7 @@ void Analysis_RemLog::Help() {
   mprintf("\t{<remlog dataset> | <remlog filename>} [out <filename>] [crdidx | repidx]\n"
           "\t[stats [statsout <file>] [printtrips] [reptime <file>]] [lifetime <file>]\n"
           "\t[reptimeslope <n> reptimeslopeout <file>] [acceptout <file>] [name <setname>]\n"
+          "\t[trajout <file> [parmout <file>]\n"
           "    crdidx: Print coordinate index vs exchange; output sets contain replica indices.\n"
           "    repidx: Print replica index vs exchange; output sets contain coordinate indices.\n"
           "  Analyze previously read in replica log data.\n");
@@ -57,6 +61,11 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
   acceptout_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("acceptout"), "replica acceptance",
                                       DataFileList::TEXT, true );
   if (acceptout_ == 0) return Analysis::ERR;
+  trajoutName_.SetFileName( analyzeArgs.GetStringKey("trajout") );
+  std::string pout = analyzeArgs.GetStringKey("parmout");
+  if (!trajoutName_.empty() && pout.empty())
+    parmoutName_.SetFileName_NoExpansion( trajoutName_.DirPrefix() + "/" +
+                                          trajoutName_.Base() + ".parm7" );
   lifetimes_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("lifetime"), "remlog lifetimes" );
   calculateLifetimes_ = (lifetimes_ != 0);
   calculateStats_ = analyzeArgs.hasKey("stats");
@@ -136,7 +145,10 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
   if (acceptout_ != 0)
     mprintf("\tOverall exchange acceptance % will be written to %s\n",
             acceptout_->Filename().full());
-
+  if (!trajoutName_.empty()) {
+    mprintf("\tPseudo trajectory for crdidx will be written to '%s'\n", trajoutName_.full());
+    mprintf("\tPseudo topology for crdidx will be written to '%s'\n", parmoutName_.full());
+  }
   return Analysis::OK;
 }
 
@@ -194,7 +206,28 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       repFracSlope_->Printf("  C%07i_slope C%07i_corel", crdidx + 1, crdidx + 1);
     repFracSlope_->Printf("\n");
   }
-
+  // Pseudo traj for tracking replica motion
+  Topology RG_top;
+  Trajout_Single repGroup;
+  Frame RG_frame;
+  if (!trajoutName_.empty()) {
+    // Only good up to 3D
+    if (Ndims > 3) {
+      mprinterr("Error: crdidx pseudo trajectory generation only valid up to 3 dims.\n");
+      return Analysis::ERR;
+    }
+    // Create an atom for each crdidx
+    for (int atom = 0; atom != (int)remlog_->Size(); atom++)
+      RG_top.AddTopAtom( Atom( "C" + integerToString(atom+1), "H "),
+                         Residue("CRD", atom+1, ' ', ' '), 0 );
+    ParmFile RG_top_out;
+    RG_top_out.WriteTopology( RG_top, parmoutName_, ArgList(), ParmFile::UNKNOWN_PARM, debug_ );
+    if (repGroup.PrepareTrajWrite(trajoutName_, ArgList(), &RG_top, CoordinateInfo(),
+                                 remlog_->NumExchange(), TrajectoryFile::UNKNOWN_TRAJ))
+      return Analysis::ERR;
+    RG_frame.SetupFrame( remlog_->Size() );
+    RG_frame.ZeroCoords();
+  }
   ProgressBar progress( remlog_->NumExchange() );
   for (int frame = 0; frame < remlog_->NumExchange(); frame++) {
     progress.Update( frame );
@@ -221,6 +254,12 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       } else if (mode_ == REPIDX) {
         DataSet_integer& ds = static_cast<DataSet_integer&>( *(outputDsets_[crdidx]) );
         ds[frame] = frm.ReplicaIdx();
+      }
+      // Pseudo traj for tracking replica motion
+      if (!trajoutName_.empty()) {
+        double* XYZ = RG_frame.xAddress() + (crdidx * 3);
+        for (int didx = 0; didx != Ndims; didx++)
+          XYZ[didx] = remlog_->ReplicaInfo()[replica][didx].GroupID();
       }
       if (calculateLifetimes_)
         series[repidx][crdidx][frame] = 1;
@@ -257,6 +296,9 @@ Analysis::RetType Analysis_RemLog::Analyze() {
         }
       }
     } // END loop over replicas
+    // Pseudo traj for tracking replica motion
+    if (!trajoutName_.empty())
+      repGroup.WriteSingle( frame, RG_frame );
     if (calcRepFracSlope_ > 0 && frame > 0 && (frame % calcRepFracSlope_) == 0) {
       repFracSlope_->Printf("%8i", frame+1);
       for (int crdidx = 0; crdidx < (int)remlog_->Size(); crdidx++) {
@@ -270,6 +312,8 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       repFracSlope_->Printf("\n");
     }
   } // END loop over exchanges
+  if (!trajoutName_.empty())
+    repGroup.EndTraj();
   // Exchange acceptance calc.
   for (int dim = 0; dim != Ndims; dim++) {
     // Assume number of exchange attempts is actually /2 since in Amber
