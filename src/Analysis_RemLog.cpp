@@ -286,6 +286,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
             ((double)DimStats[dim].acceptUp_[replica] / exchangeAttempts) * 100.0,
             ((double)DimStats[dim].acceptDown_[replica] / exchangeAttempts) * 100.0);
   }
+  acceptout_->CloseFile();
   if (calculateStats_) {
     statsout_->Printf("# %i replicas, %i exchanges.\n", remlog_->Size(), remlog_->NumExchange());
     for (int dim = 0; dim != Ndims; dim++) {
@@ -305,6 +306,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
                           idx++, rt->Size(), avg, stdev, rt->Min(), rt->Max());
       }
     }
+    statsout_->CloseFile();
     // Time spent at each replica
     DataSet_MatrixFlt& RTM = static_cast<DataSet_MatrixFlt&>( *repTimeMatrix_ );
     RTM.Allocate2D( remlog_->Size(), remlog_->Size() );
@@ -322,6 +324,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       }
       reptime_->Printf("\n");
     }
+    reptime_->CloseFile();
   }
   if (calculateLifetimes_) {
     mprintf("\tCalculating remlog lifetimes:\n");
