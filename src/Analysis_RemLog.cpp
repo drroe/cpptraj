@@ -276,8 +276,9 @@ Analysis::RetType Analysis_RemLog::Analyze() {
     // attempts alternate up/down.
     acceptout_->Printf("DIMENSION %i\n", dim+1);
     if (debug_ > 0) {
-    for (int replica = 0; replica != (int)remlog_->Size(); replica++)
-      mprintf("Rep %i attempts %i up %i down %i\n", replica, DimStats[dim].attempts_, DimStats[dim].acceptUp_[replica], DimStats[dim].acceptDown_[replica]);
+      for (int replica = 0; replica != (int)remlog_->Size(); replica++)
+        mprintf("Rep %i attempts %i up %i down %i\n", replica, DimStats[dim].attempts_,
+                DimStats[dim].acceptUp_[replica], DimStats[dim].acceptDown_[replica]);
     }
     acceptout_->Printf("%-8s %8s %8s\n", "#Replica", "%UP", "%DOWN");
     double exchangeAttempts = (double)DimStats[dim].attempts_ / 2.0;
