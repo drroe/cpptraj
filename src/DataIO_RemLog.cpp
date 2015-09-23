@@ -666,32 +666,8 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
     }
   }
 
-  // Coordinate indices for each replica. Start crdidx = repidx (from 1) for now.
-  std::vector<int> CoordinateIndices( n_mremd_replicas );
-  for (int repidx = 0; repidx < n_mremd_replicas; repidx++) {
-    if (!idxArgs.empty()) {
-      // User-specified starting coord indices
-      CoordinateIndices[repidx] = idxArgs.getNextInteger(0);
-      if (CoordinateIndices[repidx] < 0 || CoordinateIndices[repidx] > n_mremd_replicas )
-      {
-        mprinterr("Error: Given coordinate index out of range or not enough indices given.\n");
-        return 1;
-      }
-    } else if (!processMREMD_ && !TempCrdIdxs.front().empty())
-      // Use coordinate indices from 1D T-REMD log
-      CoordinateIndices[repidx] = TempCrdIdxs.front()[repidx];
-    else
-      // Default: starting crdidx = repidx
-      CoordinateIndices[repidx] = repidx + 1;
-  }
-//  if (!idxArgs.empty()) {
-    mprintf("\tInitial coordinate indices:");
-    for (std::vector<int>::const_iterator c = CoordinateIndices.begin();
-                                          c != CoordinateIndices.end(); ++c)
-      mprintf(" %i", *c);
-    mprintf("\n");
-//  }
   // Allocate replica log DataSet
+  std::vector<int> CoordinateIndices( n_mremd_replicas );
   DataSet* ds = 0;
   if (!dsname.empty()) ds = datasetlist.CheckForSet( dsname );
   if (ds == 0) {
@@ -699,6 +675,23 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
     ds = datasetlist.AddSet( DataSet::REMLOG, dsname, "remlog" );
     if (ds == 0) return 1;
     ((DataSet_RemLog*)ds)->AllocateReplicas(n_mremd_replicas, GroupDims, repInfo, DimTypes);
+    // Coordinate indices for each replica. Start crdidx = repidx (from 1) for now.
+    for (int repidx = 0; repidx < n_mremd_replicas; repidx++) {
+      if (!idxArgs.empty()) {
+        // User-specified starting coord indices
+        CoordinateIndices[repidx] = idxArgs.getNextInteger(0);
+        if (CoordinateIndices[repidx] < 0 || CoordinateIndices[repidx] > n_mremd_replicas )
+        {
+          mprinterr("Error: Given coordinate index out of range or not enough indices given.\n");
+          return 1;
+        }
+      } else if (!processMREMD_ && !TempCrdIdxs.front().empty())
+        // Use coordinate indices from 1D T-REMD log
+        CoordinateIndices[repidx] = TempCrdIdxs.front()[repidx];
+      else
+        // Default: starting crdidx = repidx
+        CoordinateIndices[repidx] = repidx + 1;
+    }
   } else {
     if (ds->Type() != DataSet::REMLOG) {
       mprinterr("Error: Set '%s' is not replica log data.\n", ds->legend());
@@ -710,7 +703,23 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
                 n_mremd_replicas);
       return 1;
     }
+    DataSet_RemLog const& rl = static_cast<DataSet_RemLog const&>( *ds );
+    if (rl.GroupDims().size() != GroupDims.size()) {
+      mprinterr("Error: Replica log data '%s' is set up for %zu dims,"
+                " current # dims is %zu\n", ds->legend(),
+                rl.GroupDims().size(), GroupDims.size());
+      return 1;
+    }
+    // Set coordinate indices from previous final coordinate indices.
+    for (int repidx = 0; repidx != n_mremd_replicas; repidx++)
+      CoordinateIndices[repidx] = rl.LastRepFrame( repidx ).CoordsIdx();
   }
+  mprintf("\tInitial coordinate indices:");
+  for (std::vector<int>::const_iterator c = CoordinateIndices.begin();
+                                        c != CoordinateIndices.end(); ++c)
+    mprintf(" %i", *c);
+  mprintf("\n");
+
   // Loop over all remlogs
   DataSet_RemLog& ensemble = static_cast<DataSet_RemLog&>( *ds );
   for (LogGroupType::const_iterator it = logFileGroups.begin(); it != logFileGroups.end(); ++it)
