@@ -4,6 +4,7 @@
 #include "Analysis_Lifetime.h"
 #include "StringRoutines.h" // integerToString
 #include "DataSet_Mesh.h" // Regression
+#include "DataSet_MatrixFlt.h"
 
 Analysis_RemLog::Analysis_RemLog() :
   debug_(0),
@@ -11,6 +12,7 @@ Analysis_RemLog::Analysis_RemLog() :
   calculateLifetimes_(false),
   printIndividualTrips_(false), 
   remlog_(0),
+  repTimeMatrix_(0),
   mode_(NONE),
   lifetimes_(0),
   statsout_(0),
@@ -49,6 +51,9 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
     mprinterr("Error: remlog data set appears to be empty.\n");
     return Analysis::ERR;
   }
+  std::string dsname = analyzeArgs.GetStringKey("name");
+  if (dsname.empty())
+    dsname = datasetlist->GenerateDefaultName("RL");
   acceptout_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("acceptout"), "replica acceptance",
                                       DataFileList::TEXT, true );
   if (acceptout_ == 0) return Analysis::ERR;
@@ -61,6 +66,8 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
     reptime_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("reptime"), "replica times",
                                       DataFileList::TEXT, true );
     if (statsout_ == 0 || reptime_ == 0) return Analysis::ERR;
+    repTimeMatrix_ = datasetlist->AddSet( DataSet::MATRIX_FLT, MetaData(dsname, "reptime") );
+    if (repTimeMatrix_ == 0) return Analysis::ERR;
   }
   calcRepFracSlope_ = analyzeArgs.getKeyInt("reptimeslope", 0);
   std::string rfs_name = analyzeArgs.GetStringKey("reptimeslopeout");
@@ -81,13 +88,13 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
     mode_ = REPIDX;
   else
     mode_ = NONE;
-  const char* def_name = 0;
+  std::string aspect;
   const char* yaxis = 0;
   if (mode_ == CRDIDX) {
-    def_name = "repidx";
+    aspect = "repidx";
     yaxis = "ylabel CrdIdx";
   } else if (mode_ == REPIDX) {
-    def_name = "crdidx";
+    aspect = "crdidx";
     yaxis = "ylabel RepIdx";
   }
   // Set up an output set for each replica
@@ -100,10 +107,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
       if (dfout == 0 ) return Analysis::ERR;
       if (yaxis != 0 ) dfout->ProcessArgs(yaxis);
     }
-    std::string dsname = analyzeArgs.GetStringKey("name");
-    if (dsname.empty())
-      dsname = datasetlist->GenerateDefaultName(def_name);
-    MetaData md(dsname);
+    MetaData md(dsname, aspect);
     for (int i = 0; i < (int)remlog_->Size(); i++) {
       md.SetIdx(i+1);
       DataSet_integer* ds = (DataSet_integer*)datasetlist->AddSet(DataSet::INTEGER, md);
@@ -153,11 +157,11 @@ Analysis::RetType Analysis_RemLog::Analyze() {
     if (calculateStats_)
       DimTrips.push_back( TripStats(remlog_->Size()) );
   }
-  std::vector< std::vector<int> > replicaFrac;
+  std::vector<Iarray> replicaFrac;
   if (calculateStats_) {
     replicaFrac.resize( remlog_->Size() ); // [replica][crdidx]
-    for (std::vector< std::vector<int> >::iterator it = replicaFrac.begin();
-                                                   it != replicaFrac.end(); ++it)
+    for (std::vector<Iarray>::iterator it = replicaFrac.begin();
+                                       it != replicaFrac.end(); ++it)
       it->resize( remlog_->Size(), 0 );
   }
   // Variables for calculating replica lifetimes
@@ -236,10 +240,16 @@ Analysis::RetType Analysis_RemLog::Analyze() {
         } else if (trip.status_[crdidx] == HIT_TOP) {
           if (remlog_->ReplicaInfo()[repidx][dim].Location() == DataSet_RemLog::BOTTOM) {
             int rtrip = frame - trip.bottom_[crdidx];
-            if (printIndividualTrips_)
-              statsout_->Printf("[%i] CRDIDX %i took %i exchanges to travel"
-                               " up and down (exch %i to %i)\n",
-                               replica, crdidx+1, rtrip, trip.bottom_[crdidx]+1, frame+1);
+            if (printIndividualTrips_) {
+              if (Ndims < 2)
+                statsout_->Printf("[%i] CRDIDX %i took %i exchanges to travel"
+                                 " up and down (exch %i to %i)\n",
+                                 replica, crdidx+1, rtrip, trip.bottom_[crdidx]+1, frame+1);
+              else
+                statsout_->Printf("[%i] CRDIDX %i took %i exchanges to travel"
+                                 " up and down in dim %i (exch %i to %i)\n",
+                                 replica, crdidx+1, rtrip, dim+1, trip.bottom_[crdidx]+1, frame+1);
+            }
             trip.roundTrip_[crdidx].AddElement( rtrip );
             trip.status_[crdidx] = HIT_BOTTOM;
             trip.bottom_[crdidx] = frame;
@@ -295,6 +305,9 @@ Analysis::RetType Analysis_RemLog::Analyze() {
                           idx++, rt->Size(), avg, stdev, rt->Min(), rt->Max());
       }
     }
+    // Time spent at each replica
+    DataSet_MatrixFlt& RTM = static_cast<DataSet_MatrixFlt&>( *repTimeMatrix_ );
+    RTM.Allocate2D( remlog_->Size(), remlog_->Size() );
     reptime_->Printf("#Percent time spent at each replica:\n%-8s", "#Replica");
     for (int crd = 0; crd < (int)remlog_->Size(); crd++)
       reptime_->Printf(" CRD_%04i", crd + 1);
@@ -302,8 +315,11 @@ Analysis::RetType Analysis_RemLog::Analyze() {
     double dframes = (double)remlog_->NumExchange();
     for (int replica = 0; replica < (int)remlog_->Size(); replica++) {
       reptime_->Printf("%8i", replica+1);
-      for (int crd = 0; crd < (int)remlog_->Size(); crd++)
-        reptime_->Printf(" %8.3f", ((double)replicaFrac[replica][crd] / dframes) * 100.0);
+      for (int crd = 0; crd < (int)remlog_->Size(); crd++) {
+        double frac = ((double)replicaFrac[replica][crd] / dframes) * 100.0;
+        reptime_->Printf(" %8.3f", frac);
+        RTM.AddElement((float)frac);
+      }
       reptime_->Printf("\n");
     }
   }

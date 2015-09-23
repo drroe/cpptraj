@@ -43,6 +43,7 @@ class Analysis_RemLog : public Analysis {
     bool calculateLifetimes_;
     bool printIndividualTrips_;
     DataSet_RemLog* remlog_;
+    DataSet* repTimeMatrix_;
     ModeType mode_;
     std::vector<DataSet*> outputDsets_;
     CpptrajFile* lifetimes_;
