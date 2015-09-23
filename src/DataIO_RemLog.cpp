@@ -251,7 +251,8 @@ DataIO_RemLog::TmapType
   for (std::vector<TlogType>::const_iterator it = tList.begin();
                                              it != tList.end(); ++it)
   {
-    mprintf("\t\tReplica %i => %f (crdidx= %i)\n", repidx, it->t0, it->crdidx); 
+    if (debug_ > 0)
+      mprintf("\t\tReplica %i => %f (crdidx= %i)\n", repidx, it->t0, it->crdidx);
     if (it != tList.begin()) {
       if ( it->t0 == (it-1)->t0 ) {
         mprinterr("Error: duplicate temperature %.2f detected in T-REMD remlog\n", it->t0);
@@ -296,7 +297,8 @@ DataIO_RemLog::TmapType
   for (std::vector<TlogType>::const_iterator it = pList.begin();
                                              it != pList.end(); ++it)
   {
-    mprintf("\t\tReplica %i => %f (crdidx= %i)\n", repidx, it->t0, it->crdidx); 
+    if (debug_ > 0)
+      mprintf("\t\tReplica %i => %f (crdidx= %i)\n", repidx, it->t0, it->crdidx);
     if (it != pList.begin()) {
       if ( it->t0 == (it-1)->t0 ) {
         mprinterr("Error: duplicate pH %.2f detected in pH-REMD remlog\n", it->t0);
@@ -352,8 +354,9 @@ int DataIO_RemLog::OpenMremdDims(std::vector<BufferedLine>& buffer, Sarray const
     // Read the remlog header.
     int numexchg = ReadRemlogHeader(buffer[dim], log_type, buffer.size());
     if (numexchg == -1) return -1;
-    mprintf("\t%s, type %s, should contain %i exchanges\n",
-            dimLogs[dim].c_str(), LogDescription[log_type], numexchg);
+    if (debug_ > 0)
+      mprintf("\t%s, type %s, should contain %i exchanges\n",
+              dimLogs[dim].c_str(), LogDescription[log_type], numexchg);
     if (total_exchanges == -1)
       total_exchanges = numexchg;
     else if (numexchg != total_exchanges) {

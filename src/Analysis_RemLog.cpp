@@ -318,7 +318,8 @@ Analysis::RetType Analysis_RemLog::Analyze() {
   for (int dim = 0; dim != Ndims; dim++) {
     // Assume number of exchange attempts is actually /2 since in Amber
     // attempts alternate up/down.
-    acceptout_->Printf("DIMENSION %i\n", dim+1);
+    if (Ndims > 1)
+      acceptout_->Printf("#DIMENSION %i\n", dim+1);
     if (debug_ > 0) {
       for (int replica = 0; replica != (int)remlog_->Size(); replica++)
         mprintf("Rep %i attempts %i up %i down %i\n", replica, DimStats[dim].attempts_,
@@ -326,12 +327,18 @@ Analysis::RetType Analysis_RemLog::Analyze() {
     }
     acceptout_->Printf("%-8s %8s %8s\n", "#Replica", "%UP", "%DOWN");
     double exchangeAttempts = (double)DimStats[dim].attempts_ / 2.0;
-    for (int replica = 0; replica != (int)remlog_->Size(); replica++)
-      acceptout_->Printf("%8i %8.3f %8.3f\n", replica+1,
-            ((double)DimStats[dim].acceptUp_[replica] / exchangeAttempts) * 100.0,
-            ((double)DimStats[dim].acceptDown_[replica] / exchangeAttempts) * 100.0);
+    // Write according to group order
+    for (DataSet_RemLog::GroupDimType::const_iterator Group = remlog_->GroupDims()[dim].begin();
+                                                      Group != remlog_->GroupDims()[dim].end();
+                                                    ++Group)
+    {
+      for (DataSet_RemLog::GroupArray::const_iterator Rep = Group->begin();
+                                                      Rep != Group->end(); ++Rep)
+        acceptout_->Printf("%8i %8.3f %8.3f\n", Rep->Me(),
+          ((double)DimStats[dim].acceptUp_[Rep->Me()-1] / exchangeAttempts) * 100.0,
+          ((double)DimStats[dim].acceptDown_[Rep->Me()-1] / exchangeAttempts) * 100.0);
+    }
   }
-  acceptout_->CloseFile();
   if (calculateStats_) {
     statsout_->Printf("# %i replicas, %i exchanges.\n", remlog_->Size(), remlog_->NumExchange());
     for (int dim = 0; dim != Ndims; dim++) {
@@ -351,7 +358,6 @@ Analysis::RetType Analysis_RemLog::Analyze() {
                           idx++, rt->Size(), avg, stdev, rt->Min(), rt->Max());
       }
     }
-    statsout_->CloseFile();
     // Time spent at each replica
     DataSet_MatrixFlt& RTM = static_cast<DataSet_MatrixFlt&>( *repTimeMatrix_ );
     RTM.Allocate2D( remlog_->Size(), remlog_->Size() );
@@ -369,7 +375,6 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       }
       reptime_->Printf("\n");
     }
-    reptime_->CloseFile();
   }
   if (calculateLifetimes_) {
     mprintf("\tCalculating remlog lifetimes:\n");
