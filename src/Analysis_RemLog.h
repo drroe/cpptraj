@@ -42,6 +42,8 @@ class Analysis_RemLog : public Analysis {
     bool calculateStats_;
     bool calculateLifetimes_;
     bool printIndividualTrips_;
+    bool calc_JSD_;
+    DataSetList* masterDSL_;
     DataSet_RemLog* remlog_;
     DataSet* repTimeMatrix_;
     ModeType mode_;
@@ -50,9 +52,11 @@ class Analysis_RemLog : public Analysis {
     CpptrajFile* statsout_;
     CpptrajFile* reptime_;
     CpptrajFile* acceptout_;
+    DataFile* JSD_file_;
     int calcRepFracSlope_;
     CpptrajFile* repFracSlope_;
     FileName trajoutName_;
     FileName parmoutName_;
+    std::string dsname_;
 };
 #endif

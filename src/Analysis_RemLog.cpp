@@ -1,3 +1,5 @@
+#include <cmath> // log
+#include <limits> // Minimum double val for checking zero
 #include "Analysis_RemLog.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
@@ -13,13 +15,16 @@ Analysis_RemLog::Analysis_RemLog() :
   debug_(0),
   calculateStats_(false),
   calculateLifetimes_(false),
-  printIndividualTrips_(false), 
+  printIndividualTrips_(false),
+  calc_JSD_(true),
+  masterDSL_(0),
   remlog_(0),
   repTimeMatrix_(0),
   mode_(NONE),
   lifetimes_(0),
   statsout_(0),
   reptime_(0),
+  JSD_file_(0),
   calcRepFracSlope_(0),
   repFracSlope_(0)
 {}
@@ -28,7 +33,7 @@ void Analysis_RemLog::Help() {
   mprintf("\t{<remlog dataset> | <remlog filename>} [out <filename>] [crdidx | repidx]\n"
           "\t[stats [statsout <file>] [printtrips] [reptime <file>]] [lifetime <file>]\n"
           "\t[reptimeslope <n> reptimeslopeout <file>] [acceptout <file>] [name <setname>]\n"
-          "\t[trajout <file> [parmout <file>]\n"
+          "\t[trajout <file> [parmout <file>] [jsd <file>]\n"
           "    crdidx: Print coordinate index vs exchange; output sets contain replica indices.\n"
           "    repidx: Print replica index vs exchange; output sets contain coordinate indices.\n"
           "  Analyze previously read in replica log data.\n");
@@ -55,12 +60,16 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
     mprinterr("Error: remlog data set appears to be empty.\n");
     return Analysis::ERR;
   }
-  std::string dsname = analyzeArgs.GetStringKey("name");
-  if (dsname.empty())
-    dsname = datasetlist->GenerateDefaultName("RL");
+  dsname_ = analyzeArgs.GetStringKey("name");
+  if (dsname_.empty())
+    dsname_ = datasetlist->GenerateDefaultName("RL");
   acceptout_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("acceptout"), "replica acceptance",
                                       DataFileList::TEXT, true );
   if (acceptout_ == 0) return Analysis::ERR;
+  calculateStats_ = analyzeArgs.hasKey("stats");
+  JSD_file_ = DFLin->AddDataFile( analyzeArgs.GetStringKey("jsd"), analyzeArgs );
+  calc_JSD_ = (JSD_file_ != 0);
+  if (calc_JSD_) calculateStats_ = true;
   trajoutName_.SetFileName( analyzeArgs.GetStringKey("trajout") );
   std::string pout = analyzeArgs.GetStringKey("parmout");
   if (!trajoutName_.empty() && pout.empty())
@@ -68,14 +77,13 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
                                           trajoutName_.Base() + ".parm7" );
   lifetimes_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("lifetime"), "remlog lifetimes" );
   calculateLifetimes_ = (lifetimes_ != 0);
-  calculateStats_ = analyzeArgs.hasKey("stats");
   if (calculateStats_) {
     statsout_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("statsout"), "remlog stats",
                                        DataFileList::TEXT, true );
     reptime_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("reptime"), "replica times",
                                       DataFileList::TEXT, true );
     if (statsout_ == 0 || reptime_ == 0) return Analysis::ERR;
-    repTimeMatrix_ = datasetlist->AddSet( DataSet::MATRIX_FLT, MetaData(dsname, "reptime") );
+    repTimeMatrix_ = datasetlist->AddSet( DataSet::MATRIX_FLT, MetaData(dsname_, "reptime") );
     if (repTimeMatrix_ == 0) return Analysis::ERR;
   }
   calcRepFracSlope_ = analyzeArgs.getKeyInt("reptimeslope", 0);
@@ -106,7 +114,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
     aspect = "crdidx";
     yaxis = "ylabel RepIdx";
   }
-  // Set up an output set for each replica
+  // Set up an output set for each replica // FIXME should happen in Analyze()?
   DataFile* dfout = 0;
   if (mode_ != NONE) {
     // Get output filename
@@ -116,7 +124,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
       if (dfout == 0 ) return Analysis::ERR;
       if (yaxis != 0 ) dfout->ProcessArgs(yaxis);
     }
-    MetaData md(dsname, aspect);
+    MetaData md(dsname_, aspect);
     for (int i = 0; i < (int)remlog_->Size(); i++) {
       md.SetIdx(i+1);
       DataSet_integer* ds = (DataSet_integer*)datasetlist->AddSet(DataSet::INTEGER, md);
@@ -149,6 +157,11 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
     mprintf("\tPseudo trajectory for crdidx will be written to '%s'\n", trajoutName_.full());
     mprintf("\tPseudo topology for crdidx will be written to '%s'\n", parmoutName_.full());
   }
+  if (calc_JSD_) {
+    mprintf("\tJensen-Shannon divergence of crd replica residence time from flat"
+            " will be written to '%s'\n", JSD_file_->DataFilename().full());
+  }
+  masterDSL_ = datasetlist;
   return Analysis::OK;
 }
 
@@ -161,6 +174,18 @@ Analysis::RetType Analysis_RemLog::Analyze() {
   int Ndims = remlog_->DimTypes().Ndims();
   mprintf("\t'%s' %i replicas, %i exchanges, %i dims.\n", remlog_->legend(),
          remlog_->Size(), remlog_->NumExchange(), Ndims);
+  // Set up output sets for JSD
+  std::vector<DataSet*> JSD_sets;
+  if (calc_JSD_) {
+    MetaData md(dsname_, "JSD");
+    for (int crdidx = 0; crdidx != (int)remlog_->Size(); crdidx++) {
+      md.SetIdx( crdidx + 1 );
+      DataSet* ds = masterDSL_->AddSet( DataSet::DOUBLE, md );
+      if (ds == 0) return Analysis::ERR;
+      JSD_file_->AddDataSet( ds );
+      JSD_sets.push_back( ds );
+    }
+  }
   // Set up arrays for tracking replica stats.
   std::vector<RepStats> DimStats;
   std::vector<TripStats> DimTrips;
@@ -299,6 +324,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
     // Pseudo traj for tracking replica motion
     if (!trajoutName_.empty())
       repGroup.WriteSingle( frame, RG_frame );
+    // Replica "slope" calculation.
     if (calcRepFracSlope_ > 0 && frame > 0 && (frame % calcRepFracSlope_) == 0) {
       repFracSlope_->Printf("%8i", frame+1);
       for (int crdidx = 0; crdidx < (int)remlog_->Size(); crdidx++) {
@@ -310,6 +336,60 @@ Analysis::RetType Analysis_RemLog::Analyze() {
                 //frame+1, crdidx, slope * 100.0, intercept * 100.0, correl
       }
       repFracSlope_->Printf("\n");
+    }
+    // DEBUG
+    // Jensen-Shannon divergence of each crdidx probability from "ideal"
+    if (calc_JSD_) {
+      double dFrame = (double)frame + 1.0; // Already processed frame.
+      double normQ = 1.0 / (double)remlog_->Size(); // ideal dist, already normalized to 1.0
+      //std::vector<double> normP( remlog_->Size(), 0.0 );
+      //std::vector<double> normM( remlog_->Size(), 0.0 );
+      for (int crdidx = 0; crdidx != (int)remlog_->Size(); crdidx++) {
+        //double sumQ = 0.0; // DEBUG
+        //double sumP = 0.0; // DEBUG
+        //double sumM = 0.0; // DEBUG
+        double div_PM = 0.0;
+        double div_QM = 0.0;
+        bool PM_valid = true;
+        bool QM_valid = true;
+        //mprintf("\nFrame %i CRDIDX %i\n", frame+1, crdidx+1);
+        for (int replica = 0; replica != (int)remlog_->Size(); replica++) {
+          double normP = (double)replicaFrac[replica][crdidx] / dFrame;
+          double normM = 0.5 * (normP + normQ);
+          //mprintf("P= %g  Q= %g  M= %g\n", normP, normQ, normM);
+ 
+          bool Pzero = (normP <= std::numeric_limits<double>::min());
+          bool Qzero = (normQ <= std::numeric_limits<double>::min());
+          bool Mzero = (normM <= std::numeric_limits<double>::min());
+
+          if (PM_valid) {
+            if (!Pzero && !Mzero)
+              div_PM += (log( normP / normM) * normP);
+            else if (Pzero != Mzero) {
+              PM_valid = false;
+              div_PM = 0.0;
+            }
+          }
+
+          if (QM_valid) {
+            if (!Qzero && !Mzero)
+              div_QM += (log( normQ / normM) * normQ);
+            else if (Qzero != Mzero) {
+              QM_valid = false;
+              div_QM = 0.0;
+            }
+          }
+          // DEBUG
+          //sumQ += normQ;
+          //sumP += normP[replica];
+          //sumM += normM[replica];
+        }
+        double divergence = (0.5 * div_PM) + (0.5 * div_QM);
+        //mprintf("PM= %g  QM= %g  JSD= %g\n", div_PM, div_QM, divergence);
+        JSD_sets[crdidx]->Add(frame, &divergence);
+        //mprintf("DEBUG: crdidx %i: JS_div = %g\n", crdidx, divergence);
+        //mprintf("DEBUG: crdidx %i: sumQ= %g  sumP= %g  sumM= %g\n", crdidx, sumQ, sumP, sumM);
+      }
     }
   } // END loop over exchanges
   if (!trajoutName_.empty())

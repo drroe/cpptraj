@@ -50,3 +50,7 @@ void DataSet_RemLog::TrimLastExchange() {
   for (member = ensemble_.begin(); member != ensemble_.end(); ++member)
     (*member).resize( min_size );
 }
+
+void DataSet_RemLog::Info() const {
+  mprintf(" (%zu replicas, %zu dims)", ensemble_.size(), groupDims_.size());
+} 

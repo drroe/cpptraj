@@ -49,7 +49,7 @@ class DataSet_RemLog : public DataSet {
     // ----- DataSet routines --------------------
     size_t Size() const { return ensemble_.size(); }
     int Sync()          { return 1;                }
-    void Info()   const { return;                  }
+    void Info()   const;
     void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
     int Allocate(SizeArray const&) { return 0; } // TODO implement?
     // TODO: Remove
