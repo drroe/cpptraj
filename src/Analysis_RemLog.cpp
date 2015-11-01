@@ -40,8 +40,7 @@ void Analysis_RemLog::Help() {
 }
 
 // Analysis_RemLog::Setup()
-Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   debug_ = debugIn;
   // Get remlog dataset
@@ -217,7 +216,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
         dsLifetime.push_back( (DataSet_1D*)&(series[i][j]) );
       }
     }
-    if (Lifetime.Setup( dsLifetime, lifetimes_ ) == Analysis::ERR) {
+    if (Lifetime.ExternalSetup( dsLifetime, lifetimes_ ) == Analysis::ERR) {
       mprinterr("Error: Could not set up remlog lifetime analysis.\n");
       return Analysis::ERR;
     }
@@ -331,7 +330,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
         for (int replica = 0; replica < (int)remlog_->Size(); replica++)
           mesh.SetY(replica, (double)replicaFrac[replica][crdidx] / (double)frame);
         double slope, intercept, correl;
-        mesh.LinearRegression(slope, intercept, correl, true);
+        mesh.LinearRegression(slope, intercept, correl, 0);
         repFracSlope_->Printf("  %14.7g %14.7g", slope * 100.0, correl);
                 //frame+1, crdidx, slope * 100.0, intercept * 100.0, correl
       }
