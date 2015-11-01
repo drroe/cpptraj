@@ -243,7 +243,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
     // Create an atom for each crdidx
     for (int atom = 0; atom != (int)remlog_->Size(); atom++)
       RG_top.AddTopAtom( Atom( "C" + integerToString(atom+1), "H "),
-                         Residue("CRD", atom+1, ' ', ' '), 0 );
+                         Residue("CRD", atom+1, ' ', ' ') );
     ParmFile RG_top_out;
     RG_top_out.WriteTopology( RG_top, parmoutName_, ArgList(), ParmFile::UNKNOWN_PARM, debug_ );
     if (repGroup.PrepareTrajWrite(trajoutName_, ArgList(), &RG_top, CoordinateInfo(),
