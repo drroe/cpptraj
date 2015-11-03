@@ -8,6 +8,7 @@ class Action_Vector : public Action {
     ~Action_Vector();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Vector(); }
     static void Help();
+    static Vec3 leastSquaresPlane(int,const double*);
   private:
     enum vectorMode {
       NO_OP=0,   PRINCIPAL_X, PRINCIPAL_Y, PRINCIPAL_Z,
@@ -23,7 +24,6 @@ class Action_Vector : public Action {
     void Print();
 
     static double solve_cubic_eq(double,double,double,double);
-    static Vec3 leastSquaresPlane(int,const double*);
     void Mask(Frame const&);
     void Dipole(Frame const&);
     void Principal(Frame const&);

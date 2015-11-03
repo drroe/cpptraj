@@ -51,6 +51,9 @@ class Action_NAstruct: public Action {
     void CalcPucker(NA_Base&, int); // TODO: Move to NA_Base
     int DetermineStepParameters(int);
 
+    //void FollowStrand(int, std::vector<int>&, int) const;
+    int DetermineStrands() const;
+
     typedef std::vector<NA_Base> Barray;
     Barray Bases_;        ///< Hold nucleobases
     /// Hold a base pair.

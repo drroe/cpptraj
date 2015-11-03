@@ -109,7 +109,7 @@ NA_Base::NA_Base() :
   bchar_('?'),
   type_(UNKNOWN_BASE)
 {
-  std::fill( atomIdx_, atomIdx_+6, -1 );
+  std::fill( atomIdx_, atomIdx_+NTYPES, -1 );
 }
 
 // COPY CONSTRUCTOR
@@ -133,7 +133,7 @@ NA_Base::NA_Base(const NA_Base& rhs) :
   inpFitMask_(rhs.inpFitMask_),
   refFitMask_(rhs.refFitMask_)
 {
-  std::copy( rhs.atomIdx_, rhs.atomIdx_+6, atomIdx_ );
+  std::copy( rhs.atomIdx_, rhs.atomIdx_+NTYPES, atomIdx_ );
 }
 
 // ASSIGNMENT
@@ -154,7 +154,7 @@ NA_Base& NA_Base::operator=(const NA_Base& rhs) {
 #   endif
     Inp_ = rhs.Inp_;
     hb_ = rhs.hb_;
-    std::copy( rhs.atomIdx_, rhs.atomIdx_+6, atomIdx_ );
+    std::copy( rhs.atomIdx_, rhs.atomIdx_+NTYPES, atomIdx_ );
     parmMask_ = rhs.parmMask_;
     inpFitMask_ = rhs.inpFitMask_;
     refFitMask_ = rhs.refFitMask_;
@@ -247,7 +247,7 @@ int NA_Base::Setup_Base(Topology const& currentParm, int resnum, NA_Base::NAType
   // Save atom names for input coords. Look for specific atom names for
   // calculating things like groove width and pucker.
   int inpatom = 0;
-  std::fill( atomIdx_, atomIdx_+6, -1 );
+  std::fill( atomIdx_, atomIdx_+NTYPES, -1 );
   for (int atom = resstart; atom < resstop; ++atom) {
     anames_.push_back( currentParm[atom].Name() );
     // Is this atom P?
@@ -264,6 +264,13 @@ int NA_Base::Setup_Base(Topology const& currentParm, int resnum, NA_Base::NAType
       atomIdx_[C3p] = inpatom;
     else if (anames_.back() == "C4' " || anames_.back() == "C4* ")
       atomIdx_[C4p] = inpatom;
+    else if (anames_.back()[0] == 'N') {
+      if (baseType == ADE || baseType == GUA) { // Purine, N9
+        if (anames_.back()[1] == '9') atomIdx_[Nx] = inpatom;
+      } else { // Pyrimidine, N1
+        if (anames_.back()[1] == '1') atomIdx_[Nx] = inpatom;
+      }
+    }
     inpatom++;
   }
   // Determine whether sugar atoms are all present.
@@ -381,12 +388,12 @@ void NA_Base::CalcPucker(int framenum, PmethodType puckerMethod) {
     double pval=0.0, aval, tval;
     switch (puckerMethod) {
       case ALTONA:
-        pval = Pucker_AS( C1xyz(), C2xyz(), C3xyz(),
-                          C4xyz(), O4xyz(), aval );
+        pval = Pucker_AS( Inp_.XYZ(atomIdx_[C1p]), Inp_.XYZ(atomIdx_[C2p]), Inp_.XYZ(atomIdx_[C3p]),
+                          Inp_.XYZ(atomIdx_[C4p]), Inp_.XYZ(atomIdx_[O4p]), aval );
       break;
       case CREMER:
-        pval = Pucker_CP( C1xyz(), C2xyz(), C3xyz(),
-                          C4xyz(), O4xyz(), 0,
+        pval = Pucker_CP( Inp_.XYZ(atomIdx_[C1p]), Inp_.XYZ(atomIdx_[C2p]), Inp_.XYZ(atomIdx_[C3p]),
+                          Inp_.XYZ(atomIdx_[C4p]), Inp_.XYZ(atomIdx_[O4p]), 0,
                           5, aval, tval );
         break;
     }

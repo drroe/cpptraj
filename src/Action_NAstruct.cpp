@@ -6,6 +6,8 @@
 #include "Constants.h" // RADDEG
 #ifdef NASTRUCTDEBUG
 #include "PDBfile.h"
+#include "Trajout_Single.h" // DEBUG
+#include "Action_Vector.h" // DEBUG
 #endif
 
 // CONSTRUCTOR
@@ -332,6 +334,146 @@ int Action_NAstruct::DetermineBasePairing() {
   return 0;
 }
 
+// -----------------------------------------------------------------------------
+/*
+void Action_NAstruct::FollowStrand(int idx, std::vector<int>& Strand, int currentStrand) const
+{
+  if (idx < 0 || Strand[idx] != -1) return;
+  Strand[idx] = currentStrand;
+  FollowStrand( Bases_[idx].C5resIdx(), Strand, currentStrand );
+  FollowStrand( Bases_[idx].C3resIdx(), Strand, currentStrand );
+}
+
+int Action_NAstruct::DetermineStrands() const {
+  std::vector<int> Strand( Bases_.size(), -1 ); // Hold which strand each base belongs to.
+  int currentStrand = 0;
+  for (unsigned int idx = 0; idx != Bases_.size(); idx++) {
+    if (Strand[idx] == -1)
+      FollowStrand(idx, Strand, currentStrand++);
+  }
+  mprintf("\tDetected %i strands.\n", currentStrand);
+  for (unsigned int idx = 0; idx != Bases_.size(); idx++)
+    mprintf("\tRes %i Strand %i\n", Bases_[idx].ResNum()+1, Strand[idx]);
+  return 0;
+}
+*/
+static void StoreStrandVec( std::vector<double>& AxisVecs, NA_Base::AtmType atype,
+                            NA_Base const& b1, NA_Base const& b2)
+{
+  if (b1.HasAtom(atype) && b2.HasAtom(atype)) {
+    const double* xyz1 = b1.Xyz(atype);
+    const double* xyz2 = b2.Xyz(atype);
+    mprintf("DEBUG: VECTOR: %4s - %4s {%8.3f %8.3f %8.3f} {%8.3f %8.3f %8.3f}\n",
+            b1.BaseName().c_str(), b2.BaseName().c_str(), 
+            xyz1[0], xyz1[1], xyz1[2], xyz2[0], xyz2[1], xyz2[2]);
+    //helixOut.WriteATOM("C1'", base1->ResNum()+1, xyz1[0], xyz1[1], xyz1[2], base1->ResName(),0);
+    //helixOut.WriteATOM("C1'", base2.ResNum()+1,  xyz2[0], xyz2[1], xyz2[2], base2.ResName(),0);
+    //AxisVecs.push_back( Vec3(xyz2[0]-xyz1[0], xyz2[1]-xyz1[1], xyz2[2]-xyz1[2]) );
+    AxisVecs.push_back( xyz2[0]-xyz1[0] );
+    AxisVecs.push_back( xyz2[1]-xyz1[1] );
+    AxisVecs.push_back( xyz2[2]-xyz1[2] );
+  }
+}
+
+int Action_NAstruct::DetermineStrands() const {
+  PDBfile helixOut;
+  helixOut.OpenWrite("temp.helix.pdb");
+  std::vector<double> AxisVecs; // Hold C1'-C1' and Nx-Nx vectors.
+  // NOTE: This will only work for one strand.
+  for (BPmap::const_iterator bp1 = BasePairs_.begin(); bp1 != BasePairs_.end(); ++bp1)
+  {
+    BPtype const& BP1 = bp1->second;
+    NA_Base const& base1 = Bases_[BP1.base1idx_];
+    NA_Base const& base2 = Bases_[BP1.base2idx_];
+    // Find step
+    int idx1 = base1.C3resIdx();
+    int idx2;
+    if (BP1.isAnti_)
+      idx2 = base2.C5resIdx();
+    else
+      idx2 = base2.C3resIdx();
+    if (idx1 != -1 && idx2 != -1) {
+      Rpair respair(Bases_[idx1].ResNum(), Bases_[idx2].ResNum());
+      BPmap::const_iterator bp2 = BasePairs_.find( respair );
+      if (bp2 != BasePairs_.end()) {
+        BPtype const& BP2 = bp2->second;
+        NA_Base const& base3 = Bases_[BP2.base1idx_];
+        NA_Base const& base4 = Bases_[BP2.base2idx_];
+        // Strand1: base1->base3; Strand2: base2->base4
+        StoreStrandVec( AxisVecs, NA_Base::C1p, base1, base3 );
+        StoreStrandVec( AxisVecs, NA_Base::C1p, base2, base4 );
+        StoreStrandVec( AxisVecs, NA_Base::Nx,  base1, base3 );
+        StoreStrandVec( AxisVecs, NA_Base::Nx,  base2, base4 );
+/*       
+      if (base1->HasAtom(NA_Base::C1p) && base2.HasAtom(NA_Base::C1p)) {
+        const double* xyz1 = base1->Xyz(NA_Base::C1p);
+        const double* xyz2 = base2.Xyz( NA_Base::C1p);
+        mprintf("DEBUG: C1'-C1' VECTOR: %4s - %4s {%8.3f %8.3f %8.3f} {%8.3f %8.3f %8.3f}\n",
+                base1->BaseName().c_str(), base2.BaseName().c_str(), 
+                xyz1[0], xyz1[1], xyz1[2], xyz2[0], xyz2[1], xyz2[2]);
+        helixOut.WriteATOM("C1'", base1->ResNum()+1, xyz1[0], xyz1[1], xyz1[2], base1->ResName(),0);
+        helixOut.WriteATOM("C1'", base2.ResNum()+1,  xyz2[0], xyz2[1], xyz2[2], base2.ResName(),0);
+        //AxisVecs.push_back( Vec3(xyz2[0]-xyz1[0], xyz2[1]-xyz1[1], xyz2[2]-xyz1[2]) );
+        AxisVecs.push_back( xyz2[0]-xyz1[0] );
+        AxisVecs.push_back( xyz2[1]-xyz1[1] );
+        AxisVecs.push_back( xyz2[2]-xyz1[2] );
+      }
+      if (base1->HasAtom(NA_Base::Nx) && base2.HasAtom(NA_Base::Nx)) {
+        const double* xyz1 = base1->Xyz(NA_Base::Nx);
+        const double* xyz2 = base2.Xyz( NA_Base::Nx);
+        mprintf("DEBUG: N*-N*   VECTOR: %4s - %4s {%8.3f %8.3f %8.3f} {%8.3f %8.3f %8.3f}\n",
+                base1->BaseName().c_str(), base2.BaseName().c_str(), 
+                xyz1[0], xyz1[1], xyz1[2], xyz2[0], xyz2[1], xyz2[2]);
+        helixOut.WriteATOM("N*", base1->ResNum()+1, xyz1[0], xyz1[1], xyz1[2], base1->ResName(),0);
+        helixOut.WriteATOM("N*", base2.ResNum()+1,  xyz2[0], xyz2[1], xyz2[2], base2.ResName(),0);
+        //AxisVecs.push_back( Vec3(xyz2[0]-xyz1[0], xyz2[1]-xyz1[1], xyz2[2]-xyz1[2]) );
+        AxisVecs.push_back( xyz2[0]-xyz1[0] );
+        AxisVecs.push_back( xyz2[1]-xyz1[1] );
+        AxisVecs.push_back( xyz2[2]-xyz1[2] );
+      }
+*/
+      }
+    }
+  }
+  mprintf("DEBUG: Stored %zu vectors.\n", AxisVecs.size() / 3);
+  // Least squares.
+  const double* XYZ = &(AxisVecs[0]);
+  Vec3 corrPlane = Action_Vector::leastSquaresPlane( AxisVecs.size(), XYZ ); 
+  // DEBUG - Write vectors out to a mol2
+  BondParmArray bParm(1, BondParmType(0.0, 1.0));
+  Topology pseudoTop;
+  Frame pseudoFrm;
+  BondArray bonds;
+  int nres = 1;
+  int natom = 0;
+  Vec3 zero(0.0);
+  for (unsigned int idx = 0; idx != AxisVecs.size(); idx += 3)
+  //std::vector<Vec3>::const_iterator vec = AxisVecs.begin(); vec != AxisVecs.end(); ++vec)
+  {
+    Residue vec_res("VEC", nres, ' ', ' ');
+    pseudoTop.AddTopAtom(Atom("OXYZ", 0), vec_res);
+    pseudoFrm.AddVec3( zero );
+    pseudoTop.AddTopAtom(Atom("VXYZ", 0), vec_res);
+    pseudoFrm.AddXYZ( XYZ + idx  );
+    bonds.push_back( BondType(natom, natom+1, 0) );
+    natom += 2;
+    ++nres;
+  }
+  Residue vec_res("COR", nres, ' ', ' ');
+  pseudoTop.AddTopAtom(Atom("OXYZ", 0), vec_res);
+  pseudoFrm.AddVec3( zero );
+  pseudoTop.AddTopAtom(Atom("VXYZ", 0), vec_res);
+  pseudoFrm.AddVec3( corrPlane );
+  bonds.push_back( BondType(natom, natom+1, 0) );
+  pseudoTop.SetBondInfo( bonds, BondArray(), bParm );
+  pseudoTop.CommonSetup();
+  Trajout_Single mol2out;
+  mol2out.PrepareTrajWrite("temp.helixvecs.mol2", ArgList(), &pseudoTop, CoordinateInfo(),
+                           1, TrajectoryFile::MOL2FILE);
+  mol2out.WriteSingle(0, pseudoFrm);
+  mol2out.EndTraj();
+  return 0;
+}
 // -----------------------------------------------------------------------------
 // AverageMatrices()
 static Matrix_3x3 AverageMatrices(Matrix_3x3 const& RotatedR1, Matrix_3x3 const& RotatedR2) {
@@ -686,8 +828,8 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
       // Calc direct P--P distance
       float dPtoP = 0.0;
       //mprintf("\tDEBUG: %i %i:", BaseAxes[base1].Pidx(), BaseAxes[base2].Pidx() );
-      if ( base1.HasPatom() && base2.HasPatom() ) {
-        double DP = DIST2_NoImage( base1.Pxyz(), base2.Pxyz() );
+      if ( base1.HasAtom(NA_Base::PHOS) && base2.HasAtom(NA_Base::PHOS) ) {
+        double DP = DIST2_NoImage( base1.Xyz(NA_Base::PHOS), base2.Xyz(NA_Base::PHOS) );
         //mprintf(" %i to %i P--P D= %f", BaseAxes[base1].ResNum()+1, BaseAxes[base2].ResNum()+1,
         //        sqrt(dPtoP) );
         DP = sqrt(DP);
@@ -696,8 +838,8 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
       //mprintf("\n");
       float dOtoO = 0.0;
       //mprintf("\tDEBUG: %i %i:", BaseAxes[base1].O4idx(), BaseAxes[base2].O4idx() );
-      if ( base1.HasO4atom() && base2.HasO4atom() ) {
-        double DO4 = DIST2_NoImage( base1.O4xyz(), base2.O4xyz() );
+      if ( base1.HasAtom(NA_Base::O4p) && base2.HasAtom(NA_Base::O4p) ) {
+        double DO4 = DIST2_NoImage( base1.Xyz(NA_Base::O4p), base2.Xyz(NA_Base::O4p) );
         //mprintf(" %i to %i O4'--O4' D= %f", BaseAxes[base1].ResNum()+1, BaseAxes[base2].ResNum()+1,
         //        sqrt(dOtoO) );
         DO4 = sqrt(DO4);
@@ -835,7 +977,7 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
               // For para, want base3 - 2 (to 5'), base4 + 2 (to 3')
               BS.p_p2_ = GetBaseIdxStep( BS.b4idx_, +2 );
             if (BS.P_m2_ != -1 && BS.p_p2_ != -1 && 
-                Bases_[BS.P_m2_].HasPatom() && Bases_[BS.p_p2_].HasPatom())
+                Bases_[BS.P_m2_].HasAtom(NA_Base::PHOS) && Bases_[BS.p_p2_].HasAtom(NA_Base::PHOS))
             {
               md.SetAspect("major");
               BS.majGroove_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
@@ -855,8 +997,10 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
               BS.p_m2_ = GetBaseIdxStep( BS.b4idx_, -2 );
             }
             if (BS.P_p1_ != -1 && BS.P_p2_ != -1 && BS.p_m1_ != -1 && BS.p_m2_ != -1 &&
-                Bases_[BS.P_p1_].HasPatom() && Bases_[BS.P_p2_].HasPatom() &&
-                Bases_[BS.p_m1_].HasPatom() && Bases_[BS.p_m2_].HasPatom())
+                Bases_[BS.P_p1_].HasAtom(NA_Base::PHOS) &&
+                Bases_[BS.P_p2_].HasAtom(NA_Base::PHOS) &&
+                Bases_[BS.p_m1_].HasAtom(NA_Base::PHOS) &&
+                Bases_[BS.p_m2_].HasAtom(NA_Base::PHOS))
             {
               md.SetAspect("minor");
               BS.minGroove_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
@@ -877,12 +1021,13 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
         float Zp = 0.0;
         NA_Base const* s2base = 0;
         if (BP1.isAnti_) {
-          if (base2.HasPatom()) s2base = &base2;
+          if (base2.HasAtom(NA_Base::PHOS)) s2base = &base2;
         } else {
-          if (base4.HasPatom()) s2base = &base4;
+          if (base4.HasAtom(NA_Base::PHOS)) s2base = &base4;
         }
         if (s2base != 0) {
-          Vec3 xyzP = midFrame.Rot().TransposeMult((Vec3(base3.Pxyz()) - Vec3(s2base->Pxyz())) / 2);
+          Vec3 xyzP = midFrame.Rot().TransposeMult((Vec3(  base3.Xyz(NA_Base::PHOS)) -
+                                                    Vec3(s2base->Xyz(NA_Base::PHOS))) / 2);
           //xyzP.Print("xyzP"); // TODO: Check/fix Xp
           Zp = (float)xyzP[2];
         }
@@ -890,17 +1035,17 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
         // TEST: Calculate major groove ----------
         if (grooveCalcType_ == HASSAN_CALLADINE) {
           if (currentStep.majGroove_ != 0) {
-            double MGW = DIST2_NoImage( Bases_[currentStep.P_m2_].Pxyz(),
-                                        Bases_[currentStep.p_p2_].Pxyz() );
+            double MGW = DIST2_NoImage( Bases_[currentStep.P_m2_].Xyz(NA_Base::PHOS),
+                                        Bases_[currentStep.p_p2_].Xyz(NA_Base::PHOS) );
             //mprintf("DEBUG:\t\tMajorGroove= %4.1f\n", sqrt(MGW));
             float fval = (float)sqrt( MGW );
             currentStep.majGroove_->Add(frameNum, &fval);
           }
           if (currentStep.minGroove_ != 0) {
-            double d1 = sqrt(DIST2_NoImage( Bases_[currentStep.P_p1_].Pxyz(),
-                                            Bases_[currentStep.p_m2_].Pxyz() ));
-            double d2 = sqrt(DIST2_NoImage( Bases_[currentStep.P_p2_].Pxyz(),
-                                            Bases_[currentStep.p_m1_].Pxyz() ));
+            double d1 = sqrt(DIST2_NoImage( Bases_[currentStep.P_p1_].Xyz(NA_Base::PHOS),
+                                            Bases_[currentStep.p_m2_].Xyz(NA_Base::PHOS) ));
+            double d2 = sqrt(DIST2_NoImage( Bases_[currentStep.P_p2_].Xyz(NA_Base::PHOS),
+                                            Bases_[currentStep.p_m1_].Xyz(NA_Base::PHOS) ));
             double mGW = 0.5 * (d1 + d2);
             //mprintf("DEBUG:\t\tMinorGroove= %4.1f\n", mGW);
             float fval = (float)mGW;
@@ -1266,6 +1411,10 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
 
   // Determine base pair step parameters
   DetermineStepParameters(frameNum);
+
+  // DEBUG - Strands
+  DetermineStrands();
+
   nframes_++;
   return Action::OK;
 } 

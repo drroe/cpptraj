@@ -30,9 +30,10 @@ class NA_Axis {
 };
 /// Hold information for NA base.
 class NA_Base {
-    /// Type for phosphate/sugar atoms (index into atomIdx_).
-    enum PSType { PHOS, O4p, C1p, C2p, C3p, C4p };
   public:
+    /// Type for phosphate/sugar atoms (index into atomIdx_).
+    enum AtmType { PHOS=0, O4p, C1p, C2p, C3p, C4p, Nx, NTYPES };
+    /// Pucker calculation type.
     enum PmethodType { ALTONA=0, CREMER };
     /// Type for each standard NA base.
     enum NAType { UNKNOWN_BASE, ADE, CYT, GUA, THY, URA };
@@ -62,23 +63,17 @@ class NA_Base {
     const char* atomName(int i)    const { return *(anames_[i]);   }
     NameType const& AtomName(int i)const { return anames_[i];      }
     std::string const& BaseName()  const { return basename_;       }
-    bool HasPatom()                const { return atomIdx_[PHOS] != -1; }
-    bool HasO4atom()               const { return atomIdx_[O4p] != -1;  }
+    bool HasAtom(AtmType t)        const { return atomIdx_[t] != -1; }
 #   ifdef NASTRUCTDEBUG
-    const char* ResName()       const { return *rname_;         }
-    const char* RefName(int i)  const { return *(refnames_[i]); }
+    const char* ResName()          const { return *rname_;         }
+    const char* RefName(int i)     const { return *(refnames_[i]); }
 #   endif
-    int Natom()                const { return Inp_.Natom();             }
-    HBType HbondType(int i)    const { return hb_[i];                   }
-    const double* HBxyz(int i) const { return Inp_.XYZ(i);              }
-    const double* Pxyz()       const { return Inp_.XYZ(atomIdx_[PHOS]); }
-    const double* O4xyz()      const { return Inp_.XYZ(atomIdx_[O4p]);  }
-    DataSet_1D* Pucker()       const { return pucker_;                  }
+    int Natom()                    const { return Inp_.Natom();          }
+    HBType HbondType(int i)        const { return hb_[i];                }
+    const double* HBxyz(int i)     const { return Inp_.XYZ(i);           }
+    const double* Xyz(AtmType t)   const { return Inp_.XYZ(atomIdx_[t]); }
+    DataSet_1D* Pucker()           const { return pucker_;               }
   private:
-    const double* C1xyz()      const { return Inp_.XYZ(atomIdx_[C1p]);  }
-    const double* C2xyz()      const { return Inp_.XYZ(atomIdx_[C2p]);  }
-    const double* C3xyz()      const { return Inp_.XYZ(atomIdx_[C3p]);  }
-    const double* C4xyz()      const { return Inp_.XYZ(atomIdx_[C4p]);  }
     /// Find index in Input corresponding to atom name.
     int FindAtom(NameType const&) const;
 
@@ -99,9 +94,9 @@ class NA_Base {
 #   endif  
     Frame Inp_;                     ///< Input coords.
     std::vector<HBType> hb_;        ///< Hydrogen bond type of each Input atom.
-    int atomIdx_[6];                ///< Indices of Input phosphate/sugar atoms.
+    int atomIdx_[NTYPES];           ///< Indices of Input phosphate/sugar atoms.
     AtomMask parmMask_;             ///< Mask corresponding to atoms in parm.
     AtomMask inpFitMask_;           ///< Mask of input atoms to be used in RMS fit.
     AtomMask refFitMask_;           ///< Mask of ref atoms to be used in RMS fit.
 };
-#endif  
+#endif
