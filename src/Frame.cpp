@@ -339,6 +339,7 @@ void Frame::AddXYZ(const double *XYZin) {
   memcpy(X_ + ncoord_, XYZin, COORDSIZE_);
   ++natom_;
   ncoord_ += 3;
+  Mass_.push_back( 1.0 );
 }
 
 // Frame::AddVec3()
@@ -348,6 +349,7 @@ void Frame::AddVec3(Vec3 const& vIn) {
   memcpy(X_ + ncoord_, vIn.Dptr(), COORDSIZE_);
   ++natom_;
   ncoord_ += 3;
+  Mass_.push_back( 1.0 );
 }
 
 void Frame::SetMass(std::vector<Atom> const& atoms) {

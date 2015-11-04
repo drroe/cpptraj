@@ -62,6 +62,7 @@ class NA_Base {
     AtomMask const& RefFitMask()   const { return refFitMask_;     }
     const char* atomName(int i)    const { return *(anames_[i]);   }
     NameType const& AtomName(int i)const { return anames_[i];      }
+    NameType const& TypeName(AtmType t) const { return anames_[atomIdx_[t]]; }
     std::string const& BaseName()  const { return basename_;       }
     bool HasAtom(AtmType t)        const { return atomIdx_[t] != -1; }
 #   ifdef NASTRUCTDEBUG

@@ -357,28 +357,31 @@ int Action_NAstruct::DetermineStrands() const {
   return 0;
 }
 */
-static void StoreStrandVec( std::vector<double>& AxisVecs, NA_Base::AtmType atype,
+static void StoreStrandVec( Frame& AxisVecs, NA_Base::AtmType atype,
                             NA_Base const& b1, NA_Base const& b2)
 {
   if (b1.HasAtom(atype) && b2.HasAtom(atype)) {
-    const double* xyz1 = b1.Xyz(atype);
-    const double* xyz2 = b2.Xyz(atype);
-    mprintf("DEBUG: VECTOR: %4s - %4s {%8.3f %8.3f %8.3f} {%8.3f %8.3f %8.3f}\n",
-            b1.BaseName().c_str(), b2.BaseName().c_str(), 
-            xyz1[0], xyz1[1], xyz1[2], xyz2[0], xyz2[1], xyz2[2]);
+    Vec3 xyz1( b1.Xyz(atype) );
+    Vec3 xyz2( b2.Xyz(atype) );
+    mprintf("DEBUG: VECTOR: %4s%4s - %4s%4s {%8.3f %8.3f %8.3f} - {%8.3f %8.3f %8.3f}\n",
+            b1.BaseName().c_str(), b2.BaseName().c_str(),
+            b1.TypeName(atype), b2.TypeName(atype),
+            xyz2[0], xyz2[1], xyz2[2], xyz1[0], xyz1[1], xyz1[2]);
     //helixOut.WriteATOM("C1'", base1->ResNum()+1, xyz1[0], xyz1[1], xyz1[2], base1->ResName(),0);
     //helixOut.WriteATOM("C1'", base2.ResNum()+1,  xyz2[0], xyz2[1], xyz2[2], base2.ResName(),0);
     //AxisVecs.push_back( Vec3(xyz2[0]-xyz1[0], xyz2[1]-xyz1[1], xyz2[2]-xyz1[2]) );
-    AxisVecs.push_back( xyz2[0]-xyz1[0] );
-    AxisVecs.push_back( xyz2[1]-xyz1[1] );
-    AxisVecs.push_back( xyz2[2]-xyz1[2] );
+    AxisVecs.AddVec3( xyz2 - xyz1 );
+    //AxisVecs.AddXYZ( xyz2[0]-xyz1[0] );
+    //AxisVecs.AddXYZ( xyz2[1]-xyz1[1] );
+    //AxisVecs.AddXYZ( xyz2[2]-xyz1[2] );
+    mprintf("\t\t{%8.3f %8.3f %8.3f}\n", xyz2[0]-xyz1[0], xyz2[1]-xyz1[1], xyz2[2]-xyz1[2] );
   }
 }
 
 int Action_NAstruct::DetermineStrands() const {
   PDBfile helixOut;
   helixOut.OpenWrite("temp.helix.pdb");
-  std::vector<double> AxisVecs; // Hold C1'-C1' and Nx-Nx vectors.
+  Frame AxisVecs; // Hold C1'-C1' and Nx-Nx vectors.
   // NOTE: This will only work for one strand.
   for (BPmap::const_iterator bp1 = BasePairs_.begin(); bp1 != BasePairs_.end(); ++bp1)
   {
@@ -435,10 +438,7 @@ int Action_NAstruct::DetermineStrands() const {
       }
     }
   }
-  mprintf("DEBUG: Stored %zu vectors.\n", AxisVecs.size() / 3);
-  // Least squares.
-  const double* XYZ = &(AxisVecs[0]);
-  Vec3 corrPlane = Action_Vector::leastSquaresPlane( AxisVecs.size(), XYZ ); 
+  mprintf("DEBUG: Stored %zu vectors.\n", AxisVecs.Natom());
   // DEBUG - Write vectors out to a mol2
   BondParmArray bParm(1, BondParmType(0.0, 1.0));
   Topology pseudoTop;
@@ -447,24 +447,47 @@ int Action_NAstruct::DetermineStrands() const {
   int nres = 1;
   int natom = 0;
   Vec3 zero(0.0);
-  for (unsigned int idx = 0; idx != AxisVecs.size(); idx += 3)
+  for (int idx = 0; idx != AxisVecs.Natom(); idx++)
   //std::vector<Vec3>::const_iterator vec = AxisVecs.begin(); vec != AxisVecs.end(); ++vec)
   {
     Residue vec_res("VEC", nres, ' ', ' ');
     pseudoTop.AddTopAtom(Atom("OXYZ", 0), vec_res);
     pseudoFrm.AddVec3( zero );
     pseudoTop.AddTopAtom(Atom("VXYZ", 0), vec_res);
-    pseudoFrm.AddXYZ( XYZ + idx  );
+    pseudoFrm.AddXYZ( AxisVecs.XYZ(idx)  );
     bonds.push_back( BondType(natom, natom+1, 0) );
     natom += 2;
     ++nres;
   }
+  // Least squares.
+  Vec3 CXYZ = AxisVecs.VGeometricCenter(0, AxisVecs.Natom());
+  AxisVecs.NegTranslate( CXYZ );
+  Vec3 corrPlane = Action_Vector::leastSquaresPlane( AxisVecs.size(), AxisVecs.xAddress() );
   Residue vec_res("COR", nres, ' ', ' ');
   pseudoTop.AddTopAtom(Atom("OXYZ", 0), vec_res);
   pseudoFrm.AddVec3( zero );
   pseudoTop.AddTopAtom(Atom("VXYZ", 0), vec_res);
   pseudoFrm.AddVec3( corrPlane );
   bonds.push_back( BondType(natom, natom+1, 0) );
+  // Principal
+/*  Residue vec_res("PRN", nres, ' ', ' ');
+  Matrix_3x3 Inertia;
+  Vec3 Eval;
+  Vec3 OXYZ = AxisVecs.CalculateInertia( AtomMask(0, AxisVecs.Natom()), Inertia );
+  pseudoTop.AddTopAtom(Atom("OXYZ", 0), vec_res);
+  pseudoFrm.AddVec3( zero );
+  Inertia.Diagonalize_Sort_Chirality( Eval, 0 );
+  mprintf("DEBUG: Eval= { %g %g %g }\n", Eval[0], Eval[1], Eval[2]);
+  pseudoTop.AddTopAtom(Atom("PX", 0), vec_res);
+  pseudoFrm.AddVec3( Inertia.Row1() );
+  bonds.push_back( BondType(natom, natom+1, 0) );
+  pseudoTop.AddTopAtom(Atom("PY", 0), vec_res);
+  pseudoFrm.AddVec3( Inertia.Row2() );
+  bonds.push_back( BondType(natom, natom+2, 0) );
+  pseudoTop.AddTopAtom(Atom("PZ", 0), vec_res);
+  pseudoFrm.AddVec3( Inertia.Row3() );
+  bonds.push_back( BondType(natom, natom+3, 0) );*/
+
   pseudoTop.SetBondInfo( bonds, BondArray(), bParm );
   pseudoTop.CommonSetup();
   Trajout_Single mol2out;
