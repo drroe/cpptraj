@@ -6,9 +6,9 @@ class Action_Vector : public Action {
   public:
     Action_Vector();
     ~Action_Vector();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Vector(); }
-    static void Help();
     static Vec3 leastSquaresPlane(int,const double*);
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Vector(); }
+    void Help() const;
   private:
     enum vectorMode {
       NO_OP=0,   PRINCIPAL_X, PRINCIPAL_Y, PRINCIPAL_Z,
