@@ -29,7 +29,7 @@ Analysis_RemLog::Analysis_RemLog() :
   repFracSlope_(0)
 {}
 
-void Analysis_RemLog::Help() {
+void Analysis_RemLog::Help() const {
   mprintf("\t{<remlog dataset> | <remlog filename>} [out <filename>] [crdidx | repidx]\n"
           "\t[stats [statsout <file>] [printtrips] [reptime <file>]] [lifetime <file>]\n"
           "\t[reptimeslope <n> reptimeslopeout <file>] [acceptout <file>] [name <setname>]\n"
@@ -40,7 +40,7 @@ void Analysis_RemLog::Help() {
 }
 
 // Analysis_RemLog::Setup()
-Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   debug_ = debugIn;
   // Get remlog dataset
@@ -50,7 +50,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
     return Analysis::ERR;
   }
   // Check if data set exists
-  remlog_ = (DataSet_RemLog*)datasetlist->FindSetOfType( remlogName, DataSet::REMLOG );
+  remlog_ = (DataSet_RemLog*)setup.DSL().FindSetOfType( remlogName, DataSet::REMLOG );
   if (remlog_ == 0) {
     mprinterr("Error: remlog data with name %s not found.\n", remlogName.c_str());
     return Analysis::ERR;
@@ -61,12 +61,12 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
   }
   dsname_ = analyzeArgs.GetStringKey("name");
   if (dsname_.empty())
-    dsname_ = datasetlist->GenerateDefaultName("RL");
-  acceptout_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("acceptout"), "replica acceptance",
-                                      DataFileList::TEXT, true );
+    dsname_ = setup.DSL().GenerateDefaultName("RL");
+  acceptout_ = setup.DFL().AddCpptrajFile( analyzeArgs.GetStringKey("acceptout"), "replica acceptance",
+                                           DataFileList::TEXT, true );
   if (acceptout_ == 0) return Analysis::ERR;
   calculateStats_ = analyzeArgs.hasKey("stats");
-  JSD_file_ = DFLin->AddDataFile( analyzeArgs.GetStringKey("jsd"), analyzeArgs );
+  JSD_file_ = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("jsd"), analyzeArgs );
   calc_JSD_ = (JSD_file_ != 0);
   if (calc_JSD_) calculateStats_ = true;
   trajoutName_.SetFileName( analyzeArgs.GetStringKey("trajout") );
@@ -74,15 +74,15 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
   if (!trajoutName_.empty() && pout.empty())
     parmoutName_.SetFileName_NoExpansion( trajoutName_.DirPrefix() + "/" +
                                           trajoutName_.Base() + ".parm7" );
-  lifetimes_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("lifetime"), "remlog lifetimes" );
+  lifetimes_ = setup.DFL().AddCpptrajFile( analyzeArgs.GetStringKey("lifetime"), "remlog lifetimes" );
   calculateLifetimes_ = (lifetimes_ != 0);
   if (calculateStats_) {
-    statsout_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("statsout"), "remlog stats",
+    statsout_ = setup.DFL().AddCpptrajFile( analyzeArgs.GetStringKey("statsout"), "remlog stats",
                                        DataFileList::TEXT, true );
-    reptime_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("reptime"), "replica times",
+    reptime_ = setup.DFL().AddCpptrajFile( analyzeArgs.GetStringKey("reptime"), "replica times",
                                       DataFileList::TEXT, true );
     if (statsout_ == 0 || reptime_ == 0) return Analysis::ERR;
-    repTimeMatrix_ = datasetlist->AddSet( DataSet::MATRIX_FLT, MetaData(dsname_, "reptime") );
+    repTimeMatrix_ = setup.DSL().AddSet( DataSet::MATRIX_FLT, MetaData(dsname_, "reptime") );
     if (repTimeMatrix_ == 0) return Analysis::ERR;
   }
   calcRepFracSlope_ = analyzeArgs.getKeyInt("reptimeslope", 0);
@@ -95,7 +95,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
     mprinterr("Error: Both reptimeslope and reptimeslopeout must be specified.\n");
     return Analysis::ERR;
   }
-  repFracSlope_ = DFLin->AddCpptrajFile( rfs_name, "replica fraction slope" );
+  repFracSlope_ = setup.DFL().AddCpptrajFile( rfs_name, "replica fraction slope" );
   printIndividualTrips_ = analyzeArgs.hasKey("printtrips");
   // Get mode
   if (analyzeArgs.hasKey("crdidx"))
@@ -119,14 +119,14 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
     // Get output filename
     std::string outname = analyzeArgs.GetStringKey("out");
     if (!outname.empty()) {
-      dfout = DFLin->AddDataFile( outname, analyzeArgs );
+      dfout = setup.DFL().AddDataFile( outname, analyzeArgs );
       if (dfout == 0 ) return Analysis::ERR;
       if (yaxis != 0 ) dfout->ProcessArgs(yaxis);
     }
     MetaData md(dsname_, aspect);
     for (int i = 0; i < (int)remlog_->Size(); i++) {
       md.SetIdx(i+1);
-      DataSet_integer* ds = (DataSet_integer*)datasetlist->AddSet(DataSet::INTEGER, md);
+      DataSet_integer* ds = (DataSet_integer*)setup.DSL().AddSet(DataSet::INTEGER, md);
       if (ds == 0) return Analysis::ERR;
       outputDsets_.push_back( (DataSet*)ds );
       if (dfout != 0) dfout->AddDataSet( (DataSet*)ds );
@@ -160,7 +160,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
     mprintf("\tJensen-Shannon divergence of crd replica residence time from flat"
             " will be written to '%s'\n", JSD_file_->DataFilename().full());
   }
-  masterDSL_ = datasetlist;
+  masterDSL_ = setup.DslPtr();
   return Analysis::OK;
 }
 
