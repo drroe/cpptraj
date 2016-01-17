@@ -25,9 +25,12 @@ void DataFileList::Clear() {
     (*it)->CloseFile();
     delete *it;
   }
-  CloseOutputTraj();
+  // If output trajs were opened they should already be closed
+  for (TFarray::iterator it = tfList_.begin(); it != tfList_.end(); ++it)
+    delete *it;
   cfList_.clear();
   cfData_.clear();
+  tfList_.clear();
 }
 
 // DataFileList::RemoveDataFile()
@@ -342,7 +345,9 @@ void DataFileList::List() const {
     }
     if (!tfList_.empty()) {
       for (TFarray::const_iterator it = tfList_.begin(); it != tfList_.end(); ++it)
-        (*it)->PrintInfo( 0 );
+        // FIXME for reasons I dont yet fully understand this segfaults on non-master
+        //(*it)->PrintInfo( 0 );
+        mprintf("  %s (Output trajectory)\n", (*it)->Traj().Filename().full());
     }
   }
 }
