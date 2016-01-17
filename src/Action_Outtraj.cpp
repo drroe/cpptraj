@@ -88,6 +88,12 @@ int Action_Outtraj::ParallelActionInit(Parallel::Comm const& commIn) {
   trajComm_ = commIn;
   return 0;
 }
+
+int Action_Outtraj::SyncAction(Parallel::Comm const& commIn) {
+  int nframes = outtraj_->Traj().NframesWritten();
+  commIn.Reduce( &total_frames_, &nframes, 1, MPI_INT, MPI_SUM );
+  return 0;
+}
 #endif
 // Action_Outtraj::Setup()
 Action::RetType Action_Outtraj::Setup(ActionSetup& setup) {
@@ -142,5 +148,10 @@ Action::RetType Action_Outtraj::DoAction(int frameNum, ActionFrame& frm) {
 void Action_Outtraj::Print() {
   if (outtraj_ != 0)
     mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",outtraj_->Traj().Filename().base(),
-            outtraj_->Traj().NframesWritten());
+#   ifdef MPI
+            total_frames_
+#   else
+            outtraj_->Traj().NframesWritten()
+#   endif
+    );
 }
