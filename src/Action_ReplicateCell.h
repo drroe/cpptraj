@@ -2,7 +2,6 @@
 #define INC_ACTION_REPLICATECELL_H
 #include "Action.h"
 #include "ImagedAction.h"
-#include "Trajout_Single.h"
 #include "DataSet_Coords.h"
 /// Action to replicate unit cell in specified directions. 
 class Action_ReplicateCell: public Action {
@@ -12,6 +11,9 @@ class Action_ReplicateCell: public Action {
     void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
+#   ifdef MPI
+    int ParallelActionInit(Parallel::Comm const& c) { trajComm_ = c; return 0; }
+#   endif
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
@@ -20,15 +22,15 @@ class Action_ReplicateCell: public Action {
     Matrix_3x3 ucell_, recip_;
     typedef std::vector<int> Iarray;
     Iarray directionArray_;
-    std::string trajfilename_;
     std::string parmfilename_;
-    Trajout_Single outtraj_;
+    Trajout_Single* outtraj_;
     DataSet_Coords* coords_;
     AtomMask Mask1_;
     int ncopies_;
     Topology combinedTop_;
     Frame combinedFrame_;
-    ArgList trajArgs_;
-    int ensembleNum_;
+#   ifdef MPI
+    Parallel::Comm trajComm_;
+#   endif
 };
 #endif
