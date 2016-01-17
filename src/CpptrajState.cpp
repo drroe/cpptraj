@@ -342,6 +342,7 @@ int CpptrajState::Run() {
     // Print DataFile information and write DataFiles
     DFL_.List();
     MasterDataFileWrite();
+    DFL_.CloseOutputTraj();
   }
   mprintf("---------- RUN END ---------------------------------------------------\n");
   return err;

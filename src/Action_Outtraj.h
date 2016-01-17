@@ -6,8 +6,7 @@
 /// Write out a trajectory inside the ActionList
 class Action_Outtraj: public Action {
   public:
-    Action_Outtraj() : associatedParm_(0), isSetup_(false), isActive_(true) {}
-    ~Action_Outtraj();
+    Action_Outtraj() : outtraj_(0), associatedParm_(0), isSetup_(false), isActive_(true) {}
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_Outtraj(); }
     void Help() const;
   private:
@@ -18,7 +17,7 @@ class Action_Outtraj: public Action {
 #   ifdef MPI
     int ParallelActionInit(Parallel::Comm const& c);
 #   endif
-    Trajout_Single outtraj_;
+    Trajout_Single* outtraj_;
     Topology* associatedParm_;
     bool isSetup_;
     bool isActive_;

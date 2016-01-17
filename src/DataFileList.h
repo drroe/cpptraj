@@ -1,6 +1,7 @@
 #ifndef INC_DATAFILELIST_H
 #define INC_DATAFILELIST_H
 #include "DataFile.h"
+#include "Trajout_Single.h"
 #include "DataSet.h"
 #include "ArgList.h"
 /// Holds a list of output DataFiles/CpptrajFiles.
@@ -38,6 +39,12 @@ class DataFileList {
     CpptrajFile* AddCpptrajFile(FileName const&,std::string const&,CFtype);
     /// Add/create CpptrajFile of given type; optionally allow STDOUT.
     CpptrajFile* AddCpptrajFile(FileName const&,std::string const&,CFtype,bool);
+    /// \return output trajectory matching given file name
+    Trajout_Single* GetOuttrajFile(FileName const&) const;
+    /// Add output trajectory. No topology setup.
+    Trajout_Single* AddOutputTraj(FileName const&, ArgList&, TrajectoryFile::TrajFormatType);
+    /// Close all output trajectories and clear.
+    void CloseOutputTraj();
     /// List DataFiles and CpptrajFiles.
     void List() const;
     /// Write all DataFiles in list that have not yet been written.
@@ -51,7 +58,7 @@ class DataFileList {
 
     typedef std::vector<DataFile*> DFarray;
     DFarray fileList_;
-    // NOTE: CpptrajFile* must be kept in its own array since currently the
+    // NOTE: CpptrajFile* must be kept separate from CFstruct since currently the
     //       copy constructor copies them closed no matter what.
     typedef std::vector<CpptrajFile*> CFarray;
     CFarray cfList_;
@@ -59,6 +66,9 @@ class DataFileList {
     class CFstruct;
     typedef std::vector<CFstruct> MDarray;
     MDarray cfData_;
+
+    typedef std::vector<Trajout_Single*> TFarray;
+    TFarray tfList_; ///< List of output trajectories
 
     int debug_;
     int ensembleNum_; ///< Ensemble member number.

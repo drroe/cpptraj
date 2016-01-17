@@ -26,6 +26,10 @@ class DataFile {
     static DataFormatType GetFormatFromArg(ArgList& a) {
       return (DataFormatType)FileTypes::GetFormatFromArg(DF_KeyArray, a, UNKNOWN_DATA);
     }
+    /// \return format type from extension
+    static DataFormatType GetTypeFromExtension(std::string const& ext, DataFormatType def) {
+      return (DataFormatType)FileTypes::GetTypeFromExtension(DF_KeyArray, ext, def);
+    }
     /// \return string corresponding to format.
     static const char* FormatString(DataFormatType t) {
       return FileTypes::FormatDescription(DF_AllocArray, t);

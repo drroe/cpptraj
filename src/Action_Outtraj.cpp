@@ -1,16 +1,6 @@
 #include "Action_Outtraj.h"
 #include "CpptrajStdio.h"
 
-Action_Outtraj::~Action_Outtraj() {
-# ifdef MPI
-  // NOTE: Must close in destructor since Print() is only called by master.
-  if (trajComm_.Size() > 1)
-    outtraj_.ParallelEndTraj();
-  else
-# endif
-    outtraj_.EndTraj();
-}
-
 void Action_Outtraj::Help() const {
   mprintf("\t<filename> [ trajout args ]\n"
           "\t[maxmin <dataset> min <min> max <max>] ...\n"
@@ -20,8 +10,6 @@ void Action_Outtraj::Help() const {
 // Action_Outtraj::Init()
 Action::RetType Action_Outtraj::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  // Set up output traj
-  outtraj_.SetDebug(debugIn);
   std::string trajfilename = actionArgs.GetStringNext();
   if (trajfilename.empty()) {
     mprinterr("Error: No filename given.\nError: Usage: ");
@@ -74,9 +62,10 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, ActionInit& init, int 
   }
   // Initialize output trajectory with remaining arguments
   if (isActive_) {
-    if ( outtraj_.InitEnsembleTrajWrite(trajfilename, actionArgs.RemainingArgs(),
-                                        TrajectoryFile::UNKNOWN_TRAJ, init.DSL().EnsembleNum()) )
-      return Action::ERR;
+    ArgList remain = actionArgs.RemainingArgs();
+    outtraj_ = init.DFL().AddOutputTraj( trajfilename, remain, TrajectoryFile::UNKNOWN_TRAJ );
+    if (outtraj_ == 0) return Action::ERR; // TODO parallel error check?
+    outtraj_->SetDebug(debugIn);
   }
   isSetup_ = false;
 
@@ -108,13 +97,13 @@ Action::RetType Action_Outtraj::Setup(ActionSetup& setup) {
     int err = 0;
 #   ifdef MPI
     if (trajComm_.Size() > 1)
-      err = outtraj_.ParallelSetupTrajWrite(setup.TopAddress(), setup.CoordInfo(),
-                                            setup.Nframes(), trajComm_);
+      err = outtraj_->ParallelSetupTrajWrite(setup.TopAddress(), setup.CoordInfo(),
+                                             setup.Nframes(), trajComm_);
     else
 #   endif
-      err = outtraj_.SetupTrajWrite(setup.TopAddress(), setup.CoordInfo(), setup.Nframes());
+      err = outtraj_->SetupTrajWrite(setup.TopAddress(), setup.CoordInfo(), setup.Nframes());
     if (err) return Action::ERR;
-    outtraj_.PrintInfo(0);
+    outtraj_->PrintInfo(0);
     isSetup_ = true;
   }
   return Action::OK;
@@ -125,6 +114,7 @@ Action::RetType Action_Outtraj::Setup(ActionSetup& setup) {
   * satisfies the criteria; if so, write. Otherwise just write.
   */
 Action::RetType Action_Outtraj::DoAction(int frameNum, ActionFrame& frm) {
+  if (outtraj_ == 0) return Action::OK; // Sanity check
   // If dataset defined, check if frame is within max/min
   if (!Dsets_.empty()) {
     for (unsigned int ds = 0; ds < Dsets_.size(); ++ds)
@@ -138,10 +128,10 @@ Action::RetType Action_Outtraj::DoAction(int frameNum, ActionFrame& frm) {
   int err = 0;
 # ifdef MPI
   if (trajComm_.Size() > 1)
-    err = outtraj_.ParallelWriteSingle(frm.TrajoutNum(), frm.Frm());
+    err = outtraj_->ParallelWriteSingle(frm.TrajoutNum(), frm.Frm());
   else
 # endif
-    err = outtraj_.WriteSingle(frameNum, frm.Frm());
+    err = outtraj_->WriteSingle(frameNum, frm.Frm());
   if (err) return Action::ERR;
   return Action::OK;
 }
@@ -150,6 +140,7 @@ Action::RetType Action_Outtraj::DoAction(int frameNum, ActionFrame& frm) {
 /** Close trajectory. Indicate how many frames were actually written.
   */
 void Action_Outtraj::Print() {
-  mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",outtraj_.Traj().Filename().base(),
-          outtraj_.Traj().NframesWritten());
+  if (outtraj_ != 0)
+    mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",outtraj_->Traj().Filename().base(),
+            outtraj_->Traj().NframesWritten());
 }

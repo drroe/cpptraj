@@ -25,6 +25,7 @@ void DataFileList::Clear() {
     (*it)->CloseFile();
     delete *it;
   }
+  CloseOutputTraj();
   cfList_.clear();
   cfData_.clear();
 }
@@ -101,6 +102,13 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
   // If no filename, no output desired
   if (nameIn.empty()) return 0;
   FileName fname( nameIn );
+  DataFile::DataFormatType ftype = typeIn;
+  // Try to determine format here, before extension is potentially modified.
+  // NOTE: This is also done inside DataFile::SetupDatafile()
+  if (ftype == DataFile::UNKNOWN_DATA)
+    ftype = DataFile::GetFormatFromArg( argIn );
+  if (ftype == DataFile::UNKNOWN_DATA)
+    ftype = DataFile::GetTypeFromExtension(fname.Ext(), DataFile::DATAFILE);
   // Append ensemble number if set.
   //rprintf("DEBUG: Setting up data file '%s' with ensembleNum %i\n", nameIn.base(), ensembleNum_);
   if (ensembleNum_ != -1)
@@ -112,12 +120,18 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
               fname.full(), cf->Filename().full());
     return 0;
   }
+  // Check if filename in use by trajectory
+  Trajout_Single* to = GetOuttrajFile( fname );
+  if ( to != 0 ) {
+    mprinterr("Error: Trajectory file name %s already in use.\n", fname.full());
+    return 0;
+  }
   // Check if this filename already in use
   DataFile* Current = GetDataFile(fname);
   // If no DataFile associated with name, create new DataFile
   if (Current==0) {
     Current = new DataFile();
-    if (Current->SetupDatafile(fname, argIn, typeIn, debug_)) {
+    if (Current->SetupDatafile(fname, argIn, ftype, debug_)) {
       mprinterr("Error: Setting up data file %s\n", fname.full());
       delete Current;
       return 0;
@@ -127,13 +141,13 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
     // Set debug level
     Current->SetDebug(debug_);
     // If a type was specified, make sure it matches.
-    if (typeIn != DataFile::UNKNOWN_DATA && typeIn != Current->Type()) {
+    if (ftype != DataFile::UNKNOWN_DATA && ftype != Current->Type()) {
       mprinterr("Error: '%s' is type %s but has been requested as type %s.\n",
                 Current->DataFilename().full(), Current->FormatString(),
-                DataFile::FormatString( typeIn ));
+                DataFile::FormatString( ftype ));
       return 0;
     }
-    // Check for keywords that do not match file type
+    // Check for keywords that do not match file type FIXME necessary?
     DataFile::DataFormatType kType = DataFile::GetFormatFromArg( argIn );
     if (kType != DataFile::UNKNOWN_DATA && kType != Current->Type())
       mprintf("Warning: %s is type %s but type %s keyword specified; ignoring keyword.\n",
@@ -192,6 +206,12 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
                 nameIn.full(), df->DataFilename().full());
       return 0;
     }
+    // Check if filename in use by trajectory
+    Trajout_Single* to = GetOuttrajFile( name );
+    if ( to != 0 ) {
+      mprinterr("Error: Trajectory file name %s already in use.\n", name.full());
+      return 0;
+    }
     // Check if this filename already in use
     currentIdx = GetCpptrajFileIdx( name );
     if (currentIdx != -1) Current = cfList_[currentIdx];
@@ -227,14 +247,90 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
   return Current;
 }
 
+// DataFileList::GetOuttrajFile()
+Trajout_Single* DataFileList::GetOuttrajFile(FileName const& fnameIn) const {
+  for (TFarray::const_iterator it = tfList_.begin(); it != tfList_.end(); ++it)
+    if ( (*it)->Traj().Filename().Full() == fnameIn.Full() ) return *it;
+  return 0;
+}
+
+/** Unlike AddDataFile and AddCpptrajFile this will not return an existing file. */
+Trajout_Single* DataFileList::AddOutputTraj(FileName const& fnameIn, ArgList& argIn,
+                                            TrajectoryFile::TrajFormatType fmtIn)
+{
+  // If no filename, no output desired
+  if (fnameIn.empty()) return 0;
+  FileName fname( fnameIn );
+  TrajectoryFile::TrajFormatType ftype = fmtIn;
+  // Try to determine format here, before extension is potentially modified.
+  if (ftype == TrajectoryFile::UNKNOWN_TRAJ)
+    ftype = TrajectoryFile::GetFormatFromArg( argIn );
+  if (ftype == TrajectoryFile::UNKNOWN_TRAJ)
+    ftype = TrajectoryFile::GetTypeFromExtension( fname.Ext() );
+  // Default to Amber trajectory
+  if (ftype == TrajectoryFile::UNKNOWN_TRAJ) {
+    mprintf("Warning: '%s' defaulting to AMBER trajectory.\n", fname.full());
+    ftype = TrajectoryFile::AMBERTRAJ;
+  }
+  // Append ensemble number if set.
+  //rprintf("DEBUG: Setting up data file '%s' with ensembleNum %i\n", nameIn.base(), ensembleNum_);
+  if (ensembleNum_ != -1)
+    fname.AppendFileName( "." + integerToString(ensembleNum_) );
+  // Check if filename in use by CpptrajFile.
+  CpptrajFile* cf = GetCpptrajFile(fname);
+  if (cf != 0) {
+    mprinterr("Error: Trajectory file name '%s' already in use by text output file '%s'.\n",
+              fname.full(), cf->Filename().full());
+    return 0;
+  }
+  // Check if this filename in use by DataFile
+  DataFile* df = GetDataFile(fname);
+  if (df != 0) {
+    mprinterr("Error: Trajectory file name '%s' already in use by data file '%s'\n",
+              fname.full(), df->DataFilename().full());
+    return 0;
+  }
+  Trajout_Single* to = GetOuttrajFile( fname );
+  if ( to != 0 ) {
+    mprinterr("Error: Trajectory file name %s already in use.\n", fname.full());
+    return 0;
+  }
+  // Create output traj
+  to = new Trajout_Single();
+  to->SetDebug( debug_ );
+  // Init output traj
+  if (to->InitTrajWrite(fname, argIn, ftype)) {
+    mprinterr("Error: Coult not initialize output traj\n");
+    delete to;
+    return 0;
+  }
+  tfList_.push_back( to );
+  return to;
+}
+
+/** Close up all output trajectories and free. */
+void DataFileList::CloseOutputTraj() {
+  // FIXME Should comm be passed in?
+  for (TFarray::iterator it = tfList_.begin(); it != tfList_.end(); ++it) {
+#   ifdef MPI
+    if (Parallel::TrajComm().Size() > 1)
+      (*it)->ParallelEndTraj();
+    else
+#   endif
+      (*it)->EndTraj();
+    delete *it;
+  }
+  tfList_.clear();
+}
+
 // DataFileList::List()
 /** Print information on what datasets are going to what datafiles */
 void DataFileList::List() const {
 # ifdef MPI
   Parallel::World().Barrier();
 # endif
-  if (!fileList_.empty() || !cfList_.empty()) {
-    mprintf("\nDATAFILES (%zu total):\n", fileList_.size() + cfList_.size());
+  if (!fileList_.empty() || !cfList_.empty() || !tfList_.empty()) {
+    mprintf("\nDATAFILES (%zu total):\n", fileList_.size() + cfList_.size() + tfList_.size());
     if (!fileList_.empty()) {
       for (DFarray::const_iterator it = fileList_.begin(); it != fileList_.end(); ++it)
         mprintf("  %s (%s): %s\n",(*it)->DataFilename().base(), (*it)->FormatString(),
@@ -243,6 +339,10 @@ void DataFileList::List() const {
     if (!cfList_.empty()) {
       for (unsigned int idx = 0; idx != cfList_.size(); idx++)
         rprintf("  %s (%s)\n", cfList_[idx]->Filename().base(), cfData_[idx].descrip());
+    }
+    if (!tfList_.empty()) {
+      for (TFarray::const_iterator it = tfList_.begin(); it != tfList_.end(); ++it)
+        (*it)->PrintInfo( 0 );
     }
   }
 }
