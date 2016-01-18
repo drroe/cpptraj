@@ -18,15 +18,13 @@ class Action_Average: public Action, ActionFrameCounter {
 #   endif
     void Print();
 
-    int ensembleNum_;
     int debug_;
     AtomMask Mask1_;
     Frame* AvgFrame_;
     Topology AvgParm_;
-    ArgList trajArgs_;
     int Natom_;
     int Nframes_;
-    std::string avgfilename_;
+    Trajout_Single* avgfile_;
     DataSet* crdset_;         ///< DataSet to save avg coords to.
 };
 #endif  

@@ -26,7 +26,6 @@ class Action_LESsplit : public Action {
     EnsembleOut_Multi lesTraj_;
     Trajout_Single* avgTraj_;
     std::string trajfilename_;
-    std::string avgfilename_;
     ArgList trajArgs_;
     FrameArray lesFrames_;
     FramePtrArray lesPtrs_;

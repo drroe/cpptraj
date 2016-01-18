@@ -5,11 +5,11 @@
 
 // CONSTRUCTOR
 Action_Average::Action_Average() :
-  ensembleNum_(-1),
   debug_(0),
   AvgFrame_(0),
   Natom_(0),
   Nframes_(0),
+  avgfile_(0),
   crdset_(0)
 { } 
 
@@ -30,14 +30,14 @@ Action_Average::~Action_Average() {
 // Action_Average::Init()
 Action::RetType Action_Average::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  ensembleNum_ = init.DSL().EnsembleNum();
   debug_ = debugIn;
   // Get Keywords
   std::string crdName = actionArgs.GetStringKey("crdset");
+  std::string avgfilename;
   if (crdName.empty()) {
     crdset_ = 0;
-    avgfilename_ = actionArgs.GetStringNext();
-    if (avgfilename_.empty()) {
+    avgfilename = actionArgs.GetStringNext();
+    if (avgfilename.empty()) {
       mprinterr("Error: average: No filename given.\n");
       return Action::ERR;
     }
@@ -59,14 +59,17 @@ Action::RetType Action_Average::Init(ArgList& actionArgs, ActionInit& init, int 
   // Get Masks
   Mask1_.SetMaskString( actionArgs.GetMaskNext() );
 
-  // Save all remaining arguments for setting up the trajectory at the end.
-  if (crdset_ == 0)
-    trajArgs_ = actionArgs.RemainingArgs();
+  // Set up output trajectory 
+  if (crdset_ == 0) {
+    ArgList trajArgs = actionArgs.RemainingArgs();
+    avgfile_ = init.DFL().AddOutputTraj( avgfilename, trajArgs, TrajectoryFile::UNKNOWN_TRAJ );
+    if (avgfile_ == 0) return Action::ERR;
+  }
 
   mprintf("    AVERAGE: Averaging over coordinates in mask [%s]\n",Mask1_.MaskString());
   FrameCounterInfo();
   if (crdset_ == 0)
-    mprintf("\tWriting averaged coords to file '%s'\n",avgfilename_.c_str());
+    mprintf("\tWriting averaged coords to file '%s'\n", avgfile_->Traj().Filename().full());
   else
     mprintf("\tSaving averaged coords to set '%s'\n", crdset_->legend());
 
@@ -162,18 +165,14 @@ void Action_Average::Print() {
   // NOTE: AvgFrame_ has coordinates only, blank CoordinateInfo is fine.
   mprintf("    AVERAGE: %i frames,", Nframes_);
   if (crdset_ == 0) {
-    Trajout_Single outfile;
-    mprintf(" [%s %s]\n",avgfilename_.c_str(), trajArgs_.ArgLine());
-    if (outfile.PrepareEnsembleTrajWrite(avgfilename_, trajArgs_, &AvgParm_,
-                                         CoordinateInfo(), 1, 
-                                         TrajectoryFile::UNKNOWN_TRAJ, ensembleNum_)) 
+    if (avgfile_->SetupTrajWrite(&AvgParm_, CoordinateInfo(), 1)) 
     {
-      mprinterr("Error: AVERAGE: Could not set up %s for write.\n",avgfilename_.c_str());
+      mprinterr("Error: AVERAGE: Could not set up %s for write.\n",
+                avgfile_->Traj().Filename().full());
       return;
     }
-    outfile.PrintInfo(0);
-    outfile.WriteSingle(0, *AvgFrame_);
-    outfile.EndTraj();
+    avgfile_->PrintInfo(0);
+    avgfile_->WriteSingle(0, *AvgFrame_);
   } else {
     mprintf(" COORDS set '%s'\n", crdset_->legend());
     DataSet_Coords_REF& ref = static_cast<DataSet_Coords_REF&>( *crdset_ );
