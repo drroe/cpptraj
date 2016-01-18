@@ -12,7 +12,10 @@ class Action_ReplicateCell: public Action {
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
 #   ifdef MPI
-    int ParallelActionInit(Parallel::Comm const& c) { trajComm_ = c; return 0; }
+    int ParallelActionInit(Parallel::Comm const& c) {
+      if (outtraj_ != 0) return outtraj_->SetTrajComm( c );
+      return 0;
+    }
 #   endif
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
@@ -29,8 +32,5 @@ class Action_ReplicateCell: public Action {
     int ncopies_;
     Topology combinedTop_;
     Frame combinedFrame_;
-#   ifdef MPI
-    Parallel::Comm trajComm_;
-#   endif
 };
 #endif

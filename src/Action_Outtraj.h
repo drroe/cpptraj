@@ -26,7 +26,6 @@ class Action_Outtraj: public Action {
     std::vector<double> Min_;
     std::vector<DataSet_1D*> Dsets_;
 #   ifdef MPI
-    Parallel::Comm trajComm_;
     int total_frames_;
 #   endif
 };

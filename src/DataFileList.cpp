@@ -315,12 +315,7 @@ Trajout_Single* DataFileList::AddOutputTraj(FileName const& fnameIn, ArgList& ar
 void DataFileList::CloseOutputTraj() {
   // FIXME Should comm be passed in?
   for (TFarray::iterator it = tfList_.begin(); it != tfList_.end(); ++it) {
-#   ifdef MPI
-    if (Parallel::TrajComm().Size() > 1)
-      (*it)->ParallelEndTraj();
-    else
-#   endif
-      (*it)->EndTraj();
+    (*it)->EndTraj();
     delete *it;
   }
   tfList_.clear();

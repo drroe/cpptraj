@@ -85,12 +85,14 @@ int Action_Outtraj::ParallelActionInit(Parallel::Comm const& commIn) {
               "Error:   to write trajectory (currently %i threads)\n", commIn.Size());
     return 1;
   }
-  trajComm_ = commIn;
+  if (outtraj_ != 0) return outtraj_->SetTrajComm( commIn );
   return 0;
 }
 
 int Action_Outtraj::SyncAction(Parallel::Comm const& commIn) {
-  int nframes = outtraj_->Traj().NframesWritten();
+  int nframes = 0;
+  if (outtraj_ != 0)
+    nframes = outtraj_->Traj().NframesWritten();
   commIn.Reduce( &total_frames_, &nframes, 1, MPI_INT, MPI_SUM );
   return 0;
 }
@@ -100,15 +102,8 @@ Action::RetType Action_Outtraj::Setup(ActionSetup& setup) {
   if (!isActive_ || associatedParm_->Pindex() != setup.Top().Pindex())
     return Action::SKIP;
   if (!isSetup_) { // TODO: Trajout IsOpen?
-    int err = 0;
-#   ifdef MPI
-    if (trajComm_.Size() > 1)
-      err = outtraj_->ParallelSetupTrajWrite(setup.TopAddress(), setup.CoordInfo(),
-                                             setup.Nframes(), trajComm_);
-    else
-#   endif
-      err = outtraj_->SetupTrajWrite(setup.TopAddress(), setup.CoordInfo(), setup.Nframes());
-    if (err) return Action::ERR;
+    if (outtraj_->SetupTrajWrite(setup.TopAddress(), setup.CoordInfo(), setup.Nframes()))
+      return Action::ERR;
     outtraj_->PrintInfo(0);
     isSetup_ = true;
   }
@@ -131,14 +126,7 @@ Action::RetType Action_Outtraj::DoAction(int frameNum, ActionFrame& frm) {
       if (dVal < Min_[ds] || dVal > Max_[ds]) return Action::OK;
     }
   }
-  int err = 0;
-# ifdef MPI
-  if (trajComm_.Size() > 1)
-    err = outtraj_->ParallelWriteSingle(frm.TrajoutNum(), frm.Frm());
-  else
-# endif
-    err = outtraj_->WriteSingle(frameNum, frm.Frm());
-  if (err) return Action::ERR;
+  if (outtraj_->WriteSingle(frm.TrajoutNum(), frm.Frm())) return Action::ERR;
   return Action::OK;
 }
 

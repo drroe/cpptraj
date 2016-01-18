@@ -173,15 +173,8 @@ Action::RetType Action_ReplicateCell::Setup(ActionSetup& setup) {
     if (coords_ != 0)
       coords_->CoordsSetup( combinedTop_, CoordinateInfo() );
     if (outtraj_ != 0) {
-      int err = 0;
-#     ifdef MPI
-      if (trajComm_.Size() > 1)
-        err = outtraj_->ParallelSetupTrajWrite( &combinedTop_, CoordinateInfo(),
-                                                setup.Nframes(), trajComm_ );
-      else
-#     endif
-        err = outtraj_->SetupTrajWrite( &combinedTop_, CoordinateInfo(), setup.Nframes() );
-      if (err) return Action::ERR;
+      if (outtraj_->SetupTrajWrite( &combinedTop_, CoordinateInfo(), setup.Nframes() ))
+        return Action::ERR;
       outtraj_->PrintInfo( 0 );
     }
   }
@@ -223,14 +216,7 @@ Action::RetType Action_ReplicateCell::DoAction(int frameNum, ActionFrame& frm) {
   }
 # endif
   if (outtraj_ != 0) {
-    int err = 0;
-#   ifdef MPI
-    if (trajComm_.Size() > 1)
-      err = outtraj_->ParallelWriteSingle(frm.TrajoutNum(), combinedFrame_);
-    else
-#   endif
-      err = outtraj_->WriteSingle(frameNum, combinedFrame_);
-    if (err) return Action::ERR;
+    if (outtraj_->WriteSingle(frm.TrajoutNum(), combinedFrame_)) return Action::ERR;
   }
   if (coords_ != 0)
     coords_->AddFrame( combinedFrame_ );

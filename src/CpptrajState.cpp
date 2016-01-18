@@ -784,7 +784,7 @@ int CpptrajState::RunParallel() {
     bool suppress_output = actionList_.DoActions(actionSet, currentFrame);
     // Trajectory output
     if (!suppress_output) {
-      if (trajoutList_.ParallelWriteTrajout(set, currentFrame.Frm())) {
+      if (trajoutList_.WriteTrajout(set, currentFrame.Frm())) {
         if (exitOnError_) return 1;
       }
     }
@@ -799,7 +799,7 @@ int CpptrajState::RunParallel() {
     mprintf("TIME: Rank %i throughput= %.4f frames / second.\n", rank, darray[rank]);
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
           (double)input_traj.Size() / frames_time.Total());
-  trajoutList_.ParallelCloseTrajout();
+  trajoutList_.CloseTrajout();
   DSL_.SetNewSetsNeedSync( false );
   Timer time_sync;
   time_sync.Start();
