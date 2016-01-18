@@ -35,7 +35,7 @@ Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init
   // Require imaging.
   image_.InitImaging( true );
   // Set up output traj
-  std::string trajfilename_ = actionArgs.GetStringKey("out");
+  std::string trajfilename = actionArgs.GetStringKey("out");
   parmfilename_ = actionArgs.GetStringKey("parmout");
   Topology* tempParm = init.DSL().GetTopology( actionArgs );
   bool setAll = actionArgs.hasKey("all");
@@ -44,7 +44,7 @@ Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init
     coords_ = (DataSet_Coords*)init.DSL().AddSet(DataSet::COORDS, dsname, "RCELL");
     if (coords_ == 0) return Action::ERR;
   }
-  if (trajfilename_.empty() && coords_ == 0) {
+  if (trajfilename.empty() && coords_ == 0) {
     mprinterr("Error: Either 'out <traj filename> or 'name <dsname>' must be specified.\n");
     return Action::ERR;
   }
@@ -98,13 +98,13 @@ Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init
     return Action::ERR;
   }
   // Set up output trajectory
-  if (!trajfilename_.empty()) {
+  if (!trajfilename.empty()) {
     if (tempParm == 0) {
-      mprinterr("Error: Could not get topology for %s\n", trajfilename_.c_str());
+      mprinterr("Error: Could not get topology for %s\n", trajfilename.c_str());
       return Action::ERR;
     }
-    ArgList trajArgs_ = actionArgs.RemainingArgs();
-    outtraj_ = init.DFL().AddOutputTraj( trajfilename_, trajArgs_, TrajectoryFile::UNKNOWN_TRAJ );
+    ArgList trajArgs = actionArgs.RemainingArgs();
+    outtraj_ = init.DFL().AddOutputTraj( trajfilename, trajArgs, TrajectoryFile::UNKNOWN_TRAJ );
     if (outtraj_ == 0) return Action::ERR; 
     outtraj_->SetDebug( debugIn );
     // Initialize output trajectory with remaining arguments

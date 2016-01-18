@@ -19,28 +19,35 @@ Action::RetType Action_LESsplit::Init(ArgList& actionArgs, ActionInit& init, int
     return Action::ERR;
   }
   trajfilename_ = actionArgs.GetStringKey("out");
-  avgfilename_ = actionArgs.GetStringKey("average");
+  std::string avgfilename = actionArgs.GetStringKey("average");
   lesSplit_ = !trajfilename_.empty();
-  lesAverage_ = !avgfilename_.empty();
+  lesAverage_ = !avgfilename.empty();
   if (!lesSplit_ && !lesAverage_) {
     mprinterr("Error: Must specify at least 'out <prefix>' or 'average <name>'.\n");
     return Action::ERR;
   }
   trajArgs_ = actionArgs.RemainingArgs();
+  // Set up average traj
+  if (lesAverage_) {
+    avgTraj_ = init.DFL().AddOutputTraj( avgfilename, trajArgs_, TrajectoryFile::UNKNOWN_TRAJ );
+    if (avgTraj_ == 0) return Action::ERR;
+    avgTraj_->SetDebug( debugIn );
+  }
   
   mprintf("    LESSPLIT:\n");
   if (lesSplit_) mprintf("\tSplit output to '%s.X'\n", trajfilename_.c_str());
-  if (lesAverage_) mprintf("\tAverage output to '%s'\n", avgfilename_.c_str());
+  if (lesAverage_) mprintf("\tAverage output to '%s'\n", avgTraj_->Traj().Filename().full());
   return Action::OK;
 }
 
 #ifdef MPI
 int Action_LESsplit::ParallelActionInit(Parallel::Comm const& commIn) {
-  if (commIn.Size() > 1) {
+  if (avgTraj_ != 0) avgTraj_->SetTrajComm( commIn );
+  /*if (commIn.Size() > 1) {
     mprinterr("Error: 'lessplit' action does not work with > 1 thread (%i threads currently).\n",
               commIn.Size());
     return 1;
-  }
+  }*/
   return 0;
 }
 #endif
@@ -94,11 +101,9 @@ Action::RetType Action_LESsplit::Setup(ActionSetup& setup) {
     if (lesAverage_) {
       // For average only care about coords.
       avgFrame_.SetupFrame( lesParm_->Natom() );
-      if (avgTraj_.PrepareTrajWrite( avgfilename_, trajArgs_, lesParm_,
-                                     CoordinateInfo(), setup.Nframes(),
-                                     TrajectoryFile::UNKNOWN_TRAJ ))
+      if (avgTraj_->SetupTrajWrite( lesParm_, CoordinateInfo(), setup.Nframes() ))
         return Action::ERR;
-      avgTraj_.PrintInfo(0);
+      avgTraj_->PrintInfo(0);
     }
   } else {
     if (lesParm_->Pindex() != setup.Top().Pindex()) {
@@ -123,7 +128,7 @@ Action::RetType Action_LESsplit::DoAction(int frameNum, ActionFrame& frm) {
     for (unsigned int i = 0; i != lesMasks_.size(); i++)
       avgFrame_ += lesFrames_[i];
     avgFrame_.Divide( lesMasks_.size() );
-    if ( avgTraj_.WriteSingle(frameNum, avgFrame_) != 0 )
+    if ( avgTraj_->WriteSingle(frm.TrajoutNum(), avgFrame_) != 0 )
       return Action::ERR;
   }
   return Action::OK;

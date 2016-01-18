@@ -6,7 +6,7 @@
 /// Split LES frame/top into normal frames/tops.
 class Action_LESsplit : public Action {
   public:
-    Action_LESsplit() : lesAverage_(false), lesSplit_(false), lesParm_(0) {}
+    Action_LESsplit() : lesAverage_(false), lesSplit_(false), avgTraj_(0), lesParm_(0) {}
     ~Action_LESsplit();
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_LESsplit(); }
     void Help() const;
@@ -24,7 +24,7 @@ class Action_LESsplit : public Action {
     typedef std::vector<AtomMask> MaskArray;
     MaskArray lesMasks_;
     EnsembleOut_Multi lesTraj_;
-    Trajout_Single avgTraj_;
+    Trajout_Single* avgTraj_;
     std::string trajfilename_;
     std::string avgfilename_;
     ArgList trajArgs_;

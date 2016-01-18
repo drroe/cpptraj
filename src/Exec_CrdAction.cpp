@@ -58,6 +58,7 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
     CRD->CoordsSetup( originalSetup.Top(), originalSetup.CoordInfo() );
   } 
   act->Print();
+  State.DFL().CloseOutputTraj();
   State.MasterDataFileWrite();
   total_time.Stop();
   mprintf("TIME: Total action execution time: %.4f seconds.\n", total_time.Total());
