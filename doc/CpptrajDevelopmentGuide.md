@@ -1,3 +1,9 @@
+#CPPTRAJ Developer's Guide
+*Daniel R. Roe (daniel.r.roe@gmail.com)*
+*Jason M. Swails (Code Docs)*
+2010-07-21
+Last Updated: 2016-02-05
+___
 CPPTRAJ is code used for processing MD trajectory data as well as other types of data, derived from trajectories or otherwise. CPPTRAJ is a complete rewrite of the PTRAJ code in primarily C++, with the intent being to make the code more readable, leak-free, and thread-safe. The biggest functional change from PTRAJ is the ability to load and process trajectories with different topology files in the same run.
 
 This guide assumes that the reader has at least a basic familiarity with C and C++ object-oriented programming. If you aren’t sure what a constructor is or how pointers work you may have a difficult time coding in Cpptraj. There are several good introduction to C/C++ tutorials on the web that may be helpful.
@@ -11,31 +17,34 @@ It is important to maintain a consistent coding style within cpptraj so that it 
 
 -   Try to keep lines between 80 and 100 characters long.
 
--   Whenever possible, put separate code on separate lines. Exceptions can be made for very simple statements such as logic evaluations and simple initializations. For example,\
-    **double x1 = 0.0, x2 = 0.0, x3 = 0.0;**\
-    is OK, but\
-    **double x1 = var1 <span>\*</span> var2; double x2 = var3 / var4;**\
-    is not. There are two reasons: 1) When separate statements share a line it makes using debuggers more difficult, and 2) when separate statements share a line it is harder to read.
+-   Whenever possible, put separate code on separate lines. Exceptions can be made for very simple statements such as logic evaluations and simple initializations. For example,
+```
+    double x1 = 0.0, x2 = 0.0, x3 = 0.0;
+```
+is OK, but
+```
+    double x1 = var1*var2; double x2 = var3 / var4;
+```
+is not. There are two reasons: 1) When separate statements share a line it makes using debuggers more difficult, and 2) when separate statements share a line it is harder to read.
 
 -   C++ files have ’.cpp’ suffix, C files have ’.c’ suffix, header files have ’.h’ suffix.
 
 -   All header files should have a ’\#define’ guard to prevent multiple inclusion. The define guard has format:
-
-\#ifndef INC\_\<basefilename\>\_H
-
-\#define INC\_\<basefilename\>\_H
-
+```
+#ifndef INC_<basefilename>_H
+#define INC_<basefilename>_H
+```
 ...
+```
+#endif
+```
+-   `using namespace` should be used sparingly and NEVER in a header file.
 
-\#endif
+-   The order of `#include` directives should be (in general): C includes, C++ includes, class definition, any other Cpptraj includes.
 
--   ’using namespace’ should be used sparingly and NEVER in a header file.
+-   Use of STL classes/methods is acceptable; use C99 conventions to maximize portability. Currently the only external libraries that should be used are NetCDF, the ARPACK/LAPACK/BLAS math libraries, Zlib, libbz2 (bzip),  and parallel NetCDF, i.e. no Boost etc.
 
--   The order of \#include directives should be (in general): C includes, C++ includes, class definition, any other Cpptraj includes.
-
--   Use of STL classes/methods is acceptable; use C99 conventions to maximize portability. The only external libraries that should be used are NetCDF and ARPACK/LAPACK/BLAS (both included with AmberTools), i.e. no Boost etc.
-
--   Do not use iostream for basic IO. All console output should be performed with the functions in CpptrajStdio.h (chiefly mprintf() and mprinterr() for STDOUT and STDERR respectively). All file IO should be performed with CpptrajFile or the derived classes BufferedLine and BufferedFrame. This choice has been made mainly for performance reasons (C file routines are in general much faster than iostream), but also so that all IO is centralized (e.g. CpptrajFile will automatically detect if an input file is compressed). This is also so output can be easily controlled; for example, using mprintf will make sure that during MPI only the master writes.
+-   Do not use iostream for basic IO. All console output should be performed with the functions in CpptrajStdio.h (chiefly mprintf() and mprinterr() for STDOUT and STDERR respectively). All basic file IO should be performed with CpptrajFile or the derived classes BufferedLine and BufferedFrame. This choice has been made mainly for performance reasons (C file routines are in general much faster than iostream), but also so that all IO is centralized (e.g. CpptrajFile will automatically detect if an input file is compressed). This is also so output can be easily controlled; for example, using mprintf will make sure that during MPI only the master writes.
 
 -   Warnings should be written to STDOUT with mprintf with prefix ’Warning:’; errors should be written to STDERR with mprinterr with prefix ’Error:’.
 
