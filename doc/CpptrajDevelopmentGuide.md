@@ -627,10 +627,8 @@ Base class for DataSets which hold coordinates.
 
 Most development for Cpptraj will likely be in adding new functionality; actions, analyses, and trajectory/topology/data file formats. This part of the manual will provide guidance and some helpful hints to this end. In general, adding new functionality is done by writing an implementation of the desired class type (e.g. for actions, inherit from the Action class) and then adding that class to the container for that specific functionality (e,g, in the case of actions, ActionList).
 
-Adding Actions - Example
-========================
-
-All actions inherit from the Action abstract base class. The Action class itself inherits from the DispatchObject class so that it can be associated with an allocator (to create the action) and a help function. There are four functions that every action must implement: Init(), Setup(), DoAction(), and Print(). Init() is called when the action is first created, and processes input arguments, sets up DataSets/DataFiles, deals with reference frames, and sets the debug level. Setup() is called to set the action up for a specific topology, and so handles anything Topology-related (such as parsing atom masks). The DoAction() function is called to actually perform the action on input coordinate frames. The Init(), Setup(), and DoAction() functions return a special type of integer, Action::RetType, which described the result of the action:
+#Adding Actions - Example
+All actions inherit from the Action abstract base class. The Action class itself inherits from the DispatchObject class, and so it must implement an allocator Alloc() (to create the Action) and a help function (Help()). There are four functions that every Action must implement: Init(), Setup(), DoAction(), and Print(). Init() is called when the action is first created, and processes input arguments, sets up DataSets/DataFiles, deals with reference frames, and sets the debug level. Setup() is called to set the action up for a specific topology, and so handles anything Topology-related (such as parsing atom masks). The DoAction() function is called to actually perform the action on input coordinate frames. The Init(), Setup(), and DoAction() functions return a special type of integer, Action::RetType, which described the result of the action:
 
 <span>Action::OK</span>
 
@@ -662,331 +660,263 @@ All actions inherit from the Action abstract base class. The Action class itself
 
 The final function is Print(), which is called after all trajectory processing is complete and performs any additional calculation or output necessary. This function can be blank if such functionality is not needed, but it still must be implemented.
 
-In addition to Action, there are currently two additional action-related classes that actions may want to inherit from. The ImagedAction class is for classes that may need to calculate imaged distances, and the ActionFrameCounter class is for actions that may want to process subsets of input frames (see e.g. the Action\_Matrix action).
+In addition to Action, there are two additional action-related classes that actions may want to use. The ImagedAction class is for classes that may need to calculate imaged distances, and the ActionFrameCounter class is for actions that may want to process subsets of input frames (see e.g. the Action\_Matrix action).
 
 As an example, we will go through the creation of a simplified version of the Action\_Distance class for calculating distances; this will cover using the DataSet, DataFile, AtomMask, and ImagedAction classes as well.
 
-Create the Class Header
------------------------
-
+##Create the Class Header
 As mentioned in the style guide, header files should be named after the class, so the Action\_Distance class will go in a file named “Action\_Distance.h”. The first thing to do is create a “header guard” - this will prevent issues with multiple inclusion. The header guard should be named after the class and header file, so for Action\_Distance.h:
-
-\#ifndef INC\_ACTION\_DISTANCE\_H
-
-\#define INC\_ACTION\_DISTANCE\_H
-
-Next comes the class description. Since distance calculations may involve imaging we also include the ImagedAction class as a variable to simplify image handling:
-
-class Action\_Distance: public Action {
-
-Following the style guide, we first implement any public methods. For actions this is at least the constructor, the allocator (named Alloc() by convention), and the Help() function. The allocator and help functions need to be static so that they can be called without instantiating the class.
-
-public:
-
-  Action\_Distance();  ///\< Constructor
-
-  /// Allocator
-
-  static DispatchObject<span>\*</span> Alloc() { return (DispatchObject<span>\*</span>)new Action\_Distance(); }
-
-  static void Help(); ///\< Help function
-
-The implemented functions Init(), Setup(), DoAction(), and Print() can be either public or private, although the preference is private.
+```C++
+#ifndef INC_ACTION_DISTANCE_H
+#define INC_ACTION_DISTANCE_H
+```
+Next comes the class description. :
+```C++
+class Action_Distance : public Action {
+```
+Following the style guide, we first implement any public methods. For Actions this is at least the constructor, and the DispatchObject allocator (named Alloc()) and Help() functions.
+```C++
+  public:
+    Action_Distance();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Distance(); }
+    void Help() const;
+```
+The inherited Action functions Init(), Setup(), DoAction(), and Print() can be either public or private. By default they should be private unless this Action needs to be called outside the normal Action framrwork.
 
 The private section is where all functions and variables specific to the class will go. First, we add entries for the functions inherited from the Action base class which must be implemented. Since we will not need to do any post-processing for this action, the Print() function is empty:
+```C++
+  private:
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
+    void Print() {}
+```
+After this we would also define any functions that are private to the class.
 
-  Action::RetType Init(ArgList&, ActionInit&, int);
-
-  Action::RetType Setup(ActionSetup&);
-
-  Action::RetType DoAction(int, ActionFrame&);
-
-  void Print() {}
-
-Next we define the class variables. For Action\_Distance we will want a DataSet to hold the calculated distances, two AtomMasks to describe the points between which the distance should be calculated, and a variable to indicate whether the distance should be mass-weighted.
-
-private:
-
-  DataSet<span>\*</span> dist\_;      ///\< Will hold DataSet of calculated distances.
-
-  bool useMass\_;       ///\< If true, mass-weight distances.
-
-  AtomMask Mask1\_;     ///\< First atom selection.
-
-  AtomMask Mask2\_;     ///\< Second atom selection
-
-  ImagedAction image\_; ///\< Holds imaging info
-
-All variables related to imaging are already include via the ImagedAction class.
+Next we define the class variables. For Action\_Distance we will want a DataSet to hold the calculated distances, two AtomMasks to describe the points between which the distance should be calculated, and a variable to indicate whether the distance should be mass-weighted. Since distance calculations may involve imaging we also include the ImagedAction class as a variable to simplify image handling.
+```C++
+    DataSet* dist_;  ///< Will hold DataSet of calculated distances.
+    bool useMass_;   ///< If true, mass-weight distances.
+    AtomMask Mask1_; ///< First atom(s) selection
+    AtomMask Mask2_; ///< Second atom(s) selection
+    ImagedAction image_; ///< Imaging routines.
+```
+Note that the variables are documented with doxygen style formatting.
 
 Last, end the class definition and finish the header guard:
-
+```C++
 };
+#endif
+```
 
-\#endif
-
-Create the Class Implementation
--------------------------------
-
+##Create the Class Implementation
 Following the naming scheme, the class implementation will go into Action\_Distance.cpp. The first part of this file will have the necessary \#include directives. We need \<cmath\> for the square root function, Action\_Distance.h for the class definition, and CpptrajStdio.h for wiriting to the console.
-
-\#include \<cmath\>
-
-\#include Action\_Distance.h
-
-\#include CpptrajStdio.h
-
+```C++
+#include <cmath>
+#include "Action_Distance.h"
+#include "CpptrajStdio.h"
+```
 First we will need to create the class constructor. It is encouraged that users make use of initalizer lists (which tend to be more efficient) for this purpose. In this case we have two non-class variables: dist\_, which is a pointer to a DataSet, and useMass\_, which is boolean:
-
-Action\_Distance::Action\_Distance() : dist\_(0), useMass\_(true) {}
-
+```C++
+Action_Distance::Action_Distance() : dist_(0), useMass_(true) {}
+```
 Next, ensure that the Help() function has an implementation. Note that in cpptraj “mprintf” is used over “printf” for making any future IO modifications easier:
-
-void Action\_Distance::Help() {
-
-  mprintf(distance <span>[</span>\<name\><span>]</span> \<mask1\> \<mask2\> <span>[</span>out \<filename\><span>]</span> <span>[</span>geom<span>]</span> <span>[</span>noimage<span>]</span>\\n);
-
+```C++
+void Action_Distance::Help() const {
+  mprintf("\t[<name>] <mask1> <mask2> [out <filename>] [geom] [noimage]\n"
+          "  Calculate distance between atoms in <mask1> and <mask2>\n");
 }
+
+```
 
 ### Init() - Parse user arguments, set up DataSets/DataFiles etc
 
 Init() is called when the action is created and is responsible for parsing the Argument list (ArgList) and inital setup. Init() has the same input arguments for every action:
-
-Action::RetType 
-
-  Action\_Distance::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
-
+```C++
+Action::RetType Action_Distance::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-
+```
 The input arguments are as follows: **actionArgs** (ArgList class) contains arguments from user input, **init** (ActionInit class) contains the master DataSetList and master DataFileList, and **debugIn** is the current debug level for all actions. It is up to the action implementation whether it wants to record the debug level or not.
 
 Typical order of argument processing is keywords, masks, DataSet name. First we will process the keywords ’noimage’, ’geom’, and ’out \<filename\>’.
 
 In order to determine whether the action will try to use imaging we call the InitImaging() function (inherited from the ImagedAction class). If the ArgList actionArgs contains the string “noimage”, false will be sent to InitImaging to disable imaging:
-
-  image\_.InitImaging( !(actionArgs.hasKey(noimage)) );
-
+```C++
+  image_.InitImaging( !(actionArgs.hasKey("noimage")) );
+```
 Next we set useMass\_. If actionArgs contains the string “geom”, useMass\_ will be set to false:
-
-  useMass\_ = !(actionArgs.hasKey(geom));
-
+```C++
+  useMass_ = !(actionArgs.hasKey("geom"));
+```
 Next, we will try to create an output DataFile:
-
-  DataFile<span>\*</span> outfile = init.DFL().AddDataFile( actionArgs.GetStringKey(out),
-
-                                              actionArgs );
-
+```C++
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+```
 The behavior of AddDataFile() depends on the result from actionArgs.GetStringKey(); if “out” is present in actionArgs, the next string (presumably \<filename\>) is returned and passed to AddDataFile(), and a DataFile will be returned corresponding to \<filename\>. If “out” is not present nothing will be returned, no file will be set up, and outfile will be null (0).
 
 Next, we will get two atom mask expressions. We will require that the user must specify two masks, so if either of the strings is empty return an error:
-
+```C++
   std::string mask1 = actionArgs.GetMaskNext();
-
   std::string mask2 = actionArgs.GetMaskNext();
-
   if (mask1.empty() || mask2.empty()) {
-
-    mprinterr(Error: distance: Requires 2 masks\\n);
-
+    mprinterr("Error: distance: Requires 2 masks\n");
     return Action::ERR;
-
   }
-
+```
 Now we can use the mask expression strings to initialize the two AtomMask classes (note that this tokenizes the mask expressions but does not yet set them up since we need topology information to do that):
-
-  Mask1\_.SetMaskString(mask1);
-
-  Mask2\_.SetMaskString(mask2);
-
+```C++
+  Mask1_.SetMaskString(mask1);
+  Mask2_.SetMaskString(mask2);
+```
 Next we will use the master DataSetList (init.DSL()) to create a DataSet to store the calculated distances. We will use a version of DataSetList::AddSet() that allows us to specify the DataSet type, MetaData, and a default name if no name is specified (“Dis”). If any errors occur in creating the DataSet, NULL (0) will be returned. Note that the string returned by actionArgs.GetStringNext() is implicitly converted to a MetaData class.
-
-  dist\_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), Dis);
-
-  if (dist\_==0) return Action::ERR;
-
+```C++
+  dist_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), Dis);
+  if (dist_==0) return Action::ERR;
+```
 If a DataFile was previously set up, we now add the DataSet to this DataFile:
-
-  if (outfile != 0) outfile-\>AddDataSet( dist\_ );
-
+```C++
+  if (outfile != 0) outfile->AddDataSet( dist_ );
+```
 Last, we print out some information regarding how the Action has been initialized and return Action::OK to indicate successful intialization:
+```C++
+  mprintf("    DISTANCE: %s to %s",Mask1_.MaskString(), Mask2_.MaskString());
+  if (!image_.UseImage())
+    mprintf(", non-imaged");
+  if (useMass_)
+    mprintf(", center of mass");
+  else
+    mprintf(", geometric center");
+  mprintf(".\n");
 
-  mprintf(    DISTANCE: %s to %s,Mask1\_.MaskString(), Mask2\_.MaskString());
-
-  if (!image\_.UseImage())
-
-    mprintf(, non-imaged);
-
-  if (useMass\_)
-
-    mprintf(, center of mass);
-
-  else 
-
-   mprintf(, geometric center);   mprintf(.\\n);
-
-  return Action::OK;
-
+  return Action::OK;
 }
+```
 
 **IMPORTANT:** Note that this is the only time in which the master DataSetList is passed to the Action. If the Action will need to set up DataSets later (because e.g. they may depend on what’s in the Topology, like in the case of the ***multidihedral*** command), it should save a pointer to the master DataSetList using the **init.DslPtr()** function, e.g.
-
+```
 masterDSL\_ = init.DslPtr();
+```
 
 ### Setup() - Set up Topology-related parts of the Action
-
 Setup() is called whenever the action needs to be set up for a given Topology file. Any component of the action that depends on Topology (in this case the AtomMasks and the Imaging) is handled here. The arguments to Setup() are:
-
-Action::RetType Action\_Distance::Setup(ActionSetup& setup) {
-
+```C++
+Action::RetType Action_Distance::Setup(ActionSetup& setup) {
+```
 Note that the **setup** variable (ActionSetup class) contains a pointer to the current Topology and current trajectory CoordinateInfo, as well as the number of expected frames associated with this Topology during the current run. Actions that want to modify the current Topology or CoordinateInfo for subsequent Actions can do so using the **setup** variable (see e.g. Action\_Strip).
 
 First, we setup the AtomMasks. Each AtomMask is passed to the current topology using the SetupIntegerMask() function, which will create an integer array containing only the selected atoms based on the mask expression. If we needed to know both selected and unselected atoms we could use the SetupCharMask() function instead.
-
-  if (setup.Top().SetupIntegerMask( Mask1\_ )) return Action::ERR;
-
-  if (setup.Top().SetupIntegerMask( Mask2\_ )) return Action::ERR;
-
+```C++
+  if (setup.Top().SetupIntegerMask( Mask1_ )) return Action::ERR;
+  if (setup.Top().SetupIntegerMask( Mask2_ )) return Action::ERR;
+```
 After this, we print some information about what atoms are selected (note we could also use the MaskInfo() function of AtomMask for this). For calculating distance, we need to make sure atoms were actually selected (using the None() function of AtomMask). If no atoms were selected this may be because the mask is only valid for certain Topologies during the run, so in that case make it a non-fatal error (i.e. a Warning) and return Action::SKIP:
-
-  mprintf(\\t%s (%i atoms) to %s (%i atoms),Mask1\_.MaskString(), Mask1\_.Nselected(),
-
-          Mask2\_.MaskString(),Mask2\_.Nselected());
-
-  if (Mask1\_.None() || Mask2\_.None()) {
-
-    mprintf(\\nWarning: distance: One or both masks have no atoms.\\n);
-
-    return Action::SKIP;
-
-  }
-
+```C++
+  mprintf("\t%s (%i atoms) to %s (%i atoms)",Mask1_.MaskString(), Mask1_.Nselected(),
+          Mask2_.MaskString(),Mask2_.Nselected());
+  if (Mask1_.None() || Mask2_.None()) {
+    mprintf("\nWarning: One or both masks have no atoms.\n");
+    return Action::SKIP;
+  }
+```
 Next we determine if imaging can actually be performed based on the box information present in the current trajectory’s CoordinateInfo; if there is no box information imaging cannot be performed. We do this with the image\_.SetupImaging() function (ImagedAction class). The image\_.ImagingEnabled() function will let us know if imaging for this Topology is possible or not:
-
-  image\_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-
-  if (image\_.ImagingEnabled())
-
-    mprintf(, imaged);
-
-  else
-
-    mprintf(, imaging off);
-
-  mprintf(.\\n);
-
+```C++
+image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
+  if (image_.ImagingEnabled())
+    mprintf(", imaged");
+  else
+    mprintf(", imaging off");
+  mprintf(".\n");
+```
 Now all Topology-dependent aspects of the action are set up. Return Action::OK.
-
+```
   return Action::OK;
-
 }
-
+```
 **IMPORTANT:** Note that this is the only time in which a Topology is passed to the Action. If the Action requires Topology information later (such as in DoAction() or Print()) it should save a pointer to the Topology using the **setup.TopAddress()** function, e.g.
-
-currentParm\_ = setup.TopAddress();
+```
+currentParm_ = setup.TopAddress();
+```
 
 ### DoAction() - Process input Frame
-
 Coordinates are read in a frame at a time and stored in a Frame class, which is then passed to each action in the ActionList. The DoAction() function is called to process a coordinate Frame. The arguments are:
-
-Action::RetType Action\_Distance::DoAction(int frameNum, ActionFrame& frm) {
-
+```C++
+Action::RetType Action_Distance::DoAction(int frameNum, ActionFrame& frm) {
+```
 The first argument **frameNum** is the current frame number (starting at 0). Note that the **frm** variable (ActionFrame class) contains a pointer to the current Frame. Actions that want to alter the current Frame beyond just manipulating coordinates for subsequent Actions (e.g. changing the Frame size or adding velocity info etc) can do so via the **frm** variable (see e.g. Action\_Closest).
 
 There are several variables needed for calculating the distance. First, we have two Vec3 classes (Vec3.h, which is already included from other headers) to store the XYZ coordinates of the points:
-
+```C++
   Vec3 a1, a2;
-
+```
 If we are performing non-orthorhombic imaging we need to store the matrices which perform conversion from Cartesian to fractional coordinates and vice versa (using Matrix\_3x3 classes, Matrix\_3x3.h). Note that these are called ’ucell’ and ’recip’ respectively throughout CPPTRAJ, as these were the names used for the analogous structures in PTRAJ.
-
-  Matrix\_3x3 ucell, recip;
-
+```C++
+  Matrix_3x3 ucell, recip;
+```
 Finally, we need a double to store the actual result of the distance calculation:
-
+```C++
   double Dist;
-
+```
 In the first part of the actual calculation, we calculate the centers of the coordinates in Mask1\_ and Mask2\_, either mass-weighted or not depending on useMass\_, using the appropriate functions from the Frame class (Frame.h):
-
-  if (useMass\_) {
-
-    a1 = frm.Frm().VCenterOfMass( Mask1\_ );
-
-    a2 = frm.Frm().VCenterOfMass( Mask2\_ );
-
-  } else {
-
-    a1 = frm.Frm().VGeometricCenter( Mask1\_ );
-
-    a2 = frm.Frm().VGeometricCenter( Mask2\_ );
-
-  }
-
+```C++
+  if (useMass_) {
+    a1 = frm.Frm().VCenterOfMass( Mask1_ );
+    a2 = frm.Frm().VCenterOfMass( Mask2_ );
+  } else {
+    a1 = frm.Frm().VGeometricCenter( Mask1_ );
+    a2 = frm.Frm().VGeometricCenter( Mask2_ );
+  }
+```
 Note that here we are using the Frm() function, which returns a constant (i.e. non-modifiable) reference to the current Frame; if we wanted to actually manipulate the coordinates we would have to call ModifyFrm().
 
 Next, we get the distance between the coordinates stored in a1 and a2. For non-orthorhombic imaging we first need to convert the current box coordinates (stored in the Frame class in double precision as 3 lengths and 3 angles) into the coordinate conversion matrices using the ToRecip() function of the Box class (Box.h). Then, depending on the type of imaging that needs to be performed we call the appropriate distance calculation routine (DIST2\_XXX, found in DistRoutines.h):
-
-  switch ( image\_.ImageType() ) {
-
-    case NONORTHO:
-
-      frm.Frm().BoxCrd().ToRecip(ucell, recip);
-
-      Dist = DIST2\_ImageNonOrtho(a1, a2, ucell, recip);
-
-      break;
-
-    case ORTHO:
-
-      Dist = DIST2\_ImageOrtho(a1, a2, frm.Frm().BoxCrd());
-
-      break;
-
-    case NOIMAGE:
-
-      Dist = DIST2\_NoImage(a1, a2);       break;
-
-  }
-
-  Dist = sqrt(Dist);
-
+```C++
+  switch ( image_.ImageType() ) {
+    case NONORTHO:
+      frm.Frm().BoxCrd().ToRecip(ucell, recip);
+      Dist = DIST2_ImageNonOrtho(a1, a2, ucell, recip);
+      break;
+    case ORTHO:
+      Dist = DIST2_ImageOrtho(a1, a2, frm.Frm().BoxCrd());
+      break;
+    case NOIMAGE:
+      Dist = DIST2_NoImage(a1, a2);
+      break;
+  }
+  Dist = sqrt(Dist);
+```
 Last, we add the result to the DataSet and return Action::OK. Since DataSet is just an interface we pass in the address of Dist (&Dist) to let the underlying DataSet framework take care of the fact that it is a double.
-
-  dist\_-\>Add(frameNum, &Dist);
-
+```C++
+  dist_->Add(frameNum, &Dist);
   return Action::OK;
-
 }
+```
 
 ### Print() - Any post-processing
-
 The Print() function is called once all input frames have been read in, and is used if there is anything that should be printed outside the normal DataFile/DataSet framework (e.g. hydrogen bond averages in the hbond action) or if there are any additional calculations that need to be performed (e.g. finishing up matrix calculations in the matrix action). In this example we’re only calculating a simple distance; the output is handled by the DataFile/DataSet framework, so we implement a blank Print() function in the header:
-
+```C++
 void Print() {}
+```
 
-Add the Action to the Command class
------------------------------------
-
+##Add the Action to the Command class
 Now that the class implementation is complete, we need to let cpptraj know how to call it. This is currently done using a “static” Class, Command (Command.cpp), which is initialized by the Cpptraj class via Command::Init() when the program starts. Command::Init() makes use of the Command::AddCmd() function to add the Command, set its destination, and any associated keywords. The Command::AddCmd() function looks like:
-
-void Command::AddCmd(DispatchObject<span>\*</span> oIn, Cmd::DestType dIn, int nKeys, ...)
-
+```C++
+void Command::AddCmd(DispatchObject* oIn, Cmd::DestType dIn, int nKeys, ...)
+```
 where **oIn** is a pointer to the DispatchObject (Exec-, Action-, Analysis-, or Deprecated-derived class), **dIn** determines how the Command will be processed, **nKeys** is the number of keywords associated with the command, and the remaining arguments are the command keywords. For example:
-
-Command::AddCmd( new Action\_Rmsd(), Cmd::ACT, 2, rms, rmsd );
-
+```C++
+Command::AddCmd( new Action_Rmsd(), Cmd::ACT, 2, rms, rmsd );
+```
 Adds a new instance of the Action-derived class Action\_Rmsd, sets its destination as Action (Cmd::ACT), and sets 2 associated command keys, “rms” and “rmsd”.
 
 To make navigation of Commands.cpp easier, you can search for ACTION (or ANALYSIS if adding an Analysis) to go where things need to be added. First add the class to Commands.cpp with the appropriate ’\#include’. Includes should be in alphabetical order within their given section.
-
-\#include Action\_Dihedral.h
-
-**\#include Action\_Distance.h**
-
-\#include Action\_Hbond.h
-
+```C++
+#include Action_Dihedral.h
+#include Action_Distance.h
+#include Action_Hbond.h
+```
 Then add the command to Command::Init() using Command::AddCmd(), e.g.:
-
-Command::AddCmd( new Action\_Dipole(), Cmd::ACT, 1, dipole );
-
-**Command::AddCmd( new Action\_Distance(), Cmd::ACT, 1, distance );**
-
-Command::AddCmd( new Action\_DistRmsd(), Cmd::ACT, 2, drms, drmsd ); 
+```C++
+Command::AddCmd( new Action_Dipole(), Cmd::ACT, 1, dipole );
+Command::AddCmd( new Action_Distance(), Cmd::ACT, 1, distance );
+Command::AddCmd( new Action_DistRmsd(), Cmd::ACT, 2, drms, drmsd );
+```
