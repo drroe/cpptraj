@@ -68,28 +68,18 @@ is not. There are two reasons: 1) When separate statements share a line it makes
 
 -   Variables that have function scope (or lower) and all public variables for classes are named using *mixedCase* (same as *CapWords* except the first letter is lower-case).
 
--   No one-letter variable names except in loop scopes (e.g. for (int i = 0; i \< N; ++i) { } ), and even then they should be short loops (no more than 10 lines or so).
+-   No one-letter variable names except in loop scopes (e.g. `for (int i = 0; i < N; ++i) { }`), and even then they should be short loops (no more than 10 lines or so).
 
--   All identifiers in an enumerated type are named using all *CAPS*, and the first identifier should be explicitly initialized (e.g. enum DirectionType { DX = 0, DY, DZ };).
+-   All identifiers in an enumerated type are named using all *CAPS*, and the first identifier should be explicitly initialized (e.g. `enum DirectionType { DX = 0, DY, DZ };`).
 
 -   There is a *doxygen* rule file to automatically generate code documentation using *doxygen*, so please construct comments in such a doxygen-compatible manner (e.g. JavaDoc etc). See http://www.stack.nl/\~dimitri/doxygen/manual.html for instructions.
 
 Building Cpptraj and Documentation
 ==================================
 
-Cpptraj is automatically built as part of AmberTools, or it can be built standalone using the configure script in the `$AMBERHOME/AmberTools/src/cpptraj` or `$CPPTRAJHOME` directory. The standalone build is particularly useful for development and testing. Type ’./configure –help’ for a list of configure options. In order to build Cpptraj standalone one needs to specify the location of the NetCDF, zlib, bzlib2, and BLAS/LAPACK/ARPACK libraries if they aren’t in your system path; configure will use the ones in \$AMBERHOME if `’-amberlib’` is specified. The -noX options can be used to disable use of certain libraries.
+Cpptraj is automatically built as part of AmberTools, or it can be built standalone using the configure script in the `$AMBERHOME/AmberTools/src/cpptraj` or `$CPPTRAJHOME` directory. The standalone build is particularly useful for development and testing. Type ’./configure –help’ for a list of configure options. See the `README.md` file in `$CPPTRAJHOME` or `$AMBERHOME/AmberTools/src/cpptraj`directories for more information.
 
-For example, to build cpptraj standalone:
-
-./configure -amberlib gnu
-
-make install OR cd src && make install
-
-To build the documentation using *doxygen*, you must have *doxygen* installed, and you must have configured AmberTools. Run the command:
-
-make docs
-
-to build the documentation. PDF files and HTML files are generated during this process, showing class inheritance and descriptions from comments written in doxy-format. Open the file `$AMBERHOME/AmberTools/src/cpptraj/doc/html/index.html` to see the class heirarchy and descriptions.
+#General Layout and Concepts
 
 Cpptraj currently lives in 3 key classes:
 
@@ -105,8 +95,7 @@ Cpptraj currently lives in 3 key classes:
 
 :   “Static” class used by **Cpptraj** to process user input. The file Command.cpp also contains all of the logic for executing commands.
 
-CpptrajState
-============
+##CpptrajState
 
 The main components of **CpptrajState** are:
 
@@ -134,14 +123,11 @@ The main components of **CpptrajState** are:
 
 :   Hold all Analyses to be executed after a run or when a ’runanalysis’ command is given. Similar to ActionList, whenever an Analysis command is issued the Analysis in question is initialized and queued up in the AnalysisList.
 
-Actions
-=======
+##Actions
 
 Actions are how Cpptraj derives data from input trajectories. There are two basic classes for Actions:
 
-Action
-------
-
+###Action
 The abstract base class that defines the Action interface. Consists of 4 functions:
 
 <span>Init():</span>
@@ -160,9 +146,7 @@ The abstract base class that defines the Action interface. Consists of 4 functio
 
 :   Perform any post-processing or output that occurs outside the main DataSet/DataFile framework.
 
-ActionInit (ActionState.h)
---------------------------
-
+###ActionInit (ActionState.h)
 Used to interface with Init(); contains pointers to the master DataSetList and DataFileList in CpptrajState.
 
 <span>DataSetList& DSL(), DataSetList const& DSL() const</span>
@@ -181,135 +165,95 @@ Used to interface with Init(); contains pointers to the master DataSetList and D
 
 :   Reference to master DataFileList. The appropriate version should be used automatically.
 
-ActionSetup (ActionState.h) 
-----------------------------
-
+###ActionSetup (ActionState.h)
 Used to interface with Setup(); contains pointers to current Topology and CoordinateInfo, as well as expected number of frames associated with current Topology.
 
-ActionFrame (ActionState.h)
----------------------------
-
+###ActionFrame (ActionState.h)
 Used to interface with DoAction(); contains pointer to current Frame.
 
-Math-related Classes
-====================
+#Math-related Classes
 
-Vec3
-----
-
+##Vec3
 An array of 3 doubles, used to hold XYZ coords. Used for vector math.
 
-Matrix\_3x3
------------
-
+##Matrix\_3x3
 A 3x3 array of doubles, useful for performing rotations etc. Used for basic matrix math. Can be diagonalized via an internal routine (no need for external math library).
 
-ComplexArray
-------------
-
+##ComplexArray
 Used to hold an array of complex numbers. Implemented as a double array instead of using the STL Complex class so that it easily interface with external routines.
 
-PubFFT
-------
-
+##PubFFT
 Interface to FFT routines (either pubfft, which are the FFT routines used by Amber, or FFTW depending on how CPPTRAJ is configured). Currently only 1D forward and backwards FFTs are supported. Makes use of ComplexArray.
 
-Corr.h: CorrF\_Direct, CorrF\_FFT
----------------------------------
-
+##Corr.h: CorrF\_Direct, CorrF\_FFT
 Classes used to calculate auto/cross correlation functions from arrays of complex numbers (ComplexArray).
 
-Some Key Classes and Functions
-==============================
+#Key Classes and Functions
 
 The following is a brief list of some of the more commonly-used classes and functions in Cpptraj. Classes are more or less self-documented to a certain extent; this section will be focused on how these classes are/should be used.
 
-ArgList
--------
-
+##ArgList
 The ArgList class is used throughout Cpptraj. It is the main way that user input is translated to actions, analyses, trajectory IO, etc. Basically, the ArgList class takes a string and separates it into tokens based on a given delimiter or delimiters. For example, the string:
-
+```
 myString = “trajin mytraj.nc 1 100 10”;
-
+```
 can be separated via a space (’ ’) delimeter (the default) into 5 tokens like so:
-
+```
 ArgList myArgs(myString);
-
+```
 The resulting ArgList internally looks something like:
-
+```
 0: trajin
-
 1: mytraj.nc
-
 2: 1
-
 3: 100
-
 4: 10
-
+```
 A custom delimeter string containing 1 or more characters can also be used. For example, the following string:
-
+```
 myString = “d01,d02,d03,d04”;
-
+```
 can be separated via a comma (’,’) delimiter into 4 tokens like so:
-
+```
 ArgList myArgs(myString, “,”);
-
+```
 The resulting ArgList internall lookws something like:
-
+```
 0: d01
-
 1: d02
-
 2: d03
-
 3: d04
-
+```
 These tokens (or arguments) are stored internally as an STL vector of strings. ArgList provides many functions to access user arguments. A second array of boolean values records whether an argument has been accessed. This concept is functionally similar to the argumentStack in Ptraj; however, it avoids the constant memory allocation/deallocation when arguments are added/accessed, and allows an argument list to be re-used if desired. The two main ways arguments are usually accessed are through “GetNextX” and “GetKeyX” functions.
 
 “GetNext” functions return the next argument of the desired type. For example, using the ArgList created in the first example from “trajin mytraj.nc 1 100 10” and assuming all arguments are unmarked, GetStringNext() would return “trajin”, while getNextInteger() would return “1”; in both cases the argument returned would be marked, so that a subsequent call to GetStringNext() would return “mytraj.nc” and so on. Another very commonly used “GetNext” function is the “GetMaskNext()” function, which returns the next atom mask expression (so noted because it will begin with ’:’, ’@’, ’<span>\*</span>’); an example of this will be shown below.
 
 “GetKey” functions return an argument next to a specified “key” string. Take for example the argument list created from “rmsd R1 @CA ref <span>[</span>myref<span>]</span> out rmsd.dat”:
-
+```
 0: rmsd
-
 1: R1
-
 2: @CA
-
 2: ref
-
-3: <span>[</span>myref<span>]</span>
-
+3: [myref]
 4: out
-
 5: rmsd.dat
-
+```
 If we want to access a specific argument, we use a “GetKey” function. For example, if we want to know the filename specified by ’out’, we would use GetStringKey(“out”); this would return “rmsd.dat”, and mark both “out” and “rmsd.dat”. Similarly, GetStringKey(“ref”) would return “<span>[</span>myref<span>]</span>”. At this point we could also use the GetMaskNext() function to get the atom mask expression “@CA”.
 
 ### ArgList Example
-
+```C++
 ArgList myArgs(“test\_command cutoff 2.0 nval 3 name MyTest :2-30@CA extra”);
-
 double Cut = myArgs.getKeyDouble(“cutoff”, 0.0); // Value 2.0
-
 int Nval = myArgs.getKeyInteger(“nval”, 0);      // Value 3
-
 int Ntypes = myArgs.getKeyInteger(“ntypes”, 0);  // Value 0
-
 std::string Name = myArgs.GetStringKey(“name”);  // Value “MyTest”
-
 std::string Out = myArgs.GetStringKey(“out”);    // Empty
-
 std::string maskExp = myArgs.GetMaskNext();      // Value “:2-30@CA”
-
 std::string mask2Exp = myArgs.GetMaskNext();     // Empty
-
 // At this point only “extra” will be unmarked.
+```
 
-Topology
---------
-
+##Topology
 The Topology class describes how a system is laid out in terms of Atoms, Residues, and Molecules (all of which are classes themselves). It may also hold parameters which describe interactions between Atoms (e.g. bonds, angles, dihedrals, etc). The Topology class is chiefly used in Trajectory input/output and setting up atom masks (see below).
 
 The Topology class has several routines that return strings of atom and residue names:
@@ -331,125 +275,91 @@ The Topology class has several routines that return strings of atom and residue 
 :   Format: “\<res name\>:\<res num\>”
 
 ### Examples
-
 Iterate over all atoms in a certain residue. This can be accomplished like so:
-
+```C++
 // Iterate over all atoms in residue 4, print charge.
-
-for (int atom\_index = Top.Res(4).FirstAtom;
-
-         atom\_index != Top.Res(4).LastAtom;
-
-       ++atom\_index)
-
-  mprintf(“Atom %i charge= %g\\n”, atom\_index+1, Top<span>[</span>atom\_index<span>]</span>.Charge());
-
+for (int atom_index = Top.Res(4).FirstAtom;
+         atom_index != Top.Res(4).LastAtom;
+       ++atom_index)
+  mprintf(“Atom %i charge= %g\n”, atom_index+1, Top[atom_index].Charge());
+```
 Iterate over all atoms bonded to a certain atom and pick out the hydrogens:
-
+```C++
 // Iterate over all atoms bonded to atom 66
+for (Atom::bond_iterator bond_atom = Top[66].bondbegin();
+                         bond_atom != Top[66].bondend();
+                       ++bond_atom)
+  if (Top[*bond_atom].Element() == Atom::HYDROGEN)
+    mprintf(“Hydrogen %s bonded to atom %s\n”,
+            Top.AtomMaskName(*bond_atom).c_str(),
+            Top.AtomMaskName(66).c_str());
+```
 
-for (Atom::bond\_iterator bond\_atom = Top<span>[</span>66<span>]</span>.bondbegin();
-
-                         bond\_atom != Top<span>[</span>66<span>]</span>.bondend();
-
-                       ++bond\_atom)
-
-  if (Top<span>[</span><span>\*</span>bond\_atom<span>]</span>.Element() == Atom::HYDROGEN)
-
-    mprintf(“Hydrogen %s bonded to atom %s\\n”,
-
-            Top.AtomMaskName(<span>\*</span>bond\_atom).c\_str(),
-
-            Top.AtomMaskName(66).c\_str());
-
-AtomMask/CharMask
------------------
-
+##AtomMask/CharMask
 The AtomMask and CharMask classes keep track of what atoms for a given Topology are selected based on a given mask expression. The AtomMask class holds information on selected atoms only, while CharMask has the state of all atoms (selected/not selected). AtomMask is as an integer mask, where the atom numbers currently selected are stored as an array of integers. Since one is usually only interested in selected atoms, most times AtomMask is all that is needed and so is the most used mask class in Cpptraj; for example, all routines that take masks in the Frame class use the AtomMask class.
 
 The CharMask class has an internal character array where the state of each atom is stored. It has functions that can then be used to interrogate if a certain atom or atoms are selected or not.
 
 In typical use, there are 3 phases to using AtomMask or CharMask: 1) initialization with a mask expression, 2) setup via a Topology class, and 3) iteration over the mask/interrogation of the mask. Initialization with a mask expression performs all necessary tokenization of the mask expression string and prepares the mask to be set up, but does not actually select atoms. The mask expression can be used during AtomMask construction or passed in via SetMaskString():
-
-AtomMask<span>\*</span> Mask = new AtomMask(“@CA”);
-
-AtomMask Mask(“@CA”);
-
-AtomMask Mask; Mask.SetMaskString(“@CA”);
-
+```C++
+AtomMask* Mask = new AtomMask(“@CA”);
+AtomMask Mask(“@CA”);
+AtomMask Mask; Mask.SetMaskString(“@CA”);
+```
 Setup occurs via a Topology class (since in order to set up a mask you need to know atom names/numbers, residue name/number/types etc). This can be done using SetupIntegerMask() or SetupCharMask() to set up an integer mask (more common) or a char mask:
-
-AtomMask iMask(“@CA”);
-
-Top.SetupIntegerMask( iMask );
-
-CharMask cMask(“:1-20”);
-
-Top.SetupCharMask( Mask );
-
+```C++
+AtomMask iMask(“@CA”);
+Top.SetupIntegerMask( iMask );
+CharMask cMask(“:1-20”);
+Top.SetupCharMask( Mask );
+```
 Once a mask has been setup the Nselected() function returns the number of selected atoms, while the None() function returns true if no atoms were selected. If necessary, one can convert between the mask types post-setup by using AtomMask::ConvertToCharMask() / CharMask::ConvertToIntMask() routines:
-
-AtomMask mask( CharMask.ConvertToIntMask(), CharMask.Natom() )
-
-CharMask mask( AtomMask.ConvertToCharMask(), AtomMask.Nselected() )
-
+```C++
+AtomMask mask( CharMask.ConvertToIntMask(), CharMask.Natom() )
+CharMask mask( AtomMask.ConvertToCharMask(), AtomMask.Nselected() )
+```
 The final stage is to make use of the atom mask. One can iterate over selected atoms in an integer atom mask using the STL-like const\_iterator variable and begin() and end() functions - this is the recommended way to use atom masks:
-
-for (AtomMask::const\_iterator atomnum = Mask.begin();
-
-                              atomnum != Mask.end(); 
-
-                            ++atomnum)
-
-  mprintf(“Selected atom %i\\n”, <span>\*</span>atomnum);
-
+```C++
+for (AtomMask::const_iterator atomnum = Mask.begin();
+                              atomnum != Mask.end(); 
+                            ++atomnum)
+  mprintf(“Selected atom %i\n”, *atomnum);
+```
 One can also access members of the integer array directly via the bracket (’<span>[</span><span>]</span>’) operator:
-
-for (int maskidx = 0; maskidx \< Mask.Nselected(); ++maskidx)
-
-  mprintf(“Selected atom %i\\n”, Mask<span>[</span>atomidx<span>]</span>);
-
+```C++
+for (int maskidx = 0; maskidx < Mask.Nselected(); ++maskidx)
+  mprintf(“Selected atom %i\n”, Mask[atomidx]);
+```
 To see if atom(s) are selected in a CharMask, use the AtomInCharMask() and AtomsInCharMask() functions. The former returns true if a specified atom is selected, the latter returns true if any atoms within a given range are selected. For example:
+```C++
+for (int atom = 0; atom < Top.Natom(); ++atom)
+  if (Mask.AtomInCharMask(atom)) 
+    mprintf(“Selected Atom %i\n”, atom);
+for (int rnum = 0; rnum < Top.Nres(); ++res)
+  if (Mask.AtomsInCharMask( Top.Res(rnum).FirstAtom(),
+                            Top.Res(rnum).LastAtom() ))
+    mprintf(“Selected Residue %i\n”, rnum);
+```
 
-for (int atom = 0; atom \< Top.Natom(); ++atom)
-
-  if (Mask.AtomInCharMask(atom)) 
-
-    mprintf(“Selected Atom %i\\n”, atom);
-
-for (int rnum = 0; rnum \< Top.Nres(); ++res)
-
-  if (Mask.AtomsInCharMask( Top.Res(rnum).FirstAtom(),
-
-                            Top.Res(rnum).LastAtom() ))
-
-    mprintf(“Selected Residue %i\\n”, rnum);
-
-Frame
------
-
+##Frame
 The Frame class is in many ways the workhorse of Cpptraj, as it holds all XYZ coordinates for a given input frame, and optionally box coordinates, masses, replica indices, temperature, time, and/or velocities. Note that although mass is stored in Topology, it is also stored in Frame since many calculations require it (center of mass, mass-weighted RMSD, etc). Coordinates and velocities are stored with double precision. Many routines are available to do things like calculate the center of mass of atoms, rotate, translate, scale, and so on. A major use of the Frame class is to perform RMSD calculations.
 
 Frames are typically set up in two phases. The first phase is memory allocation, which occurs via constructors or the SetupFrameX routines. This should be done as little as possible since memory allocation is relatively expensive. The second phase is actually setting the coordinates, which occurs via the SetX routines. For example, the following code will set up a Frame (newFrame) with the coordinates from another Frame (oldFrame) based on a previously set up AtomMask (mask) and Topology (top) corresponding to oldFrame:
-
-Frame newFrame;
-
-// Allocate memory, copy in masses based on mask.
-
-newFrame.SetupFrameFromMask( mask, top.Atoms() );
-
-// Set only coordinates from oldFrame based on mask.
-
-newFrame.SetCoordinates( oldFrame, mask );
-
+```
+Frame newFrame;
+// Allocate memory, copy in masses based on mask.
+newFrame.SetupFrameFromMask( mask, top.Atoms() );
+// Set only coordinates from oldFrame based on mask.
+newFrame.SetCoordinates( oldFrame, mask );
+```
 Alternatively, this can be done in one step with a constructor:
-
+```
 Frame newFrame( oldFrame, mask );
-
+```
 The advantage of separating out Setup and Set is that memory reallocation is kept to a minimum. For example, if we wanted to use newFrame to hold a different set of coordinates (of the same size as newFrame or smaller) we might do something like:
-
+```
 newFrame.SetCoordinates( differentFrame );
-
+```
 If the new coordinates might be bigger than the current size of newFrame, we could explicitly call a SetupFrameX routine; this will only reallocate if the new size is greater than the current maximum size. A Frame remembers the largest size it was ever allocated for, so reallocation is kept to a minimum.
 
 There are two basic ways to access coordinates within Frame:
@@ -467,65 +377,46 @@ Note that you can get pointers to the raw coordinates, but it is not recommened 
 ### Using Frame for RMSD calculations
 
 Unlike some of the other functions of Frame, the RMSD functions do not take a mask - it is assumed all atoms in the Frame are involved in the RMSD calculation. This is done for performance reasons. If a subset of atoms is desired for an RMSD calculation the reference and target Frames should be modified beforehand. Since the reference structure usually does not change it is often beneficial to pre-center the reference at the origin. For example, given a reference Frame (Ref), a Farget frame (Tgt), and an AtomMask (mask):
-
-bool useMass = false;
-
-top.SetupIntegerMask( mask );
-
-Frame selectedRef, selectedTgt;
-
-// Set up and pre-center reference.
-
-selectedRef.SetupFrameFromMask( mask, top.Atoms() );
-
-selectedRef.SetCoordinates( Ref, mask );
-
-// refTrans will contain translation from origin to reference.
-
-Vec3 refTrans = selectedRef.CenterOnOrigin( useMass );
-
-// Set up target.
-
-selectedTgt.SetupFrameFromMask( mask, top.Atoms() );
-
-selectedTgt.SetCoordinates( Tgt, mask );
-
-// Calculate RMSD. tgtTrans is translation from target to origin.
-
-Vec3 tgtTrans;
-
-Matrix\_3x3 rot\_matrix;
-
-double rmsd = selectedTgt.RMSD\_CenteredRef( selectedRef,
-
-                                            rot\_matrix,
-
-                                            tgtTrans,
-
-                                            useMass );
-
-// Best-fit rotate/translate current Target to Reference.
-
-Tgt.Trans\_Rot\_Trans( tgtTrans, rot\_matrix, refTrans );
-
+```C++
+bool useMass = false;
+top.SetupIntegerMask( mask );
+Frame selectedRef, selectedTgt;
+// Set up and pre-center reference.
+selectedRef.SetupFrameFromMask( mask, top.Atoms() );
+selectedRef.SetCoordinates( Ref, mask );
+// refTrans will contain translation from origin to reference.
+Vec3 refTrans = selectedRef.CenterOnOrigin( useMass );
+// Set up target.
+selectedTgt.SetupFrameFromMask( mask, top.Atoms() );
+selectedTgt.SetCoordinates( Tgt, mask );
+// Calculate RMSD. tgtTrans is translation from target to origin.
+Vec3 tgtTrans;
+Matrix_3x3 rot_matrix;
+double rmsd = selectedTgt.RMSD_CenteredRef( selectedRef,
+                                            rot_matrix,
+                                            tgtTrans,
+                                            useMass );
+// Best-fit rotate/translate current Target to Reference.
+Tgt.Trans_Rot_Trans( tgtTrans, rot_matrix, refTrans );
+```
 Now for subsequent RMS calculations to the same Reference, only the selected Target frame needs to have its coordinates set:
-
+```
 selectedTgt.SetCoordinates( Tgt2, mask );
+rmsd = selectedTgt.RMSD_CenteredRef( selectedRef,
+                                     rot_matrix,
+                                     tgtTrans,
+                                     useMass );
+```
 
-rmsd = selectedTgt.RMSD\_CenteredRef( selectedRef, ...
+#Console and File Input/Output
 
-Console and File Input/Output
-=============================
-
-Output to STDOUT/STDERR: CpptrajStdio.h
----------------------------------------
-
+##Output to STDOUT/STDERR: CpptrajStdio.h
 The file CpptrajStdio.cpp contains functions used to write output to standard output (STDOUT) and standard error (STDERR). This is accomplished with the C printf-like functions mprintf() and mprinterr() respectively:
+```
+mprintf(const char* format, ...); // STDOUT
 
-mprintf(const char<span>\*</span> format, ...); // STDOUT
-
-mprinterr(const char<span>\*</span> format, ...); // STDERR
-
+mprinterr(const char* format, ...); // STDERR
+```
 The ’m’ prefix stands for “master”, and ensures that when CPPTRAJ is running via MPI that only the master thread is able to write with these functions (note the same does NOT apply for OpenMP). The syntax is the same as basic printf - a format string followed by any variables. There are numerous resources that describe printf syntax in detail. Some useful syntax is listed here:
 
 <span>%i</span>
@@ -557,47 +448,35 @@ The ’m’ prefix stands for “master”, and ensures that when CPPTRAJ is run
 :   Tab
 
 For example:
-
-\#include “CpptrajStdio.h”
-
-int myInteger = 3;
-
-double myDouble = 5.43;
-
-string myString = “easy”;
-
-mprintf(“Using printf is %s; %i is an integer and %f is a double.\\n”,
-
-        myString.c\_str(), myInteger, myDouble);
-
+```C++
+#include “CpptrajStdio.h”
+int myInteger = 3;
+double myDouble = 5.43;
+string myString = “easy”;
+mprintf(“Using printf is %s; %i is an integer and %f is a double.\n”,
+        myString.c_str(), myInteger, myDouble);
+```
 Note that the string function c\_str() must be used to print C++ strings. Output:
-
+```
 Using printf is easy; 3 is an integer and 5.430000 is a double.
+```
 
-CpptrajFile
------------
-
+##CpptrajFile
 The CpptrajFile class provides basic file input and output operations. It can handle reading and writing both Gzip and Bzip2 compressed files, and through the FileName class performs tilde-expansion on file names (via globbing) as well as separates the file name into its base name, extension, and compressed extension. The file can be opened immediately, or set up first and then opened later. Once it has been set up it can be opened or closed multiple times. The CpptrajFile class destructor will automatically close the file if it is open at time of destruction.
 
-BufferedLine
-------------
-
+##BufferedLine
 The BufferedLine class is a child of CpptrajFile used for text files that will be read in line by line (note that writing is not possible with this class). The class has an internal buffer, which chunks of the input file are read into. The Line() routine can be used to read that chunk line by line; this avoids potentially expensive file IO. When the chunk is empty a new chunk is read in. The line can be further split into Tokens (similar to ArgList) and read one token at a time; this can be useful for e.g. determining the number of columns in a file.
 
-BufferedFrame
--------------
-
+##BufferedFrame
 The BufferedFrame class is a child of CpptrajFile used for highly-formatted text files that will be read/written multiple lines at a time (such as the Amber ASCII trajectory format). This class is set up for a certain total number of elements of a certain character width with a certain number of elements per line, which can then be read to or written from a character buffer in one entire chunk.
 
-FileName, FileName.h
---------------------
-
+##FileName, FileName.h
 The FileName class is used by all file-related classes. It is more powerful than a string and will automatically do tilde expansion and split the name into path, base name, extension, etc. FileName.h also contains the File namespace which includes File::Exists() for testing whether a file can be opened and File::NameArray and File::ExpandToFilenames() for getting an array of files using wildcard matching.
 
-Trajectory Input/Output
-=======================
-
+#Trajectory Input/Output
 Trajectory input and output (IO) is handled via high-level and low-level classes. At the highest level trajectory input is provided by Trajin-derived classes (Trajin\_Single and Trajin\_Multi) for reading one frame at a time (i.e. during ’trajin’ runs) and EnsembleIn-derived classes (EnsembleIn\_Single, which is experimental currently, and EnsembleIn\_Multi) for reading multiple frames at a time (i.e. during ’ensemble’ runs). Trajectory output is currently handled by Trajout\_Single for writing one frame at a time to a single file, and EnsembleOut-dervived classes for writing multiple frames out at a time. At the lower level IO is handled by format-specific classes which inherit from TrajectoryIO (TrajectoryIO.h), which are called Traj\_X by convention (e.g. Traj\_AmberNetcdf for Amber NetCDF trajectories). TrajectoryIO classes are contained and set up within the higher level classes. Note that there is currently no Trajout\_Multi (write a single frame to multiple files) since this functionality is already handled by TrajoutList.
+
+All trajectory formats currently supported by Cpptraj can be found in the `TrajectoryFile::TF_AllocArray` array in 'TrajectoryFile.cpp'.
 
 Trajin\_Single
 --------------
@@ -641,16 +520,9 @@ The *ParmIO* class is a base class for all topology file formats. This provides 
 
 One thing that sets *ParmIO* and *ParmFile* apart from *TrajectoryIO/TrajectoryFile* and *DataIO/DataFile* is its connection with the *Topology* class. *Topology* objects contain as much of the information in the Amber topology file as can be parsed from the information present in the ParmIO object (and figured out based on atomic arrangements). A *Topology* instance is the first argument passed to the *ParmFile::Read* function, followed by the name of the topology file. Unlike the *DataFile* and *TrajectoryFile* classes, *ParmFile* does not have a reference to the *ParmIO* object to forward read/write information to. It exists simply to fill the *Topology* class with the relevant data structures and inform it how to do the rest. The *Topology* class is format-independent, providing a layer of abstraction to make other parts of the code that require topology information less error-prone while coding.
 
-Every *ParmIO* subclass implements a *ReadParm* method that takes a *Topology* instance as the first argument and fills as much of the information there as possible. Afterwards, the CommonSetup method of the Topology class is called to finish setup and determine bond information (from atom distances if not present directly in the file format) and molecule information (based on the bonded structure). The currently available types of topologies are summarized in .
+Every *ParmIO* subclass implements a *ReadParm* method that takes a *Topology* instance as the first argument and fills as much of the information there as possible. Afterwards, the CommonSetup method of the Topology class is called to finish setup and determine bond information (from atom distances if not present directly in the file format) and molecule information (based on the bonded structure). 
 
-<span>|c|c|</span> *ParmIO* Subclass (*ParmFormatType*) & Description<span>\
-</span>Parm\_Amber (AMBERPARM) & Amber style topology file (OLD and NEW styles)<span>\
-</span>Parm\_CharmmPsf (CHARMMPSF) & CHARMM PSF topology file format (used by NAMD, too)<span>\
-</span>Parm\_Mol2 (MOL2FILE) & TRIPOS Mol2 file<span>\
-</span>Parm\_PDB & PDB File<span>\
-</span>
-
-[tbl:Cpptraj-Parm-Formats]
+All topology formats currently supported by Cpptraj can be found in the `ParmFile::PF_AllocArray` array in 'ParmFile.cpp'.
 
 The DataSet and DataFile Framework
 ==================================
@@ -709,32 +581,29 @@ Brief DataSet/DataFile Example
 ------------------------------
 
 A simple usage example is given here. Say for example we want to track a distance in an Action. The first step is to create the DataSet in the Init() routine.
-
-dist\_ = DSL-\>AddSet(DataSet::DOUBLE, MetaData(actionArgs.GetStringNext(),
-
-                                              MetaData::M\_DISTANCE), Dis);
-
-if (dist\_==0) return 1;
-
+```
+dist_ = DSL->AddSet(DataSet::DOUBLE, MetaData(actionArgs.GetStringNext(),
+                                              MetaData::M_DISTANCE), "Dis");
+if (dist_==0) return 1;
+```
 In the first line a DataSet class of type DOUBLE is added to the master DataSetList. The various types are enumerated in DataSet::DataType (DataSet.h). The DataSet will be named whatever the next string is in the actionArgs ArgList. If there is no name, a default one will be created based on the given default Dis and the DataSet’s overall position in the DataSetList (so in this case the default could be something like Dis\_00000). The DataSet is also given the scalarMode M\_DISTANCE, which is information that other Actions/Analyses can use (like Analysis\_Statistics). What is returned is a pointer to the DataSet; DataSet is actually a base class that specific DataSet types inherit (in this case DataSet\_double). In this way the interface is generalized.
 
 The next step is to add the DataSet to the DataFileList.
-
-DataFile<span>\*</span> outfile = DFL-\>AddFile(distanceFile, actionArgs);
-
-if (outfile != 0) outfile-\>AddDataSet( dist\_ );
-
+```
+DataFile* outfile = DFL->AddFile(distanceFile, actionArgs);
+if (outfile != 0) outfile->AddDataSet( dist_ );
+```
 In the first line a pointer to a new or exsiting (if already created somewhere else) DataFile is returned only if the string distanceFile is not empty; this allows specification of output files to be optional. The actionsArgs ArgList is passed in so that the DataFile outfile can process any DataFile-related arguments. In the second line the DataSet is added to the DataFile. In this way output from multiple actions can be combined rather than overwritten. The machinery of the DataFileList takes care of output (formatting etc) from there.
 
 The final phase is actually adding data to the DataSet. So for example in the action() routine you could have:
-
-double distance = sqrt( DIST2\_NoImage( V1, V2 ) );
-
-dist\_-\>Add(frameNum, &distance);
-
+```
+double distance = sqrt( DIST2_NoImage( V1, V2 ) );
+dist_->Add(frameNum, &distance);
+```
 In the first line the value ’distance’ is being calculated. In the next line the value from ’distance’ is being added to DataSet dist\_ with frame number ’frameNum’ (automatically set within Action). Notice that the address of ’distance’ is passed rather than the value; this is a necessity from the generalization of the DataSet interface. DataSet has no idea a prior what the data type might be, so in the Add routine the value is cast to what the underlying DataSet implementation expects. This allows the Add routine to be used for double, float, int, string, etc. This DataSet could also be cast back to it’s actual type to access other routines, e.g.:
-
-DataSet\_double& ds\_dist = static\_cast\<DataSet\_double&\>( <span>\*</span>dist\_ );
+```
+DataSet_double& ds_dist = static_cast<DataSet_double&>( *dist_ );
+```
 
 DataSet\_1D / SCALAR\_1D
 ------------------------
