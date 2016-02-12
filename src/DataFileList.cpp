@@ -48,8 +48,6 @@ void DataFileList::RemoveDataSet( DataSet* dsIn ) {
 /** Set debug level for DataFileList and all datafiles in it. */
 void DataFileList::SetDebug(int debugIn) {
   debug_ = debugIn;
-  if (debug_>0)
-    mprintf("DataFileList DEBUG LEVEL SET TO %i\n",debug_);
   for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df)
     (*df)->SetDebug( debug_ );
 }
@@ -101,7 +99,7 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
   // Append ensemble number if set.
   //rprintf("DEBUG: Setting up data file '%s' with ensembleNum %i\n", nameIn.base(), ensembleNum_);
   if (ensembleNum_ != -1)
-    fname.AppendFileName( "." + integerToString(ensembleNum_) );
+    fname.Append( "." + integerToString(ensembleNum_) );
   // Check if filename in use by CpptrajFile.
   CpptrajFile* cf = GetCpptrajFile(fname);
   if (cf != 0) {
@@ -181,7 +179,7 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
     name = nameIn;
     // Append ensemble number if set.
     if (ensembleNum_ != -1)
-      name.AppendFileName( "." + integerToString(ensembleNum_) );
+      name.Append( "." + integerToString(ensembleNum_) );
     // Check if filename in use by DataFile.
     DataFile* df = GetDataFile(name);
     if (df != 0) {

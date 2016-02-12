@@ -1,15 +1,13 @@
-# CPPTRAJ - Main Makefile
+# CPPTRAJ - AmberTools Makefile
 # Daniel R. Roe
 # 2010-11-18
-# Revised 2015-03-09
+# Revised 2016-02-11
+include ../config.h
 
 # Create standalone cpptraj binary in ./src/
-all:
-	cd src && $(MAKE)
+all: install
 
-# Create standalone cpptraj binary
-install_local:
-	cd src && $(MAKE) install
+install: $(INSTALLTYPE)
 
 # Create cpptraj/ambpdb binaries within AmberTools
 serial:
@@ -23,23 +21,19 @@ openmp:
 parallel:
 	cd src && $(MAKE) -f Makefile_at install_mpi
 
-# Create libcpptraj within AmberTools 
+# Create libcpptraj within AmberTools. Since we do not want to include
+# the sander API, delete any objects that may have used it and explicitly
+# blank the SANDERAPI_DEF define variable.
 libcpptraj:
-	cd src && $(MAKE) -f Makefile_at libcpptraj
+	/bin/rm -f src/Action_Esander.o src/Cpptraj.o src/Energy_Sander.o
+	cd src && $(MAKE) -f Makefile_at libcpptraj SANDERAPI_DEF=""
 
 # Run Tests
 check:
-	cd ../../test/cpptraj/ && $(MAKE) test
-
-check_local:
-	cd ../../test/cpptraj/ && $(MAKE) test.standalone
+	cd test && $(MAKE) test
 
 docs: src/cpptraj.Doxyfile
 	cd src && doxygen cpptraj.Doxyfile
-
-# Clean up for standalone
-clean_local:
-	cd src && $(MAKE) clean
 
 # Clean up for AmberTools
 clean:

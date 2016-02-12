@@ -25,7 +25,7 @@ UsageFull() {
   echo "    -timer     : Enable additional timing info."
   echo "    -debugon   : Add -DDEBUG flag to activate additional internal debugging."
   echo "    -nolfs     : Do not enable large file support."
-  echo "    -shared    : Enable position-independent code for generating shared library."
+  echo "    -shared    : Configure for generating libcpptraj.so (implies -nosanderlib)."
   echo "    -fftw3     : Use FFTW instead of pubfft for FFT."
   echo "    -windows   : Set up for use with MinGW compilers for a native Windows build"
   echo ""
@@ -39,18 +39,19 @@ UsageFull() {
   echo "    --with-arpack=<DIR>"
   echo "    --with-fftw3=<DIR>"
   echo "    --with-readline=<DIR>"
+  echo "    --with-sanderlib=<DIR>"
 #  echo "   --with-hdf5=<DIR>"
-  echo "    -static     : Use static linking."
-  echo "    -amberlib   : Use BLAS/ARPACK/LAPACK/NetCDF libraries from \$AMBERHOME"
-  echo "    -nobzlib    : Do not use libbz2 (bzip2)"
-  echo "    -nozlib     : Do not use zlib (gzip/zip)"
-  echo "    -nonetcdf   : Do not use NetCDF"
-  echo "    -nomathlib  : Do not include routines which require LAPACK or BLAS"
-  echo "    -noarpack   : Do not include routines which require ARPACK"
-  echo "    -noreadline : Do not include support for readline in the interpreter"
-  echo "    -openblas   : Use OpenBLAS (with LAPACK) instead of separate BLAS/LAPACK"
-  echo "    -libsci     : Use Cray LibSci for BLAS/LAPACK"
-  echo "    -sanderlib  : Link to sander API (requires AMBERHOME set)."
+  echo "    -static      : Use static linking."
+  echo "    -amberlib    : Use BLAS/ARPACK/LAPACK/NetCDF libraries from \$AMBERHOME"
+  echo "    -nobzlib     : Do not use libbz2 (bzip2)"
+  echo "    -nozlib      : Do not use zlib (gzip/zip)"
+  echo "    -nonetcdf    : Do not use NetCDF"
+  echo "    -nomathlib   : Do not include routines which require LAPACK or BLAS"
+  echo "    -noarpack    : Do not include routines which require ARPACK"
+  echo "    -noreadline  : Do not include support for readline in the interpreter"
+  echo "    -nosanderlib : Do not try to link to the sander API even if present"
+  echo "    -openblas    : Use OpenBLAS (with LAPACK) instead of separate BLAS/LAPACK"
+  echo "    -libsci      : Use Cray LibSci for BLAS/LAPACK"
   echo ""
   echo "  ENVIRONMENT VARIABLES (can also be passed to configure as <VAR>=<VALUE>):"
   echo "    CXX        : Name of the C++ compiler."
@@ -210,9 +211,31 @@ EOF
   fi
 }
 
+# This test is different than the others in that it is used to dynamically
+# check whether the library is usable and set flags accordingly.
 TestSanderlib() {
-  if [[ ! -z $SANDERLIB ]] ; then
-    cat > testp.cpp <<EOF
+  SL_ERR=0
+  if [[ $USE_SANDERLIB -eq 1 ]] ; then
+    echo "Checking availability of the SANDER API from AmberTools"
+    if [[ -z $SANDERLIB_HOME ]] ; then
+      if [[ -z $AMBERHOME ]] ; then
+        echo "  Warning: Compilation with the SANDER API requires AMBERHOME to be set"
+        echo "           if '--with-sanderlib' not specified."
+        SL_ERR=1
+      else
+        SANDERLIB_HOME=$AMBERHOME
+      fi
+    fi
+    if [[ $SL_ERR -eq 0 ]] ; then
+      if [[ ! -f "$SANDERLIB_HOME/lib/libsander.so" ]] ; then
+        echo "  Warning: $SANDERLIB_HOME/lib/libsander.so not present."
+        SL_ERR=1
+      else
+        SANDERINC="-I$SANDERLIB_HOME/include"
+        SANDERLIB="-L$SANDERLIB_HOME/lib -lsander"
+        echo "  Using SANDER API from $SANDERLIB_HOME"
+        # Test that libsander can be linked
+        cat > testp.cpp <<EOF
 #include <cstdio>
 #include "sander.h"
 int main() {
@@ -220,7 +243,28 @@ int main() {
   printf("Testing\n"); return 0;
 }
 EOF
-    TestCxxProgram "Checking SANDER API" "$SANDERLIB"
+        $CXX $SANDERINC -o testp testp.cpp $SANDERLIB > /dev/null 2> compile.err
+        SL_ERR=$?
+        if [[ $SL_ERR -eq 0 ]] ; then
+          ./testp | grep "Testing" > /dev/null 2>> compile.err
+          SL_ERR=$?
+        fi
+        if [[ $SL_ERR -ne 0 ]] ; then
+          echo "  Warning: Compilation with the SANDER API failed. Error follows:"
+          echo "  --------------------"
+          cat compile.err
+          echo "  --------------------"
+        else
+          echo "  OK"
+          CPPTRAJ_LIB=$CPPTRAJ_LIB" $SANDERLIB"
+          CXXFLAGS=$CXXFLAGS" $SANDERINC -DUSE_SANDERLIB"
+        fi
+        /bin/rm -f testp.cpp testp
+      fi
+    fi
+  fi
+  if [[ $SL_ERR -ne 0 ]] ; then
+    echo "  Warning: CPPTRAJ will be built without the SANDER API."
   fi
 }
 
@@ -416,7 +460,8 @@ FFT_LIB="pub_fft.o"
 FFT_LIBDIR=""
 FFT_DEPEND=$FFT_LIB
 LIBCPPTRAJ="nolibcpptraj" # Set to libcpptraj.so if library will be built
-SANDERLIB=""
+USE_SANDERLIB=1
+SANDERLIB_HOME=""
 READLINE=$READLINE_TARGET
 USE_AMBER_LIB=0
 USEMKL=0
@@ -513,6 +558,7 @@ while [[ ! -z $1 ]] ; do
     "-shared"       )
       echo "Enabling position-independent code for generating shared library."
       USESHARED=1
+      USE_SANDERLIB=0
       LIBCPPTRAJ="libcpptraj.so"
       ;;
     "-amberlib"     )
@@ -523,15 +569,6 @@ while [[ ! -z $1 ]] ; do
       fi
       echo "Using BLAS/LAPACK/ARPACK/NetCDF libraries in $AMBERHOME"
       USE_AMBER_LIB=1
-      ;;
-    "-sanderlib"    )
-      if [[ -z $AMBERHOME ]] ; then
-        echo "Error: '-sanderlib' requires AMBERHOME is set."
-        exit 1
-      fi
-      INCLUDE="$INCLUDE -I$AMBERHOME/include"
-      SANDERLIB="-L$AMBERHOME/lib -lsander"
-      echo "Using SANDER API from $AMBERHOME"
       ;;
     "-fftw3" )
       echo "Using FFTW for FFT."
@@ -550,6 +587,7 @@ while [[ ! -z $1 ]] ; do
       echo "Using MKL for BLAS/LAPACK in $MKLROOT"
       USEMKL=1
       ;;
+    "-nosanderlib"  ) USE_SANDERLIB=0 ;;
     "-nobzlib"      )
       echo "Not using bzip2"
       BZLIB=""
@@ -643,6 +681,10 @@ while [[ ! -z $1 ]] ; do
        FFT_DEPEND=""
        DIRECTIVES="$DIRECTIVES -DFFTW_FFT"
        ;;
+     "--with-sanderlib" )
+       SANDERLIB_HOME=$VALUE
+       USE_SANDERLIB=1
+       ;;
 #    "--with-hdf5" )
 #      INCLUDE="$INCLUDE -I$VALUE/include"
 #      HDF5LIB="-I$VALUE/include $VALUE/lib/libhdf5_hl.a $VALUE/lib/libhdf5.a -lm"
@@ -666,6 +708,12 @@ while [[ ! -z $1 ]] ; do
   esac
   shift
 done
+
+if [[ $USE_SANDERLIB -eq 1 ]] ; then
+  echo "SANDER API will be used if found."
+else
+  echo "CPPTRAJ will be compiled without the SANDER API."
+fi
 
 # For external readline, we need to link libtermcap for windows and libncurses
 # for Linux
@@ -852,8 +900,11 @@ if [[ "$(uname)" == "Darwin" && "$FFT_LIB" == "-lfftw3" ]] ; then
     FLIBS=""
 fi
 
-# Set up linking flags if not already set
-LDFLAGS="$ARPACK $LAPACK $BLAS $MKLLIB $NETCDFLIB $PNETCDFLIB $BZLIB $ZLIB $FLIBS $LDFLAGS"
+# Set up linking flags if not already set.
+# LDFLAGS contains flags common to cpptraj and ambpdb
+LDFLAGS="$NETCDFLIB $PNETCDFLIB $BZLIB $ZLIB $LDFLAGS"
+# CPPTRAJ_LIB contains flags specific to cpptraj
+CPPTRAJ_LIB="$ARPACK $LAPACK $BLAS $MKLLIB $FLIBS"
 if [[ ! -z $FFT_LIBDIR ]] ; then
   FFT_LIB="$FFT_LIBDIR $FFT_LIB"
 fi
@@ -897,18 +948,6 @@ fi
 # Add flags specific to cray compilers
 if [[ $COMPILERS = "cray" && $USEOPENMP -eq 0 ]] ; then
   DIRECTIVES="-h noomp "$DIRECTIVES
-fi
-
-# Flags for libsander
-if [[ ! -z $SANDERLIB ]] ; then
-  if [[ ! -z $FFT_DEPEND ]] ; then
-    # Just use pubfft that is already in libsander
-    FFT_LIB=""
-    FFT_DEPEND=""
-    FFT_LIBDIR=""
-  fi
-  DIRECTIVES=$DIRECTIVES" -DUSE_SANDERLIB"
-  LDFLAGS=$LDFLAGS" $SANDERLIB"
 fi
 
 # Change to MPI compiler wrappers if specified
@@ -1026,6 +1065,7 @@ LIBCPPTRAJ=$LIBCPPTRAJ
 FFT_DEPEND=$FFT_DEPEND
 FFT_LIB=$FFT_LIB
 
+CPPTRAJ_LIB=$CPPTRAJ_LIB
 LDFLAGS=$LDFLAGS
 SFX=$SFX
 EOF
@@ -1038,5 +1078,12 @@ if [[ ! -e $CPPTRAJLIB ]] ; then
   mkdir $CPPTRAJLIB
 fi
 
+# Clean the source directory if necessary.
+if [[ -f "src/main.o" ]] ; then
+  echo "Cleaning previous compile."
+  cd src && make clean > /dev/null 2> /dev/null
+fi
+
+echo "CPPTRAJ configuration complete."
 echo ""
 exit 0
