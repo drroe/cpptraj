@@ -114,6 +114,7 @@ int Cluster_DPeaks::Cluster() {
     nclusters = ChoosePointsAutomatically(); 
       
   mprintf("\tIdentified %i cluster centers from density vs distance peaks.\n", nclusters);
+  if (nclusters < 1) return 0;
   // Each remaining point is assigned to the same cluster as its nearest
   // neighbor of higher density. Do this recursively until a cluster
   // center is found.
@@ -429,6 +430,81 @@ int Cluster_DPeaks::ChoosePointsManually() {
 }
 
 int Cluster_DPeaks::ChoosePointsAutomatically() {
+  // Calculate covariance matrix for density (X) vs distance to point with next-highest density (Y)
+  double mean_X  = 0.0;
+  double mean_Y  = 0.0;
+  double mean_XX = 0.0;
+  double mean_XY = 0.0;
+  double mean_YY = 0.0;
+  for (Carray::const_iterator point = Points_.begin(); point != Points_.end(); ++point)
+  {
+    double density;
+    if (useGaussianKernel_)
+      density = point->Density();
+    else
+      density = (double)point->PointsWithinEps();
+    mean_X += density;
+    mean_Y += point->Dist();
+    mean_XX += density*density;
+    mean_XY += (density*point->Dist());
+    mean_YY += (point->Dist()*point->Dist());
+  }
+
+  double d_npoints = 1.0 / (double)Points_.size();
+  mean_X *= d_npoints;
+  mean_Y *= d_npoints;
+  mean_XX *= d_npoints;
+  mean_XY *= d_npoints;
+  mean_YY *= d_npoints;
+
+  double cov_XX = mean_XX - (mean_X * mean_X);
+  double cov_XY = mean_XY - (mean_X * mean_Y);
+  double cov_YY = mean_YY - (mean_Y * mean_Y);
+  mprintf("meanX= %g, meanY= %g\n", mean_X, mean_Y);
+  mprintf("cov(X,X)= %g, cov(X,Y)= %g, cov(Y, Y)= %g\n", cov_XX, cov_XY, cov_YY);
+
+  // Calculate inverse matrix
+  double den = 1.0 / ((cov_XX * cov_YY) - (cov_XY * cov_XY));
+  double m00 =   cov_YY  * den;
+  double m01 = (-cov_XY) * den;
+  double m10 = (-cov_XY) * den;
+  double m11 =   cov_XX  * den;
+  mprintf("S^-1 = {%f %f}\n"
+          "       {%f %f}\n", m00, m01, m10, m11);
+
+  // DEBUG - Test that S * S^-1 is I
+  double I00 = (cov_XX * m00) + (cov_XY * m10);
+  double I01 = (cov_XX * m01) + (cov_XY * m11);
+  double I10 = (cov_XY * m00) + (cov_YY * m10);
+  double I11 = (cov_XY * m01) + (cov_YY * m11);
+  mprintf("I    = {%f %f}\n"
+          "       {%f %f}\n", I00, I01, I10, I11);
+
+  // Calculate the Mahalanobis distance for each point
+  CpptrajFile Mdist;
+  Mdist.OpenWrite("Mdist.dat");
+  for (Carray::const_iterator point = Points_.begin(); point != Points_.end(); ++point)
+  {
+    double density;
+    if (useGaussianKernel_)
+      density = point->Density();
+    else
+      density = (double)point->PointsWithinEps();
+    double V0 = density       - mean_X;
+    double V1 = point->Dist() - mean_Y;
+    double U0 = (V0 * m00) + (V1 * m10);
+    double U1 = (V0 * m01) + (V1 * m11);
+    double dist2 = (U0 * V0) + (U1 * V1);
+    double dist;
+    if (dist2 > 0.0)
+      dist = sqrt(dist2);
+    else
+      dist = dist2;
+    mprintf("Point %u Mahalanobis distance= %g\n", point-Points_.begin(), dist);
+    Mdist.Printf("%g %g\n", density, dist);
+  }
+  Mdist.CloseFile();
+  return 0;
   // Right now all density values are discrete. Try to choose outliers at each
   // value for which there is density.;
 /*
@@ -495,7 +571,7 @@ int Cluster_DPeaks::ChoosePointsAutomatically() {
   }
   tempOut.CloseFile(); 
 */
-
+# ifdef DPEAKS_OLD_METHOD
   // BEGIN CALCULATING WEIGHTED DISTANCE AVERAGE
   CpptrajFile tempOut;
   tempOut.OpenWrite("temp.dat");
@@ -806,6 +882,7 @@ int Cluster_DPeaks::ChoosePointsAutomatically() {
   raDelta.CloseFile();
 */
   return cnum;
+# endif /* DPEAKS_OLD_METHOD */
 }
 
 // -----------------------------------------------------------------------------
