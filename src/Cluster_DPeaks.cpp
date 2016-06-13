@@ -483,6 +483,7 @@ int Cluster_DPeaks::ChoosePointsAutomatically() {
   // Calculate the Mahalanobis distance for each point
   CpptrajFile Mdist;
   Mdist.OpenWrite("Mdist.dat");
+  double avgMdist = 0.0;
   for (Carray::const_iterator point = Points_.begin(); point != Points_.end(); ++point)
   {
     double density;
@@ -502,7 +503,10 @@ int Cluster_DPeaks::ChoosePointsAutomatically() {
       dist = dist2;
     mprintf("Point %u Mahalanobis distance= %g\n", point-Points_.begin(), dist);
     Mdist.Printf("%g %g\n", density, dist);
+    avgMdist += dist;
   }
+  avgMdist /= (double)Points_.size();
+  mprintf("\tAvg Mahalanobis distance= %g\n", avgMdist);
   Mdist.CloseFile();
   return 0;
   // Right now all density values are discrete. Try to choose outliers at each
