@@ -1326,14 +1326,7 @@ int CpptrajState::RunAnalyses() {
   if (analysisList_.Empty()) return 0;
   analysis_time_.Reset();
   analysis_time_.Start();
-  int err = 0;
-# ifdef MPI
-  // Only master performs analyses currently.
-  if (Parallel::TrajComm().Size() > 1)
-    mprintf("Warning: Analysis does not currently use multiple MPI threads.\n");
-  if (Parallel::TrajComm().Master())
-# endif
-    err = analysisList_.DoAnalyses();
+  int err = analysisList_.DoAnalyses();
   analysis_time_.Stop();
 # ifdef MPI
   if (Parallel::World().CheckError( err )) err = 1;

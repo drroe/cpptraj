@@ -48,8 +48,20 @@ int AnalysisList::DoAnalyses() {
   {
     if ( ana->status_ == SETUP ) {
       mprintf("  %u: [%s]\n", ana - analysisList_.begin(), ana->args_.ArgLine());
-      if (ana->ptr_->Analyze()==Analysis::ERR) {
-        mprinterr("Error: In Analysis [%s]\n", ana->args_.Command()); // TODO exit? Set INACTIVE?
+      Analysis::RetType ret = Analysis::OK;
+#     ifdef MPI
+      if (ana->ptr_->IsParallel())
+        ret = ana->ptr_->Analyze();
+      else if (Parallel::TrajComm().Master()) {
+        mprintf("Warning: Analysis '%s' does not currently use multiple MPI threads.\n",
+                ana->args_.Command());
+        ret = ana->ptr_->Analyze();
+      }
+#     else
+      ret = ana->ptr_->Analyze();
+#     endif
+      if (ret == Analysis::ERR) {
+        mprinterr("Error: In Analysis '%s'\n", ana->args_.Command()); // TODO exit? Set INACTIVE?
         ++err;
       }
     }
