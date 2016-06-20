@@ -53,7 +53,7 @@ int AnalysisList::DoAnalyses() {
       if (ana->ptr_->IsParallel())
         ret = ana->ptr_->Analyze();
       else if (Parallel::TrajComm().Master()) {
-        mprintf("Warning: Analysis '%s' does not currently use multiple MPI threads.\n",
+        mprintf("Info: Analysis '%s' will only be executed by a single MPI thread.\n",
                 ana->args_.Command());
         ret = ana->ptr_->Analyze();
       }

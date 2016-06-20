@@ -15,6 +15,9 @@ class Analysis_Clustering: public Analysis {
     void Help() const;
     Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
+#   ifdef MPI
+    bool IsParallel() const;
+#   endif
   private:
     inline void GetClusterTrajArgs(ArgList&, const char*, const char*, std::string&,
                                    TrajectoryFile::TrajFormatType&) const;

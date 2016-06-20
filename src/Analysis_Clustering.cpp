@@ -451,6 +451,16 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   return Analysis::OK;
 }
 
+#ifdef MPI
+bool Analysis_Clustering::IsParallel() const {
+  if (sieve_ == 1) {
+    mprintf("Info: Clustering only uses multiple threads when sieving.\n");
+    return false;
+  }
+  return true;
+}
+#endif
+
 /** This is where the clustering is actually performed. First the distances
   * between each frame are calculated. Then the clustering routine is called.
   */
@@ -542,6 +552,11 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   CList_->Cluster();
   cluster_cluster.Stop();
   cluster_post.Start();
+# ifdef MPI
+  rprintf("DEBUG: Found %i clusters.\n", CList_->Nclusters());
+  // Only overall master does output
+  if (Parallel::TrajComm().Master()) {
+# endif
   if (CList_->Nclusters() > 0) {
     // Sort clusters and renumber; also finds centroids for printing
     // representative frames. If sieving, add remaining frames.
@@ -635,6 +650,10 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     }
   } else
     mprintf("\tNo clusters found.\n");
+# ifdef MPI
+  } // END if master
+  Parallel::TrajComm().Barrier();
+# endif
   cluster_post.Stop();
   cluster_total.Stop();
   // Timing data
