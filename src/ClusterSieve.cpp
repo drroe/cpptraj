@@ -73,6 +73,15 @@ int ClusterSieve::SetSieve(int sieveIn, size_t maxFrames, int iseed) {
   return 0;
 }
 
+#ifdef MPI
+int ClusterSieve::SetParallelSieve(int sieveIn, size_t maxFrames, int iseed,
+                                   Parallel::Comm const& commIn)
+{
+
+  return 0;
+}
+#endif
+
 // ClusterSieve::SetSieve()
 int ClusterSieve::SetSieve(int sieveIn, std::vector<char> const& sieveStatus) {
   DetermineTypeFromSieve( sieveIn );

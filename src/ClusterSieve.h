@@ -2,6 +2,9 @@
 #define INC_CLUSTERSIEVE_H
 #include <vector>
 #include <cstddef>
+#ifdef MPI
+# include "Parallel.h"
+#endif
 /// Used to map actual frame numbers to ClusterMatrix internal indices.
 class ClusterSieve {
   public:
@@ -11,6 +14,9 @@ class ClusterSieve {
     void Clear();
     /// Setup no sieve, regular sieve, or random sieve.
     int SetSieve(int, size_t, int);
+#   ifdef MPI
+    int SetParallelSieve(int, size_t, int, Parallel::Comm const&);
+#   endif
     /// Setup sieve from array: 'T'=sieved, 'F'=not sieved.
     int SetSieve(int, std::vector<char> const&);
     /// \return array of frames that will actually be clustered.

@@ -636,7 +636,8 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   }
   if (Parallel::TrajComm().CheckError( err )) return Analysis::ERR;
   // Need to broadcast contents of data sets in cluster_dataset_ to threads.
-  // FIXME: Should only broadcast the data that will be clustered.
+  // FIXME: Should only broadcast the data that will be clustered. Will require
+  //        that sieving info be set up here.
   for (ClusterDist::DsArray::const_iterator ds = cluster_dataset_.begin();
                                             ds != cluster_dataset_.end(); ++ds)
   {

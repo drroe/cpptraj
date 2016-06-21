@@ -8,10 +8,10 @@ void DataSet_Cmatrix::PrintElements() const {
       mprintf("\t%u %u %f\n", row+1, col+1, GetFdist(col, row));
 }
 
-/** Set up sieving info as necessary and set up cluster based on actual
+/** Set up sieving info as necessary and set up cluster matrix based on actual
   * number of frames to be clustered.
   */
-int DataSet_Cmatrix::SetupWithSieve(ClusterDist* CdistIn, size_t sizeIn, size_t sieveIn, int iseed)
+int DataSet_Cmatrix::SetupWithSieve(ClusterDist* CdistIn, size_t sizeIn, int sieveIn, int iseed)
 {
   if (CdistIn == 0) {
     mprinterr("Internal Error: DataSet_Cmatrix::SetupWithSieve called with empty ClusterDist.\n");
@@ -28,6 +28,35 @@ int DataSet_Cmatrix::SetupWithSieve(ClusterDist* CdistIn, size_t sizeIn, size_t 
     mprintf("\tPair-wise matrix set up, %zu frames\n", sizeIn);
   return 0;
 }
+
+#ifdef MPI
+/** Set up sieving info in parallel and set up cluster matrix based on
+  * actual number of frames to be clustered. Not valid for no sieve.
+  */
+int DataSet_Cmatrix::SetupWithParallelSieve(ClusterDist* CdistIn, size_t sizeIn,
+                                            int sieveIn, int iseed,
+                                            Parallel::Comm const& commIn)
+{
+  if (sieveIn == 1) {
+    mprinterr("Internal Error: SetupWithParallelSieve called with sieve == 1\n");
+    return 1;
+  }
+  if (CdistIn == 0) {
+    mprinterr("Internal Error: SetupWithParallelSieve called with empty ClusterDist.\n");
+    return 1;
+  }
+  metricDescription_.assign( CdistIn->Description() );
+  if (sievedFrames_.SetParallelSieve( sieveIn, sizeIn, iseed, commIn )) return 1;
+  if (AllocateCmatrix( sievedFrames_.ActualNframes() )) return 1;
+  if (SetCdist(CdistIn)) return 1;
+  if (sievedFrames_.Type() != ClusterSieve::NONE)
+    mprintf("\tPair-wise matrix set up with sieve, %zu frames, %i sieved frames.\n",
+            sievedFrames_.MaxFrames(), sievedFrames_.ActualNframes());
+  else
+    mprintf("\tPair-wise matrix set up, %zu frames\n", sizeIn);
+  return 0;
+}
+#endif
 
 /** Set up sieve info from an array that contains 'T' if the frame was sieved
   * out and 'F' otherwise.
