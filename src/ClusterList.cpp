@@ -452,7 +452,12 @@ int ClusterList::CalcFrameDistances(DataSet* pwDistMatrixIn,
   if ( FrameDistances().NeedsSetup() ) {
     // Set up cluster matrix with sieving info. Base total number
     // of frames on first DataSet size.
+#   ifdef MPI
+    if (frameDistances_->SetupWithParallelSieve( Cdist_, dataSets[0]->Size(), sieve,
+                                                 sieveSeed, comm_ ))
+#   else
     if (frameDistances_->SetupWithSieve( Cdist_, dataSets[0]->Size(), sieve, sieveSeed ))
+#   endif
       return 1;
     // If cluster matrix needs calculation (i.e. not NOMEM), perform it.
     if (FrameDistances().NeedsCalc()) {

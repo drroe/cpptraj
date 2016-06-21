@@ -22,6 +22,9 @@ class ClusterList {
     void Summary_Part(std::string const&,int,std::vector<int> const&) const;
     void PrintClustersToFile(std::string const&,int);
     void PrintClusters() const;
+#   ifdef MPI
+    void SetComm(Parallel::Comm const& commIn) { comm_ = commIn; }
+#   endif
     /// Set up appropriate cluster distance calculation
     int SetupCdist( ClusterDist::DsArray const&, DistMetricType, bool, bool, std::string const&);
     /// Calculate distances between frames if necessary.
@@ -75,5 +78,8 @@ class ClusterList {
 
     /// Hold pointer to matrix containing distances between each frame.
     DataSet_Cmatrix* frameDistances_;
+#   ifdef MPI
+    Parallel::Comm comm_;
+#   endif
 };
 #endif

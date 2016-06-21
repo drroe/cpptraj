@@ -613,6 +613,8 @@ Analysis::RetType Analysis_Clustering::Analyze() {
       cluster_dataset_.push_back( (DataSet*)coords_ );
   }
 # ifdef MPI
+  // Setup comm for cluster list.
+  CList_->SetComm( Parallel::TrajComm() );
   // Check that all ranks have the same number of data sets
   int err = 0;
   int n_sets = (int)cluster_dataset_.size();
