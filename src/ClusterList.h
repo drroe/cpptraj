@@ -29,12 +29,15 @@ class ClusterList {
     int SetupCdist( ClusterDist::DsArray const&, DistMetricType, bool, bool, std::string const&);
     /// Calculate distances between frames if necessary.
     int CalcFrameDistances(DataSet*, ClusterDist::DsArray const&, int, int);
-    // Inherited by individual clustering methods
+    // ----- Inherited by individual clustering methods ----
     virtual int SetupCluster(ArgList&) = 0;
     virtual void ClusteringInfo() const = 0;
     virtual int Cluster() = 0;
 #   ifdef TIMER
     virtual void Timing(double) const = 0;
+#   endif
+#   ifdef MPI
+    virtual int SyncClusters() { return 1; } // TODO pure virtual
 #   endif
     /// Iterator over clusters
     typedef std::list<ClusterNode>::iterator cluster_it;
@@ -55,7 +58,10 @@ class ClusterList {
   protected:
     virtual void AddSievedFrames() = 0;
     virtual void ClusterResults(CpptrajFile&) const = 0;
-
+#   ifdef MPI
+    int CheckClusterComm() const;
+    Parallel::Comm const& ClusterComm() const { return comm_; }
+#   endif
     void AddSievedFramesByCentroid();
     DataSet_Cmatrix const& FrameDistances() const { return *frameDistances_; }
     int debug_;

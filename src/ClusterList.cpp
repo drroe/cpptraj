@@ -12,6 +12,7 @@
 #  include <omp.h>
 #endif
 #include "PDBfile.h" // DEBUG
+#include <cstdio> // DEBUG
 
 // XMGRACE colors
 const char* ClusterList::XMGRACE_COLOR[] = {
@@ -455,10 +456,22 @@ int ClusterList::CalcFrameDistances(DataSet* pwDistMatrixIn,
 #   ifdef MPI
     if (frameDistances_->SetupWithParallelSieve( Cdist_, dataSets[0]->Size(), sieve,
                                                  sieveSeed, comm_ ))
+      return 1;
+    for (int rank = 0; rank < comm_.Size(); rank++) {
+      if (rank == comm_.Rank()) {
+        printf("[%i] Clustering frames:", rank);
+        for (ClusterSieve::SievedFrames::const_iterator
+               it = FrameDistances().FramesToCluster().begin();
+               it != FrameDistances().FramesToCluster().end(); ++it)
+          printf(" %i", *it);
+        printf("\n");
+      }
+      comm_.Barrier();
+    }
 #   else
     if (frameDistances_->SetupWithSieve( Cdist_, dataSets[0]->Size(), sieve, sieveSeed ))
-#   endif
       return 1;
+#   endif
     // If cluster matrix needs calculation (i.e. not NOMEM), perform it.
     if (FrameDistances().NeedsCalc()) {
       mprintf("\tCalculating pair-wise distances.\n");
@@ -536,6 +549,15 @@ void ClusterList::CalcClusterDistances() {
   }
 }
 
+#ifdef MPI
+int ClusterList::CheckClusterComm() const {
+  if (comm_.IsNull()) {
+    mprinterr("Internal Error: Cluster comm is null.\n");
+    return 1;
+  }
+  return 0;
+}
+#endif
 // -----------------------------------------------------------------------------
 void ClusterList::AddSievedFramesByCentroid() {
     // NOTE: All cluster centroids must be up to date.

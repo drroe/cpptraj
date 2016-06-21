@@ -2,6 +2,7 @@
 #include "Cluster_HierAgglo.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
+#include <cstdio> // DEBUG
 
 Cluster_HierAgglo::Cluster_HierAgglo() :
   nclusters_(-1),
@@ -116,6 +117,28 @@ int Cluster_HierAgglo::Cluster() {
           Nclusters());
   return 0;
 }
+
+#ifdef MPI
+int Cluster_HierAgglo::SyncClusters() {
+  if (CheckClusterComm()) return 1;
+  // DEBUG - print results for each rank so far.
+  for (int rank = 0; rank != ClusterComm().Size(); rank++) {
+    if (rank == ClusterComm().Rank()) {
+      rprintf("DEBUG: Clustering results before sync:\n");
+      unsigned int cnum = 0;
+      for (cluster_iterator c0 = begincluster(); c0 != endcluster(); ++c0, ++cnum) {
+        rprintf("\tCluster %u has %i frames:", cnum, c0->Nframes());
+        for (ClusterNode::frame_iterator f0 = c0->beginframe();
+                                         f0 != c0->endframe(); ++f0)
+          printf(" %i", *f0);
+        printf("\n");
+      }
+    }
+    ClusterComm().Barrier();
+  }
+  return 0;
+}
+#endif
 
 void Cluster_HierAgglo::ClusterResults(CpptrajFile& outfile) const {
   outfile.Printf("#Algorithm: HierAgglo linkage %s nclusters %i epsilon %g\n",

@@ -695,6 +695,10 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   cluster_cluster.Start();
   CList_->Cluster();
   cluster_cluster.Stop();
+# ifdef MPI
+  err = CList_->SyncClusters();
+  if (Parallel::TrajComm().CheckError( err )) return Analysis::ERR;
+# endif
 
   // ----- Cluster Output ------------------------
   cluster_post.Start();
@@ -705,11 +709,6 @@ Analysis::RetType Analysis_Clustering::Analyze() {
 # endif
     ClusterOutput(clusterDataSetSize, has_coords);
 # ifdef MPI
-  else {
-    // DEBUG Print clustering result on rank
-    CList_->Renumber( sieve_ != 1 );
-    CList_->Summary( "", cluster_dataset_[0]->Size() );
-  }
   Parallel::TrajComm().Barrier();
 # endif
   cluster_post.Stop();

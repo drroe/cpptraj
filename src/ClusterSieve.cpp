@@ -77,6 +77,27 @@ int ClusterSieve::SetSieve(int sieveIn, size_t maxFrames, int iseed) {
 int ClusterSieve::SetParallelSieve(int sieveIn, size_t maxFrames, int iseed,
                                    Parallel::Comm const& commIn)
 {
+  if (maxFrames < 1) return 1;
+  DetermineTypeFromSieve( sieveIn );
+  frameToIdx_.clear();
+  if (type_ == NONE) 
+  { // No sieving; not valid in parallel
+    return 1; 
+  }
+  else if (type_ == REGULAR)
+  { // Regular sieveing; index = (frame / sieve) + rank
+    frameToIdx_.assign( maxFrames, -1 );
+    int idx = 0;
+    for (unsigned int i = commIn.Rank(); i < maxFrames; i += sieve_)
+      frameToIdx_[i] = idx++;
+    actualNframes_ = idx;
+  }
+  else if (type_ == RANDOM)
+  { // Random sieving; maxframes / sieve random indices
+    //FIXME implement
+    return 1;
+  }
+  MakeIdxToFrame();
 
   return 0;
 }
