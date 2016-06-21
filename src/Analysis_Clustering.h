@@ -21,6 +21,8 @@ class Analysis_Clustering: public Analysis {
   private:
     inline void GetClusterTrajArgs(ArgList&, const char*, const char*, std::string&,
                                    TrajectoryFile::TrajFormatType&) const;
+    unsigned int ClusterSetup(bool&);
+    void ClusterOutput(unsigned int, bool);
     void AssignRefsToClusters(ClusterList&) const;
     void CreateCnumvtime( ClusterList const&, unsigned int );
     void CreateCpopvtime( ClusterList const&, unsigned int );

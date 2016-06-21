@@ -63,4 +63,21 @@ int DataSet_Coords_CRD::Sync(size_t total, std::vector<int> const& rank_frames,
       commIn.SendMaster( &(coords_[ridx][0]), numCrd_+numBoxCrd_, commIn.Rank(), MPI_FLOAT );
   return 0;
 }
+
+/** NOTE: This assumes that topology info etc is already set up. */
+int DataSet_Coords_CRD::Bcast(Parallel::Comm const& commIn)
+{
+  if (commIn.Size()==1) return 0;
+  unsigned int total_frames = coords_.size();
+  rprintf("DEBUG: Broadcast of COORDS '%s' to all ranks.\n", legend());
+  // Send total number of frames to all ranks
+  commIn.MasterBcast( &total_frames, 1, MPI_UNSIGNED );
+  // Resize on ranks for total number of frames on master
+  if (!commIn.Master())
+    coords_.resize( total_frames, std::vector<float>( numCrd_+numBoxCrd_ ) );
+  // Broadcast each frame of data from master to ranks
+  for (unsigned int ridx = 0; ridx != coords_.size(); ++ridx)
+    commIn.MasterBcast( &(coords_[ridx][0]), numCrd_+numBoxCrd_, MPI_FLOAT );
+  return 0;
+}
 #endif

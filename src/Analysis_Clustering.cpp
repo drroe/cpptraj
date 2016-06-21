@@ -461,102 +461,38 @@ bool Analysis_Clustering::IsParallel() const {
 }
 #endif
 
-/** This is where the clustering is actually performed. First the distances
-  * between each frame are calculated. Then the clustering routine is called.
-  */
-// TODO: Need to update save to indicate distance type
-// NOTE: Should distances be saved only if load_pair?
-Analysis::RetType Analysis_Clustering::Analyze() {
-  Timer cluster_setup;
-  Timer cluster_pairwise;
-  Timer cluster_cluster;
-  Timer cluster_post;
-  Timer cluster_total;
-  cluster_total.Start();
-  mprintf("\tStarting clustering.\n");
-  cluster_setup.Start();
-  // If no dataset specified, use COORDS
-  if (cluster_dataset_.empty()) {
-    if (coords_ == 0) {
-      mprinterr("Error: No data to cluster on.\n");
-      return Analysis::ERR;
-    }
-    cluster_dataset_.push_back( (DataSet*)coords_ );
-  }
+/** \return Total number of frames in data. */
+unsigned int Analysis_Clustering::ClusterSetup(bool& has_coords) {
   // Test that cluster data set contains data
   unsigned int clusterDataSetSize = cluster_dataset_[0]->Size();
   if (clusterDataSetSize < 1) {
-    mprinterr("Error: cluster data set %s does not contain data.\n", 
+    mprinterr("Error: cluster data set %s does not contain data.\n",
               cluster_dataset_[0]->legend());
-    return Analysis::ERR;
+    return 0;
   }
   // If more than one data set, make sure they are all the same size.
-  for (ClusterDist::DsArray::iterator ds = cluster_dataset_.begin();
-                                      ds != cluster_dataset_.end(); ++ds)
+  for (ClusterDist::DsArray::const_iterator ds = cluster_dataset_.begin();
+                                            ds != cluster_dataset_.end(); ++ds)
   {
     if ((*ds)->Size() != clusterDataSetSize) {
       mprinterr("Error: data set '%s' size (%zu) != first data set '%s' size (%u)\n",
-                (*ds)->legend(), (*ds)->Size(), 
+                (*ds)->legend(), (*ds)->Size(),
                 cluster_dataset_[0]->legend(), clusterDataSetSize);
-      return Analysis::ERR;
+      return 0;
     }
   }
   // If no coordinates were specified, disable coordinate output types
-  bool has_coords = true;
+  has_coords = true;
   if (coords_ == 0 || coords_->Size() < 1) {
     mprintf("Warning: No coordinates or associated coordinate data set is empty.\n"
             "Warning: Disabling coordinate output.\n");
     has_coords = false;
   }
-  cluster_setup.Stop();
+  return clusterDataSetSize;
+}
 
-  // Set up cluster distance calculation
-  if (CList_->SetupCdist( cluster_dataset_, metric_, nofitrms_, useMass_, maskexpr_ ))
-    return Analysis::ERR;
-
-  // Check or calculate pairwise distances between frames
-  cluster_pairwise.Start();
-  // Do some sanity checking first
-  if (pw_dist_ == 0) {
-    mprinterr("Internal Error: Empty cluster matrix.\n");
-    return Analysis::ERR;
-  }
-  if (pw_dist_->Group() != DataSet::CLUSTERMATRIX) {
-    mprinterr("Internal Error: Wrong cluster matrix type.\n");
-    return Analysis::ERR;
-  }
-  if (pw_dist_->Size() > 0) {
-    // Check if existing pw dist matrix matches expected size. If not, need to
-    // allocate a new data set and recalculate.
-    int sval = sieve_;
-    if (sval < 0) sval = -sval;
-    unsigned int expected_nrows = cluster_dataset_[0]->Size() / (unsigned int)sval;
-    if ( (cluster_dataset_[0]->Size() % (unsigned int)sval) != 0 )
-      expected_nrows++;
-    if ( ((DataSet_Cmatrix*)pw_dist_)->Nrows() != expected_nrows ) {
-      mprintf("Warning: ClusterMatrix has %zu rows, expected %zu; recalculating matrix.\n",
-              ((DataSet_Cmatrix*)pw_dist_)->Nrows(), expected_nrows);
-      pw_dist_ = masterDSL_->AddSet(DataSet::CMATRIX, "", "CMATRIX");
-      if (pw_dist_ == 0) return Analysis::ERR;
-    }
-  }
-  if (CList_->CalcFrameDistances( pw_dist_, cluster_dataset_, sieve_, sieveSeed_ ))
-    return Analysis::ERR;
-  // If we want to save the pairwise distances add to file now
-  if (pwd_file_ != 0)
-    pwd_file_->AddDataSet( pw_dist_ );
-  cluster_pairwise.Stop();
-
-  // Cluster
-  cluster_cluster.Start();
-  CList_->Cluster();
-  cluster_cluster.Stop();
-  cluster_post.Start();
-# ifdef MPI
-  rprintf("DEBUG: Found %i clusters.\n", CList_->Nclusters());
-  // Only overall master does output
-  if (Parallel::TrajComm().Master()) {
-# endif
+/** If clusters were found perform any output */
+void Analysis_Clustering::ClusterOutput(unsigned int clusterDataSetSize, bool has_coords) {
   if (CList_->Nclusters() > 0) {
     // Sort clusters and renumber; also finds centroids for printing
     // representative frames. If sieving, add remaining frames.
@@ -650,13 +586,133 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     }
   } else
     mprintf("\tNo clusters found.\n");
+}
+
+/** This is where the clustering is actually performed. First the distances
+  * between each frame are calculated. Then the clustering routine is called.
+  */
+// TODO: Need to update save to indicate distance type
+// NOTE: Should distances be saved only if load_pair?
+Analysis::RetType Analysis_Clustering::Analyze() {
+  Timer cluster_setup;
+  Timer cluster_pairwise;
+  Timer cluster_cluster;
+  Timer cluster_post;
+  Timer cluster_total;
+  cluster_total.Start();
+  rprintf("\tStarting clustering.\n");
+  // ----- Cluster Setup -------------------------
+  cluster_setup.Start();
+  unsigned int clusterDataSetSize = 0;
+  bool has_coords = false;
+  // If no dataset specified, use COORDS
+  if (cluster_dataset_.empty()) {
+    if (coords_ == 0)
+      mprinterr("Error: No data to cluster on.\n");
+    else
+      cluster_dataset_.push_back( (DataSet*)coords_ );
+  }
 # ifdef MPI
-  } // END if master
+  // Check that all ranks have the same number of data sets
+  int err = 0;
+  int n_sets = (int)cluster_dataset_.size();
+  std::vector<int> n_sets_rank( Parallel::TrajComm().Size() );
+  Parallel::TrajComm().GatherMaster( &n_sets, 1, MPI_INT, &n_sets_rank[0] );
+  if (Parallel::TrajComm().Master()) {
+    for (std::vector<int>::const_iterator it = n_sets_rank.begin();
+                                          it != n_sets_rank.end(); ++it)
+      if (n_sets != *it) {
+        mprinterr("Internal Error: Number of sets on master (%i) != sets on rank %u (%i)\n",
+                  n_sets, it - n_sets_rank.begin(), *it);
+        err = 1;
+        break;
+      }
+  }
+  if (Parallel::TrajComm().CheckError( err )) return Analysis::ERR;
+  // Only master does data set size checking.
+  if (Parallel::TrajComm().Master()) {
+    clusterDataSetSize = ClusterSetup( has_coords );
+    if (clusterDataSetSize < 1) err = 1;
+  }
+  if (Parallel::TrajComm().CheckError( err )) return Analysis::ERR;
+  // Need to broadcast contents of data sets in cluster_dataset_ to threads.
+  // FIXME: Should only broadcast the data that will be clustered.
+  for (ClusterDist::DsArray::const_iterator ds = cluster_dataset_.begin();
+                                            ds != cluster_dataset_.end(); ++ds)
+  {
+    err = (*ds)->Bcast(Parallel::TrajComm());
+    if (Parallel::TrajComm().CheckError( err )) return Analysis::ERR;
+  }
+# else /* MPI */
+  if (cluster_dataset_.empty()) return Analysis::ERR;
+  clusterDataSetSize = ClusterSetup( has_coords );
+  if (clusterDataSetSize < 1) return Analysis::ERR;
+# endif /* MPI */
+  cluster_setup.Stop();
+
+  // Set up cluster distance calculation
+  if (CList_->SetupCdist( cluster_dataset_, metric_, nofitrms_, useMass_, maskexpr_ ))
+    return Analysis::ERR;
+
+  // ----- Pairwise distances --------------------
+  // Check or calculate pairwise distances between frames
+  cluster_pairwise.Start();
+  // Do some sanity checking first
+  if (pw_dist_ == 0) {
+    mprinterr("Internal Error: Empty cluster matrix.\n");
+    return Analysis::ERR;
+  }
+  if (pw_dist_->Group() != DataSet::CLUSTERMATRIX) {
+    mprinterr("Internal Error: Wrong cluster matrix type.\n");
+    return Analysis::ERR;
+  }
+  if (pw_dist_->Size() > 0) {
+    // Check if existing pw dist matrix matches expected size. If not, need to
+    // allocate a new data set and recalculate.
+    int sval = sieve_;
+    if (sval < 0) sval = -sval;
+    unsigned int expected_nrows = cluster_dataset_[0]->Size() / (unsigned int)sval;
+    if ( (cluster_dataset_[0]->Size() % (unsigned int)sval) != 0 )
+      expected_nrows++;
+    if ( ((DataSet_Cmatrix*)pw_dist_)->Nrows() != expected_nrows ) {
+      mprintf("Warning: ClusterMatrix has %zu rows, expected %zu; recalculating matrix.\n",
+              ((DataSet_Cmatrix*)pw_dist_)->Nrows(), expected_nrows);
+      pw_dist_ = masterDSL_->AddSet(DataSet::CMATRIX, "", "CMATRIX");
+      if (pw_dist_ == 0) return Analysis::ERR;
+    }
+  }
+  if (CList_->CalcFrameDistances( pw_dist_, cluster_dataset_, sieve_, sieveSeed_ ))
+    return Analysis::ERR;
+  // If we want to save the pairwise distances add to file now
+  if (pwd_file_ != 0)
+    pwd_file_->AddDataSet( pw_dist_ );
+  cluster_pairwise.Stop();
+
+  // ----- Clustering ----------------------------
+  cluster_cluster.Start();
+  CList_->Cluster();
+  cluster_cluster.Stop();
+
+  // ----- Cluster Output ------------------------
+  cluster_post.Start();
+# ifdef MPI
+  rprintf("DEBUG: Found %i clusters.\n", CList_->Nclusters());
+  // Only overall master does output
+  if (Parallel::TrajComm().Master())
+# endif
+    ClusterOutput(clusterDataSetSize, has_coords);
+# ifdef MPI
+  else {
+    // DEBUG Print clustering result on rank
+    CList_->Renumber( sieve_ != 1 );
+    CList_->Summary( "", cluster_dataset_[0]->Size() );
+  }
   Parallel::TrajComm().Barrier();
 # endif
   cluster_post.Stop();
   cluster_total.Stop();
-  // Timing data
+
+  // ----- Timing data ---------------------------
   mprintf("\tCluster timing data:\n");
   cluster_setup.WriteTiming(1,    "  Cluster Init. :", cluster_total.Total());
   cluster_pairwise.WriteTiming(1, "  Pairwise Calc.:", cluster_total.Total());

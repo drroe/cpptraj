@@ -65,6 +65,8 @@ class DataSet {
 #   ifdef MPI
     /// Consolidate this DataSet across all threads (MPI only)
     virtual int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) = 0;
+    /// Broadcast data in this DataSet from master to all threads. TODO pure virtual
+    virtual int Bcast(Parallel::Comm const&) { return 1; }
 #   endif
     // -----------------------------------------------------
     /// Associate additional data with this set.
