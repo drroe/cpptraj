@@ -92,7 +92,8 @@ ClusterSieve::SieveErr ClusterSieve::SetParallelSieve(int sieveIn, size_t maxFra
   { // Regular sieveing; index = (frame / sieve) + rank
     frameToIdx_.assign( maxFrames, -1 );
     int idx = 0;
-    for (unsigned int i = commIn.Rank(); i < maxFrames; i += sieve_)
+    unsigned int startFrame = (int)((double)commIn.Rank()*((double)sieveIn/(double)commIn.Size()));
+    for (unsigned int i = startFrame; i < maxFrames; i += sieve_)
       frameToIdx_[i] = idx++;
     actualNframes_ = idx;
   }
