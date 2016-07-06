@@ -46,7 +46,18 @@ int DataSet_Cmatrix::SetupWithParallelSieve(ClusterDist* CdistIn, size_t sizeIn,
     return 1;
   }
   metricDescription_.assign( CdistIn->Description() );
-  if (sievedFrames_.SetParallelSieve( sieveIn, sizeIn, iseed, commIn )) return 1;
+  ClusterSieve::SieveErr err = sievedFrames_.SetParallelSieve( sieveIn, sizeIn, iseed, commIn );
+  switch (err) {
+    case ClusterSieve::OK: err = ClusterSieve::OK; break;
+    case ClusterSieve::NO_FRAMES: mprinterr("Error: No input frames.\n"); break;
+    case ClusterSieve::SIEVE_LARGER_THAN_THREADS:
+      mprinterr("Error: Number of threads %i is greater than sieve value %i.\n",
+                commIn.Size(), sieveIn);
+      break;
+    case ClusterSieve::NO_SIEVE: mprinterr("Error: No sieve not valid in parallel.\n"); break;
+    case ClusterSieve::OTHER: mprinterr("Error: Could not set up sieve.\n"); break;
+  }
+  if (err != ClusterSieve::OK) return 1;
   if (AllocateCmatrix( sievedFrames_.ActualNframes() )) return 1;
   if (SetCdist(CdistIn)) return 1;
   if (sievedFrames_.Type() != ClusterSieve::NONE)

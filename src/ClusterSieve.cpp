@@ -74,15 +74,19 @@ int ClusterSieve::SetSieve(int sieveIn, size_t maxFrames, int iseed) {
 }
 
 #ifdef MPI
-int ClusterSieve::SetParallelSieve(int sieveIn, size_t maxFrames, int iseed,
-                                   Parallel::Comm const& commIn)
+ClusterSieve::SieveErr ClusterSieve::SetParallelSieve(int sieveIn, size_t maxFrames, int iseed,
+                                                      Parallel::Comm const& commIn)
 {
-  if (maxFrames < 1) return 1;
+  if (maxFrames < 1) return NO_FRAMES;
+  int abs_sieve = sieveIn;
+  if (abs_sieve < 0)
+    abs_sieve = -abs_sieve;
+  if (commIn.Size() > abs_sieve) return SIEVE_LARGER_THAN_THREADS;
   DetermineTypeFromSieve( sieveIn );
   frameToIdx_.clear();
   if (type_ == NONE) 
   { // No sieving; not valid in parallel
-    return 1; 
+    return NO_SIEVE; 
   }
   else if (type_ == REGULAR)
   { // Regular sieveing; index = (frame / sieve) + rank
@@ -95,11 +99,10 @@ int ClusterSieve::SetParallelSieve(int sieveIn, size_t maxFrames, int iseed,
   else if (type_ == RANDOM)
   { // Random sieving; maxframes / sieve random indices
     //FIXME implement
-    return 1;
+    return OTHER;
   }
   MakeIdxToFrame();
-
-  return 0;
+  return OK;
 }
 #endif
 

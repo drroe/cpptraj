@@ -15,7 +15,8 @@ class ClusterSieve {
     /// Setup no sieve, regular sieve, or random sieve.
     int SetSieve(int, size_t, int);
 #   ifdef MPI
-    int SetParallelSieve(int, size_t, int, Parallel::Comm const&);
+    enum SieveErr { OK = 0, NO_FRAMES, SIEVE_LARGER_THAN_THREADS, NO_SIEVE, OTHER };
+    SieveErr SetParallelSieve(int, size_t, int, Parallel::Comm const&);
 #   endif
     /// Setup sieve from array: 'T'=sieved, 'F'=not sieved.
     int SetSieve(int, std::vector<char> const&);

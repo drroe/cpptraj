@@ -760,7 +760,10 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   CList_->Cluster();
   cluster_cluster.Stop();
 # ifdef MPI
+  Timer cluster_sync;
+  cluster_sync.Start();
   err = CList_->SyncClusters();
+  cluster_sync.Stop();
   if (Parallel::TrajComm().CheckError( err )) return Analysis::ERR;
 # endif
 
@@ -785,6 +788,9 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   cluster_cluster.WriteTiming(1,  "  Clustering    :", cluster_total.Total());
 # ifdef TIMER
   CList_->Timing( cluster_cluster.Total() );
+# endif
+# ifdef MPI
+  cluster_sync.WriteTiming(1,     "  Cluster sync. :", cluster_total.Total());
 # endif
   cluster_post.WriteTiming(1,     "  Cluster Post. :", cluster_total.Total());
   cluster_post_renumber_.WriteTiming(2, "Cluster renumbering/sieve restore", cluster_post.Total());
