@@ -54,6 +54,7 @@ class ClusterList {
 #   ifdef MPI
     virtual int SyncClusters() { return 1; } // TODO pure virtual
 #   endif
+    // -----------------------------------------------------
     /// Iterator over clusters
     typedef std::list<ClusterNode>::iterator cluster_it;
     cluster_it begin() { return clusters_.begin(); }
@@ -75,6 +76,8 @@ class ClusterList {
 #   ifdef MPI
     int CheckClusterComm() const;
     Parallel::Comm const& ClusterComm() const { return comm_; }
+    void MarkFrameRestored(int f) { restoredFromRank_[f] = true; }
+    void AddCluster( ClusterNode const& cIn ) { clusters_.push_back( cIn ); }
 #   endif
     /// \return Distance between specified frames. Use FrameDistances if frames were not sieved.
     inline double Frame_Distance(int,int) const;
@@ -101,6 +104,7 @@ class ClusterList {
     DataSet_Cmatrix* frameDistances_;
 #   ifdef MPI
     Parallel::Comm comm_;
+    std::vector<bool> restoredFromRank_; ///< True if frame was restored from another rank
 #   endif
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------

@@ -146,3 +146,26 @@ void ClusterNode::AddFrameUpdateCentroid(ClusterDist* Cdist, int frame) {
                          ClusterDist::ADDFRAME);
   AddFrameToCluster( frame );
 }
+#ifdef MPI
+/** Recieve cluster frames ONLY from rank. TODO centroid */
+int ClusterNode::RecvCluster(int rank, Parallel::Comm const& commIn) {
+  frameList_.clear();
+  // Recieve cluster size from rank
+  int csize;
+  commIn.Recv(&csize, 1, MPI_INT, rank, 1600);
+  frameList_.resize( csize );
+  // Recieve cluster frames from rank
+  commIn.Recv(&frameList_[0], csize, MPI_INT, rank, 1601);
+  return 0;
+}
+
+/** Send cluster frames ONLY to rank. TODO centroid */
+int ClusterNode::SendCluster(int rank, Parallel::Comm const& commIn) {
+  // Send cluster size to rank
+  int csize = (int)frameList_.size();
+  commIn.Send(&csize, 1, MPI_INT, rank, 1600);
+  // Send cluster frames to rank
+  commIn.Send(&frameList_[0], csize, MPI_INT, rank, 1601);
+  return 0;
+}
+#endif

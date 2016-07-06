@@ -57,6 +57,10 @@ class ClusterNode {
     void RemoveFrameUpdateCentroid(ClusterDist*, int);
     /// Add specified frame to cluster and update centroid.
     void AddFrameUpdateCentroid(ClusterDist*, int);
+#   ifdef MPI
+    int RecvCluster(int, Parallel::Comm const&);
+    int SendCluster(int, Parallel::Comm const&);
+#   endif
   private:
     double eccentricity_;             ///< Maximum distance between any 2 frames.
     double refRms_;                   ///< Cluster rms to reference (if assigned)

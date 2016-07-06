@@ -566,6 +566,7 @@ int ClusterList::CalcFrameDistances(DataSet* pwDistMatrixIn,
     if (frameDistances_->SetupWithParallelSieve( Cdist_, dataSets[0]->Size(), sieve,
                                                  sieveSeed, comm_ ))
       return 1;
+    restoredFromRank_.resize( FrameDistances().OriginalNframes(), false );
     for (int rank = 0; rank < comm_.Size(); rank++) {
       if (rank == comm_.Rank()) {
         printf("[%i] Clustering frames:", rank);
@@ -652,7 +653,7 @@ int ClusterList::CheckClusterComm() const {
 #endif
 // -----------------------------------------------------------------------------
 void ClusterList::AddSievedFramesByCentroid() {
-    // NOTE: All cluster centroids must be up to date.
+  // NOTE: All cluster centroids must be up to date.
   int frame;
   int nframes = (int)FrameDistances().OriginalNframes();
   double mindist, dist;
@@ -660,6 +661,7 @@ void ClusterList::AddSievedFramesByCentroid() {
   ParallelProgress progress( nframes );
   // For OMP, every other thread will need its own Cdist.
   ClusterDist* MyCdist = Cdist_;
+  mprintf("DEBUG: Restoring");
 # ifdef _OPENMP
   // For OMP need a temp. array to hold which frame goes to which cluster to avoid clashes
   std::vector<cluster_it> frameToCluster( nframes, clusters_.end() );
@@ -675,8 +677,13 @@ void ClusterList::AddSievedFramesByCentroid() {
 # pragma omp for schedule(dynamic)
 # endif
   for (frame = 0; frame < nframes; ++frame) {
-    progress.Update( frame );
-    if (FrameDistances().FrameWasSieved(frame)) {
+    //progress.Update( frame ); // DEBUG
+#   ifdef MPI
+    if (FrameDistances().FrameWasSieved(frame) && !restoredFromRank_[frame])
+#   else
+    if (FrameDistances().FrameWasSieved(frame))
+#   endif
+    {
       // Which clusters centroid is closest to this frame?
       mindist = DBL_MAX;
       minNode = clusters_.end();
@@ -692,6 +699,7 @@ void ClusterList::AddSievedFramesByCentroid() {
       frameToCluster[frame] = minNode;
 #     else
       minNode->AddFrameToCluster( frame );
+      mprintf(" %i", frame);
 #     endif
     }
   } // END loop over frames
@@ -704,6 +712,7 @@ void ClusterList::AddSievedFramesByCentroid() {
     if (frameToCluster[frame] != clusters_.end())
       (*frameToCluster[frame]).AddFrameToCluster( frame );
 # endif
+  mprintf("\n");
   progress.Finish();
 }
 

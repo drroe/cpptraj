@@ -143,6 +143,59 @@ int Cluster_HierAgglo::SyncClusters() {
     }
     ClusterComm().Barrier();
   }
+  // Get clusters from each rank and decide to merge or create new.
+  int n_clusters_on_rank;
+  if (ClusterComm().Master()) {
+    // First, find the minimum distance between any 2 clusters on master.
+    int C1, C2;
+    double min_on_master = ClusterDistances_.FindMin(C1, C2);
+    mprintf("DEBUG: Minimum distance between clusters on master is %f\n", min_on_master);
+    for (int rank = 1; rank < ClusterComm().Size(); rank++) {
+      // Recieve number of clusters from rank
+      ClusterComm().SendMaster( &n_clusters_on_rank, 1, rank, MPI_INT );
+      // Receive each cluster from rank.
+      for (int ic = 0; ic != n_clusters_on_rank; ic++) {
+        ClusterNode TmpCluster; // TODO put outside loop? Need to reset centroid
+        TmpCluster.RecvCluster(rank, ClusterComm());
+        // Ensure received cluster centroid is up to date. TODO communicate centroid
+        TmpCluster.SortFrameList();
+        TmpCluster.CalculateCentroid( Cdist_ );
+        // Find closest cluster centroid on master to received cluster centroid
+        cluster_it minNode = end();
+        double minDist = min_on_master;
+        for (cluster_it node = begin(); node != end(); ++node) {
+          double dist = Cdist_->CentroidDist( TmpCluster.Cent(), node->Cent() );
+          if (dist < minDist) {
+            minDist = dist;
+            minNode = node;
+          }
+        }
+        if (minNode == end()) {
+          mprintf("DEBUG: Cluster %i from rank %i was not close to any master cluster.\n",
+                  ic, rank);
+          // Add as new cluster
+          AddCluster( TmpCluster );
+        } else {
+          mprintf("DEBUG: Cluster %i from rank %i was close (%f) to master cluster %i.\n",
+                  ic, rank, minDist, minNode->Num());
+          // Merge into minimum cluster
+          // NOTE: *NOT* updating master centroid at this time.
+          minNode->MergeFrames( TmpCluster );
+          // Ensure all frames from received cluster are marked as restored.
+          for (ClusterNode::frame_iterator f0 = TmpCluster.beginframe();
+                                           f0 != TmpCluster.endframe(); ++f0)
+            MarkFrameRestored( *f0 );
+        }
+      } // END loop over clusters from rank
+    } // END master loop over ranks
+  } else {
+    // Send number of clusters to master
+    n_clusters_on_rank = (int)Nclusters();
+    ClusterComm().SendMaster( &n_clusters_on_rank, 1, ClusterComm().Rank(), MPI_INT );
+    // Send all clusters on this rank to master
+    for (cluster_it node = begin(); node != end(); ++node)
+      node->SendCluster(0, ClusterComm());
+  }
   return 0;
 }
 #endif
