@@ -4,8 +4,8 @@
 #include "ClusterList.h"
 #include "TrajectoryFile.h"
 #include "DataSet_Coords.h"
-// Class: Analysis_Clustering
-/// Used to perform clustering of frames, currently by RMSD only.
+#include "Timer.h"
+/// Used to perform clustering of input frames.
 class Analysis_Clustering: public Analysis {
   public:
     Analysis_Clustering();
@@ -66,8 +66,11 @@ class Analysis_Clustering: public Analysis {
     bool grace_color_;          ///< If true print grace colors instead of cluster number
     enum normPopType { NONE=0, CLUSTERPOP, FRAME };
     normPopType norm_pop_;      ///< If set cluster pops v time will be normalized 
+    enum BestRepType { CUMULATIVE = 0, CENTROID, CUMULATIVE_NOSIEVE };
+    BestRepType bestRep_;
     bool calc_lifetimes_;       ///< If true calculate DataSets for use in lifetime analysis.
     bool writeRepFrameNum_;     ///< If true frame #s will be in rep file names.
+    bool includeSieveInCalc_;   ///< If true use sieved frames in certain calculations.
     bool suppressInfo_;         ///< If true, do not print cluster info to STDOUT
     ClusterDist::DsArray cluster_dataset_;        ///< DataSet(s) to use for clustering.
     TrajectoryFile::TrajFormatType clusterfmt_;   ///< Cluster trajectory format.
@@ -78,5 +81,11 @@ class Analysis_Clustering: public Analysis {
     int debug_;
     static const char* PAIRDISTFILE_;              ///< Default pairwise dist file name.
     static DataFile::DataFormatType PAIRDISTTYPE_; ///< Default pairwise dist file type.
+    // Timers for cluster output
+    Timer cluster_post_renumber_;
+    Timer cluster_post_bestrep_;
+    Timer cluster_post_info_;
+    Timer cluster_post_summary_;
+    Timer cluster_post_coords_;
 };
 #endif

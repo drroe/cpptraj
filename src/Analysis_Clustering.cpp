@@ -4,7 +4,6 @@
 #include "StringRoutines.h" // fileExists, integerToString
 #include "DataSet_integer.h" // For converting cnumvtime
 #include "Trajout_Single.h"
-#include "Timer.h"
 // Clustering Algorithms
 #include "Cluster_HierAgglo.h"
 #include "Cluster_DBSCAN.h"
@@ -34,8 +33,10 @@ Analysis_Clustering::Analysis_Clustering() :
   useMass_(false),
   grace_color_(false),
   norm_pop_(NONE),
+  bestRep_(CUMULATIVE),
   calc_lifetimes_(false),
   writeRepFrameNum_(false),
+  includeSieveInCalc_(false),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ),
@@ -61,10 +62,11 @@ void Analysis_Clustering::Help() const {
           "\t{ [[rms | srmsd] [<mask>] [mass] [nofit]] | [dme [<mask>]] |\n"
           "\t   [data <dset0>[,<dset1>,...]] }\n"
           "\t[sieve <#> [random [sieveseed <#>]]] [loadpairdist] [savepairdist] [pairdist <name>]\n"
-          "\t[pairwisecache {mem | none}]\n"
+          "\t[pairwisecache {mem | none}] [includesieveincalc]\n"
           "  Output options:\n"
           "\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n"
           "\t[summarysplit <splitfile>] [splitframe <comma-separated frame list>]\n"
+          "\t[bestrep {cumulative|centroid|cumulative_nosieve}]\n"
           "\t[clustersvtime <filename> cvtwindow <window size>]\n"
           "\t[cpopvtime <file> [normpop | normframe]] [lifetime]\n"
           "\t[sil <silhouette file prefix>] [assignrefs [refcut <rms>] [refmask <mask>]]\n"
@@ -183,6 +185,9 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   // Get algorithm-specific keywords
   if (CList_->SetupCluster( analyzeArgs )) return Analysis::ERR; 
   // Get keywords
+  includeSieveInCalc_ = analyzeArgs.hasKey("includesieveincalc");
+  if (includeSieveInCalc_)
+    mprintf("Warning: 'includesieveincalc' may be very slow.\n");
   useMass_ = analyzeArgs.hasKey("mass");
   sieveSeed_ = analyzeArgs.getKeyInt("sieveseed", -1);
   sieve_ = analyzeArgs.getKeyInt("sieve", 1);
@@ -209,6 +214,25 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
         splits.CheckForMoreArgs();
         return Analysis::ERR;
       }
+    }
+  }
+  std::string bestRepStr = analyzeArgs.GetStringKey("bestrep");
+  if (bestRepStr.empty()) {
+    // For sieving, cumulative can get very expensive. Default to centroid.
+    if (sieve_ != 1)
+      bestRep_ = CENTROID;
+    else
+      bestRep_ = CUMULATIVE;
+  } else {
+    if (bestRepStr == "cumulative")
+      bestRep_ = CUMULATIVE;
+    else if (bestRepStr == "centroid")
+      bestRep_ = CENTROID;
+    else if (bestRepStr == "cumulative_nosieve")
+      bestRep_ = CUMULATIVE_NOSIEVE;
+    else {
+      mprinterr("Error: Invalid 'bestRep' option (%s)\n", bestRepStr.c_str());
+      return Analysis::ERR;
     }
   }
   if (analyzeArgs.hasKey("drawgraph"))
@@ -381,6 +405,12 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
     if (sieveSeed_ > 0) mprintf(" using random seed %i", sieveSeed_);
     mprintf(".\n");
   }
+  if (sieve_ != 1) {
+    if (includeSieveInCalc_)
+      mprintf("\tAll frames (including sieved) will be used to calc within-cluster average.\n");
+    else
+      mprintf("\tOnly non-sieved frames will be used to calc within-cluster average.\n");
+  }
   if (cnumvtimefile != 0)
     mprintf("\tCluster # vs time will be written to %s\n", cnumvtimefile->DataFilename().base());
   if (clustersvtimefile != 0)
@@ -410,8 +440,12 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   if (!sil_file_.empty()) {
     mprintf("\tFrame silhouettes will be written to %s.frame.dat, cluster silhouettes\n"
             "\t  will be written to %s.cluster.dat\n", sil_file_.c_str(), sil_file_.c_str());
-    if (sieve_ > 1)
-      mprintf("\tSilhouette calculation will use sieved frames ONLY.\n");
+    if (sieve_ != 1) {
+      if (includeSieveInCalc_)
+        mprintf("\tSilhouette calculation will use all frames.\n");
+      else
+        mprintf("\tSilhouette calculation will use non-sieved frames ONLY.\n");
+    }
   }
   if (!halffile_.empty()) {
     mprintf("\tSummary comparing parts of trajectory data for clusters will be written to %s\n",
@@ -423,6 +457,14 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
       mprintf("\n");
     } else
       mprintf("\t\tFrames will be split at the halfway point.\n");
+  }
+  mprintf("\tRepresentative frames will be chosen by");
+  switch (bestRep_) {
+    case CUMULATIVE: mprintf(" lowest cumulative distance to all other frames.\n"); break;
+    case CENTROID  : mprintf(" closest distance to cluster centroid.\n"); break;
+    case CUMULATIVE_NOSIEVE:
+      mprintf(" lowest cumulative distance to all other frames (ignore sieved frames).\n");
+      break;
   }
   if (!clusterfile_.empty())
     mprintf("\tCluster trajectories will be written to %s, format %s\n",
@@ -493,10 +535,25 @@ unsigned int Analysis_Clustering::ClusterSetup(bool& has_coords) {
 
 /** If clusters were found perform any output */
 void Analysis_Clustering::ClusterOutput(unsigned int clusterDataSetSize, bool has_coords) {
+  cluster_post_renumber_.Reset();
+  cluster_post_bestrep_.Reset();
+  cluster_post_info_.Reset();
+  cluster_post_summary_.Reset();
+  cluster_post_coords_.Reset();
   if (CList_->Nclusters() > 0) {
-    // Sort clusters and renumber; also finds centroids for printing
-    // representative frames. If sieving, add remaining frames.
+    // Sort clusters and renumber; also finds centroids. If sieving,
+    // add remaining frames.
+    cluster_post_renumber_.Start();
     CList_->Renumber( (sieve_ != 1) );
+    cluster_post_renumber_.Stop();
+    // Find best representative frames for each cluster.
+    cluster_post_bestrep_.Start();
+    switch (bestRep_) {
+      case CUMULATIVE: CList_->FindBestRepFrames_CumulativeDist(); break;
+      case CENTROID  : CList_->FindBestRepFrames_Centroid(); break;
+      case CUMULATIVE_NOSIEVE: CList_->FindBestRepFrames_NoSieve_CumulativeDist(); break;
+    }
+    cluster_post_bestrep_.Stop();
     // DEBUG
     if (debug_ > 0) {
       mprintf("\nFINAL CLUSTERS:\n");
@@ -513,16 +570,21 @@ void Analysis_Clustering::ClusterOutput(unsigned int clusterDataSetSize, bool ha
     // Print ptraj-like cluster info.
     // If no filename is written and no noinfo, some info will still be written to STDOUT
     if (!suppressInfo_) {
-      CList_->PrintClustersToFile(clusterinfo_, clusterDataSetSize);
+      cluster_post_info_.Start();
+      CList_->PrintClustersToFile(clusterinfo_);
+      cluster_post_info_.Stop();
     }
 
     // Calculate cluster silhouette
     if (!sil_file_.empty())
-      CList_->CalcSilhouette( sil_file_ );
+      CList_->CalcSilhouette( sil_file_, includeSieveInCalc_ );
 
     // Print a summary of clusters
-    if (!summaryfile_.empty())
-      CList_->Summary(summaryfile_, clusterDataSetSize);
+    if (!summaryfile_.empty()) {
+      cluster_post_summary_.Start();
+      CList_->Summary(summaryfile_, includeSieveInCalc_);
+      cluster_post_summary_.Stop();
+    }
 
     // Print a summary comparing first half to second half of data for clusters
     if (!halffile_.empty()) {
@@ -537,7 +599,7 @@ void Analysis_Clustering::ClusterOutput(unsigned int clusterDataSetSize, bool ha
           mprintf("Warning: split frame %i is out of bounds; ignoring.\n", *f);
         else
           actualSplitFrames.push_back( *f );
-      CList_->Summary_Part(halffile_, clusterDataSetSize, actualSplitFrames);
+      CList_->Summary_Part(halffile_, actualSplitFrames);
     }
 
     // Create cluster v time data from clusters.
@@ -571,6 +633,7 @@ void Analysis_Clustering::ClusterOutput(unsigned int clusterDataSetSize, bool ha
     }
     // Coordinate output.
     if (has_coords) {
+      cluster_post_coords_.Start();
       // Write clusters to trajectories
       if (!clusterfile_.empty())
         WriteClusterTraj( *CList_ ); 
@@ -583,6 +646,7 @@ void Analysis_Clustering::ClusterOutput(unsigned int clusterDataSetSize, bool ha
       // Write average structures for each cluster to separate files.
       if (!avgfile_.empty())
         WriteAvgStruct( *CList_ );
+      cluster_post_coords_.Stop();
     }
   } else
     mprintf("\tNo clusters found.\n");
@@ -723,6 +787,11 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   CList_->Timing( cluster_cluster.Total() );
 # endif
   cluster_post.WriteTiming(1,     "  Cluster Post. :", cluster_total.Total());
+  cluster_post_renumber_.WriteTiming(2, "Cluster renumbering/sieve restore", cluster_post.Total());
+  cluster_post_bestrep_.WriteTiming(2, "Find best rep.", cluster_post.Total());
+  cluster_post_info_.WriteTiming(2, "Info calc", cluster_post.Total());
+  cluster_post_summary_.WriteTiming(2, "Summary calc", cluster_post.Total());
+  cluster_post_coords_.WriteTiming(2, "Coordinate writes", cluster_post.Total());
   cluster_total.WriteTiming(1,    "Total:");
   return Analysis::OK;
 }
@@ -767,11 +836,11 @@ void Analysis_Clustering::AssignRefsToClusters( ClusterList& CList ) const {
     if (minRms < refCut_) {
       //mprintf("DEBUG: Assigned cluster %i to reference \"%s\" (%g)\n", cidx,
       //        refs_[minIdx]->Meta().Name().c_str(), minRms);
-      cluster->SetName( refs_[minIdx]->Meta().Name(), minRms );
+      cluster->SetNameAndRms( refs_[minIdx]->Meta().Name(), minRms );
     } else {
       //mprintf("DEBUG: Cluster %i was closest to reference \"(%s)\" (%g)\n", cidx,
       //        refs_[minIdx]->Meta().Name().c_str(), minRms);
-      cluster->SetName( "(" + refs_[minIdx]->Meta().Name() + ")", minRms );
+      cluster->SetNameAndRms( "(" + refs_[minIdx]->Meta().Name() + ")", minRms );
     }
   }
 }
