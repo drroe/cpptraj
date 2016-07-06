@@ -264,7 +264,7 @@ double Cluster_HierAgglo::ClusterDistance(ClusterNode const& C1, ClusterNode con
         }
       }
     }
-    if (linkage_ == AVERAGELINK) dist /= (double)Nelements;
+    if (linkage_ == AVERAGELINK && Nelements > 0) dist /= (double)Nelements;
   }
   if (debug_ > 0)
     mprintf("DEBUG: Calc dist between clusters %i (%i frames) and %i (%i frames), %g\n",
