@@ -249,7 +249,12 @@ void Cluster_DBSCAN::AddSievedFrames() {
 # endif
   for (frame = 0; frame < nframes; ++frame) {
     progress.Update( frame );
-    if (FrameDistances().FrameWasSieved(frame)) {
+#   ifdef MPI
+    if (FrameDistances().FrameWasSieved(frame) && !RestoredFromRank(frame))
+#   else
+    if (FrameDistances().FrameWasSieved(frame))
+#   endif
+    {
       // Which clusters centroid is closest to this frame?
       double mindist = DBL_MAX;
       cluster_it minNode = clusters_.end();

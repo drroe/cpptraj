@@ -76,7 +76,8 @@ class ClusterList {
 #   ifdef MPI
     int CheckClusterComm() const;
     Parallel::Comm const& ClusterComm() const { return comm_; }
-    void MarkFrameRestored(int f) { restoredFromRank_[f] = true; }
+    void MarkFrameRestored(int f)             { restoredFromRank_[f] = true; }
+    bool RestoredFromRank(int f)        const { return restoredFromRank_[f]; }
     void AddCluster( ClusterNode const& cIn ) { clusters_.push_back( cIn ); }
 #   endif
     /// \return Distance between specified frames. Use FrameDistances if frames were not sieved.
