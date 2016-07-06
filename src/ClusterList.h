@@ -51,10 +51,10 @@ class ClusterList {
 #   ifdef TIMER
     virtual void Timing(double) const = 0;
 #   endif
-#   ifdef MPI
-    virtual int SyncClusters() { return 1; } // TODO pure virtual
-#   endif
     // -----------------------------------------------------
+#   ifdef MPI
+    int SyncClusters();
+#   endif
     /// Iterator over clusters
     typedef std::list<ClusterNode>::iterator cluster_it;
     cluster_it begin() { return clusters_.begin(); }

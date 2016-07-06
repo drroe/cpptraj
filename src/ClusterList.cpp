@@ -650,6 +650,88 @@ int ClusterList::CheckClusterComm() const {
   }
   return 0;
 }
+
+int ClusterList::SyncClusters() {
+  if (CheckClusterComm()) return 1;
+  // DEBUG - print results for each rank so far.
+  for (int rank = 0; rank != ClusterComm().Size(); rank++) {
+    if (rank == ClusterComm().Rank()) {
+      rprintf("DEBUG: Clustering results before sync:\n");
+      unsigned int cnum = 0;
+      for (cluster_iterator c0 = begincluster(); c0 != endcluster(); ++c0, ++cnum) {
+        rprintf("\tCluster %u has %i frames:", cnum, c0->Nframes());
+        for (ClusterNode::frame_iterator f0 = c0->beginframe();
+                                         f0 != c0->endframe(); ++f0)
+          printf(" %i", *f0);
+        printf("\n");
+      }
+    }
+    ClusterComm().Barrier();
+  }
+  // Get clusters from each rank and decide to merge or create new.
+  int n_clusters_on_rank;
+  if (ClusterComm().Master()) {
+    // Update master cluster centroids.
+    for (cluster_it node = begin(); node != end(); ++node) {
+      node->SortFrameList();
+      node->CalculateCentroid( Cdist_ );
+    }
+    // Find the minimum distance between any 2 cluster centroids on master.
+    double min_on_master = DBL_MAX;
+    for (cluster_iterator node1 = begincluster(); node1 != endcluster(); ++node1)
+      for (cluster_iterator node2 = node1; node2 != endcluster(); ++node2)
+        if (node1 != node2)
+          min_on_master = std::min( Cdist_->CentroidDist( node1->Cent(), node2->Cent() ),
+                                    min_on_master );
+    mprintf("DEBUG: Minimum distance between cluster centroids on master is %f\n", min_on_master);
+    for (int rank = 1; rank < ClusterComm().Size(); rank++) {
+      // Recieve number of clusters from rank
+      ClusterComm().SendMaster( &n_clusters_on_rank, 1, rank, MPI_INT );
+      // Receive each cluster from rank.
+      for (int ic = 0; ic != n_clusters_on_rank; ic++) {
+        ClusterNode TmpCluster; // TODO put outside loop? Need to reset centroid
+        TmpCluster.RecvCluster(rank, ClusterComm());
+        // Ensure received cluster centroid is up to date. TODO communicate centroid
+        TmpCluster.SortFrameList();
+        TmpCluster.CalculateCentroid( Cdist_ );
+        // Find closest cluster centroid on master to received cluster centroid
+        cluster_it minNode = end();
+        double minDist = min_on_master;
+        for (cluster_it node = begin(); node != end(); ++node) {
+          double dist = Cdist_->CentroidDist( TmpCluster.Cent(), node->Cent() );
+          if (dist < minDist) {
+            minDist = dist;
+            minNode = node;
+          }
+        }
+        if (minNode == end()) {
+          mprintf("DEBUG: Cluster %i from rank %i was not close to any master cluster.\n",
+                  ic, rank);
+          // Add as new cluster
+          AddCluster( TmpCluster );
+        } else {
+          mprintf("DEBUG: Cluster %i from rank %i was close (%f) to master cluster %i.\n",
+                  ic, rank, minDist, minNode->Num());
+          // Merge into minimum cluster
+          // NOTE: *NOT* updating master centroid at this time.
+          minNode->MergeFrames( TmpCluster );
+          // Ensure all frames from received cluster are marked as restored.
+          for (ClusterNode::frame_iterator f0 = TmpCluster.beginframe();
+                                           f0 != TmpCluster.endframe(); ++f0)
+            MarkFrameRestored( *f0 );
+        }
+      } // END loop over clusters from rank
+    } // END master loop over ranks
+  } else {
+    // Send number of clusters to master
+    n_clusters_on_rank = (int)Nclusters();
+    ClusterComm().SendMaster( &n_clusters_on_rank, 1, ClusterComm().Rank(), MPI_INT );
+    // Send all clusters on this rank to master
+    for (cluster_it node = begin(); node != end(); ++node)
+      node->SendCluster(0, ClusterComm());
+  }
+  return 0;
+}
 #endif
 // -----------------------------------------------------------------------------
 void ClusterList::AddSievedFramesByCentroid() {

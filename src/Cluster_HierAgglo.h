@@ -17,9 +17,6 @@ class Cluster_HierAgglo : public ClusterList {
 #   ifdef TIMER
     void Timing(double) const;
 #   endif
-#   ifdef MPI
-    int SyncClusters();
-#   endif
     void AddSievedFrames() { AddSievedFramesByCentroid(); }
     void ClusterResults(CpptrajFile&) const;
   private:
