@@ -34,6 +34,10 @@
   *     1400+X: Action_AtomicCorr: Atomic movement vectors
   *     1500  : Action_NAstruct: Array containing BP step info on rank.
   *     1501+X:   Array of step series data from rank.
+  *     1600  : ClusterNode cluster size
+  *     1601  : ClusterNode::frameList_
+  *     1602  : ClusterSieve temp frame to index array
+  *     1603  : ClusterSieve::actualNframes_
   */
 class Parallel {
   public:

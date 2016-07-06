@@ -89,7 +89,7 @@ ClusterSieve::SieveErr ClusterSieve::SetParallelSieve(int sieveIn, size_t maxFra
     return NO_SIEVE; 
   }
   else if (type_ == REGULAR)
-  { // Regular sieveing; index = (frame / sieve) + rank
+  { // Regular sieving; index = (frame / sieve) + start
     frameToIdx_.assign( maxFrames, -1 );
     int idx = 0;
     unsigned int startFrame = (int)((double)commIn.Rank()*((double)sieveIn/(double)commIn.Size()));
@@ -99,8 +99,57 @@ ClusterSieve::SieveErr ClusterSieve::SetParallelSieve(int sieveIn, size_t maxFra
   }
   else if (type_ == RANDOM)
   { // Random sieving; maxframes / sieve random indices
-    //FIXME implement
-    return OTHER;
+    // Need to ensure no overlap between ranks. Generate all selections on master first
+    frameToIdx_.assign( maxFrames, -1 );
+    if (commIn.Master()) {
+      double dmax = (double)maxFrames;
+      Random_Number random;
+      random.rn_set( iseed );
+      unsigned int n_frames_selected = 0;
+      for (int rank = 0; rank != commIn.Size(); rank++)
+      {
+        for (unsigned int i = 0; i < maxFrames; i -= sieve_)
+        {
+          if (n_frames_selected >= maxFrames) break; // For cases where worldsize = sieve
+          bool frame_generated = false;
+          // Pick until we pick a frame that has not yet been selected.
+          while (!frame_generated) {
+            double dframe = dmax * random.rn_gen();
+            int iframe = (int)dframe;
+            if (frameToIdx_[iframe] == -1) {
+              frameToIdx_[iframe] = rank;
+              frame_generated = true;
+              n_frames_selected++;
+            }
+          }
+        }
+      }
+      // Put indices in order on each rank.
+      for (int rank = 1; rank < commIn.Size(); rank++)
+      {
+        int idx = 0;
+        std::vector<int> tmpFrmToIdx( maxFrames, -1 );
+        for (unsigned int i = 0; i < maxFrames; i++)
+          if (frameToIdx_[i] == rank)
+            tmpFrmToIdx[i] = idx++;
+        actualNframes_ = idx;
+        // Send temporary frameToIdx array and actualNframes to rank
+        commIn.Send( &tmpFrmToIdx[0], maxFrames, MPI_INT, rank, 1602 );
+        commIn.Send( &actualNframes_, 1, MPI_INT, rank, 1603 );
+      }
+      // Put indices in order on master.
+      int idx = 0;
+      for (unsigned int i = 0; i < maxFrames; i++)
+        if (frameToIdx_[i] == 0)
+          frameToIdx_[i] = idx++;
+        else
+          frameToIdx_[i] = -1;
+      actualNframes_ = idx;
+    } else {
+      // Receive frameToIdx array and actualNframes from master
+      commIn.Recv( &frameToIdx_[0], maxFrames, MPI_INT, 0, 1602 );
+      commIn.Recv( &actualNframes_, 1, MPI_INT, 0, 1603 );
+    }
   }
   MakeIdxToFrame();
   return OK;
