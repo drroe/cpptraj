@@ -153,12 +153,26 @@ void PDBfile::pdb_XYZ(double *Xout) {
   linebuffer_[54] = savechar;
 }
 
+// PDBfile::pdb_OccupancyAndBfactor()
 void PDBfile::pdb_OccupancyAndBfactor(float& occ, float& bfac) {
-  // Occupancy (54-59) | charge
-  // B-factor (60-65) | radius
-  // NOTE: sscanf is used here since occupancy and B-factor could be different
-  //       widths if this is a PQR file - potentially bad?
-  sscanf(linebuffer_+54, "%f %f", &occ, &bfac);
+  // Occupancy (54-60)
+  char savechar = linebuffer_[60];
+  linebuffer_[60] = '\0';
+  occ = atof(linebuffer_ + 54);
+  linebuffer_[60] = savechar;
+  // B-factor (60-66)
+  savechar = linebuffer_[66];
+  linebuffer_[66] = '\0';
+  bfac = atof(linebuffer_ + 60);
+  linebuffer_[66] = savechar;
+}
+  
+/** Read charge and radius from PQR file (where occupancy and B-factor would be
+  * in a PDB). Use sscanf() since these columns could have different widths.
+  * Could fail if reading a PDB with values > 99.99 in B-factor column.
+  */
+void PDBfile::pdb_ChargeAndRadius(float& charge, float& radius) {
+  sscanf(linebuffer_+54, "%f %f", &charge, &radius);
 }
 
 void PDBfile::pdb_Box(double* box) {
@@ -223,16 +237,16 @@ int PDBfile::pdb_Bonds(int* bnd) {
 // PDBfile::WriteRecordHeader()
 void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& name,
                                 char altLoc, NameType const& resnameIn, char chain, 
-                                int resnum, char icode)
+                                int resnum, char icode, const char* Elt)
 {
   char resName[5], atomName[5];
 
   resName[4]='\0';
   atomName[4]='\0';
   // Residue number in PDB format can only be 4 digits wide
-  while (resnum>9999) resnum-=9999;
+  if (resnum > 9999) resnum = resnum % 10000;
   // Atom number in PDB format can only be 5 digits wide
-  while (anum>99999) anum-=99999;
+  if (anum > 99999) anum = anum % 100000;
   // Residue names in PDB format are 3 chars long, right-justified, starting
   // at column 18, while the alternate location indicator is column 17. 
   // However in Amber residues can be 4 characters long; in this case overwrite
@@ -248,13 +262,18 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
   int rn_idx = 3;
   for (int i = rn_size - 1; i > -1; i--, rn_idx--)
     resName[rn_idx] = resnameIn[i];
-  // Atom names in PDB format start from col 14 when <= 3 chars, 13 when 4 chars.
-  if (name[3]!=' ') { // 4 chars
+  // Determine size in characters of element name if given.
+  int eNameChars = 0;
+  if (Elt != 0) eNameChars = strlen( Elt );
+  // For atoms with element names of 1 character, names in PDB format start
+  // from col 14 when <= 3 chars, 13 when 4 chars. Atoms with element names of
+  // 2 characters start from col 13.
+  if (eNameChars == 2 || name[3] != ' ') { // 4 chars or 2 char elt name
     atomName[0] = name[0];
     atomName[1] = name[1];
     atomName[2] = name[2];
     atomName[3] = name[3];
-  } else {            // <= 3 chars
+  } else {            // <= 3 chars or 1 char elt name
     atomName[0] = ' ';
     atomName[1] = name[0];
     atomName[2] = name[1];
@@ -314,7 +333,7 @@ void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
                          double X, double Y, double Z, float Occ, float B, 
                          const char* Elt, int charge, bool highPrecision) 
 {
-  WriteRecordHeader(Record, anum, name, altLoc, resnameIn,  chain, resnum, icode);
+  WriteRecordHeader(Record, anum, name, altLoc, resnameIn,  chain, resnum, icode, Elt);
   if (highPrecision)
     Printf("   %8.3f%8.3f%8.3f%8.4f%8.4f      %2s%2s\n", X, Y, Z, Occ, B, Elt, "");
   else
@@ -326,8 +345,8 @@ void PDBfile::WriteANISOU(int anum, NameType const& name,
                           NameType const& resnameIn, char chain, int resnum,
                           int u11, int u22, int u33, int u12, int u13, int u23,
                           const char* Elt, int charge)
-{
-  WriteRecordHeader(ANISOU, anum, name, ' ', resnameIn, chain, resnum, ' '); // TODO icode, altLoc
+{ // TODO icode, altLoc
+  WriteRecordHeader(ANISOU, anum, name, ' ', resnameIn, chain, resnum, ' ', Elt);
   Printf(" %7i%7i%7i%7i%7i%7i      %2s%2i\n", u11, u22, u33, 
          u12, u13, u23, Elt, charge);
 }

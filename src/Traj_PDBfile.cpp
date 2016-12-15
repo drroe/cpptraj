@@ -247,15 +247,21 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   // Save residue names. If pdbres specified convert to PDBV3 residue names.
   resNames_.clear();
   resNames_.reserve( trajParm->Nres() );
+  resIsHet_.clear();
+  resIsHet_.reserve( trajParm->Nres() );
   if (pdbres_) {
     for (Topology::res_iterator res = trajParm->ResStart();
-                                res != trajParm->ResEnd(); ++res) {
+                                res != trajParm->ResEnd(); ++res)
+    {
       NameType rname = res->Name();
+      // First check if this is water.
+      if ( res->NameIsSolvent() )
+        rname = "HOH ";
       // convert protein residue names back to more like PDBV3 format:
-      if (rname == "HID " || rname == "HIE " ||
-          rname == "HIP " || rname == "HIC "   )
+      else if (rname == "HID " || rname == "HIE " ||
+               rname == "HIP " || rname == "HIC "   )
         rname = "HIS ";
-      else if (rname == "CYX " || rname == "CYM ")
+      else if (rname == "CYX " || rname == "CYM " || rname == "CYZ ")
         rname = "CYS ";
       else if (rname == "MEM ") 
         rname = "MET ";
@@ -264,22 +270,26 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
       else if (rname == "GLH ")
         rname = "GLU ";
       // also for nucleic acid names:
-      else if ( rname[2] == ' ' && rname[3] == ' ' ) {
-        // RNA names
-        if      ( rname[0] == 'G' ) rname="  G ";
-        else if ( rname[0] == 'C' ) rname="  C ";
-        else if ( rname[0] == 'A' ) rname="  A ";
-        else if ( rname[0] == 'U' ) rname="  U ";
-      } else if ( rname[0] == 'D' ) {
-        // DNA names
-        if      ( rname[1] == 'G' ) rname=" DG ";
-        else if ( rname[1] == 'C' ) rname=" DC ";
-        else if ( rname[1] == 'A' ) rname=" DA ";
-        else if ( rname[1] == 'T' ) rname=" DT ";
-      } else if ( rname == "URA" || rname == "URI" )
-        rname="  U ";
-      else if ( rname == "THY" )
-        rname=" DT ";
+      else if ( rname == "C3  " )  rname = "  C ";
+      else if ( rname == "U3  " )  rname = "  U ";
+      else if ( rname == "G3  " )  rname = "  G ";
+      else if ( rname == "A3  " )  rname = "  A ";
+      else if ( rname == "C5  " )  rname = "  C ";
+      else if ( rname == "U5  " )  rname = "  U ";
+      else if ( rname == "G5  " )  rname = "  G ";
+      else if ( rname == "A5  " )  rname = "  A ";
+      else if ( rname == "DC3 " )  rname = " DC ";
+      else if ( rname == "DT3 " )  rname = " DT ";
+      else if ( rname == "DG3 " )  rname = " DG ";
+      else if ( rname == "DA3 " )  rname = " DA ";
+      else if ( rname == "DC5 " )  rname = " DC ";
+      else if ( rname == "DT5 " )  rname = " DT ";
+      else if ( rname == "DG5 " )  rname = " DG ";
+      else if ( rname == "DA5 " )  rname = " DA ";
+      else if ( rname == "URA " || rname == "URI" )
+        rname = "  U ";
+      else if ( rname == "THY " )
+        rname = " DT ";
       else if ( rname == "GUA" || rname == "ADE" || rname == "CYT" ) {
         // Determine if RNA or DNA via existence of O2'
         bool isRNA = false;
@@ -301,25 +311,74 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
         }
       }
       resNames_.push_back( rname );
+      // Any non-standard residue should get HETATM
+      if ( rname == "ALA " ||
+           rname == "ARG " ||
+           rname == "ASN " ||
+           rname == "ASP " ||
+           rname == "ASX " ||
+           rname == "CYS " ||
+           rname == "GLN " ||
+           rname == "GLU " ||
+           rname == "GLX " ||
+           rname == "GLY " ||
+           rname == "HIS " ||
+           rname == "ILE " ||
+           rname == "LEU " ||
+           rname == "LYS " ||
+           rname == "MET " ||
+           rname == "PHE " ||
+           rname == "PRO " ||
+           rname == "SER " ||
+           rname == "THR " ||
+           rname == "TRP " ||
+           rname == "TYR " ||
+           rname == "UNK " ||
+           rname == "VAL " ||
+           rname == "  C " ||
+           rname == "  G " ||
+           rname == "  A " ||
+           rname == "  U " ||
+           rname == "  I " ||
+           rname == " DC " ||
+           rname == " DG " ||
+           rname == " DA " ||
+           rname == " DU " ||
+           rname == " DT " ||
+           rname == " DI "    )
+        resIsHet_.push_back( false );
+      else
+        resIsHet_.push_back( true );
+      //mprintf("DEBUG: ResName='%s' IsHet=%i\n", *(resNames_.back()), (int)resIsHet_.back());
     }
   } else {
     for (Topology::res_iterator res = trajParm->ResStart();
                                 res != trajParm->ResEnd(); ++res)
       resNames_.push_back( res->Name() );
+    resIsHet_.assign( trajParm->Nres(), false );
   }
   // Set up TER cards.
   TER_idxs_.clear();
   if (terMode_ == BY_RES) {
+    bool lastResWasSolvent = false;
     // Write a TER card every time residue of atom N+1 is not bonded to any
     // atom of residue of atom N. Do not do this for solvent.
     for (Topology::res_iterator res = trajParm->ResStart();
                                 res != trajParm->ResEnd(); ++res)
     {
-      if (!res->NameIsSolvent()) {
+      bool isIon = false;
+      if (trajParm->Nmol() > 0) {
+        int molNum = (*trajParm)[ res->FirstAtom() ].MolNum();
+        // If this is a one atom molecule assume it is an ion.
+        isIon = trajParm->Mol( molNum ).NumAtoms() == 1; 
+      }
+      if (!res->NameIsSolvent() && !isIon) {
         // If this is the last residue, terminate the chain with final atom.
         // FIXME build this into the loop.
         if ( res+1 == trajParm->ResEnd() )
           TER_idxs_.push_back( res->LastAtom() - 1 );
+        else if ( lastResWasSolvent )
+          TER_idxs_.push_back( (res-1)->LastAtom() - 1 );
         else {
           int r2_first = (res+1)->FirstAtom();
           int r2_last  = (res+1)->LastAtom();
@@ -339,7 +398,9 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
           if (!residues_are_bonded)
             TER_idxs_.push_back( res->LastAtom() - 1 );
         }
-      }
+        lastResWasSolvent = false;
+      } else
+        lastResWasSolvent = true;
     }
   } else if (terMode_ == BY_MOL) {
     // Write a TER card at the end of every molecule
@@ -422,6 +483,11 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
     Atom const& atom = (*pdbTop_)[aidx];
     int res = atom.ResNum();
     if (include_ep_ || atom.Element() != Atom::EXTRAPT) {
+      PDBfile::PDB_RECTYPE rectype;
+      if ( resIsHet_[res] )
+        rectype = PDBfile::HETATM;
+      else
+        rectype = PDBfile::ATOM;
       if (!pdbTop_->Extra().empty()) {
         Occ = pdbTop_->Extra()[aidx].Occupancy();
         B   = pdbTop_->Extra()[aidx].Bfactor();
@@ -444,7 +510,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
         else if (atomName == "H3T ") atomName = "HO3'";
         else if (atomName == "HO'2") atomName = "HO2'";
       }
-      file_.WriteCoord(PDBfile::ATOM, anum, atomName, altLoc, resNames_[res],
+      file_.WriteCoord(rectype, anum, atomName, altLoc, resNames_[res],
                        chainID_[res], pdbTop_->Res(res).OriginalResNum(),
                        pdbTop_->Res(res).Icode(),
                        Xptr[0], Xptr[1], Xptr[2], Occ, B,
@@ -457,7 +523,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       // FIXME: Should anum not be incremented until after? 
       file_.WriteRecordHeader(PDBfile::TER, anum, "", ' ', resNames_[res],
                               chainID_[res], pdbTop_->Res(res).OriginalResNum(),
-                              pdbTop_->Res(res).Icode());
+                              pdbTop_->Res(res).Icode(), atom.ElementName());
       anum += ter_num_;
       ++terIdx;
     }

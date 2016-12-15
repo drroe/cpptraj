@@ -4,7 +4,8 @@
 void Exec_Trajin::Help() const {
   mprintf("\t<filename> {[<start>] [<stop> | last] [offset]} | lastframe\n"
           "\t           [%s]\n", DataSetList::TopArgs);
-  mprintf("\t           [ <Format Options> ]\n"
+  mprintf("\t           [mdvel <velocities>] [mdfrc <forces>]\n"
+          "\t           [ <Format Options> ]\n"
           "\t           [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n"
           "\t             [trajnames <rep1>,<rep2>,...,<repN> ] ]\n"
           "  Load trajectory specified by <filename> to the input trajectory list.\n");
@@ -30,7 +31,8 @@ void Exec_Reference::Help() const {
 }
 // -----------------------------------------------------------------------------
 void Exec_Trajout::Help() const {
-  mprintf("\t<filename> [<fileformat>] [append] [nobox]\n"
+  mprintf("\t<filename> [<fileformat>] [append] [nobox] [novelocity]\n"
+          "\t           [notemperature] [notime] [noforce] [noreplicadim]\n"
           "\t           [%s] [onlyframes <range>] [title <title>]\n"
           "\t           [onlymembers <memberlist>]\n", DataSetList::TopArgs);
   mprintf("\t           %s\n", ActionFrameCounter::HelpText);
@@ -41,7 +43,7 @@ void Exec_Trajout::Help() const {
 }
 // -----------------------------------------------------------------------------
 void Exec_EnsembleSize::Help() const {
-  mprintf("  Set expected ensemble size to improve ensemble setup efficiency in parallel.\n");
+  mprintf("\t<#>\n  Set expected ensemble size to <#> in order to improve ensemble setup efficiency in parallel.\n");
 }
 
 Exec::RetType Exec_EnsembleSize::Execute(CpptrajState& State, ArgList& argIn) {

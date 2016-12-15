@@ -165,6 +165,10 @@ bool Box::BadTruncOctAngle(double angle) {
   return (fabs( TRUNCOCTBETA_ - angle ) > TruncOctEps_);
 }
 
+bool Box::IsAngle(double angle, double tgt) {
+  return (fabs(tgt - angle) < Constants::SMALL);
+}
+
 // Box::SetBoxType()
 /** Determine box type (none/ortho/nonortho) based on box angles. */
 void Box::SetBoxType() {
@@ -188,6 +192,9 @@ void Box::SetBoxType() {
   else if ( IsTruncOct( box_[3] ) && IsTruncOct( box_[4] ) && IsTruncOct( box_[5] ) )
     // All 109.47, truncated octahedron
     btype_ = TRUNCOCT;
+  else if ( IsAngle(box_[3],60.0) && IsAngle(box_[4],90.0) && IsAngle(box_[5],60.0) )
+    // 60/90/60, rhombic dodecahedron
+    btype_ = RHOMBIC;
   else if (box_[3] == 0 && box_[4] != 0 && box_[5] == 0) {
     // Only beta angle is set (e.g. from Amber topology).
     if (box_[4] == 90.0) {
@@ -213,8 +220,8 @@ void Box::SetBoxType() {
     }
   }
   //if (debug_>0) mprintf("\tBox type is %s (beta=%lf)\n",TypeName(), box_[4]);
-  // Check for low-precision truncated octahedron angles.
   if (btype_ == TRUNCOCT) {
+    // Check for low-precision truncated octahedron angles.
     if ( BadTruncOctAngle(box_[3]) || BadTruncOctAngle(box_[4]) || BadTruncOctAngle(box_[5]) )
       mprintf("Warning: Low precision truncated octahedron angles detected (%g vs %g).\n"
               "Warning:   If desired, the 'box' command can be used during processing\n"
@@ -286,6 +293,42 @@ double Box::ToRecip(Matrix_3x3& ucell, Matrix_3x3& recip) const {
   recip[8] = u12z*onevolume;
 
   return volume;
+}
+
+// Box::UnitCell()
+Matrix_3x3 Box::UnitCell(double scale) const {
+  Matrix_3x3 ucell;
+  double by, bz;
+  switch (btype_) {
+    case NOBOX: ucell.Zero(); break;
+    case ORTHO:
+      ucell[0] = box_[0] * scale;
+      ucell[1] = 0.0;
+      ucell[2] = 0.0;
+      ucell[3] = 0.0;
+      ucell[4] = box_[1] * scale;
+      ucell[5] = 0.0;
+      ucell[6] = 0.0;
+      ucell[7] = 0.0;
+      ucell[8] = box_[2] * scale;
+      break;
+    case TRUNCOCT:
+    case RHOMBIC:
+    case NONORTHO:
+      by = box_[1] * scale;
+      bz = box_[2] * scale;
+      ucell[0] = box_[0] * scale;
+      ucell[1] = 0.0;
+      ucell[2] = 0.0;
+      ucell[3] = by*cos(Constants::DEGRAD*box_[5]);
+      ucell[4] = by*sin(Constants::DEGRAD*box_[5]);
+      ucell[5] = 0.0;
+      ucell[6] = bz*cos(Constants::DEGRAD*box_[4]);
+      ucell[7] = (by*bz*cos(Constants::DEGRAD*box_[3]) - ucell[6]*ucell[3]) / ucell[4];
+      ucell[8] = sqrt(bz*bz - ucell[6]*ucell[6] - ucell[7]*ucell[7]);
+      break;
+  }
+  return ucell;
 }
 
 void Box::PrintInfo() const {

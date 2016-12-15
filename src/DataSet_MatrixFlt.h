@@ -17,6 +17,7 @@ class DataSet_MatrixFlt : public DataSet_2D {
     void Info()                          const { return;                    }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     // ----- DataSet_2D functions ----------------
+    void UpdateElement(size_t x,size_t y,double v) { mat_.updateElement(x,y,v);       }
     int Allocate2D(size_t x,size_t y)          { kind_=FULL; return mat_.resize(x,y); }
     int AllocateHalf(size_t x)                 { kind_=HALF; return mat_.resize(x,0); }
     int AllocateTriangle(size_t x)             { kind_=TRI;  return mat_.resize(0,x); }
@@ -29,6 +30,10 @@ class DataSet_MatrixFlt : public DataSet_2D {
     // -------------------------------------------
     int AddElement(float d)                    { return mat_.addElement(d); }
     void SetElement(size_t x,size_t y,float d) { mat_.setElement(x,y,d);    }
+    /// Type definition of iterator over matrix elements.
+    typedef Matrix<float>::iterator iterator;
+    iterator begin()                           { return mat_.begin();       }
+    iterator end()                             { return mat_.end();         }
   private:
     Matrix<float> mat_;
     MatrixKindType kind_;

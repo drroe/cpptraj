@@ -18,6 +18,8 @@
 #include "DataIO_VecTraj.h"
 #include "DataIO_XVG.h"
 #include "DataIO_CCP4.h"
+#include "DataIO_Cmatrix.h"
+#include "DataIO_NC_Cmatrix.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -51,6 +53,12 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Vector pseudo-traj", 0,                       DataIO_VecTraj::WriteHelp,DataIO_VecTraj::Alloc},
   { "XVG file",           0,                       0,                        DataIO_XVG::Alloc    },
   { "CCP4 file",          0,                       DataIO_CCP4::WriteHelp,   DataIO_CCP4::Alloc   },
+  { "Cluster matrix file",0,                       0,                        DataIO_Cmatrix::Alloc},
+# ifdef BINTRAJ
+  { "NetCDF Cluster matrix file", 0,               0,                     DataIO_NC_Cmatrix::Alloc},
+# else
+  { "NetCDF Cluster matrix file", 0, 0, 0 },
+# endif
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
@@ -68,6 +76,8 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { VECTRAJ,      "vectraj",".vectraj" },
   { XVG,          "xvg",    ".xvg"   },
   { CCP4,         "ccp4",   ".ccp4"  },
+  { CMATRIX,      "cmatrix",".cmatrix" },
+  { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
@@ -112,7 +122,7 @@ int DataFile::ReadDataIn(FileName const& fnameIn, ArgList const& argListIn,
   if (dataio_ != 0) delete dataio_;
   dataio_ = 0;
   if (!File::Exists(fnameIn)) {
-    mprinterr("Error: File '%s' does not exist.\n", fnameIn.full());
+    File::ErrorMsg( fnameIn.full() );
     return 1;
   }
   filename_ = fnameIn;
@@ -174,7 +184,7 @@ int DataFile::ReadDataOfType(FileName const& fnameIn, DataFormatType typeIn,
   if (dataio_ != 0) delete dataio_;
   dataio_ = 0;
   if (!File::Exists( fnameIn )) {
-    mprinterr("Error: File '%s' does not exist.\n", fnameIn.full());
+    File::ErrorMsg( fnameIn.full() );
     return 1;
   }
   filename_ = fnameIn;
@@ -211,13 +221,15 @@ int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn,
   return 0;
 }
 
-int DataFile::SetupStdout(ArgList& argIn, int debugIn) {
+int DataFile::SetupStdout(ArgList const& argIn, int debugIn) {
   SetDebug( debugIn );
   filename_.clear();
   dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, DATAFILE, false );
   if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
-  if (!argIn.empty())
-    ProcessArgs( argIn );
+  if (!argIn.empty()) {
+    ArgList args( argIn );
+    ProcessArgs( args );
+  }
   return 0;
 }
 

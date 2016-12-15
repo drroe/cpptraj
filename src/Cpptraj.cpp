@@ -6,8 +6,12 @@
 #include "ReadLine.h"
 #include "Version.h"
 #include "ParmFile.h" // ProcessMask
+#include "TopInfo.h" // ProcessMask
 #include "Timer.h"
 #include "StringRoutines.h" // TimeString
+#ifdef CUDA
+# include <cuda_runtime_api.h>
+#endif
 
 /// CONSTRUCTOR - initializes all commands
 Cpptraj::Cpptraj() {
@@ -61,6 +65,9 @@ void Cpptraj::Intro() {
 # ifdef _OPENMP
           " OpenMP"
 # endif
+# ifdef CUDA
+          " CUDA"
+# endif
           "\n    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n\n",
           CPPTRAJ_VERSION_STRING);
 # ifdef MPI
@@ -71,6 +78,17 @@ void Cpptraj::Intro() {
   // If empty, available mem could not be calculated correctly.
   if (!available_mem.empty())
     mprintf(  "| Available memory: %s\n", available_mem.c_str());
+# ifdef CUDA
+  int device;
+  if ( cudaGetDevice( &device ) == cudaSuccess ) {
+    cudaDeviceProp deviceProp;
+    if ( cudaGetDeviceProperties( &deviceProp, device ) == cudaSuccess ) {
+      mprintf("| CUDA device: %s\n", deviceProp.name);
+      mprintf("| Available GPU memory: %s\n",
+              ByteString(deviceProp.totalGlobalMem, BYTE_DECIMAL).c_str());
+    }
+  }
+# endif
   mprintf("\n");
 }
 
@@ -82,10 +100,22 @@ void Cpptraj::Finalize() {
     "  Theory Comput., 2013, 9 (7), pp 3084-3095.\n");
 }
 
+/** Main routine for running cpptraj. */
 int Cpptraj::RunCpptraj(int argc, char** argv) {
   int err = 0;
   Timer total_time;
   total_time.Start();
+# ifdef CUDA
+  int nGPUs = 0;
+  if ( cudaGetDeviceCount( &nGPUs ) != cudaSuccess ) {
+    mprinterr("Error: Could not get # of GPU devices.\n");
+    return 1;
+  }
+  if (nGPUs < 1) {
+    mprinterr("Error: No CUDA-capable devices found.\n");
+    return 1;
+  }
+# endif
   Mode cmode = ProcessCmdLineArgs(argc, argv);
   if ( cmode == BATCH ) {
     // If State is not empty, run now.
@@ -101,6 +131,9 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   } else if ( cmode == ERROR ) {
     err = 1;
   }
+  // Ensure all data has been written.
+  if (State_.DFL().UnwrittenData())
+    State_.DFL().WriteAllDF();
   total_time.Stop();
   if (cmode != INTERACTIVE)
     mprintf("TIME: Total execution time: %.4f seconds.\n", total_time.Total());
@@ -112,6 +145,7 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   return err;
 }
 
+/** \return string containing preprocessor defines used to compile cpptraj. */
 std::string Cpptraj::Defines() {
     std::string defined_str ("");
 #ifdef DEBUG
@@ -132,6 +166,9 @@ std::string Cpptraj::Defines() {
 #ifdef _OPENMP
   defined_str.append(" -D_OPENMP");
 #endif
+#ifdef CUDA
+  defined_str.append(" -DCUDA"); //TODO SHADER_MODEL?
+#endif
 #ifdef NO_MATHLIB
   defined_str.append(" -DNO_MATHLIB");
 #endif
@@ -147,7 +184,10 @@ std::string Cpptraj::Defines() {
 #ifdef HAS_PNETCDF
   defined_str.append(" -DHAS_PNETCDF");
 #endif
-#ifdef USE_SANDERLIB
+#ifdef NO_XDRFILE
+  defined_str.append(" -DNO_XDRFILE");
+#endif
+#if defined(USE_SANDERLIB) && !defined(LIBCPPTRAJ)
   defined_str.append(" -DUSE_SANDERLIB");
 #endif
   return defined_str;
@@ -191,10 +231,11 @@ int Cpptraj::ProcessMask( Sarray const& topFiles, Sarray const& refFiles,
         loudPrintf(" %i", *atom + 1);
     loudPrintf("\n");
   } else {
+    TopInfo info(&parm);
     if (residue)
-      parm.PrintResidueInfo( maskexpr );
+      info.PrintResidueInfo( maskexpr );
     else
-      parm.PrintAtomInfo( maskexpr );
+      info.PrintAtomInfo( maskexpr );
   }
   return 0;
 }
@@ -208,6 +249,9 @@ void Cpptraj::AddFiles(Sarray& Files, int argc, char** argv, int& idx) {
 
 /** Read command line args. */
 Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
+  commandLine_.clear();
+  for (int i = 1; i < argc; i++)
+    commandLine_.append( " " + std::string(argv[i]) );
   bool hasInput = false;
   bool interactive = false;
   Sarray inputFiles;
@@ -332,8 +376,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       return ERROR;
     }
     DataFile DF;
-    ArgList tmpArg;
-    if (DF.SetupDatafile( dataOut, tmpArg, State_.Debug() )) return ERROR;
+    if (DF.SetupDatafile( dataOut, State_.Debug() )) return ERROR;
     for (DataSetList::const_iterator ds = State_.DSL().begin(); ds != State_.DSL().end(); ++ds)
       if (DF.AddDataSet( *ds )) {
         mprinterr("Error: Could not add data set '%s' to file '%s'\n", (*ds)->legend(),
@@ -404,7 +447,9 @@ int Cpptraj::Interactive() {
   CpptrajFile logfile_;
   if (logfilename_.empty())
     logfilename_.SetFileName("cpptraj.log");
-#ifndef NO_READLINE
+# if defined (NO_READLINE) || defined (LIBCPPTRAJ)
+  // No need to load history if not using readline (or this is libcpptraj)
+# else
   if (File::Exists(logfilename_)) {
     // Load previous history.
     if (logfile_.OpenRead(logfilename_)==0) {
@@ -423,10 +468,20 @@ int Cpptraj::Interactive() {
       logfile_.CloseFile();
     }
   }
-#endif
+# endif
   logfile_.OpenAppend(logfilename_);
-  if (logfile_.IsOpen())
+  if (logfile_.IsOpen()) {
+    // Write logfile header entry: date, cmd line opts, topologies
     logfile_.Printf("# %s\n", TimeString().c_str());
+    if (!commandLine_.empty())
+      logfile_.Printf("#%s\n", commandLine_.c_str());
+    DataSetList tops = State_.DSL().GetSetsOfType("*", DataSet::TOPOLOGY);
+    if (!tops.empty()) {
+      logfile_.Printf("# Loaded topologies:\n");
+      for (DataSetList::const_iterator top = tops.begin(); top != tops.end(); ++top)
+        logfile_.Printf("#   %s\n", (*top)->Meta().Fname().full());
+    }
+  }
   CpptrajState::RetType readLoop = CpptrajState::OK;
   while ( readLoop != CpptrajState::QUIT ) {
     if (inputLine.GetInput()) {

@@ -2,6 +2,7 @@
 #include <cstdlib> // atoi, atof
 #include <cstring> // strchr
 #include <cctype>  // isdigit, isalpha
+#include <cmath>   // modf TODO put function in StringRoutines?
 #include "DataIO_Std.h"
 #include "CpptrajStdio.h" 
 #include "StringRoutines.h" // SetStringFormatString
@@ -11,7 +12,7 @@
 #include "DataSet_string.h" // For reading TODO remove dependency?
 #include "DataSet_Vector.h" // For reading TODO remove dependency?
 #include "DataSet_Mat3x3.h" // For reading TODO remove dependency?
-#include "DataSet_MatrixDbl.h" // For reading TODO remove dependency?
+#include "DataSet_2D.h"
 #include "DataSet_3D.h"
 
 // CONSTRUCTOR
@@ -239,15 +240,7 @@ int DataIO_Std::Read_2D(std::string const& fname,
     mprinterr("Error: No data detected in %s\n", buffer.Filename().full());
     return 1;
   }
-  DataSet* ds = datasetlist.AddSet(DataSet::MATRIX_DBL, dsname, "Mat");
-  if (ds == 0) return 1;
-  //ds->SetupMeta().SetScalarType( MetaData::DIST ); // TODO: FIXME Allow type keywords
-  DataSet::SizeArray dims(2);
-  dims[0] = ncols;
-  dims[1] = nrows;
-  ds->Allocate( dims );
-  DataSet_MatrixDbl& Mat = static_cast<DataSet_MatrixDbl&>( *ds );
-  std::copy( matrixArray.begin(), matrixArray.end(), Mat.begin() );
+  if ( DetermineMatrixType( matrixArray, nrows, ncols, datasetlist, dsname )==0 ) return 1;
 
   return 0;
 }
@@ -475,12 +468,24 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
   TextFormat x_col_format;
   if (hasXcolumn_) {
     // Create format string for X column based on dimension in first data set.
-    if (Xdata->Type() != DataSet::XYMESH && Xdim.Step() == 1.0)
+    // Adjust X col precision as follows: if the step is set and has a 
+    // fractional component set the X col width/precision to either the data
+    // width/precision or the current width/precision, whichever is larger. If
+    // the set is XYMESH but step has not been set (so we do not know spacing 
+    // between X values) use default precision. Otherwise the step has no
+    // fractional component so make the precision zero.
+    double step_i;
+    double step_f = modf( Xdim.Step(), &step_i );
+    double min_f  = modf( Xdim.Min(),  &step_i );
+    if (Xdim.Step() > 0.0 && (step_f > 0.0 || min_f > 0.0)) {
+      xcol_precision = std::max(xcol_precision, Xdata->Format().Precision());
+      xcol_width = std::max(xcol_width, Xdata->Format().Width());
+    } else if (Xdata->Type() != DataSet::XYMESH)
       xcol_precision = 0;
     x_col_format.SetCoordFormat( maxFrames, Xdim.Min(), Xdim.Step(), xcol_width, xcol_precision );
   } else {
     // If not writing an X-column, no leading space for the first dataset.
-    Sets[0]->SetupFormat().SetFormatAlign( TextFormat::RIGHT );
+    Xdata->SetupFormat().SetFormatAlign( TextFormat::RIGHT );
   }
 
   // Write header to buffer

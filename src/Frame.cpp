@@ -149,27 +149,21 @@ Frame::Frame(const Frame& rhs) :
   F_(0),
   remd_indices_(rhs.remd_indices_),
   Mass_(rhs.Mass_),
-  memIsExternal_(rhs.memIsExternal_)
+  memIsExternal_(false)
 {
-  if (memIsExternal_) {
-    X_ = rhs.X_;
-    V_ = rhs.V_;
-    F_ = rhs.F_;
-  } else {
-    // Copy coords/velo/forces; allocate for maxnatom but copy natom
-    int maxncoord = maxnatom_ * 3;
-    if (rhs.X_!=0) {
-      X_ = new double[ maxncoord ];
-      memcpy(X_, rhs.X_, natom_ * COORDSIZE_);
-    }
-    if (rhs.V_!=0) {
-      V_ = new double[ maxncoord ];
-      memcpy(V_, rhs.V_, natom_ * COORDSIZE_);
-    }
-    if (rhs.F_!=0) {
-      F_ = new double[ maxncoord ];
-      memcpy(F_, rhs.F_, natom_ * COORDSIZE_);
-    }
+  // Copy coords/velo/forces; allocate for maxnatom but copy natom
+  int maxncoord = maxnatom_ * 3;
+  if (rhs.X_!=0) {
+    X_ = new double[ maxncoord ];
+    memcpy(X_, rhs.X_, natom_ * COORDSIZE_);
+  }
+  if (rhs.V_!=0) {
+    V_ = new double[ maxncoord ];
+    memcpy(V_, rhs.V_, natom_ * COORDSIZE_);
+  }
+  if (rhs.F_!=0) {
+    F_ = new double[ maxncoord ];
+    memcpy(F_, rhs.F_, natom_ * COORDSIZE_);
   }
 }
 
@@ -471,6 +465,55 @@ int Frame::SetupFrameFromMask(AtomMask const& maskIn, std::vector<Atom> const& a
   return 0; 
 }
 
+// ---------- FRAME Add/remove components --------------------------------------
+int Frame::AddVelocities(Darray const& vIn) {
+  if ((int)vIn.size() != ncoord_) {
+    mprinterr("Error: AddVelocities: # input velocities (%zu) != # coords (%i)\n",
+              vIn.size(), ncoord_);
+    return 1;
+  }
+  if (V_ != 0) delete[] V_;
+  V_ = new double[ vIn.size() ];
+  std::copy(vIn.begin(), vIn.end(), V_);
+  return 0;
+}
+
+int Frame::AddForces(Darray const& fIn) {
+  if ((int)fIn.size() != ncoord_) {
+    mprinterr("Error: AddForces: # input forces (%zu) != # coords (%i)\n",
+              fIn.size(), ncoord_);
+    return 1;
+  }
+  if (F_ != 0) delete[] F_;
+  F_ = new double[ fIn.size() ];
+  std::copy(fIn.begin(), fIn.end(), F_);
+  return 0;
+}
+
+int Frame::AddMasses(Darray const& mIn) {
+  if ((int)mIn.size() != natom_) {
+    mprinterr("Error: AddMasses: # input masses (%zu) != atoms (%i)\n",
+              mIn.size(), natom_);
+    return 1;
+  }
+  Mass_ = mIn;
+  return 0;
+}
+
+void Frame::RemoveVelocities() {
+  if (V_ != 0) delete[] V_;
+  V_ = 0;
+}
+
+void Frame::RemoveForces() {
+  if (F_ != 0) delete[] F_;
+  F_ = 0;
+}
+
+void Frame::RemoveMasses() {
+  Mass_.assign(natom_, 1.0);
+}
+
 // ---------- FRAME SETUP OF COORDINATES ---------------------------------------
 // Frame::SetCoordinates()
 void Frame::SetCoordinates(Frame const& frameIn, AtomMask const& maskIn) {
@@ -539,43 +582,30 @@ void Frame::SetFrame(Frame const& frameIn, AtomMask const& maskIn) {
   remd_indices_ = frameIn.remd_indices_;
   double* newXptr = X_;
   Darray::iterator mass = Mass_.begin();
-  if (frameIn.F_ != 0 && F_ != 0 && frameIn.V_ != 0 && V_ != 0) {
-    // Copy Coords/Mass/Velo/Force
-    double *newFptr = F_;
-    double *newVptr = V_;
+  // Copy coords/mass
+  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
+  {
+    memcpy( newXptr, frameIn.X_ + ((*atom) * 3), COORDSIZE_);
+    newXptr += 3;
+    *mass = frameIn.Mass_[*atom];
+    ++mass;
+  }
+  // Copy velocity if necessary
+  if (frameIn.V_ != 0 && V_ != 0) {
+    double* newVptr = V_;
     for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
     {
-      int oldcrd = ((*atom) * 3);
-      memcpy( newXptr, frameIn.X_ + oldcrd, COORDSIZE_);
-      newXptr += 3;
-      memcpy( newVptr, frameIn.V_ + oldcrd, COORDSIZE_);
+      memcpy( newVptr, frameIn.V_ + ((*atom) * 3), COORDSIZE_);
       newVptr += 3;
-      memcpy( newFptr, frameIn.F_ + oldcrd, COORDSIZE_);
+    }
+  }
+  // Copy force if necessary
+  if (frameIn.F_ != 0 && F_ != 0) {
+    double* newFptr = F_;
+    for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
+    {
+      memcpy( newFptr, frameIn.F_ + ((*atom) * 3), COORDSIZE_);
       newFptr += 3;
-      *mass = frameIn.Mass_[*atom];
-      ++mass;
-    }
-  } else if (frameIn.V_ != 0 && V_ != 0) {
-    // Copy Coords/Mass/Velo
-    double *newVptr = V_;
-    for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
-    {
-      int oldcrd = ((*atom) * 3);
-      memcpy( newXptr, frameIn.X_ + oldcrd, COORDSIZE_);
-      newXptr += 3;
-      memcpy( newVptr, frameIn.V_ + oldcrd, COORDSIZE_);
-      newVptr += 3;
-      *mass = frameIn.Mass_[*atom];
-      ++mass;
-    }
-  } else {
-    // Copy coords/mass only
-    for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
-    {
-      memcpy( newXptr, frameIn.X_ + ((*atom) * 3), COORDSIZE_);
-      newXptr += 3;
-      *mass = frameIn.Mass_[*atom];
-      ++mass;
     }
   }
 }
@@ -830,6 +860,17 @@ Vec3 Frame::CenterOnOrigin(bool useMassIn)
   // -center is translation from Ref -> origin.
   NegTranslate(center);
   return center;
+}
+
+// Frame::Align()
+void Frame::Align(Frame const& REF, AtomMask const& mask) {
+  Frame tmpRef(REF, mask);
+  Frame tmpFrm(*this, mask);
+  Vec3 refTrans = tmpRef.CenterOnOrigin(false);
+  Matrix_3x3 U;
+  Vec3 Trans;
+  tmpFrm.RMSD_CenteredRef( tmpRef, U, Trans, false );
+  Trans_Rot_Trans( Trans, U, refTrans );
 }
 
 // ---------- COORDINATE CALCULATION ------------------------------------------- 

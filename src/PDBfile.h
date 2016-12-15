@@ -24,6 +24,8 @@ class PDBfile : public CpptrajFile {
     void pdb_XYZ(double*);
     /// Get occupancy and B-factor from ATOM/HETATM record.
     void pdb_OccupancyAndBfactor(float&, float&);
+    /// Get charge and radius from PQR ATOM/HETATM record.
+    void pdb_ChargeAndRadius(float&, float&);
     /// Set given XYZ array with A/B/C/alpha/beta/gamma from CRYST1 record.
     void pdb_Box(double*);
     /// Set given array with atom and #s of bonded atoms from CONECT record.
@@ -33,7 +35,7 @@ class PDBfile : public CpptrajFile {
     // -------------------------------------------
     /// Write PDB record header.
     void WriteRecordHeader(PDB_RECTYPE, int, NameType const&, char,
-                           NameType const&, char, int, char);
+                           NameType const&, char, int, char, const char*);
     /// Write HETATM record using internal atom numbering
     void WriteHET(int, double, double, double);
     /// Write no-name ATOM record using internal atom numbering

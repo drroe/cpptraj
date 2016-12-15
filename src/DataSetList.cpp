@@ -19,6 +19,10 @@
 #include "DataSet_Coords_REF.h"
 #include "DataSet_Mat3x3.h"
 #include "DataSet_Topology.h"
+#include "DataSet_GridDbl.h"
+#include "DataSet_Cmatrix_MEM.h"
+#include "DataSet_Cmatrix_NOMEM.h"
+#include "DataSet_Cmatrix_DISK.h"
 
 // IMPORTANT: THIS ARRAY MUST CORRESPOND TO DataSet::DataType
 const DataSetList::DataToken DataSetList::DataArray[] = {
@@ -33,12 +37,16 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { "vector",        DataSet_Vector::Alloc     }, // VECTOR
   { "eigenmodes",    DataSet_Modes::Alloc      }, // MODES
   { "float grid",    DataSet_GridFlt::Alloc    }, // GRID_FLT
+  { "double grid",   DataSet_GridDbl::Alloc    }, // GRID_DBL
   { "remlog",        DataSet_RemLog::Alloc     }, // REMLOG
   { "X-Y mesh",      DataSet_Mesh::Alloc       }, // XYMESH
   { "trajectories",  DataSet_Coords_TRJ::Alloc }, // TRAJ
   { "reference",     DataSet_Coords_REF::Alloc }, // REF_FRAME
   { "3x3 matrices",  DataSet_Mat3x3::Alloc     }, // MAT3X3
   { "topology",      DataSet_Topology::Alloc   }, // TOPOLOGY
+  { "cluster matrix",DataSet_Cmatrix_MEM::Alloc}, // CMATRIX
+  { "cluster matrix (no memory)",DataSet_Cmatrix_NOMEM::Alloc}, // CMATRIX_NOMEM
+  { "cluster matrix (disk)",     DataSet_Cmatrix_DISK::Alloc},  // CMATRIX_DISK
   { 0, 0 }
 };
 
@@ -239,6 +247,18 @@ DataSetList DataSetList::GetMultipleSets( std::string const& dsargIn ) const {
   return dsetOut;
 }
 
+// DataSetList::GetSetsOfType()
+DataSetList DataSetList::GetSetsOfType( std::string const& dsargIn, DataSet::DataType typeIn ) const
+{
+  DataSetList dsetOut;
+  dsetOut.hasCopies_ = true;
+  DataSetList selected = SelectSets(dsargIn);
+  for (const_iterator ds = selected.begin(); ds != selected.end(); ++ds)
+    if ( (*ds)->Type() == typeIn )
+      dsetOut.Push_Back( *ds );
+  return dsetOut;
+}
+
 // DataSetList::SelectSets()
 DataSetList DataSetList::SelectSets( std::string const& nameIn ) const {
   return SelectSets( nameIn, DataSet::UNKNOWN_DATA );
@@ -279,7 +299,7 @@ DataSet* DataSetList::FindSetOfType(std::string const& nameIn, DataSet::DataType
   if (dsetOut.empty())
     return 0;
   else if (dsetOut.size() > 1)
-    mprintf("Warning: '%s' selects multiple sets. Only using first.\n");
+    mprintf("Warning: '%s' selects multiple sets. Only using first.\n", nameIn.c_str());
   return dsetOut[0];
 }
 
@@ -486,20 +506,7 @@ int DataSetList::AddOrAppendSets(std::string const& XlabelIn, Darray const& Xval
     Xlabel = XlabelIn;
   Dimension Xdim;
   // First determine if X values increase monotonically with a regular step
-  bool isMonotonic = true;
-  double xstep = 1.0;
-  if (Xvals.size() > 1) {
-    xstep = (Xvals.back() - Xvals.front()) / (double)(Xvals.size() - 1);
-    for (Darray::const_iterator X = Xvals.begin()+2; X != Xvals.end(); ++X)
-      if ((*X - *(X-1)) - xstep > Constants::SMALL) {
-        isMonotonic = false;
-        break;
-      }
-    // Set dim even for non-monotonic sets so Label is correct. FIXME is this ok?
-    Xdim = Dimension( Xvals.front(), xstep, Xlabel );
-  } else
-    // No X values. set generic X dim.
-    Xdim = Dimension(1.0, 1.0, Xlabel);
+  bool isMonotonic = Xdim.SetDimension(Xvals, Xlabel);
   if (debug_ > 0) {
     mprintf("DEBUG: xstep %g xmin %g\n", Xdim.Step(), Xdim.Min());
     if (isMonotonic) mprintf("DEBUG: Xdim is monotonic.\n");
@@ -622,40 +629,61 @@ void DataSetList::ListDataOnly() const {
 #ifdef MPI
 // DataSetList::SynchronizeData()
 /** Synchronize timeseries data from child ranks to master. */
-int DataSetList::SynchronizeData(size_t total, std::vector<int> const& rank_frames,
-                                  Parallel::Comm const& commIn)
-{
+int DataSetList::SynchronizeData(Parallel::Comm const& commIn) {
   if (commIn.Size() < 2) return 0;
   // Ensure that the number of sets that require sync is same on each rank.
   // FIXME: Make sure this allgather does not end up taking too much time.
   //        Should it be debug only?
+  std::vector<int> size_on_rank;
+  size_on_rank.reserve( DataList_.size() );
   DataListType SetsToSync;
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
-    if ( (*ds)->NeedsSync() )
+    if ( (*ds)->NeedsSync() ) {
       SetsToSync.push_back( *ds );
+      size_on_rank.push_back( (*ds)->Size() );
+    }
 // DEBUG
-//  for (int rank = 0; rank != commIn.Size(); rank++) {
-//    if (rank == commIn.Rank())
-//      for (DataListType::const_iterator ds = SetsToSync.begin(); ds != SetsToSync.end(); ++ds)
-//        rprintf("SET '%s'\n", (*ds)->legend());
-//    commIn.Barrier();
-//  }
+  //for (int rank = 0; rank != commIn.Size(); rank++) {
+  //  if (rank == commIn.Rank())
+  //    for (DataListType::const_iterator ds = SetsToSync.begin(); ds != SetsToSync.end(); ++ds)
+  //      rprintf("SET '%s'\n", (*ds)->legend());
+  //  commIn.Barrier();
+  //}
 // DEBUG END
-  int* n_on_rank = new int[ commIn.Size() ];
+  std::vector<int> n_on_rank( commIn.Size(), 0 );
   int nSets = (int)SetsToSync.size();
-  commIn.AllGather( &nSets, 1, MPI_INT, n_on_rank );
+  commIn.AllGather( &nSets, 1, MPI_INT, &n_on_rank[0] );
   for (int rank = 1; rank < commIn.Size(); rank++)
     if (n_on_rank[rank] != n_on_rank[0]) {
       mprinterr("Internal Error: Number of sets to sync on rank %i (%i) != number on master %i\n",
                 rank, n_on_rank[rank], n_on_rank[0]);
-      delete[] n_on_rank;
       return 1;
     }
-  delete[] n_on_rank;
+  // Send all data set sizes to master.
+  std::vector<int> all_rank_sizes;
+  if (commIn.Master()) {
+    all_rank_sizes.resize( nSets * commIn.Size() );
+    commIn.GatherMaster( &size_on_rank[0], nSets, MPI_INT, &all_rank_sizes[0] );
+  } else {
+    commIn.GatherMaster( &size_on_rank[0], nSets, MPI_INT, 0 );
+  }
+  size_on_rank.clear();
   // Call Sync only for sets that need it.
-  for (DataListType::iterator ds = SetsToSync.begin(); ds != SetsToSync.end(); ++ds) {
-    //mprintf("DEBUG: Syncing '%s' (size=%zu, total=%zu)\n", (*ds)->Meta().PrintName().c_str(),
-    //        (*ds)->Size(), total);
+  std::vector<int> rank_frames( commIn.Size() );
+  int total = 0; //TODO size_t?
+  int idx0 = 0;
+  for (DataListType::iterator ds = SetsToSync.begin(); ds != SetsToSync.end(); ++ds, ++idx0) {
+    if (commIn.Master()) {
+      total = all_rank_sizes[idx0];
+      rank_frames[0] = all_rank_sizes[idx0];
+      int idx1 = idx0 + nSets;
+      for (int rank = 1; rank < commIn.Size(); rank++, idx1 += nSets) {
+        total += all_rank_sizes[idx1];
+        rank_frames[rank] = all_rank_sizes[idx1];
+      }
+      //mprintf("DEBUG: Syncing '%s' (size=%zu, total=%i)\n", (*ds)->Meta().PrintName().c_str(),
+      //        (*ds)->Size(), total);
+    }
     if ( (*ds)->Sync(total, rank_frames, commIn) ) {
       rprintf( "Warning: Could not sync dataset '%s'\n",(*ds)->legend());
       //return;

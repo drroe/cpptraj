@@ -2,6 +2,8 @@
 
 # Environment variables
 # TEST_OS: Operating system on which tests are being run. If blank assume linux
+# N_THREADS: Set to number of test threads
+# DIFFOPTS: Additional options to pass to DIFF (non-DACDIF only)
 
 # MasterTest.sh command line options
 CLEAN=0             # If 1, only file cleaning needs to be performed.
@@ -19,6 +21,7 @@ TIME=""             # Set to the 'time' command if timing requested.
 VALGRIND=""         # Set to 'valgrind' command if memory check requested.
 DIFFCMD=""          # Command used to check for test differences
 DACDIF=""           # Set if using 'dacdif' to test differences
+NDIFF=""            # Set to Nelson H. F. Beebe's ndiff.awk for numerical diff calc
 REMOVE="/bin/rm -f" # Remove command
 NCDUMP=""           # ncdump command; needed for NcTest()
 OUTPUT="test.out"   # File to direct test STDOUT to.
@@ -45,29 +48,42 @@ PNETCDFLIB=""
 SANDERLIB=""
 
 # ------------------------------------------------------------------------------
-# DoTest() <File1> <File2> [allowfail <OS>] [<arg1>] ... [<argN>]
+# DoTest() <File1> <File2> [-r <relative err>] [-a <absolute err>] [<arg1>] ... [<argN>]
 #   Compare File1 (the 'save' file) to File2 (test output), print an error if
-#   they differ. The 'allowfail' keyword allows test to fail with just a
-#   warning, and is currently intended for tests with known failures on given
-#   <OS>. The remaining args can be used to pass options to DIFFCMD.
+#   they differ. If '-r' or '-a' are specified the test will pass as long as the
+#   maximum relative or absolulte errors are below the given value (using Nelson
+#   H. F. Beebe's ndiff.awk script. The remaining args can be used to pass
+#   options to DIFFCMD.
 DoTest() {
   if [[ ! -z $DACDIF ]] ; then
-    # AmberTools - will use dacdif.
-    $DACDIF $1 $2
+    # AmberTools - use dacdif. Use any '-r <X>' or '-a <X>' args found.
+    # Ignore the rest.
+    DIFFARGS="$1 $2"
+    shift # Save file
+    shift # Test file
+    # Process remaining args
+    while [[ ! -z $1 ]] ; do
+      case "$1" in
+        "-r" ) shift ; DIFFARGS=" -r $1 "$DIFFARGS ;;
+        "-a" ) shift ; DIFFARGS=" -a $1 "$DIFFARGS ;;
+      esac
+      shift
+    done
+    $DACDIF $DIFFARGS
   else
-    # Standalone - will use diff.
+    # Standalone - will use diff, or ndiff where '-r' or '-a' specified.
     ((NUMTEST++))
     DIFFARGS="--strip-trailing-cr"
+    NDIFFARGS=""
     # First two arguments are files to compare.
     F1=$1 ; shift
     F2=$1 ; shift
     # Process remaining arguments.
-    ALLOW_FAIL=0
-    FAIL_OS=""
+    USE_NDIFF=0
     while [[ ! -z $1 ]] ; do
       case "$1" in
-        "allowfail"    ) ALLOW_FAIL=1 ; shift ; FAIL_OS=$1 ;;
-        "parallelfail" ) ALLOW_FAIL=2 ;;
+        "-r"           ) USE_NDIFF=1; shift; NDIFFARGS="$NDIFFARGS -v RELERR=$1" ;;
+        "-a"           ) USE_NDIFF=1; shift; NDIFFARGS="$NDIFFARGS -v ABSERR=$1" ;;
         *              ) DIFFARGS=$DIFFARGS" $1" ;;
       esac
       shift
@@ -81,34 +97,16 @@ DoTest() {
       echo "  $F2 not found." >> $TEST_ERROR
       ((ERRCOUNT++))
     else
-      $DIFFCMD $DIFFARGS $F1 $F2 > temp.diff 2>&1
+      if [[ $USE_NDIFF -eq 0 ]] ; then
+        $DIFFCMD $DIFFARGS $DIFFOPTS $F1 $F2 > temp.diff 2>&1
+      else
+        $NDIFF $NDIFFARGS $F1 $F2 > temp.diff 2>&1
+      fi
       if [[ -s temp.diff ]] ; then
-        if [[ $ALLOW_FAIL -eq 1 && $TEST_OS = $FAIL_OS ]] ; then
-          echo "  Warning: Differences between $F1 and $F2 detected."
-          echo "  Warning: Differences between $F1 and $F2 detected." >> $TEST_RESULTS
-          echo "           This test is known to fail on $TEST_OS."
-          echo "           This test is known to fail on $TEST_OS." >> $TEST_RESULTS
-          echo "           The differences below should be carefully inspected."
-          echo "--------------------------------------------------------------------------------"
-          cat temp.diff
-          echo "--------------------------------------------------------------------------------"
-          ((WARNCOUNT++))
-        elif [[ $ALLOW_FAIL -eq 2 && ! -z $DO_PARALLEL ]] ; then
-          echo "Warning: Differences between $F1 and $F2 detected."
-          echo "Warning: Differences between $F1 and $F2 detected." >> $TEST_RESULTS
-          echo "         This test is known to fail in parallel."
-          echo "         This test is known to fail in parallel." >> $TEST_RESULTS
-          echo "           The differences below should be carefully inspected."
-          echo "--------------------------------------------------------------------------------"
-          cat temp.diff
-          echo "--------------------------------------------------------------------------------"
-          ((WARNCOUNT++))
-        else
-          echo "  $F1 $F2 are different." >> $TEST_RESULTS
-          echo "  $F1 $F2 are different." >> $TEST_ERROR
-          cat temp.diff >> $TEST_ERROR
-          ((ERRCOUNT++))
-        fi
+        echo "  $F1 $F2 are different." >> $TEST_RESULTS
+        echo "  $F1 $F2 are different." >> $TEST_ERROR
+        cat temp.diff >> $TEST_ERROR
+        ((ERRCOUNT++))
       else
         echo "  $F2 OK." >> $TEST_RESULTS
       fi
@@ -129,16 +127,39 @@ NcTest() {
     echo "ncdump missing." > /dev/stderr
     exit 1
   fi
+  # Save remaining args for DoTest
+  F1=$1
+  F2=$2
+  shift
+  shift
+  DIFFARGS="nc0.save nc0"
+  CALC_NUM_ERR=0
+  while [[ ! -z $1 ]] ; do
+    if [[ $1 = '-r' || $1 = '-a' ]] ; then
+      CALC_NUM_ERR=1
+    fi
+    DIFFARGS=$DIFFARGS" $1"
+    shift
+  done
   # Prepare files.
-  if [[ ! -e $1 ]] ; then
-    echo "Error: $1 missing." >> $TEST_ERROR
-  elif [[ ! -e $2 ]] ; then
-    echo "Error: $2 missing." >> $TEST_ERROR
+  if [[ ! -e $F1 ]] ; then
+    echo "Error: $F1 missing." >> $TEST_ERROR
+  elif [[ ! -e $F2 ]] ; then
+    echo "Error: $F2 missing." >> $TEST_ERROR
   else
-    $NCDUMP -n nctest $1 | grep -v "==>\|:programVersion" > nc0
-    $NCDUMP -n nctest $2 | grep -v "==>\|:programVersion" > nc1
-    DoTest nc0 nc1
-    $REMOVE nc0 nc1
+    if [[ $CALC_NUM_ERR -eq 1 ]] ; then
+      # FIXME: Must remove commas here because I cannot figure out how to pass
+      # the regular expression to ndiff.awk FS without the interpreter giving
+      # this error for FS='[ \t,()]':
+      # awk: fatal: Invalid regular expression: /'[/
+      $NCDUMP -n nctest $F1 | grep -v "==>\|:programVersion" | sed 's/,/ /g' > nc0.save
+      $NCDUMP -n nctest $F2 | grep -v "==>\|:programVersion" | sed 's/,/ /g' > nc0
+    else
+      $NCDUMP -n nctest $F1 | grep -v "==>\|:programVersion" > nc0.save
+      $NCDUMP -n nctest $F2 | grep -v "==>\|:programVersion" > nc0
+    fi
+    DoTest $DIFFARGS 
+    $REMOVE nc0.save nc0
   fi
 }
 
@@ -301,15 +322,27 @@ NotParallel() {
  return 0
 }
 
+# SetNthreads()
+# Use NPROC to set N_THREADS if not already set.
+SetNthreads() {
+  if [ -z "$N_THREADS" ] ; then
+    if [ ! -f "$NPROC" ] ; then
+      return 1
+    fi
+    N_THREADS=`$DO_PARALLEL $NPROC`
+  fi
+  return 0
+}
+
 # RequiresThreads() <# threads> <Test title>
 RequiresThreads() {
   if [[ ! -z $DO_PARALLEL ]] ; then
-    if [[ ! -f "$NPROC" ]] ; then
+    SetNthreads
+    if [ $? -ne 0 ] ; then
       echo "Error: Program to find # threads not found ($NPROC)" > /dev/stderr
       echo "Error: Test requires $1 parallel threads. Attempting to run test anyway." > /dev/stderr
       return 0
     fi
-    N_THREADS=`$DO_PARALLEL $NPROC`
     REMAINDER=`echo "$N_THREADS % $1" | bc`
     if [[ -z $REMAINDER || $REMAINDER -ne 0 ]] ; then
       echo ""
@@ -326,13 +359,11 @@ RequiresThreads() {
 # MaxThreads() <# threads> <Test title>
 MaxThreads() {
   if [[ ! -z $DO_PARALLEL ]] ; then
-    if [[ ! -f "$NPROC" ]] ; then
+    SetNthreads
+    if [ $? -ne 0 ] ; then
       echo "Error: Program to find # threads not found ($NPROC)" > /dev/stderr
       echo "Error: Test can only run with $1 or fewer threads. Attempting to run test anyway." > /dev/stderr
       return 0
-    fi
-    if [[ -z $N_THREADS ]] ; then
-      N_THREADS=`$DO_PARALLEL $NPROC`
     fi
     if [[ $N_THREADS -gt $1 ]] ; then
       echo ""
@@ -414,8 +445,9 @@ Help() {
   echo "  summary    : Print summary of test results only."
   echo "  showerrors : (summary only) Print all test errors to STDOUT after summary."
   echo "  stdout     : Print CPPTRAJ test output to STDOUT."
-  echo "  mpi        : Use MPI version of CPPTRAJ (automatically triggerd if DO_PARALLEL set)."
+  echo "  mpi        : Use MPI version of CPPTRAJ (automatically triggered if DO_PARALLEL set)."
   echo "  openmp     : Use OpenMP version of CPPTRAJ."
+  echo "  cuda       : Use CUDA version of CPPTRAJ."
   echo "  vg         : Run test with valgrind memcheck."
   echo "  vgh        : Run test with valgrind helgrind."
   echo "  time       : Time the test."
@@ -437,13 +469,17 @@ Help() {
 # CmdLineOpts(): Process test script command line options
 CmdLineOpts() {
   VGMODE=0 # Valgrind mode: 0 none, 1 memcheck, 2 helgrind
+  SFX_OMP=0
+  SFX_CUDA=0
+  SFX_MPI=0
   while [[ ! -z $1 ]] ; do
     case "$1" in
       "summary"   ) SUMMARY=1 ;;
       "showerrors") SHOWERRORS=1 ;;
       "stdout"    ) OUTPUT="/dev/stdout" ;;
-      "mpi"       ) SFX=".MPI" ;;
-      "openmp"    ) SFX=".OMP" ;;
+      "openmp"    ) SFX_OMP=1 ;;
+      "cuda"      ) SFX_CUDA=1 ;;
+      "mpi"       ) SFX_MPI=1 ;;
       "vg"        ) VGMODE=1 ;;
       "vgh"       ) VGMODE=2 ;;
       "time"      ) TIME=`which time` ;;
@@ -459,6 +495,19 @@ CmdLineOpts() {
     esac
     shift
   done
+  # If DO_PARALLEL has been set force MPI
+  if [ ! -z "$DO_PARALLEL" ] ; then
+    SFX_MPI=1
+    MPI=1
+  fi
+  # Warn if using OpenMP but OMP_NUM_THREADS not set.
+  if [ "$SFX_OMP" -eq 1 -a -z "$OMP_NUM_THREADS" ] ; then
+    echo "Warning: Using OpenMP but OMP_NUM_THREADS is not set."
+  fi
+  # Set up SFX
+  if [ "$SFX_OMP"  -eq 1 ] ; then SFX="$SFX.OMP"  ; fi
+  if [ "$SFX_CUDA" -eq 1 ] ; then SFX="$SFX.cuda" ; fi
+  if [ "$SFX_MPI"  -eq 1 ] ; then SFX="$SFX.MPI"  ; fi
   # Set up valgrind if necessary
   if [[ $VGMODE -ne 0 ]] ; then
     VG=`which valgrind`
@@ -474,11 +523,6 @@ CmdLineOpts() {
     elif [[ $VGMODE -eq 2 ]] ; then
       VALGRIND="valgrind --tool=helgrind"
     fi
-  fi
-  # If DO_PARALLEL has been set force MPI
-  if [[ ! -z $DO_PARALLEL ]] ; then
-    SFX=".MPI"
-    MPI=1
   fi
   # Figure out if we are a part of AmberTools
   if [[ -z $CPPTRAJ ]] ; then
@@ -525,11 +569,18 @@ SetBinaries() {
         CPPTRAJ=$CPPTRAJHOME/bin/cpptraj$SFX
         AMBPDB=$CPPTRAJHOME/bin/ambpdb
         NPROC=$CPPTRAJHOME/test/nproc
+        NDIFF="$CPPTRAJHOME/util/ndiff/ndiff.awk"
       else
         CPPTRAJ=../../bin/cpptraj$SFX
         AMBPDB=../../bin/ambpdb
         NPROC=../../test/nproc
+        NDIFF="../../util/ndiff/ndiff.awk"
       fi
+      if [[ ! -f "$NDIFF" ]] ; then
+        echo "Error: 'ndiff.awk' not present in cpptraj 'util/ndiff/'."
+        exit 1
+      fi
+      NDIFF="awk -f $NDIFF"
     fi
   fi
   # Print DEBUG info
@@ -587,6 +638,8 @@ CheckDefines() {
   OPENMP=`echo $DEFINES | grep D_OPENMP`
   PNETCDFLIB=`echo $DEFINES | grep DHAS_PNETCDF`
   SANDERLIB=`echo $DEFINES | grep DUSE_SANDERLIB`
+  CUDA=`echo $DEFINES | grep DCUDA`
+  NO_XDRFILE=`echo $DEFINES | grep DNO_XDRFILE`
 }
 
 #===============================================================================
@@ -606,6 +659,9 @@ else
     if [[ -f "$TEST_ERROR" ]] ; then
       $REMOVE $TEST_ERROR
     fi
+    if [ ! -z "$DIFFOPTS" ] ; then
+      echo "Warning: DIFFOPTS is set to '$DIFFOPTS'"
+    fi
   fi
   # Only a summary of previous results has been requested.
   if [[ $SUMMARY -eq 1 ]] ; then
@@ -619,6 +675,10 @@ else
   SetBinaries
   # Check how CPPTRAJ was compiled
   CheckDefines
+  # If CUDA, use cuda-memcheck instead of valgrind
+  if [[ ! -z $VALGRIND && ! -z $CUDA ]] ; then
+    VALGRIND='cuda-memcheck'
+  fi
   # Start test results file
   echo "**************************************************************"
   echo "TEST: `pwd`"

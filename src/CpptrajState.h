@@ -29,6 +29,7 @@ class CpptrajState {
     DataFileList&       DFL()       { return DFL_;         }
     TrajModeType Mode()       const { return mode_;        }
     int Debug()               const { return debug_;       }
+    bool ShowProgress()       const { return showProgress_;}
     bool ExitOnError()        const { return exitOnError_; }
     bool EmptyState()         const { return (actionList_.Empty() && 
                                               analysisList_.Empty() &&
@@ -53,6 +54,7 @@ class CpptrajState {
     int ListAll(ArgList&) const;
     int SetListDebug(ArgList&);
     int ClearList(ArgList&);
+    void RemoveDataSet(DataSet*);
     int RemoveDataSet(ArgList&);
     int TrajLength( std::string const&, std::vector<std::string> const&);
     int Run();
@@ -78,7 +80,7 @@ class CpptrajState {
     int RunNormal();
     int RunEnsemble();
 #   ifdef MPI
-    std::vector<int> DivideFramesAmongThreads(int&, int&, int&, int, Parallel::Comm const&) const;
+    void DivideFramesAmongThreads(int&, int&, int&, int, Parallel::Comm const&) const;
     int PreloadCheck(int, int, int&, int&) const;
     int RunParallel();
     int RunParaEnsemble();

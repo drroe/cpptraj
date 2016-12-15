@@ -33,7 +33,7 @@ int TrajIOarray::AddReplicasFromArgs(FileName const& name0,
 {
   if (name0.empty()) return 1;
   if (!File::Exists( name0 )) {
-    mprinterr("Error: File '%s' does not exist.\n", name0.full());
+    File::ErrorMsg( name0.full() );
     return 1;
   }
   replica_filenames_.push_back( name0 );
@@ -43,7 +43,7 @@ int TrajIOarray::AddReplicasFromArgs(FileName const& name0,
   {
     FileName trajFilename( *fname );
     if (!File::Exists( trajFilename )) {
-      mprinterr("Error: File '%s' does not exist.\n", trajFilename.full());
+      File::ErrorMsg( trajFilename.full() );
       return 1;
     }
     replica_filenames_.push_back( trajFilename );
@@ -133,6 +133,11 @@ int TrajIOarray::SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
     int nframes = replica0->setupTrajin( *repfile, trajParm );
     if (nframes == TrajectoryIO::TRAJIN_ERR) {
       mprinterr("Error: Could not set up %s for reading.\n", repfile->full());
+      return 1;
+    }
+    // Coordinates must be present.
+    if (!replica0->CoordInfo().HasCrd()) {
+      mprinterr("Error: No coordinates present in trajectory '%s'\n", repfile->full());
       return 1;
     }
     // TODO: Do not allow unknown number of frames?
@@ -245,7 +250,8 @@ int TrajIOarray::AddReplicasFromArgs(FileName const& name0,
     return 1;
   else if (trajComm.Master()) { // Only traj comm master checks file
     if (!File::Exists( replica_filenames_[ ensComm.Rank() ])) {
-      rprinterr("Error: File '%s' does not exist.\n", replica_filenames_[ensComm.Rank()].full());
+      File::ErrorMsg( replica_filenames_[ensComm.Rank()].full() );
+      rprinterr("Error: File '%s' not accessible.\n", replica_filenames_[ensComm.Rank()].full());
       return 1;
     }
   }
@@ -263,7 +269,8 @@ int TrajIOarray::SearchForReplicas(FileName const& fname, Parallel::Comm const& 
   // Only traj comm masters actually check for files.
   if (trajComm.Master()) {
     if (!File::Exists( replicaFilename )) {
-      rprinterr("Error: File '%s' does not exist.\n", replicaFilename.full());
+      File::ErrorMsg( replicaFilename.full() );
+      rprinterr("Error: File '%s' not accessible.\n", replicaFilename.full());
       return 1;
     }
   }
@@ -305,6 +312,11 @@ int TrajIOarray::SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
   int nframes = replica0->setupTrajin( repFname, trajParm );
   if (nframes == TrajectoryIO::TRAJIN_ERR) {
     mprinterr("Error: Could not set up %s for reading.\n", repFname.full());
+    return 1;
+  }
+  // Coordinates must be present.
+  if (!replica0->CoordInfo().HasCrd()) {
+    mprinterr("Error: No coordinates present in trajectory '%s'\n", repFname.full());
     return 1;
   }
   // Set coordinate info

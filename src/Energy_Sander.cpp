@@ -1,4 +1,4 @@
-#ifdef USE_SANDERLIB
+#if defined(USE_SANDERLIB) && !defined(LIBCPPTRAJ)
 #include <locale>
 #include "Energy_Sander.h"
 #include "CpptrajStdio.h"
@@ -6,7 +6,6 @@
 
 Energy_Sander::Energy_Sander() :
   debug_(0),
-  top_pindex_(-1),
   specified_cut_(false),
   specified_igb_(false),
   specified_ntb_(false)
@@ -129,6 +128,9 @@ void Energy_Sander::SetDefaultInput() {
 
   input_.restraintmask[0] = '\0';
 }
+
+const char* Energy_Sander::supportedNamelist_ = 
+"extdiel intdiel rgbmax saltcon cut dielc igb alpb gbsa lj1264 ipb inp vdwmeth ew_type ntb";
  
 /** Check and set input for Sander.*/
 int Energy_Sander::SetInput(ArgList& argIn) {

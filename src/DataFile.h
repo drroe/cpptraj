@@ -12,7 +12,7 @@ class DataFile {
     /// Known data file formats.
     enum DataFormatType {
       DATAFILE=0, XMGRACE, GNUPLOT, XPLOR, OPENDX, REMLOG, MDOUT, EVECS,
-      VECTRAJ, XVG, CCP4, UNKNOWN_DATA 
+      VECTRAJ, XVG, CCP4, CMATRIX, NCCMATRIX, UNKNOWN_DATA 
     };
     DataFile();
     ~DataFile();
@@ -41,12 +41,14 @@ class DataFile {
     int ReadDataIn(FileName const&, ArgList const&, DataSetList&);
     /// Read data from specific type of DataFile
     int ReadDataOfType(FileName const&, DataFormatType, DataSetList&);
-    /// Set up DataFile for writing.
+    /// Set up DataFile for writing with optional args.
     int SetupDatafile(FileName const&, ArgList&, int);
     /// Set up DataFile for writing with specific format.
     int SetupDatafile(FileName const&, ArgList&, DataFormatType, int);
     /// Set up DataFile for writing to STDOUT (DataIO_Std)
-    int SetupStdout(ArgList&, int);
+    int SetupStdout(ArgList const&, int);
+    /// Set up DataFile for writing, no args.
+    int SetupDatafile(FileName const& f, int d) { ArgList a; return SetupDatafile(f, a, d); }
     /// Add a previously set-up DataSet to DataFile.
     int AddDataSet(DataSet*);
     /// Remove a set from the DataFile.

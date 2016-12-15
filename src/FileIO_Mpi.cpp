@@ -1,5 +1,7 @@
 #include "FileIO_Mpi.h"
 #ifdef MPI
+// Needed for some older Intel MPI and newer OpenMPI versions
+# include <cstdio>
 // FileIO_Mpi::Open()
 int FileIO_Mpi::Open(const char *filename, const char *mode) {
   if (comm_.IsNull()) return 1;

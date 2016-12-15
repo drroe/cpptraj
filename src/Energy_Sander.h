@@ -1,6 +1,6 @@
 #ifndef INC_ESANDER_H
 #define INC_ESANDER_H
-#ifdef USE_SANDERLIB
+#if defined(USE_SANDERLIB) && !defined(LIBCPPTRAJ)
 #include "Topology.h"
 #include "ArgList.h"
 #include "sander.h"
@@ -39,22 +39,24 @@ class Energy_Sander {
     bool IsActive(Etype e) const { return isActive_[e]; }
     /// \return Temporary top file name
     FileName const& TopFilename() const { return top_filename_; }
+    /// \return Constant string containing supported namelist variables
+    static const char* SupportedNamelist() { return supportedNamelist_; }
   private:
     void SetDefaultInput();
     int WriteTop(Topology const&);
     int CommonInit(Topology const& topIn, Frame& fIn);
 
     static const char* Estring_[];
+    static const char* supportedNamelist_;
     sander_input input_;         ///< Sander input options
     pot_ene energy_;             ///< Sander energy terms
     FileName top_filename_;      ///< Current Topology file name
     std::vector<double> forces_; ///< Force array
     std::vector<bool> isActive_; ///< True if corresponding energy term is active.
     int debug_;                  ///< Debug level
-    int top_pindex_;             ///< Current Topology internal index.
     bool specified_cut_;         ///< 'cut' was specified.
     bool specified_igb_;         ///< 'igb' was specified.
     bool specified_ntb_;         ///< 'ntb' was specified.
 };
-#endif /* USE_SANDERLIB */
+#endif /* USE_SANDERLIB and not LIBCPPTRAJ */
 #endif

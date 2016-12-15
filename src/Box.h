@@ -27,6 +27,8 @@ class Box {
     void SetMissingInfo(const Box&);
     /// Calculate Frac->Cart and Cart->Frac matrices.
     double ToRecip(Matrix_3x3&, Matrix_3x3&) const;
+    /// Calculate unit cell matrix, optionally scaling lengths.
+    Matrix_3x3 UnitCell(double) const;
     /// Print Box info to STDOUT
     void PrintInfo() const;
 
@@ -60,6 +62,7 @@ class Box {
   private:
     static inline bool IsTruncOct(double);
     static inline bool BadTruncOctAngle(double);
+    static inline bool IsAngle(double,double);
     void SetBoxType();
 
     static const double TRUNCOCTBETA_;

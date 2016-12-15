@@ -97,12 +97,20 @@ int CpptrajState::AddInputTrajectory( std::string const& fname ) {
 // CpptrajState::AddInputTrajectory()
 int CpptrajState::AddInputTrajectory( ArgList& argIn ) {
   Topology* top = DSL_.GetTopology( argIn );
+  if (top == 0) {
+    mprinterr("Error: No topology selected or no topologies present.\n");
+    return 1;
+  }
   return (SetTrajMode( NORMAL, argIn.GetStringNext(), top, argIn ));
 }
 
 // CpptrajState::AddInputEnsemble()
 int CpptrajState::AddInputEnsemble( ArgList& argIn ) {
   Topology* top = DSL_.GetTopology( argIn );
+  if (top == 0) {
+    mprinterr("Error: No topology selected or no topologies present.\n");
+    return 1;
+  }
   return (SetTrajMode( ENSEMBLE, argIn.GetStringNext(), top, argIn ));
 }
 
@@ -316,6 +324,12 @@ int CpptrajState::ClearList( ArgList& argIn ) {
   return 0;
 }
 
+// CpptrajState::RemoveDataSet()
+void CpptrajState::RemoveDataSet(DataSet* dsIn) {
+  DFL_.RemoveDataSet( dsIn );
+  DSL_.RemoveSet( dsIn );
+}
+
 /** Remove DataSet from State */
 int CpptrajState::RemoveDataSet( ArgList& argIn ) {
   // Need to first make sure they are removed from DataFiles etc also.
@@ -332,8 +346,7 @@ int CpptrajState::RemoveDataSet( ArgList& argIn ) {
                                      ds != tempDSL.end(); ++ds)
     {
       mprintf("\tRemoving \"%s\"\n", (*ds)->legend());
-      DFL_.RemoveDataSet( *ds );
-      DSL_.RemoveSet( *ds );
+      RemoveDataSet( *ds );
     }
   }
   return 0;
@@ -721,9 +734,8 @@ int CpptrajState::RunEnsemble() {
 }
 #ifdef MPI
 // -----------------------------------------------------------------------------
-std::vector<int> CpptrajState::DivideFramesAmongThreads(int& my_start, int& my_stop, int& my_frames,
-                                                        int maxFrames, Parallel::Comm const& commIn)
-const
+void CpptrajState::DivideFramesAmongThreads(int& my_start, int& my_stop, int& my_frames,
+                                            int maxFrames, Parallel::Comm const& commIn) const
 {
   int frames_per_thread = maxFrames / commIn.Size();
   int remainder         = maxFrames % commIn.Size();
@@ -736,20 +748,19 @@ const
     else
       my_start += (frames_per_thread);
   my_stop = my_start + my_frames;
-  // Store how many frames each rank will process (only needed by master).
-  std::vector<int> rank_frames( commIn.Size(), frames_per_thread );
-  for (int i = 0; i != commIn.Size(); i++)
-    if (i < remainder) rank_frames[i]++;
+  // Print how many frames each rank will process.
   if (commIn.Master()) {
     mprintf("\nPARALLEL INFO:\n");
     if (Parallel::EnsembleComm().Size() > 1)
       mprintf("  %i threads per ensemble member.\n", commIn.Size());
-    for (int i = 0; i != commIn.Size(); i++)
-      mprintf("  Thread %i will process %i frames.\n", i, rank_frames[i]);
+    for (int rank = 0; rank != commIn.Size(); rank++) {
+      int FPT = frames_per_thread;
+      if (rank < remainder) ++FPT;
+      mprintf("  Thread %i will process %i frames.\n", rank, FPT);
+    }
   }
   commIn.Barrier();
   if (debug_ > 0) rprintf("Start %i Stop %i Frames %i\n", my_start+1, my_stop, my_frames);
-  return rank_frames;
 }
 
 /** Figure out if any frames need to be preloaded on ranks. Should NOT be 
@@ -802,8 +813,7 @@ int CpptrajState::RunParaEnsemble() {
 
   // Divide frames among threads
   int my_start, my_stop, my_frames;
-  std::vector<int> rank_frames = DivideFramesAmongThreads(my_start, my_stop, my_frames,
-                                                          NAV.IDX().MaxFrames(), TrajComm);
+  DivideFramesAmongThreads(my_start, my_stop, my_frames, NAV.IDX().MaxFrames(), TrajComm);
   // Ensure at least 1 frame per thread, otherwise some ranks could cause hangups.
   if (my_frames > 0)
     err = 0;
@@ -916,7 +926,7 @@ int CpptrajState::RunParaEnsemble() {
   // Sync Actions to master thread
   actionList_.SyncActions();
   // Sync data sets to master thread
-  if (DSL_.SynchronizeData( NAV.IDX().MaxFrames(), rank_frames, TrajComm )) return 1;
+  if (DSL_.SynchronizeData( TrajComm )) return 1;
   sync_time_.Stop();
   mprintf("\nACTION OUTPUT:\n");
   post_time_.Start();
@@ -966,8 +976,7 @@ int CpptrajState::RunParallel() {
 
   // Divide frames among threads.
   int my_start, my_stop, my_frames;
-  std::vector<int> rank_frames = DivideFramesAmongThreads(my_start, my_stop, my_frames,
-                                                          input_traj.Size(), TrajComm);
+  DivideFramesAmongThreads(my_start, my_stop, my_frames, input_traj.Size(), TrajComm);
   // Ensure at least 1 frame per thread, otherwise some ranks could cause hangups.
   if (my_frames > 0)
     err = 0;
@@ -1053,7 +1062,7 @@ int CpptrajState::RunParallel() {
   // Sync Actions to master thread
   actionList_.SyncActions();
   // Sync data sets to master thread
-  if (DSL_.SynchronizeData( input_traj.Size(), rank_frames, TrajComm )) return 1;
+  if (DSL_.SynchronizeData( TrajComm )) return 1;
   sync_time_.Stop();
   post_time_.Start();
   mprintf("\nACTION OUTPUT:\n");
@@ -1221,7 +1230,7 @@ int CpptrajState::RunNormal() {
     if (parmHasChanged) {
       // Set up actions for this parm
       if (actionList_.SetupActions( currentSetup, exitOnError_ )) {
-        mprintf("WARNING: Could not set up actions for %s: skipping.\n",
+        mprintf("Warning: Could not set up actions for %s: skipping.\n",
                 currentSetup.Top().c_str());
         continue;
       }
@@ -1245,7 +1254,7 @@ int CpptrajState::RunNormal() {
     while ( (*traj)->GetNextFrame(TrajFrame) )
 #   endif
     {
-        // Since Frame can be modified by actions, save original and use currentFrame
+      // Since Frame can be modified by actions, save original and use currentFrame
       ActionFrame currentFrame( &TrajFrame, actionSet );
       // Check that coords are valid.
       if ( currentFrame.Frm().CheckCoordsInvalid() )

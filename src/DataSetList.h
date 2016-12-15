@@ -72,6 +72,8 @@ class DataSetList {
     DataSet* GetDataSet( std::string const& ) const;
     /// Get multiple DataSets matching specified argument.
     DataSetList GetMultipleSets( std::string const& ) const;
+    /// Get all DataSets matching specified argument and type.
+    DataSetList GetSetsOfType( std::string const&, DataSet::DataType ) const;
     /// Select multiple sets, no warning if none found.
     DataSetList SelectSets( std::string const& ) const;
     /// Select multiple sets by type.
@@ -105,7 +107,7 @@ class DataSetList {
     /// Indicate whether sets added to the list need to be synced
     void SetNewSetsNeedSync(bool b) { newSetsNeedSync_ = b; }
     /// Call sync for DataSets in the list (MPI only)
-    int SynchronizeData(size_t, std::vector<int> const&, Parallel::Comm const&);
+    int SynchronizeData(Parallel::Comm const&);
 #   endif
 
     // REF_COORDS functions ----------------------

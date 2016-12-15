@@ -34,9 +34,6 @@ test.hbond:
 test.image:
 	@-cd Test_Image && ./RunTest.sh $(OPT)
 
-test.comprehensive:
-	@-cd Test_Comprehensive && ./RunTest.sh $(OPT)
-
 test.netcdftraj:
 	@-cd Test_NetcdfTraj && ./RunTest.sh $(OPT)
 
@@ -295,7 +292,55 @@ test.vectormath:
 test.esander:
 	@-cd Test_Esander && ./RunTest.sh $(OPT)
 
-# Only crucial/non-time-consuming tests should go here.
+test.temperature:
+	@-cd Test_Temperature && ./RunTest.sh $(OPT)
+
+test.spline:
+	@-cd Test_Spline && ./RunTest.sh $(OPT)
+
+test.kde:
+	@-cd Test_KDE && ./RunTest.sh $(OPT)
+
+test.wavelet:
+	@-cd Test_Wavelet && ./RunTest.sh $(OPT)
+
+test.cif:
+	@-cd Test_CIF && ./RunTest.sh $(OPT)
+
+test.pdb:
+	@-cd Test_PDB && ./RunTest.sh $(OPT)
+
+test.align:
+	@-cd Test_Align && ./RunTest.sh $(OPT)
+
+test.velocityautocorr:
+	@-cd Test_VelocityAutoCorr && ./RunTest.sh $(OPT)
+
+test.velfrc:
+	@-cd Test_VelFrc && ./RunTest.sh $(OPT)
+
+test.rotatedihedral:
+	@-cd Test_RotateDihedral && ./RunTest.sh $(OPT)
+
+test.dataset:
+	@-cd Test_DataSetCmd && ./RunTest.sh $(OPT)
+
+test.remap:
+	@-cd Test_Remap && ./RunTest.sh $(OPT)
+
+test.comparetop:
+	@-cd Test_CompareTop && ./RunTest.sh $(OPT)
+
+test.filter:
+	@-cd Test_Filter && ./RunTest.sh $(OPT)
+
+test.combinecrd:
+	@-cd Test_CombineCrd && ./RunTest.sh $(OPT)
+
+test.topinfo:
+	@-cd Test_TopInfo && ./RunTest.sh $(OPT)
+
+# Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
           test.brokentraj \
@@ -365,7 +410,23 @@ SHORT_TESTS=test.general \
           test.ccp4 \
           test.curvefit \
           test.datasetavg \
-          test.vectormath
+          test.vectormath \
+          test.temperature \
+          test.spline \
+          test.kde \
+          test.wavelet \
+          test.cif \
+          test.pdb \
+          test.align \
+          test.velocityautocorr \
+          test.velfrc \
+          test.rotatedihedral \
+          test.dataset \
+          test.remap \
+          test.comparetop \
+          test.filter \
+          test.combinecrd \
+          test.topinfo
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -388,7 +449,6 @@ COMPLETETESTS=test.general \
               test.outtraj \
               test.charmm \
               test.rotdif \
-              test.comprehensive \
               test.netcdftraj \
               test.runavg \
               test.rmsd \
@@ -461,12 +521,40 @@ COMPLETETESTS=test.general \
               test.curvefit \
               test.datasetavg \
               test.vectormath \
-              test.esander
+              test.esander \
+              test.temperature \
+              test.spline \
+              test.kde \
+              test.wavelet \
+              test.cif \
+              test.pdb \
+              test.align \
+              test.velocityautocorr \
+              test.velfrc \
+              test.rotatedihedral \
+              test.dataset \
+              test.remap \
+              test.comparetop \
+              test.filter \
+              test.combinecrd \
+              test.topinfo
 
 test: test.all 
 
 test.all:
 	$(MAKE) test.complete summary
+
+test.mpi:
+	$(MAKE) test.complete summary OPT="$(OPT) mpi"
+
+test.openmp:
+	$(MAKE) test.complete summary OPT="$(OPT) openmp"
+
+test.cuda:
+	$(MAKE) test.complete summary OPT="$(OPT) cuda"
+
+test.libcpptraj:
+	@-cd Test_Libcpptraj && ./RunTest.sh $(OPT)
 
 test.complete: $(COMPLETETESTS)
 
@@ -493,7 +581,7 @@ clean:
             rm -f $$dif ;\
         done ;\
         )
-	$(MAKE) test.complete OPT=clean
+	$(MAKE) test.complete test.libcpptraj OPT=clean
 
 cleanprofile:
 	@echo "Removing GNU profile files:"
