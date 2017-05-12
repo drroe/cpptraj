@@ -521,6 +521,10 @@ void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
       int my_stop = my_start + my_elts;
       mprintf("DEBUG: Thread %i  elts= %i  my_elts= %i  my_start= %i  my_stop= %i\n",
               mythread, msize, my_elts, my_start, my_stop);
+      // Figure out which row/column I start at.
+      
+
+      mprintf("DEBUG: Thread %i  row= %i  col= %i\n", mythread, row, col);
 /*
     int v_idx;
     unsigned int nx;
