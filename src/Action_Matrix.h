@@ -44,10 +44,7 @@ class Action_Matrix : public Action, ActionFrameCounter {
     Darray mass2_; ///< Atom masses corresponding to mask2_.
 
     Darray vect2_; ///< Hold diagonal elements squared.
-#   ifdef _OPENMP
-    /// For OPENMP only, save coord indices (X-Y) for speed 
-    std::vector<int> crd_indices_;
-#   endif
+
     bool useMask2_;
     bool useMass_;
 

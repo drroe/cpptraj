@@ -3,6 +3,9 @@
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
 #include "Constants.h" // DEGRAD
+#ifdef _OPENMP
+# include <omp.h>
+#endif
 
 // CONSTRUCTOR
 Action_Matrix::Action_Matrix() :
@@ -368,39 +371,7 @@ Action::RetType Action_Matrix::Setup(ActionSetup& setup) {
       return Action::ERR;
     }
   }
-# ifdef _OPENMP
-  if (
-       ( Mat_->Meta().ScalarType() == MetaData::COVAR ||
-         Mat_->Meta().ScalarType() == MetaData::MWCOVAR ))
-  {
-#   ifdef NEW_MATRIX_PARA
-    // Store coordinate XYZ indices of mask 1.
-    crd_indices_.clear();
-    for (AtomMask::const_iterator m1 = mask1_.begin(); m1 != mask1_.end(); ++m1)
-    {
-      int crdidx = *m1 * 3;
-      crd_indices_.push_back( crdidx );
-      crd_indices_.push_back( crdidx+1 );
-      crd_indices_.push_back( crdidx+2 );
-    }
-#   else
-    if (Mat_->MatrixKind() == DataSet_2D::FULL) {
-      // Store combined mask1 and mask2 for diagonal.
-      crd_indices_.clear();
-      crd_indices_.reserve( mask1_.Nselected() + mask2_.Nselected() );
-      for (AtomMask::const_iterator at = mask1_.begin(); at != mask1_.end(); ++at)
-        crd_indices_.push_back( *at * 3 );
-      for (AtomMask::const_iterator at = mask2_.begin(); at != mask2_.end(); ++at)
-        crd_indices_.push_back( *at * 3 );
-    }
-    if (debug_ > 1) {
-      mprintf("DEBUG: Combined mask1+mask2 coordinate indices:\n");
-      for (unsigned int i = 0; i < crd_indices_.size(); i += 2)
-        mprintf("%u:\t%i %i\n", i/2, crd_indices_[i], crd_indices_[i+1]);
-    }
-#   endif
-  }
-# endif
+
   return Action::OK;
 }
 
@@ -492,41 +463,6 @@ void Action_Matrix::StoreVec(v_iterator& v1, v_iterator& v2, const double* XYZ) 
 /** Calc Covariance Matrix */
 void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
 # ifdef _OPENMP
-#ifdef NEW_MATRIX_PARA /* New matrix parallelization */
-  //int idx2, atomCrd2, offset2, midx, idx1, atomCrd1, offset1;
-  int idx2, midx, idx1;
-  double Mj;
-  if (useMask2_) { // FULL MATRIX TODO
-    return;
-  } else { // HALF MATRIX
-    DataSet_MatrixDbl& matrix = *Mat_;
-    Darray& vect1 = Mat_->V1();
-    //int Ncoords = mask1_.Nselected() * 3;
-    int Ncoords = (int)crd_indices_.size();
-//#   pragma omp parallel private(idx2, atomCrd2, offset2, midx, idx1, atomCrd1, offset1, Mj)
-#   pragma omp parallel private(idx2, midx, idx1, Mj)
-    {
-#   pragma omp for schedule(dynamic)
-    for (idx2 = 0; idx2 < Ncoords; idx2++)
-    {
-      //atomCrd2 = mask1_[idx2 / 3] * 3;
-      //offset2 = idx2 % 3;
-      //Mj = currentFrame[atomCrd2 + offset2];
-      Mj = currentFrame[ crd_indices_[idx2] ];
-      vect1[idx2] += Mj;
-      vect2_[idx2] += (Mj * Mj);
-      midx = (idx2 * (int)matrix.Ncols() - (idx2 * (idx2-1) / 2));
-      for (idx1 = idx2; idx1 < Ncoords; idx1++, midx++)
-      {
-        //atomCrd1 = mask1_[idx1 / 3] * 3;
-        //offset1 = idx1 % 3;
-        //matrix[midx] += (currentFrame[atomCrd1 + offset1] * Mj);
-        matrix[midx] += (currentFrame[ crd_indices_[idx1] ] * Mj);
-      }
-    } // END for loop
-    } // END openmp pragma
-  }
-#else /* Original matrix parallelization */
   int m1_idx, m2_idx;
   double Vj;
   const double* XYZi;
@@ -535,6 +471,8 @@ void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
   DataSet_MatrixDbl::iterator mat;
   v_iterator v1, v2;
   if (useMask2_) { // FULL MATRIX
+    return; // DEBUG FIXME FIXME FIXME
+/*
     int NX = (int)Mat_->Ncols();
     int crd_max = (int)crd_indices_.size();
 #   pragma omp parallel private(m1_idx, m2_idx, XYZi, XYZj, Vj, mat, v1, v2, ny)
@@ -561,8 +499,29 @@ void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
       StoreVec(v1, v2, currentFrame.CRD( crd_indices_[m1_idx] ));
     }
     } // END PARALLEL BLOCK FULL
+*/
     return;
-  } else {         // HALF MATRIX
+  } else {         // OMP HALF MATRIX
+    int msize = (int)Mat_->Size();
+#   pragma omp parallel
+    {
+      // Divide all matrix elements among threads
+      int nthreads = omp_get_num_threads();
+      int mythread = omp_get_thread_num();
+      int elts_per_thread = msize / nthreads;
+      int remainder       = msize % nthreads;
+      int my_elts         = elts_per_thread + (int)(mythread < remainder);
+      // Figure out where this thread starts and stops
+      int my_start = 0;
+      for (int rank = 0; rank != mythread; rank++)
+        if (rank < remainder)
+          my_start += (elts_per_thread + 1);
+        else
+          my_start += (elts_per_thread);
+      int my_stop = my_start + my_elts;
+      mprintf("DEBUG: Thread %i  elts= %i  my_elts= %i  my_start= %i  my_stop= %i\n",
+              mythread, msize, my_elts, my_start, my_stop);
+/*
     int v_idx;
     unsigned int nx;
     double d_m2_idx;
@@ -591,9 +550,9 @@ void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
         }
       }
     }
+*/
     } // END PARALLEL BLOCK HALF
-  }
-#endif
+  } // END OMP HALF MATRIX
 # else
   DataSet_MatrixDbl::iterator mat = Mat_->begin();
   v_iterator v1idx1 = Mat_->v1begin();
