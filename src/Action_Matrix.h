@@ -24,6 +24,7 @@ class Action_Matrix : public Action, ActionFrameCounter {
     typedef DataSet_MatrixDbl::Darray Darray;     ///< Mass/vector array type.
     typedef Darray::iterator          v_iterator; ///< Iterator over vector.
     typedef Darray::const_iterator    M_iterator; ///< Iterator over mass.
+    typedef std::vector<int> Iarray;
 
     DataSet_MatrixDbl* Mat_;      ///< Matrix used in calculations.
     DataSet_MatrixDbl* matByRes_; ///< Matrix averaged by residue. 
@@ -44,12 +45,17 @@ class Action_Matrix : public Action, ActionFrameCounter {
     Darray mass2_; ///< Atom masses corresponding to mask2_.
 
     Darray vect2_; ///< Hold diagonal elements squared.
+#   ifdef _OPENMP
+    Iarray MyStart_;
+    Iarray MyStop_;
+    Iarray MyRow_;
+    Iarray MyCol_;
+#   endif
 
     bool useMask2_;
     bool useMass_;
 
     // For ByResidue output.
-    typedef std::vector<int> Iarray;
     struct matrix_res {
       Iarray maskIdxs_; ///< Residue atom indices into mask, matrix row/col.
       int resnum_;      ///< Topology residue number.

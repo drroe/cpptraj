@@ -371,6 +371,71 @@ Action::RetType Action_Matrix::Setup(ActionSetup& setup) {
       return Action::ERR;
     }
   }
+# ifdef _OPENMP
+  if (Mat_->Meta().ScalarType() == MetaData::MWCOVAR ||
+      Mat_->Meta().ScalarType() == MetaData::COVAR)
+  {
+    int msize = (int)Mat_->Size();
+    int nthreads;
+#   pragma omp parallel
+    {
+#     pragma omp master
+      {
+        nthreads = omp_get_num_threads();
+      }
+    }
+    MyStart_.assign(nthreads, 0);
+    MyStop_.assign(nthreads, 0);
+    MyRow_.assign(nthreads, 0);
+    MyCol_.assign(nthreads, 0);
+#   pragma omp parallel
+    {
+      // Divide all matrix elements among threads
+      int mythread = omp_get_thread_num();
+      int elts_per_thread = msize / nthreads;
+      int remainder       = msize % nthreads;
+      int my_elts         = elts_per_thread + (int)(mythread < remainder);
+      // Figure out where this thread starts and stops
+      int my_start = 0;
+      for (int rank = 0; rank != mythread; rank++)
+        if (rank < remainder)
+          my_start += (elts_per_thread + 1);
+        else
+          my_start += (elts_per_thread);
+      int my_stop = my_start + my_elts;
+      mprintf("DEBUG: Thread %i  elts= %i  my_elts= %i  my_start= %i  my_stop= %i\n",
+              mythread, msize, my_elts, my_start, my_stop);
+      MyStart_[mythread] = my_start;
+      MyStop_[mythread]  = my_stop;
+    } // END pragma omp parallel
+    for (unsigned int i = 0; i != MyStart_.size(); i++)
+      if (MyStop_[i] - MyStart_[i] < 1) {
+        mprinterr("Error: Thread %i would process less than one element. Reduce # threads.\n",i);
+        return Action::ERR;
+      }
+    for (Iarray::const_iterator it = MyStart_.begin(); it != MyStart_.end(); ++it)
+      mprintf("%i\n", *it); // DEBUG
+    // Figure out which row/column I start at.
+    int ncols = (int)Mat_->Ncols();
+    int col = 0;
+    int row = 0;
+    int current_thread = 0;
+    for (int i = 0; i != msize; i++) {
+      mprintf("\t%3i %3i %3i\n", i, row, col);
+      if (i == MyStart_[current_thread]) {
+        mprintf("DEBUG: Thread %3i  idx= %3i  row= %3i  col= %3i\n", current_thread, i, row, col);
+        MyRow_[current_thread] = row;
+        MyCol_[current_thread] = col;
+        current_thread++;
+      }
+      col++;
+      if (col == ncols) {
+        row++;
+        col = row;
+      }
+    }
+  } // END covar openmp setup
+# endif /*_OPENMP*/
 
   return Action::OK;
 }
@@ -519,12 +584,12 @@ void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
         else
           my_start += (elts_per_thread);
       int my_stop = my_start + my_elts;
-      mprintf("DEBUG: Thread %i  elts= %i  my_elts= %i  my_start= %i  my_stop= %i\n",
-              mythread, msize, my_elts, my_start, my_stop);
+//      mprintf("DEBUG: Thread %i  elts= %i  my_elts= %i  my_start= %i  my_stop= %i\n",
+//              mythread, msize, my_elts, my_start, my_stop);
       // Figure out which row/column I start at.
       
 
-      mprintf("DEBUG: Thread %i  row= %i  col= %i\n", mythread, row, col);
+      //mprintf("DEBUG: Thread %i  row= %i  col= %i\n", mythread, row, col);
 /*
     int v_idx;
     unsigned int nx;
