@@ -413,17 +413,17 @@ Action::RetType Action_Matrix::Setup(ActionSetup& setup) {
         mprinterr("Error: Thread %i would process less than one element. Reduce # threads.\n",i);
         return Action::ERR;
       }
-    for (Iarray::const_iterator it = MyStart_.begin(); it != MyStart_.end(); ++it)
-      mprintf("%i\n", *it); // DEBUG
+//    for (Iarray::const_iterator it = MyStart_.begin(); it != MyStart_.end(); ++it)
+//      mprintf("%i\n", *it); // DEBUG
     // Figure out which row/column I start at.
     int ncols = (int)Mat_->Ncols();
     int col = 0;
     int row = 0;
     int current_thread = 0;
     for (int i = 0; i != msize; i++) {
-      mprintf("\t%3i %3i %3i\n", i, row, col);
+      //mprintf("\t%3i %3i %3i\n", i, row, col); // DEBUG
       if (i == MyStart_[current_thread]) {
-        mprintf("DEBUG: Thread %3i  idx= %3i  row= %3i  col= %3i\n", current_thread, i, row, col);
+        //mprintf("DEBUG: Thread %3i  idx= %3i  row= %3i  col= %3i\n", current_thread, i, row, col);
         MyRow_[current_thread] = row;
         MyCol_[current_thread] = col;
         current_thread++;
@@ -574,10 +574,14 @@ void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
     // Set up frame coordinates and calculate diagonals.
     Darray& V1 = Mat_->V1();
     Darray& V2 = vect2_;
-    int vi = 0;
-    for (int idx = 0; idx != mask1_.Nselected(); idx++, vi += 3)
+    int vi, idx;
+#   pragma omp parallel private(vi, idx)
+    {
+#   pragma omp for
+    for (idx = 0; idx < mask1_.Nselected(); idx++)
     {
       const double* XYZ = currentFrame.XYZ( mask1_[idx] );
+      vi = idx * 3;
       selected_[vi  ]  =  XYZ[0];
              V1[vi  ] +=  XYZ[0];
              V2[vi  ] += (XYZ[0] * XYZ[0]);
@@ -588,6 +592,7 @@ void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
              V1[vi+2] +=  XYZ[2];
              V2[vi+2] += (XYZ[2] * XYZ[2]);
     }
+    } // END pragma omp parallel
     // Loop over matrix elements
     DataSet_MatrixDbl& MAT = static_cast<DataSet_MatrixDbl&>(*Mat_);
     int ncols = (int)MAT.Ncols();
@@ -639,7 +644,7 @@ void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
       }
     }
 */
-    } // END PARALLEL BLOCK HALF
+    } // END pragma omp parallel 
   } // END OMP HALF MATRIX
 # else /* _OPENMP */
   // SERIAL VERSIONS
