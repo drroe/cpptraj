@@ -50,6 +50,7 @@ class Action_Matrix : public Action, ActionFrameCounter {
     Iarray MyStop_;
     Iarray MyRow_;
     Iarray MyCol_;
+    Frame selected_;
 #   endif
 
     bool useMask2_;

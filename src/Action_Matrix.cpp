@@ -434,6 +434,8 @@ Action::RetType Action_Matrix::Setup(ActionSetup& setup) {
         col = row;
       }
     }
+    // Set up frame to contain only selected atoms
+    selected_.SetupFrameFromMask(mask1_, setup.Top().Atoms());
   } // END covar openmp setup
 # endif /*_OPENMP*/
 
@@ -528,13 +530,14 @@ void Action_Matrix::StoreVec(v_iterator& v1, v_iterator& v2, const double* XYZ) 
 /** Calc Covariance Matrix */
 void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
 # ifdef _OPENMP
-  int m1_idx, m2_idx;
+  // OMP VERSIONS
+  /*int m1_idx, m2_idx;
   double Vj;
   const double* XYZi;
   const double* XYZj;
   unsigned int ny;
   DataSet_MatrixDbl::iterator mat;
-  v_iterator v1, v2;
+  v_iterator v1, v2;*/
   if (useMask2_) { // FULL MATRIX
     return; // DEBUG FIXME FIXME FIXME
 /*
@@ -566,30 +569,46 @@ void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
     } // END PARALLEL BLOCK FULL
 */
     return;
-  } else {         // OMP HALF MATRIX
-    int msize = (int)Mat_->Size();
+  } else {
+    // OMP HALF MATRIX
+    // Set up frame coordinates and calculate diagonals.
+    Darray& V1 = Mat_->V1();
+    Darray& V2 = vect2_;
+    int vi = 0;
+    for (int idx = 0; idx != mask1_.Nselected(); idx++, vi += 3)
+    {
+      const double* XYZ = currentFrame.XYZ( mask1_[idx] );
+      selected_[vi  ]  =  XYZ[0];
+             V1[vi  ] +=  XYZ[0];
+             V2[vi  ] += (XYZ[0] * XYZ[0]);
+      selected_[vi+1]  =  XYZ[1];
+             V1[vi+1] +=  XYZ[1];
+             V2[vi+1] += (XYZ[1] * XYZ[1]);
+      selected_[vi+2]  =  XYZ[2];
+             V1[vi+2] +=  XYZ[2];
+             V2[vi+2] += (XYZ[2] * XYZ[2]);
+    }
+    // Loop over matrix elements
+    DataSet_MatrixDbl& MAT = static_cast<DataSet_MatrixDbl&>(*Mat_);
+    int ncols = (int)MAT.Ncols();
 #   pragma omp parallel
     {
-      // Divide all matrix elements among threads
-      int nthreads = omp_get_num_threads();
+      // All matrix elements have been divided among threads
       int mythread = omp_get_thread_num();
-      int elts_per_thread = msize / nthreads;
-      int remainder       = msize % nthreads;
-      int my_elts         = elts_per_thread + (int)(mythread < remainder);
-      // Figure out where this thread starts and stops
-      int my_start = 0;
-      for (int rank = 0; rank != mythread; rank++)
-        if (rank < remainder)
-          my_start += (elts_per_thread + 1);
-        else
-          my_start += (elts_per_thread);
-      int my_stop = my_start + my_elts;
-//      mprintf("DEBUG: Thread %i  elts= %i  my_elts= %i  my_start= %i  my_stop= %i\n",
-//              mythread, msize, my_elts, my_start, my_stop);
-      // Figure out which row/column I start at.
-      
-
-      //mprintf("DEBUG: Thread %i  row= %i  col= %i\n", mythread, row, col);
+      int col = MyCol_[mythread];
+      int row = MyRow_[mythread];
+      for (int i = MyStart_[mythread]; i != MyStop_[mythread]; i++)
+      {
+        // Perform calculation
+        MAT[i] += selected_[col] * selected_[row];
+        // Update column/row indices
+        col++;
+        if (col == ncols) {
+          row++;
+          col = row;
+        }
+      } // END loop over matrix elements belonging to thread
+   
 /*
     int v_idx;
     unsigned int nx;
@@ -622,7 +641,8 @@ void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
 */
     } // END PARALLEL BLOCK HALF
   } // END OMP HALF MATRIX
-# else
+# else /* _OPENMP */
+  // SERIAL VERSIONS
   DataSet_MatrixDbl::iterator mat = Mat_->begin();
   v_iterator v1idx1 = Mat_->v1begin();
   v_iterator v2idx1 = vect2_.begin();
