@@ -435,7 +435,16 @@ Action::RetType Action_Matrix::Setup(ActionSetup& setup) {
       }
     }
     // Set up frame to contain only selected atoms
-    selected_.SetupFrameFromMask(mask1_, setup.Top().Atoms());
+    //selected_.SetupFrameFromMask(mask1_, setup.Top().Atoms());
+    // Set up indices into Frame that correspond to matrix elements
+    Indices_.clear();
+    Indices_.reserve( ncols );
+    for (int idx = 0; idx != mask1_.Nselected(); idx++) {
+      int crd = mask1_[idx] * 3;
+      Indices_.push_back( crd   );
+      Indices_.push_back( crd+1 );
+      Indices_.push_back( crd+2 );
+    }
   } // END covar openmp setup
 # endif /*_OPENMP*/
 
@@ -573,26 +582,7 @@ void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
     // OMP HALF MATRIX
     // Set up frame coordinates and calculate diagonals.
     Darray& V1 = Mat_->V1();
-    Darray& V2 = vect2_;
-    int vi, idx;
-#   pragma omp parallel private(vi, idx)
-    {
-#   pragma omp for
-    for (idx = 0; idx < mask1_.Nselected(); idx++)
-    {
-      const double* XYZ = currentFrame.XYZ( mask1_[idx] );
-      vi = idx * 3;
-      selected_[vi  ]  =  XYZ[0];
-             V1[vi  ] +=  XYZ[0];
-             V2[vi  ] += (XYZ[0] * XYZ[0]);
-      selected_[vi+1]  =  XYZ[1];
-             V1[vi+1] +=  XYZ[1];
-             V2[vi+1] += (XYZ[1] * XYZ[1]);
-      selected_[vi+2]  =  XYZ[2];
-             V1[vi+2] +=  XYZ[2];
-             V2[vi+2] += (XYZ[2] * XYZ[2]);
-    }
-    } // END pragma omp parallel
+//    Darray& V2 = vect2_;
     // Loop over matrix elements
     DataSet_MatrixDbl& MAT = static_cast<DataSet_MatrixDbl&>(*Mat_);
     int ncols = (int)MAT.Ncols();
@@ -605,7 +595,13 @@ void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
       for (int i = MyStart_[mythread]; i != MyStop_[mythread]; i++)
       {
         // Perform calculation
-        MAT[i] += selected_[col] * selected_[row];
+        MAT[i] += currentFrame[Indices_[col]] * currentFrame[Indices_[row]];
+        // Diagonal if necessary
+        if (row == col) {
+          int idx = Indices_[col];
+          V1[col] += currentFrame[idx];
+//          V2[col] += currentFrame[idx] * currentFrame[idx];
+        }
         // Update column/row indices
         col++;
         if (col == ncols) {
