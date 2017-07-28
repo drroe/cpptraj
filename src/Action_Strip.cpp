@@ -5,7 +5,7 @@
 
 // CONSTRUCTOR
 Action_Strip::Action_Strip() :
-  newParm_(0), newCinfo_(0), masterDSL_(0), removeBoxInfo_(false) {}
+  newParm_(0), newCinfo_(0), masterDFL_(0), removeBoxInfo_(false) {}
 
 void Action_Strip::Help() const {
   mprintf("\t<mask> [outprefix <name>] [parmout <file>] [nobox]\n"
@@ -21,6 +21,7 @@ Action_Strip::~Action_Strip() {
 // Action_Strip::Init()
 Action::RetType Action_Strip::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  masterDFL_ = init.DflPtr();
   // Get output stripped parm filename
   prefix_ = actionArgs.GetStringKey("outprefix");
   parmoutName_ = actionArgs.GetStringKey("parmout");
@@ -46,7 +47,6 @@ Action::RetType Action_Strip::Init(ArgList& actionArgs, ActionInit& init, int de
     mprintf("\tStripped topology will be output with name '%s'\n", parmoutName_.c_str());
   if (removeBoxInfo_)
     mprintf("\tAny existing box information will be removed.\n");
-  masterDSL_ = init.DslPtr();
   return Action::OK;
 }
 

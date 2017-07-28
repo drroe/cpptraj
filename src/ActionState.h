@@ -23,6 +23,7 @@ class ActionInit {
     DataSetList* DslPtr()           { return dsl_;  }
     DataFileList& DFL()             { return *dfl_; }
     DataFileList const& DFL() const { return *dfl_; }
+    DataFileList* DflPtr()          { return dfl_;  }
   private:
     DataSetList* dsl_;
     DataFileList* dfl_;

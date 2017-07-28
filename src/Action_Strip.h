@@ -16,7 +16,7 @@ class Action_Strip: public Action {
 
     Topology* newParm_;
     CoordinateInfo* newCinfo_;
-    DataSetList* masterDSL_;
+    DataFileList* masterDFL_;
     Frame newFrame_;
     std::string prefix_;
     std::string parmoutName_;
