@@ -181,22 +181,31 @@ File::Base::Base() :
   isStream_(false)
 {}
 
-int File::Base::Setup(const char* fnameIn, AccessType accessIn)
+const char* File::Base::AccessTypeName_[] = {
+    "read", "write", "append", "update"
+};
+
+// File::Base::Setup()
+int File::Base::Setup(Name const& fnameIn, AccessType accessIn)
 {
   if (isOpen_) Close();
   access_ = accessIn;
   isOpen_ = false;
   file_size_ = 0;
   compressType_ = NO_COMPRESSION;
-  if (fnameIn==0) {
+  if (fnameIn.empty()) {
     // Empty file name is stream
     isStream_ = true;
-    fname_.clear();
+    if (access_ == READ)
+      fname_.SetName_NoExpansion("STDIN");
+    else
+      fname_.SetName_NoExpansion("STDOUT");
   } else {
     isStream_ = false;
-    fname_.SetName(fnameIn);
+    fname_ = fnameIn;
     // Get basic file information
     if (Exists(fname_)) {
+      // File exists. Get size and compression info.
       struct stat frame_stat;
       if (stat(fname_.full(), &frame_stat) == -1) {
         mprinterr("Error: Could not find file status for %s\n", fname_.full());
@@ -238,7 +247,13 @@ int File::Base::Setup(const char* fnameIn, AccessType accessIn)
           if (debug_>0) mprintf(", No compression.\n");
         }
       }
-    } // END if file exists
+    } else {
+      // File does not exist. Determine compression via extension.
+      if (fname_.Compress() == ".gz")
+        compressType_ = GZIP;
+      else if (fname_.Compress() == ".bz2")
+        compressType_ = BZIP2;
+    }
   } // END file is not stream
   if (debug_ >= 0) { // FIXME
     mprintf("\tFILE INFO:");
@@ -250,7 +265,29 @@ int File::Base::Setup(const char* fnameIn, AccessType accessIn)
     const char* compTypeStr[4] = {"None", "Gzip", "Bzip", "Zip "};
     mprintf("\t  Compression= %s\n", compTypeStr[compressType_]);
   }
+  return InternalSetup();
+}
+
+// File::Base::Open()
+int File::Base::Open() {
+  if (isOpen_) Close();
+  if (InternalOpen()) return 1;
+  isOpen_ = true;
   return 0;
+}
+
+// File::Base::Open()
+int File::Base::Open(Name const& fnameIn, AccessType accessIn) {
+  if (Setup(fnameIn, accessIn)) return 1;
+  if (InternalOpen()) return 1;
+  isOpen_ = true;
+  return 0;
+}
+
+// File::Base::Close()
+void File::Base::Close() {
+  InternalClose();
+  isOpen_ = false;
 }
 
 // =============================================================================

@@ -69,18 +69,36 @@ class File::Name {
 class File::Base {
   public:
     Base();
+    virtual ~Base() {} // Virtual since class is inherited
     Name const& Filename()     const { return fname_;        }
     off_t Size()               const { return file_size_;    }
+    int Debug()                const { return debug_;        }
     AccessType Access()        const { return access_;       }
     CompressType Compression() const { return compressType_; }
     bool IsOpen()              const { return isOpen_;       }
     bool IsStream()            const { return isStream_;     }
-    int Setup(const char*, AccessType);
+    /// \return string based on current access
+    const char* accessStr()    const { return AccessTypeName_[access_]; }
+
+    void SetDebug(int d) { debug_ = d; }
+    /// Set up file for given access but do not open.
+    int Setup(Name const&, AccessType);
+    /// Open the file with current access.
+    int Open();
+    /// Setup the file with given access and open.
+    int Open(Name const&, AccessType);
+    /// Close the file.
+    void Close();
   protected:
-    //virtual int Open() = 0;
-    //virtual int Close() = 0;
-    virtual void Close() { } // TODO pure virtual
+    /// File-specific setup, called by Setup()
+    virtual int InternalSetup() = 0;
+    /// File-specific open
+    virtual int InternalOpen() = 0;
+    /// File-specific close
+    virtual void InternalClose() = 0;
   private:
+    static const char* AccessTypeName_[];
+
     Name fname_;
     off_t file_size_;           ///< Actual file size
     int debug_;
