@@ -71,12 +71,14 @@ class File::Base {
     Base();
     Name const& Filename() const { return fname_;  }
     AccessType Access()    const { return access_; }
-    int ID_Type(const char*);
+    int Setup(const char*, AccessType);
+  protected:
+    virtual int Open() = 0;
+    virtual int Close() = 0;
   private:
     Name fname_;
     off_t file_size_;           ///< Actual file size
     int debug_;
-    int isDos_;                 ///< 1 if CR present, need to count them as newlines
     AccessType access_;         ///< Current file access
     CompressType compressType_; ///< Type of compression present
     bool isOpen_;               ///< True if file is open and ready for IO
