@@ -331,6 +331,10 @@ void File::ErrorMsg(const char* fname) {
   mprinterr("Error: '%s': %s\n", fname, fileErrMsg_.c_str());
 }
 
+const char* File::StrError() {
+  return strerror(errno);
+}
+
 bool File::Exists(Name const& fn) {
   if (!fn.empty()) {
     FILE* infile = fopen(fn.full(), "rb");

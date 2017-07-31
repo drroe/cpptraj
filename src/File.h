@@ -18,6 +18,8 @@ namespace File {
   class Base;
   /// Print error message corresponding to 'false' value from 'Exists()'
   void ErrorMsg(const char*);
+  /// return last file error message
+  const char* StrError();
   /// \return true if file exists and is accessible.
   bool Exists(std::string const&); // TODO remove?
   bool Exists(Name const&);
