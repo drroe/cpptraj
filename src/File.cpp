@@ -239,6 +239,16 @@ int File::Base::Setup(const char* fnameIn, AccessType accessIn)
       }
     } // END if file exists
   } // END file is not stream
+  if (debug_ >= 0) { // FIXME
+    mprintf("\tFILE INFO:");
+    if (isStream_)
+      mprintf(" STREAM\n");
+    else
+      mprintf(" %s\n", fname_.full());
+    mprintf("\t  Size= %li\n", file_size_);
+    const char* compTypeStr[4] = {"None", "Gzip", "Bzip", "Zip "};
+    mprintf("\t  Compression= %s\n", compTypeStr[compressType_]);
+  }
   return 0;
 }
 
