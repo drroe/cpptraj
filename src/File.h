@@ -69,12 +69,17 @@ class File::Name {
 class File::Base {
   public:
     Base();
-    Name const& Filename() const { return fname_;  }
-    AccessType Access()    const { return access_; }
+    Name const& Filename()     const { return fname_;        }
+    off_t Size()               const { return file_size_;    }
+    AccessType Access()        const { return access_;       }
+    CompressType Compression() const { return compressType_; }
+    bool IsOpen()              const { return isOpen_;       }
+    bool IsStream()            const { return isStream_;     }
     int Setup(const char*, AccessType);
   protected:
-    virtual int Open() = 0;
-    virtual int Close() = 0;
+    //virtual int Open() = 0;
+    //virtual int Close() = 0;
+    virtual void Close() { } // TODO pure virtual
   private:
     Name fname_;
     off_t file_size_;           ///< Actual file size

@@ -217,6 +217,7 @@ int File::Base::Setup(const char* fnameIn, AccessType accessIn)
       magic[1] = 0; 
       magic[2] = 0;
       size_t numread = fread(magic, 1, 3, fIn);
+      fclose(fIn);
       if (numread == 0)
         mprintf("Warning: File %s is empty\n", fname_.full());
       else if (numread < 3 ) {
