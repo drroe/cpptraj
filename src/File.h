@@ -71,7 +71,7 @@ class File::Base {
     Base();
     virtual ~Base() {} // Virtual since class is inherited
     Name const& Filename()     const { return fname_;        }
-    off_t Size()               const { return file_size_;    }
+    unsigned int Size()        const { return file_size_;    }
     int Debug()                const { return debug_;        }
     AccessType Access()        const { return access_;       }
     CompressType Compression() const { return compressType_; }
@@ -100,7 +100,7 @@ class File::Base {
     static const char* AccessTypeName_[];
 
     Name fname_;
-    off_t file_size_;           ///< Actual file size
+    unsigned int file_size_;           ///< Actual file size
     int debug_;
     AccessType access_;         ///< Current file access
     CompressType compressType_; ///< Type of compression present

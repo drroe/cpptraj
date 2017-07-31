@@ -173,7 +173,7 @@ File::Name File::Name::PrependExt( std::string const& extPrefix ) const {
 
 // ===== File::Base ============================================================
 File::Base::Base() :
-  file_size_(0UL),
+  file_size_(0),
   debug_(0),
   access_(READ),
   compressType_(NO_COMPRESSION),
@@ -213,7 +213,7 @@ int File::Base::Setup(Name const& fnameIn, AccessType accessIn)
           perror("     Error from stat: ");
         return 1;
       }
-      file_size_ = frame_stat.st_size;
+      file_size_ = (unsigned int)frame_stat.st_size;
       // ID compression by magic number - open for binary read access
       FILE* fIn = fopen(fname_.full(), "rb");
       if ( fIn == 0 ) { 
@@ -261,7 +261,7 @@ int File::Base::Setup(Name const& fnameIn, AccessType accessIn)
       mprintf(" STREAM\n");
     else
       mprintf(" %s\n", fname_.full());
-    mprintf("\t  Size= %li\n", file_size_);
+    mprintf("\t  Size= %u\n", file_size_);
     const char* compTypeStr[4] = {"None", "Gzip", "Bzip", "Zip "};
     mprintf("\t  Compression= %s\n", compTypeStr[compressType_]);
   }
