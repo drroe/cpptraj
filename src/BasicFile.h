@@ -38,6 +38,7 @@ class BasicFile : public File::Base {
   private:
     enum FileType { UNKNOWN_TYPE=0, STANDARD, GZIPFILE, BZIP2FILE, ZIPFILE, MPIFILE };
     static const char* FileTypeName_[];
+    void SetupBuffer(unsigned int);
     // -------------------------------------------
     /// Set up file
     int InternalSetup();
@@ -46,9 +47,6 @@ class BasicFile : public File::Base {
     /// Close file
     void InternalClose();
     // -------------------------------------------
-    int SetupRead();
-    int SetupWrite();
-    int SetupAppend();
     int SetupFileIO( FileType );
     void Reset();
 

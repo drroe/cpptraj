@@ -80,18 +80,63 @@ unsigned int BasicFile::UncompressedSize() const {
 }
 
 // -----------------------------------------------------------------------------
+void BasicFile::SetupBuffer(unsigned int sizeIn) {
+  BUF_SIZE_ = sizeIn;
+  if (linebuffer_ != 0) delete[] linebuffer_;
+  linebuffer_ = new char[ BUF_SIZE_ + 1 ];
+  linebuffer_[BUF_SIZE_] = '\0';
+}
+
 int BasicFile::InternalSetup() {
   Reset();
   if (Debug() > 0)
     mprintf("BasicFile: Setting up %s for %s.\n", Filename().full(), accessStr());
-  int err = 0;
-  switch ( Access() ) {
-    case UPDATE:
-    case READ:   err = SetupRead(); break;
-    case WRITE:  err = SetupWrite(); break;
-    case APPEND: err = SetupAppend(); break;
+  if (Compression() != NO_COMPRESSION && Access() == APPEND) {
+    mprinterr("Error: Appending to compressed files is not supported.\n");
+    return 1;
   }
-  return err;
+
+  uncompressed_size_ = Size();
+  // FIXME : determine line endings in streams?
+  unsigned int lineSize = 0;
+  if (IsStream()) {
+    // file type must be STANDARD for streams
+    if (SetupFileIO( STANDARD )) return 1;
+  } else {
+    if (SetupFileIO( UNKNOWN_TYPE )) return 1;
+    // Check if file exists.
+    // FIXME this check also happens in Base::Setup() - consolidate
+    if (File::Exists( Filename() )) {
+      // File exists.
+      uncompressed_size_ = IO_->Size( Filename().full() );
+      // Additional file characteristics
+      if (IO_->Open( Filename().full(), "rb" ) != 0) return 1;
+      char bufchar;
+      while ( IO_->Read(&bufchar, 1) == 1 ) {
+        ++lineSize;
+        if ( bufchar == '\n' ) break;
+        if ( bufchar == '\r' ) {
+          isDos_ = 1;
+          if ( IO_->Read(&bufchar, 1) == 1 && bufchar == '\n' )
+            ++lineSize;
+          break;
+        }
+      }
+      IO_->Close();
+    } else {
+      // File does not exist. If READ, fail silently.
+      if (Access() == READ) return 1;
+    }
+  }
+  SetupBuffer( std::max(1024U, lineSize + 1) ); // +1 for null char
+  
+  if (Debug() > 0) {
+    rprintf("\t[%s] is type %s with access %s\n", Filename().full(), FileTypeName_[fileType_],
+            accessStr());
+    rprintf("\t  isDos= %i  BUF_SIZE_ = %u  uncompressed_size_ = %u\n", isDos_, BUF_SIZE_,
+            UncompressedSize());
+  }
+  return 0;
 }
 
 int BasicFile::InternalOpen() {
@@ -136,54 +181,6 @@ int BasicFile::InternalOpen() {
 }
 
 void BasicFile::InternalClose() { if (IsOpen()) IO_->Close(); }
-
-int BasicFile::SetupRead() {
-  // FIXME : determine line endings in streams?
-  unsigned int lineSize = 0;
-  if (IsStream()) {
-    // file type must be STANDARD for streams
-    fileType_ = STANDARD;
-    if (SetupFileIO( STANDARD )) return 1;
-    uncompressed_size_ = Size();
-  } else {
-    // Check if file exists. If not, fail silently
-    // FIXME this check also happens in Base::Setup() - consolidate
-    if (!File::Exists( Filename() )) return 1;
-    if (SetupFileIO( UNKNOWN_TYPE )) return 1;
-    uncompressed_size_ = IO_->Size( Filename().full() );
-    // Additional file characteristics
-    if (IO_->Open( Filename().full(), "rb" ) != 0) return 1;
-    char bufchar;
-    while ( IO_->Read(&bufchar, 1) == 1 ) {
-      ++lineSize;
-      if ( bufchar == '\n' ) break;
-      if ( bufchar == '\r' ) {
-        isDos_ = 1;
-        if ( IO_->Read(&bufchar, 1) == 1 && bufchar == '\n' )
-          ++lineSize;
-        break;
-      }
-    }
-    IO_->Close();
-  }
-  BUF_SIZE_ = std::max(1024U, lineSize + 1); // +1 for null char
-  linebuffer_ = new char[ BUF_SIZE_ + 1 ];
-  linebuffer_[BUF_SIZE_] = '\0';
-  
-  if (Debug() > 0) {
-    rprintf("\t[%s] is type %s with access READ\n", Filename().full(), FileTypeName_[fileType_]);
-    rprintf("\t  isDos= %i  BUF_SIZE_ = %u\n", isDos_, BUF_SIZE_);
-  }
-  return 0;
-}
-
-int BasicFile::SetupWrite() {
-  return 1;
-}
-
-int BasicFile::SetupAppend() {
-  return 1;
-}
 
 /** Set up the IO based on given file type. */
 int BasicFile::SetupFileIO( FileType typeIn ) {

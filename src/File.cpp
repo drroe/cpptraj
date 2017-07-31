@@ -264,7 +264,7 @@ int File::Base::Setup(Name const& fnameIn, AccessType accessIn)
         compressType_ = BZIP2;
     }
   } // END file is not stream
-  if (debug_ >= 0) { // FIXME
+  if (debug_ > 0) {
     mprintf("\tFILE INFO:");
     if (isStream_)
       mprintf(" STREAM\n");
