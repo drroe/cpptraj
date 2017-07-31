@@ -44,7 +44,15 @@ const char* BasicFile::FileTypeName_[] = {
   "UNKNOWN_TYPE", "STANDARD", "GZIPFILE", "BZIP2FILE", "ZIPFILE", "MPIFILE"
 };
 
+unsigned int BasicFile::UncompressedSize() const {
+  if (Compression() == NO_COMPRESSION)
+    return Size();
+  else
+    return uncompressed_size_;
+}
+
 // -----------------------------------------------------------------------------
+// TODO check if file is open?
 // BasicFile::Printf()
 /** Take the formatted string and write it to file using Write.
   */
@@ -70,13 +78,6 @@ const char* BasicFile::NextLine() {
     return 0;
   }
   return linebuffer_;
-}
-
-unsigned int BasicFile::UncompressedSize() const {
-  if (Compression() == NO_COMPRESSION)
-    return Size();
-  else
-    return uncompressed_size_;
 }
 
 // -----------------------------------------------------------------------------
