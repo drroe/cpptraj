@@ -17,7 +17,8 @@ using namespace File;
 BasicFile::BasicFile() :
   IO_(0),
   isDos_(0),
-  uncompressed_size_(0),
+  uncompressed_size_(0U),
+  BUF_SIZE_(0U),
   fileType_(UNKNOWN_TYPE)
 {}
 
@@ -41,18 +42,36 @@ int BasicFile::InternalSetup() {
 }
 
 int BasicFile::SetupRead() {
-  // If nameIn is empty assume reading from STDIN desired. 
+  // FIXME : be smarter about getting line endings in streams
+  unsigned int lineSize = 0;
   if (IsStream()) {
     // file type must be STANDARD for streams
     fileType_ = STANDARD;
     if (SetupFileIO( STANDARD )) return 1;
+    uncompressed_size_ = Size();
   } else {
     // Check if file exists. If not, fail silently
     // FIXME this check also happens in Base::Setup() - consolidate
     if (!File::Exists( Filename() )) return 1;
     if (SetupFileIO( UNKNOWN_TYPE )) return 1;
+    uncompressed_size_ = IO_->Size( Filename().full() );
+    // Additional file characteristics
+    if (IO_->Open( Filename().full(), "rb" ) != 0) return 1;
+    char bufchar;
+    while ( IO_->Read(&bufchar, 1) == 1 ) {
+      ++lineSize;
+      if ( bufchar == '\n' ) break;
+      if ( bufchar == '\r' ) {
+        isDos_ = 1;
+        if ( IO_->Read(&bufchar, 1) == 1 && bufchar == '\n' )
+          ++lineSize;
+        break;
+      }
+    }
+    IO_->Close();
   }
-  // Check for DOS line endings 
+  BUF_SIZE_ = std::max(1024U, lineSize + 1); // +1 for null char
+  
 
   if (Debug() > 0)
     rprintf("\t[%s] is type %s with access READ\n", Filename().full(), FileTypeName_[fileType_]);

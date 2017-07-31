@@ -31,9 +31,10 @@ class BasicFile : public File::Base {
     int SetupFileIO( FileType );
     void Reset();
 
-    FileIO* IO_;              ///< ///< The interface to basic IO operations.
-    int isDos_;               ///< ///< 1 if CR present, need to count them as newlines
-    off_t uncompressed_size_; ///< If compressed, uncompressed file size
-    FileType fileType_;       ///< File type (determines IO)
+    FileIO* IO_;                     ///< The interface to basic IO operations.
+    int isDos_;                      ///< 1 if CR present, need to count them as newlines
+    unsigned int uncompressed_size_; ///< If compressed, uncompressed file size
+    unsigned int BUF_SIZE_;          ///< Buffer size
+    FileType fileType_;              ///< File type (determines IO)
 };
 #endif
