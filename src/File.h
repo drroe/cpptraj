@@ -69,6 +69,7 @@ class File::Name {
 class File::Base {
   public:
     Base();
+    Base(int);
     virtual ~Base() {} // Virtual since class is inherited
     Name const& Filename()     const { return fname_;        }
     unsigned int Size()        const { return file_size_;    }

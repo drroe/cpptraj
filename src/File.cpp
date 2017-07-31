@@ -181,6 +181,15 @@ File::Base::Base() :
   isStream_(false)
 {}
 
+File::Base::Base(int d) :
+  file_size_(0),
+  debug_(d),
+  access_(READ),
+  compressType_(NO_COMPRESSION),
+  isOpen_(false),
+  isStream_(false)
+{}
+
 const char* File::Base::AccessTypeName_[] = {
     "read", "write", "append", "update"
 };

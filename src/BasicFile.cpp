@@ -23,6 +23,14 @@ BasicFile::BasicFile() :
   fileType_(UNKNOWN_TYPE)
 {}
 
+BasicFile::BasicFile(int d) : Base(d),
+  IO_(0),
+  isDos_(0),
+  uncompressed_size_(0U),
+  BUF_SIZE_(0U),
+  fileType_(UNKNOWN_TYPE)
+{}
+
 BasicFile::~BasicFile() {
   Reset();
 }
@@ -45,6 +53,10 @@ int BasicFile::InternalSetup() {
   }
   return err;
 }
+
+int BasicFile::InternalOpen() { return 1; }
+
+void BasicFile::InternalClose() { }
 
 int BasicFile::SetupRead() {
   // FIXME : be smarter about getting line endings in streams
@@ -77,10 +89,19 @@ int BasicFile::SetupRead() {
   }
   BUF_SIZE_ = std::max(1024U, lineSize + 1); // +1 for null char
   
-
-  if (Debug() > 0)
+  if (Debug() > 0) {
     rprintf("\t[%s] is type %s with access READ\n", Filename().full(), FileTypeName_[fileType_]);
+    rprintf("\t  isDos= %i  BUF_SIZE_ = %u\n", isDos_, BUF_SIZE_);
+  }
   return 0;
+}
+
+int BasicFile::SetupWrite() {
+  return 1;
+}
+
+int BasicFile::SetupAppend() {
+  return 1;
 }
 
 /** Set up the IO based on given file type. */

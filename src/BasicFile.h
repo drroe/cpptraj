@@ -7,6 +7,8 @@ class BasicFile : public File::Base {
   public:
     /// CONSTRUCTOR
     BasicFile();
+    /// CONSTRUCTOR - debug level
+    BasicFile(int);
     /// DESTRUCTOR
     virtual ~BasicFile(); // Virtual since this class is inherited.
     /// COPY CONSTRUCTOR
