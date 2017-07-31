@@ -1,3 +1,4 @@
+#include <algorithm> // std::max
 #include "BasicFile.h"
 #include "CpptrajStdio.h"
 // File Types
@@ -21,6 +22,10 @@ BasicFile::BasicFile() :
   BUF_SIZE_(0U),
   fileType_(UNKNOWN_TYPE)
 {}
+
+BasicFile::~BasicFile() {
+  Reset();
+}
 
 const char* BasicFile::FileTypeName_[] = {
   "UNKNOWN_TYPE", "STANDARD", "GZIPFILE", "BZIP2FILE", "ZIPFILE", "MPIFILE"
