@@ -35,26 +35,28 @@ class BasicFile : public File::Base {
     std::string GetLine();
     /// Get next line and return pointer to raw buffer
     const char* NextLine();
+  protected:
+    /// Set up basic file IO and determine file characteristics.
+    int BasicSetup();
+    /// Open IO interface
+    int OpenIO();
+    /// \return pointer to basic file IO interface
+    FileIO* IO() { return IO_; }
   private:
     enum FileType { UNKNOWN_TYPE=0, STANDARD, GZIPFILE, BZIP2FILE, ZIPFILE, MPIFILE };
     static const char* FileTypeName_[];
-    void SetupBuffer(unsigned int);
     // -------------------------------------------
-    /// Set up file
-    int InternalSetup();
-    /// Open file
-    int InternalOpen();
-    /// Close file
+    /// Close IO_ interface
     void InternalClose();
     // -------------------------------------------
+    /// Set up IO_ interface
     int SetupFileIO( FileType );
+    /// Reset all file variables
     void Reset();
 
     FileIO* IO_;                     ///< The interface to basic IO operations.
     int isDos_;                      ///< 1 if CR present, need to count them as newlines
     unsigned int uncompressed_size_; ///< If compressed, uncompressed file size
-    unsigned int BUF_SIZE_;          ///< Buffer size
     FileType fileType_;              ///< File type (determines IO)
-    char* linebuffer_;               ///< Used for IO functions.
 };
 #endif

@@ -1,7 +1,3 @@
-#include <cstring>    // strlen
-#include <cstdio>     // vsprintf
-#include <cstdarg>    // va_X functions
-#include <algorithm>  // std::max
 #include "BasicFile.h"
 #include "CpptrajStdio.h"
 // File Types
@@ -22,18 +18,14 @@ BasicFile::BasicFile() :
   IO_(0),
   isDos_(0),
   uncompressed_size_(0U),
-  BUF_SIZE_(0U),
-  fileType_(UNKNOWN_TYPE),
-  linebuffer_(0)
+  fileType_(UNKNOWN_TYPE)
 {}
 
 BasicFile::BasicFile(int d) : Base(d),
   IO_(0),
   isDos_(0),
   uncompressed_size_(0U),
-  BUF_SIZE_(0U),
-  fileType_(UNKNOWN_TYPE),
-  linebuffer_(0)
+  fileType_(UNKNOWN_TYPE)
 {}
 
 BasicFile::~BasicFile() {
@@ -44,6 +36,7 @@ const char* BasicFile::FileTypeName_[] = {
   "UNKNOWN_TYPE", "STANDARD", "GZIPFILE", "BZIP2FILE", "ZIPFILE", "MPIFILE"
 };
 
+// BasicFile::UncompressedSize()
 unsigned int BasicFile::UncompressedSize() const {
   if (Compression() == NO_COMPRESSION)
     return Size();
@@ -51,50 +44,16 @@ unsigned int BasicFile::UncompressedSize() const {
     return uncompressed_size_;
 }
 
-// -----------------------------------------------------------------------------
-// TODO check if file is open?
-// BasicFile::Printf()
-/** Take the formatted string and write it to file using Write.
+/** Set up IO object, determine DOS line endings, etc.
+  * \return first line size, or -1 if setup fails.
   */
-void BasicFile::Printf(const char *format, ...) {
-  va_list args;
-  va_start(args, format);
-  vsprintf(linebuffer_,format,args);
-  IO_->Write(linebuffer_, strlen(linebuffer_));
-  va_end(args);
-}
-
-std::string BasicFile::GetLine() {
-  if (IO_->Gets(linebuffer_, BUF_SIZE_) != 0) {
-    //mprinterr("Error: Getting line from %s\n", Filename().full());
-    return std::string();
-  }
-  return std::string(linebuffer_);
-}
-
-const char* BasicFile::NextLine() {
-  if (IO_->Gets(linebuffer_, BUF_SIZE_) != 0) {
-    //mprinterr("Error: Reading line from %s\n", Filename().full());
-    return 0;
-  }
-  return linebuffer_;
-}
-
-// -----------------------------------------------------------------------------
-void BasicFile::SetupBuffer(unsigned int sizeIn) {
-  BUF_SIZE_ = sizeIn;
-  if (linebuffer_ != 0) delete[] linebuffer_;
-  linebuffer_ = new char[ BUF_SIZE_ + 1 ];
-  linebuffer_[BUF_SIZE_] = '\0';
-}
-
-int BasicFile::InternalSetup() {
+int BasicFile::BasicSetup() {
   Reset();
   if (Debug() > 0)
     mprintf("BasicFile: Setting up %s for %s.\n", Filename().full(), accessStr());
   if (Compression() != NO_COMPRESSION && Access() == APPEND) {
     mprinterr("Error: Appending to compressed files is not supported.\n");
-    return 1;
+    return -1;
   }
 
   uncompressed_size_ = Size();
@@ -102,16 +61,16 @@ int BasicFile::InternalSetup() {
   unsigned int lineSize = 0;
   if (IsStream()) {
     // file type must be STANDARD for streams
-    if (SetupFileIO( STANDARD )) return 1;
+    if (SetupFileIO( STANDARD )) return -1;
   } else {
-    if (SetupFileIO( UNKNOWN_TYPE )) return 1;
+    if (SetupFileIO( UNKNOWN_TYPE )) return -1;
     // Check if file exists.
     // FIXME this check also happens in Base::Setup() - consolidate
     if (File::Exists( Filename() )) {
       // File exists.
       uncompressed_size_ = IO_->Size( Filename().full() );
       // Additional file characteristics
-      if (IO_->Open( Filename().full(), "rb" ) != 0) return 1;
+      if (IO_->Open( Filename().full(), "rb" ) != 0) return -1;
       char bufchar;
       while ( IO_->Read(&bufchar, 1) == 1 ) {
         ++lineSize;
@@ -126,21 +85,20 @@ int BasicFile::InternalSetup() {
       IO_->Close();
     } else {
       // File does not exist. If READ, fail silently.
-      if (Access() == READ) return 1;
+      if (Access() == READ) return -1;
     }
   }
-  SetupBuffer( std::max(1024U, lineSize + 1) ); // +1 for null char
   
   if (Debug() > 0) {
     rprintf("\t[%s] is type %s with access %s\n", Filename().full(), FileTypeName_[fileType_],
             accessStr());
-    rprintf("\t  isDos= %i  BUF_SIZE_ = %u  uncompressed_size_ = %u\n", isDos_, BUF_SIZE_,
-            UncompressedSize());
+    rprintf("\t  isDos= %i  uncompressed_size_ = %u\n", isDos_, UncompressedSize());
   }
-  return 0;
+  return (int)lineSize;
 }
 
-int BasicFile::InternalOpen() {
+// BasicFile::OpenIO()
+int BasicFile::OpenIO() {
   if (IO_ == 0) {
     mprinterr("Internal Error: BasicFile has not been set up.\n");
     return 1;
@@ -181,6 +139,7 @@ int BasicFile::InternalOpen() {
   return err;
 }
 
+// BasicFile::InternalClose()
 void BasicFile::InternalClose() { if (IsOpen()) IO_->Close(); }
 
 /** Set up the IO based on given file type. */
@@ -237,10 +196,7 @@ void BasicFile::Reset() {
   Close();
   if (IO_!=0) delete IO_;
   IO_ = 0;
-  if (linebuffer_ != 0) delete[] linebuffer_;
-  linebuffer_ = 0;
   isDos_ = 0;
   uncompressed_size_ = 0;
   fileType_ = UNKNOWN_TYPE;
 }
-
