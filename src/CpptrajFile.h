@@ -7,6 +7,8 @@ class CpptrajFile : public BasicFile {
     CpptrajFile();
     CpptrajFile(int);
     ~CpptrajFile();
+    CpptrajFile(const CpptrajFile&);
+    CpptrajFile &operator=(const CpptrajFile &);
     // ----- IO Routines -------------------------
     int Gets(char* buf, int num)           { return IO()->Gets(buf, num);  }
     int Write(const void* buf, size_t num) { return IO()->Write(buf, num); }

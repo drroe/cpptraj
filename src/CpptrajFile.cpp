@@ -13,6 +13,28 @@ CpptrajFile::~CpptrajFile() {
   if (linebuffer_ != 0) delete[] linebuffer_;
 }
 
+/** Copy constructor. Copies closed. */
+CpptrajFile::CpptrajFile(CpptrajFile const& rhs) :
+  BasicFile(rhs),
+  BUF_SIZE_(rhs.BUF_SIZE_),
+  linebuffer_(0)
+{
+  if (BUF_SIZE_ > 0)
+    linebuffer_ = new char[ BUF_SIZE_ ];
+}
+
+/** Assignment. Assigns closed. */
+CpptrajFile& CpptrajFile::operator=(CpptrajFile const& rhs) {
+  if (this != &rhs) {
+    if (linebuffer_ != 0) delete linebuffer_;
+    BasicFile::operator=(rhs);
+    BUF_SIZE_ = rhs.BUF_SIZE_;
+    if (BUF_SIZE_ > 0)
+      linebuffer_ = new char[ BUF_SIZE_ ];
+  }
+  return *this;
+}
+
 // -----------------------------------------------------------------------------
 // TODO check if file is open?
 // CpptrajFile::Printf()
