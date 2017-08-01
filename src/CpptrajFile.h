@@ -26,7 +26,6 @@ class CpptrajFile : public BasicFile {
   private:
     // -------------------------------------------
     int InternalSetup();
-    int InternalOpen();
     // -------------------------------------------
     void SetupBuffer(unsigned int);
 

@@ -23,8 +23,6 @@ class BasicFile : public File::Base {
   protected:
     /// Set up basic file IO and determine file characteristics.
     int BasicSetup();
-    /// Open IO interface
-    int OpenIO();
     /// \return pointer to basic file IO interface
     FileIO* IO() { return IO_; }
   private:
@@ -33,6 +31,11 @@ class BasicFile : public File::Base {
     // -------------------------------------------
     /// Close IO_ interface
     void InternalClose();
+    /// Open IO_ interface
+    int InternalOpen() { return OpenIO(); }
+    /// Open IO interface
+    int OpenIO();
+
     // -------------------------------------------
     /// Set up IO_ interface
     int SetupFileIO( FileType );

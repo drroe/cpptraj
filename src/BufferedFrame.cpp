@@ -78,9 +78,8 @@ size_t BufferedFrame::CalcFrameSize( int Nelts ) const {
   int frame_lines = Nelts / Ncols_;
   if ((Nelts % Ncols_) > 0) 
     ++frame_lines;
-  bool readingFile = (Access() == CpptrajFile::READ);
   // If Reading and DOS, CR present for each newline
-  if (readingFile && IsDos()) frame_lines *= 2;
+  if ((Access() == File::READ) && IsDos()) frame_lines *= 2;
   // Calculate total frame size
   size_t fsize = (((size_t)Nelts * eltWidth_) + frame_lines);
   return fsize;
@@ -106,14 +105,14 @@ size_t BufferedFrame::ResizeBuffer(int delta) {
 }
 
 int BufferedFrame::SeekToFrame(size_t set) {
-  return Seek( (off_t)((set * frameSize_) + offset_) );
+  return IO()->Seek( (off_t)((set * frameSize_) + offset_) );
 }
 
 /** Attempt to read in the next frameSize_ bytes.
   * \return the actual number of bytes read.
   */
 int BufferedFrame::AttemptReadFrame() {
-  return Read( buffer_, frameSize_ );
+  return IO()->Read( buffer_, frameSize_ );
 }
 
 /** Read the next frameSize_ bytes.
@@ -121,7 +120,7 @@ int BufferedFrame::AttemptReadFrame() {
   * \return false if read was successful.
   */
 bool BufferedFrame::ReadFrame() {
-  return ( Read( buffer_, frameSize_ ) != (int)frameSize_ );
+  return ( IO()->Read( buffer_, frameSize_ ) != (int)frameSize_ );
   /*int nread = Read(buffer_, frameSize_);
   if (nread != (int)frameSize_) {
     mprinterr("Error: Read %i bytes, expected %zu\n", nread, frameSize_);
@@ -131,7 +130,7 @@ bool BufferedFrame::ReadFrame() {
 }
 
 int BufferedFrame::WriteFrame() {
-  return Write( buffer_, (size_t)(bufferPosition_ - buffer_) );
+  return IO()->Write( buffer_, (size_t)(bufferPosition_ - buffer_) );
 }
 
 void BufferedFrame::GetDoubleAtPosition(double& val, size_t start, size_t end) {

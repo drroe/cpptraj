@@ -33,14 +33,11 @@ int BufferedLine::InternalSetup() {
   endBuffer_ = buffer_ + currentBufSize_; // Point to 1 past end of buffer.
   lineEnd_ = endBuffer_;                  // Indicates buffer needs to be filled.
   nline_ = 0;
+  return 0;
 }
 
-/** NOTE: This will be called after InternalSetup() via the Open()
-  *       call in OpenFileRead().
-  */
-int BufferedLine::InternalOpen() { return OpenIO(); }
-
 // BufferedLine::Line()
+// TODO: Fix for DOS files
 const char* BufferedLine::Line() {
   bufferPosition_ = lineEnd_;
   //mprintf("DEBUG: currentBufSize= %zu  buffer= %x  bufferPosition= %x"

@@ -1,9 +1,9 @@
 #ifndef INC_BUFFEREDFRAME_H
 #define INC_BUFFEREDFRAME_H
-#include "CpptrajFile.h"
+#include "BasicFile.h"
 #include "TextFormat.h"
 /// Used to buffer text files that will be read in chunks
-class BufferedFrame : public CpptrajFile {
+class BufferedFrame : public BasicFile {
   public:
     BufferedFrame();
     ~BufferedFrame();
@@ -38,6 +38,10 @@ class BufferedFrame : public CpptrajFile {
     /// \return Total output file size for given number of frames.
     size_t OutputFileSize(unsigned int n) const { return offset_ + (frameSize_ * n); }
   private:
+    int InternalSetup() {
+      if (BasicSetup() < 0) return 1;
+      return 0;
+    }
     size_t CalcFrameSize(int) const;
     inline void AdvanceCol();
 

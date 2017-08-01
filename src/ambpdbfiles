@@ -3,6 +3,7 @@ AMBPDBSOURCES=AmbPDB.cpp \
               ArgList.cpp \
               Atom.cpp \
               AtomMask.cpp \
+              BasicFile.cpp \
               BondSearch.cpp \
               Box.cpp \
               BufferedFrame.cpp \
@@ -14,10 +15,10 @@ AMBPDBSOURCES=AmbPDB.cpp \
               CpptrajFile.cpp \
               CpptrajStdio.cpp \
               DistRoutines.cpp \
+              File.cpp \
               FileIO_Bzip2.cpp \
               FileIO_Gzip.cpp \
               FileIO_Std.cpp \
-              FileName.cpp \
               FileTypes.cpp \
               Frame.cpp \
               InputTrajCommon.cpp \

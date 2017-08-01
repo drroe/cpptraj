@@ -30,8 +30,6 @@ class BufferedLine : private BasicFile {
     using Base::Close;
     using Base::SetDebug;
   private:
-    // Open basic file IO
-    int InternalOpen();
     /// Basic file IO setup. Clean and reallocate buffer for currentBufSize_.
     int InternalSetup();
     /// Default initial buffer size.

@@ -79,7 +79,3 @@ int CpptrajFile::InternalSetup() {
   mprintf("\t  BUF_SIZE_ = %u\n", BUF_SIZE_);
   return 0;
 }
-
-int CpptrajFile::InternalOpen() {
-  return OpenIO();
-}
