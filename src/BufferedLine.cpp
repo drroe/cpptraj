@@ -17,17 +17,6 @@ BufferedLine::~BufferedLine() {
   if (buffer_!=0) delete[] buffer_;
 }
 
-// BufferedLine::ResetBuffer()
-int BufferedLine::ResetBuffer() {
-  if (buffer_!=0) delete[] buffer_;
-  buffer_ = new char[ currentBufSize_ ];
-  bufferPosition_ = buffer_;              // Point to beginning of buffer.
-  endBuffer_ = buffer_ + currentBufSize_; // Point to 1 past end of buffer.
-  lineEnd_ = endBuffer_;                  // Indicates buffer needs to be filled.
-  nline_ = 0;
-  return 0;
-} 
-
 // BufferedLine::OpenFileRead()
 int BufferedLine::OpenFileRead( File::Name const& fname ) {
   return Open( fname, File::READ );
@@ -38,10 +27,17 @@ int BufferedLine::InternalSetup() {
   int firstLineSize = BasicSetup();
   if (firstLineSize < 0) return 1;
   currentBufSize_ = std::max( currentBufSize_, (size_t)firstLineSize );
-  ResetBuffer();
+  if (buffer_!=0) delete[] buffer_;
+  buffer_ = new char[ currentBufSize_ ];
+  bufferPosition_ = buffer_;              // Point to beginning of buffer.
+  endBuffer_ = buffer_ + currentBufSize_; // Point to 1 past end of buffer.
+  lineEnd_ = endBuffer_;                  // Indicates buffer needs to be filled.
+  nline_ = 0;
 }
 
-/** NOTE: This will be called via the Open() call in OpenFileRead(). */
+/** NOTE: This will be called after InternalSetup() via the Open()
+  *       call in OpenFileRead().
+  */
 int BufferedLine::InternalOpen() { return OpenIO(); }
 
 // BufferedLine::Line()

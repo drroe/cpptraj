@@ -32,10 +32,8 @@ class BufferedLine : private BasicFile {
   private:
     // Open basic file IO
     int InternalOpen();
-    /// Basic file IO and buffer setup
+    /// Basic file IO setup. Clean and reallocate buffer for currentBufSize_.
     int InternalSetup();
-    /// Clear and re-allocate buffer for currentBufSize_
-    int ResetBuffer();
     /// Default initial buffer size.
     static const size_t DEFAULT_BUFFERSIZE = 16384;
 
