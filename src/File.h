@@ -95,9 +95,9 @@ class File::Base {
   protected:
     /// File-specific setup, called by Setup()
     virtual int InternalSetup() = 0;
-    /// File-specific open
+    /// File-specific open, called by Open()
     virtual int InternalOpen() = 0;
-    /// File-specific close
+    /// File-specific close, called by Close()
     virtual void InternalClose() = 0;
   private:
     static const char* AccessTypeName_[];
