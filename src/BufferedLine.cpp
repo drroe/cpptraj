@@ -28,10 +28,26 @@ int BufferedLine::ResetBuffer() {
   return 0;
 } 
 
+// BufferedLine::OpenFileRead()
+int BufferedLine::OpenFileRead( File::Name const& fname ) {
+  return Open( fname, File::READ );
+}
+
+/** NOTE: This will be called via the Open() call in OpenFileRead(). */
+int BufferedLine::InternalSetup() {
+  int firstLineSize = BasicSetup();
+  if (firstLineSize < 0) return 1;
+  currentBufSize_ = std::max( currentBufSize_, (size_t)firstLineSize );
+  ResetBuffer();
+}
+
+/** NOTE: This will be called via the Open() call in OpenFileRead(). */
+int BufferedLine::InternalOpen() { return OpenIO(); }
+
 // BufferedLine::Line()
 const char* BufferedLine::Line() {
   bufferPosition_ = lineEnd_;
-  //mprintf("DEBUG: currentBufSize= %zu  buffer= %zu  bufferPosition= %zu"
+  //mprintf("DEBUG: currentBufSize= %zu  buffer= %x  bufferPosition= %x"
   //        "  lineEnd= %zu  endBuffer= %zu\n",
   //        currentBufSize_, buffer_, bufferPosition_ - buffer_, 
   //        lineEnd_ - buffer_, endBuffer_ - buffer_);
@@ -44,7 +60,7 @@ const char* BufferedLine::Line() {
       //mprintf("DEBUG: bufferRemainder %zu\n", bufferRemainder);
       if (bufferRemainder == currentBufSize_) break;
       std::copy(bufferPosition_, bufferPosition_ + bufferRemainder, buffer_);
-      int Nread = Read(buffer_ + bufferRemainder, currentBufSize_ - bufferRemainder);
+      int Nread = IO()->Read(buffer_ + bufferRemainder, currentBufSize_ - bufferRemainder);
       //mprintf("DEBUG: Attempted read of %zu bytes, actually read %i bytes.\n",
       //        currentBufSize_ - bufferRemainder, Nread);
       if (Nread < 1) return 0;
@@ -72,7 +88,7 @@ const char* BufferedLine::Line() {
     buffer_ = new_buffer;
     //mprintf("DEBUG: Buffer has been reallocated: new size %zu\n", new_buf_size);
     // Try to fill the remainder of the new buffer.
-    int Nread = Read(buffer_ + currentBufSize_, new_buf_size - currentBufSize_);
+    int Nread = IO()->Read(buffer_ + currentBufSize_, new_buf_size - currentBufSize_);
     //mprintf("DEBUG: Attempted additional read of %zu bytes, actually read %i bytes.\n",
     //        new_buf_size - currentBufSize_, Nread);
     if (Nread < 1) {

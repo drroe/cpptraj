@@ -1,13 +1,13 @@
 #ifndef INC_BUFFEREDLINE_H
 #define INC_BUFFEREDLINE_H
 #include <vector>
-#include "CpptrajFile.h"
+#include "BasicFile.h"
 /// Used to buffer text files that will be read line-by-line
-class BufferedLine : private CpptrajFile {
+class BufferedLine : private BasicFile {
   public:
     BufferedLine();
     ~BufferedLine();
-    /// Get the next line in the buffer.
+    /// \return pointer to next line in the buffer.
     const char* Line();
     /// Convert current line into tokens
     int TokenizeLine(const char*);
@@ -16,20 +16,27 @@ class BufferedLine : private CpptrajFile {
     /// \return specified token, not null-delimited.
     inline const char* Token(int);
     /// Open file for reading, set up buffer.
-    int OpenFileRead( FileName const& fname ) {
-      if ( OpenRead( fname ) ) return 1;
-      return ResetBuffer();
-    }
+    int OpenFileRead( File::Name const& fname );
+    /// \return current line number
     int LineNumber()          const { return nline_;          }
+    /// \return pointer to buffer
     const char* Buffer()      const { return buffer_;         }
     /// \return Pointer to current buffer position.
     const char* CurrentLine() const { return bufferPosition_; }
+    /// \return Next line as string.
     inline std::string GetLine();
-    // Members of CpptrajFile that should be public
-    using CpptrajFile::Filename;
-    using CpptrajFile::CloseFile;
+    // Members of Base that should be public
+    using Base::Filename;
+    using Base::Close;
+    using Base::SetDebug;
   private:
+    // Open basic file IO
+    int InternalOpen();
+    /// Basic file IO and buffer setup
+    int InternalSetup();
+    /// Clear and re-allocate buffer for currentBufSize_
     int ResetBuffer();
+    /// Default initial buffer size.
     static const size_t DEFAULT_BUFFERSIZE = 16384;
 
     size_t currentBufSize_; ///< Current size of buffer.
