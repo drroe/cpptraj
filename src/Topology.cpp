@@ -20,7 +20,7 @@ Topology::Topology() :
 { }
 
 // Topology::SetParmName()
-void Topology::SetParmName(std::string const& title, FileName const& filename) {
+void Topology::SetParmName(std::string const& title, File::Name const& filename) {
   parmName_ = title;
   fileName_ = filename;
 }

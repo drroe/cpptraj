@@ -9,7 +9,7 @@
 #include "AtomMask.h"
 #include "CharMask.h"
 #include "Frame.h"
-#include "FileName.h"
+#include "File.h"
 #include "Range.h"
 /// Hold information for all atoms
 class Topology {
@@ -22,7 +22,7 @@ class Topology {
     void SetIpol(int iIn)                    { ipol_ = iIn;                  }
     void SetPindex(int pIn)                  { pindex_ = pIn;                }
     void SetGBradiiSet(std::string const& s) { radius_set_ = s;              }
-    void SetParmName(std::string const&, FileName const&);
+    void SetParmName(std::string const&, File::Name const&);
     void SetDistMaskRef( Frame const& );
     /// Set value of NATYP from Amber Topology. Only needed for Amber.
     void SetNatyp(int n)                     { n_atom_types_ = n;            }
@@ -36,7 +36,7 @@ class Topology {
     int NextraPts()                const { return n_extra_pts_;           }
     inline int NatomTypes()        const { return n_atom_types_;          }
     std::string const& ParmName()         const { return parmName_;       }
-    FileName const& OriginalFilename()    const { return fileName_;       }
+    File::Name const& OriginalFilename()  const { return fileName_;       }
     std::string const& GBradiiSet()       const { return radius_set_;     }
     const char *c_str() const; //FIXME rename
     // ---- Atom-specific routines ---------------
@@ -202,7 +202,7 @@ class Topology {
     std::vector<Residue> residues_;
     std::vector<Molecule> molecules_;
     // NOTE: Filename is stored to enable things like 'strip outprefix'
-    FileName fileName_; 
+    File::Name fileName_; 
     std::string parmName_;
     std::string radius_set_;
 
