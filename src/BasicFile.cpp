@@ -32,6 +32,30 @@ BasicFile::~BasicFile() {
   Reset();
 }
 
+/** Copy constructor. Always copy file closed. Allocate IO if necessary. */
+BasicFile::BasicFile(BasicFile const& rhs) :
+  Base(rhs),
+  IO_(0),
+  isDos_(rhs.isDos_),
+  uncompressed_size_(rhs.uncompressed_size_)
+{
+  if (rhs.IO_ != 0)
+    SetupFileIO( rhs.fileType_ );
+}
+
+/** Assignment. Always assign closed. */
+BasicFile& BasicFile::operator=(BasicFile const& rhs) {
+  if (this != &rhs) {
+    Reset();
+    Base::operator=(rhs);
+    isDos_ = rhs.isDos_;
+    uncompressed_size_ = rhs.uncompressed_size_;
+    if (rhs.IO_ != 0)
+      SetupFileIO( rhs.fileType_ );
+  }
+  return *this;
+}
+    
 const char* BasicFile::FileTypeName_[] = {
   "UNKNOWN_TYPE", "STANDARD", "GZIPFILE", "BZIP2FILE", "ZIPFILE", "MPIFILE"
 };

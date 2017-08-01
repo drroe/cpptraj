@@ -190,6 +190,29 @@ File::Base::Base(int d) :
   isStream_(false)
 {}
 
+/** Copy constructor. Always copy closed. */
+File::Base::Base(Base const& rhs) :
+  file_size_(rhs.file_size_),
+  debug_(rhs.debug_),
+  access_(rhs.access_),
+  compressType_(rhs.compressType_),
+  isOpen_(false),
+  isStream_(rhs.isStream_)
+{}
+
+/** Assignment. Always assign closed. */
+File::Base& File::Base::operator=(Base const& rhs) {
+  if (this != &rhs) {
+    file_size_ = rhs.file_size_;
+    debug_ = rhs.debug_;
+    access_ = rhs.access_;
+    compressType_ = rhs.compressType_;
+    isOpen_ = false;
+    isStream_ = rhs.isStream_;
+  }
+  return *this;
+}
+
 const char* File::Base::AccessTypeName_[] = {
     "read", "write", "append", "update"
 };

@@ -73,6 +73,8 @@ class File::Base {
     Base();
     Base(int);
     virtual ~Base() {} // Virtual since class is inherited
+    Base(Base const&);
+    Base& operator=(Base const&);
     Name const& Filename()     const { return fname_;        }
     unsigned int Size()        const { return file_size_;    }
     int Debug()                const { return debug_;        }
