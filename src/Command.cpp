@@ -36,6 +36,7 @@
 // ----- TRAJECTORY ------------------------------------------------------------
 #include "Exec_Traj.h"
 // ----- TOPOLOGY --------------------------------------------------------------
+#include "Exec_Change.h"
 #include "Exec_CompareTop.h"
 #include "Exec_ParmBox.h"
 #include "Exec_ParmSolvent.h"
@@ -124,6 +125,8 @@
 #include "Action_Align.h"
 #include "Action_Remap.h"
 #include "Action_HydrogenBond.h"
+#include "Action_FixImagedBonds.h"
+#include "Action_LipidOrder.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -224,6 +227,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_AngleInfo(),     Cmd::EXE, 3, "angles", "angleinfo", "printangles" );
   Command::AddCmd( new Exec_AtomInfo(),      Cmd::EXE, 3, "atoms", "atominfo", "printatoms" );
   Command::AddCmd( new Exec_BondInfo(),      Cmd::EXE, 3, "bonds", "bondinfo", "printbonds" );
+  Command::AddCmd( new Exec_Change(),        Cmd::EXE, 1, "change" );
   Command::AddCmd( new Exec_ChargeInfo(),    Cmd::EXE, 1, "charge" );
   Command::AddCmd( new Exec_CompareTop(),    Cmd::EXE, 1, "comparetop" );
   Command::AddCmd( new Exec_DihedralInfo(),Cmd::EXE, 3,"dihedrals","dihedralinfo","printdihedrals");
@@ -269,6 +273,7 @@ void Command::Init() {
   Command::AddCmd( new Action_Esander(),       Cmd::ACT, 1, "esander" );
   Command::AddCmd( new Action_FilterByData(),  Cmd::ACT, 1, "filter" );
   Command::AddCmd( new Action_FixAtomOrder(),  Cmd::ACT, 1, "fixatomorder" );
+  Command::AddCmd( new Action_FixImagedBonds(),Cmd::ACT, 1, "fiximagedbonds" );
   Command::AddCmd( new Action_GIST(),          Cmd::ACT, 1, "gist" );
   Command::AddCmd( new Action_GridFreeEnergy(),Cmd::ACT, 1, "gfe" ); // HIDDEN
   Command::AddCmd( new Action_Grid(),          Cmd::ACT, 1, "grid" );
@@ -278,6 +283,7 @@ void Command::Init() {
   Command::AddCmd( new Action_LESsplit(),      Cmd::ACT, 1, "lessplit" );
   Command::AddCmd( new Action_LIE(),           Cmd::ACT, 1, "lie" );
   Command::AddCmd( new Action_OrderParameter(),Cmd::ACT, 1, "lipidorder" );
+  Command::AddCmd( new Action_LipidOrder(),    Cmd::ACT, 1, "lipidscd" );
   Command::AddCmd( new Action_MakeStructure(), Cmd::ACT, 1, "makestructure" );
   Command::AddCmd( new Action_Mask(),          Cmd::ACT, 1, "mask" );
   Command::AddCmd( new Action_Matrix(),        Cmd::ACT, 1, "matrix" );

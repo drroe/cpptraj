@@ -16,8 +16,5 @@ class Action_Volume: public Action {
 
     ImagedAction image_;
     DataSet *vol_;
-    double sum_;
-    double sum2_;
-    int nframes_; 
 };
 #endif

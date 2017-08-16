@@ -33,7 +33,7 @@ void Action_Pairwise::Help() const {
           "  If 'eout' is specified individual interaction energies will be written to\n"
           "  <eout file>. If a reference structure is given the energies will be\n"
           "  Eref - Eframe. Only energies with absolute value greater than <ecut> and\n"
-          "  <vcut> will be printed.\n"
+          "  <vcut> (by default 1.0 kcal/mol) will be printed.\n"
           "  printmode only : Only print energy cutoff is satisfied.\n"
           "            or   : Print both energies if either cutoff is satisfied.\n"
           "            and  : Print both energies if both cutoffs are satisfied.\n");
@@ -143,8 +143,8 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int
             ref_nonbondEnergy_.size(),
             ByteString(ref_nonbondEnergy_.size() * 2 * sizeof(double), BYTE_DECIMAL).c_str());
   }
-  mprintf("\tEelec absolute cutoff (kcal/mol): %.4f\n", cut_eelec_);
-  mprintf("\tEvdw absolute cutoff (kcal/mol) : %.4f\n", cut_evdw_);
+  mprintf("\tEelec print absolute cutoff (kcal/mol): %.4f\n", cut_eelec_);
+  mprintf("\tEvdw print absolute cutoff (kcal/mol) : %.4f\n", cut_evdw_);
   if (!mol2Prefix_.empty())
     mprintf("\tAtoms satisfying cutoff will be printed to %s.e<type>.mol2\n",
             mol2Prefix_.c_str());
@@ -172,6 +172,8 @@ int Action_Pairwise::SetupNonbondParm(AtomMask const& maskIn, Topology const& Pa
   for (AtomMask::const_iterator at0 = maskIn.begin(); at0 != maskIn.end(); ++at0) {
     Atom::excluded_iterator ex = ParmIn[*at0].excludedbegin();
     for (AtomMask::const_iterator at1 = at0 + 1; at1 != maskIn.end(); ++at1) {
+      // Advance excluded list up to current selected atom
+      while (ex != ParmIn[*at0].excludedend() && *ex < *at1) ++ex;
       if (ex != ParmIn[*at0].excludedend() && *at1 == *ex)
         // Atom 1 is excluded from Atom0; just increment to next excluded atom.
         ++ex;
@@ -301,6 +303,9 @@ void Action_Pairwise::NonbondEnergy(Frame const& frameIn, Topology const& parmIn
     for (int idx2 = idx1 + 1; idx2 != maskIn.Nselected(); idx2++)
     {
       int maskatom2 = maskIn[idx2];
+      // Advance excluded list up to current selected atom
+      while (excluded_atom != parmIn[maskatom1].excludedend() && *excluded_atom < maskatom2)
+        ++excluded_atom;
       // If atom is excluded, just increment to next excluded atom;
       // otherwise perform energy calc.
       if ( excluded_atom != parmIn[maskatom1].excludedend() && maskatom2 == *excluded_atom )

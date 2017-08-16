@@ -334,6 +334,7 @@ NA_Base::NA_Base() :
   rnum_(0),
   c3idx_(-1),
   c5idx_(-1),
+  strandNum_(-1),
   bchar_('?'),
   type_(UNKNOWN_BASE)
 {
@@ -346,6 +347,7 @@ NA_Base::NA_Base(const NA_Base& rhs) :
   rnum_(rhs.rnum_),
   c3idx_(rhs.c3idx_),
   c5idx_(rhs.c5idx_),
+  strandNum_(rhs.strandNum_),
   bchar_(rhs.bchar_),
   type_(rhs.type_),
   Ref_(rhs.Ref_),
@@ -371,6 +373,7 @@ NA_Base& NA_Base::operator=(const NA_Base& rhs) {
     rnum_ = rhs.rnum_;
     c3idx_ = rhs.c3idx_;
     c5idx_ = rhs.c5idx_;
+    strandNum_ = rhs.strandNum_;
     bchar_ = rhs.bchar_;
     type_ = rhs.type_;
     Ref_ = rhs.Ref_;
@@ -505,6 +508,7 @@ int NA_Base::Setup_Base(RefBase const& REF, Residue const& RES, int resnum,
       rnum_ = resnum;
       c3idx_ = -1;
       c5idx_ = -1;
+      strandNum_ = -1;
       bchar_ = REF.BaseChar();
 #     ifdef NASTRUCTDEBUG
       rname_ = RES.Name();
@@ -534,8 +538,19 @@ int NA_Base::Setup_Base(RefBase const& REF, Residue const& RES, int resnum,
     md.SetLegend( basename_ );
     md.SetScalarType( MetaData::PUCKER );
     md.SetScalarMode( MetaData::M_PUCKER );
-    pucker_ = (DataSet_1D*)masterDSL.AddSet(DataSet::FLOAT, md);
-    if (pucker_ == 0) return 1;
+    // Check if pucker data set is already present
+    DataSet* ds = masterDSL.CheckForSet( md );
+    if (ds == 0) {
+      pucker_ = (DataSet_1D*)masterDSL.AddSet(DataSet::FLOAT, md);
+      if (pucker_ == 0) return 1;
+    } else {
+      // Check that it is the correct type.
+      if (ds->Type() != DataSet::FLOAT) {
+        mprinterr("Error: Set '%s' already present but is not FLOAT.\n", ds->legend());
+        return 1;
+      }
+      pucker_ = (DataSet_1D*)ds;
+    }
   } else
     pucker_ = 0;
   return 0;

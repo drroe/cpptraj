@@ -6,6 +6,7 @@
 // EnsembleIn_Multi::SetupEnsembleRead()
 int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn, Topology *tparmIn)
 {
+  REMDtraj_.SetDebug(debug_);
   // Set file name and topology pointer.
   if (SetTraj().SetNameAndParm(tnameIn, tparmIn)) return 1;
   REMDtraj_.ClearIOarray();
@@ -72,8 +73,9 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
         mprinterr("Error: Could not read remlog data.\n");
         return 1;
       }
-      if (remlogFile.Type() != DataFile::REMLOG) {
-        mprinterr("Error: remlog: File was not of type remlog.\n");
+      if (tempDSL[0]->Type() != DataSet::REMLOG)
+      {
+        mprinterr("Error: remlog: File did not contain replica log data.\n");
         return 1;
       }
       if ( REMDtraj_.size() != tempDSL[0]->Size() ) {
@@ -218,7 +220,7 @@ int EnsembleIn_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
     else if (targetType_ == ReplicaInfo::CRDIDX) {
       int currentRemExchange = (int)((double)currentFrame * remdFrameFactor_) + remdFrameOffset_;
       //mprintf("DEBUG:\tTrajFrame#=%i  RemdExch#=%i\n", currentFrame+1, currentRemExchange+1);
-      fidx = remlogData_.RepFrame( currentRemExchange, repIdx++ ).CoordsIdx() - 1;
+      fidx = remlogData_.RepFrame(currentRemExchange, repIdx++).CoordsIdx() - remlogData_.Offset();
       //mprintf("DEBUG:\tFrame %i\tPosition %u is assigned index %i\n", currentFrame, member, fidx);
     }
 #   ifndef MPI
@@ -340,10 +342,10 @@ void EnsembleIn_Multi::EnsembleInfo(int showExtended) const {
 std::string EnsembleIn_Multi::FinalCrdIndices() const {
   if (remlogData_.Empty()) return std::string();
   std::string arg("crdidx ");
-  int finalExchg = remlogData_.NumExchange() - 1;
+  DataSet_RemLog::IdxArray rst = remlogData_.CrdIndicesArg();
   for (unsigned int rep = 0; rep < remlogData_.Size(); rep++) {
     if (rep > 0) arg += ",";
-    arg += ( integerToString( remlogData_.RepFrame(finalExchg, rep).CoordsIdx() ) );
+    arg += integerToString( rst[rep] );
   }
   return arg;
 }

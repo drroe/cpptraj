@@ -103,6 +103,7 @@ test.cluster:
 	@-cd Test_Cluster_Kmeans && ./RunTest.sh $(OPT)
 	@-cd Test_Cluster_SymmRMSD && ./RunTest.sh $(OPT)
 	@-cd Test_Cluster_TrajWrites && ./RunTest.sh $(OPT)
+	@-cd Test_Cluster_Dpeaks && ./RunTest.sh $(OPT)
 
 test.ired:
 	@-cd Test_IRED && ./RunTest.sh $(OPT)
@@ -184,6 +185,7 @@ test.density:
 
 test.lipidorder:
 	@-cd Test_LipidOrder && ./RunTest.sh $(OPT)
+	@-cd Test_LipidSCD && ./RunTest.sh $(OPT)
 
 test.pairdist:
 	@-cd Test_PairDist && ./RunTest.sh $(OPT)
@@ -350,6 +352,21 @@ test.ewald:
 test.ti:
 	@-cd Test_TI && ./RunTest.sh $(OPT)
 
+test.fiximagedbonds:
+	@-cd Test_FixImagedBonds && ./RunTest.sh $(OPT)
+
+test.distance:
+	@-cd Test_Distance && ./RunTest.sh $(OPT)
+
+test.volume:
+	@-cd Test_Volume && ./RunTest.sh $(OPT)
+
+test.setvelocity:
+	@-cd Test_SetVelocity && ./RunTest.sh $(OPT)
+
+test.remlog:
+	@-cd Test_Remlog && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -437,7 +454,12 @@ SHORT_TESTS=test.general \
           test.filter \
           test.combinecrd \
           test.topinfo \
-          test.ti
+          test.ti \
+          test.fiximagedbonds \
+          test.distance \
+          test.volume \
+          test.setvelocity \
+          test.remlog
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -551,7 +573,12 @@ COMPLETETESTS=test.general \
               test.topinfo \
               test.gromacs \
               test.ewald \
-              test.ti
+              test.ti \
+              test.fiximagedbonds \
+              test.distance \
+              test.volume \
+              test.setvelocity \
+              test.remlog
 
 test: test.all 
 

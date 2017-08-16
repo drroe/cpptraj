@@ -124,7 +124,7 @@ Range Topology::SoluteResidues() const {
 /** Given an atom number, return a string containing the corresponding 
   * residue name and number (starting from 1) along with the atom name 
   * with format: 
-  * "<resname><resnum>@<atomname>", e.g. "ARG_11@CA".
+  * "<resname>_<resnum>@<atomname>", e.g. "ARG_11@CA".
   * Truncate the residue and atom names so there are no blanks.
   */
 std::string Topology::TruncResAtomName(int atom) const {
@@ -142,6 +142,17 @@ std::string Topology::TruncResAtomName(int atom) const {
   res_name += "@";
   res_name += atom_name;
   return res_name;
+}
+
+// Topology::TruncResAtomNameNum()
+/** Given an atom number, return a string containing the corresponding 
+  * residue name and number (starting from 1) along with the atom name 
+  * and number with format: 
+  * "<resname>_<resnum>@<atomname>_<atomnum>", e.g. "ARG_11@CA_256".
+  * Truncate the residue and atom names so there are no blanks.
+  */
+std::string Topology::TruncResAtomNameNum(int atom) const {
+  return TruncResAtomName(atom) + "_" + integerToString(atom+1);
 }
 
 // Topology::AtomMaskName()
@@ -254,8 +265,10 @@ void Topology::Brief(const char* heading) const {
 int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)
 {
   // If no residues or res num has changed, this is a new residue.
+  // TODO check chain ID?
   if ( residues_.empty() || 
        residues_.back().OriginalResNum() != resIn.OriginalResNum() ||
+       residues_.back().SegID() != resIn.SegID() ||
        residues_.back().Icode() != resIn.Icode() )
   {
     // Last atom of old residue is == current # atoms.
@@ -317,12 +330,14 @@ int Topology::CommonSetup(bool molsearch) {
         int m1_resnum = atoms_[    mol->BeginAtom()].ResNum();
         if (m0_resnum == m1_resnum) {
           mols_share_residues = true;
+          unsigned int molnum = mol - molecules_.begin();
+          mprintf("Warning: 2 or more molecules (%u and %u) share residue numbers (%i).\n",
+                  molnum, molnum+1, m0_resnum+1);
           break;
         }
       }
     }
     if (mols_share_residues) {
-      mprintf("Warning: 2 or more molecules share residue numbers.\n");
       //if (bondsearch)
         mprintf("Warning:   Either residue information is incorrect or molecule determination"
                 " was inaccurate.\n");
@@ -1221,15 +1236,19 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   // Set up new angle info
   newParm->angles_ = StripAngleArray( angles_, atomMap );
   newParm->anglesh_ = StripAngleArray( anglesh_, atomMap );
-  parmMap.assign( angleparm_.size(), -1 );
-  StripAngleParmArray( newParm->angles_,  parmMap, newParm->angleparm_ );
-  StripAngleParmArray( newParm->anglesh_, parmMap, newParm->angleparm_ );
+  if (!angleparm_.empty()) {
+    parmMap.assign( angleparm_.size(), -1 );
+    StripAngleParmArray( newParm->angles_,  parmMap, newParm->angleparm_ );
+    StripAngleParmArray( newParm->anglesh_, parmMap, newParm->angleparm_ );
+  }
   // Set up new dihedral info
   newParm->dihedrals_ = StripDihedralArray( dihedrals_, atomMap );
   newParm->dihedralsh_ = StripDihedralArray( dihedralsh_, atomMap );
-  parmMap.assign( dihedralparm_.size(), -1 );
-  StripDihedralParmArray( newParm->dihedrals_,  parmMap, newParm->dihedralparm_ );
-  StripDihedralParmArray( newParm->dihedralsh_, parmMap, newParm->dihedralparm_ );
+  if (!dihedralparm_.empty()) {
+    parmMap.assign( dihedralparm_.size(), -1 );
+    StripDihedralParmArray( newParm->dihedrals_,  parmMap, newParm->dihedralparm_ );
+    StripDihedralParmArray( newParm->dihedralsh_, parmMap, newParm->dihedralparm_ );
+  }
   // Set up nonbond info. First determine which atom types remain.
   if (nonbond_.HasNonbond()) {
     parmMap.clear();               // parmMap[oldtype]      = newtype

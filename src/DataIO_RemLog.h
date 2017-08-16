@@ -4,7 +4,7 @@
 #include "DataIO.h"
 #include "BufferedLine.h"
 #include "DataSet_RemLog.h"
-/// Read replica exchange log data.
+/// Read Amber replica exchange log data.
 class DataIO_RemLog : public DataIO {
   public:
     DataIO_RemLog();
@@ -21,24 +21,22 @@ class DataIO_RemLog : public DataIO {
     static const char* LogDescription[];
     typedef std::vector<std::string> Sarray; // TODO FileName array?
     typedef std::map<double,int> TmapType; // FIXME: Use ReplicaMap
+    typedef DataSet_RemLog::IdxArray IdxArray;
 
     /// Read remlog header
     int ReadRemlogHeader(BufferedLine&, LogType&, unsigned int) const;
     /// Set up groups and dimensions from replica dim file
     int ReadRemdDimFile(FileName const&, DataSet_RemLog::GdimArray&, ReplicaDimArray&);
-    /// Set up groups for single dimension.
-    int SetupDim1Group( int, DataSet_RemLog::GdimArray& );
 
     /// Set up replica temperature map
-    TmapType SetupTemperatureMap(BufferedLine&,std::vector<int>&) const;
+    TmapType SetupTemperatureMap(BufferedLine&, IdxArray&) const;
     /// Set up replica pH map
-    TmapType Setup_pH_Map(BufferedLine&, std::vector<int>&) const;
+    TmapType Setup_pH_Map(BufferedLine&, IdxArray&) const;
     /// Count number of Hamiltonian replicas
     int CountHamiltonianReps(BufferedLine&) const;
 
     /// Open replica logs for all dimensions.
     int OpenMremdDims(std::vector<BufferedLine>&, Sarray const&, LogType);
-    void PrintReplicaStats(DataSet_RemLog const&);
 
     Sarray logFilenames_; ///< Replica log file names.
     std::string dimfile_; ///< remd.dim file name

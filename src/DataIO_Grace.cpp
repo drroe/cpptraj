@@ -83,11 +83,17 @@ int DataIO_Grace::ReadData(FileName const& fname,
 // -----------------------------------------------------------------------------
 void DataIO_Grace::WriteHelp() {
   mprintf("\tinvert: Flip X/Y axes.\n");
+  mprintf("\txydy  : Make consecutive sets into XYDY sets.\n");
 }
 
 // DataIO_Grace::processWriteArgs()
 int DataIO_Grace::processWriteArgs(ArgList &argIn) {
-  isInverted_ = argIn.hasKey("invert");
+  if (argIn.hasKey("invert")) isInverted_ = true;
+  if (argIn.hasKey("xydy")) isXYDY_ = true;
+  if (isInverted_ && isXYDY_) {
+    mprinterr("Error: 'invert' not compatible with 'xydy'\n");
+    return 1;
+  }
   return 0;
 }
 
@@ -98,7 +104,9 @@ int DataIO_Grace::WriteData(FileName const& fname, DataSetList const& SetList)
   // Open output file.
   CpptrajFile file;
   if (file.OpenWrite( fname )) return 1;
-  if (isInverted_)
+  if (isXYDY_)
+    err = WriteDataXYDY(file, SetList);
+  else if (isInverted_)
     err = WriteDataInverted(file, SetList);
   else
     err = WriteDataNormal(file, SetList);
@@ -130,12 +138,61 @@ int DataIO_Grace::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
     file.Printf("@  s%u legend \"%s\"\n@target G0.S%u\n@type xy\n",
                    setnum, (*set)->legend(), setnum );
     // Setup set X coord format.
-    TextFormat xfmt;
-    xfmt.SetCoordFormat( maxFrames, (*set)->Dim(0).Min(), (*set)->Dim(0).Step(), 8, 3 );
+    TextFormat xfmt(XcolFmt());
+    if (XcolPrecSet())
+      xfmt = TextFormat( XcolFmt(), XcolWidth(), XcolPrec() );
+    else
+      xfmt.SetCoordFormat( maxFrames, (*set)->Dim(0).Min(), (*set)->Dim(0).Step(), 8, 3 );
     // Write Data for set
     for (frame[0] = 0; frame[0] < maxFrames; frame[0]++) {
       file.Printf(xfmt.fmt(), (*set)->Coord(0, frame[0]));
       (*set)->WriteBuffer(file, frame);
+      file.Printf("\n");
+    }
+  }
+  return 0;
+}
+
+int DataIO_Grace::WriteDataXYDY(CpptrajFile& file, DataSetList const& Sets) {
+  // Hold all 1D data sets.
+  if (Sets.empty()) return 1;
+  // For this mode need even number of sets
+  unsigned int maxSets = Sets.size();
+  if ((maxSets % 2) != 0) {
+    maxSets = maxSets - 1;
+    mprintf("Warning: XYDY output requires even number of sets.\n");
+    if (maxSets < 1) return 1;
+    mprintf("Warning: Only using the first %zu sets.\n", maxSets);
+  }
+  // Grace header. Use first data set for labels
+  // TODO: DataFile should pass in axis information 
+  file.Printf("@with g0\n@  xaxis label \"%s\"\n@  yaxis label \"%s\"\n"
+              "@  legend 0.2, 0.995\n@  legend char size 0.60\n",
+              Sets[0]->Dim(0).Label().c_str(), "");
+  // Loop over DataSets
+  unsigned int setnum = 0;
+  DataSet::SizeArray frame(1);
+  for (unsigned int sidx = 0; sidx < maxSets; sidx += 2, ++setnum)
+  {
+    DataSet* ds1 = Sets[sidx];
+    DataSet* ds2 = Sets[sidx+1];
+    if (ds1->Size() != ds2->Size())
+      mprintf("Warning: Sets %s and %s have different sizes.\n", ds1->legend(), ds2->legend());
+    size_t maxFrames = std::min(ds1->Size(), ds2->Size());
+    // Set information
+    file.Printf("@  s%u legend \"%s\"\n@target G0.S%u\n@type xydy\n",
+                   setnum, ds1->legend(), setnum );
+    // Setup set X coord format.
+    TextFormat xfmt(XcolFmt());
+    if (XcolPrecSet())
+      xfmt = TextFormat( XcolFmt(), XcolWidth(), XcolPrec() );
+    else
+      xfmt.SetCoordFormat( maxFrames, ds1->Dim(0).Min(), ds1->Dim(0).Step(), 8, 3 );
+    // Write Data for sets
+    for (frame[0] = 0; frame[0] < maxFrames; frame[0]++) {
+      file.Printf(xfmt.fmt(), ds1->Coord(0, frame[0]));
+      ds1->WriteBuffer(file, frame);
+      ds2->WriteBuffer(file, frame);
       file.Printf("\n");
     }
   }
@@ -160,8 +217,11 @@ int DataIO_Grace::WriteDataInverted(CpptrajFile& file, DataSetList const& Sets)
               "", Sets[0]->Dim(0).Label().c_str());
   // Setup set X coord format. 
   Dimension Xdim(0.0, 1.0);
-  TextFormat xfmt;
-  xfmt.SetCoordFormat( Sets.size(), Xdim.Min(), Xdim.Step(), 8, 3 );
+  TextFormat xfmt(XcolFmt());
+  if (XcolPrecSet())
+    xfmt = TextFormat( XcolFmt(), XcolWidth(), XcolPrec() );
+  else
+    xfmt.SetCoordFormat( Sets.size(), Xdim.Min(), Xdim.Step(), 8, 3 );
   // Loop over frames
   DataSet::SizeArray frame(1);
   for (frame[0] = 0; frame[0] < maxFrames; frame[0]++) {

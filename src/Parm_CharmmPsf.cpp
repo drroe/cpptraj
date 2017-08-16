@@ -5,6 +5,7 @@
 #include "Parm_CharmmPsf.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
+#include "Mol.h" // UniqueCount()
 
 bool Parm_CharmmPsf::ID_ParmFormat(CpptrajFile& fileIn) {
   // Assumes already set up
@@ -62,11 +63,14 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   }
   // Read the next natom lines
   int psfresnum = 0;
-  char psfresname[6];
-  char psfname[6];
-  char psftype[6];
+  char psfresname[9];
+  char psfname[9];
+  char psftype[9];
+  char segmentID[9];
   double psfcharge;
   double psfmass;
+  typedef std::vector<std::string> Sarray;
+  Sarray SegIDs;
   for (int atom=0; atom < natom; atom++) {
     if ( (buffer=infile.NextLine()) == 0 ) {
       mprinterr("Error: ReadParmPSF(): Reading atom %i\n",atom+1);
@@ -74,10 +78,22 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
     }
     // Read line
     // ATOM# SEGID RES# RES ATNAME ATTYPE CHRG MASS (REST OF COLUMNS ARE LIKELY FOR CMAP AND CHEQ)
-    sscanf(buffer,"%*i %*s %i %s %s %s %lf %lf",&psfresnum, psfresname, 
+    sscanf(buffer,"%*i %s %i %s %s %s %lf %lf", segmentID, &psfresnum, psfresname, 
            psfname, psftype, &psfcharge, &psfmass);
+    // Search for segment ID
+    int idx = -1;
+    for (int i = 0; i != (int)SegIDs.size(); i++)
+      if (SegIDs[i].compare( segmentID )==0) {
+        idx = i;
+        break;
+      }
+    if (idx == -1) {
+      idx = (int)SegIDs.size();
+      SegIDs.push_back( segmentID );
+      if (debug_>0) mprintf("DEBUG: New segment ID %i '%s'\n", idx, SegIDs.back().c_str());
+    }
     parmOut.AddTopAtom( Atom( psfname, psfcharge, psfmass, psftype), 
-                        Residue( psfresname, psfresnum, ' ', ' ') );
+                        Residue( psfresname, psfresnum, idx) );
   } // END loop over atoms 
   // Advance to <nbond> !NBOND
   int bondatoms[9];
@@ -155,6 +171,14 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   return 0;
 }
 
+static int FindMolType(int molNum, Mol::Marray const& mols) {
+  for (Mol::Marray::const_iterator mol = mols.begin(); mol != mols.end(); ++mol)
+    for (Mol::Iarray::const_iterator it = mol->idxs_.begin();
+                                     it != mol->idxs_.end(); ++it)
+      if (*it == molNum) return (mol - mols.begin());
+  return -1;
+}
+
 int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   // TODO: CMAP etc info
   CpptrajFile outfile;
@@ -168,22 +192,23 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   // Write NATOM section
   outfile.Printf("%8i !NATOM\n", parm.Natom());
   unsigned int idx = 1;
-  // Make fake segment ids for now.
-  char segid[2];
-  segid[0] = 'A';
-  segid[1] = '\0';
-  mprintf("Warning: Assigning single letter segment IDs.\n");
+  // Make segment ids based on molecule type for now.
+  Mol::Marray mols = Mol::UniqueCount(parm);
+  mprintf("Warning: Assigning segment IDs based on molecule type.\n");
   int currentMol = 0;
-  bool inSolvent = false;
+  int currentMtype = FindMolType(currentMol, mols);
+  const char* segid = mols[currentMtype].name_.c_str();
+  Mol::Iarray::const_iterator mit = mols[currentMtype].idxs_.begin();
+//  bool inSolvent = false;
   for (Topology::atom_iterator atom = parm.begin(); atom != parm.end(); ++atom, ++idx) {
     int resnum = atom->ResNum();
     if (atom->MolNum() != currentMol) {
-      if (!inSolvent) {
-        inSolvent = parm.Mol(atom->MolNum()).IsSolvent();
-        currentMol = atom->MolNum();
-        segid[0]++;
-      } else
-        inSolvent = parm.Mol(atom->MolNum()).IsSolvent();
+      currentMol = atom->MolNum();
+      ++mit;
+      if (mit == mols[currentMtype].idxs_.end() || *mit != currentMol) {
+        currentMtype = FindMolType(currentMol, mols);
+        segid = mols[currentMtype].name_.c_str();
+      }
     }
     // TODO: Print type name for xplor-like PSF
     int typeindex = atom->TypeIndex() + 1;

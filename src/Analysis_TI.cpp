@@ -1,4 +1,5 @@
 #include <cmath> // sqrt
+#include <algorithm> // std::min, std::max
 #include "Analysis_TI.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Mesh.h"
@@ -119,6 +120,8 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
     // Single curve
     curve_.push_back( setup.DSL().AddSet(DataSet::XYMESH, md) );
     if (curve_.back() == 0) return Analysis::ERR;
+    curve_.back()->ModifyDim(Dimension::X).SetLabel("Lambda");
+    if (curveout_ != 0) curveout_->AddDataSet( curve_.back() );
     if (outfile != 0) outfile->ProcessArgs("noxcol");
   } else if (avgType_ == SKIP) {
     // As many curves as skip values
@@ -126,6 +129,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
       md.SetIdx( *it );
       DataSet* ds = setup.DSL().AddSet(DataSet::XYMESH, md);
       if (ds == 0) return Analysis::ERR;
+      ds->ModifyDim(Dimension::X).SetLabel("Lambda");
       ds->SetLegend( md.Name() + "_Skip" + integerToString(*it) );
       if (curveout_ != 0) curveout_->AddDataSet( ds );
       curve_.push_back( ds );
@@ -136,6 +140,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
       md.SetIdx(nsample);
       DataSet* ds = setup.DSL().AddSet(DataSet::XYMESH, md);
       if (ds == 0) return Analysis::ERR;
+      ds->ModifyDim(Dimension::X).SetLabel("Lambda");
       ds->SetLegend( md.Name() + "_Sample" + integerToString(nsample) );
       if (curveout_ != 0) curveout_->AddDataSet( ds );
       curve_.push_back( ds );
@@ -428,6 +433,29 @@ int Analysis_TI::Calc_Nskip() {
 
 // Analysis_TI::Calc_Increment()
 int Analysis_TI::Calc_Increment() {
+  // Determine max points if not given.
+  int maxpts = avg_max_;
+  if (maxpts == -1) {
+    for (unsigned int idx = 0; idx != input_dsets_.size(); idx++) {
+      DataSet_1D const& ds = static_cast<DataSet_1D const&>( *(input_dsets_[idx]) );
+      if (maxpts == -1)
+        maxpts = (int)ds.Size();
+      else if (maxpts != (int)ds.Size()) {
+        mprintf("Warning: # points in '%s' (%zu) is different than %i.\n",
+                ds.legend(), ds.Size(), maxpts);
+        maxpts = std::min( maxpts, (int)ds.Size() );
+        mprintf("Warning:   Will only use %i points.\n", maxpts);
+      }
+    }
+  }
+  if (maxpts < 1) {
+    mprinterr("Error: Max points to use is < 1.\n");
+    return 1;
+  }
+  if (avg_skip_ >= maxpts) {
+    mprinterr("Error: 'avgskip' (%i) > max (%i).\n", avg_skip_, maxpts);
+    return 1;
+  }
   // sum: Hold the results of integration for each curve (increment)
   Darray sum;
   // points: Hold point values at which each avg is being calculated
@@ -436,19 +464,6 @@ int Analysis_TI::Calc_Increment() {
   for (unsigned int idx = 0; idx != input_dsets_.size(); idx++) {
     DataSet_1D const& ds = static_cast<DataSet_1D const&>( *(input_dsets_[idx]) );
     if (CheckSet(ds)) return 1; 
-    // Determine max pts if not given
-    int maxpts = avg_max_;
-    if (maxpts == -1)
-      maxpts = (int)ds.Size();
-    else if (maxpts > (int)ds.Size()) {
-      mprintf("Warning: 'avgmax' (%i) > data size (%zu); setting to %zu\n",
-              maxpts, ds.Size(), ds.Size());
-      maxpts = (int)ds.Size();
-    }
-    if (avg_skip_ >= maxpts) {
-      mprinterr("Error: 'avgskip' (%i) > max (%i).\n", avg_skip_, maxpts);
-      return 1;
-    }
     // Calculate averages for each increment
     Darray avg;
     Iarray increments;
@@ -483,6 +498,7 @@ int Analysis_TI::Calc_Increment() {
         md.SetIdx( increments[j] );
         DataSet* ds = masterDSL_->AddSet(DataSet::XYMESH, md);
         if (ds == 0) return Analysis::ERR;
+        ds->ModifyDim(Dimension::X).SetLabel("Lambda");
         ds->SetLegend( md.Name() + "_Skip" + integerToString(increments[j]) );
         if (curveout_ != 0) curveout_->AddDataSet( ds );
         curve_.push_back( ds );
