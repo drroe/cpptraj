@@ -19,20 +19,30 @@ class Action_Rama : public Action {
 
     static const char* TypeKeys_[];
 
+    typedef DihedralSearch::DihedralMask Dmask;
     class Res {
       public:
-        Res() : data_(0) {}
-        Res(DataSet* d, DihedralSearch::DihedralMask const& m1,
-                        DihedralSearch::DihedralMask const& m2) :
+        Res() : data_(0), isActive_(false) {}
+        Res(DataSet* d, Dmask const& m1, Dmask const& m2) :
           phi_(m1), psi_(m2), data_(d) {}
+        bool IsActive() const { return isActive_; }
+        DataSet* Data() const { return data_; }
+        void SetActive(bool a) { isActive_ = a; }
+        void SetData(DataSet* d) { data_ = d; }
+        void SetMasks(Dmask const& m1, Dmask const& m2) { phi_=m1; psi_=m2; }
+        Dmask const& Phi() const { return phi_; }
+        Dmask const& Psi() const { return psi_; }
       private:
-        DihedralSearch::DihedralMask phi_;
-        DihedralSearch::DihedralMask psi_;
+        Dmask phi_;
+        Dmask psi_;
         DataSet* data_;
+        bool isActive_;
     };
 
-    typedef std::map<int,Res> ResMapType;
-    ResMapType resMap_;
+//    typedef std::map<int,Res> ResMapType;
+//    ResMapType resMap_;
+    typedef std::vector<Res> Rarray;
+    Rarray residues_;
 
     DihedralSearch dihSearch_;
     CharMask Mask_;

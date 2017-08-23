@@ -1,5 +1,7 @@
 #include "Action_Rama.h"
 #include "CpptrajStdio.h"
+#include "TorsionRoutines.h"
+#include "Constants.h"
 
 Action_Rama::Action_Rama() {
   Phi_[ALPHA]    =  -57.8;
@@ -125,6 +127,9 @@ Action::RetType Action_Rama::Setup(ActionSetup& setup)
     return Action::SKIP;
   mprintf("\t%i dihedrals.\n", dihSearch_.Ndihedrals());
   if (dihSearch_.Ndihedrals() < 1) return Action::SKIP;
+  for (Rarray::iterator r = residues_.begin(); r != residues_.end(); ++r)
+    r->SetActive( false );
+  int nActive = 0;
   // Loop over dihedrals
   DihedralSearch::mask_it dih = dihSearch_.begin();
   while (dih != dihSearch_.end()) {
@@ -137,6 +142,7 @@ Action::RetType Action_Rama::Setup(ActionSetup& setup)
       bool hasPhi = (dih->Type() == MetaData::PHI || (dih+1)->Type() == MetaData::PHI);
       bool hasPsi = (dih->Type() == MetaData::PSI || (dih+1)->Type() == MetaData::PSI);
       if (hasPhi && hasPsi) {
+/*
         ResMapType::iterator it = resMap_.lower_bound( dih->ResNum() );
         if (it == resMap_.end() || it->first != dih->ResNum())
         {
@@ -145,17 +151,59 @@ Action::RetType Action_Rama::Setup(ActionSetup& setup)
           if (ds == 0) return Action::ERR;
           resMap_.insert(it, std::pair<int,Res>(dih->ResNum(), Res(ds, *dih, *(dih+1))));
         }
+*/
+        if ( dih->ResNum() >= (int)residues_.size() )
+          residues_.resize( dih->ResNum() + 1 );
+        Res& res = residues_[dih->ResNum()];
+        res.SetActive( true );
+        nActive++;
+        if (res.Data() == 0) {
+          res.SetData(masterDSL_->AddSet(DataSet::INTEGER,MetaData(dsetname_,dih->ResNum()+1)));
+          if (res.Data() == 0) return Action::ERR;
+          if (outfile_ != 0) outfile_->AddDataSet( res.Data() );
+        }
+        res.SetMasks( *dih, *(dih+1) );
       }
       dih += 2;
     }
-  }
-    
-  
+  } // END loop over dihedrals
+  mprintf("\t%i residues active.\n", nActive);
+  if (nActive < 1) return Action::SKIP;
+
   return Action::OK;
 }
 
 // Action_Rama::DoAction()
 Action::RetType Action_Rama::DoAction(int frameNum, ActionFrame& frm)
 {
-  return Action::ERR;
+  for (Rarray::const_iterator res = residues_.begin(); res != residues_.end(); ++res)
+  {
+    if (res->IsActive()) {
+      double phi = Torsion( frm.Frm().XYZ(res->Phi().A0()),
+                            frm.Frm().XYZ(res->Phi().A1()),
+                            frm.Frm().XYZ(res->Phi().A2()),
+                            frm.Frm().XYZ(res->Phi().A3()) );
+      double psi = Torsion( frm.Frm().XYZ(res->Psi().A0()),
+                            frm.Frm().XYZ(res->Psi().A1()),
+                            frm.Frm().XYZ(res->Psi().A2()),
+                            frm.Frm().XYZ(res->Psi().A3()) );
+      // TODO Radians
+      phi *= Constants::RADDEG;
+      psi *= Constants::RADDEG;
+      // Determine Rama. region
+      int currentType = -1;
+      for (int i = 0; i < (int)NTYPES; i++) {
+        if (phi > Phi_[i] - phiOff_[i] &&
+            phi < Phi_[i] + phiOff_[i] &&
+            psi > Psi_[i] - psiOff_[i] &&
+            psi < Psi_[i] + psiOff_[i])
+        {
+          currentType = i;
+          break;
+        }
+      }
+      res->Data()->Add(frameNum, &currentType);
+    }
+  }
+  return Action::OK;
 }
