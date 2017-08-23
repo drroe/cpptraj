@@ -1,16 +1,32 @@
 #include "Action_Rama.h"
 #include "CpptrajStdio.h"
 
+Action_Rama::Action_Rama() {
+  Phi_[ALPHA]    =  -57.8;
+  Psi_[ALPHA]    =  -47.0;
+  Phi_[LEFT]     =   57.8;
+  Psi_[LEFT]     =   47.0;
+  Phi_[PP2]      =  -75.0;
+  Psi_[PP2]      =  145.0;
+  Phi_[HAIRPIN]  = -100.0;
+  Psi_[HAIRPIN]  =  130.0;
+  Phi_[EXTENDED] = -150.0;
+  Psi_[EXTENDED] =  155.0;
+  std::fill(phiOff_, phiOff_+NTYPES, 10.0);
+  std::fill(psiOff_, psiOff_+NTYPES, 10.0);
+}
+
 // Action_Rama::Help()
 void Action_Rama::Help() const {
 
 }
 
-const char* Action_Rama::TypeKeys_[] = {"alpha", "beta", "pp2", "left", 0};
+const char* Action_Rama::TypeKeys_[] = {"alpha", "left", "pp2", "hairpin", "extended", 0};
 
 // Action_Rama::Init()
 Action::RetType Action_Rama::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  masterDSL_ = init.DslPtr();
   debug_ = debugIn;
   Nframe_ = 0;
   // Only phi and psi for now
@@ -80,6 +96,10 @@ Action::RetType Action_Rama::Init(ArgList& actionArgs, ActionInit& init, int deb
   mprintf("\tUsing residues in mask '%s'\n", Mask_.MaskString());
   //mprintf("\t Atom Names: N=%s H=%s C=%s
   dihSearch_.PrintTypes();
+  mprintf("\n"); // for PrintTypes
+  for (int i = 0; i < (int)NTYPES; i++)
+    mprintf("\t%8s : %8.3f +/- %8.3f  %8.3f +/- %8.3f\n",
+            TypeKeys_[i], Phi_[i], phiOff_[i], Psi_[i], psiOff_[i]);
 
   return Action::OK;
 }
@@ -106,6 +126,30 @@ Action::RetType Action_Rama::Setup(ActionSetup& setup)
   mprintf("\t%i dihedrals.\n", dihSearch_.Ndihedrals());
   if (dihSearch_.Ndihedrals() < 1) return Action::SKIP;
   // Loop over dihedrals
+  DihedralSearch::mask_it dih = dihSearch_.begin();
+  while (dih != dihSearch_.end()) {
+    if ( (dih+1) == dihSearch_.end() ) break;
+    // Relies on phi/psi pairs being together
+    // Assume if consecutive res nums do not match we need to advance.
+    if ( dih->ResNum() != (dih+1)->ResNum() )
+      ++dih;
+    else {
+      bool hasPhi = (dih->Type() == MetaData::PHI || (dih+1)->Type() == MetaData::PHI);
+      bool hasPsi = (dih->Type() == MetaData::PSI || (dih+1)->Type() == MetaData::PSI);
+      if (hasPhi && hasPsi) {
+        ResMapType::iterator it = resMap_.lower_bound( dih->ResNum() );
+        if (it == resMap_.end() || it->first != dih->ResNum())
+        {
+          // New residue
+          DataSet* ds = masterDSL_->AddSet(DataSet::INTEGER,MetaData(dsetname_,dih->ResNum()+1));
+          if (ds == 0) return Action::ERR;
+          resMap_.insert(it, std::pair<int,Res>(dih->ResNum(), Res(ds, *dih, *(dih+1))));
+        }
+      }
+      dih += 2;
+    }
+  }
+    
   
   return Action::OK;
 }

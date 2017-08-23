@@ -7,8 +7,8 @@
 /// Class that can be used to search for dihedral angles in a range.
 // Thanks to C. Bergonzo for the NA angle definitions.
 class DihedralSearch {
-    class DihedralMask;
   public:
+    class DihedralMask;
     /// Const iterator over found dihedrals (for frame processing)
     typedef std::vector<DihedralMask>::const_iterator mask_it;
     mask_it begin()  const { return dihedrals_.begin();     }
