@@ -127,6 +127,7 @@
 #include "Action_HydrogenBond.h"
 #include "Action_FixImagedBonds.h"
 #include "Action_LipidOrder.h"
+#include "Action_Rama.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -302,6 +303,7 @@ void Command::Init() {
   Command::AddCmd( new Action_Pucker(),        Cmd::ACT, 1, "pucker" );
   Command::AddCmd( new Action_Radgyr(),        Cmd::ACT, 2, "radgyr", "rog" );
   Command::AddCmd( new Action_Radial(),        Cmd::ACT, 2, "radial", "rdf" );
+  Command::AddCmd( new Action_Rama(),          Cmd::ACT, 2, "rama", "ramachandran" );
   Command::AddCmd( new Action_RandomizeIons(), Cmd::ACT, 1, "randomizeions" );
   Command::AddCmd( new Action_Remap(),         Cmd::ACT, 1, "remap" );
   Command::AddCmd( new Action_ReplicateCell(), Cmd::ACT, 1, "replicatecell" );
