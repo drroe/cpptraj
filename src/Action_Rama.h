@@ -15,7 +15,7 @@ class Action_Rama : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    enum Type { ALPHA=0, LEFT, PP2, HAIRPIN, EXTENDED, NTYPES };
+    enum Type { ALPHA=0, LEFT, PP2, HAIRPIN, EXTENDED, NONE, NTYPES };
 
     static const char* TypeKeys_[];
 
@@ -44,6 +44,7 @@ class Action_Rama : public Action {
     typedef std::vector<Res> Rarray;
     Rarray residues_;
 
+    std::vector<int> Sum_;
     DihedralSearch dihSearch_;
     CharMask Mask_;
     DataFile* outfile_;

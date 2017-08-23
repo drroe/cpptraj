@@ -14,8 +14,8 @@ Action_Rama::Action_Rama() {
   Psi_[HAIRPIN]  =  130.0;
   Phi_[EXTENDED] = -150.0;
   Psi_[EXTENDED] =  155.0;
-  std::fill(phiOff_, phiOff_+NTYPES, 10.0);
-  std::fill(psiOff_, psiOff_+NTYPES, 10.0);
+  std::fill(phiOff_, phiOff_+NONE, 10.0);
+  std::fill(psiOff_, psiOff_+NONE, 10.0);
 }
 
 // Action_Rama::Help()
@@ -23,7 +23,7 @@ void Action_Rama::Help() const {
 
 }
 
-const char* Action_Rama::TypeKeys_[] = {"alpha", "left", "pp2", "hairpin", "extended", 0};
+const char* Action_Rama::TypeKeys_[] = {"alpha", "left", "pp2", "hairpin", "extended", "none", 0};
 
 // Action_Rama::Init()
 Action::RetType Action_Rama::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
@@ -57,7 +57,7 @@ Action::RetType Action_Rama::Init(ArgList& actionArgs, ActionInit& init, int deb
       return Action::ERR;
     }
     Type currentType = NTYPES;
-    for (int i = 0; i < (int)NTYPES; i++)
+    for (int i = 0; i < (int)NONE; i++)
       if (Args[0].compare(TypeKeys_[i]) == 0) {
         currentType = (Type)i;
         break;
@@ -99,7 +99,7 @@ Action::RetType Action_Rama::Init(ArgList& actionArgs, ActionInit& init, int deb
   //mprintf("\t Atom Names: N=%s H=%s C=%s
   dihSearch_.PrintTypes();
   mprintf("\n"); // for PrintTypes
-  for (int i = 0; i < (int)NTYPES; i++)
+  for (int i = 0; i < (int)NONE; i++)
     mprintf("\t%8s : %8.3f +/- %8.3f  %8.3f +/- %8.3f\n",
             TypeKeys_[i], Phi_[i], phiOff_[i], Psi_[i], psiOff_[i]);
 
@@ -176,6 +176,7 @@ Action::RetType Action_Rama::Setup(ActionSetup& setup)
 // Action_Rama::DoAction()
 Action::RetType Action_Rama::DoAction(int frameNum, ActionFrame& frm)
 {
+  Sum_.assign(NTYPES, 0);
   for (Rarray::const_iterator res = residues_.begin(); res != residues_.end(); ++res)
   {
     if (res->IsActive()) {
@@ -191,8 +192,8 @@ Action::RetType Action_Rama::DoAction(int frameNum, ActionFrame& frm)
       phi *= Constants::RADDEG;
       psi *= Constants::RADDEG;
       // Determine Rama. region
-      int currentType = -1;
-      for (int i = 0; i < (int)NTYPES; i++) {
+      int currentType = NONE;
+      for (int i = 0; i < (int)NONE; i++) {
         if (phi > Phi_[i] - phiOff_[i] &&
             phi < Phi_[i] + phiOff_[i] &&
             psi > Psi_[i] - psiOff_[i] &&
@@ -202,8 +203,11 @@ Action::RetType Action_Rama::DoAction(int frameNum, ActionFrame& frm)
           break;
         }
       }
+      Sum_[currentType]++;
       res->Data()->Add(frameNum, &currentType);
     }
   }
+  for (int i = 0; i < (int)NTYPES; i++)
+    ds_[i]->Add(frameNum, (&Sum_[0]) + i);
   return Action::OK;
 }
