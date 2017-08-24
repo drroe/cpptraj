@@ -61,6 +61,10 @@ class Action_Rama : public Action {
     double Psi_[NTYPES];
     double phiOff_[NTYPES];
     double psiOff_[NTYPES];
+    double phiMin_[NTYPES];
+    double phiMax_[NTYPES];
+    double psiMin_[NTYPES];
+    double psiMax_[NTYPES];
     int debug_;
     int Nframe_;
 };

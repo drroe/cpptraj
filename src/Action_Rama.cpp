@@ -92,6 +92,11 @@ Action::RetType Action_Rama::Init(ArgList& actionArgs, ActionInit& init, int deb
     ds_[i] = init.DSL().AddSet( DataSet::INTEGER, MetaData(dsetname_, TypeKeys_[i]) );
     if (ds_[i] == 0) return Action::ERR;
     if (totalout != 0) totalout->AddDataSet( ds_[i] );
+    // Min and max
+    phiMin_[i] = Phi_[i] - phiOff_[i];
+    phiMax_[i] = Phi_[i] + phiOff_[i];
+    psiMin_[i] = Psi_[i] - psiOff_[i];
+    psiMax_[i] = Psi_[i] + psiOff_[i];
   }
 
   mprintf("    RAMACHANDRAN PLOT:");
@@ -100,8 +105,9 @@ Action::RetType Action_Rama::Init(ArgList& actionArgs, ActionInit& init, int deb
   dihSearch_.PrintTypes();
   mprintf("\n"); // for PrintTypes
   for (int i = 0; i < (int)NONE; i++)
-    mprintf("\t%8s : %8.3f +/- %8.3f  %8.3f +/- %8.3f\n",
-            TypeKeys_[i], Phi_[i], phiOff_[i], Psi_[i], psiOff_[i]);
+    mprintf("\t%8s : %8.3f < Phi < %8.3f  %8.3f < Psi < %8.3f\n",
+            //TypeKeys_[i], Phi_[i], phiOff_[i], Psi_[i], psiOff_[i]);
+            TypeKeys_[i], phiMin_[i], phiMax_[i], psiMin_[i], psiMax_[i]);
 
   return Action::OK;
 }
@@ -194,10 +200,10 @@ Action::RetType Action_Rama::DoAction(int frameNum, ActionFrame& frm)
       // Determine Rama. region
       int currentType = NONE;
       for (int i = 0; i < (int)NONE; i++) {
-        if (phi > Phi_[i] - phiOff_[i] &&
-            phi < Phi_[i] + phiOff_[i] &&
-            psi > Psi_[i] - psiOff_[i] &&
-            psi < Psi_[i] + psiOff_[i])
+        if (phi > phiMin_[i] &&
+            phi < phiMax_[i] &&
+            psi > psiMin_[i] &&
+            psi < psiMax_[i])
         {
           currentType = i;
           break;
