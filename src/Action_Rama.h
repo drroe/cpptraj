@@ -13,7 +13,7 @@ class Action_Rama : public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
-    void Print() {}
+    void Print();
 
     enum Type { ALPHA=0, LEFT, PP2, HAIRPIN, EXTENDED, NONE, NTYPES };
 
@@ -23,20 +23,27 @@ class Action_Rama : public Action {
     typedef DihedralSearch::DihedralMask Dmask;
     class Res {
       public:
-        Res() : data_(0), isActive_(false) {}
+        Res() : data_(0), isActive_(false) { ZeroProbs(); }
         Res(DataSet* d, Dmask const& m1, Dmask const& m2) :
-          phi_(m1), psi_(m2), data_(d) {}
+          phi_(m1), psi_(m2), data_(d) { ZeroProbs(); }
         bool IsActive() const { return isActive_; }
         DataSet* Data() const { return data_; }
         void SetActive(bool a) { isActive_ = a; }
         void SetData(DataSet* d) { data_ = d; }
         void SetMasks(Dmask const& m1, Dmask const& m2) { phi_=m1; psi_=m2; }
+        void UpdateSS(int i) { sscount_[i]++; }
         Dmask const& Phi() const { return phi_; }
         Dmask const& Psi() const { return psi_; }
+        int SScount(int i) const { return sscount_[i]; }
       private:
+        void ZeroProbs() {
+          for (int i=0; i < (int)NTYPES; i++) sscount_[i] = 0;
+        }
+
         Dmask phi_;
         Dmask psi_;
         DataSet* data_;
+        int sscount_[NTYPES];
         bool isActive_;
     };
 

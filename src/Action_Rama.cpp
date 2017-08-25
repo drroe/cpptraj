@@ -227,7 +227,7 @@ Action::RetType Action_Rama::Setup(ActionSetup& setup)
 Action::RetType Action_Rama::DoAction(int frameNum, ActionFrame& frm)
 {
   Sum_.assign(NTYPES, 0);
-  for (Rarray::const_iterator res = residues_.begin(); res != residues_.end(); ++res)
+  for (Rarray::iterator res = residues_.begin(); res != residues_.end(); ++res)
   {
     if (res->IsActive()) {
       double phi = Torsion( frm.Frm().XYZ(res->Phi().A0()),
@@ -254,6 +254,8 @@ Action::RetType Action_Rama::DoAction(int frameNum, ActionFrame& frm)
         }
       }
       Sum_[currentType]++;
+      // Store data
+      res->UpdateSS( currentType );
       if (useChars_)
         res->Data()->Add(frameNum, TypeChars_[currentType]);
       else
@@ -262,5 +264,36 @@ Action::RetType Action_Rama::DoAction(int frameNum, ActionFrame& frm)
   }
   for (int i = 0; i < (int)NTYPES; i++)
     ds_[i]->Add(frameNum, (&Sum_[0]) + i);
+  Nframe_++;
   return Action::OK;
+}
+
+void Action_Rama::Print() {
+  if (dsetname_.empty()) return;
+
+  std::vector<DataSet*> dataList(NTYPES, 0);
+  // Set up a data set for each type
+  Dimension Xdim( residues_.front().Phi().ResNum() + 1, 1, "Residue" );
+  MetaData md(dsetname_, "avgss", MetaData::NOT_TS);
+  for (int i = 0; i < (int)NTYPES; i++) {
+    md.SetIdx(i);
+    md.SetLegend(TypeKeys_[i]);
+    dataList[i] = masterDSL_->AddSet(DataSet::XYMESH, md);
+    dataList[i]->SetDim(Dimension::X, Xdim);
+    if (sumFile_ != 0)
+      sumFile_->AddDataSet( dataList[i] );
+  }
+  double dbuf[2];
+  int idx = 0;
+  for (Rarray::const_iterator res = residues_.begin(); res != residues_.end(); ++res)
+  {
+    if (res->Data() != 0) {
+      dbuf[0] = res->Phi().ResNum() + 1;
+      for (int i = 0; i < (int)NTYPES; i++) {
+        dbuf[1] = (double)res->SScount(i) / (double)Nframe_;
+        dataList[i]->Add(idx, dbuf);
+      }
+      idx++;
+    }
+  }
 }
