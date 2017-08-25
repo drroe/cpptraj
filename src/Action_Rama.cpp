@@ -110,6 +110,16 @@ Action::RetType Action_Rama::Init(ArgList& actionArgs, ActionInit& init, int deb
       } else if (A0[0] == "psioff") {
         psiOff_[currentType] = A0.getNextDouble(10.0);
         usePsiOff[currentType] = true;
+      } else if (A0[0] == "phimax")
+        phiMax_[currentType] = A0.getNextDouble(10.0);
+      else if (A0[0] == "psimax")
+        psiMax_[currentType] = A0.getNextDouble(10.0);
+      else if (A0[0] == "phi") {
+        Phi_[currentType] = A0.getNextDouble(10.0);
+        usePhiOff[currentType] = true;
+      } else if (A0[0] == "psi") {
+        Psi_[currentType] = A0.getNextDouble(10.0);
+        usePsiOff[currentType] = true;
       }
     }
     typearg = actionArgs.GetStringKey("type");
