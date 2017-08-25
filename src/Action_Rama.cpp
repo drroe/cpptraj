@@ -3,17 +3,42 @@
 #include "TorsionRoutines.h"
 #include "Constants.h"
 
-Action_Rama::Action_Rama() {
-  Phi_[ALPHA]    =  -57.8;
-  Psi_[ALPHA]    =  -47.0;
-  Phi_[LEFT]     =   57.8;
-  Psi_[LEFT]     =   47.0;
-  Phi_[PP2]      =  -75.0;
-  Psi_[PP2]      =  145.0;
-  Phi_[HAIRPIN]  = -100.0;
-  Psi_[HAIRPIN]  =  130.0;
-  Phi_[EXTENDED] = -150.0;
-  Psi_[EXTENDED] =  155.0;
+Action_Rama::Action_Rama() : useChars_(false) {
+  Phi_[ALPHA]       =  -57.8;
+  phiMin_[ALPHA]    = -135.0;
+  phiMax_[ALPHA]    =  -45.0;
+  Psi_[ALPHA]       =  -47.0;
+  psiMin_[ALPHA]    =  -70.0;
+  psiMax_[ALPHA]    =   45.0;
+
+  Phi_[LEFT]        =   57.8;
+  phiMin_[LEFT]     =   45.0;
+  phiMax_[LEFT]     =  100.0;
+  Psi_[LEFT]        =   47.0;
+  psiMin_[LEFT]     =  -20.0;
+  psiMax_[LEFT]     =   65.0;
+
+  Phi_[PP2]         =  -75.0;
+  phiMin_[PP2]      =  -87.5;
+  phiMax_[PP2]      =  -25.0;
+  Psi_[PP2]         =  145.0;
+  psiMin_[PP2]      =   45.0;
+  psiMax_[PP2]      =  180.0;
+
+  Phi_[HAIRPIN]     = -100.0;
+  phiMin_[HAIRPIN]  = -125.0;
+  phiMax_[HAIRPIN]  = -87.5;
+  Psi_[HAIRPIN]     = 130.0;
+  psiMin_[HAIRPIN]  =  45.0;
+  psiMax_[HAIRPIN]  = 180.0;
+
+  Phi_[EXTENDED]    = -150.0;
+  phiMin_[EXTENDED] = -180.0;
+  phiMax_[EXTENDED] = -125.0;
+  Psi_[EXTENDED]    =  155.0;
+  psiMin_[EXTENDED] =  45.0;
+  psiMax_[EXTENDED] = 180.0;
+
   std::fill(phiOff_, phiOff_+NONE, 10.0);
   std::fill(psiOff_, psiOff_+NONE, 10.0);
 }
@@ -24,6 +49,8 @@ void Action_Rama::Help() const {
 }
 
 const char* Action_Rama::TypeKeys_[] = {"alpha", "left", "pp2", "hairpin", "extended", "none", 0};
+
+const char* Action_Rama::TypeChars_[] = {"A", "L", "P", "H", "E", "N", 0};
 
 // Action_Rama::Init()
 Action::RetType Action_Rama::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
@@ -47,7 +74,10 @@ Action::RetType Action_Rama::Init(ArgList& actionArgs, ActionInit& init, int deb
   BB_C_ = actionArgs.GetStringKey("namec", "C");
   BB_O_ = actionArgs.GetStringKey("nameo", "O");
   BB_CA_ = actionArgs.GetStringKey("nameca", "CA");
+  useChars_ = actionArgs.hasKey("usechars");
   // Type parameters
+  std::vector<bool> usePhiOff(NTYPES, false);
+  std::vector<bool> usePsiOff(NTYPES, false);
   std::string typearg = actionArgs.GetStringKey("type");
   while (!typearg.empty()) {
     // Comma-separated
@@ -74,8 +104,13 @@ Action::RetType Action_Rama::Init(ArgList& actionArgs, ActionInit& init, int deb
         mprinterr("Error: Bad argument '%s'; expect <arg>=<value>\n", Args[i].c_str());
         return Action::ERR;
       }
-      if (A0[0] == "phioff") phiOff_[currentType] = A0.getNextDouble(10.0);
-      else if (A0[0] == "psioff") psiOff_[currentType] = A0.getNextDouble(10.0);
+      if (A0[0] == "phioff") {
+        phiOff_[currentType] = A0.getNextDouble(10.0);
+        usePhiOff[currentType] = true;
+      } else if (A0[0] == "psioff") {
+        psiOff_[currentType] = A0.getNextDouble(10.0);
+        usePsiOff[currentType] = true;
+      }
     }
     typearg = actionArgs.GetStringKey("type");
   } // END loop over type args
@@ -93,10 +128,14 @@ Action::RetType Action_Rama::Init(ArgList& actionArgs, ActionInit& init, int deb
     if (ds_[i] == 0) return Action::ERR;
     if (totalout != 0) totalout->AddDataSet( ds_[i] );
     // Min and max
-    phiMin_[i] = Phi_[i] - phiOff_[i];
-    phiMax_[i] = Phi_[i] + phiOff_[i];
-    psiMin_[i] = Psi_[i] - psiOff_[i];
-    psiMax_[i] = Psi_[i] + psiOff_[i];
+    if (usePhiOff[i]) {
+      phiMin_[i] = Phi_[i] - phiOff_[i];
+      phiMax_[i] = Phi_[i] + phiOff_[i];
+    }
+    if (usePsiOff[i]) {
+      psiMin_[i] = Psi_[i] - psiOff_[i];
+      psiMax_[i] = Psi_[i] + psiOff_[i];
+    }
   }
 
   mprintf("    RAMACHANDRAN PLOT:");
@@ -137,6 +176,11 @@ Action::RetType Action_Rama::Setup(ActionSetup& setup)
     r->SetActive( false );
   int nActive = 0;
   // Loop over dihedrals
+  DataSet::DataType dtype;
+  if (useChars_)
+    dtype = DataSet::STRING;
+  else
+    dtype = DataSet::INTEGER;
   DihedralSearch::mask_it dih = dihSearch_.begin();
   while (dih != dihSearch_.end()) {
     if ( (dih+1) == dihSearch_.end() ) break;
@@ -164,7 +208,7 @@ Action::RetType Action_Rama::Setup(ActionSetup& setup)
         res.SetActive( true );
         nActive++;
         if (res.Data() == 0) {
-          res.SetData(masterDSL_->AddSet(DataSet::INTEGER,MetaData(dsetname_,dih->ResNum()+1)));
+          res.SetData(masterDSL_->AddSet(dtype, MetaData(dsetname_,dih->ResNum()+1)));
           if (res.Data() == 0) return Action::ERR;
           if (outfile_ != 0) outfile_->AddDataSet( res.Data() );
         }
@@ -210,7 +254,10 @@ Action::RetType Action_Rama::DoAction(int frameNum, ActionFrame& frm)
         }
       }
       Sum_[currentType]++;
-      res->Data()->Add(frameNum, &currentType);
+      if (useChars_)
+        res->Data()->Add(frameNum, TypeChars_[currentType]);
+      else
+        res->Data()->Add(frameNum, &currentType);
     }
   }
   for (int i = 0; i < (int)NTYPES; i++)

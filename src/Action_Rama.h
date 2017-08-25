@@ -18,6 +18,7 @@ class Action_Rama : public Action {
     enum Type { ALPHA=0, LEFT, PP2, HAIRPIN, EXTENDED, NONE, NTYPES };
 
     static const char* TypeKeys_[];
+    static const char* TypeChars_[];
 
     typedef DihedralSearch::DihedralMask Dmask;
     class Res {
@@ -67,5 +68,6 @@ class Action_Rama : public Action {
     double psiMax_[NTYPES];
     int debug_;
     int Nframe_;
+    bool useChars_;
 };
 #endif
