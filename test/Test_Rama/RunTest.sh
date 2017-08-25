@@ -10,8 +10,8 @@ cat > rama.in <<EOF
 noprogress
 parm ../DPDP.parm7
 trajin ../DPDP.nc
-#rama DPDP out rama.dat totalout total.dat :6-7
 rama usechars sumout sum.agr DPDP out rama.dat totalout total.dat
+rama type alpha,phi=0,psi=0 
 multidihedral DIH phi psi resrange 6-7 out rama.dat
 EOF
 RunCpptraj "Ramachandran test."
