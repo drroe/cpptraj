@@ -43,14 +43,32 @@ Action_Rama::Action_Rama() : useChars_(false) {
   std::fill(psiOff_, psiOff_+NONE, 10.0);
 }
 
-// Action_Rama::Help()
-void Action_Rama::Help() const {
-
-}
-
 const char* Action_Rama::TypeKeys_[] = {"alpha", "left", "pp2", "hairpin", "extended", "none", 0};
 
 const char* Action_Rama::TypeChars_[] = {"A", "L", "P", "H", "E", "N", 0};
+
+// Action_Rama::Help()
+void Action_Rama::Help() const {
+  mprintf("\t[<name>] [<mask>] [out <ss v time file>] [sumout <total sum file>]\n"
+          "\t[totalout <total v time file>] [usechars]\n"
+          "\t[type <type-spec> ...]\n"
+          "  Calculate secondary structure via Ramachandran plot assignment, i.e.\n"
+          "  based on phi/psi angles, for residues selected by <mask>. If 'usechars'\n"
+          "  is specified write characters to <ss v time file> instead of numbers.\n");
+  mprintf("%-3s %10s %4s\n", "#", "Name", "Char");
+  for (int i = 0; i < (int)NTYPES; i++)
+    mprintf("%-3i %10s %4s\n", i, TypeKeys_[i], TypeChars_[i]);
+  mprintf("\t<type-spec> = <Name>,<Options>\n"
+          "  <Options> can be a comma-separated list of one or more of the following:\n"
+          "\tphimin=<val>\n"
+          "\tphimax=<val>\n"
+          "\tpsimin=<val>\n"
+          "\tpsimax=<val>\n"
+          "\tphioff=<val>\n"
+          "\tpsioff=<val>\n"
+          "\tphi=<val>\n"
+          "\tpsi=<val>\n");
+}
 
 // Action_Rama::Init()
 Action::RetType Action_Rama::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
@@ -69,11 +87,11 @@ Action::RetType Action_Rama::Init(ArgList& actionArgs, ActionInit& init, int deb
   sumFile_ = init.DFL().AddDataFile( temp );
   DataFile* totalout = init.DFL().AddDataFile( actionArgs.GetStringKey("totalout"), actionArgs );
   //assignout_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("assignout"), "SS assignment");
-  BB_N_ = actionArgs.GetStringKey("namen", "N");
-  BB_H_ = actionArgs.GetStringKey("nameh", "H");
-  BB_C_ = actionArgs.GetStringKey("namec", "C");
-  BB_O_ = actionArgs.GetStringKey("nameo", "O");
-  BB_CA_ = actionArgs.GetStringKey("nameca", "CA");
+//  BB_N_ = actionArgs.GetStringKey("namen", "N");
+//  BB_H_ = actionArgs.GetStringKey("nameh", "H");
+//  BB_C_ = actionArgs.GetStringKey("namec", "C");
+//  BB_O_ = actionArgs.GetStringKey("nameo", "O");
+//  BB_CA_ = actionArgs.GetStringKey("nameca", "CA");
   useChars_ = actionArgs.hasKey("usechars");
   // Type parameters
   std::vector<bool> usePhiOff(NTYPES, false);
