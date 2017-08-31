@@ -92,10 +92,16 @@ int BasicFile::BasicSetup() {
     if (IsPresent()) {
       // File exists.
       uncompressed_size_ = IO_->Size( Filename().full() );
-      // Additional file characteristics
+      // Check for binary file, DOS line endings, first line size.
       if (IO_->Open( Filename().full(), "rb" ) != 0) return -1;
       char bufchar;
       while ( IO_->Read(&bufchar, 1) == 1 ) {
+        if ( bufchar < 7 ) {
+          // ASCII code less than 7 means file probably is binary. Do not
+          // try to figure anything else out.
+          mprintf("\t'%s' appears to be data.\n", Filename().full());
+          break;
+        }
         ++lineSize;
         if ( bufchar == '\n' ) break;
         if ( bufchar == '\r' ) {
