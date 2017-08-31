@@ -217,6 +217,15 @@ const char* File::Base::AccessTypeName_[] = {
     "read", "write", "append", "update"
 };
 
+static inline File::CompressType SetCompressTypeFromName(File::Name const& fname) {
+  if (fname.Compress() == ".gz")
+    return File::GZIP;
+  else if (fname.Compress() == ".bz2")
+    return File::BZIP2;
+  else
+    return File::NO_COMPRESSION;
+}
+
 // File::Base::Setup()
 int File::Base::Setup(Name const& fnameIn, AccessType accessIn)
 {
@@ -235,57 +244,66 @@ int File::Base::Setup(Name const& fnameIn, AccessType accessIn)
   } else {
     isStream_ = false;
     fname_ = fnameIn;
-    // Get basic file information
-    if (Exists(fname_)) {
-      // File exists. Get size and compression info.
-      struct stat frame_stat;
-      if (stat(fname_.full(), &frame_stat) == -1) {
-        mprinterr("Error: Could not find file status for %s\n", fname_.full());
-        if (debug_>0) 
-          perror("     Error from stat: ");
-        return 1;
-      }
-      file_size_ = (unsigned int)frame_stat.st_size;
-      // ID compression by magic number - open for binary read access
-      FILE* fIn = fopen(fname_.full(), "rb");
-      if ( fIn == 0 ) { 
-        mprinterr("Error: Could not open %s for hex signature read.\n", fname_.full());
-        return 1;
-      }
-      // Read first 3 bytes
-      unsigned char magic[3];
-      magic[0] = 0; 
-      magic[1] = 0; 
-      magic[2] = 0;
-      size_t numread = fread(magic, 1, 3, fIn);
-      fclose(fIn);
-      if (numread == 0)
-        mprintf("Warning: File %s is empty\n", fname_.full());
-      else if (numread < 3 ) {
-        mprinterr("Warning: Could only read first %zu bytes of file %s.\n", numread, fname_.full());
-      } else {
-        if (debug_>0) mprintf("\t    Hex sig: %x %x %x", magic[0],magic[1],magic[2]);
-        // Check compression
-        if ((magic[0]==0x1f) && (magic[1]==0x8b) && (magic[2]==0x8)) {
-          if (debug_>0) mprintf(", Gzip file.\n");
-          compressType_ = GZIP;
-        } else if ((magic[0]==0x42) && (magic[1]==0x5a) && (magic[2]==0x68)) {
-          if (debug_>0) mprintf(", Bzip2 file.\n");
-          compressType_ = BZIP2;
-        } else if ((magic[0]==0x50) && (magic[1]==0x4b) && (magic[2]==0x3)) {
-          if (debug_>0) mprintf(", Zip file.\n");
-          compressType_ = ZIP;
+    bool fileExists = Exists(fname_);
+    if (access_ == WRITE) {
+      // WRITE access.
+      // TODO check for overwrite?
+      compressType_ = SetCompressTypeFromName(fname_);
+    } else {
+      // READ or APPEND access.
+      if (fileExists) {
+        // File exists. Get size and compression info.
+        struct stat frame_stat;
+        if (stat(fname_.full(), &frame_stat) == -1) {
+          mprinterr("Error: Could not find file status for %s\n", fname_.full());
+          if (debug_>0) 
+            perror("     Error from stat: ");
+          return 1;
+        }
+        file_size_ = (unsigned int)frame_stat.st_size;
+        // ID compression by magic number (first 3 bytes).
+        FILE* fIn = fopen(fname_.full(), "rb");
+        if ( fIn == 0 ) { 
+          mprinterr("Error: Could not open %s for hex signature read.\n", fname_.full());
+          return 1;
+        }
+        unsigned char magic[3];
+        magic[0] = 0; 
+        magic[1] = 0; 
+        magic[2] = 0;
+        size_t numread = fread(magic, 1, 3, fIn);
+        fclose(fIn);
+        if (numread == 0) {
+          if (access_ == READ)
+            mprinterr("Error: File %s is empty\n", fname_.full());
+        } else if (numread < 3 ) {
+          mprintf("Warning: Could only read first %zu bytes of file %s.\n", numread, fname_.full());
         } else {
-          if (debug_>0) mprintf(", No compression.\n");
+          if (debug_>0) mprintf("\tHex sig: %x %x %x", magic[0],magic[1],magic[2]);
+          // Check compression
+          if ((magic[0]==0x1f) && (magic[1]==0x8b) && (magic[2]==0x8)) {
+            if (debug_>0) mprintf(", Gzip file.\n");
+            compressType_ = GZIP;
+          } else if ((magic[0]==0x42) && (magic[1]==0x5a) && (magic[2]==0x68)) {
+            if (debug_>0) mprintf(", Bzip2 file.\n");
+            compressType_ = BZIP2;
+          } else if ((magic[0]==0x50) && (magic[1]==0x4b) && (magic[2]==0x3)) {
+            if (debug_>0) mprintf(", Zip file.\n");
+            compressType_ = ZIP;
+          } else {
+            if (debug_>0) mprintf(", No compression.\n");
+          }
+        }
+      } else {
+        // READ/APPEND and file does not exist.
+        if (access_ == APPEND)
+          compressType_ = SetCompressTypeFromName(fname_);
+        else {
+          mprinterr("Error: File '%s' does not exist.\n", fname_.full());
+          ErrorMsg(fname_.full());
         }
       }
-    } else {
-      // File does not exist. Determine compression via extension.
-      if (fname_.Compress() == ".gz")
-        compressType_ = GZIP;
-      else if (fname_.Compress() == ".bz2")
-        compressType_ = BZIP2;
-    }
+    } // END READ/APPEND access
   } // END file is not stream
   if (debug_ > 0) {
     mprintf("\tFILE INFO:");
@@ -371,6 +389,6 @@ bool File::Exists(Name const& fn) {
   return false;
 }
 
-bool File::Exists(std::string const& fname) {
-  return File::Exists( Name(fname) );
-}
+//bool File::Exists(std::string const& fname) {
+//  return File::Exists( Name(fname) );
+//}

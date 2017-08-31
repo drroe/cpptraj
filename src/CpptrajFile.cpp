@@ -13,6 +13,7 @@ CpptrajFile::~CpptrajFile() {
   if (linebuffer_ != 0) delete[] linebuffer_;
 }
 
+//TODO copy buffer?
 /** Copy constructor. Copies closed. */
 CpptrajFile::CpptrajFile(CpptrajFile const& rhs) :
   BasicFile(rhs),

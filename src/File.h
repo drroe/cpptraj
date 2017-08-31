@@ -16,13 +16,13 @@ namespace File {
   enum CompressType { NO_COMPRESSION=0, GZIP, BZIP2, ZIP };
   /// Basic file; no IO routines.
   class Base;
-  /// Print error message corresponding to 'false' value from 'Exists()'
+  /// Print error message with given file name corresponding to 'false' value from 'Exists()'
   void ErrorMsg(const char*);
   /// return last file error message
   const char* StrError();
   /// \return true if file exists and is accessible.
-  bool Exists(std::string const&); // TODO remove?
   bool Exists(Name const&);
+  //bool Exists(std::string const&); // TODO remove?
 }
 
 /** Class to hold file name, extension, etc. */
