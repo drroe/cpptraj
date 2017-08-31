@@ -82,6 +82,7 @@ class File::Base {
     CompressType Compression() const { return compressType_; }
     bool IsOpen()              const { return isOpen_;       }
     bool IsStream()            const { return isStream_;     }
+    bool IsPresent()           const { return isPresent_;    }
     /// \return string based on current access
     const char* accessStr()    const { return AccessTypeName_[access_]; }
 
@@ -111,5 +112,6 @@ class File::Base {
     CompressType compressType_; ///< Type of compression present
     bool isOpen_;               ///< True if file is open and ready for IO
     bool isStream_;             ///< True if file is to/from a stream.
+    bool isPresent_;            ///< True if file exists.
 };
 #endif

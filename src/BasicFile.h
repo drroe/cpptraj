@@ -2,7 +2,7 @@
 #define INC_BASICFILE_H
 #include "File.h"
 #include "FileIO.h"
-/// Basic file IO
+/// Abstract base class for files that will do simple file IO
 class BasicFile : public File::Base {
   public:
     /// CONSTRUCTOR

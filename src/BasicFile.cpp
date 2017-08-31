@@ -89,8 +89,7 @@ int BasicFile::BasicSetup() {
   } else {
     if (SetupFileIO( UNKNOWN_TYPE )) return -1;
     // Check if file exists.
-    // FIXME this check also happens in Base::Setup() - consolidate
-    if (File::Exists( Filename() )) {
+    if (IsPresent()) {
       // File exists.
       uncompressed_size_ = IO_->Size( Filename().full() );
       // Additional file characteristics
@@ -116,7 +115,8 @@ int BasicFile::BasicSetup() {
   if (Debug() > 0) {
     rprintf("\t[%s] is type %s with access %s\n", Filename().full(), FileTypeName_[fileType_],
             accessStr());
-    rprintf("\t  isDos= %i\n\t  uncompressed_size_ = %u\n", isDos_, UncompressedSize());
+    rprintf("\t  isDos= %i\n\t  uncompressed_size_ = %u\n\t  firstLineSize = %u\n",
+            isDos_, UncompressedSize(), lineSize);
   }
   return (int)lineSize;
 }

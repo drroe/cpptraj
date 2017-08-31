@@ -179,7 +179,8 @@ File::Base::Base() :
   access_(READ),
   compressType_(NO_COMPRESSION),
   isOpen_(false),
-  isStream_(false)
+  isStream_(false),
+  isPresent_(false)
 {}
 
 File::Base::Base(int d) :
@@ -188,7 +189,8 @@ File::Base::Base(int d) :
   access_(READ),
   compressType_(NO_COMPRESSION),
   isOpen_(false),
-  isStream_(false)
+  isStream_(false),
+  isPresent_(false)
 {}
 
 /** Copy constructor. Always copy closed. */
@@ -198,7 +200,8 @@ File::Base::Base(Base const& rhs) :
   access_(rhs.access_),
   compressType_(rhs.compressType_),
   isOpen_(false),
-  isStream_(rhs.isStream_)
+  isStream_(rhs.isStream_),
+  isPresent_(rhs.isPresent_)
 {}
 
 /** Assignment. Always assign closed. */
@@ -210,6 +213,7 @@ File::Base& File::Base::operator=(Base const& rhs) {
     compressType_ = rhs.compressType_;
     isOpen_ = false;
     isStream_ = rhs.isStream_;
+    isPresent_ = rhs.isPresent_;
   }
   return *this;
 }
@@ -235,6 +239,7 @@ int File::Base::Setup(Name const& fnameIn, AccessType accessIn)
   isOpen_ = false;
   file_size_ = 0;
   compressType_ = NO_COMPRESSION;
+  isPresent_ = false;
   if (fnameIn.empty()) {
     // Empty file name is stream
     isStream_ = true;
@@ -245,14 +250,14 @@ int File::Base::Setup(Name const& fnameIn, AccessType accessIn)
   } else {
     isStream_ = false;
     fname_ = fnameIn;
-    bool fileExists = Exists(fname_);
+    isPresent_ = Exists(fname_);
     if (access_ == WRITE) {
       // WRITE access.
       // TODO check for overwrite?
       compressType_ = SetCompressTypeFromName(fname_);
     } else {
       // READ or APPEND access.
-      if (fileExists) {
+      if (isPresent_) {
         // File exists. Get size and compression info.
         struct stat frame_stat;
         if (stat(fname_.full(), &frame_stat) == -1) {
@@ -309,6 +314,7 @@ int File::Base::Setup(Name const& fnameIn, AccessType accessIn)
     mprintf("\t  Size= %u\n", file_size_);
     const char* compTypeStr[4] = {"None", "Gzip", "Bzip", "Zip "};
     mprintf("\t  Compression= %s\n", compTypeStr[compressType_]);
+    mprintf("\t  IsPresent= %i\n", (int)isPresent_);
   }
   return InternalSetup();
 }
