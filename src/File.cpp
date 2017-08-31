@@ -232,6 +232,9 @@ static inline File::CompressType SetCompressTypeFromName(File::Name const& fname
 }
 
 // File::Base::Setup()
+/** Set the file name, determine if file is or should be compressed, then
+  * call InternalSetup().
+  */
 int File::Base::Setup(Name const& fnameIn, AccessType accessIn)
 {
   if (isOpen_) Close();
@@ -251,22 +254,21 @@ int File::Base::Setup(Name const& fnameIn, AccessType accessIn)
     isStream_ = false;
     fname_ = fnameIn;
     isPresent_ = Exists(fname_);
-    if (access_ == WRITE) {
-      // WRITE access.
-      // TODO check for overwrite?
-      compressType_ = SetCompressTypeFromName(fname_);
-    } else {
-      // READ or APPEND access.
-      if (isPresent_) {
-        // File exists. Get size and compression info.
-        struct stat frame_stat;
-        if (stat(fname_.full(), &frame_stat) == -1) {
-          mprinterr("Error: Could not find file status for %s\n", fname_.full());
-          if (debug_>0) 
-            perror("     Error from stat: ");
-          return 1;
-        }
-        file_size_ = (unsigned int)frame_stat.st_size;
+    if (isPresent_) {
+      // File exists. Get stats.
+      struct stat frame_stat;
+      if (stat(fname_.full(), &frame_stat) == -1) {
+        mprinterr("Error: Could not find file status for %s\n", fname_.full());
+        if (debug_>0) 
+          perror("     Error from stat: ");
+        return 1;
+      }
+      file_size_ = (unsigned int)frame_stat.st_size;
+      // Access-specific setup for existing file.
+      if (access_ == WRITE) {
+        // TODO check for overwrite?
+        compressType_ = SetCompressTypeFromName(fname_);
+      } else {
         // ID compression by magic number (first 3 bytes).
         FILE* fIn = fopen(fname_.full(), "rb");
         if ( fIn == 0 ) { 
@@ -294,16 +296,15 @@ int File::Base::Setup(Name const& fnameIn, AccessType accessIn)
           else if ((magic[0]==0x50) && (magic[1]==0x4b) && (magic[2]==0x3))
             compressType_ = ZIP;
         }
-      } else {
-        // READ/APPEND and file does not exist.
-        if (access_ == APPEND)
-          compressType_ = SetCompressTypeFromName(fname_);
-        else {
-          mprinterr("Error: File '%s' does not exist.\n", fname_.full());
-          ErrorMsg(fname_.full());
-        }
       }
-    } // END READ/APPEND access
+    } else {
+      // File does not exist.
+      if (access_ == READ) {
+        mprinterr("Error: File '%s' does not exist.\n", fname_.full());
+        ErrorMsg(fname_.full());
+      } else
+        compressType_ = SetCompressTypeFromName(fname_);
+    }
   } // END file is not stream
   if (debug_ > 0) {
     mprintf("\tFILE INFO:");
