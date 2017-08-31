@@ -4,7 +4,7 @@
 #include "Atom.h"
 #include "Residue.h"
 /// Used to access PDB files
-class PDBfile : public CpptrajFile {
+class PDBfile : private CpptrajFile {
   public:
     class SSBOND;
     // NOTE: PDB_RECNAME must correspond with this.
@@ -71,6 +71,10 @@ class PDBfile : public CpptrajFile {
     void WriteENDMDL();
     /// Write END
     void WriteEND();
+    //
+    using CpptrajFile::Filename;
+    using CpptrajFile::Open;
+    using CpptrajFile::Close;
   private:
     /// \return true if the first 6 chars of buffer match a PDB keyword
     static bool IsPDBkeyword(std::string const&);

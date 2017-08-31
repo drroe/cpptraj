@@ -11,9 +11,9 @@ class ParmIO : public BaseIOtype {
     virtual ~ParmIO() { }
     virtual bool ID_ParmFormat(CpptrajFile&) = 0;
     virtual int processReadArgs(ArgList&) = 0; 
-    virtual int ReadParm(FileName const&, Topology&) = 0;
+    virtual int ReadParm(File::Name const&, Topology&) = 0;
     virtual int processWriteArgs(ArgList&) = 0;
-    virtual int WriteParm(FileName const&, Topology const&) = 0;
+    virtual int WriteParm(File::Name const&, Topology const&) = 0;
     void SetDebug(int d)       { debug_ = d;                   }
     void SetOffset(double oIn) { if (oIn > 0.0) Offset_ = oIn; }
   protected:

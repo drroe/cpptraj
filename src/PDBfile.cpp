@@ -54,10 +54,10 @@ bool PDBfile::IsPDBkeyword(std::string const& recname) {
 // PDBfile::ID_PDB()
 bool PDBfile::ID_PDB(CpptrajFile& fileIn) {
   // NOTE: ASSUME FILE SET UP FOR READ
-  if (fileIn.OpenFile()) return false;
+  if (fileIn.Open()) return false;
   std::string line1 = fileIn.GetLine();
   std::string line2 = fileIn.GetLine();
-  fileIn.CloseFile();
+  fileIn.Close();
   if (!IsPDBkeyword( line1 )) return false;
   if (!line2.empty() && !IsPDBkeyword( line2 )) return false;
   return true;

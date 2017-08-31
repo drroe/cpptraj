@@ -8,8 +8,8 @@ class Parm_PDB : public ParmIO {
     static void ReadHelp();
     bool ID_ParmFormat(CpptrajFile&);
     int processReadArgs(ArgList&);
-    int ReadParm(FileName const&, Topology&);
-    int WriteParm(FileName const&, Topology const&) { return 1; }
+    int ReadParm(File::Name const&, Topology&);
+    int WriteParm(File::Name const&, Topology const&) { return 1; }
     int processWriteArgs(ArgList&) { return 0; }
   private:
     bool readAsPQR_;  ///< If true get charge and radius from occ/b factor cols

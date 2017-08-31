@@ -19,7 +19,7 @@ int Parm_PDB::processReadArgs(ArgList& argIn) {
   return 0;
 } 
 
-int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
+int Parm_PDB::ReadParm(File::Name const& fname, Topology &TopIn) {
   PDBfile infile;
   double XYZ[6]; // Hold XYZ/box coords.
   float occupancy, bfactor; // Read in occ/bfac
@@ -29,7 +29,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   int barray[5];                // Hold CONECT atom and bonds
   char altLoc = ' ';            // For reading in altLoc.
   Frame Coords;
-  if (infile.OpenRead(fname)) return 1;
+  if (infile.Open(fname, File::READ)) return 1;
   if (readAsPQR_)   mprintf("\tReading as PQR file.\n");
   if (readBox_)     mprintf("\tUnit cell info will be read from any CRYST1 record.\n");
   if (!readConect_) mprintf("\tNot reading bond info from CONECT records.\n");
@@ -93,7 +93,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   std::string pdbtitle;
   TopIn.SetParmName( pdbtitle, infile.Filename() );
 
-  infile.CloseFile();
+  infile.Close();
 # ifdef TIMER
   time_total.Stop();
   time_atom.WriteTiming(2, "ATOM/HETATM read", time_total.Total());

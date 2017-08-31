@@ -51,7 +51,7 @@ int Traj_PDBfile::openTrajin() {
   * also be checked to ensure that the atom names match those in the parm file
   * in TrajectoryFile.
   */
-int Traj_PDBfile::setupTrajin(FileName const& fname, Topology* trajParm)
+int Traj_PDBfile::setupTrajin(File::Name const& fname, Topology* trajParm)
 {
   int atom;
   pdbWriteMode_ = NONE;
@@ -231,7 +231,7 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
 /** Set parm information needed for write, and check write mode against
   * number of frames to be written.
   */ 
-int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
+int Traj_PDBfile::setupTrajout(File::Name const& fname, Topology* trajParm,
                                CoordinateInfo const& cInfoIn,
                                int NframesToWrite, bool append)
 {
@@ -692,7 +692,7 @@ void Traj_PDBfile::Info() {
 /// Not valid for MODEL (checked in setup) so no need to do anything.
 int Traj_PDBfile::parallelOpenTrajout(Parallel::Comm const& commIn) { return 0; }
 
-int Traj_PDBfile::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
+int Traj_PDBfile::parallelSetupTrajout(File::Name const& fname, Topology* trajParm,
                                            CoordinateInfo const& cInfoIn,
                                            int NframesToWrite, bool append,
                                            Parallel::Comm const& commIn)

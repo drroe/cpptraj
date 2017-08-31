@@ -6,7 +6,7 @@ class CpptrajFile : public BasicFile {
   public:
     CpptrajFile();
     CpptrajFile(int);
-    ~CpptrajFile();
+    virtual ~CpptrajFile();
     CpptrajFile(const CpptrajFile&);
     CpptrajFile &operator=(const CpptrajFile &);
     // ----- IO Routines -------------------------
@@ -30,6 +30,7 @@ class CpptrajFile : public BasicFile {
     void SetupBuffer(unsigned int);
 
     unsigned int BUF_SIZE_;
+  protected:
     char* linebuffer_;
 };
 #endif

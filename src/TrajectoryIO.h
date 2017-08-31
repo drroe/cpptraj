@@ -29,7 +29,7 @@ class TrajectoryIO : public BaseIOtype {
       * \return TRAJIN_ERR if an error occured during setup.
       * \return TRAJIN_UNK if the number of frames could not be determined.
       */
-    virtual int setupTrajin(FileName const&, Topology*) = 0;
+    virtual int setupTrajin(File::Name const&, Topology*) = 0;
     /// Set up and open trajectory IO for WRITE/APPEND 
     /** Called on the first write call. Args are: 1) trajectory file name,
       * 2) Topology associated with this trajectory, 3) coordinate metadata
@@ -37,7 +37,7 @@ class TrajectoryIO : public BaseIOtype {
       * written out, 5) whether trajectory should be appended to.
       * \return 0 on success, 1 on error.
       */
-    virtual int setupTrajout(FileName const&,Topology*,CoordinateInfo const&,int,bool) = 0; 
+    virtual int setupTrajout(File::Name const&,Topology*,CoordinateInfo const&,int,bool) = 0; 
     /// Open previously set-up input trajectory, prepare for IO.
     virtual int openTrajin() = 0;
     /// Read a frame from trajectory
@@ -85,7 +85,7 @@ class TrajectoryIO : public BaseIOtype {
     // Parallel functions TODO pure virtual
     virtual int parallelOpenTrajin(Parallel::Comm const&) { return 1; }
     virtual int parallelOpenTrajout(Parallel::Comm const&) { return 1; }
-    virtual int parallelSetupTrajout(FileName const&, Topology*, CoordinateInfo const&,
+    virtual int parallelSetupTrajout(File::Name const&, Topology*, CoordinateInfo const&,
                                      int, bool, Parallel::Comm const&) { return 1; }
     virtual int parallelReadFrame(int, Frame&) { return 1; }
     virtual int parallelWriteFrame(int, Frame const&) { return 1; }

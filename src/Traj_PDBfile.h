@@ -21,8 +21,8 @@ class Traj_PDBfile: public TrajectoryIO {
   private:
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
-    int setupTrajin(FileName const&, Topology*);
-    int setupTrajout(FileName const&, Topology*, CoordinateInfo const&,int, bool);
+    int setupTrajin(File::Name const&, Topology*);
+    int setupTrajout(File::Name const&, Topology*, CoordinateInfo const&,int, bool);
     int openTrajin();
     void closeTraj();
     int readFrame(int,Frame&);
@@ -35,7 +35,7 @@ class Traj_PDBfile: public TrajectoryIO {
 #   ifdef MPI
     // Parallel functions
     int parallelOpenTrajout(Parallel::Comm const&);
-    int parallelSetupTrajout(FileName const&, Topology*, CoordinateInfo const&,
+    int parallelSetupTrajout(File::Name const&, Topology*, CoordinateInfo const&,
                              int, bool, Parallel::Comm const&);
     int parallelWriteFrame(int, Frame const&);
     void parallelCloseTraj() {}
