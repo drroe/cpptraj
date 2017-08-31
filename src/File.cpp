@@ -9,6 +9,7 @@
 #include "CpptrajStdio.h"
 
 #ifndef _WIN32
+/** Print error messages from the wordexp() function. */
 static void WexpErr(int err) {
   switch ( err ) {
     case WRDE_BADCHAR :
@@ -279,20 +280,14 @@ int File::Base::Setup(Name const& fnameIn, AccessType accessIn)
         } else if (numread < 3 ) {
           mprintf("Warning: Could only read first %zu bytes of file %s.\n", numread, fname_.full());
         } else {
-          if (debug_>0) mprintf("\tHex sig: %x %x %x", magic[0],magic[1],magic[2]);
+          if (debug_>0) mprintf("\tHex sig: %x %x %x\n", magic[0],magic[1],magic[2]);
           // Check compression
-          if ((magic[0]==0x1f) && (magic[1]==0x8b) && (magic[2]==0x8)) {
-            if (debug_>0) mprintf(", Gzip file.\n");
+          if ((magic[0]==0x1f) && (magic[1]==0x8b) && (magic[2]==0x8))
             compressType_ = GZIP;
-          } else if ((magic[0]==0x42) && (magic[1]==0x5a) && (magic[2]==0x68)) {
-            if (debug_>0) mprintf(", Bzip2 file.\n");
+          else if ((magic[0]==0x42) && (magic[1]==0x5a) && (magic[2]==0x68))
             compressType_ = BZIP2;
-          } else if ((magic[0]==0x50) && (magic[1]==0x4b) && (magic[2]==0x3)) {
-            if (debug_>0) mprintf(", Zip file.\n");
+          else if ((magic[0]==0x50) && (magic[1]==0x4b) && (magic[2]==0x3))
             compressType_ = ZIP;
-          } else {
-            if (debug_>0) mprintf(", No compression.\n");
-          }
         }
       } else {
         // READ/APPEND and file does not exist.

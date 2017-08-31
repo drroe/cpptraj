@@ -116,7 +116,7 @@ int BasicFile::BasicSetup() {
   if (Debug() > 0) {
     rprintf("\t[%s] is type %s with access %s\n", Filename().full(), FileTypeName_[fileType_],
             accessStr());
-    rprintf("\t  isDos= %i  uncompressed_size_ = %u\n", isDos_, UncompressedSize());
+    rprintf("\t  isDos= %i\n\t  uncompressed_size_ = %u\n", isDos_, UncompressedSize());
   }
   return (int)lineSize;
 }
