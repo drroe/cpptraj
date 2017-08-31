@@ -3,7 +3,7 @@
 #include "File.h"
 #include "CoordinateInfo.h"
 /// The base interface to NetCDF trajectory files.
-class NetcdfFile : public File::Base {
+class NetcdfFile : private File::Base {
   public:
     /// For determining NetCDF trajectory file type
     enum NCTYPE { NC_UNKNOWN = 0, NC_AMBERTRAJ, NC_AMBERRESTART, NC_AMBERENSEMBLE };
@@ -13,14 +13,31 @@ class NetcdfFile : public File::Base {
     NetcdfFile() { }
 #   else 
     NetcdfFile();
-    
+    // Set up NetCDF file for reading
+    int NC_setupRead(File::Name const&);
+    // Open NetCDF file
+    int NC_open();
+    // Members of Base that should be public
+    using Base::Filename;
+    using Base::Close;
+    using Base::SetDebug;
   private:
     // ----- Inherited classes -------------------
-    int InternalSetup() { return 0; }
+    int InternalSetup();
     int InternalOpen();
     void InternalClose();
     // -------------------------------------------
     static NCTYPE GetNetcdfConventions(int);
+    /// Check conventions version
+    void CheckConventionsVersion();
+    /// Create new file
+    int CreateNewFile();
+    /// Setup existing file
+    int SetupExistingFile();
+    /// DEBUG - Write start and count arrays to STDOUT
+    void WriteIndices() const;
+    /// DEBUG - Write all variable IDs to STDOUT
+    void WriteVIDs() const;
     /// Convert given float array to double.
     inline void FloatToDouble(double*,const float*) const;
     /// Convert given double array to float.
@@ -34,6 +51,7 @@ class NetcdfFile : public File::Base {
     int ncatom3_;         ///< Number of coordinates (# atoms * 3)
     int ncframe_;         ///< Total number of frames in file
     int remd_dimension_;  ///< Number of replica dimensions
+    NCTYPE type_;         ///< NetCDF trajectory type
     // Variable IDs
     int TempVID_;         ///< Temperature variable ID.
     int coordVID_;        ///< Coordinates variable ID.
