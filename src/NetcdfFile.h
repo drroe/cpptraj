@@ -13,8 +13,13 @@ class NetcdfFile : public File::Base {
     NetcdfFile() { }
 #   else 
     NetcdfFile();
-
+    
   private:
+    // ----- Inherited classes -------------------
+    int InternalSetup() { return 0; }
+    int InternalOpen();
+    void InternalClose();
+    // -------------------------------------------
     static NCTYPE GetNetcdfConventions(int);
     /// Convert given float array to double.
     inline void FloatToDouble(double*,const float*) const;

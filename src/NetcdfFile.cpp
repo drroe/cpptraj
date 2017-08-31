@@ -106,4 +106,23 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(int ncidIn) {
   }
   return nctype;
 }
+
+// NetcdfFile::InternalOpen()
+int NetcdfFile::InternalOpen() {
+  if ( Access() == File::READ ) {
+    if (NC::CheckErr( nc_open( Filename().full(), NC_NOWRITE, &ncid_ ) )) return 1;
+  } else {
+    if (NC::CheckErr( nc_open( Filename().full(), NC_WRITE,   &ncid_ ) )) return 1;
+  }
+  return 0;
+}
+
+// NetcdfFile::InternalClose()
+void NetcdfFile::InternalClose() {
+  if (ncid_ == -1) return;
+  bool err = NC::CheckErr( nc_close(ncid_) );
+  if (Debug() > 0 && !err)
+    mprintf("Successfully closed ncid %i\n", ncid_);
+  ncid_ = -1;
+}
 #endif /* BINTRAJ */
