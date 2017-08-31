@@ -6,7 +6,7 @@
 class NetcdfFile : private File::Base {
   public:
     /// For determining NetCDF trajectory file type
-    enum NCTYPE { NC_UNKNOWN = 0, NC_AMBERTRAJ, NC_AMBERRESTART, NC_AMBERENSEMBLE };
+    enum NCTYPE { NC_UNKNOWN = 0, NC_AMBERTRAJ, NC_RESERVOIR, NC_AMBERRESTART, NC_AMBERENSEMBLE };
     /// \return NetCDF trajectory type of given file.
     static NCTYPE GetNetcdfConventions(File::Name const&);
 #   ifndef BINTRAJ
@@ -17,8 +17,9 @@ class NetcdfFile : private File::Base {
     int NC_setupRead(File::Name const&);
     /// Set up the NetCDF file for writing
     int NC_setupWrite(File::Name const&, NCTYPE, int, CoordinateInfo const&, std::string const&);
-
-    // Open NetCDF file
+    /// Create NetCDF reservoir.
+    int NC_createReservoir(bool, double, int, int&, int&);
+    /// Open NetCDF file
     int NC_open();
     // Members of Base that should be public
     using Base::Filename;
@@ -33,6 +34,8 @@ class NetcdfFile : private File::Base {
     static NCTYPE GetNetcdfConventions(int);
     /// Check conventions version
     void CheckConventionsVersion();
+    /// Define temperature dimension
+    int NC_defineTemperature(int*, int);
     /// Create new file
     int CreateNewFile();
     /// Setup existing file
