@@ -115,6 +115,17 @@ int NetcdfFile::NC_setupRead(File::Name const& fnameIn) {
   return (Setup(fnameIn, File::READ));
 }
 
+// NetcdfFile::NC_setupWrite()
+int NetcdfFile::NC_setupWrite(File::Name const& fnameIn, NCTYPE type, int natomIn,
+                              CoordinateInfo const& coordInfo, std::string const& title)
+{
+  type_ = type;
+  ncatom_ = natomIn;
+  cInfo_ = coordInfo;
+  nc_title_ = title;
+  return (Setup(fnameIn, File::WRITE));
+}
+
 int NetcdfFile::NC_open() { return Open(); }
 
 // -----------------------------------------------------------------------------
@@ -148,7 +159,10 @@ int NetcdfFile::InternalSetup() {
     err = CreateNewFile();
   else
     err = SetupExistingFile();
-  if (Debug() > 0) WriteVIDs();
+  if (Debug() > 0) {
+    WriteVIDs();
+    mprintf("DEBUG: %s\n", cInfo_.InfoString().c_str());
+  }
   return err;
 }
 
@@ -169,6 +183,8 @@ int NetcdfFile::SetupExistingFile() {
   Open();
   // This will warn if conventions are not 1.0 
   CheckConventionsVersion();
+  // Title
+  nc_title_ = NC::GetAttrText(ncid_, "title");
   // Get frame dimension ID if present.
   frameDID_ = NC::GetDimInfo( ncid_, NCFRAME, ncframe_ );
   // Get atoms info
@@ -252,13 +268,51 @@ int NetcdfFile::SetupExistingFile() {
     }
   }
   // Setup box variable IDs
+  Box nc_box;
   if ( nc_inq_varid(ncid_, NCCELL_LENGTHS, &cellLengthVID_) == NC_NOERR ) {
     if (NC::CheckErr( nc_inq_varid(ncid_, NCCELL_ANGLES, &cellAngleVID_) )) {
       mprinterr("Error: Getting cell angles.\n");
       return 1;
     }
     if (Debug() > 0) mprintf("\tNetCDF Box information found.\n");
-
+    // If present, get box lengths/angles.
+    start_[0]=0; 
+    start_[1]=0; 
+    start_[2]=0;
+    start_[3]=0;
+    switch (type_) {
+      case NC_AMBERRESTART:
+        count_[0]=3;
+        count_[1]=0;
+        count_[2]=0;
+        break;
+      case NC_AMBERTRAJ:
+        count_[0]=1; 
+        count_[1]=3;
+        count_[2]=0;
+        break;
+      case NC_AMBERENSEMBLE:
+        count_[0]=1; // NOTE: All ensemble members must have same box type
+        count_[1]=1; // TODO: Check all members?
+        count_[2]=3;
+        break;
+      case NC_UNKNOWN: return 1; // Sanity check
+    }
+    count_[3]=0;
+    double boxCrd[6]; /// XYZ ABG
+    if ( NC::CheckErr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, boxCrd )) )
+    {
+      mprinterr("Error: Getting cell lengths.\n");
+      return 1;
+    }
+    if ( NC::CheckErr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, boxCrd+3)) )
+    {
+      mprinterr("Error: Getting cell angles.\n");
+      return 1;
+    }
+    if (Debug() > 0) mprintf("\tNetCDF Box: XYZ={%f %f %f} ABG={%f %f %f}\n",
+                              boxCrd[0], boxCrd[1], boxCrd[2], boxCrd[3], boxCrd[4], boxCrd[5]);
+    nc_box.SetBox( boxCrd );
   }
   // Determine if Netcdf file contains temperature; set up temperature VID.
   TempVID_=-1;
@@ -267,6 +321,7 @@ int NetcdfFile::SetupExistingFile() {
   } 
   // Determine if Netcdf file contains multi-D REMD info.
   int dimensionDID = -1;
+  ReplicaDimArray remdDim;
   if ( nc_inq_dimid(ncid_, NCREMD_DIMENSION, &dimensionDID) == NC_NOERR) {
     dimensionDID = NC::GetDimInfo(ncid_, NCREMD_DIMENSION, remd_dimension_);
     if (dimensionDID = -1) return 1; // SANITY CHECK
@@ -274,18 +329,43 @@ int NetcdfFile::SetupExistingFile() {
       mprinterr("Error: Number of REMD dimensions is less than 1!\n");
       return 1;
     }
+    // Start and count for groupnum and dimtype, allocate mem
+    start_[0]=0; 
+    start_[1]=0; 
+    start_[2]=0;
+    count_[0]=remd_dimension_; 
+    count_[1]=0; 
+    count_[2]=0;
+    int* remd_dimtype = new int[ remd_dimension_ ];
+    // Get dimension types
     int dimtypeVID;
     if ( NC::CheckErr(nc_inq_varid(ncid_, NCREMD_DIMTYPE, &dimtypeVID)) ) {
       mprinterr("Error: Getting dimension type variable ID for each dimension.\n");
       return 1;
+    }
+    if ( NC::CheckErr(nc_get_vara_int(ncid_, dimtypeVID, start_, count_, remd_dimtype)) ) {
+      mprinterr("Error: Getting dimension type in each dimension.\n");
+      return -1;
     }
     // Get VID for replica indices
     if ( NC::CheckErr(nc_inq_varid(ncid_, NCREMD_INDICES, &indicesVID_)) ) {
       mprinterr("Error: Getting replica indices variable ID.\n");
       return 1;
     }
+    // Print info for each dimension
+    for (int dim = 0; dim < remd_dimension_; ++dim)
+      remdDim.AddRemdDimension( remd_dimtype[dim] );
+    delete[] remd_dimtype;
   }
+  // NOTE: TO BE ADDED
+  // labelDID;
+  //int cell_spatialDID, cell_angularDID;
+  //int spatialVID, cell_spatialVID, cell_angularVID;
   if (Debug() > 1) NC::Debug(ncid_);
+
+  cInfo_ = CoordinateInfo(remdDim, nc_box, velocityVID_ != -1,
+                          TempVID_ != -1, timeVID_ != -1, frcVID_ != -1);
+  cInfo_.SetCrd( coordVID_ != -1 );
 
   Close();
   return 0;

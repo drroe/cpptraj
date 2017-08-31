@@ -13,8 +13,11 @@ class NetcdfFile : private File::Base {
     NetcdfFile() { }
 #   else 
     NetcdfFile();
-    // Set up NetCDF file for reading
+    /// Set up NetCDF file for reading
     int NC_setupRead(File::Name const&);
+    /// Set up the NetCDF file for writing
+    int NC_setupWrite(File::Name const&, NCTYPE, int, CoordinateInfo const&, std::string const&);
+
     // Open NetCDF file
     int NC_open();
     // Members of Base that should be public
@@ -42,6 +45,9 @@ class NetcdfFile : private File::Base {
     inline void FloatToDouble(double*,const float*) const;
     /// Convert given double array to float.
     inline void DoubleToFloat(float*,const double*) const; 
+
+    CoordinateInfo cInfo_;
+    std::string nc_title_;
 
     size_t start_[4];     ///< Array starting indices
     size_t count_[4];     ///< Array counts
