@@ -252,6 +252,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Exec_Traj.cpp \
         Exec_ViewRst.cpp \
         File.cpp \
+        FileName.cpp \
         FileIO_Bzip2.cpp \
         FileIO_Gzip.cpp \
         FileIO_Mpi.cpp \
