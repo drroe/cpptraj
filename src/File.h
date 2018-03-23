@@ -5,8 +5,6 @@
 #include "FileName.h"
 /// This namespace contains useful file-related routines.
 namespace File {
-  /// File name, path, extension etc.
-  class Name;
   /// Array of file names
   typedef std::vector<Name> NameArray;
   /// Expand given expression to array of file names
@@ -15,8 +13,6 @@ namespace File {
   enum AccessType { READ=0, WRITE, APPEND, UPDATE };
   /// File compression types
   enum CompressType { NO_COMPRESSION=0, GZIP, BZIP2, ZIP };
-  /// Basic file; no IO routines.
-  class Base;
   /// Print error message with given file name corresponding to 'false' value from 'Exists()'
   void ErrorMsg(const char*);
   /// return last file error message
