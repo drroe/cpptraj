@@ -270,6 +270,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Exec_ViewRst.cpp \
         File.cpp \
         FileName.cpp \
+        File_Base.cpp \
         File_RepName.cpp \
         File_WordExp.cpp \
         FileIO_Bzip2.cpp \

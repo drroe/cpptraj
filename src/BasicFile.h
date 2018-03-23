@@ -1,6 +1,6 @@
 #ifndef INC_BASICFILE_H
 #define INC_BASICFILE_H
-#include "File.h"
+#include "File_Base.h"
 #include "FileIO.h"
 /// Abstract base class for files that will do simple file IO
 class BasicFile : public File::Base {
