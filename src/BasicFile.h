@@ -3,6 +3,10 @@
 #include "File_Base.h"
 #include "FileIO.h"
 /// Abstract base class for files that will do simple file IO
+/** This is for all files that will make use of FileIO objects to perform
+  * IO. It implements InteralOpen() and InternalClose() - files that 
+  * inherit this should implement InternalSetup().
+  */
 class BasicFile : public File::Base {
   public:
     /// CONSTRUCTOR
