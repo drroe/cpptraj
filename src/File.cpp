@@ -1,34 +1,11 @@
-#ifndef _WIN32
-#   include <wordexp.h>
-#endif
 #include <sys/stat.h> // stat
 #include <cstdio>     // FILE, fopen
 #include <cerrno>     // fileErrMsg, errno
 #include <cstring>    // fileErrMsg, strerror
 #include "File.h"
 #include "File_RepName.h"
+#include "File_WordExp.h"
 #include "CpptrajStdio.h"
-
-#ifndef _WIN32
-/** Print error messages from the wordexp() function. */ // TODO do not duplicate
-static void WexpErr(int err) {
-  switch ( err ) {
-    case WRDE_BADCHAR :
-      mprinterr("Error: Illegal occurrence of newline or one of |, &, ;, <, >, (, ), {, }.\n");
-      break;
-    //case WRDE_BADVAL
-    case WRDE_CMDSUB :
-      mprinterr("Error: Command substitution is not allowed in file names.\n");
-      break;
-    case WRDE_NOSPACE :
-      mprinterr("Error: Out of memory.\n");
-      break;
-    case WRDE_SYNTAX :
-      mprinterr("Error: Bad syntax (unbalanced parentheses, unmatched quotes.\n");
-      break;
-  }
-}
-#endif /* _WIN32 */
 
 // ===== File::Base ============================================================
 File::Base::Base() :
@@ -203,26 +180,15 @@ void File::Base::Close() {
 // =============================================================================
 File::NameArray File::ExpandToFilenames(std::string const& fnameArg) {
   NameArray fnames;
-#ifdef _WIN32
-  fnames.push_back( fnameArg );
-#else
-  if (fnameArg.empty()) return fnames;
-  wordexp_t expanded;
-  int err = wordexp( fnameArg.c_str(), &expanded, WRDE_NOCMD );
-  WexpErr( err );
-  if ( err == 0 ) {
-    for (unsigned int i = 0; i != expanded.we_wordc; i++) {
-      if (expanded.we_wordv[i] == 0)
-        mprinterr("Internal Error: Bad expansion at %i\n", i);
-      else {
-        Name fn;
-        fn.SetName_NoExpansion( expanded.we_wordv[i] );
-        fnames.push_back( fn );
-      }
-    }
-    wordfree( &expanded );
+  Sarray names = WordExp( fnameArg );
+  for (Sarray::const_iterator it = names.begin(); it != names.end(); ++it)
+  {
+    Name fn;
+    if (fn.SetName_NoExpansion( *it ))
+      mprinterr("Internal Error: Could not set file name '%s'\n", it->c_str());
+    else
+      fnames.push_back( fn );
   }
-#endif /* _WIN32 */
   return fnames;
 }
 

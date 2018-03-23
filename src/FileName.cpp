@@ -1,30 +1,7 @@
-#ifndef _WIN32
-#   include <wordexp.h>
-#endif
 #include "FileName.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // validInteger, convertToInteger, integerToString
-
-#ifndef _WIN32
-/** Print error messages from the wordexp() function. */ // TODO do not duplicate
-static void WexpErr(int err) {
-  switch ( err ) {
-    case WRDE_BADCHAR :
-      mprinterr("Error: Illegal occurrence of newline or one of |, &, ;, <, >, (, ), {, }.\n");
-      break;
-    //case WRDE_BADVAL
-    case WRDE_CMDSUB :
-      mprinterr("Error: Command substitution is not allowed in file names.\n");
-      break;
-    case WRDE_NOSPACE :
-      mprinterr("Error: Out of memory.\n");
-      break;
-    case WRDE_SYNTAX :
-      mprinterr("Error: Bad syntax (unbalanced parentheses, unmatched quotes.\n");
-      break;
-  }
-}
-#endif /* _WIN32 */
+#include "File_WordExp.h"
 
 // COPY CONSTRUCTOR
 File::Name::Name( const Name& rhs ) : fullPathName_(rhs.fullPathName_),
@@ -67,23 +44,15 @@ int File::Name::SetName(std::string const& nameIn) {
     clear();
     return 0;
   }
-#ifndef _WIN32
-  wordexp_t expanded;
-  int err = wordexp( nameIn.c_str(), &expanded, WRDE_NOCMD );
-  WexpErr( err );
-  if (err == 0) {
-    if (expanded.we_wordc < 1) { // Sanity check
-      mprinterr("Internal Error: Word expansion failed.\n");
-      err = 1;
-    } else
-      err = SetName_NoExpansion( expanded.we_wordv[0] );
-    wordfree( &expanded );
+  Sarray names = WordExp( nameIn );
+  int err = 1;
+  if (!names.empty()) {
+    if (names.size() > 1)
+      mprintf("Warning: '%s' matches multiple files, only using '%s'\n",
+              nameIn.c_str(), names.front().c_str());
+    err = SetName_NoExpansion( names.front() );
   }
   return err;
-#else
-  SetName_NoExpansion(nameIn);
-  return 0;
-#endif
 }
 
 int File::Name::SetName_NoExpansion(std::string const& nameIn) {
