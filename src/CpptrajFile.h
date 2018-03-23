@@ -1,10 +1,7 @@
 #ifndef INC_CPPTRAJFILE_H
 #define INC_CPPTRAJFILE_H
 #include "BasicFile.h"
-/// Perform simple file IO with an internal buffer.
-/** The buffer is dynamically allocated for reads to be as large
-  * as it needs to be to accomodate large lines.
-  */
+/// Perform simple file IO with a static internal buffer.
 class CpptrajFile : public BasicFile {
   public:
     CpptrajFile();
