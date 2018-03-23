@@ -28,7 +28,7 @@ static void WexpErr(int err) {
 #endif /* _WIN32 */
 
 /** Given a name, expand it to a name or names with wordexp. */
-Sarray WordExp(std::string const& nameIn) {
+Sarray File::WordExp(std::string const& nameIn) {
   if (nameIn.empty()) return Sarray();
 # ifdef _WIN32
   // Expansion NOT supported.
