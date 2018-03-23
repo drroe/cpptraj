@@ -5,6 +5,7 @@
 #include "CpptrajFile.h"
 #include "CpptrajStdio.h" // DEBUG
 
+
 CpptrajFile::CpptrajFile() : BUF_SIZE_(0), linebuffer_(0) {}
 
 CpptrajFile::CpptrajFile(int d) : BasicFile(d), BUF_SIZE_(0), linebuffer_(0) {}

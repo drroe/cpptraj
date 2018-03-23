@@ -43,5 +43,6 @@ class Name {
     std::string compressExt_;
 std::string dirPrefix_;
 };
-} /* namespace File */
+
+} /* END namespace File */
 #endif

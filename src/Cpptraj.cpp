@@ -113,11 +113,12 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   total_time.Start();
 # ifdef CUDA
   int nGPUs = 0;
-  if ( cudaGetDeviceCount( &nGPUs ) != cudaSuccess ) {
-    mprinterr("Error: Could not get # of GPU devices.\n");
-    return 1;
-  }
-  if (nGPUs < 1) {
+  cudaError_t cerr = cudaGetDeviceCount( &nGPUs );
+  if ( cerr == cudaErrorNoDevice )
+    mprinterr("Error: No CUDA-capable devices present.\n");
+  else if ( cerr == cudaErrorInsufficientDriver )
+    mprinterr("Error: NVIDIA driver version is insufficient for this version of CUDA.\n");
+  if (nGPUs < 1 || cerr != cudaSuccess) {
     mprinterr("Error: No CUDA-capable devices found.\n");
     return 1;
   }
@@ -196,6 +197,9 @@ std::string Cpptraj::Defines() {
 #endif
 #if defined(USE_SANDERLIB) && !defined(LIBCPPTRAJ)
   defined_str.append(" -DUSE_SANDERLIB");
+#endif
+#ifdef LIBPME
+  defined_str.append(" -DLIBPME");
 #endif
   return defined_str;
 }
@@ -436,6 +440,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     {
       CpptrajState::RetType c_err = Command::ProcessInput( State_, *inputFilename );
       if (c_err == CpptrajState::ERR && State_.ExitOnError()) return ERROR;
+      if (Command::UnterminatedControl()) return ERROR;
       if (c_err == CpptrajState::QUIT) return QUIT;
     }
   }
@@ -450,6 +455,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       // "" means read from STDIN
       CpptrajState::RetType c_err = Command::ProcessInput( State_, "" ); 
       if (c_err == CpptrajState::ERR && State_.ExitOnError()) return ERROR;
+      if (Command::UnterminatedControl()) return ERROR;
       if (c_err == CpptrajState::QUIT) return QUIT;
     }
   }
@@ -513,7 +519,7 @@ int Cpptraj::Interactive() {
     }
     if (!inputLine.empty()) {
       readLoop = Command::Dispatch( State_, *inputLine );
-      if (logfile_.IsOpen() && readLoop != CpptrajState::ERR) {
+      if (logfile_.IsOpen() && (readLoop != CpptrajState::ERR || State_.RecordAllInput())) {
         logfile_.Printf("%s\n", inputLine.c_str());
         logfile_.Flush();
       }
@@ -528,6 +534,7 @@ int Cpptraj::Interactive() {
     }
   }
   logfile_.CloseFile();
+  if (Command::UnterminatedControl()) return 1;
   if (readLoop == CpptrajState::ERR) return 1;
   return 0;
 }

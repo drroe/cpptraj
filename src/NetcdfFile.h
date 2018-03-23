@@ -1,88 +1,135 @@
 #ifndef INC_NETCDFFILE_H
 #define INC_NETCDFFILE_H
-#include "File.h"
-#include "CoordinateInfo.h"
+#include <string>
+#include "Frame.h"
 /// The base interface to NetCDF trajectory files.
-class NetcdfFile : private File::Base {
+class NetcdfFile {
   public:
     /// For determining NetCDF trajectory file type
-    enum NCTYPE { NC_UNKNOWN = 0, NC_AMBERTRAJ, NC_RESERVOIR, NC_AMBERRESTART, NC_AMBERENSEMBLE };
-    /// \return NetCDF trajectory type of given file.
-    static NCTYPE GetNetcdfConventions(File::Name const&);
+    enum NCTYPE { NC_AMBERTRAJ = 0, NC_AMBERRESTART, NC_AMBERENSEMBLE, NC_UNKNOWN };
+    /// \return Type of given file.
+    NCTYPE GetNetcdfConventions(const char*);
 #   ifndef BINTRAJ
     NetcdfFile() { }
 #   else 
     NetcdfFile();
-    /// Set up NetCDF file for reading
-    int NC_setupRead(File::Name const&);
-    /// Set up the NetCDF file for writing
-    int NC_setupWrite(File::Name const&, NCTYPE, int, CoordinateInfo const&, std::string const&);
+    /// \return Coordinate info corresponding to current setup. TODO have in variable?
+    CoordinateInfo NC_coordInfo() const;
+    /// Open NetCDF file for reading.
+    int NC_openRead(std::string const&);
+    /// Open previously created NetCDF file for writing.
+    int NC_openWrite(std::string const&);
     /// Create NetCDF reservoir.
     int NC_createReservoir(bool, double, int, int&, int&);
-    /// Open NetCDF file
-    int NC_open();
-    // Members of Base that should be public
-    using Base::Filename;
-    using Base::Close;
-    using Base::SetDebug;
-  private:
-    // ----- Inherited classes -------------------
-    int InternalSetup();
-    int InternalOpen();
-    void InternalClose();
-    // -------------------------------------------
-    static NCTYPE GetNetcdfConventions(int);
-    /// Check conventions version
-    void CheckConventionsVersion();
-    /// Define temperature dimension
-    int NC_defineTemperature(int*, int);
-    /// Create new file
-    int CreateNewFile();
-    /// Setup existing file
-    int SetupExistingFile();
-    /// DEBUG - Write start and count arrays to STDOUT
-    void WriteIndices() const;
-    /// DEBUG - Write all variable IDs to STDOUT
-    void WriteVIDs() const;
+    /// Create NetCDF trajectory file of given type.
+    int NC_create(std::string const&, NCTYPE, int, 
+                  CoordinateInfo const&, std::string const&, int);
+    /// Close NetCDF file, do not reset dimension/variable IDs.
+    void NC_close();
+    /// \return Title of NetCDF file.
+    std::string const& GetNcTitle() const { return nctitle_; }
+    /// Set up NetCDF file for reading.
+    int NC_setupRead(std::string const&, NCTYPE, int, bool, bool, int);
+    /// Read - Remd Values
+    int ReadRemdValues(Frame&);
+    /// Write - Remd Values
+    int WriteRemdValues(Frame const&);
+#   ifdef MPI
+#   ifdef HAS_PNETCDF
+    int parallelWriteRemdValues(int, Frame const&);
+#   endif
+#   endif
     /// Convert given float array to double.
     inline void FloatToDouble(double*,const float*) const;
     /// Convert given double array to float.
     inline void DoubleToFloat(float*,const double*) const; 
+    /// DEBUG - Write start and count arrays to STDOUT
+    void DebugIndices() const;
+    /// DEBUG - Write all variable IDs to STDOUT
+    void DebugVIDs() const;
 
-    CoordinateInfo cInfo_;
-    std::string nc_title_;
+    inline int Ncid()      const { return ncid_;                }
+    inline int Ncatom()    const { return ncatom_;              }
+    inline int Ncatom3()   const { return ncatom3_;             }
+    inline int Ncframe()   const { return ncframe_;             }
+    inline int CoordVID()  const { return coordVID_;            }
+  protected: // TODO: Make all private
+#   ifdef MPI
+    void Sync(Parallel::Comm const&);
+#   endif
+    size_t start_[4];    ///< Array starting indices
+    size_t count_[4];    ///< Array counts
+    int ncid_;           ///< NetCDF file ID
+    int ncframe_;        ///< Total number of frames in file
+    int TempVID_;        ///< Temperature variable ID.
+    int coordVID_;       ///< Coordinates variable ID.
+    int velocityVID_;    ///< Velocity variable ID.
+    int frcVID_;         ///< Force variable ID.
+    int cellAngleVID_;   ///< Box angles variable ID.
+    int cellLengthVID_;  ///< Box lengths variable ID.
+    int timeVID_;        ///< Time variable ID.
+    // MultiD REMD
+    int remd_dimension_; ///< Number of replica dimensions.
+    int indicesVID_;     ///< Variable ID for replica indices.
+    int repidxVID_;      ///< Variable ID for overall replica index.
+    int crdidxVID_;      ///< Variable ID for overall coordinate index.
+    // NC ensemble
+    int ensembleSize_;
+    std::string nctitle_;
+  private:
+    static const char* ConventionsStr_[];
 
-    size_t start_[4];     ///< Array starting indices
-    size_t count_[4];     ///< Array counts
+    /// \return NetCDF trajectory type based on conventions.
+    NCTYPE GetNetcdfConventions(int);
+    /// Check NetCDF file conventions version.
+    void CheckConventionsVersion();
 
-    int ncid_;            ///< NetCDF file ID
-    int ncatom_;          ///< Number of atoms
-    int ncatom3_;         ///< Number of coordinates (# atoms * 3)
-    int ncframe_;         ///< Total number of frames in file
-    int remd_dimension_;  ///< Number of replica dimensions
-    NCTYPE type_;         ///< NetCDF trajectory type
-    // Variable IDs
-    int TempVID_;         ///< Temperature variable ID.
-    int coordVID_;        ///< Coordinates variable ID.
-    int velocityVID_;     ///< Velocity variable ID.
-    int frcVID_;          ///< Force variable ID.
-    int spatialVID_;      ///< Spatial (x, y, z) variable ID
-    int cell_spatialVID_; ///< Box length labels variable ID
-    int cell_angularVID_; ///< Box angle labels variable ID
-    int cellAngleVID_;    ///< Box angles variable ID.
-    int cellLengthVID_;   ///< Box lengths variable ID.
-    int timeVID_;         ///< Time variable ID.
-    int indicesVID_;      ///< Variable ID for replica indices.
-    int repidxVID_;       ///< Variable ID for overall replica index.
-    int crdidxVID_;       ///< Variable ID for overall coordinate index.
-    // Dimension IDs
+    bool Has_pH() const;
+    bool HasRedOx() const;
+    bool HasForces()       const { return (frcVID_ != -1);      }
+    bool HasVelocities()   const { return (velocityVID_ != -1); }
+    bool HasCoords()       const { return (coordVID_ != -1);    }
+    bool HasTemperatures() const;
+    bool HasTimes()        const { return (timeVID_ != -1);     }
+
+    /// Read - Set up frame dimension ID and number of frames.
+    int SetupFrameDim();
+    /// Read - Set up ensemble dimension ID and number of members.
+    int SetupEnsembleDim();
+    /// Read - Set up coordinates, velocities, forces, # atoms
+    int SetupCoordsVelo(bool, bool);
+    /// Read - Set up time variable if present
+    int SetupTime();
+    /// Read - Set up box information if present.
+    int SetupBox();
+    /// Read - Set up temperature information if present.
+    void SetupTemperature();
+    /// Read - Set up replica index info if present.
+    int SetupMultiD();
+
+    int NC_defineTemperature(int*, int);
+    inline void SetRemDimDID(int, int*) const;
+
+    std::vector<double> RemdValues_; ///< Hold remd values
+    ReplicaDimArray remDimType_;     ///< Type of each dimension (multi-D).
+    ReplicaDimArray remValType_;     ///< Type of each value (single or multi-D).
+    // TODO audit the dimension IDs, may not need to be class vars.
+    Box nc_box_;          ///< Hold box information
+    NCTYPE myType_;       ///< Current file type.
+    int ncdebug_;
     int ensembleDID_;     ///< Ensemble dimenison ID
     int frameDID_;        ///< Frames dimension ID
     int atomDID_;         ///< Atom dimension ID
+    int ncatom_;          ///< Number of atoms
+    int ncatom3_;         ///< Number of coordinates (# atoms * 3)
     int spatialDID_;      ///< Spatial dimension ID (3)
     int labelDID_;        ///< Box angle labels dimension ID (alpha, beta, gamma)
     int cell_spatialDID_; ///< Box lengths dimension ID
     int cell_angularDID_; ///< Box angles dimension ID
+    int spatialVID_;      ///< Spatial (x, y, z) variable ID
+    int cell_spatialVID_; ///< Box lengths variable ID
+    int cell_angularVID_; ///< Box angles variable ID
+    int RemdValuesVID_;  ///< Replica values variable ID.
 #   endif /* BINTRAJ */
 };
 #ifdef BINTRAJ
@@ -100,5 +147,5 @@ void NetcdfFile::DoubleToFloat(float* Coord, const double* X) const {
   for (int i=0; i < ncatom3_; ++i)
     Coord[i] = (float)X[i];
 }
-#endif /* BINTRAJ */
+#endif
 #endif

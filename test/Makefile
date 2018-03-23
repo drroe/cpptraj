@@ -350,6 +350,7 @@ test.gromacs:
 
 test.ewald:
 	@-cd Test_Ewald && ./RunTest.sh $(OPT)
+	@-cd Test_LibPME && ./RunTest.sh $(OPT)
 
 test.ti:
 	@-cd Test_TI && ./RunTest.sh $(OPT)
@@ -422,6 +423,15 @@ test.scaledihedralk:
 
 test.phipsi:
 	@-cd Test_PhiPsi && ./RunTest.sh $(OPT)
+
+test.control:
+	@-cd Test_Control && ./RunTest.sh $(OPT)
+
+test.infraredspec:
+	@-cd Test_InfraredSpec && ./RunTest.sh $(OPT)
+
+test.cphstats:
+	@-cd Test_Cphstats && ./RunTest.sh $(OPT)
 
 # Every test target should go here.
 COMPLETETESTS=test.general \
@@ -559,7 +569,10 @@ COMPLETETESTS=test.general \
               test.translate \
               test.replicatecell \
               test.scaledihedralk \
-              test.phipsi
+              test.phipsi \
+              test.control \
+              test.infraredspec \
+              test.cphstats
 
 test.all:
 	$(MAKE) test.complete summary
@@ -574,7 +587,7 @@ test.cuda:
 	$(MAKE) test.complete summary OPT="$(OPT) cuda"
 
 test.libcpptraj:
-	@-cd Test_Libcpptraj && ./RunTest.sh $(OPT)
+	@cd Test_Libcpptraj && ./RunTest.sh $(OPT)
 
 test.complete: CpptrajTest.sh MasterTest.sh
 	@./CpptrajTest.sh --target test.cpptraj $(OPT)

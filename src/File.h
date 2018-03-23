@@ -24,6 +24,12 @@ namespace File {
   /// \return true if file exists and is accessible.
   bool Exists(Name const&);
   //bool Exists(std::string const&); // TODO remove?
+  /// Given lowest replica name search for other replica names
+  NameArray SearchForReplicas(Name const&, int);
+# ifdef MPI
+  /// Each rank searches for replica based on lowest replica number.
+  NameArray SearchForReplicas(Name const&, bool, int, int, int);
+# endif
 }
 
 /** Base class that all files will inherit. */ 

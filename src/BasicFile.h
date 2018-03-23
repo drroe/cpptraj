@@ -20,6 +20,18 @@ class BasicFile : public File::Base {
     int IsDos()                 const { return isDos_;                }
     /// \return uncompressed file size (just size if file is not compressed).
     unsigned int UncompressedSize() const;
+#   ifdef MPI
+    bool IsMPI() const { return (fileType_ == MPIFILE || fileType_ == MPISHARED); }
+    // FIXME should this be a Base routine?
+    int ParallelOpenFile(AccessType, Parallel::Comm const&, bool);
+    int ParallelOpenFile(AccessType t, Parallel::Comm const& c) {
+      return ParallelOpenFile(t, c, false); //  Default to no shared write
+    }
+    int ParallelOpenFile(Parallel::Comm const& c) { return ParallelOpenFile(access_, c); }
+    int ParallelOpenFile(Parallel::Comm const& c, bool b) {
+      return ParallelOpenFile(access_, c, b);
+    }
+#   endif
   protected:
     /// Set up basic file IO and determine file characteristics.
     int BasicSetup();

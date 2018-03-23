@@ -7,12 +7,17 @@
 #endif
 #ifdef MPI
 #  include "FileIO_Mpi.h"
+#  include "FileIO_MpiShared.h"
 #endif
 #ifdef HASBZ2
 #  include "FileIO_Bzip2.h"
 #endif
 
 using namespace File;
+
+const char* BasicFile::FileTypeName_[] = {
+  "UNKNOWN_TYPE", "STANDARD", "GZIPFILE", "BZIP2FILE", "ZIPFILE", "MPIFILE", "MPISHARED"
+};
 
 BasicFile::BasicFile() :
   IO_(0),
@@ -56,10 +61,6 @@ BasicFile& BasicFile::operator=(BasicFile const& rhs) {
   return *this;
 }
     
-const char* BasicFile::FileTypeName_[] = {
-  "UNKNOWN_TYPE", "STANDARD", "GZIPFILE", "BZIP2FILE", "ZIPFILE", "MPIFILE"
-};
-
 // BasicFile::UncompressedSize()
 unsigned int BasicFile::UncompressedSize() const {
   if (Compression() == NO_COMPRESSION)
@@ -127,6 +128,38 @@ int BasicFile::BasicSetup() {
   return (int)lineSize;
 }
 
+#ifdef MPI
+/** Open the file using MPI file routines. */
+int BasicFile::ParallelOpenFile(AccessType accessIn, Parallel::Comm const& commIn, bool sharedWrite)
+{
+  if (IO_ == 0) {
+    mprinterr("Internal Error: CpptrajFile has not been set up.\n");
+    return 1;
+  }
+  // This will currently only work for fileType_ STANDARD
+  if (fileType_ != STANDARD) {
+    mprinterr("Error: Parallel file access not supported for file type '%s'\n",
+              FileTypeName_[fileType_]);
+    return 1;
+  }
+  // This will NOT work for streams.
+  if (isStream_) {
+    mprinterr("Error: Parallel file access not supported for streams.\n");
+    return 1;
+  }
+  if (isOpen_) CloseFile();
+  // TODO Save serial IO object?
+  if (sharedWrite)
+    fileType_ = MPISHARED;
+  else
+    fileType_ = MPIFILE;
+  IO_ = SetupFileIO( fileType_ );
+  if (IO_ == 0) return 1;
+  ((FileIO_Mpi*)IO_)->SetComm( commIn );
+  return OpenFile( accessIn );
+}
+#endif
+
 // BasicFile::OpenIO()
 int BasicFile::OpenIO() {
   if (IO_ == 0) {
@@ -170,7 +203,22 @@ int BasicFile::OpenIO() {
 }
 
 // BasicFile::InternalClose()
-void BasicFile::InternalClose() { if (IsOpen()) IO_->Close(); }
+void BasicFile::InternalClose() {
+  if (IsOpen()) {
+    IO_->Close();
+    #   ifdef MPI
+    // Restore standard IO object.
+    if (IsMPI()) {
+      delete IO_;
+      fileType_ = STANDARD;
+      IO_ = SetupFileIO( fileType_ );
+      if (IO_ == 0)
+        mprinterr("Internal Error: Could not reset file '%s' from parallel to serial.\n",
+                  fname_.full());
+    }
+#   endif
+  }
+}
 
 /** Set up the IO based on given file type. */
 int BasicFile::SetupFileIO( FileType typeIn ) {

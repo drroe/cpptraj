@@ -3,6 +3,7 @@
 #endif
 #include "FileName.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // validInteger, convertToInteger, integerToString
 
 #ifndef _WIN32
 /** Print error messages from the wordexp() function. */ // TODO do not duplicate
