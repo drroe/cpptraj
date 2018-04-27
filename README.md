@@ -5,7 +5,6 @@ CPPTRAJ is a program designed to load and analyze molecular dynamics
 trajectories and relevant data sets derived from their analysis. It is 
 a C++ rewrite of the PTRAJ trajectory analysis code from Amber.
 
-*Note that the GitHub version of CPPTRAJ should be considered BETA.*  
 The official AmberTools release version of CPPTRAJ can be found
 at the [Amber website](http://ambermd.org).
 
@@ -30,26 +29,36 @@ PYTRAJ Compatibility Status
 Disclaimer and Copyright
 ========================
 
-CPPTRAJ is Copyright (c) 2010-2017 Daniel R. Roe.
+CPPTRAJ is Copyright (c) 2010-2018 Daniel R. Roe.
 The terms for using, copying, modifying, and distributing CPPTRAJ are 
 specified in the file LICENSE.
+
+Documentation
+=============
+  The `/doc` subdirectory contains PDF and LyX versions of the CPPTRAJ manual.
+An HTML version can be found [here](https://amber-md.github.io/cpptraj/). There
+is also limited help for commands in interactive mode via `help [<command>]`;
+`help` with no arguments lists all known commands.
+
+  Code documentation can be generated via Doxygen by typing `make docs`. This
+will install HTML and Latex documentation at `doc/html/index.html` and in 
+the `doc/latex` respectively. A limited developers guide is available in
+Lyx/PDF formats in the `doc/` subdirectory and in HTML format
+[here](https://amber-md.github.io/cpptraj/).
 
 Installation & Testing
 ======================
 Run `./configure --help` for a short list of configure options. `./configure --full-help`
-will list all available configure options. By default, CPPTRAJ requires the following
+will list all available configure options. For full functionality, CPPTRAJ requires the following
 libraries:
 
 * NetCDF
 * BLAS
 * LAPACK
-* ARPACK
+* ARPACK (now bundled with CPPTRAJ)
 * Bzip2
 * Gzip
-
-The following libraries are optional:
-
-* Parallel NetCDF (-mpi build only, for NetCDF trajectory output)
+* Parallel NetCDF (-mpi build only, for NetCDF trajectory output in parallel)
 * CUDA (-cuda build only)
 
 `./configure gnu` should be adequate to set up compilation for most systems.
@@ -62,6 +71,8 @@ An MPI-parallelized version of CPPTRAJ can also be built using the `-mpi` flag.
 CPPTRAJ can be built with both MPI and OpenMP; when running this build users 
 should take care to properly set OMP_NUM_THREADS if using more than 1 MPI
 thread per node. A CUDA build is now also available via the `-cuda` flag.
+By default CPPTRAJ will be configured for multiple shader models; to restrict
+the CUDA build to a single shader model use the SHADER_MODEL environment variable.
 Any combination of `-cuda`, `-mpi`, and `-openmp` may be used.
 
 The configure script by default sets everything up to link dynamically. The
@@ -81,12 +92,14 @@ well to test the basic functionality of CPPTRAJ.
 
 CPPTRAJ Authors
 ===============
-**Lead Author:** Daniel R. Roe (<daniel.r.roe@gmail.com>)  
-Department of Medicinal Chemistry  
-University of Utah, Salt Lake City, UT.
+**Lead Author:** Daniel R. Roe (<daniel.r.roe@gmail.com>)
+Laboratory of Computational Biology
+National Heart Lung and Blood Institute
+National Institutes of Health, Bethesda, MD. 
 
-  CPPTRAJ is based on PTRAJ by Thomas E. Cheatham, III (University of Utah,
-Salt Lake City, UT, USA) and many routines from PTRAJ have been adapted for 
+  CPPTRAJ is based on PTRAJ by Thomas E. Cheatham, III (Department of
+Medicinal Chemistry, University of Utah, Salt Lake City, UT, USA) and
+many routines from PTRAJ have been adapted for 
 use in CPPTRAJ, including code used in the following classes:
 Analysis\_CrankShaft, Analysis\_Statistics, Action\_DNAionTracker,
 Action\_RandomizeIons, Action\_Principal, Action\_Grid, GridAction,
@@ -129,6 +142,9 @@ Enhancements to entropy calculation in original Action\_Gist.
 * Amit Roy (University of Utah, UT)
 Code for the CUDA version of the 'closest' Action.
 
+* Andrew Simmonett (National Institutes of Health)
+Code for the reciprocal part of the particle mesh Ewald calculation.
+
 #### Various Contributions
 * David A. Case (Rutgers University, Piscataway, NJ, USA)
 * Hai Nguyen (Rutgers University, Piscataway, NJ, USA)
@@ -161,14 +177,3 @@ Diffusion calculation code adapted for use in Action\_STFC\_Diffusion.
 
 * CPPTRAJ uses the xdrfile library for reading XTC files (http://www.gromacs.org/Developer\_Zone/Programming\_Guide/XTC\_Library); specifically a somewhat updated version from MDTRAJ (https://github.com/mdtraj/mdtraj) that includes some bugfixes and enhancements. See `src/xdrfile/README` for details.
 
-Documentation
-=============
-  The main documentation for CPPTRAJ usage is in the AmberTools user manual,
-available from the [Amber website](http://ambermd.org/doc12/) or from the AmberTools
-distribution in `$AMBERHOME/doc`. There is also limited help for commands in interactive mode via
-`help [<command>]`; `help` with no arguments lists all known commands.
-
-  Code documentation can be generated via Doxygen by typing `make docs`. This
-will install HTML and Latex documentation at `doc/html/index.html` and in 
-the `doc/latex` respectively. A limited developers guide is available in
-Lyx/PDF formats in the `doc/` subdirectory.
