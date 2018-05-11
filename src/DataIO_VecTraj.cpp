@@ -13,11 +13,14 @@ DataIO_VecTraj::DataIO_VecTraj() :
 }
 
 void DataIO_VecTraj::WriteHelp() {
-  mprintf("\t[trajfmt <format>] [parmout <file>] [noorigin]\n");
+  mprintf("\ttrajfmt <format> : Output trajectory format.\n"
+          "\tparmout <file>   : Output topology name (optional).\n"
+          "\tnoorigin         : Do not write vector origins.\n");
 }
 
 int DataIO_VecTraj::processWriteArgs(ArgList& argIn) {
-  trajoutFmt_ = TrajectoryFile::GetFormatFromString( argIn.GetStringKey("trajfmt") );
+  trajoutFmt_ = TrajectoryFile::WriteFormatFromString( argIn.GetStringKey("trajfmt"),
+                                                       TrajectoryFile::AMBERTRAJ );
   parmoutName_ = argIn.GetStringKey("parmout");
   includeOrigin_ = !argIn.hasKey("noorigin");
   return 0;

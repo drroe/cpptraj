@@ -24,6 +24,8 @@ class ArgList {
     // Copy/Assignment
     ArgList(const ArgList&);
     ArgList& operator=(const ArgList &);
+    // Append all unmarked args to this arg list
+    void Append(ArgList const&);
     /// \return the argument at the given position
     std::string const& operator[](int) const;
     /// \return Internal argument list as vector of strings
@@ -40,6 +42,7 @@ class ArgList {
     bool empty()           const { return arglist_.empty();     }
     /// \return the argument string
     const char *ArgLine()  const { return argline_.c_str();     }
+    std::string const& ArgLineStr() const { return argline_; }
     /// \return all unmarked arguments as a string
     std::string ArgString() const;
     /// Clear list
@@ -60,6 +63,8 @@ class ArgList {
     void PrintDebug() const;
     /// Remove the first argument
     void RemoveFirstArg();
+    /// Change argument at position to new argument
+    void ChangeArg(unsigned int, std::string const&);
     /// \return the first argument
     const char *Command() const;
     /// \return true if the first argument matches key
@@ -86,7 +91,7 @@ class ArgList {
     double getKeyDouble(const char*, double);
     /// \return true if the key is present in the list
     bool hasKey(const char*);
-    /// \return true if they key is in the list but do not mark.
+    /// \return true if they key is in the list and unmarked; do not mark.
     bool Contains(const char*) const;
   private:
     /// Empty string to return when args not found

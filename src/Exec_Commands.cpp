@@ -44,6 +44,17 @@ Exec::RetType Exec_NoProgress::Execute(CpptrajState& State, ArgList&)
   return CpptrajState::OK;
 }
 // -----------------------------------------------------------------------------
+void Exec_QuietBlocks::Help() const {
+  mprintf("  Suppress output when executing control blocks.\n");
+}
+
+Exec::RetType Exec_QuietBlocks::Execute(CpptrajState& State, ArgList&)
+{
+  State.SetQuietBlocks(true);
+  mprintf("\tSupressing output when executing control blocks.\n");
+  return CpptrajState::OK;
+}
+// -----------------------------------------------------------------------------
 void Exec_Quit::Help() const { mprintf("  Exit CPPTRAJ\n"); }
 // -----------------------------------------------------------------------------
 void Exec_ActiveRef::Help() const {
@@ -117,6 +128,28 @@ Exec::RetType Exec_SelectDS::Execute(CpptrajState& State, ArgList& argIn) {
   if (!dsets.empty()) {
     mprintf("SelectDS: Arg '%s':\n", dsarg.c_str());
     dsets.List();
+  }
+  return CpptrajState::OK;
+}
+// -----------------------------------------------------------------------------
+void Exec_EnsFileExt::Help() const {
+  mprintf("\t{on|off}\n"
+          "  Turn printing of ensemble member number filename extensions on or off.\n");
+}
+
+Exec::RetType Exec_EnsFileExt::Execute(CpptrajState& State, ArgList& argIn) {
+  if        (argIn.hasKey("on" )) {
+    State.DFL().SetEnsExtension(true);
+    mprintf("\tEnsemble member number will be appended to output file names.\n");
+  } else if (argIn.hasKey("off")) {
+    State.DFL().SetEnsExtension(false);
+    mprintf("\tEnsemble member number will not be appended to output file names.\n");
+#   ifdef MPI
+    mprintf("Warning: This option has not been fully tested in parallel.\n");
+#   endif
+  } else {
+    mprinterr("Error: Expect 'on' or 'off'\n");
+    return CpptrajState::ERR;
   }
   return CpptrajState::OK;
 }

@@ -18,6 +18,15 @@ void AtomMask::ResetMask() {
   ClearTokens();
 }
 
+/** \return true if masks select the same atoms. */
+bool AtomMask::operator==(AtomMask const& rhs) const {
+  if (Selected_.size() != rhs.Selected_.size()) return false;
+  for (unsigned int idx = 0; idx != Selected_.size(); idx++) {
+    if (Selected_[idx] != rhs.Selected_[idx]) return false;
+  }
+  return true;
+}
+
 /** Flip the current character used to select atoms. Useful when you want 
   * the mask to select the inverse of the given expression, like in 'strip'.
   */
@@ -164,14 +173,15 @@ void AtomMask::PrintMaskAtoms(const char *header) const {
   * maskChar_ is used to determine whether atoms denoted by 'T' or 'F' will
   * be selected (the latter is the case e.g. with stripped atoms). 
   */
-int AtomMask::SetupMask(AtomArrayT const& atoms, ResArrayT const& residues, const double* XYZ)
+int AtomMask::SetupMask(AtomArrayT const& atoms, ResArrayT const& residues,
+                        MolArrayT const& molecules, const double* XYZ)
 {
   // Set up an integer list of the selected atoms. 
   // NOTE: For large selections this will use 4x the memory of the char atom
   //       mask. Could check to see which will be bigger.
   Natom_ = (int)atoms.size();
   Selected_.clear();
-  char* charmask = ParseMask(atoms, residues, XYZ);
+  char* charmask = ParseMask(atoms, residues, molecules, XYZ);
   if (charmask == 0) return 1;
   for (int atom = 0; atom != Natom_; atom++) {
     if (charmask[atom] == maskChar_)

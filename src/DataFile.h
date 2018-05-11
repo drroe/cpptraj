@@ -8,12 +8,14 @@ class DataFile {
     static const FileTypes::AllocToken DF_AllocArray[];
     /// For associating keywords/extensions with file types. 
     static const FileTypes::KeyToken DF_KeyArray[];
+    /// Keywords/extensions for types that support writes.
+    static const FileTypes::KeyToken DF_WriteKeyArray[];
   public:
     /// Known data file formats.
     enum DataFormatType {
       DATAFILE=0, XMGRACE, GNUPLOT, XPLOR, OPENDX, REMLOG, MDOUT, EVECS,
       VECTRAJ, XVG, CCP4, CMATRIX, NCCMATRIX, CHARMMREPD, CHARMMFASTREP,
-      CHARMMOUT, UNKNOWN_DATA 
+      CHARMMOUT, CPOUT, CHARMMRTFPRM, UNKNOWN_DATA 
     };
     DataFile();
     ~DataFile();
@@ -22,10 +24,10 @@ class DataFile {
     /// List read options for each format.
     static void ReadOptions() { FileTypes::ReadOptions(DF_KeyArray,DF_AllocArray, UNKNOWN_DATA); }
     /// List write options for each format.
-    static void WriteOptions(){ FileTypes::WriteOptions(DF_KeyArray,DF_AllocArray,UNKNOWN_DATA); }
-    /// \return format type from keyword
-    static DataFormatType GetFormatFromArg(ArgList& a) {
-      return (DataFormatType)FileTypes::GetFormatFromArg(DF_KeyArray, a, UNKNOWN_DATA);
+    static void WriteOptions(){ FileTypes::WriteOptions(DF_WriteKeyArray,DF_AllocArray,UNKNOWN_DATA); }
+    /// \return Write format type from keyword in ArgList, or default
+    static DataFormatType WriteFormatFromArg(ArgList& a, DataFormatType def) {
+      return (DataFormatType)FileTypes::GetFormatFromArg(DF_WriteKeyArray,a,def);
     }
     /// \return string corresponding to format.
     static const char* FormatString(DataFormatType t) {
@@ -69,24 +71,33 @@ class DataFile {
     FileName const& DataFilename() const { return filename_; }
     /// Used by DataFileList, indicates DataFile needs to be written. 
     void SetDFLwrite(bool fIn)           { dflWrite_ = fIn;  }
+    /// Specify whether ensemble member number extension should be used.
+    void SetEnsExt(bool b)               { ensExt_ = b;      }
+    /// \return True if ensemble member number extension will be used.
+    bool EnsExt()                  const { return ensExt_;   }
     /// \return True if DataFile needs to be written.
     bool DFLwrite()                const { return dflWrite_; }
     /// \return DataFile format type.
     DataFormatType Type()          const { return dfType_;   }
-    /// \return DataFile member num.
-    int Member()                   const { return member_;   }
-    /// Set DataFile member num.
-    void SetMember(int m) { member_ = m; }
+#   ifdef MPI
+    void SetThreadCanWrite(bool b)       { threadCanWrite_ = b; }
+#   endif
   private:
     static DataIO* DetectFormat(FileName const&, DataFormatType&);
+    int WriteSetsToFile(FileName const&, DataSetList&);
+    int WriteWithEnsExtension();
+    int WriteNoEnsExtension();
 
     int debug_;
-    int member_;               ///< DataFile ensemble member number.
     int dimension_;            ///< The dimension of all sets in the DataFile.
     DataFormatType dfType_;    ///< Format to read/write data in DataFile.
     bool dflWrite_;            ///< True: write file when DataFileList::WriteAllDF called.
     bool setDataSetPrecision_; ///< True: set default precision of incoming DataSets.
     bool sortSets_;            ///< True: Sort sets before write.
+    bool ensExt_;              ///< If true append ensemble member number to file
+#   ifdef MPI
+    bool threadCanWrite_;      ///< True if thread is writing to this file.
+#   endif
     int default_width_;        ///< Default width of data sets added to this file.
     int default_precision_;    ///< Default precision of data sets added to this file.
     DataSetList SetList_;      ///< Array of pointers to associated DataSets.
