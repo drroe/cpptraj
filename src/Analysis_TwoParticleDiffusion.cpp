@@ -1,9 +1,11 @@
 #include <cmath> // ceil, sqrt, fabs
+#include <algorithm> // std::max
 #include "Analysis_TwoParticleDiffusion.h"
 #include "CpptrajStdio.h"
 #include "DataSet_MatrixDbl.h"
 #include "DistRoutines.h"
 #include "Constants.h"
+#include "OnlineVarT.h"
 
 // Analysis_TwoParticleDiffusion::Help()
 void Analysis_TwoParticleDiffusion::Help() const {
@@ -88,8 +90,11 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   int numRbins = (int)ceil(rmax_ / rstep_);
   mprintf("\tNumber of bins in the 'R' dimension: %i\n", numRbins);
   // Allocate matrix: cols=lag, rows=R
-  DataSet_MatrixDbl& mat = static_cast<DataSet_MatrixDbl&>( *out_ );
-  mat.Allocate2D( maxlag_-1, numRbins );
+  DataSet_MatrixDbl& outputMatrix = static_cast<DataSet_MatrixDbl&>( *out_ );
+  outputMatrix.Allocate2D( maxlag_-1, numRbins );
+  // Use Stats for actual accumulation
+  Matrix< Stats<double> > mat;
+  mat.resize( maxlag_-1, numRbins );
 /*
   // Store atom pair Rbin indices via calculating initial pair distances.
   Matrix<int> PairBins;
@@ -117,6 +122,9 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   int endFrame = startFrame + maxlag_;
   int offset = 1;
 
+  unsigned int skipOutOfRange = 0;
+  unsigned int skipNoDistChange = 0;
+  double maxD = 0.0;
   for (int frm = startFrame; frm < endFrame; frm += offset)
   {
     coords_->GetFrame( frm, frame0, mask_ );
@@ -139,6 +147,8 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
           double d0 = sqrt(DIST2_NoImage( frame0.XYZ(at0), frame0.XYZ(at1) ));
           // Atom pair distance at time frm+lag
           double d1 = sqrt(DIST2_NoImage( frame1.XYZ(at0), frame1.XYZ(at1) ));
+          maxD = std::max( maxD, d0 );
+          maxD = std::max( maxD, d1 );
           // Only record if pair distance has changed over time; equivalent
           // to the Kronecker delta in Eq. 2 of Crocker et al. 2000
           if (fabs(d1-d0) > Constants::SMALL) {
@@ -154,19 +164,29 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
                          xyz11[1] - xyz01[1],
                          xyz11[2] - xyz01[2] );
               double dot = vec0 * vec1;
-              mat.Element(lag-1, idx) += dot;
-            }
-          }
+              mat.element(lag-1, idx).accumulate( dot );
+            } else
+              skipOutOfRange++;
+          } else
+            skipNoDistChange++;
         }
       }
     }
   }
 
+  mprintf("\t%u pair calculations skipped because R out of range.\n", skipOutOfRange);
+  mprintf("\t%u pair calculations skipped because distance did not change.\n", skipNoDistChange);
+  mprintf("\tMax observed distance: %g Ang.\n", maxD);
+  // TODO const_iterator?
+  for (Matrix< Stats<double> >::iterator it = mat.begin(); 
+                                               it != mat.end(); ++it)
+    outputMatrix.AddElement( it->mean() );
+/*
   // Normalize: number of values into each lag time is endFrame - lag
   for (int lag = 1; lag < maxlag_; lag++) {
     double norm = 1.0 / (double)(endFrame - lag);
     for (int idx = 0; idx != numRbins; idx++)
       mat.Element(lag-1, idx) *= norm;
-  }
+  }*/
   return Analysis::OK;
 }
