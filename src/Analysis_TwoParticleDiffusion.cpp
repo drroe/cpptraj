@@ -2,6 +2,7 @@
 #include "Analysis_TwoParticleDiffusion.h"
 #include "CpptrajStdio.h"
 #include "DataSet_MatrixDbl.h"
+#include "DistRoutines.h"
 
 // Analysis_TwoParticleDiffusion::Help()
 void Analysis_TwoParticleDiffusion::Help() const {
@@ -25,6 +26,10 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Setup(ArgList& analyzeArgs, Ana
   rmax_ = analyzeArgs.getKeyDouble("rmax", 10.0);
   rstep_ = analyzeArgs.getKeyDouble("rstep", 1.0);
   // Some sanity checking
+  if (maxlag_ != -1 && maxlag_ < 2) {
+    mprinterr("Error: maxlag must be > 1\n");
+    return Analysis::ERR;
+  }
   if (rmax_ <= 0.0) {
     mprinterr("Error: 'rmax' must be > 0.0\n");
     return Analysis::ERR;
@@ -55,6 +60,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Setup(ArgList& analyzeArgs, Ana
 
 // Analysis_TwoParticleDiffusion::Analyze()
 Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
+  // FIXME: Currently assume unwrapped coords!
   // Check that there is data
   if (coords_->Size() < 1) {
     mprinterr("Error: No data in COORDS set '%s'\n", coords_->legend());
@@ -79,8 +85,40 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   // Determine size of the 'R' dimension
   int numRbins = (int)ceil(rmax_ / rstep_);
   mprintf("\tNumber of bins in the 'R' dimension: %i\n", numRbins);
-  // Allocate matrix
+  // Allocate matrix: cols=lag, rows=R
   DataSet_MatrixDbl& mat = static_cast<DataSet_MatrixDbl&>( *out_ );
-  
+  mat.Allocate2D( maxlag_-1, numRbins );
+  // Store atom pair Rbin indices via calculating initial pair distances.
+  Matrix<int> PairBins;
+  // col == 0 means Triangle matrix
+  PairBins.resize( 0, mask_.Nselected() );
+  coords_->GetFrame( 0, frame0, mask_ );
+  double cut2 = rmax_ * rmax_;
+  double one_over_spacing = 1.0 / rstep_;
+  for (int at0 = 0; at0 < frame0.Natom(); at0++)
+    for (int at1 = at0+1; at1 < frame0.Natom(); at1++)
+    {
+      double dist2 = DIST2_NoImage( frame0.XYZ(at0), frame0.XYZ(at1) );
+      if (dist2 < cut2) {
+        double dist = sqrt(dist2);
+        int idx = (int)(dist * one_over_spacing);
+        // No bounds checking since dist already less than cutoff
+        // TODO use addElement
+        PairBins.setElement( at0, at1, idx );
+      } else
+        PairBins.setElement( at0, at1, -1 );
+    }
+ 
+  // Loop over frames and lag times 
+  int startFrame = 0;
+  int endFrame = startFrame + maxlag_;
+  int offset = 1;
+
+//  for (int frm = startFrame; frm < endFrame; frm += offset)
+//  {
+//    coords_->GetFrame( frm, frame0, mask_ );
+//    for (int lag = 1; lag < maxlag_; lag++)
+//    {
+      
   return Analysis::OK;
 }
