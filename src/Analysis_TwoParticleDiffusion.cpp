@@ -262,8 +262,8 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
 #         ifdef TIMER
           t_calc.Start();
 #         endif
-          const double* xyz01 = frame0.XYZ(at1);
 /*
+          const double* xyz01 = frame0.XYZ(at1);
           /// Vector connecting atom pair at time frm TODO precalculate
           Vec3 pairVec( xyz01[0] - xyz00[0],
                         xyz01[1] - xyz00[1],
@@ -278,6 +278,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
           int ridx = Frame0Idxs[pidx];
           if (ridx != -1) {
             Vec3 const& pairVec = Frame0Vecs[pidx];
+            const double* xyz01 = frame0.XYZ(at1);
             const double* xyz11 = frame1.XYZ(at1);
             // vec1 is displacement of atom1 from frame 0 to frame1
             Vec3 vec1( xyz11[0] - xyz01[0],
