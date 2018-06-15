@@ -126,7 +126,6 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   int offset = 1;
 
   unsigned int skipOutOfRange = 0;
-  unsigned int skipNoDistChange = 0;
   double maxD = 0.0;
   for (int frm = startFrame; frm < endFrame; frm += offset)
   {
@@ -146,39 +145,41 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
                    xyz10[2] - xyz00[2] );
         for (int at1 = at0+1; at1 < frame0.Natom(); at1++)
         {
+          const double* xyz01 = frame0.XYZ(at1);
+          /// Vector connecting atom pair at time frm TODO precalculate
+          Vec3 pairVec( xyz01[0] - xyz00[0],
+                        xyz01[1] - xyz00[1],
+                        xyz01[2] - xyz00[2] );
           // Atom pair distance at time frm TODO precalculate
-          double d0 = sqrt(DIST2_NoImage( frame0.XYZ(at0), frame0.XYZ(at1) ));
-          // Atom pair distance at time frm+lag
-          double d1 = sqrt(DIST2_NoImage( frame1.XYZ(at0), frame1.XYZ(at1) ));
+          double d0 = pairVec.Normalize(); 
           maxD = std::max( maxD, d0 );
-          maxD = std::max( maxD, d1 );
-          // Only record if pair distance has changed over time; equivalent
-          // to the Kronecker delta in Eq. 2 of Crocker et al. 2000
-          if (fabs(d1-d0) > Constants::SMALL) {
-            // Bin index based on pair distance at time frm+lag
-            int idx = (int)(d1 * one_over_spacing);
-            //int idx = PairBins.element(at0, at1);
-            // TODO idx should never be negative
-            if (idx < numRbins) {
-              const double* xyz01 = frame0.XYZ(at1);
-              const double* xyz11 = frame1.XYZ(at1);
-              // vec1 is displacement of atom1 from frame 0 to frame1
-              Vec3 vec1( xyz11[0] - xyz01[0],
-                         xyz11[1] - xyz01[1],
-                         xyz11[2] - xyz01[2] );
-              double dot = vec0 * vec1;
-              mat.element(lag-1, idx).accumulate( dot );
-            } else
-              skipOutOfRange++;
+          // Calculate bin index based on distance at time frm
+          // TODO idx should never be negative, make certain
+          int idx = (int)(d0 * one_over_spacing);
+          if (idx < numRbins) {
+            const double* xyz11 = frame1.XYZ(at1);
+            // vec1 is displacement of atom1 from frame 0 to frame1
+            Vec3 vec1( xyz11[0] - xyz01[0],
+                       xyz11[1] - xyz01[1],
+                       xyz11[2] - xyz01[2] );
+            // Longitudinal part (Drr), XY
+            double ddl = (vec0[0]*pairVec[0] + vec0[1]*pairVec[1]) *
+                         (vec1[0]*pairVec[0] + vec1[1]*pairVec[1]);
+            // Orthogonal unit vector, switching Y to X and X to -Y, perpendicular.
+            double px = pairVec[1];
+            double py = -pairVec[0];
+            // Transverse part (theta, Dtt) XY
+            double ddt = (vec0[0]*px + vec0[1]*py) *
+                         (vec1[0]*px + vec1[1]*py);
+            mat.element(lag-1, idx).accumulate( ddl );
           } else
-            skipNoDistChange++;
-        }
-      }
-    }
-  }
+            skipOutOfRange++;
+        } // END inner loop over atoms
+      } // END outer loop over atoms
+    } // END loop over lag values
+  } // END loop over frames
 
   mprintf("\t%u pair calculations skipped because R out of range.\n", skipOutOfRange);
-  mprintf("\t%u pair calculations skipped because distance did not change.\n", skipNoDistChange);
   mprintf("\tMax observed distance: %g Ang.\n", maxD);
   // TODO const_iterator?
   for (Matrix< Stats<double> >::iterator it = mat.begin(); 
