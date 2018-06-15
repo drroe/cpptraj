@@ -95,9 +95,11 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Setup(ArgList& analyzeArgs, Ana
 Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   Timer t_total;
   Timer t_pairloop;
+# ifdef TIMER
   Timer t_frame;
   Timer t_precalc;
   Timer t_calc;
+# endif
   t_total.Start();
   // FIXME: Currently assume unwrapped coords!
   // Check that there is data
@@ -154,22 +156,28 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   double maxD = 0.0;
   for (int frm = startFrame; frm < endFrame; frm += offset)
   {
+#   ifdef TIMER
     t_frame.Start();
+#   endif
     coords_->GetFrame( frm, frame0, mask_ );
+#   ifdef TIMER
     t_frame.Stop();
+#   endif
     // Precalculate atom pair vectors
+#   ifdef TIMER
     t_precalc.Start();
+#   endif
     int pidx = 0;
     for (int at0 = 0; at0 < frame0.Natom(); at0++) {
       const double* xyz00 = frame0.XYZ(at0);
       for (int at1 = at0+1; at1 < frame0.Natom(); at1++, pidx++)
       {
         const double* xyz01 = frame0.XYZ(at1);
-        /// Vector connecting atom pair at time frm TODO precalculate
+        /// Vector connecting atom pair at time frm
         Vec3 pairVec( xyz01[0] - xyz00[0],
                       xyz01[1] - xyz00[1],
                       xyz01[2] - xyz00[2] );
-        // Atom pair distance at time frm TODO precalculate
+        // Atom pair distance at time frm
         double d0 = pairVec.Normalize(); 
         maxD = std::max( maxD, d0 );
         // Calculate bin index based on distance at time frm
@@ -184,14 +192,20 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
           Frame0Idxs[pidx] = -1;
       }
     }
+#   ifdef TIMER
     t_precalc.Stop();
+#   endif
     // Inner loop over lag values
     for (int lag = 1; lag < endLag; lag++)
     {
       int frm1 = frm + lag;
+#     ifdef TIMER
       t_frame.Start();
+#     endif
       coords_->GetFrame( frm1, frame1, mask_ );
+#     ifdef TIMER
       t_frame.Stop();
+#     endif
       // Loop over atom pairs
       pidx = 0;
       for (int at0 = 0; at0 < frame0.Natom(); at0++)
@@ -204,7 +218,9 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
                    xyz10[2] - xyz00[2] );
         for (int at1 = at0+1; at1 < frame0.Natom(); at1++, pidx++)
         {
+#         ifdef TIMER
           t_calc.Start();
+#         endif
           const double* xyz01 = frame0.XYZ(at1);
 /*
           /// Vector connecting atom pair at time frm TODO precalculate
@@ -239,7 +255,9 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
             mat.element(lag-1, ridx).second.accumulate( ddt );
           } else
             skipOutOfRange++;
+#         ifdef TIMER
           t_calc.Stop();
+#         endif
         } // END inner loop over atoms
       } // END outer loop over atoms
     } // END loop over lag values
@@ -265,8 +283,10 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
 
   t_total.WriteTiming(1, "Total TwoParticleDiff time:");
   t_pairloop.WriteTiming(2, "Pair loop time:", t_total.Total());
+# ifdef TIMER
   t_frame.WriteTiming(  3, "Loop frame time   :", t_pairloop.Total());
   t_precalc.WriteTiming(3, "Loop precalc time :", t_pairloop.Total());
   t_calc.WriteTiming(   3, "Loop Calc time    :", t_pairloop.Total());
+# endif
   return Analysis::OK;
 }
