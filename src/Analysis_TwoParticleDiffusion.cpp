@@ -47,7 +47,10 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Setup(ArgList& analyzeArgs, Ana
   // Set up output data set
   out_ = setup.DSL().AddSet(DataSet::MATRIX_DBL, analyzeArgs.GetStringNext(), "D_RR");
   if (out_ == 0) return Analysis::ERR;
-  if (df != 0) df->AddDataSet( out_ );
+  if (df != 0) {
+    df->ProcessArgs("xlabel lag ylabel r");
+    df->AddDataSet( out_ );
+  }
 
   mprintf("    TWOPARTICLEDIFFUSION: COORDS set '%s', mask [%s]\n",
           coords_->legend(), mask_.MaskString());
