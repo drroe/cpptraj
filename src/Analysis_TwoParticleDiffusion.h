@@ -12,10 +12,11 @@ class Analysis_TwoParticleDiffusion : public Analysis {
     Analysis::RetType Analyze();
   private:
     DataSet_Coords* coords_;
-    AtomMask mask_;
-    DataSet* out_;
-    double rmax_;
-    double rstep_;
-    int maxlag_;
+    AtomMask mask_;     ///< Selected atoms for calculation
+    DataSet* outDrr_;   ///< Output Drr matrix
+    DataSet* outDtt_;   ///< Output Dtt matrix
+    double rmax_;       ///< R dimension max
+    double rstep_;      ///< R dimension step
+    int maxlag_;        ///< Maximum lag to calculate for
 };
 #endif

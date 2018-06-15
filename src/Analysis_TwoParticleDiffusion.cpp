@@ -45,17 +45,30 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Setup(ArgList& analyzeArgs, Ana
   // Get mask
   mask_.SetMaskString( analyzeArgs.GetMaskNext() );
   // Set up output data set
-  out_ = setup.DSL().AddSet(DataSet::MATRIX_DBL, analyzeArgs.GetStringNext(), "D_RR");
-  if (out_ == 0) return Analysis::ERR;
+  std::string dsname = analyzeArgs.GetStringNext();
+  if (dsname.empty())
+    dsname = setup.DSL().GenerateDefaultName( "TPD" );
+  outDrr_ = setup.DSL().AddSet(DataSet::MATRIX_DBL, MetaData(dsname, "Drr"));
+  if (outDrr_ == 0) return Analysis::ERR;
+  outDtt_ = setup.DSL().AddSet(DataSet::MATRIX_DBL, MetaData(dsname, "Dtt"));
+  if (outDtt_ == 0) return Analysis::ERR;
+  Dimension rdim(0.0, rstep_, "R");
+  outDrr_->SetDim(1, rdim);
+  outDtt_->SetDim(1, rdim);
+  Dimension tdim(1.0, 1.0, "lag");
+  outDrr_->SetDim(0, tdim);
+  outDtt_->SetDim(0, tdim);
   if (df != 0) {
     df->ProcessArgs("xlabel lag ylabel r");
-    df->AddDataSet( out_ );
+    df->AddDataSet( outDrr_ );
+    //df->AddDataSet( outDtt_ ); FIXME
   }
 
   mprintf("    TWOPARTICLEDIFFUSION: COORDS set '%s', mask [%s]\n",
           coords_->legend(), mask_.MaskString());
-  mprintf("\tOutput set: %s\n", out_->legend());
-  if (df != 0) mprintf("\tOutput set written to: %s\n", df->DataFilename().full());
+  mprintf("\tOutput Drr set: %s\n", outDrr_->legend());
+  mprintf("\tOutput Dtt set: %s\n", outDtt_->legend());
+  if (df != 0) mprintf("\tOutput sets ritten to: %s\n", df->DataFilename().full());
   if (maxlag_ < 1)
     mprintf("\tMax lag will be half the number of frames in input COORDS set.\n");
   else
@@ -92,12 +105,14 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   double one_over_spacing = 1.0 / rstep_;
   int numRbins = (int)ceil(rmax_ / rstep_);
   mprintf("\tNumber of bins in the 'R' dimension: %i\n", numRbins);
-  // Allocate matrix: cols=lag, rows=R
-  DataSet_MatrixDbl& outputMatrix = static_cast<DataSet_MatrixDbl&>( *out_ );
-  outputMatrix.Allocate2D( maxlag_-1, numRbins );
+  // Allocate matrices: cols=lag, rows=R
+  DataSet_MatrixDbl& outputDrr = static_cast<DataSet_MatrixDbl&>( *outDrr_ );
+  outputDrr.Allocate2D( maxlag_, numRbins );
+  DataSet_MatrixDbl& outputDtt = static_cast<DataSet_MatrixDbl&>( *outDtt_ );
+  outputDtt.Allocate2D( maxlag_, numRbins );
   // Use Stats for actual accumulation
   Matrix< Stats<double> > mat;
-  mat.resize( maxlag_-1, numRbins );
+  mat.resize( maxlag_, numRbins );
 /*
   // Store atom pair Rbin indices via calculating initial pair distances.
   Matrix<int> PairBins;
@@ -123,6 +138,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   // Loop over frames and lag times 
   int startFrame = 0;
   int endFrame = startFrame + maxlag_;
+  int endLag = maxlag_ + 1; // because lag starts at 1
   int offset = 1;
 
   unsigned int skipOutOfRange = 0;
@@ -130,7 +146,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   for (int frm = startFrame; frm < endFrame; frm += offset)
   {
     coords_->GetFrame( frm, frame0, mask_ );
-    for (int lag = 1; lag < maxlag_; lag++)
+    for (int lag = 1; lag < endLag; lag++)
     {
       int frm1 = frm + lag;
       coords_->GetFrame( frm1, frame1, mask_ );
@@ -184,7 +200,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   // TODO const_iterator?
   for (Matrix< Stats<double> >::iterator it = mat.begin(); 
                                                it != mat.end(); ++it)
-    outputMatrix.AddElement( it->mean() );
+    outputDrr.AddElement( it->mean() );
 /*
   // Normalize: number of values into each lag time is endFrame - lag
   for (int lag = 1; lag < maxlag_; lag++) {
