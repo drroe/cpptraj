@@ -14,6 +14,8 @@ class Analysis_TwoParticleDiffusion : public Analysis {
     DataSet_Coords* coords_;
     AtomMask mask_;
     DataSet* out_;
+    double rmax_;
+    double rstep_;
     int maxlag_;
 };
 #endif
