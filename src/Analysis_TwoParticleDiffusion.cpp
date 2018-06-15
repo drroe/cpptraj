@@ -5,7 +5,6 @@
 #include "DataSet_MatrixDbl.h"
 #include "DistRoutines.h"
 #include "Constants.h"
-#include "OnlineVarT.h"
 #include "Timer.h"
 #include "StringRoutines.h"
 #include "ProgressBar.h"
@@ -93,6 +92,43 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Setup(ArgList& analyzeArgs, Ana
   return Analysis::OK;
 }
 
+/// Class for accumulating average Drr and Dtt values.
+template <class Float> class Accumulator {
+  public:
+    Accumulator() : n_(0.0), drrMean_(0.0), drrM2_(0.0), dttMean_(0.0), dttM2_(0.0) {} 
+    void accumulate(const Float x, const Float y)
+    {
+      Float delta;
+
+      n_++;
+      delta = x - drrMean_;
+      drrMean_ += delta / n_;
+      drrM2_ += delta * (x - drrMean_);
+      delta = y - dttMean_;
+      dttMean_ += delta / n_;
+      dttM2_ += delta * (y - dttMean_);
+    }
+
+    Float DrrMean() const { return drrMean_; };
+    Float DrrVariance() const { 
+      if (n_ < 2) return 0.0;
+      return drrM2_ / (n_ - 1.0); 
+    };
+    Float DttMean() const { return dttMean_; };
+    Float DttVariance() const { 
+      if (n_ < 2) return 0.0;
+      return dttM2_ / (n_ - 1.0); 
+    };
+
+    Float nData() const { return n_; };
+  private:
+    Float n_;
+    Float drrMean_;
+    Float drrM2_;
+    Float dttMean_;
+    Float dttM2_;
+};
+
 // Analysis_TwoParticleDiffusion::Analyze()
 Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   Timer t_total;
@@ -134,10 +170,9 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   outputDrr.Allocate2D( maxlag_, numRbins );
   DataSet_MatrixDbl& outputDtt = static_cast<DataSet_MatrixDbl&>( *outDtt_ );
   outputDtt.Allocate2D( maxlag_, numRbins );
-  // Use Stats for actual accumulation
-  typedef Stats<double> Dstats;
-  typedef std::pair<Dstats, Dstats> Dpair;
-  Matrix< Dpair > mat;
+  // Use Stats-like class for actual accumulation
+  typedef Accumulator<double> Dstats;
+  Matrix< Dstats > mat;
   mat.resize( maxlag_, numRbins );
 
   // For storing atom pair vector and Rbin indices
@@ -257,8 +292,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
             // Transverse part (theta, Dtt) XY
             double ddt = (vec0[0]*px + vec0[1]*py) *
                          (vec1[0]*px + vec1[1]*py);
-            mat.element(lag-1, ridx).first.accumulate( ddl );
-            mat.element(lag-1, ridx).second.accumulate( ddt );
+            mat.element(lag-1, ridx).accumulate( ddl, ddt );
           } else
             skipOutOfRange++;
 #         ifdef TIMER
@@ -274,10 +308,10 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   mprintf("\t%u pair calculations skipped because R out of range.\n", skipOutOfRange);
   mprintf("\tMax observed distance: %g Ang.\n", maxD);
   // TODO const_iterator?
-  for (Matrix< Dpair >::iterator it = mat.begin(); it != mat.end(); ++it)
+  for (Matrix< Dstats >::iterator it = mat.begin(); it != mat.end(); ++it)
   {
-    outputDrr.AddElement( it->first.mean() );
-    outputDtt.AddElement( it->second.mean() );
+    outputDrr.AddElement( it->DrrMean() );
+    outputDtt.AddElement( it->DttMean() );
   }
 /*
   // Normalize: number of values into each lag time is endFrame - lag
