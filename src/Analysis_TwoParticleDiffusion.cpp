@@ -6,6 +6,7 @@
 #include "DistRoutines.h"
 #include "Constants.h"
 #include "OnlineVarT.h"
+#include "Timer.h"
 
 // Analysis_TwoParticleDiffusion::Help()
 void Analysis_TwoParticleDiffusion::Help() const {
@@ -92,6 +93,11 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Setup(ArgList& analyzeArgs, Ana
 
 // Analysis_TwoParticleDiffusion::Analyze()
 Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
+  Timer t_total;
+  Timer t_pairloop;
+  Timer t_frame;
+  Timer t_calc;
+  t_total.Start();
   // FIXME: Currently assume unwrapped coords!
   // Check that there is data
   if (coords_->Size() < 1) {
@@ -156,15 +162,20 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   int endLag = maxlag_ + 1; // because lag starts at 1
   int offset = 1;
 
+  t_pairloop.Start();
   unsigned int skipOutOfRange = 0;
   double maxD = 0.0;
   for (int frm = startFrame; frm < endFrame; frm += offset)
   {
+    t_frame.Start();
     coords_->GetFrame( frm, frame0, mask_ );
+    t_frame.Stop();
     for (int lag = 1; lag < endLag; lag++)
     {
       int frm1 = frm + lag;
+      t_frame.Start();
       coords_->GetFrame( frm1, frame1, mask_ );
+      t_frame.Stop();
       // Loop over atom pairs
       for (int at0 = 0; at0 < frame0.Natom(); at0++)
       {
@@ -176,6 +187,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
                    xyz10[2] - xyz00[2] );
         for (int at1 = at0+1; at1 < frame0.Natom(); at1++)
         {
+          t_calc.Start();
           const double* xyz01 = frame0.XYZ(at1);
           /// Vector connecting atom pair at time frm TODO precalculate
           Vec3 pairVec( xyz01[0] - xyz00[0],
@@ -206,10 +218,12 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
             mat.element(lag-1, idx).second.accumulate( ddt );
           } else
             skipOutOfRange++;
+          t_calc.Stop();
         } // END inner loop over atoms
       } // END outer loop over atoms
     } // END loop over lag values
   } // END loop over frames
+  t_pairloop.Stop();
 
   mprintf("\t%u pair calculations skipped because R out of range.\n", skipOutOfRange);
   mprintf("\tMax observed distance: %g Ang.\n", maxD);
@@ -226,5 +240,11 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
     for (int idx = 0; idx != numRbins; idx++)
       mat.Element(lag-1, idx) *= norm;
   }*/
+  t_total.Stop();
+
+  t_total.WriteTiming(1, "Total TwoParticleDiff time:");
+  t_pairloop.WriteTiming(2, "Pair loop time:", t_total.Total());
+  t_frame.WriteTiming(3, "Loop frame time :", t_pairloop.Total());
+  t_calc.WriteTiming( 3, "Loop Calc time  :", t_pairloop.Total());
   return Analysis::OK;
 }
