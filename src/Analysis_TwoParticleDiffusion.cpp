@@ -134,27 +134,13 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   typedef std::pair<Dstats, Dstats> Dpair;
   Matrix< Dpair > mat;
   mat.resize( maxlag_, numRbins );
-/*
-  // Store atom pair Rbin indices via calculating initial pair distances.
-  Matrix<int> PairBins;
+
+  // For storing atom pair vector and Rbin indices
+  Matrix<int> Frame0Idxs;
+  Matrix<Vec3> Frame0Vecs;
   // col == 0 means Triangle matrix
-  PairBins.resize( 0, mask_.Nselected() );
-  coords_->GetFrame( 0, frame0, mask_ );
-  double cut2 = rmax_ * rmax_;
-  for (int at0 = 0; at0 < frame0.Natom(); at0++)
-    for (int at1 = at0+1; at1 < frame0.Natom(); at1++)
-    {
-      double dist2 = DIST2_NoImage( frame0.XYZ(at0), frame0.XYZ(at1) );
-      if (dist2 < cut2) {
-        double dist = sqrt(dist2);
-        int idx = (int)(dist * one_over_spacing);
-        // No bounds checking since dist already less than cutoff
-        // TODO use addElement
-        PairBins.setElement( at0, at1, idx );
-      } else
-        PairBins.setElement( at0, at1, -1 );
-    }
-*/
+  Frame0Idxs.resize( 0, mask_.Nselected() );
+  Frame0Vecs.resize( 0, mask_.Nselected() );
 
   // Loop over frames and lag times 
   int startFrame = 0;
@@ -170,6 +156,32 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
     t_frame.Start();
     coords_->GetFrame( frm, frame0, mask_ );
     t_frame.Stop();
+    // Precalculate atom pair vectors
+    for (int at0 = 0; at0 < frame0.Natom(); at0++) {
+      const double* xyz00 = frame0.XYZ(at0);
+      for (int at1 = at0+1; at1 < frame0.Natom(); at1++)
+      {
+        const double* xyz01 = frame0.XYZ(at1);
+        /// Vector connecting atom pair at time frm TODO precalculate
+        Vec3 pairVec( xyz01[0] - xyz00[0],
+                      xyz01[1] - xyz00[1],
+                      xyz01[2] - xyz00[2] );
+        // Atom pair distance at time frm TODO precalculate
+        double d0 = pairVec.Normalize(); 
+        maxD = std::max( maxD, d0 );
+        // Calculate bin index based on distance at time frm
+        // TODO idx should never be negative, make certain
+        // TODO use cutoff^2
+        int idx = (int)(d0 * one_over_spacing);
+        // Store // TODO use addElement
+        Frame0Vecs.setElement( at0, at1, pairVec );
+        if (idx < numRbins)
+          Frame0Idxs.setElement( at0, at1, idx );
+        else
+          Frame0Idxs.setElement( at0, at1, -1 );
+      }
+    }
+    // Inner loop over lag values
     for (int lag = 1; lag < endLag; lag++)
     {
       int frm1 = frm + lag;
@@ -189,6 +201,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
         {
           t_calc.Start();
           const double* xyz01 = frame0.XYZ(at1);
+/*
           /// Vector connecting atom pair at time frm TODO precalculate
           Vec3 pairVec( xyz01[0] - xyz00[0],
                         xyz01[1] - xyz00[1],
@@ -199,7 +212,10 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
           // Calculate bin index based on distance at time frm
           // TODO idx should never be negative, make certain
           int idx = (int)(d0 * one_over_spacing);
-          if (idx < numRbins) {
+*/
+          int idx = Frame0Idxs.element(at0, at1);
+          if (idx != -1) {
+            Vec3 const& pairVec = Frame0Vecs.element(at0, at1);
             const double* xyz11 = frame1.XYZ(at1);
             // vec1 is displacement of atom1 from frame 0 to frame1
             Vec3 vec1( xyz11[0] - xyz01[0],
