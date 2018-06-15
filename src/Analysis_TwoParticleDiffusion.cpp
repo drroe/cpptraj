@@ -96,6 +96,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   Timer t_total;
   Timer t_pairloop;
   Timer t_frame;
+  Timer t_precalc;
   Timer t_calc;
   t_total.Start();
   // FIXME: Currently assume unwrapped coords!
@@ -157,6 +158,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
     coords_->GetFrame( frm, frame0, mask_ );
     t_frame.Stop();
     // Precalculate atom pair vectors
+    t_precalc.Start();
     for (int at0 = 0; at0 < frame0.Natom(); at0++) {
       const double* xyz00 = frame0.XYZ(at0);
       for (int at1 = at0+1; at1 < frame0.Natom(); at1++)
@@ -170,17 +172,18 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
         double d0 = pairVec.Normalize(); 
         maxD = std::max( maxD, d0 );
         // Calculate bin index based on distance at time frm
-        // TODO idx should never be negative, make certain
+        // TODO ridx should never be negative, make certain
         // TODO use cutoff^2
-        int idx = (int)(d0 * one_over_spacing);
+        int ridx = (int)(d0 * one_over_spacing);
         // Store // TODO use addElement
         Frame0Vecs.setElement( at0, at1, pairVec );
-        if (idx < numRbins)
-          Frame0Idxs.setElement( at0, at1, idx );
+        if (ridx < numRbins)
+          Frame0Idxs.setElement( at0, at1, ridx );
         else
           Frame0Idxs.setElement( at0, at1, -1 );
       }
     }
+    t_precalc.Stop();
     // Inner loop over lag values
     for (int lag = 1; lag < endLag; lag++)
     {
@@ -213,8 +216,8 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
           // TODO idx should never be negative, make certain
           int idx = (int)(d0 * one_over_spacing);
 */
-          int idx = Frame0Idxs.element(at0, at1);
-          if (idx != -1) {
+          int ridx = Frame0Idxs.element(at0, at1);
+          if (ridx != -1) {
             Vec3 const& pairVec = Frame0Vecs.element(at0, at1);
             const double* xyz11 = frame1.XYZ(at1);
             // vec1 is displacement of atom1 from frame 0 to frame1
@@ -230,8 +233,8 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
             // Transverse part (theta, Dtt) XY
             double ddt = (vec0[0]*px + vec0[1]*py) *
                          (vec1[0]*px + vec1[1]*py);
-            mat.element(lag-1, idx).first.accumulate( ddl );
-            mat.element(lag-1, idx).second.accumulate( ddt );
+            mat.element(lag-1, ridx).first.accumulate( ddl );
+            mat.element(lag-1, ridx).second.accumulate( ddt );
           } else
             skipOutOfRange++;
           t_calc.Stop();
@@ -260,7 +263,8 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
 
   t_total.WriteTiming(1, "Total TwoParticleDiff time:");
   t_pairloop.WriteTiming(2, "Pair loop time:", t_total.Total());
-  t_frame.WriteTiming(3, "Loop frame time :", t_pairloop.Total());
-  t_calc.WriteTiming( 3, "Loop Calc time  :", t_pairloop.Total());
+  t_frame.WriteTiming(  3, "Loop frame time   :", t_pairloop.Total());
+  t_precalc.WriteTiming(3, "Loop precalc time :", t_pairloop.Total());
+  t_calc.WriteTiming(   3, "Loop Calc time    :", t_pairloop.Total());
   return Analysis::OK;
 }
