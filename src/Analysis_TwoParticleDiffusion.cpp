@@ -126,6 +126,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
       {
         const double* xyz00 = frame0.XYZ(at0);
         const double* xyz10 = frame1.XYZ(at0);
+        // vec0 is displacement of atom0 from frame0 to frame1
         Vec3 vec0( xyz10[0] - xyz00[0],
                    xyz10[1] - xyz00[1],
                    xyz10[2] - xyz00[2] );
@@ -135,6 +136,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
           if (idx != -1) {
             const double* xyz01 = frame0.XYZ(at1);
             const double* xyz11 = frame1.XYZ(at1);
+            // vec1 is displacement of atom1 from frame 0 to frame1
             Vec3 vec1( xyz11[0] - xyz01[0],
                        xyz11[1] - xyz01[1],
                        xyz11[2] - xyz01[2] );
