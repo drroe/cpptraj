@@ -146,5 +146,11 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
     }
   }
 
+  // Normalize: number of values into each lag time is endFrame - lag
+  for (int lag = 1; lag < maxlag_; lag++) {
+    double norm = 1.0 / (double)(endFrame - lag);
+    for (int idx = 0; idx != numRbins; idx++)
+      mat.Element(lag-1, idx) *= norm;
+  }
   return Analysis::OK;
 }

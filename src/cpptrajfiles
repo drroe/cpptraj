@@ -121,6 +121,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Analysis_Statistics.cpp \
         Analysis_TI.cpp \
         Analysis_Timecorr.cpp \
+        Analysis_TwoParticleDiffusion.cpp \
         Analysis_VectorMath.cpp \
         Analysis_Wavelet.cpp \
         ArgList.cpp \

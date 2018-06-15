@@ -173,6 +173,7 @@
 #include "Analysis_Multicurve.h"
 #include "Analysis_TI.h"
 #include "Analysis_ConstantPHStats.h"
+#include "Analysis_TwoParticleDiffusion.h"
 
 CmdList Command::commands_ = CmdList();
 
@@ -384,6 +385,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_Statistics(),  Cmd::ANA, 2, "stat", "statistics" );
   Command::AddCmd( new Analysis_TI(),          Cmd::ANA, 1, "ti" );
   Command::AddCmd( new Analysis_Timecorr(),    Cmd::ANA, 1, "timecorr" );
+  Command::AddCmd( new Analysis_TwoParticleDiffusion(),    Cmd::ANA, 1, "twopartdiff" );
   Command::AddCmd( new Analysis_VectorMath(),  Cmd::ANA, 1, "vectormath" );
   Command::AddCmd( new Analysis_Wavelet(),     Cmd::ANA, 1, "wavelet" );
   // CONTROL STRUCTURES
