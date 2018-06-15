@@ -1,8 +1,9 @@
-#include <cmath> // ceil
+#include <cmath> // ceil, sqrt, fabs
 #include "Analysis_TwoParticleDiffusion.h"
 #include "CpptrajStdio.h"
 #include "DataSet_MatrixDbl.h"
 #include "DistRoutines.h"
+#include "Constants.h"
 
 // Analysis_TwoParticleDiffusion::Help()
 void Analysis_TwoParticleDiffusion::Help() const {
@@ -83,18 +84,19 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   frame0.SetupFrameFromMask( mask_, coords_->Top().Atoms() );
   Frame frame1 = frame0;
   // Determine size of the 'R' dimension
+  double one_over_spacing = 1.0 / rstep_;
   int numRbins = (int)ceil(rmax_ / rstep_);
   mprintf("\tNumber of bins in the 'R' dimension: %i\n", numRbins);
   // Allocate matrix: cols=lag, rows=R
   DataSet_MatrixDbl& mat = static_cast<DataSet_MatrixDbl&>( *out_ );
   mat.Allocate2D( maxlag_-1, numRbins );
+/*
   // Store atom pair Rbin indices via calculating initial pair distances.
   Matrix<int> PairBins;
   // col == 0 means Triangle matrix
   PairBins.resize( 0, mask_.Nselected() );
   coords_->GetFrame( 0, frame0, mask_ );
   double cut2 = rmax_ * rmax_;
-  double one_over_spacing = 1.0 / rstep_;
   for (int at0 = 0; at0 < frame0.Natom(); at0++)
     for (int at1 = at0+1; at1 < frame0.Natom(); at1++)
     {
@@ -108,7 +110,8 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
       } else
         PairBins.setElement( at0, at1, -1 );
     }
- 
+*/
+
   // Loop over frames and lag times 
   int startFrame = 0;
   int endFrame = startFrame + maxlag_;
@@ -132,16 +135,27 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
                    xyz10[2] - xyz00[2] );
         for (int at1 = at0+1; at1 < frame0.Natom(); at1++)
         {
-          int idx = PairBins.element(at0, at1);
-          if (idx != -1) {
-            const double* xyz01 = frame0.XYZ(at1);
-            const double* xyz11 = frame1.XYZ(at1);
-            // vec1 is displacement of atom1 from frame 0 to frame1
-            Vec3 vec1( xyz11[0] - xyz01[0],
-                       xyz11[1] - xyz01[1],
-                       xyz11[2] - xyz01[2] );
-            double dot = vec0 * vec1;
-            mat.Element(lag-1, idx) += dot;
+          // Atom pair distance at time frm TODO precalculate
+          double d0 = sqrt(DIST2_NoImage( frame0.XYZ(at0), frame0.XYZ(at1) ));
+          // Atom pair distance at time frm+lag
+          double d1 = sqrt(DIST2_NoImage( frame1.XYZ(at0), frame1.XYZ(at1) ));
+          // Only record if pair distance has changed over time; equivalent
+          // to the Kronecker delta in Eq. 2 of Crocker et al. 2000
+          if (fabs(d1-d0) > Constants::SMALL) {
+            // Bin index based on pair distance at time frm+lag
+            int idx = (int)(d1 * one_over_spacing);
+            //int idx = PairBins.element(at0, at1);
+            // TODO idx should never be negative
+            if (idx < numRbins) {
+              const double* xyz01 = frame0.XYZ(at1);
+              const double* xyz11 = frame1.XYZ(at1);
+              // vec1 is displacement of atom1 from frame 0 to frame1
+              Vec3 vec1( xyz11[0] - xyz01[0],
+                         xyz11[1] - xyz01[1],
+                         xyz11[2] - xyz01[2] );
+              double dot = vec0 * vec1;
+              mat.Element(lag-1, idx) += dot;
+            }
           }
         }
       }
