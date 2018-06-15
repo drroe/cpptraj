@@ -7,6 +7,8 @@
 #include "Constants.h"
 #include "OnlineVarT.h"
 #include "Timer.h"
+#include "StringRoutines.h"
+#include "ProgressBar.h"
 
 // Analysis_TwoParticleDiffusion::Help()
 void Analysis_TwoParticleDiffusion::Help() const {
@@ -143,7 +145,9 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   Matrix<Vec3> Frame0Vecs;
   // col == 0 means Triangle matrix
   Frame0Idxs.resize( 0, mask_.Nselected() );
+  mprintf("\tSize of index matrix: %s\n", ByteString(Frame0Idxs.DataSize(), BYTE_DECIMAL).c_str());
   Frame0Vecs.resize( 0, mask_.Nselected() );
+  mprintf("\tSize of vector matrix: %s\n", ByteString(Frame0Vecs.DataSize(), BYTE_DECIMAL).c_str());
 
   // Loop over frames and lag times 
   int startFrame = 0;
@@ -154,8 +158,10 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   t_pairloop.Start();
   unsigned int skipOutOfRange = 0;
   double maxD = 0.0;
+  ParallelProgress progress( endFrame );
   for (int frm = startFrame; frm < endFrame; frm += offset)
   {
+    progress.Update( frm );
 #   ifdef TIMER
     t_frame.Start();
 #   endif
@@ -184,7 +190,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
         // TODO ridx should never be negative, make certain
         // TODO use cutoff^2
         int ridx = (int)(d0 * one_over_spacing);
-        // Store // TODO use addElement
+        // Store
         Frame0Vecs[pidx] = pairVec;
         if (ridx < numRbins)
           Frame0Idxs[pidx] = ridx;
@@ -262,6 +268,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
       } // END outer loop over atoms
     } // END loop over lag values
   } // END loop over frames
+  progress.Finish();
   t_pairloop.Stop();
 
   mprintf("\t%u pair calculations skipped because R out of range.\n", skipOutOfRange);
