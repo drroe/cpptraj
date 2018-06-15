@@ -95,7 +95,10 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Setup(ArgList& analyzeArgs, Ana
 /// Class for accumulating average Drr and Dtt values.
 template <class Float> class Accumulator {
   public:
-    Accumulator() : n_(0.0), drrMean_(0.0), drrM2_(0.0), dttMean_(0.0), dttM2_(0.0) {} 
+    //Accumulator() : n_(0), drrMean_(0.0), drrM2_(0.0), dttMean_(0.0), dttM2_(0.0) {}
+    Accumulator() : n_(0), drrMean_(0.0), dttMean_(0.0) {}
+    // NOTE: The below summation is slower but much more accurate and stable
+/* 
     void accumulate(const Float x, const Float y)
     {
       Float delta;
@@ -119,14 +122,22 @@ template <class Float> class Accumulator {
       if (n_ < 2) return 0.0;
       return dttM2_ / (n_ - 1.0); 
     };
+*/
+    void accumulate(const Float x, const Float y) {
+      n_++;
+      drrMean_ += x;
+      dttMean_ += y;
+    }
+    Float DrrMean() const { return drrMean_ / n_; }
+    Float DttMean() const { return dttMean_ / n_; }
 
     Float nData() const { return n_; };
   private:
     Float n_;
     Float drrMean_;
-    Float drrM2_;
+//    Float drrM2_;
     Float dttMean_;
-    Float dttM2_;
+//    Float dttM2_;
 };
 
 // Analysis_TwoParticleDiffusion::Analyze()
@@ -137,6 +148,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   Timer t_frame;
   Timer t_precalc;
   Timer t_calc;
+  Timer t_mat;
 # endif
   t_total.Start();
   // FIXME: Currently assume unwrapped coords!
@@ -293,7 +305,13 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
             // Transverse part (theta, Dtt) XY
             double ddt = (vec0[0]*px + vec0[1]*py) *
                          (vec1[0]*px + vec1[1]*py);
+#           ifdef TIMER
+            t_mat.Start();
+#           endif
             mat.element(lag-1, ridx).accumulate( ddl, ddt );
+#           ifdef TIMER
+            t_mat.Stop();
+#           endif
           } else
             skipOutOfRange++;
 #         ifdef TIMER
@@ -329,6 +347,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   t_frame.WriteTiming(  3, "Loop frame time   :", t_pairloop.Total());
   t_precalc.WriteTiming(3, "Loop precalc time :", t_pairloop.Total());
   t_calc.WriteTiming(   3, "Loop Calc time    :", t_pairloop.Total());
+  t_mat.WriteTiming(4, "Matrix Store time:", t_calc.Total());
 # endif
   return Analysis::OK;
 }
