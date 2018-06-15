@@ -114,11 +114,37 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   int endFrame = startFrame + maxlag_;
   int offset = 1;
 
-//  for (int frm = startFrame; frm < endFrame; frm += offset)
-//  {
-//    coords_->GetFrame( frm, frame0, mask_ );
-//    for (int lag = 1; lag < maxlag_; lag++)
-//    {
-      
+  for (int frm = startFrame; frm < endFrame; frm += offset)
+  {
+    coords_->GetFrame( frm, frame0, mask_ );
+    for (int lag = 1; lag < maxlag_; lag++)
+    {
+      int frm1 = frm + lag;
+      coords_->GetFrame( frm1, frame1, mask_ );
+      // Loop over atom pairs
+      for (int at0 = 0; at0 < frame0.Natom(); at0++)
+      {
+        const double* xyz00 = frame0.XYZ(at0);
+        const double* xyz10 = frame1.XYZ(at0);
+        Vec3 vec0( xyz10[0] - xyz00[0],
+                   xyz10[1] - xyz00[1],
+                   xyz10[2] - xyz00[2] );
+        for (int at1 = at0+1; at1 < frame0.Natom(); at1++)
+        {
+          int idx = PairBins.element(at0, at1);
+          if (idx != -1) {
+            const double* xyz01 = frame0.XYZ(at1);
+            const double* xyz11 = frame1.XYZ(at1);
+            Vec3 vec1( xyz11[0] - xyz01[0],
+                       xyz11[1] - xyz01[1],
+                       xyz11[2] - xyz01[2] );
+            double dot = vec0 * vec1;
+            mat.Element(lag-1, idx) += dot;
+          }
+        }
+      }
+    }
+  }
+
   return Analysis::OK;
 }
