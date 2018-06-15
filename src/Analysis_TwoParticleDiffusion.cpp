@@ -159,9 +159,10 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
     t_frame.Stop();
     // Precalculate atom pair vectors
     t_precalc.Start();
+    int pidx = 0;
     for (int at0 = 0; at0 < frame0.Natom(); at0++) {
       const double* xyz00 = frame0.XYZ(at0);
-      for (int at1 = at0+1; at1 < frame0.Natom(); at1++)
+      for (int at1 = at0+1; at1 < frame0.Natom(); at1++, pidx++)
       {
         const double* xyz01 = frame0.XYZ(at1);
         /// Vector connecting atom pair at time frm TODO precalculate
@@ -176,11 +177,11 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
         // TODO use cutoff^2
         int ridx = (int)(d0 * one_over_spacing);
         // Store // TODO use addElement
-        Frame0Vecs.setElement( at0, at1, pairVec );
+        Frame0Vecs[pidx] = pairVec;
         if (ridx < numRbins)
-          Frame0Idxs.setElement( at0, at1, ridx );
+          Frame0Idxs[pidx] = ridx;
         else
-          Frame0Idxs.setElement( at0, at1, -1 );
+          Frame0Idxs[pidx] = -1;
       }
     }
     t_precalc.Stop();
@@ -192,6 +193,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
       coords_->GetFrame( frm1, frame1, mask_ );
       t_frame.Stop();
       // Loop over atom pairs
+      pidx = 0;
       for (int at0 = 0; at0 < frame0.Natom(); at0++)
       {
         const double* xyz00 = frame0.XYZ(at0);
@@ -200,7 +202,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
         Vec3 vec0( xyz10[0] - xyz00[0],
                    xyz10[1] - xyz00[1],
                    xyz10[2] - xyz00[2] );
-        for (int at1 = at0+1; at1 < frame0.Natom(); at1++)
+        for (int at1 = at0+1; at1 < frame0.Natom(); at1++, pidx++)
         {
           t_calc.Start();
           const double* xyz01 = frame0.XYZ(at1);
@@ -216,9 +218,9 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
           // TODO idx should never be negative, make certain
           int idx = (int)(d0 * one_over_spacing);
 */
-          int ridx = Frame0Idxs.element(at0, at1);
+          int ridx = Frame0Idxs[pidx];
           if (ridx != -1) {
-            Vec3 const& pairVec = Frame0Vecs.element(at0, at1);
+            Vec3 const& pairVec = Frame0Vecs[pidx];
             const double* xyz11 = frame1.XYZ(at1);
             // vec1 is displacement of atom1 from frame 0 to frame1
             Vec3 vec1( xyz11[0] - xyz01[0],
