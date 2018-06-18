@@ -249,6 +249,11 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   int startFrame = 0;
   int endFrame = startFrame + maxlag_;
   int endLag = maxlag_ + 1; // because lag starts at 1
+  if (endLag > (int)coords_->Size()) {
+    mprintf("Warning: End lag (%i) > number of frames %zu; setting to %zu\n",
+            endLag, coords_->Size(), coords_->Size());
+    endLag = (int)coords_->Size();
+  }
   int offset = 1;
   double cut2 = rmax_ * rmax_;
 
