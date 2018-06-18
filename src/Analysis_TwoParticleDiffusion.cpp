@@ -248,13 +248,14 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   // Loop over frames and lag times 
   int startFrame = 0;
   int endFrame = startFrame + maxlag_;
-  int endLag = maxlag_ + 1; // because lag starts at 1
-  if (endLag > (int)coords_->Size()) {
-    mprintf("Warning: End lag (%i) > number of frames %zu; setting to %zu\n",
-            endLag, coords_->Size(), coords_->Size());
-    endLag = (int)coords_->Size();
-  }
   int offset = 1;
+  int endLag = maxlag_ + 1; // because lag starts at 1
+  if ( ((endFrame-offset)+(endLag-1)) > (int)coords_->Size()) {
+    mprintf("Warning: End lag (%i) > number of frames %zu;",
+            endLag, coords_->Size());
+    endLag = (int)coords_->Size() - endFrame + offset + 1;
+    mprintf(" setting to %i\n", endLag);
+  }
   double cut2 = rmax_ * rmax_;
 
   t_pairloop.Start();
