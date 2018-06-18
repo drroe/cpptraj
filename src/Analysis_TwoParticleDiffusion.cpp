@@ -180,28 +180,39 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   // Allocate matrices: cols=lag, rows=R
   DataSet_MatrixDbl& outputDrr = static_cast<DataSet_MatrixDbl&>( *outDrr_ );
   outputDrr.Allocate2D( maxlag_, numRbins );
+  mprintf("\tSize of output Drr matrix: %s\n",
+          ByteString(outDrr_->Size()*sizeof(double), BYTE_DECIMAL).c_str());
   DataSet_MatrixDbl& outputDtt = static_cast<DataSet_MatrixDbl&>( *outDtt_ );
   outputDtt.Allocate2D( maxlag_, numRbins );
+  mprintf("\tSize of output Dtt matrix: %s\n",
+          ByteString(outDtt_->Size()*sizeof(double), BYTE_DECIMAL).c_str());
   // Use Stats-like class for actual accumulation
   typedef Accumulator<double> Dstats;
   Matrix< Dstats > mat;
   // TODO - test reversing order of indices to see if memory pattern improved.
   mat.resize( maxlag_, numRbins );
-
+# ifdef USE_TPD_MEMCACHE
+  mprintf("\tUsing memory to cache frame(t) related values.\n");
   // For storing atom pair vector and Rbin indices
   Matrix<int> Frame0Idxs;
   Matrix<Vec3> Frame0Vecs;
   // col == 0 means Triangle matrix
+  mprintf("\tSize of index matrix: %s\n",
+          ByteString(Matrix<int>::sizeInBytes(0, mask_.Nselected()), BYTE_DECIMAL).c_str());
+  mprintf("\tSize of vector matrix: %s\n",
+          ByteString(Matrix<Vec3>::sizeInBytes(0, mask_.Nselected()), BYTE_DECIMAL).c_str());
   Frame0Idxs.resize( 0, mask_.Nselected() );
-  mprintf("\tSize of index matrix: %s\n", ByteString(Frame0Idxs.DataSize(), BYTE_DECIMAL).c_str());
   Frame0Vecs.resize( 0, mask_.Nselected() );
-  mprintf("\tSize of vector matrix: %s\n", ByteString(Frame0Vecs.DataSize(), BYTE_DECIMAL).c_str());
-
+# else
+  mprintf("\tNot using memory to cache frame(t) related values.\n");
+  double maxD2 = 0.0;
+# endif
   // Loop over frames and lag times 
   int startFrame = 0;
   int endFrame = startFrame + maxlag_;
   int endLag = maxlag_ + 1; // because lag starts at 1
   int offset = 1;
+  double cut2 = rmax_ * rmax_;
 
   t_pairloop.Start();
   unsigned int skipOutOfRange = 0;
@@ -217,6 +228,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
 #   ifdef TIMER
     t_frame.Stop();
 #   endif
+#   ifdef USE_TPD_MEMCACHE
     // Precalculate atom pair vectors
 #   ifdef TIMER
     t_precalc.Start();
@@ -249,6 +261,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
 #   ifdef TIMER
     t_precalc.Stop();
 #   endif
+#   endif /* USE_TPD_MEMCACHE */
     // Inner loop over lag values
     for (int lag = 1; lag < endLag; lag++)
     {
@@ -261,7 +274,9 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
       t_frame.Stop();
 #     endif
       // Loop over atom pairs
+#     ifdef USE_TPD_MEMCACHE
       pidx = 0;
+#     endif
       for (int at0 = 0; at0 < frame0.Natom(); at0++)
       {
         const double* xyz00 = frame0.XYZ(at0);
@@ -270,27 +285,43 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
         Vec3 vec0( xyz10[0] - xyz00[0],
                    xyz10[1] - xyz00[1],
                    xyz10[2] - xyz00[2] );
+#       ifdef USE_TPD_MEMCACHE
         for (int at1 = at0+1; at1 < frame0.Natom(); at1++, pidx++)
+#       else
+        for (int at1 = at0+1; at1 < frame0.Natom(); at1++)
+#       endif
         {
 #         ifdef TIMER
           t_calc.Start();
 #         endif
-/*
+#         ifdef USE_TPD_MEMCACHE
+          int ridx = Frame0Idxs[pidx];
+#         else
+          /// Vector connecting atom pair at time frm
           const double* xyz01 = frame0.XYZ(at1);
-          /// Vector connecting atom pair at time frm TODO precalculate
           Vec3 pairVec( xyz01[0] - xyz00[0],
                         xyz01[1] - xyz00[1],
                         xyz01[2] - xyz00[2] );
-          // Atom pair distance at time frm TODO precalculate
-          double d0 = pairVec.Normalize(); 
-          maxD = std::max( maxD, d0 );
-          // Calculate bin index based on distance at time frm
-          // TODO idx should never be negative, make certain
-          int idx = (int)(d0 * one_over_spacing);
-*/
-          int ridx = Frame0Idxs[pidx];
+          // Atom pair distance at time frm
+          double dist2 = pairVec.Magnitude2();
+          int ridx;
+          if (dist2 < cut2) {
+            double d0 = sqrt(dist2);
+            double one_over_d0 = 1.0 / d0;
+            pairVec *= one_over_d0;
+            maxD = std::max( maxD, d0 );
+            // Calculate bin index based on distance at time frm
+            // TODO ridx should never be negative, make certain
+            ridx = (int)(d0 * one_over_spacing);
+          } else {
+            ridx = -1;
+            maxD2 = std::max( maxD2, dist2 );
+          }
+#         endif /* USE_TPD_MEMCACHE */
           if (ridx != -1) {
+#           ifdef USE_TPD_MEMCACHE
             Vec3 const& pairVec = Frame0Vecs[pidx];
+#           endif
             const double* xyz01 = frame0.XYZ(at1);
             const double* xyz11 = frame1.XYZ(at1);
             // vec1 is displacement of atom1 from frame 0 to frame1
@@ -326,6 +357,9 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   t_pairloop.Stop();
 
   mprintf("\t%u pair calculations skipped because R out of range.\n", skipOutOfRange);
+# ifndef USE_TPD_MEMCACHE
+  maxD = std::max( maxD, sqrt(maxD2) );
+# endif
   mprintf("\tMax observed distance: %g Ang.\n", maxD);
   // TODO const_iterator?
   for (Matrix< Dstats >::iterator it = mat.begin(); it != mat.end(); ++it)
