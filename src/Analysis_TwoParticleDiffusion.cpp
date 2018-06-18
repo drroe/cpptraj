@@ -8,6 +8,9 @@
 #include "Timer.h"
 #include "StringRoutines.h"
 #include "ProgressBar.h"
+#ifdef _OPENMP
+# include <omp.h>
+#endif
 
 // Analysis_TwoParticleDiffusion::Help()
 void Analysis_TwoParticleDiffusion::Help() const {
@@ -132,6 +135,13 @@ template <class Float> class Accumulator {
     Float DttMean() const { if (n_ < 1) return 0.0; else return dttMean_ / n_; }
 
     Float nData() const { return n_; };
+#   ifdef _OPENMP
+    void operator+=(Accumulator const& rhs) {
+      n_ += rhs.n_;
+      drrMean_ += rhs.drrMean_;
+      dttMean_ += rhs.dttMean_;
+    }
+#   endif
   private:
     Float n_;
     Float drrMean_;
@@ -201,9 +211,25 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
           ByteString(outDtt_->Size()*sizeof(double), BYTE_DECIMAL).c_str());
   // Use Stats-like class for actual accumulation
   typedef Accumulator<double> Dstats;
+# ifdef _OPENMP
+  // Each thread needs their own accumulator to avoid memory clashes
+  typedef std::vector< Matrix< Dstats > > DMarrayType;
+  DMarrayType DMarray;
+# pragma omp parallel
+  {
+#   pragma omp master
+    {
+      DMarray.resize( omp_get_num_threads() );
+    }
+  }
+  mprintf("\tParallelizing calculation with %zu threads.\n", DMarray.size());
+  for (DMarrayType::iterator dm = DMarray.begin(); dm != DMarray.end(); ++dm)
+    dm->resize( maxlag_, numRbins );
+# else /* not _OPENMP */
   Matrix< Dstats > mat;
   // TODO - test reversing order of indices to see if memory pattern improved.
   mat.resize( maxlag_, numRbins );
+# endif /* _OPENMP */
 # ifdef USE_TPD_MEMCACHE
   mprintf("\tUsing memory to cache frame(t) related values.\n");
   // For storing atom pair vector and Rbin indices
@@ -218,7 +244,6 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   Frame0Vecs.resize( 0, mask_.Nselected() );
 # else
   mprintf("\tNot using memory to cache frame(t) related values.\n");
-  double maxD2 = 0.0;
 # endif
   // Loop over frames and lag times 
   int startFrame = 0;
@@ -230,8 +255,19 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   t_pairloop.Start();
   unsigned int skipOutOfRange = 0;
   double maxD = 0.0;
+  double maxD2 = 0.0;
   ParallelProgress progress( endFrame );
-  for (int frm = startFrame; frm < endFrame; frm += offset)
+  int frm;
+# ifdef _OPENMP
+  int mythread;
+# pragma omp parallel private(frm, mythread, ucell, recip) firstprivate(progress, frame0, frame1) reduction(max: maxD, maxD2) reduction(+: skipOutOfRange)
+  {
+  mythread = omp_get_thread_num();
+  progress.SetThread(mythread);
+  Matrix< Dstats >& mat = DMarray[mythread];
+# pragma omp for
+# endif
+  for (frm = startFrame; frm < endFrame; frm += offset)
   {
     progress.Update( frm );
 #   ifdef TIMER
@@ -263,11 +299,6 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
           case ORTHO    : pairVec = MinImagedVec(xyz01, xyz00, frame0.BoxCrd()); break;
           case NONORTHO : pairVec = MinImagedVec(xyz01, xyz00, ucell, recip); break;
         }
-/*
-        Vec3 pairVec( xyz01[0] - xyz00[0],
-                      xyz01[1] - xyz00[1],
-                      xyz01[2] - xyz00[2] );
-*/
         // Atom pair distance at time frm
         double d0 = pairVec.Normalize(); 
         maxD = std::max( maxD, d0 );
@@ -386,6 +417,13 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
       } // END outer loop over atoms
     } // END loop over lag values
   } // END loop over frames
+# ifdef _OPENMP
+  } // END pragma omp parallel
+  // Consolidate threads
+  for (unsigned int thread = 1; thread < DMarray.size(); thread++)
+    for (unsigned int idx = 0; idx < DMarray[thread].size(); idx++)
+      DMarray[0][idx] += DMarray[thread][idx];
+# endif
   progress.Finish();
   t_pairloop.Stop();
 
@@ -395,6 +433,9 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
 # endif
   mprintf("\tMax observed distance: %g Ang.\n", maxD);
   // TODO const_iterator?
+# ifdef _OPENMP
+  Matrix< Dstats > const& mat = DMarray[0];
+# endif
   for (Matrix< Dstats >::iterator it = mat.begin(); it != mat.end(); ++it)
   {
     outputDrr.AddElement( it->DrrMean() );
