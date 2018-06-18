@@ -173,6 +173,19 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   Frame frame0;
   frame0.SetupFrameFromMask( mask_, coords_->Top().Atoms() );
   Frame frame1 = frame0;
+  // Determine imaging type
+  ImagingType itype;
+  if (coords_->CoordsInfo().TrajBox().Type() == Box::NOBOX) {
+    mprintf("\tNo unit cell info; imaging for frame(t) distances disabled.\n");
+    itype = NOIMAGE;
+  } else if (coords_->CoordsInfo().TrajBox().Type() == Box::ORTHO) {
+    itype = ORTHO;
+    mprintf("\tUsing orthorhombic imaging for frame(t) distances.\n");
+  } else {
+    mprintf("\tUsing non-orthorhombic imaging for frame(t) distances.\n");
+    itype = NONORTHO;
+  }
+  Matrix_3x3 ucell, recip;
   // Determine size of the 'R' dimension
   double one_over_spacing = 1.0 / rstep_;
   int numRbins = (int)ceil(rmax_ / rstep_);
@@ -225,6 +238,8 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
     t_frame.Start();
 #   endif
     coords_->GetFrame( frm, frame0, mask_ );
+    if (itype == NONORTHO)
+      frame0.BoxCrd().ToRecip(ucell, recip);
 #   ifdef TIMER
     t_frame.Stop();
 #   endif
@@ -240,9 +255,17 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
       {
         const double* xyz01 = frame0.XYZ(at1);
         /// Vector connecting atom pair at time frm
+        Vec3 pairVec;
+        switch (itype) {
+          case NOIMAGE  : pairVec = Vec3(xyz01) - Vec3(xyz00); break;
+          case ORTHO    : pairVec = MinImagedVec(xyz01, xyz00, frame0.BoxCrd()); break;
+          case NONORTHO : pairVec = MinImagedVec(xyz01, xyz00, ucell, recip); break;
+        }
+/*
         Vec3 pairVec( xyz01[0] - xyz00[0],
                       xyz01[1] - xyz00[1],
                       xyz01[2] - xyz00[2] );
+*/
         // Atom pair distance at time frm
         double d0 = pairVec.Normalize(); 
         maxD = std::max( maxD, d0 );
@@ -299,9 +322,17 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
 #         else
           /// Vector connecting atom pair at time frm
           const double* xyz01 = frame0.XYZ(at1);
+          Vec3 pairVec;
+          switch (itype) {
+            case NOIMAGE  : pairVec = Vec3(xyz01) - Vec3(xyz00); break;
+            case ORTHO    : pairVec = MinImagedVec(xyz01, xyz00, frame0.BoxCrd()); break;
+            case NONORTHO : pairVec = MinImagedVec(xyz01, xyz00, ucell, recip); break;
+          }
+/*
           Vec3 pairVec( xyz01[0] - xyz00[0],
                         xyz01[1] - xyz00[1],
                         xyz01[2] - xyz00[2] );
+*/
           // Atom pair distance at time frm
           double dist2 = pairVec.Magnitude2();
           int ridx;

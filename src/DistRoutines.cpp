@@ -56,6 +56,37 @@ Vec3 MinImagedVec(Vec3 const& a1, Vec3 const& a2,
   return minVec;
 }
 
+/** \return shortest vector from a1 to a2 (orthorhombic cell)
+  * \param a1 First set of XYZ coordinates.
+  * \param a2 Second set of XYZ coordinates.
+  * \param box Unit cell TODO check ortho?
+  */
+Vec3 MinImagedVec(Vec3 const& a1, Vec3 const& a2, Box const& box) {
+  Vec3 minVec(0.0);
+  // If box lengths are zero no imaging possible
+  if (box[0]==0.0 || box[1]==0.0 || box[2]==0.0) return minVec;
+  minVec[0] = a1[0] - a2[0];
+  minVec[1] = a1[1] - a2[1];
+  minVec[2] = a1[2] - a2[2];
+  // Get rid of sign info
+  if (minVec[0] < 0) minVec[0] = -minVec[0];
+  if (minVec[1] < 0) minVec[1] = -minVec[1];
+  if (minVec[2] < 0) minVec[2] = -minVec[2];
+  // Get rid of multiples of box lengths 
+  while (minVec[0] > box[0]) minVec[0] = minVec[0] - box[0];
+  while (minVec[1] > box[1]) minVec[1] = minVec[1] - box[1];
+  while (minVec[2] > box[2]) minVec[2] = minVec[2] - box[2];
+  // Find shortest distance in periodic reference
+  double D = box[0] - minVec[0];
+  if (D < minVec[0]) minVec[0] = D;
+         D = box[1] - minVec[1];
+  if (D < minVec[1]) minVec[1] = D;  
+         D = box[2] - minVec[2];
+  if (D < minVec[2]) minVec[2] = D;
+
+  return minVec;
+}
+
 /** NON-ORTHORHOMBIC CASE: find shortest distance in periodic reference
   * This is a brute force check requiring up to 26 distance evaluations.
   * It has been adapted to be smarter by returning the first distance that
