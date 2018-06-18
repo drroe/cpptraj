@@ -185,6 +185,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   // Use Stats-like class for actual accumulation
   typedef Accumulator<double> Dstats;
   Matrix< Dstats > mat;
+  // TODO - test reversing order of indices to see if memory pattern improved.
   mat.resize( maxlag_, numRbins );
 
   // For storing atom pair vector and Rbin indices
