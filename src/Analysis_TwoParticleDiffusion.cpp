@@ -128,8 +128,8 @@ template <class Float> class Accumulator {
       drrMean_ += x;
       dttMean_ += y;
     }
-    Float DrrMean() const { return drrMean_ / n_; }
-    Float DttMean() const { return dttMean_ / n_; }
+    Float DrrMean() const { if (n_ < 1) return 0.0; else return drrMean_ / n_; }
+    Float DttMean() const { if (n_ < 1) return 0.0; else return dttMean_ / n_; }
 
     Float nData() const { return n_; };
   private:
@@ -238,6 +238,8 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
     t_frame.Start();
 #   endif
     coords_->GetFrame( frm, frame0, mask_ );
+    //mprintf("DEBUG: Frame %i box:", frm+1);
+    //frame0.BoxCrd().PrintInfo();
     if (itype == NONORTHO)
       frame0.BoxCrd().ToRecip(ucell, recip);
 #   ifdef TIMER
