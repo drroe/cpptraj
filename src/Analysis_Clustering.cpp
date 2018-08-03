@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists, integerToString
 #include "DataSet_integer.h" // For converting cnumvtime
+#include "DataSet_float.h"
 #include "Trajout_Single.h"
 #include "Timer.h"
 // Clustering Algorithms
@@ -22,6 +23,7 @@ Analysis_Clustering::Analysis_Clustering() :
   windowSize_(0),
   drawGraph_(0),
   draw_maxit_(0),
+  nRepsToSave_(1),
   draw_tol_(0.0),
   refCut_(1.0),
   cnumvtime_(0),
@@ -67,7 +69,7 @@ void Analysis_Clustering::Help() const {
           "  Output options:\n"
           "\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n"
           "\t[summarysplit <splitfile>] [splitframe <comma-separated frame list>]\n"
-          "\t[bestrep {cumulative|centroid|cumulative_nosieve}]\n"
+          "\t[bestrep {cumulative|centroid|cumulative_nosieve}] [savenreps <#>]\n"
           "\t[clustersvtime <filename> cvtwindow <window size>]\n"
           "\t[cpopvtime <file> [normpop | normframe]] [lifetime]\n"
           "\t[sil <silhouette file prefix>] [assignrefs [refcut <rms>] [refmask <mask>]]\n"
@@ -235,6 +237,11 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
       mprinterr("Error: Invalid 'bestRep' option (%s)\n", bestRepStr.c_str());
       return Analysis::ERR;
     }
+  }
+  nRepsToSave_ = analyzeArgs.getKeyInt("savenreps", 1);
+  if (nRepsToSave_ < 1) {
+    mprinterr("Error: 'savenreps' must be > 0\n");
+    return Analysis::ERR;
   }
   if (analyzeArgs.hasKey("drawgraph"))
     drawGraph_ = 1;
@@ -467,6 +474,8 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
       mprintf(" lowest cumulative distance to all other frames (ignore sieved frames).\n");
       break;
   }
+  if (nRepsToSave_ > 1)
+    mprintf("\tThe top %i representative frames will be determined.\n", nRepsToSave_);
   if (!clusterfile_.empty())
     mprintf("\tCluster trajectories will be written to %s, format %s\n",
             clusterfile_.c_str(), TrajectoryFile::FormatString(clusterfmt_));
@@ -599,9 +608,9 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     // Find best representative frames for each cluster.
     cluster_post_bestrep.Start();
     switch (bestRep_) {
-      case CUMULATIVE: CList_->FindBestRepFrames_CumulativeDist(); break;
-      case CENTROID  : CList_->FindBestRepFrames_Centroid(); break;
-      case CUMULATIVE_NOSIEVE: CList_->FindBestRepFrames_NoSieve_CumulativeDist(); break;
+      case CUMULATIVE: CList_->FindBestRepFrames_CumulativeDist(nRepsToSave_); break;
+      case CENTROID  : CList_->FindBestRepFrames_Centroid(nRepsToSave_); break;
+      case CUMULATIVE_NOSIEVE: CList_->FindBestRepFrames_NoSieve_CumulativeDist(nRepsToSave_); break;
     }
     cluster_post_bestrep.Stop();
     // DEBUG
@@ -803,45 +812,53 @@ void Analysis_Clustering::CreateCnumvtime( ClusterList const& CList, unsigned in
 // Analysis_Clustering::CreateCpopvtime()
 // NOTE: Should not be called if cpopvtimefile is NULL
 void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, unsigned int maxFrames ) {
-  std::vector<int> Pop(CList.Nclusters(), 0);
+  mprintf("\tCalculating cluster population vs time for each cluster.\n");
   // Set up output data sets
-  std::vector<DataSet*> DSL;
+  std::vector<DataSet_float*> Cpop;
   MetaData md(cnumvtime_->Meta().Name(), "Pop");
+  DataSet::SizeArray dsize(1, maxFrames);
   for (int cnum = 0; cnum < CList.Nclusters(); ++cnum) {
     md.SetIdx( cnum );
-    DSL.push_back(masterDSL_->AddSet( DataSet::FLOAT, md ));
-    if (DSL.back() == 0) {
+    DataSet_float* ds = (DataSet_float*)masterDSL_->AddSet( DataSet::FLOAT, md );
+    if (ds == 0) {
       mprinterr("Error: Could not allocate cluster pop v time DataSet.\n");
       return;
     }
-    cpopvtimefile_->AddDataSet( DSL.back() );
+    ds->Allocate( dsize );
+    Cpop.push_back( ds );
+    // SANITY CHECK
+    if (cpopvtimefile_ != 0)
+      cpopvtimefile_->AddDataSet( ds );
   }
-  // Set up normalization
-  std::vector<double> Norm;
-  if (norm_pop_ == CLUSTERPOP) {
-    int cnum = 0;
-    Norm.resize(CList.Nclusters(), 1.0);
-    for (ClusterList::cluster_iterator C = CList.begincluster(); 
-                                       C != CList.endcluster(); ++C)
-      Norm[cnum++] = (double)((*C).Nframes());
-  }
-  // Assumes cnumvtime has been calcd and not gracecolor!
-  double norm = 1.0;
-  DataSet_integer const& cnum_temp = static_cast<DataSet_integer const&>( *cnumvtime_ );
-  for (unsigned int frame = 0; frame < maxFrames; ++frame) {
-    int cluster_num = cnum_temp[frame];
-    // Noise points are -1
-    if (cluster_num > -1)
-      Pop[cluster_num]++;
-    for (int cnum = 0; cnum < CList.Nclusters(); ++cnum) {
-      // Normalization
-      if (norm_pop_ == CLUSTERPOP)
-        norm = Norm[cnum];
-      else if (norm_pop_ == FRAME)
-        norm = (double)(frame + 1);
-      //float f = ((double)Pop[cnum] * Norm[cnum]);
-      float f = (float)((double)Pop[cnum] / norm);
-      DSL[cnum]->Add(frame, &f);
+  int cnum = 0;
+  // Loop over all clusters
+  for (ClusterList::cluster_iterator C = CList.begincluster(); C != CList.endcluster(); ++C, ++cnum)
+  {
+    DataSet_float& pvt = static_cast<DataSet_float&>( *(Cpop[cnum]) );
+    float pop = 0.0;
+    // Loop over all frames in cluster
+    for (ClusterNode::frame_iterator f = C->beginframe(); f != C->endframe(); ++f)
+    {
+      if (*f > (int)pvt.Size())
+        pvt.Resize( *f, pop );
+      pop = pop + 1.0;
+      pvt[*f] = pop;
+    }
+    // Ensure pop v time set is maxFrames long
+    if (pvt.Size() < maxFrames)
+      pvt.Resize( maxFrames, pop );
+    // Normalization
+    if (norm_pop_ == CLUSTERPOP) {
+      float norm = 1.0 / (float)C->Nframes();
+      for (unsigned int frm = 0; frm < maxFrames; ++frm)
+        pvt[frm] = pvt[frm] * norm;
+    } else if (norm_pop_ == FRAME) {
+      float norm = 1.0;
+      for (unsigned int frm = 0; frm < maxFrames; ++frm)
+      {
+        pvt[frm] = pvt[frm] / norm;
+        norm = norm + 1.0;
+      }
     }
   }
 }
@@ -999,7 +1016,7 @@ void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
   // Set up trajectory file. Use parm from COORDS DataSet. 
   Topology *clusterparm = coords_->TopPtr();
   if (clusterout.PrepareTrajWrite(singlerepfile_, ArgList(), clusterparm,
-                                  coords_->CoordsInfo(), CList.Nclusters(),
+                                  coords_->CoordsInfo(), CList.Nclusters() * nRepsToSave_,
                                   singlerepfmt_)) 
   {
     mprinterr("Error: Could not set up single trajectory for represenatatives %s for write.\n",
@@ -1013,8 +1030,12 @@ void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
   for (ClusterList::cluster_iterator cluster = CList.begincluster(); 
                                      cluster != CList.endcluster(); ++cluster) 
   {
-   coords_->GetFrame( cluster->BestRepFrame(), clusterframe );
-   clusterout.WriteSingle(framecounter++, clusterframe);
+    for (ClusterNode::RepPairArray::const_iterator rep = cluster->BestReps().begin();
+                                                   rep != cluster->BestReps().end(); ++rep)
+    {
+      coords_->GetFrame( rep->first, clusterframe );
+      clusterout.WriteSingle(framecounter++, clusterframe);
+    }
   }
   // Close traj
   clusterout.EndTraj();
@@ -1034,25 +1055,54 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
   for (ClusterList::cluster_iterator C = CList.begincluster();
                                      C != CList.endcluster(); ++C)
   {
-    Trajout_Single clusterout;
-    // Get best rep frame # 
-    int framenum = C->BestRepFrame();
-    // Create filename based on frame #
-    std::string cfilename = reptrajfile_ + ".c" + integerToString(C->Num());
-    if (writeRepFrameNum_) cfilename += ("." + integerToString(framenum+1));
-    cfilename += tmpExt;
-    // Set up trajectory file.
-    if (clusterout.PrepareTrajWrite(cfilename, ArgList(), clusterparm,
-                                    coords_->CoordsInfo(), 1, reptrajfmt_))
-    {
-      mprinterr("Error: Could not set up representative trajectory file %s for write.\n",
-                cfilename.c_str());
-       return;
+    if (writeRepFrameNum_) {
+      // Each rep from cluster to separate file.
+      for (ClusterNode::RepPairArray::const_iterator rep = C->BestReps().begin();
+                                                     rep != C->BestReps().end(); ++rep)
+      {
+        Trajout_Single clusterout;
+        // Get best rep frame # 
+        int framenum = rep->first;
+        // Create filename based on cluster number and frame #
+        std::string cfilename = reptrajfile_ + ".c" + integerToString(C->Num()) +
+                                ("." + integerToString(framenum+1)) + tmpExt;
+        // Set up trajectory file.
+        if (clusterout.PrepareTrajWrite(cfilename, ArgList(), clusterparm,
+                                        coords_->CoordsInfo(), 1, reptrajfmt_))
+        {
+          mprinterr("Error: Could not set up representative trajectory file %s for write.\n",
+                    cfilename.c_str());
+          return;
+        }
+        // Write cluster rep frame
+        coords_->GetFrame( framenum, clusterframe );
+        clusterout.WriteSingle(framenum, clusterframe);
+        // Close traj
+        clusterout.EndTraj();
+      }
+    } else {
+      // Each rep from cluster to single file.
+      Trajout_Single clusterout;
+      // Create filename based on cluster number
+      std::string cfilename = reptrajfile_ + ".c" + integerToString(C->Num()) + tmpExt;
+      // Set up trajectory file.
+      if (clusterout.PrepareTrajWrite(cfilename, ArgList(), clusterparm,
+                                      coords_->CoordsInfo(), nRepsToSave_, reptrajfmt_))
+      {
+        mprinterr("Error: Could not set up representative trajectory file %s for write.\n",
+                  cfilename.c_str());
+        return;
+      }
+      int framecounter = 0;
+      for (ClusterNode::RepPairArray::const_iterator rep = C->BestReps().begin();
+                                                     rep != C->BestReps().end(); ++rep)
+      {
+        // Write cluster rep frame
+        coords_->GetFrame( rep->first, clusterframe );
+        clusterout.WriteSingle( framecounter++, clusterframe );
+      }
+      // Close traj
+      clusterout.EndTraj();
     }
-    // Write cluster rep frame
-    coords_->GetFrame( framenum, clusterframe );
-    clusterout.WriteSingle(framenum, clusterframe);
-    // Close traj
-    clusterout.EndTraj();
   }
 }
