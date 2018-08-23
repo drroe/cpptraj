@@ -21,10 +21,11 @@ void ProgressTimerBar::SetupProgress(int nIterationsIn, double intervalIn, doubl
     // Adjust percent interval if necessary.
     if ((double)total_it_ < pctInterval_)
       pctInterval_ = 100.0 / (double)total_it_;
-    tgtPct_ = pctInterval_;
+    tgtPct_ = 0.0;
     // Determine next iteration that should be printed.
-    tgt_it_ = (int)((double)total_it_ * (pctInterval_/100.0)) - 1;
-    mprintf("%2.0f%%", 0.0);
+    //tgt_it_ = (int)((double)total_it_ * (pctInterval_/100.0)) - 1;
+    tgt_it_ = -1;
+    //mprintf("%2.0f%%", 0.0);
   } else {
     // Total number of iterations unknown.
     total_it_ = UNKNOWN_FRAMES_;
