@@ -34,8 +34,9 @@ void ProgressTimerBar::SetupProgress(int nIterationsIn, double intervalIn, doubl
       tgt_it_ = (int)-pctIntIn;
     else
       tgt_it_ = 200; // default;
+    iInterval_ = tgt_it_;
+    mprintf("\tProgress: '%c' = %i iterations.\n", PROGCHAR_, iInterval_);
     tgt_it_ = tgt_it_ - 1;
-    mprintf("\tProgress: '%c' = %i iterations.\n", PROGCHAR_);
   }
   mflush();
   if (tInterval_ > 0.0) time_.Start();
@@ -46,10 +47,11 @@ void ProgressTimerBar::SetupProgress(int nIterationsIn, double intervalIn, doubl
   */
 void ProgressTimerBar::Update(int iteration) {
   if (total_it_ == UNKNOWN_FRAMES_) {
-    if (iteration > tgt_it_) {
+    if (iteration >= tgt_it_) {
       mprintf("%c", PROGCHAR_);
+      //mprintf(" (%i) %c\n", iteration+1, PROGCHAR_); // DEBUG
       mflush();
-      tgt_it_ = tgt_it_ + (tgt_it_ + 1);
+      tgt_it_ += iInterval_;
       // TODO number of columns?
     }
     if (tInterval_ > 0.0) {

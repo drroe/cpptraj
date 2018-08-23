@@ -23,6 +23,7 @@ class ProgressTimerBar {
     double tgtPct_;      ///< Next target percentage.
     int total_it_;       ///< Total number of iterations process should take.
     int tgt_it_;         ///< Next target iteration to print progress bar.
+    int iInterval_;      ///< Progress interval when total not known
     /// total_it_ will be set to this when total # frames not known.
     static const int UNKNOWN_FRAMES_;
     /// Character to print when total # iterations unknown.
