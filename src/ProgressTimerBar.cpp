@@ -57,7 +57,8 @@ void ProgressTimerBar::Update(int iteration) {
     if (tInterval_ > 0.0) {
       double elapsed = time_.Elapsed();
       if (elapsed > tgtTime_) {
-        mprintf("\n\t%i iterations in %.2f s.\n", iteration+1, elapsed);
+        mprintf("\n\t%i iterations in %.2f s (%.2f /s).\n",
+                iteration+1, elapsed, (double)(iteration+1)/elapsed);
         mflush();
         tgtTime_ += tInterval_;
       }
@@ -77,7 +78,7 @@ void ProgressTimerBar::Update(int iteration) {
       if (elapsed > tgtTime_) {
         tgtTime_ += tInterval_;
         int it_remaining = total_it_ - iteration;
-        double it_per_s = ((double)iteration) / elapsed;
+        double it_per_s = ((double)(iteration+1)) / elapsed;
         double time_remaining = ((double)it_remaining) / it_per_s;
         mprintf("\n\t%i iterations in %.2f s, %.2f s remaining.\n",
                 iteration+1, elapsed, time_remaining);
@@ -93,5 +94,6 @@ void ProgressTimerBar::Finish() const {
     mprintf("\n");
   } else {
     mprintf(" %2.0f%% Complete.\n", 100.0);
+    //mprintf("%.2f s\n", time_.Elapsed()); // DEBUG
   }
 }
