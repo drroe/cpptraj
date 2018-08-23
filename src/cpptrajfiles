@@ -307,6 +307,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Parm_Tinker.cpp \
         ProgressBar.cpp \
         ProgressTimer.cpp \
+        ProgressTimerBar.cpp \
         PubFFT.cpp \
         Random.cpp \
         Range.cpp \

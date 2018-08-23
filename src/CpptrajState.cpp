@@ -4,6 +4,7 @@
 #include "DataSet_Coords_REF.h" // AddReference
 #include "DataSet_Topology.h" // AddTopology
 #include "ProgressBar.h"
+#include "ProgressTimerBar.h"
 #ifdef MPI
 # include "Parallel.h"
 # include "DataSet_Coords_TRJ.h"
@@ -1234,12 +1235,13 @@ int CpptrajState::RunNormal() {
 # endif
   frames_time_.Start();
   mprintf("\nBEGIN TRAJECTORY PROCESSING:\n");
-  ProgressBar progress;
+  ProgressTimerBar progress;
   if (showProgress_)
-    progress.SetupProgress( trajinList_.MaxFrames() );
+    progress.SetupProgress( trajinList_.MaxFrames(), 5.0, 10.0 );
   for ( TrajinList::trajin_it traj = trajinList_.trajin_begin();
                               traj != trajinList_.trajin_end(); ++traj)
   {
+    mprintf("\n");
     // Open up the trajectory file. If an error occurs, bail 
     if ( (*traj)->BeginTraj() ) {
       mprinterr("Error: Could not open trajectory %s.\n",(*traj)->Traj().Filename().full());
@@ -1328,8 +1330,8 @@ int CpptrajState::RunNormal() {
     (*traj)->EndTraj();
     // Update how many frames have been processed.
     readSets += (*traj)->Traj().Counter().NumFramesProcessed();
-    mprintf("\n");
   } // End loop over trajin
+  if (showProgress_) progress.Finish();
   mprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);
   frames_time_.Stop();
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n", 
