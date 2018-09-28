@@ -479,16 +479,26 @@ int NetcdfFile::ReadRemdValues(Frame& frm) {
   return 0;
 }
 
+/** Print an error if file name is empty. */
+static inline bool EmptyNameCheck(File::Name const& fname) {
+  if (fname.empty()) {
+    mprinterr("Internal Error: Trying to set up NetCDF file with empty name.\n");
+    return true;
+  }
+  return false;
+}
+
 /** Set up a NetCDF file for reading. */
-int NetcdfFile::NC_setupRead(std::string const& fname, NCTYPE expectedType, int expectedNatoms,
+int NetcdfFile::NC_setupRead(File::Name const& fname, NCTYPE expectedType, int expectedNatoms,
                              bool useVelAsCoords, bool useFrcAsCoords, int debugIn)
 {
+  if (EmptyNameCheck(fname)) return 1;
   ncdebug_ = debugIn;
-  // If file is open, close it.
-  if (ncid_ != -1) NC_close();
-  // Open read
-  if (NC_openRead( fname.c_str() ) != 0) {
-    mprinterr("Error: Could not open NetCDF file '%s' for read setup.\n", fname.c_str());
+  // Setup file for read access.
+  if (Setup( fname, File::READ )) return 1;
+  // Open file
+  if (NC_open()) {
+    mprinterr("Error: Could not open NetCDF file '%s' for read setup.\n", Filename().full());
     return 1;
   }
   // Sanity check
@@ -553,11 +563,21 @@ CoordinateInfo NetcdfFile::NC_coordInfo() const {
                          (RemdValuesVID_ != -1) );
 }
 
-// NetcdfFile::NC_openRead()
-int NetcdfFile::NC_openRead(std::string const& Name) {
-  if (Name.empty()) return 1;
-  if ( NC::CheckErr( nc_open( Name.c_str(), NC_NOWRITE, &ncid_ ) ) )
+/** Open previously set up file. */
+int NetcdfFile::NC_open() {
+  if (Filename().empty()) {
+    mprinterr("Internal Error: Attempting to open NetCDF file before setup.\n");
     return 1;
+  }
+  // If already open, close file.
+  if (ncid_ != -1) NC_close();
+  int omode;
+  if (Access() == File::READ)
+    omode = NC_NOWRITE;
+  else
+    omode = NC_WRITE;
+  if ( NC::CheckErr( nc_open( Filename().full(), omode, &ncid_ ) ) )
+      return 1;
   return 0;
 }
 
@@ -571,14 +591,6 @@ void NetcdfFile::NC_close() {
 }
 
 // =============================================================================
-// NetcdfFile::NC_openWrite()
-int NetcdfFile::NC_openWrite(std::string const& Name) {
-  if (Name.empty()) return 1;
-  if ( NC::CheckErr( nc_open( Name.c_str(), NC_WRITE, &ncid_ ) ) )
-    return 1;
-  return 0;
-}
-
 // NetcdfFile::NC_defineTemperature()
 int NetcdfFile::NC_defineTemperature(int* dimensionID, int NDIM) {
   if (NC::CheckErr(nc_def_var(ncid_,NCTEMPERATURE,NC_DOUBLE,NDIM,dimensionID,&TempVID_))) {
@@ -653,10 +665,12 @@ void NetcdfFile::SetRemDimDID(int remDimDID, int* dimensionID) const {
 }
 
 // NetcdfFile::NC_create()
-int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
+int NetcdfFile::NC_create(File::Name const& fname, NCTYPE typeIn, int natomIn,
                           CoordinateInfo const& coordInfo, std::string const& title, int debugIn) 
 {
-  if (Name.empty()) return 1;
+  if (EmptyNameCheck(fname)) return 1;
+  // Setup write
+  if (Setup(fname, File::WRITE)) return 1;
   int dimensionID[NC_MAX_VAR_DIMS];
   int NDIM;
   nc_type dataType;
@@ -665,9 +679,9 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
 
   if (ncdebug_>1)
     mprintf("DEBUG: NC_create: '%s'  natom=%i  %s\n",
-            Name.c_str(),natomIn, coordInfo.InfoString().c_str());
+            Filename().full(), natomIn, coordInfo.InfoString().c_str());
 
-  if ( NC::CheckErr( nc_create( Name.c_str(), NC_64BIT_OFFSET, &ncid_) ) )
+  if ( NC::CheckErr( nc_create( Filename().full(), NC_64BIT_OFFSET, &ncid_) ) )
     return 1;
 
   ncatom_ = natomIn;
@@ -688,7 +702,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
       dataType = NC_DOUBLE;
       break;
     default:
-      mprinterr("Error: NC_create (%s): Unrecognized type (%i)\n",Name.c_str(),(int)myType_);
+      mprinterr("Error: NC_create (%s): Unrecognized type (%i)\n", Filename().full(),(int)myType_);
       return 1;
   }
 

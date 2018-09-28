@@ -2,34 +2,36 @@
 #define INC_NETCDFFILE_H
 #include <string>
 #include "Frame.h"
+#include "File_Base.h"
 /// The base interface to NetCDF trajectory files.
-class NetcdfFile {
+class NetcdfFile : private File::Base {
   public:
     /// For determining NetCDF trajectory file type
     enum NCTYPE { NC_AMBERTRAJ = 0, NC_AMBERRESTART, NC_AMBERENSEMBLE, NC_UNKNOWN };
     /// \return Type of given file.
     NCTYPE GetNetcdfConventions(const char*);
+    // Members of Base that should be public
+    using Base::Filename;
+    // TODO use debug instead of ncdebug
 #   ifndef BINTRAJ
     NetcdfFile() { }
 #   else 
     NetcdfFile();
     /// \return Coordinate info corresponding to current setup. TODO have in variable?
     CoordinateInfo NC_coordInfo() const;
-    /// Open NetCDF file for reading.
-    int NC_openRead(std::string const&);
-    /// Open previously created NetCDF file for writing.
-    int NC_openWrite(std::string const&);
+    /// Open previously setup NetCDF file.
+    int NC_open();
     /// Create NetCDF reservoir.
     int NC_createReservoir(bool, double, int, int&, int&);
     /// Create NetCDF trajectory file of given type.
-    int NC_create(std::string const&, NCTYPE, int, 
+    int NC_create(File::Name const&, NCTYPE, int, 
                   CoordinateInfo const&, std::string const&, int);
     /// Close NetCDF file, do not reset dimension/variable IDs.
     void NC_close();
     /// \return Title of NetCDF file.
     std::string const& GetNcTitle() const { return nctitle_; }
     /// Set up NetCDF file for reading.
-    int NC_setupRead(std::string const&, NCTYPE, int, bool, bool, int);
+    int NC_setupRead(File::Name const&, NCTYPE, int, bool, bool, int);
     /// Read - Remd Values
     int ReadRemdValues(Frame&);
     /// Write - Remd Values
