@@ -15,8 +15,7 @@ Topology::Topology() :
   ipol_(0),
   NsolventMolecules_(0),
   pindex_(0),
-  n_extra_pts_(0),
-  n_atom_types_(0)
+  n_extra_pts_(0)
 { }
 
 // Topology::SetParmName()
@@ -485,7 +484,6 @@ void Topology::Resize(Pointers const& pIn) {
   ipol_ = 0;
   NsolventMolecules_ = 0;
   n_extra_pts_ = 0;
-  n_atom_types_ = 0;
 
   atoms_.resize( pIn.natom_ );
   residues_.resize( pIn.nres_ );
@@ -1204,7 +1202,6 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   newParm->fileName_ = fileName_;
   newParm->radius_set_ = radius_set_;
   newParm->debug_ = debug_;
-  newParm->n_atom_types_ = n_atom_types_;
 
   // Reverse Atom map
   std::vector<int> atomMap( atoms_.size(),-1 );

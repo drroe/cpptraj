@@ -592,7 +592,6 @@ int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& 
   TopIn.SetNonbond().SetupLJforNtypes( values_[NTYPES] );
   numLJparm_ = TopIn.Nonbond().NBarray().size();
   TopIn.SetNonbond().SetNHBterms( values_[NPHB] );
-  TopIn.SetNatyp( values_[NATYP] );
   return 0;
 }
 
@@ -1490,6 +1489,8 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   WriteLine( titleFlag, TopOut.ParmName() );
 
   // Generate atom exclusion list. Do this here since POINTERS needs the size.
+  // Also determine number of unique atom type names. TODO should be in Topology?
+  ParmHolder<int> AtypeNames;
   Iarray Excluded;
   for (Topology::atom_iterator atom = TopOut.begin(); atom != TopOut.end(); ++atom)
   {
@@ -1502,7 +1503,9 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
         // Amber atom #s start from 1
         Excluded.push_back( (*ex) + 1 );
     }
+    AtypeNames.AddParm( AtomTypeHolder(atom->Type()), atom->TypeIndex(), false );
   }
+  int natyp = (int)AtypeNames.size();
  
   // Determine max residue size
   int maxResSize = 0;
@@ -1544,7 +1547,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   file_.IntToBuffer( TopOut.BondParm().size() ); // NUMBND
   file_.IntToBuffer( TopOut.AngleParm().size() ); // NUMANG
   file_.IntToBuffer( TopOut.DihedralParm().size() ); // NPTRA
-  file_.IntToBuffer( TopOut.NatomTypes() ); // NATYP, only for SOLTY
+  file_.IntToBuffer( natyp ); // NATYP, only for SOLTY
   file_.IntToBuffer( TopOut.Nonbond().HBarray().size() ); // NPHB
   file_.IntToBuffer( 0 ); // IFPERT
   file_.IntToBuffer( 0 ); // NBPER
@@ -1751,8 +1754,8 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   }
 
   // SOLTY - Currently unused but must be written.
-  if (BufferAlloc(F_SOLTY, TopOut.NatomTypes())) return 1;
-  for (int idx = 0; idx != TopOut.NatomTypes(); idx++)
+  if (BufferAlloc(F_SOLTY, natyp)) return 1;
+  for (int idx = 0; idx != natyp; idx++)
     file_.DblToBuffer( 0.0 );
   file_.FlushBuffer();
 
