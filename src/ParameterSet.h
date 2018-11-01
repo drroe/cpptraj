@@ -49,6 +49,10 @@ class ParameterSet {
     };
     /// Update this set with parameters from given set
     int UpdateParams(ParameterSet const&, UpdateCount&);
+    int UpdateParams(ParameterSet const& s) {
+      UpdateCount uc;
+      return UpdateParams(s, uc);
+    }
   private:
     //AtomTypeArray atomTypes_;
     ParmHolder<AtomType> atomTypes_;

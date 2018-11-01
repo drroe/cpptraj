@@ -458,16 +458,31 @@ void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray cons
                        mask1.AtomInCharMask(atom3) ||
                        mask1.AtomInCharMask(atom4));
     if (printDihedral) {
+      // Always print lowest atom first for non-impropers.
+      if (!dih->IsImproper()) {
+        if (atom4 < atom1) {
+          atom1 = dih->A4();
+          atom2 = dih->A3();
+          atom3 = dih->A2();
+          atom4 = dih->A1();
+        }
+      }
       // Determine dihedral type: 'E'nd, 'I'mproper, or 'B'oth
-      char type = ' ';
-      if      (dih->Type() == DihedralType::END     ) type = 'E';
-      else if (dih->Type() == DihedralType::IMPROPER) type = 'I';
-      else if (dih->Type() == DihedralType::BOTH    ) type = 'B';
-      outfile_->Printf("%c %*i", type, nw, nd);
+      char type = 'N';
+      switch (dih->Type()) {
+        case DihedralType::NORMAL   : type = 'N'; break;
+        case DihedralType::IMPROPER : type = 'I'; break;
+        case DihedralType::END      : type = 'E'; break;
+        case DihedralType::BOTH     : type = 'B'; break;
+      }
+      //outfile_->Printf("%c %*i", type, nw, nd); // DEBUG
+      outfile_->Printf("%c %*i", type, nw, 1);
       int didx = dih->Idx();
-      if ( didx > -1 )
+      if ( didx > -1 ) {
         outfile_->Printf(" %7.3f %5.2f %4.1f",dihedralparm[didx].Pk(),dihedralparm[didx].Phase(),
                  dihedralparm[didx].Pn());
+        outfile_->Printf(" %6.2f %6.2f", dihedralparm[didx].SCEE(), dihedralparm[didx].SCNB());
+      }
       if ( !coords_.empty() )
         outfile_->Printf(" %7.2f", Torsion( coords_.XYZ(atom1),
                                             coords_.XYZ(atom2),

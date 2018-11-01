@@ -101,7 +101,7 @@ class Topology {
     void AddDihedral(DihedralType const&, bool);
     void AddDihedral(DihedralType const&, DihedralParmType const&);
     void AssignImproperParams(ParmHolder<DihedralParmType> const&);
-    void AssignDihedralParams(DihedralParmHolder const&);
+    void AssignDihedralParams(DihedralParmHolder const&,ParmHolder<DihedralParmType> const& );
     // ----- Non-bond routines -------------------
     NonbondParmType  const& Nonbond()        const { return nonbond_;      }
     NonbondParmType&        SetNonbond()           { return nonbond_;      }
@@ -140,8 +140,8 @@ class Topology {
     int SetSolvent(std::string const&);
     /// \return ParameterSet for this Topology
     ParameterSet GetParameters() const;
-    /// Update parameters in this Topology with those in given set.
-    int UpdateParams(ParameterSet const&);
+    /// Assign parameters
+    int AssignParameters(ParameterSet const&);
     // ----- Print topology info -----------------
     void Summary() const;
     void Brief(const char*) const;
@@ -205,6 +205,8 @@ class Topology {
     void DetermineNumExtraPoints();
     int SetSolventInfo();
 
+    int BondedDistance(int,int,int,int) const;
+
     int scale_dihedral_K(DihedralArray&, CharMask const&, double, bool);
 
     Topology* ModifyByMap(std::vector<int> const&, bool) const;
@@ -218,14 +220,14 @@ class Topology {
     void StripDihedralParmArray(DihedralArray&, std::vector<int>&, DihedralParmArray&) const;
     void StripDihedralParmArray(DihedralArray&, std::vector<int>&, DihedralParmArray&,
                                 DihedralParmArray const&) const;
-    inline void AddBondArray(BondArray const&, BondParmArray const&, int);
-    inline void AddAngleArray(AngleArray const&, AngleParmArray const&, int);
-    inline void AddDihArray(DihedralArray const&, DihedralParmArray const&, int);
+//    inline void AddBondArray(BondArray const&, BondParmArray const&, int);
+//    inline void AddAngleArray(AngleArray const&, AngleParmArray const&, int);
+//    inline void AddDihArray(DihedralArray const&, DihedralParmArray const&, int);
 
     void AssignBondParm(ParmHolder<BondParmType> const&, ParmHolder<int>&, BondArray&, BondParmArray&, const char*);
     void AssignAngleParm(ParmHolder<AngleParmType> const&, ParmHolder<int>&, AngleArray&);
     void AssignImproperParm(ParmHolder<DihedralParmType> const&, ParmHolder<int>&, DihedralArray&);
-    void AssignDihedralParm(DihedralParmHolder const&, DihedralArray&);
+    void AssignDihedralParm(DihedralParmHolder const&, ParmHolder<DihedralParmType> const&, DihedralArray&);
 
     static const NonbondType LJ_EMPTY;
     std::vector<Atom> atoms_;

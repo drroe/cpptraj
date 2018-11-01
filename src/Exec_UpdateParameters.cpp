@@ -36,13 +36,16 @@ Exec::RetType Exec_UpdateParameters::Execute(CpptrajState& State, ArgList& argIn
   mprintf("\tUpdating parameters in topology '%s' using those in set '%s'\n",
           top.c_str(), ds->legend());
 
+  // Current parameters
+  ParameterSet currentParams = top.GetParameters();
   if (ds->Type() == DataSet::PARAMETERS)
-    top.UpdateParams(static_cast<DataSet_Parameters const&>( *ds ));
+    currentParams.UpdateParams(static_cast<DataSet_Parameters const&>( *ds ));
   else if (ds->Type() == DataSet::TOPOLOGY) {
     DataSet_Topology const& topds = static_cast<DataSet_Topology const&>( *ds );
-    top.UpdateParams(topds.Top().GetParameters());
+    currentParams.UpdateParams(topds.Top().GetParameters());
   } else // Sanity check
     return CpptrajState::ERR;
+  top.AssignParameters( currentParams );
 
   return CpptrajState::OK;
 }
