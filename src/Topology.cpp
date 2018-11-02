@@ -1,5 +1,4 @@
 #include <algorithm> // find
-#include <map> // For atom types in append
 #include <stack> // For large system molecule search
 #include "Topology.h"
 #include "CpptrajStdio.h"
@@ -1988,31 +1987,29 @@ static inline void GetDihedralParams(DihedralParmHolder& DP, ParmHolder<Dihedral
   * \param NB0 Current nonbond parameters.
   */
 static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<NonbondType>& NB1, std::vector<Atom> const& atoms, NonbondParmType const& NB0) {
-  // Used to map type names to type indices to access nonbond parameters.
-  typedef std::map<NameType, int> NameIdxMapType;
   // TODO check for off-diagonal terms
   if (NB0.HasNonbond()) {
     // Map type names to type indices to access nonbond parameters.
-    NameIdxMapType nameIdxMap;
+    ParmHolder<int> nameIdxMap;
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
     {
       // TODO check for blank type name?
-      AtomTypeHolder types(1);
-      types.AddName( atm->Type() );
-      int idx = NB0.GetLJindex( atm->TypeIndex(), atm->TypeIndex() );
+      AtomTypeHolder types( atm->Type() );
+      int nbidx = NB0.GetLJindex( atm->TypeIndex(), atm->TypeIndex() );
       ParameterHolders::RetType ret;
-      if (idx > -1) {
-        NonbondType const& LJ = NB0.NBarray( idx );
+      if (nbidx > -1) {
+        NonbondType const& LJ = NB0.NBarray( nbidx );
         ret = atomTypes.AddParm( types, AtomType(LJ.Radius(), LJ.Depth(), atm->Mass()), true );
       } else
         ret = atomTypes.AddParm( types, AtomType(atm->Mass()), true );
       if (ret == ParameterHolders::ADDED)
-        nameIdxMap.insert( std::pair<NameType, int>(atm->Type(), atm->TypeIndex()) );
+        nameIdxMap.AddParm( types, atm->TypeIndex(), false );
     }
     // Do atom type pairs
-    for (ParmHolder<AtomType>::const_iterator i1 = atomTypes.begin(); i1 != atomTypes.end(); ++i1)
+    for (ParmHolder<int>::const_iterator i1 = nameIdxMap.begin(); i1 != nameIdxMap.end(); ++i1)
     {
-      for (ParmHolder<AtomType>::const_iterator i2 = i1; i2 != atomTypes.end(); ++i2)
+      int idx1 = i1->second;
+      for (ParmHolder<int>::const_iterator i2 = i1; i2 != nameIdxMap.end(); ++i2)
       {
         // Determine what A and B parameters would be.
         NameType const& name1 = i1->first[0];
@@ -2021,17 +2018,14 @@ static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<N
         AtomType const& type2 = i2->second;
         NonbondType lj0 = type1.LJ().Combine_LB( type2.LJ() );*/
         // Extract original A and B parameters.
-        NameIdxMapType::const_iterator t1 = nameIdxMap.find( name1 );
-        NameIdxMapType::const_iterator t2 = nameIdxMap.find( name2 );
-        int idx1 = t1->second;
-        int idx2 = t2->second;
-        int idx = NB0.GetLJindex( idx1, idx2 );
-        if (idx < 0) {
+        int idx2 = i2->second;
+        int nbidx = NB0.GetLJindex( idx1, idx2 );
+        if (nbidx < 0) {
           mprinterr("Error: No off-diagonal LJ for  %s %s (%i %i)\n",
                     *name1, *name2, idx1, idx2);
           return;
         }
-        NonbondType lj1 = NB0.NBarray( idx );
+        NonbondType lj1 = NB0.NBarray( nbidx );
         // Compare them
 /*        if (lj0 != lj1) {
           mprintf("DEBUG: Potential off-diagonal LJ: %s %s expect A=%g B=%g, actual A=%g B=%g\n",
