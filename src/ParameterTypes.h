@@ -413,8 +413,9 @@ class NonbondParmType {
       * nonbond index array; instead they expect the nonbond arrays to be
       * indexed like '(ibig*(ibig-1)/2+isml)', where ibig is the larger atom
       * type index.
+      * \return the index in nbarray_.
       */
-    void AddLJterm(int type1, int type2, NonbondType const& LJ) {
+    int AddLJterm(int type1, int type2, NonbondType const& LJ) {
       int ibig, isml;
       if (type1 > type2) {
         ibig = type1 + 1;
@@ -429,6 +430,7 @@ class NonbondParmType {
       if (ndx >= (int)nbarray_.size())
         nbarray_.resize(ndx+1);
       nbarray_[ndx] = LJ;
+       return ndx;
     }
     /// Add given HB term to HB array and update the nonbond index array.
     void AddHBterm(int type1, int type2, HB_ParmType const& HB) {

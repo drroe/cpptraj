@@ -319,7 +319,7 @@ int Topology::CommonSetup(bool molsearch) {
   // TODO: Make bond parm assignment / molecule search optional?
   // Assign default lengths if necessary (for e.g. CheckStructure)
   if (bondparm_.empty())
-    AssignBondParameters();
+    GenerateBondParameters();
   if (molsearch) {
     // Determine molecule info from bonds
     if (DetermineMolecules())
@@ -501,17 +501,6 @@ double Topology::GetVDWdepth(int a1) const {
   return GetLJparam(a1, a1).Depth();
 }
 
-// Topology::SetAtomBondInfo()
-/** Set up bond information in the atoms array based on given BondArray.
-  */
-void Topology::SetAtomBondInfo(BondArray const& bonds) {
-  // Add bonds based on array 
-  for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd) {
-    atoms_[ bnd->A1() ].AddBondToIdx( bnd->A2() );
-    atoms_[ bnd->A2() ].AddBondToIdx( bnd->A1() );
-  }
-}
-
 // -----------------------------------------------------------------------------
 // Topology::AddBondParam()
 /** Create parameters for given bond based on element types. */
@@ -537,8 +526,8 @@ void Topology::AddBondParam(BondType& bnd, BP_mapType& bpMap)
   bnd.SetIdx( bp_idx );
 }
 
-// Topology::AssignBondParameters()
-void Topology::AssignBondParameters() {
+// Topology::GenerateBondParameters()
+void Topology::GenerateBondParameters() {
   mprintf("Warning: %s: Determining default bond distances from element types.\n", c_str());
   bondparm_.clear();
   // Hold indices into bondparm for unique element pairs
@@ -1192,7 +1181,8 @@ int Topology::ScaleDihedralK(double scale_factor, std::string const& maskExpr, b
 
 // Topology::ModifyByMap()
 /** \return Pointer to new Topology based on this Topology, deleting atoms
-  *         that are not in the given map (Map[newatom] = oldatom).
+  *         that are not in the given map.
+  * \param MapIn[newatom] = oldatom. If oldatom is < 0, atom is stripped.
   */
 Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullParm) const {
   Topology *newParm = new Topology();
@@ -1255,24 +1245,22 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     newParm->refCoords_.ModifyByMap( refCoords_, MapIn );
   }
 
-  // NOTE: Since in the bond/angle/dihedral atom arrays the parm indices have 
-  //       survived intact we can just include direct copies of all the 
-  //       parameter arrays for now. May want to cull unused params later.
+  // Give stripped parm the same pindex as original
+  newParm->pindex_ = pindex_;
+
+  // Copy box information
+  newParm->parmBox_ = parmBox_;
+
+  // Parameters for the stripped Topology will be taken from this Topology
+  ParameterSet OldParams = GetParameters();
 
   // Set up new bond information
   newParm->bonds_ = StripBondArray( bonds_, atomMap );
   newParm->bondsh_ = StripBondArray( bondsh_, atomMap );
   newParm->SetAtomBondInfo( newParm->bonds_ );
   newParm->SetAtomBondInfo( newParm->bondsh_ );
-  std::vector<int> parmMap( bondparm_.size(), -1 ); // Map[oldidx] = newidx
-  StripBondParmArray( newParm->bonds_,  parmMap, newParm->bondparm_ );
-  StripBondParmArray( newParm->bondsh_, parmMap, newParm->bondparm_ );
-  //mprintf("DEBUG: Original bond parm array= %zu, new bond parm array = %zu\n",
-  //        bondparm_.size(), newParm->bondparm_.size());
-  // Give stripped parm the same pindex as original
-  newParm->pindex_ = pindex_;
-  // Copy box information
-  newParm->parmBox_ = parmBox_;
+  newParm->AssignBondParams( OldParams.BP() );
+
   // If we dont care about setting up full parm information, exit now.
   if (!setupFullParm) return newParm;
 
@@ -1308,21 +1296,17 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   // Set up new angle info
   newParm->angles_ = StripAngleArray( angles_, atomMap );
   newParm->anglesh_ = StripAngleArray( anglesh_, atomMap );
-  if (!angleparm_.empty()) {
-    parmMap.assign( angleparm_.size(), -1 );
-    StripAngleParmArray( newParm->angles_,  parmMap, newParm->angleparm_ );
-    StripAngleParmArray( newParm->anglesh_, parmMap, newParm->angleparm_ );
-  }
+  newParm->AssignAngleParams( OldParams.AP() );
+
   // Set up new dihedral info
   newParm->dihedrals_ = StripDihedralArray( dihedrals_, atomMap );
   newParm->dihedralsh_ = StripDihedralArray( dihedralsh_, atomMap );
-  if (!dihedralparm_.empty()) {
-    parmMap.assign( dihedralparm_.size(), -1 );
-    StripDihedralParmArray( newParm->dihedrals_,  parmMap, newParm->dihedralparm_ );
-    StripDihedralParmArray( newParm->dihedralsh_, parmMap, newParm->dihedralparm_ );
-  }
+  newParm->AssignDihedralParams( OldParams.DP(), OldParams.IP() );
+
   // Set up nonbond info. First determine which atom types remain.
   if (nonbond_.HasNonbond()) {
+    newParm->AssignNonbondParams( OldParams.AT(), OldParams.NB() );
+/*
     parmMap.clear();               // parmMap[oldtype]      = newtype
     std::vector<int> oldTypeArray; // oldTypeArray[newtype] = oldtype
     for (std::vector<Atom>::const_iterator atm = newParm->atoms_.begin();
@@ -1381,6 +1365,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     for (std::vector<Atom>::iterator atm = newParm->atoms_.begin();
                                      atm != newParm->atoms_.end(); ++atm)
       atm->SetTypeIndex( parmMap[atm->TypeIndex()] );
+*/
   }
   // LES info - FIXME: Not sure if stripping this is valid so print a warning.
   if (lesparm_.HasLES()) {
@@ -1400,14 +1385,10 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     newParm->chamber_.SetDescription( chamber_.Description() );
     // Urey-Bradley
     newParm->chamber_.SetUB() = StripBondArray(chamber_.UB(),atomMap);
-    parmMap.assign( chamber_.UBparm().size(), -1 ); // Map[oldidx] = newidx
-    StripBondParmArray( newParm->chamber_.SetUB(), parmMap,
-                        newParm->chamber_.SetUBparm(), chamber_.UBparm() );
+    newParm->AssignUBParams( OldParams.UB() );
     // Impropers
     newParm->chamber_.SetImpropers() = StripDihedralArray(chamber_.Impropers(), atomMap);
-    parmMap.assign( chamber_.ImproperParm().size(), -1 );
-    StripDihedralParmArray( newParm->chamber_.SetImpropers(), parmMap,
-                            newParm->chamber_.SetImproperParm(), chamber_.ImproperParm() );
+    newParm->AssignImproperParams( OldParams.IP() );
     // NOTE 1-4 LJ parameters handled above
     // CMAP terms
     if (chamber_.HasCmap()) {
@@ -1455,6 +1436,17 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   newParm->DetermineNumExtraPoints();
 
   return newParm;
+}
+
+// Topology::SetAtomBondInfo()
+/** Set up bond information in the atoms array based on given BondArray.
+  */
+void Topology::SetAtomBondInfo(BondArray const& bonds) {
+  // Add bonds based on array 
+  for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd) {
+    atoms_[ bnd->A1() ].AddBondToIdx( bnd->A2() );
+    atoms_[ bnd->A2() ].AddBondToIdx( bnd->A1() );
+  }
 }
 
 /** \return BondArray with bonds for which both atoms are still present.
@@ -1522,7 +1514,7 @@ DihedralArray Topology::StripDihedralArray(DihedralArray const& dihIn, std::vect
   }
   return dihOut;
 }
-
+/*
 // Topology::StripBondParmArray()
 void Topology::StripBondParmArray(BondArray& newBondArray, std::vector<int>& parmMap,
                                   BondParmArray& newBondParm) const
@@ -1576,7 +1568,7 @@ void Topology::StripDihedralParmArray(DihedralArray& newDihedralArray, std::vect
 }
 
 // Topology::StripDihedralParmArray()
-/** Create new dihedral parm array from old one; update indices in dihedral array. */
+** Create new dihedral parm array from old one; update indices in dihedral array. *
 void Topology::StripDihedralParmArray(DihedralArray& newDihedralArray, std::vector<int>& parmMap,
                                       DihedralParmArray& newDihedralParm,
                                       DihedralParmArray const& oldParm) const
@@ -1595,7 +1587,7 @@ void Topology::StripDihedralParmArray(DihedralArray& newDihedralArray, std::vect
     dih->SetIdx( newidx );
   }
 }
-
+*/
 /*
 // Topology::AddBondArray()
 void Topology::AddBondArray(BondArray const& barray, BondParmArray const& bp, int atomOffset) {
@@ -1982,23 +1974,30 @@ static inline void GetDihedralParams(DihedralParmHolder& DP, ParmHolder<Dihedral
 }
 
 /** \param atomTypes Output array of atom types.
-  * \param NB1 Output array of nonbond parameters.
+  * \param NBout Output array of nonbond parameters.
+  * \param NB14out Output array of 1-4 nonbond parameters.
   * \param atoms Current array of atoms.
-  * \param NB0 Current nonbond parameters.
+  * \param NBin Current nonbond parameters.
+  * \param NB14in Current 1-4 nonbond parameters.
   */
-static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<NonbondType>& NB1, std::vector<Atom> const& atoms, NonbondParmType const& NB0) {
-  // TODO check for off-diagonal terms
-  if (NB0.HasNonbond()) {
+static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes,
+                                   ParmHolder<NonbondType>& NBout,
+                                   ParmHolder<NonbondType>& NB14out,
+                                   std::vector<Atom> const& atoms,
+                                   NonbondParmType const& NBin,
+                                   NonbondArray const& NB14in)
+{
+  if (NBin.HasNonbond()) {
     // Map type names to type indices to access nonbond parameters.
     ParmHolder<int> nameIdxMap;
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
     {
       // TODO check for blank type name?
       AtomTypeHolder types( atm->Type() );
-      int nbidx = NB0.GetLJindex( atm->TypeIndex(), atm->TypeIndex() );
+      int nbidx = NBin.GetLJindex( atm->TypeIndex(), atm->TypeIndex() );
       ParameterHolders::RetType ret;
       if (nbidx > -1) {
-        NonbondType const& LJ = NB0.NBarray( nbidx );
+        NonbondType const& LJ = NBin.NBarray( nbidx );
         ret = atomTypes.AddParm( types, AtomType(LJ.Radius(), LJ.Depth(), atm->Mass()), true );
       } else
         ret = atomTypes.AddParm( types, AtomType(atm->Mass()), true );
@@ -2011,21 +2010,25 @@ static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<N
       int idx1 = i1->second;
       for (ParmHolder<int>::const_iterator i2 = i1; i2 != nameIdxMap.end(); ++i2)
       {
-        // Determine what A and B parameters would be.
         NameType const& name1 = i1->first[0];
         NameType const& name2 = i2->first[0];
-/*        AtomType const& type1 = i1->second;
+        AtomTypeHolder types(2);
+        types.AddName( name1 );
+        types.AddName( name2 );
+/*
+        // Determine what A and B parameters would be.
+        AtomType const& type1 = i1->second;
         AtomType const& type2 = i2->second;
         NonbondType lj0 = type1.LJ().Combine_LB( type2.LJ() );*/
         // Extract original A and B parameters.
         int idx2 = i2->second;
-        int nbidx = NB0.GetLJindex( idx1, idx2 );
-        if (nbidx < 0) {
-          mprinterr("Error: No off-diagonal LJ for  %s %s (%i %i)\n",
+        int nbidx = NBin.GetLJindex( idx1, idx2 );
+        if (nbidx < 0) { // FIXME eventually dont worry about 10-12 terms
+          mprintf("Warning: No off-diagonal LJ for %s %s (%i %i) - using 0.0\n",
                     *name1, *name2, idx1, idx2);
-          return;
-        }
-        NonbondType lj1 = NB0.NBarray( nbidx );
+          NBout.AddParm( types, NonbondType(), false );
+        } else {
+          NonbondType lj1 = NBin.NBarray( nbidx );
         // Compare them
 /*        if (lj0 != lj1) {
           mprintf("DEBUG: Potential off-diagonal LJ: %s %s expect A=%g B=%g, actual A=%g B=%g\n",
@@ -2034,10 +2037,15 @@ static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<N
           double deltaB = fabs(lj0.B() - lj1.B());
           mprintf("DEBUG:\tdeltaA= %g    deltaB= %g\n", deltaA, deltaB);
         }*/
-        AtomTypeHolder types(2);
-        types.AddName( name1 );
-        types.AddName( name2 );
-        NB1.AddParm( types, lj1, false );
+          NBout.AddParm( types, lj1, false );
+        }
+        // LJ 1-4 terms
+        if (!NB14in.empty()) {
+          int ibig = std::max(idx1, idx2) + 1;
+          int isml = std::min(idx1, idx2) + 1;
+          int oldnbidx = (ibig*(ibig-1)/2+isml)-1;
+          NB14out.AddParm( types, NB14in[oldnbidx], false );
+        }
       }
     }
   } else {
@@ -2051,7 +2059,7 @@ static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<N
 ParameterSet Topology::GetParameters() const {
   ParameterSet Params;
   // Atom LJ types
-  GetLJAtomTypes( Params.AT(), Params.NB(), atoms_, nonbond_ );
+  GetLJAtomTypes( Params.AT(), Params.NB(), Params.NB14(), atoms_, nonbond_, chamber_.LJ14() );
   // Bond parameters.
   GetBondParams( Params.BP(), atoms_, bonds_, bondparm_ );
   GetBondParams( Params.BP(), atoms_, bondsh_, bondparm_ );
@@ -2239,6 +2247,7 @@ void Topology::AssignImproperParams(ParmHolder<DihedralParmType> const& newImpro
   AssignImproperParm( newImproperParams, currentIndices, chamber_.SetImpropers() );
 }
 
+/** \return Shortest distance in bonds between src and dest atoms. */
 int Topology::BondedDistance(int src, int current, int dest, int currentDist) const
 {
   // Safety valve
@@ -2256,7 +2265,11 @@ int Topology::BondedDistance(int src, int current, int dest, int currentDist) co
   return minDist;
 }
 
-/** Set parameters for dihedrals in given dihedral array. */
+/** Set parameters for dihedrals in given dihedral array. Dihedrals can be a
+  * bit of a pain since there can be multiple multiplicities for a single
+  * dihedral type. In case multiplicities change, start with a fresh dihedral
+  * array containing only unique dihedrals.
+  */
 void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
                                   ParmHolder<DihedralParmType> const& newImproperParams,
                                   DihedralArray& dihedralsIn)
@@ -2421,7 +2434,8 @@ void Topology::AssignDihedralParams(DihedralParmHolder const& newDihedralParams,
 
 /** Replace current nonbond parameters with given nonbond parameters. */
 //TODO Accept array of atom type names?
-void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes, ParmHolder<NonbondType> const& newNB)
+void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
+                                   ParmHolder<NonbondType> const& newNB)
 {
   // Used to hold actual unique atom type parameters.
   typedef std::vector<AtomType> AtomParmArray;

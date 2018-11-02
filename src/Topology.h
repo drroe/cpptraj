@@ -97,7 +97,6 @@ class Topology {
     void AddDihedral(int i, int j, int k, int l) { AddDihedral(DihedralType(i,j,k,l,-1), -1); }
     void AddDihedral(DihedralType const&, bool);
     void AddDihedral(DihedralType const&, DihedralParmType const&);
-    void AssignImproperParams(ParmHolder<DihedralParmType> const&);
     void AssignDihedralParams(DihedralParmHolder const&,ParmHolder<DihedralParmType> const& );
     // ----- Non-bond routines -------------------
     NonbondParmType  const& Nonbond()        const { return nonbond_;      }
@@ -120,6 +119,7 @@ class Topology {
     void AddCharmmImproper(DihedralType const&, int);
     void AddCharmmImproper(DihedralType const& i) { AddCharmmImproper(i, -1); }
     void AssignUBParams(ParmHolder<BondParmType> const&);
+    void AssignImproperParams(ParmHolder<DihedralParmType> const&);
     // ----- Misc routines -----------------------
     /// Format: <res name>_<res num>@<atom name>
     std::string TruncResAtomName(int) const;
@@ -186,7 +186,8 @@ class Topology {
     // NOTE: Use set so that elements are always sorted.
     typedef std::vector< std::set<Atom::AtomicElementType> > BP_mapType;
     void AddBondParam(BondType&, BP_mapType&);
-    void AssignBondParameters();
+    /// Generate bond lengths for bonds based on atomic elements
+    void GenerateBondParameters();
     static inline int AddTorsionParm(DihedralParmArray&, DihedralParmType const&);
     bool CheckTorsionRange(DihedralType const& dihIn, const char*) const;
     static inline DihedralType SetTorsionParmIndex(DihedralType const&,
