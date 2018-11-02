@@ -16,6 +16,12 @@ void ParameterSet::Debug(const char* fnameIn) const {
     for (ParmHolder<NonbondType>::const_iterator nb = nbParm_.begin(); nb != nbParm_.end(); ++nb)
       Out.Printf("\t%6s %6s : %12.4E %12.4E\n", (*nb->first[0]), (*nb->first[1]), nb->second.A(), nb->second.B());
   }
+  if (!nb14Parm_.empty()) {
+    Out.Printf("LJ 1-4 parameters:\n");
+    Out.Printf("\t%6s %6s : %12s %12s\n", "Type1", "Type2", "A", "B");
+    for (ParmHolder<NonbondType>::const_iterator nb = nb14Parm_.begin(); nb != nb14Parm_.end(); ++nb)
+      Out.Printf("\t%6s %6s : %12.4E %12.4E\n", (*nb->first[0]), (*nb->first[1]), nb->second.A(), nb->second.B());
+  }
   if (!bondParm_.empty()) {
     Out.Printf("Bond parameters:\n");
     Out.Printf("\t%6s %6s : %12s %12s\n", "Type1", "Type2", "Rk", "Req");
@@ -121,6 +127,8 @@ int ParameterSet::UpdateParams(ParameterSet const& set1, UpdateCount& uc) {
   uc.nAtomTypeUpdated_ = UpdateParameters< ParmHolder<AtomType> >(set0.AT(), set1.AT(), "atom type");
   // LJ Pairs
   uc.nLJparamsUpdated_ = UpdateParameters< ParmHolder<NonbondType> >(set0.NB(), set1.NB(), "LJ A-B");
+  // LJ 1-4 Pairs
+  uc.nLJ14paramsUpdated_ = UpdateParameters< ParmHolder<NonbondType> >(set0.NB14(), set1.NB14(), "LJ A-B 1-4");
 
   set0.Debug("newp.dat");
   return 0;
