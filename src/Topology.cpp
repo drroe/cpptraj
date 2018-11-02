@@ -1675,6 +1675,7 @@ class TypeArray {
 };
 */
 
+/// Add bonds in bonds1 to bonds0, increment atom #s by offset
 static inline void AddBondArray(std::vector<Atom>& atoms, BondArray& bonds0, BondArray const& bonds1, int off) {
   for (BondArray::const_iterator bnd = bonds1.begin(); bnd != bonds1.end(); ++bnd)
   {
@@ -1684,18 +1685,20 @@ static inline void AddBondArray(std::vector<Atom>& atoms, BondArray& bonds0, Bon
   }
 }
 
+/// Add angles in angles1 to angles0, increment atom #s by offset
 static inline void AddAngleArray(AngleArray& angles0, AngleArray const& angles1, int off) {
   for (AngleArray::const_iterator ang = angles1.begin(); ang != angles1.end(); ++ang)
     angles0.push_back( AngleType(ang->A1() + off, ang->A2() + off, ang->A3() + off, -1) );
 }
 
+/// Add dihedrals in dihedrals1 to dihedrals0, increment atom #s by offset
 static inline void AddDihedralArray(DihedralArray& dihedrals0, DihedralArray const& dihedrals1, int off) {
   for (DihedralArray::const_iterator dih = dihedrals1.begin(); dih != dihedrals1.end(); ++dih)
     dihedrals0.push_back( DihedralType(dih->A1() + off, dih->A2() + off, dih->A3() + off,
                                        dih->A4() + off, dih->Type(), -1) );
 }
 
-// Topology::AppendTop()
+// Topology::AppendTop() TODO accept multiple topologies
 int Topology::AppendTop(Topology const& NewTop) {
   // Save current parameters.
   ParameterSet currentParams = GetParameters();
