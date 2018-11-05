@@ -1503,7 +1503,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
         // Amber atom #s start from 1
         Excluded.push_back( (*ex) + 1 );
     }
-    AtypeNames.AddParm( AtomTypeHolder(atom->Type()), atom->TypeIndex(), false );
+    AtypeNames.AddParm( TypeNameHolder(atom->Type()), atom->TypeIndex(), false );
   }
   int natyp = (int)AtypeNames.size();
  

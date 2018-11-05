@@ -175,12 +175,12 @@ int Exec_Change::Setup1atomMask(AtomMask& mask1, Topology const& topIn,
 
 /** \return parameter index of tgtType if found in bonds, -1 otherwise. */
 int Exec_Change::FindBondTypeIdx(Topology const& topIn, BondArray const& bonds,
-                                 AtomTypeHolder const& tgtType)
+                                 TypeNameHolder const& tgtType)
 {
   int bidx = -1;
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
   {
-    AtomTypeHolder thisType(2);
+    TypeNameHolder thisType(2);
     thisType.AddName( topIn[bnd->A1()].Type() );
     thisType.AddName( topIn[bnd->A2()].Type() );
     if (thisType == tgtType) {
@@ -219,7 +219,7 @@ int Exec_Change::AddBond(Topology& topIn, ArgList& argIn) const {
   BondParmType bp;
   int bpidx = -1;
   if (!topIn.BondParm().empty()) {
-    AtomTypeHolder tgtType(2);
+    TypeNameHolder tgtType(2);
     tgtType.AddName( topIn[mask1[0]].Type() );
     tgtType.AddName( topIn[mask2[0]].Type() );
     if (topIn[mask1[0]].Element() == Atom::HYDROGEN ||

@@ -2,88 +2,18 @@
 #define INC_PARAMETERHOLDERS_H
 #include <vector>
 #include <utility>
-#include "NameType.h"
+#include "TypeNameHolder.h"
 #include "ParameterTypes.h"
-#include "AtomType.h"
+
 namespace ParameterHolders {
   enum RetType { ADDED = 0, SAME, UPDATED, ERR };
 } /* END namespace ParameterHolders */
-
-/// Used to hold two or more atom type names. TODO rename to TypeNameHolder?
-class AtomTypeHolder {
-  public:
-    typedef std::vector<NameType> Narray;
-    typedef Narray::const_iterator const_iterator;
-    AtomTypeHolder() {}
-    /// CONSTRUCTOR - Take single atom type name
-    AtomTypeHolder(NameType const& nameIn) : types_(1, nameIn) {}
-    /// CONSTRUCTOR - Take array of atom type names
-    AtomTypeHolder(Narray const& namesIn) : types_(namesIn) {}
-    /// CONSTRUCTOR - Reserve space for given number of type names
-    AtomTypeHolder(int size) { types_.clear(); types_.reserve(size); }
-    /// CONSTRUCTOR - Set wildcard name and reserve space for given number of type names.
-    AtomTypeHolder(int size, NameType const& wc) : wildcard_(wc) { types_.clear(); types_.reserve(size); }
-    /// Add atom type name.
-    void AddName(NameType const& n) { types_.push_back( n ); }
-    /// \return Iterator to beginning of type name array.
-    const_iterator begin() const { return types_.begin(); }
-    /// \return Iterator to end of type name array.
-    const_iterator end() const { return types_.end(); }
-    /// \return number of types in holder
-    unsigned int Size() const { return types_.size(); }
-    /// \return Type name at index
-    NameType const& operator[](int idx) const { return types_[idx]; }
-    /// \return true if either direction is a match, taking into account wildcard.
-    bool operator==(AtomTypeHolder const& rhs) const {
-      // Sanity check
-      if (types_.size() != rhs.types_.size()) return false;
-      // Forwards direction
-      bool match = true;
-      for (unsigned int idx = 0; idx != types_.size(); idx++)
-        if (types_[idx] != rhs.types_[idx] && types_[idx] != wildcard_) {
-          match = false;
-          break;
-        }
-      if (match) return true;
-      // Reverse direction
-      match = true;
-      unsigned int idx2 = types_.size() - 1;
-      for (unsigned int idx = 0; idx != types_.size(); idx++, idx2--)
-        if (types_[idx] != rhs.types_[idx2] && types_[idx] != wildcard_) {
-          match = false;
-          break;
-        }
-      return match;
-    }
-    /// Will sort by type names in ascending order.
-    bool operator<(AtomTypeHolder const& rhs) const {
-      if (types_.size() != rhs.types_.size()) {
-        return (types_.size() < rhs.types_.size());
-      }
-      for (unsigned int idx = 0; idx != types_.size(); idx++)
-        if (types_[idx] < rhs.types_[idx])
-          return true;
-        else if (types_[idx] != rhs.types_[idx])
-          return false;
-      return false;
-    }
-    /// \return string containing atom type names.
-    std::string TypeString() const {
-      std::string tstr;
-      for (Narray::const_iterator it = types_.begin(); it != types_.end(); ++it)
-        tstr.append( " " + std::string( *(*it) ) );
-      return tstr;
-    }
-  private:
-    Narray types_;
-    NameType wildcard_;
-};
 
 // -----------------------------------------------------------------------------
 /// Used to associate atom type names with an object (parameter etc)
 template <class T> class ParmHolder {
     // TODO may want to actually use a map one day for performance reasons.
-    typedef std::pair<AtomTypeHolder,T> Bpair;
+    typedef std::pair<TypeNameHolder,T> Bpair;
     typedef std::vector<Bpair> Bmap;
   public:
     ParmHolder() {}
@@ -91,7 +21,7 @@ template <class T> class ParmHolder {
     unsigned int size() const { return bpmap_.size(); }
     bool empty()        const { return bpmap_.empty(); }
     /// Add (or update if allowed) given parameter to holder.
-    ParameterHolders::RetType AddParm(AtomTypeHolder const& types, T const& bp, bool allowUpdate) {
+    ParameterHolders::RetType AddParm(TypeNameHolder const& types, T const& bp, bool allowUpdate) {
       // Check if parm for these types exist
       typename Bmap::iterator it = bpmap_.begin();
       for (; it != bpmap_.end(); ++it)
@@ -125,7 +55,7 @@ template <class T> class ParmHolder {
     /// \return iterator to end
     iterator end()   { return bpmap_.end();   }
     /// \return Parameter matching given types, or empty parameter if not found.
-    T FindParam(AtomTypeHolder const& types, bool& found) const { // TODO only use GetParam()?
+    T FindParam(TypeNameHolder const& types, bool& found) const { // TODO only use GetParam()?
       found = true;
       for (const_iterator it = begin(); it != end(); ++it)
         if (it->first == types) return it->second;
@@ -133,13 +63,13 @@ template <class T> class ParmHolder {
       return T();
     }
     /// \return iterator to parameter matching the given types.
-    iterator GetParam(AtomTypeHolder const& types) {
+    iterator GetParam(TypeNameHolder const& types) {
       for (iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
         if (it->first == types) return it;
       return bpmap_.end();
     }
     /// \return const iterator to parameter matching the given types.
-    const_iterator GetParam(AtomTypeHolder const& types) const {
+    const_iterator GetParam(TypeNameHolder const& types) const {
       for (const_iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
         if (it->first == types) return it;
       return bpmap_.end();
@@ -156,7 +86,7 @@ template <class T> class ParmHolder {
   *       each unique multiplicity.
   */
 class DihedralParmHolder {
-    typedef std::pair<AtomTypeHolder,DihedralParmArray> Bpair;
+    typedef std::pair<TypeNameHolder,DihedralParmArray> Bpair;
     typedef std::vector<Bpair> Bmap;
   public:
     DihedralParmHolder() {}
@@ -165,7 +95,7 @@ class DihedralParmHolder {
     bool empty()        const { return bpmap_.empty(); }
     /** Add (or update) a single dihedral parameter for given atom types. */
     ParameterHolders::RetType
-    AddParm(AtomTypeHolder const& types, DihedralParmType const& dp, bool allowUpdate) {
+    AddParm(TypeNameHolder const& types, DihedralParmType const& dp, bool allowUpdate) {
       // Check if parm for these types exist
       Bmap::iterator it0 = bpmap_.begin();
       for (; it0 != bpmap_.end(); ++it0)
@@ -204,7 +134,7 @@ class DihedralParmHolder {
 
     /** This version takes an array of dihedral parameters. */
     ParameterHolders::RetType
-    AddParm(AtomTypeHolder const& types, DihedralParmArray const& dpa, bool allowUpdate) {
+    AddParm(TypeNameHolder const& types, DihedralParmArray const& dpa, bool allowUpdate) {
       // Check if parm for these types exist
       Bmap::iterator it0 = bpmap_.begin();
       for (; it0 != bpmap_.end(); ++it0)
@@ -243,7 +173,7 @@ class DihedralParmHolder {
     const_iterator begin() const { return bpmap_.begin(); }
     const_iterator end()   const { return bpmap_.end();   }
     /// \return Array of dihedral parameters matching given atom types.
-    DihedralParmArray FindParam(AtomTypeHolder const& types, bool& found) const {
+    DihedralParmArray FindParam(TypeNameHolder const& types, bool& found) const {
       found = true;
       for (const_iterator it = begin(); it != end(); ++it)
         if (it->first == types) return it->second;
