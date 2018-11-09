@@ -270,6 +270,33 @@ class HB_ParmType {
     void SetAsol(double a)  { asol_ = a;  }
     void SetBsol(double b)  { bsol_ = b;  }
     void SetHBcut(double h) { hbcut_ = h; }
+    /// \return True if A, B, and H match
+    bool operator==(HB_ParmType const& rhs) const {
+      return (FEQ(asol_,  rhs.asol_ ) &&
+              FEQ(bsol_,  rhs.bsol_ ) &&
+              FEQ(hbcut_, rhs.hbcut_));
+    }
+    /// \return True if A, B, and H do not match
+    bool operator!=(HB_ParmType const& rhs) const {
+      return (FNE(asol_,  rhs.asol_ ) ||
+              FNE(bsol_,  rhs.bsol_ ) ||
+              FNE(hbcut_, rhs.hbcut_));
+    }
+    /// \return True if HB params < rhs, A before B before hbcut 
+    bool operator<(HB_ParmType const& rhs) const {
+      if (*this != rhs) {
+        if (FEQ(asol_, rhs.asol_)) {
+          if (FEQ(bsol_, rhs.bsol_)) {
+            return (hbcut_ < rhs.hbcut_);
+          } else {
+            return (bsol_ < rhs.bsol_);
+          }
+        } else {
+          return (asol_ < rhs.asol_);
+        }
+      } else
+        return false;
+    }
   private:
     double asol_;
     double bsol_;
@@ -283,7 +310,7 @@ class NonbondType {
       */
     // NOTE: Probably should check __cpluscplus here instead of using a
     //       define, but this is guaranteed to be portable.
-#     define tol_ 0.00000001
+//#     define tol_ 0.00000001
       //static const double tol_ = 0.00000001;
   public:
     NonbondType() : A_(0), B_(0) {}
@@ -304,6 +331,25 @@ class NonbondType {
       else
         return 0.0;
     }
+    bool operator==(NonbondType const& rhs) const {
+      return (FEQ(A_, rhs.A_) &&
+              FEQ(B_, rhs.B_));
+    }
+    bool operator!=(NonbondType const& rhs) const {
+      return (FNE(A_, rhs.A_) ||
+              FNE(B_, rhs.B_));
+    }
+    bool operator<(NonbondType const& rhs) const {
+      if (*this != rhs) {
+        if (FEQ(A_, rhs.A_)) {
+          return (B_ < rhs.B_);
+        } else {
+          return (A_ < rhs.A_);
+        }
+      } else
+        return false;
+    }
+/*
     /// \return True if A and B match
     bool operator==(NonbondType const& rhs) const {
       return ( (fabs(A_ - rhs.A_) < tol_) &&
@@ -314,7 +360,7 @@ class NonbondType {
       return ( (fabs(A_ - rhs.A_) > tol_) ||
                (fabs(B_ - rhs.B_) > tol_) );
     }
-    /// \return True if A less than zero, or B if A is equal.
+    /// \return True if LJ params < rhs, A before B 
     bool operator<(NonbondType const& rhs) const {
       if (*this != rhs) {
         if ( (fabs(A_ - rhs.A_) < tol_) )
@@ -324,10 +370,11 @@ class NonbondType {
       } else
         return false;
     }
+*/
   private:
     double A_;
     double B_;
-#   undef tol_
+//#   undef tol_
 };
 typedef std::vector<NonbondType> NonbondArray;
 /// Hold Lennard-Jones radius and well-depth
