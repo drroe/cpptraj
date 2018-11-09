@@ -1305,7 +1305,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
 
   // Set up nonbond info. First determine which atom types remain.
   if (nonbond_.HasNonbond()) {
-    newParm->AssignNonbondParams( OldParams.AT(), OldParams.NB() );
+    newParm->AssignNonbondParams( OldParams.AT(), OldParams.NB(), OldParams.NB14() );
 /*
     parmMap.clear();               // parmMap[oldtype]      = newtype
     std::vector<int> oldTypeArray; // oldTypeArray[newtype] = oldtype
@@ -1992,11 +1992,11 @@ static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes,
     ParmHolder<int> nameIdxMap;
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
     {
-      // TODO check for blank type name?
+      // TODO check for blank type name/index?
       TypeNameHolder types( atm->Type() );
       int nbidx = NBin.GetLJindex( atm->TypeIndex(), atm->TypeIndex() );
       ParameterHolders::RetType ret;
-      if (nbidx > -1) {
+      if (nbidx > -1) { // TODO handle HB params
         NonbondType const& LJ = NBin.NBarray( nbidx );
         ret = atomTypes.AddParm( types, AtomType(LJ.Radius(), LJ.Depth(), atm->Mass()), true );
       } else
@@ -2432,11 +2432,62 @@ void Topology::AssignDihedralParams(DihedralParmHolder const& newDihedralParams,
   AssignDihedralParm( newDihedralParams, newImproperParams, dihedralsh_ );
 }
 
+class AtomNB {
+  public:
+    AtomNB() {}
+  //private: TODO
+    ParmHolder<NonbondType> nb_;   ///< LJ 6-12 pairs for this type to other types.
+    ParmHolder<NonbondType> nb14_; ///< LJ 1-4 interaction 6-12 pairs
+    ParmHolder<HB_ParmType> hb_;   ///< LJ 10-12 pairs
+};
+
 /** Replace current nonbond parameters with given nonbond parameters. */
 //TODO Accept array of atom type names?
 void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
-                                   ParmHolder<NonbondType> const& newNB)
+                                   ParmHolder<NonbondType> const& newNB,
+                                   ParmHolder<NonbondType> const& newNB14)
 {
+  // NOTE: Since atoms currently only use one type index, in order to properly
+  //       pack the non-bonded arrays an atom type must have matching LJ, LJ14,
+  //       and HB terms, including off-diagonal terms. If any of these are
+  //       different they must be considered different atom types.
+  // First just collect unique atom type names.
+  typedef std::set<NameType> NsetType;
+  NsetType TypeNameSet;
+  for (std::vector<Atom>::const_iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
+    TypeNameSet.insert( atm->Type() );
+  mprintf("DEBUG: '%s' : %zu unique atom type names.\n", c_str(), TypeNameSet.size());
+  // Place into a vector for easier (random) access.
+  typedef std::vector<NameType> NarrayType;
+  NarrayType TypeNames;
+  TypeNames.reserve( TypeNameSet.size() );
+  for (NsetType::const_iterator name1 = TypeNameSet.begin(); name1 != TypeNameSet.end(); ++name1)
+    TypeNames.push_back( *name1 );
+  TypeNameSet.clear();
+  // This array will be used to store complete nonbond parameters for each unique atom type. 
+  typedef std::vector<AtomNB> NBarrayType;
+  NBarrayType NBtypes( TypeNames.size() );
+  for (unsigned int idx1 = 0; idx1 != TypeNames.size(); idx1++)
+  {
+    for (unsigned int idx2 = idx1; idx2 != TypeNames.size(); idx2++)
+    {
+      TypeNameHolder types(2);
+      types.AddName( TypeNames[idx1] );
+      types.AddName( TypeNames[idx2] );
+      // Get LJ pair parameter
+      NonbondType LJAB;
+      ParmHolder<NonbondType>::const_iterator it = newNB.GetParam( types );
+      if (it == newNB.end()) {
+        mprintf("NB parameter for %s not found. Generating.\n", types.TypeString().c_str());
+        //LJAB = type1.LJ().Combine_LB( type2.LJ() );
+      } else {
+        mprintf("Using existing NB parameter for %s\n", types.TypeString().c_str());
+        LJAB = it->second;
+      }
+    }
+  }
+ 
+
   // Used to hold actual unique atom type parameters.
   typedef std::vector<AtomType> AtomParmArray;
   AtomParmArray apa;
@@ -2550,7 +2601,7 @@ int Topology::AssignParameters(ParameterSet const& set1) {
   //updateCount += UpdateParameters< ParmHolder<NonbondType> >(set0.NB(), set1.NB(), "LJ A-B");
   //if (updateCount > 0) {
     mprintf("\tRegenerating nonbond parameters.\n");
-    AssignNonbondParams( set1.AT(), set1.NB() );
+    AssignNonbondParams( set1.AT(), set1.NB(), set1.NB14() );
   //}
 
   //set0.Debug("newp.dat");
