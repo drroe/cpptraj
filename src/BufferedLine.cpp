@@ -1,3 +1,6 @@
+#include <cstdarg>    // va_X functions
+#include <cstdio>     // vsprintf
+#include <cstring>    // strlen
 #include <cstring> // strchr 
 #include "BufferedLine.h"
 #include "CpptrajStdio.h"
@@ -22,7 +25,21 @@ int BufferedLine::OpenFileRead( File::Name const& fname ) {
   return Open( fname, File::READ );
 }
 
-/** NOTE: This will be called via the Open() call in OpenFileRead(). */
+// BufferedLine::OpenFile()
+int BufferedLine::OpenFile() {
+  if (Filename().empty()) {
+    mprinterr("Internal Error: BufferedLine::OpenFile() called with no file name.\n");
+    return 1;
+  }
+  return Open();
+}
+
+// BufferedLine::OpenWrite()
+int BufferedLine::OpenWrite( File::Name const& fname ) {
+  return Open( fname, File::WRITE );
+}
+
+/** NOTE: This will be called via the Open() call in OpenXXX() routines. */
 int BufferedLine::InternalSetup() {
   int firstLineSize = BasicSetup();
   if (firstLineSize < 0) return 1;
@@ -34,6 +51,15 @@ int BufferedLine::InternalSetup() {
   lineEnd_ = endBuffer_;                  // Indicates buffer needs to be filled.
   nline_ = 0;
   return 0;
+}
+
+// TODO Should printf be in BasicFile?
+void BufferedLine::Printf(const char *format, ...) {
+  va_list args;
+  va_start(args, format);
+  vsprintf(buffer_,format,args);
+  IO()->Write(buffer_, strlen(buffer_));
+  va_end(args);
 }
 
 // BufferedLine::Line()

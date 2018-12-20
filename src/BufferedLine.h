@@ -16,7 +16,13 @@ class BufferedLine : private BasicFile {
     /// \return specified token, not null-delimited.
     inline const char* Token(int);
     /// Open file for reading, set up buffer.
-    int OpenFileRead( File::Name const& fname );
+    int OpenFileRead( File::Name const& );
+    /// Open the file (must be set up), set up buffer.
+    int OpenFile();
+    /// Open the file for writing, no advanced buffering TODO implement buffering?
+    int OpenWrite(File::Name const&);
+    /// Printf using the Write routine.
+    void Printf(const char*, ...);
     /// \return current line number
     int LineNumber()          const { return nline_;          }
     /// \return pointer to buffer
