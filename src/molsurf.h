@@ -1,8 +1,6 @@
 #ifndef INC_MOLSURF_H
 #define INC_MOLSURF_H
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace MolSurf {
 /*! \file molsurf.h
     \brief This is an adaptation of Paul Beroza's "molsurf" program;
  */
@@ -204,7 +202,5 @@ REAL_T molsurf(REAL_T, ATOM*, int,NEIGHBOR_TORUS *, NEIGHBOR *,
                CYCLE *, LOW_TORUS *, CUSP_EDGE *,
                CUSP_PAIR *);
 
-#ifdef __cplusplus
-}
-#endif
+} /* END namespace molsurf */
 #endif

@@ -29,7 +29,7 @@ class Action_Molsurf: public Action {
     Radii_Mode radiiMode_; ///< Radii to use
     DataSet* sasa_;
     AtomMask Mask1_;
-    ATOM* atom_;
+    MolSurf::ATOM* atom_;
     double probe_rad_;
     double rad_offset_;
     typedef std::vector<AtomMask> Marray;
@@ -49,28 +49,28 @@ class Action_Molsurf: public Action {
    * Any other index corresponds to an index in the torus array that has
    * already been instantiated.
    */
-    NEIGHBOR_TORUS *upper_neighbors; ///< contains atoms and torus indices
-    NEIGHBOR *neighbors;             ///< contains atom indices for all neighbors
-    TORUS *toruslist;
-    PROBE *probelist;
+    MolSurf::NEIGHBOR_TORUS *upper_neighbors; ///< contains atoms and torus indices
+    MolSurf::NEIGHBOR *neighbors;             ///< contains atom indices for all neighbors
+    MolSurf::TORUS *toruslist;
+    MolSurf::PROBE *probelist;
 
-    CONCAVE_FACE *concave_face;
-    SADDLE_FACE *saddle_face;
-    CONVEX_FACE *convex_face;
-    CONE_FACE *cone_face;
-    BROKEN_CONCAVE_FACE *broken_concave_face;
-    CONCAVE_CYCLE *concave_cycle;
+    MolSurf::CONCAVE_FACE *concave_face;
+    MolSurf::SADDLE_FACE *saddle_face;
+    MolSurf::CONVEX_FACE *convex_face;
+    MolSurf::CONE_FACE *cone_face;
+    MolSurf::BROKEN_CONCAVE_FACE *broken_concave_face;
+    MolSurf::CONCAVE_CYCLE *concave_cycle;
 
-    VERTEX *vertexlist;
-    EDGE *concave_edge_list;
-    EDGE *convex_edge_list;
-    CIRCLE *convex_circle_list;
-    CIRCLE *concave_circle_list;
+    MolSurf::VERTEX *vertexlist;
+    MolSurf::EDGE *concave_edge_list;
+    MolSurf::EDGE *convex_edge_list;
+    MolSurf::CIRCLE *convex_circle_list;
+    MolSurf::CIRCLE *concave_circle_list;
 
-    CYCLE *cyclelist;
-    LOW_TORUS *low_torus;
-    CUSP_EDGE *cusp_edge;
-    CUSP_PAIR *cusp_pair;
+    MolSurf::CYCLE *cyclelist;
+    MolSurf::LOW_TORUS *low_torus;
+    MolSurf::CUSP_EDGE *cusp_edge;
+    MolSurf::CUSP_PAIR *cusp_pair;
     // -----------------------------
     int AllocateMemory();
     void ClearMemory();

@@ -1,6 +1,7 @@
 # These files are common to cpptraj/libcpptraj. Files that need to be built
 # differently for each will go into SOURCES/LIBCPPTRAJ_OBJECTS respectively.
-COMMON_SOURCES=ActionFrameCounter.cpp \
+COMMON_SOURCES= \
+        ActionFrameCounter.cpp \
         ActionList.cpp \
         Action_Align.cpp \
         Action_Angle.cpp \
@@ -285,8 +286,9 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         MaskToken.cpp \
         Matrix_3x3.cpp \
         MetaData.cpp \
-        Mol.cpp \
         Mol2File.cpp \
+        Mol.cpp \
+        molsurf.cpp \
         NameType.cpp \
         NC_Cmatrix.cpp \
         NC_Routines.cpp \
@@ -359,8 +361,6 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         VariableArray.cpp \
         Vec3.cpp \
         ViewRst.cpp
-
-CSOURCES= molsurf.c
 
 # The files below are used by cpptraj and libcpptraj but must be compiled
 # differently for libcpptraj.

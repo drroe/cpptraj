@@ -1,13 +1,14 @@
 // ---------- CSTDBLIB includes ------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <assert.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <cassert>
+#include <cstring>
 // ---------- OTHER includes ---------------------------------------------------
 #include "molsurf.h"
+using namespace MolSurf;
 /*!
-   \file molsurf.c 
+   \file molsurf.cpp
    \details
    Modified by dac to exist as an NAB subroutine;
    Later re-modified back into a stand-alone program;
@@ -73,7 +74,7 @@ typedef struct extreme_vertex {
 // =============================================================================
 //                    INTERNAL FUNCTIONS
 // -----------------------------------------------------------------------------
-void Set_molsurf_debug (int debugIn) {
+void MolSurf::Set_molsurf_debug (int debugIn) {
   molsurf_debug = debugIn;
   if (molsurf_debug>0)
     printf("Info: molsurf debug level set to %i\n",molsurf_debug);
@@ -218,7 +219,7 @@ static int add_saddle_face (SADDLE_FACE saddle_face[], int *nface, int itorus, /
 }
 
 /***********************************************************************/
-void memory_usage(int natomIn)
+void MolSurf::memory_usage(int natomIn)
 {
 
   long int total = 0;
@@ -7258,7 +7259,7 @@ static int broken_concave_area (REAL_T probe_rad,
 
 // -----------------------------------------------------------------------------
 /******************************************************************************/
-REAL_T molsurf(REAL_T probe_rad, ATOM *atom, int natomIn,
+REAL_T MolSurf::molsurf(REAL_T probe_rad, ATOM *atom, int natomIn,
                NEIGHBOR_TORUS *upper_neighbors, NEIGHBOR *neighbors,
                TORUS *toruslist, PROBE *probelist, CONCAVE_FACE *concave_face,
                SADDLE_FACE *saddle_face, CONVEX_FACE *convex_face, 

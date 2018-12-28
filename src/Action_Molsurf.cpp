@@ -2,6 +2,8 @@
 #include "Action_Molsurf.h"
 #include "CpptrajStdio.h"
 
+using namespace MolSurf;
+
 // CONSTRUCTOR
 Action_Molsurf::Action_Molsurf() :
   debug_(0),
