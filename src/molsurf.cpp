@@ -27,7 +27,7 @@ using namespace MolSurf;
 // ---------- DEFINES ----------------------------------------------------------
 #define ERROR (-1)
 //#define MAXAT 100000
-#define MAXRES 5000
+//#define MAXRES 5000
 // NOTE: Replace these with Constants.h eventually
 #define PI   3.14159265358979323846
 #define TWOPI 6.28318530717958647692
@@ -52,14 +52,6 @@ int natm_sel = 0;
 int molsurf_debug = 0;
 
 // ---------- DATA structures --------------------------------------------------
-typedef struct res {
-#ifdef DEBUG
-        char nam[NAME_SIZE];
-#endif
-        int num;
-} RES;
-
-
 typedef struct cusp_group {
         int n_pairs;                    /* number of cusps in group */
         int cusp_pair[MAX_FACE_EDGE];   /* new_cusps in group */
@@ -7260,6 +7252,7 @@ static int broken_concave_area (REAL_T probe_rad,
 // -----------------------------------------------------------------------------
 /******************************************************************************/
 REAL_T MolSurf::molsurf(REAL_T probe_rad, ATOM *atom, int natomIn,
+               RES *res,
                NEIGHBOR_TORUS *upper_neighbors, NEIGHBOR *neighbors,
                TORUS *toruslist, PROBE *probelist, CONCAVE_FACE *concave_face,
                SADDLE_FACE *saddle_face, CONVEX_FACE *convex_face, 
@@ -7270,7 +7263,7 @@ REAL_T MolSurf::molsurf(REAL_T probe_rad, ATOM *atom, int natomIn,
                CYCLE *cyclelist, LOW_TORUS *low_torus, CUSP_EDGE *cusp_edge,
                CUSP_PAIR *cusp_pair)
 {
-  RES res[MAXRES]; 
+  //RES res[MAXRES]; 
   int  nat;
 
   int n_torus = 0, n_probes = 0, n_vertex = 0;

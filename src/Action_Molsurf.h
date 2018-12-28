@@ -30,6 +30,7 @@ class Action_Molsurf: public Action {
     DataSet* sasa_;
     AtomMask Mask1_;
     MolSurf::ATOM* atom_;
+    MolSurf::RES* res_;
     double probe_rad_;
     double rad_offset_;
     typedef std::vector<AtomMask> Marray;

@@ -1,4 +1,5 @@
 #include <cstring> // strcpy, memset
+#include <algorithm> // std::max
 #include "Action_Molsurf.h"
 #include "CpptrajStdio.h"
 
@@ -10,6 +11,7 @@ Action_Molsurf::Action_Molsurf() :
   radiiMode_(GB),
   sasa_(0),
   atom_ (0),
+  res_(0),
   probe_rad_ (1.4),
   rad_offset_ (0),
 
@@ -41,6 +43,7 @@ Action_Molsurf::Action_Molsurf() :
 Action_Molsurf::~Action_Molsurf() {
   ClearMemory();
   if (atom_!=0) delete[] atom_;
+  if (res_!=0)  delete[] res_;
 }
 
 // Action_MolSurf::ClearMemory()
@@ -212,6 +215,7 @@ Action::RetType Action_Molsurf::Setup(ActionSetup& setup) {
     return Action::ERR;
   }
   // Set up parm info for atoms in mask
+  int maxres = 0;
   double radius = 0.0;
   ATOM *atm_ptr = atom_;
   for (AtomMask::const_iterator atnum = Mask1_.begin();
@@ -222,6 +226,7 @@ Action::RetType Action_Molsurf::Setup(ActionSetup& setup) {
     const Atom patom = setup.Top()[*atnum];
     int nres = patom.ResNum();
     atm_ptr->rnum = nres+1; // for debug output only, residues start from 1
+    maxres = std::max(maxres, atm_ptr->rnum);
     patom.Name().ToBuffer( atm_ptr->anam );
     strcpy(atm_ptr->rnam, setup.Top().Res(nres).c_str());
     atm_ptr->pos[0] = 0;
@@ -239,7 +244,12 @@ Action::RetType Action_Molsurf::Setup(ActionSetup& setup) {
     atm_ptr->rad = radius + rad_offset_;
     atm_ptr->area = 0.0;
   }
-
+  if (res_ != 0) delete[] res_;
+  res_ = new RES[ maxres+1 ];
+  if (res_ == 0) {
+    mprinterr("Error: Could not allocate memory for RESIDUEs.\n");
+    return Action::ERR;
+  }
   // De-allocate memory first since # atoms may have changed
   ClearMemory();
   if (AllocateMemory()) return Action::ERR;
@@ -264,6 +274,7 @@ Action::RetType Action_Molsurf::DoAction(int frameNum, ActionFrame& frm) {
   // NOTE: cusp_edge is the only data structure that requires initialization 
   memset( cusp_edge, 0, NUM_EDGE * Mask1_.Nselected() * sizeof(CUSP_EDGE));
   double molsurf_sasa = molsurf( probe_rad_, atom_, Mask1_.Nselected(),
+                                 res_,
                                  upper_neighbors, neighbors,
                                  toruslist, probelist, concave_face,
                                  saddle_face, convex_face,

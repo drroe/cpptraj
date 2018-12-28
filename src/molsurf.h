@@ -48,6 +48,13 @@ typedef struct atom {
         REAL_T area;                  // accessible surf area associated with the atom
 } ATOM;
 
+typedef struct res {
+#       ifdef DEBUG
+        char nam[NAME_SIZE];
+#       endif
+        int num;
+} RES;
+
 typedef struct neighbor_torus {
         int iatom;
         int nprobes;    /* -1 = buried, 0 = free, +1 = partially free */
@@ -192,7 +199,7 @@ typedef struct cusp_pair {
 // ---------- FUNCTIONS --------------------------------------------------------
 void Set_molsurf_debug(int);
 void memory_usage(int);
-REAL_T molsurf(REAL_T, ATOM*, int,NEIGHBOR_TORUS *, NEIGHBOR *,
+REAL_T molsurf(REAL_T, ATOM*, int, RES*, NEIGHBOR_TORUS *, NEIGHBOR *,
                TORUS *, PROBE *, CONCAVE_FACE *,
                SADDLE_FACE *, CONVEX_FACE *,
                CONE_FACE *, BROKEN_CONCAVE_FACE *,
