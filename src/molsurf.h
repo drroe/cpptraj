@@ -5,24 +5,24 @@ namespace MolSurf {
     \brief This is an adaptation of Paul Beroza's "molsurf" program;
  */
 // ---------- DEFINES ----------------------------------------------------------
-#define REAL_T double
-#define MAXAT_EDGE 30
-#define NAME_SIZE 8
+typedef double REAL_T;
+const int MAXAT_EDGE = 30;
+const int NAME_SIZE = 8;
 // size limitations: these are multiplied by the number of atoms
-#define NUM_NEIGHBOR 100
-#define NUM_PROBE 100
-#define NUM_TORUS 10
-#define NUM_CIRCLE 30
-#define NUM_FACE 20
-#define NUM_CYCLE 20
-#define NUM_VERTEX 20
-#define NUM_EDGE 20
-#define NUM_CUSP 20
+const int NUM_NEIGHBOR = 100;
+const int NUM_PROBE = 100;
+const int NUM_TORUS = 10;
+const int NUM_CIRCLE = 30;
+const int NUM_FACE = 20;
+const int NUM_CYCLE = 20;
+const int NUM_VERTEX = 20;
+const int NUM_EDGE = 20;
+const int NUM_CUSP = 20;
 
-#define MAXTOR_EDGE       20
-#define MAX_FACE_EDGE     20
-#define MAX_FACE_CYCLES    4
-#define MAXTOR_PROBE      12
+const int MAXTOR_EDGE      = 20;
+const int MAX_FACE_EDGE    = 20;
+const int MAX_FACE_CYCLES  =  4;
+const int MAXTOR_PROBE     = 12;
 
 // ---------- DATA structures --------------------------------------------------
 typedef REAL_T POINT[3];
