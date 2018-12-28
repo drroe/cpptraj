@@ -27,6 +27,15 @@ bool AtomMask::operator==(AtomMask const& rhs) const {
   return true;
 }
 
+/** \return true if masks are not equal. */
+bool AtomMask::operator!=(AtomMask const& rhs) const {
+  if (Selected_.size() != rhs.Selected_.size()) return true;
+  for (unsigned int idx = 0; idx != Selected_.size(); idx++) {
+    if (Selected_[idx] != rhs.Selected_[idx]) return true;
+  }
+  return false;
+}
+
 /** Flip the current character used to select atoms. Useful when you want 
   * the mask to select the inverse of the given expression, like in 'strip'.
   */
@@ -39,6 +48,11 @@ void AtomMask::InvertMaskExpression() {
 
 // AtomMask::InvertMask()
 void AtomMask::InvertMask() {
+  // Sanity check
+  if (Natom_ < 1) {
+    mprinterr("Internal Error: AtomMask::InvertMask() called with Natom_ < 1.\n");
+    return;
+  }
   // Invert the integer mask.
   std::vector<int> invert;
   invert.reserve( Natom_ - (int)Selected_.size() );
@@ -59,7 +73,7 @@ void AtomMask::InvertMask() {
 /** Given an atom mask, determine how many selected atoms this mask
   * has in common with it.
   */
-int AtomMask::NumAtomsInCommon(AtomMask const& maskIn) {
+int AtomMask::NumAtomsInCommon(AtomMask const& maskIn) const {
   std::vector<int> intersect;
   std::vector<int>::iterator intersect_end;
 
