@@ -6,6 +6,7 @@
 #include <cstring>
 // ---------- OTHER includes ---------------------------------------------------
 #include "molsurf.h"
+#include "Constants.h"
 using namespace MolSurf;
 /*!
    \file molsurf.cpp
@@ -29,10 +30,10 @@ using namespace MolSurf;
 //#define MAXAT 100000
 //#define MAXRES 5000
 // NOTE: Replace these with Constants.h eventually
-#define PI   3.14159265358979323846
-#define TWOPI 6.28318530717958647692
-#define Rad2Deg      (180.0/PI)
-#define Deg2Rad      (PI/180.0)
+//#define PI   3.14159265358979323846
+//#define TWOPI 6.28318530717958647692
+//#define Rad2Deg      (180.0/PI)
+//#define Deg2Rad      (PI/180.0)
 
 #define MAXAT_CYCLES      10
 #define FREE_TORUS        -1
@@ -2553,7 +2554,7 @@ static REAL_T cycle_piece (int ic, CYCLE cycle[], CIRCLE circle[], EDGE convex_e
 		*ierr = 1; //exit (ERROR);
                 return 0; 
 	  }
-	  wrap_angle = 2.0 * PI;
+	  wrap_angle = 2.0 * Constants::PI;
 	} else {
 	  for (ii = 0; ii < 3; ++ii) {
 		v1[ii] = vert[iv2].pos[ii] - circle[icircle].center[ii];
@@ -2561,7 +2562,7 @@ static REAL_T cycle_piece (int ic, CYCLE cycle[], CIRCLE circle[], EDGE convex_e
 	  }
 	  wrap_angle = get_angle (v1, v2, circle[icircle].axis);
 	  if (wrap_angle < 0.0)
-		wrap_angle += 2.0 * PI;
+		wrap_angle += 2.0 * Constants::PI;
 	}
 
 	/* printf("wrap angle %f\n",Rad2Deg*wrap_angle); 
@@ -2617,7 +2618,7 @@ static int convex_area (ATOM atom[], RES res[], CYCLE cycle[],
           if (ierr == 1) return 1;
 	}
 
-	face[iface].area = arad * arad * (2 * PI * chi + area);
+	face[iface].area = arad * arad * (2 * Constants::PI * chi + area);
 
 	*total_area += face[iface].area;
 	atom[ia].area += face[iface].area;
@@ -2678,7 +2679,7 @@ static int concave_area (REAL_T probe_rad, int n_c_faces, VERTEX vertex[],
 	  continue;					/* only surface intact pieces */
 
 	c_face[iface].area = probe_rad * probe_rad *
-	  (vertex[iv].beta + vertex[jv].beta + vertex[kv].beta - PI);
+	  (vertex[iv].beta + vertex[jv].beta + vertex[kv].beta - Constants::PI);
 	total_area += c_face[iface].area;
   }
   *c_area = total_area;
@@ -2784,7 +2785,7 @@ static int saddle_area (int n_faces, SADDLE_FACE saddle_face[],
 	iv1 = convex_edge[icv1].vert1;
 
 	if (iv1 == -1) {			/* free torus */
-	  wrap_angle = 2.0 * PI;
+	  wrap_angle = 2.0 * Constants::PI;
 	} else {
 
 	  circle1 = concave_edge[icc1].circle;
@@ -2799,7 +2800,7 @@ static int saddle_area (int n_faces, SADDLE_FACE saddle_face[],
 
 	  wrap_angle = get_angle (uvec, vvec, zaxis);
 	  if (wrap_angle < 0.0)
-		wrap_angle += 2.0 * PI;
+		wrap_angle += 2.0 * Constants::PI;
 	}
 
 
@@ -2827,9 +2828,9 @@ static int saddle_area (int n_faces, SADDLE_FACE saddle_face[],
 	if (saddle_face[iface].area < 0.0) {
 	  printf ("negative saddle face area!\n");
 	  printf ("area1 %f area 2 %f\n", area1, area2);
-	  printf ("theta1 %f theta2 %f\n", Rad2Deg * theta1, Rad2Deg * theta2);
+	  printf ("theta1 %f theta2 %f\n", Constants::RADDEG * theta1, Constants::RADDEG * theta2);
 	  printf ("sin(theta1) %f sin(theta2) %f\n", sin_theta1, sin_theta2);
-	  printf ("wrap angle %f \n", Rad2Deg * wrap_angle);
+	  printf ("wrap angle %f \n", Constants::RADDEG * wrap_angle);
 	  printf ("torus rad %f\n", torus[itorus].rad);
 	  printf ("probe rad %f\n", probe_rad);
 	  return -1; //exit (ERROR);
@@ -3308,7 +3309,7 @@ static int get_cone_area (int n_faces, CONE_FACE cone_face[],
 	icircle = convex_edge[icv1].circle;
 
 	if (convex_edge[icv1].vert1 == -1) {	/* free torus */
-	  wrap_angle = 2.0 * PI;
+	  wrap_angle = 2.0 * Constants::PI;
 	} else {
 	  iv1 = convex_edge[icv1].vert2;
 	  iv2 = convex_edge[icv1].vert1;
@@ -3321,7 +3322,7 @@ static int get_cone_area (int n_faces, CONE_FACE cone_face[],
 	  vnorm (vvec, 3);
 	  wrap_angle = get_angle (uvec, vvec, convex_circle[icircle].axis);
 	  if (wrap_angle < 0.0)
-		wrap_angle += 2.0 * PI;
+		wrap_angle += 2.0 * Constants::PI;
 	}
 
 	ia = convex_circle[icircle].atom_or_probe_num;
@@ -3744,7 +3745,7 @@ static int axial_trim (int nat, ATOM atom[], RES res[], // NOTE: was void
 	for (i = 1; i < low_torus[it].nfaces; ++i) {
 	  face_angle[i] = get_angle (face_vector[i], face_vector[0], toruslist[itorus].uv);
 	  if (face_angle[i] < 0.0)
-		face_angle[i] = face_angle[i] + TWOPI;
+		face_angle[i] = face_angle[i] + Constants::TWOPI;
 	}
 
 	if (sort_faces (it, low_torus, face_angle, face_edge,
@@ -4262,7 +4263,7 @@ static int add_new_cusp (CUSP_EDGE cusp_edge[], int icusp, int jcusp, PROBE prob
 	  concave_circle[c1].rad * sin (angle_range) * zaxis[ii];
   }
   if (flag) {
-	printf ("angle range %8.1f\n", angle_range * Rad2Deg);
+	printf ("angle range %8.1f\n", angle_range * Constants::RADDEG);
 	printf ("sin angle %8.3f\n", sin (angle_range));
 	printf ("radius %8.3f\n", concave_circle[c1].rad);
 	printf ("zaxis: %8.3f%8.3f%8.3f\n", zaxis[0], zaxis[1], zaxis[2]);
@@ -4317,9 +4318,9 @@ static int add_new_cusp (CUSP_EDGE cusp_edge[], int icusp, int jcusp, PROBE prob
   angle1 = get_angle (v_a, v_b, yaxis);
   angle2 = get_angle (v_a, v_c, yaxis);
   if (angle1 < 0.0)
-	angle1 = angle1 + 2 * PI;
+	angle1 = angle1 + 2 * Constants::PI;
   if (angle2 < 0.0)
-	angle2 = angle2 + 2 * PI;
+	angle2 = angle2 + 2 * Constants::PI;
 
   if (angle2 > angle1) {		/* order is correct */
 	for (ii = 0; ii < 3; ++ii) {
@@ -4444,7 +4445,7 @@ static int cusp_intersect (CUSP_EDGE cusp_edge[], int icusp, int jcusp, PROBE pr
   alpha = get_angle (uv1, uv2, zaxis);
 
   if (flag)
-	printf ("alpha %8.1f\n", Rad2Deg * alpha);
+	printf ("alpha %8.1f\n", Constants::RADDEG * alpha);
 
   if (alpha < 0.0) {
 	printf ("alpha < 0 should not happen\n");
@@ -4453,14 +4454,14 @@ static int cusp_intersect (CUSP_EDGE cusp_edge[], int icusp, int jcusp, PROBE pr
 			 asin (concave_circle[c2].rad / probe_rad)) {
 	if (flag) printf ("circles don't intersect\n");
 	return 0;						/* circles don't intersect */
-  } else if (alpha > 0.5 * PI) {
+  } else if (alpha > 0.5 * Constants::PI) {
 	if (flag)
-	  printf ("alpha %8.1f > %8.1f\n", Rad2Deg * alpha, Rad2Deg * 0.5 * PI);
-	alpha = PI - alpha;
+	  printf ("alpha %8.1f > %8.1f\n", Constants::RADDEG * alpha, Constants::RADDEG * 0.5 * Constants::PI);
+	alpha = Constants::PI - alpha;
 	offset = h2 * sin (alpha) + (h1 + h2 * cos (alpha)) / tan (alpha);
 	if (flag) {
 	  printf ("alpha > pi/2\n");
-	  printf ("alpha %8.1f\n", Rad2Deg * alpha);
+	  printf ("alpha %8.1f\n", Constants::RADDEG * alpha);
 	  printf ("h1:%8.3f h2:%8.3f\n", h1, h2);
 	  printf ("sin(alpha) %8.3f\n", sin (alpha));
 	  printf ("cos(alpha) %8.3f\n", cos (alpha));
@@ -4494,7 +4495,7 @@ static int cusp_intersect (CUSP_EDGE cusp_edge[], int icusp, int jcusp, PROBE pr
 	printf ("c1 height %8.3f c2 height %8.3f\n", h1, h2);
 	printf ("uv1: %8.3f%8.3f%8.3f\n", uv1[0], uv1[1], uv1[2]);
 	printf ("uv2: %8.3f%8.3f%8.3f\n", uv2[0], uv2[1], uv2[2]);
-	printf ("alpha %8.1f\n", Rad2Deg * alpha);
+	printf ("alpha %8.1f\n", Constants::RADDEG * alpha);
 	printf ("cos(alpha) %8.3f\n", cos (alpha));
 	printf ("tan(alpha) %8.3f\n", tan (alpha));
 	printf ("\n");
@@ -4537,7 +4538,7 @@ static int cusp_intersect (CUSP_EDGE cusp_edge[], int icusp, int jcusp, PROBE pr
   }
   angle_range = acos (offset / concave_circle[c1].rad);
   if (flag) {
-	printf ("angle range %8.1f\n", Rad2Deg * angle_range);
+	printf ("angle range %8.1f\n", Constants::RADDEG * angle_range);
 	printf ("offset %8.3f\n", offset);
 	printf ("circle rad %8.3f\n", concave_circle[c1].rad);
 	printf ("offset/rad: %8.3f\n", offset / concave_circle[c1].rad);
@@ -4545,7 +4546,7 @@ static int cusp_intersect (CUSP_EDGE cusp_edge[], int icusp, int jcusp, PROBE pr
   }
   if (flag) {
 	printf ("midpoint %8.3f%8.3f%8.3f\n", midpoint[0], midpoint[1], midpoint[2]);
-	printf ("angle range %8.1f\n", Rad2Deg * angle_range);
+	printf ("angle range %8.1f\n", Constants::RADDEG * angle_range);
   }
   if (DOT (concave_circle[c1].axis, yaxis) > 0.0) {
 	ivert1 = concave_edge[ie1].vert1;
@@ -4580,9 +4581,9 @@ static int cusp_intersect (CUSP_EDGE cusp_edge[], int icusp, int jcusp, PROBE pr
 	return 1; //exit (ERROR);
   }
   if (flag)
-	printf ("angle1: %8.1f\n", Rad2Deg * v1_angle);
+	printf ("angle1: %8.1f\n", Constants::RADDEG * v1_angle);
   if (flag)
-	printf ("angle2: %8.1f\n", Rad2Deg * v2_angle);
+	printf ("angle2: %8.1f\n", Constants::RADDEG * v2_angle);
   if (fabs (v1_angle) < angle_range &&
 	  fabs (v2_angle) < angle_range) {
 	if (v2_angle > v1_angle) {
@@ -4600,29 +4601,29 @@ static int cusp_intersect (CUSP_EDGE cusp_edge[], int icusp, int jcusp, PROBE pr
   if (v1_angle < 0.0) {
 	if (flag) {
 	  printf ("v1 < 0, changing to positive angle:");
-	  printf (" before %8.1f", Rad2Deg * v1_angle);
-	  printf (" + %8.1f", Rad2Deg * TWOPI);
+	  printf (" before %8.1f", Constants::RADDEG * v1_angle);
+	  printf (" + %8.1f", Constants::RADDEG * Constants::TWOPI);
 	}
-	v1_angle = TWOPI + v1_angle;
+	v1_angle = Constants::TWOPI + v1_angle;
 	if (flag)
-	  printf (" after %8.3f\n", Rad2Deg * v1_angle);
+	  printf (" after %8.3f\n", Constants::RADDEG * v1_angle);
   }
   if (v2_angle < 0.0) {
 	if (flag) {
 	  printf ("v2 < 0, changing to positive angle:");
-	  printf (" before %8.1f", Rad2Deg * v2_angle);
-	  printf (" + %8.1f", Rad2Deg * TWOPI);
+	  printf (" before %8.1f", Constants::RADDEG * v2_angle);
+	  printf (" + %8.1f", Constants::RADDEG * Constants::TWOPI);
 	}
-	v2_angle = TWOPI + v2_angle;
+	v2_angle = Constants::TWOPI + v2_angle;
 	if (flag)
-	  printf (" after %8.3f\n", Rad2Deg * v2_angle);
+	  printf (" after %8.3f\n", Constants::RADDEG * v2_angle);
   }
   if (v2_angle > v1_angle) {
 	if (flag) {
 	  printf (" add new cusp 2\n");
 	  printf ("v2_angle > v1_angle\n");
-	  printf ("v1 angle %8.1f\n", Rad2Deg * v1_angle);
-	  printf ("v2 angle %8.1f\n", Rad2Deg * v2_angle);
+	  printf ("v1 angle %8.1f\n", Constants::RADDEG * v1_angle);
+	  printf ("v2 angle %8.1f\n", Constants::RADDEG * v2_angle);
 	}
         if (add_new_cusp (cusp_edge, icusp, jcusp, probe, concave_cycle,
                           concave_edge, vertex, concave_circle,
@@ -4632,9 +4633,9 @@ static int cusp_intersect (CUSP_EDGE cusp_edge[], int icusp, int jcusp, PROBE pr
   }
   if (flag) {
 	printf ("no cusp \n");
-	printf ("v1_angle %8.1f\n", Rad2Deg * v1_angle);
-	printf ("v2_angle %8.1f\n", Rad2Deg * v2_angle);
-	printf ("angle range %8.1f\n", Rad2Deg * angle_range);
+	printf ("v1_angle %8.1f\n", Constants::RADDEG * v1_angle);
+	printf ("v2_angle %8.1f\n", Constants::RADDEG * v2_angle);
+	printf ("angle range %8.1f\n", Constants::RADDEG * angle_range);
   }
   return 0;
 }
@@ -4971,7 +4972,7 @@ static int split_old_cusps (int cusp_list[], int nlist, // NOTE: was void
 		vb[ii] = vertex[ivb].pos[ii] - concave_circle[icircle].center[ii];
 	  cut_angle[icut] = get_angle (vb, va, concave_circle[icircle].axis);
 	  if (cut_angle[icut] < 0.0)
-		cut_angle[icut] = cut_angle[icut] + TWOPI;
+		cut_angle[icut] = cut_angle[icut] + Constants::TWOPI;
 	}
 
 	if (cut_angle[0] > cut_angle[1]) {
@@ -5517,9 +5518,9 @@ static int get_3_xvertex (int nspan, int three_cusp[], // NOTE: was void
 	  theta2 = get_angle (vec0, vec2, concave_circle[icircle].axis);
 
 	  if (theta1 < 0.0)
-		theta1 = theta1 + TWOPI;
+		theta1 = theta1 + Constants::TWOPI;
 	  if (theta2 < 0.0)
-		theta2 = theta2 + TWOPI;
+		theta2 = theta2 + Constants::TWOPI;
 
 	  xvertex[count].cusp_pair = ip;
 	  xvertex[count + 1].cusp_pair = ip;
@@ -5635,7 +5636,7 @@ static int split_3_cusps (int cusp_list[], int nlist, // NOTE: was void
 		vb[ii] = vertex[ivb].pos[ii] - concave_circle[icircle].center[ii];
 	  cut_angle[icut] = get_angle (vb, va, concave_circle[icircle].axis);
 	  if (cut_angle[icut] < 0.0)
-		cut_angle[icut] = cut_angle[icut] + TWOPI;
+		cut_angle[icut] = cut_angle[icut] + Constants::TWOPI;
 	}
 	if (cut_angle[0] > cut_angle[1]) {
 	  itmp = cut_vert[0];
@@ -5833,7 +5834,7 @@ static int cusp_intersect_2 (CUSP_EDGE cusp_edge[], int icusp, int jcusp, // NOT
   alpha = get_angle (uv1, uv2, zaxis);
 
   if (flag)
-	printf ("alpha %8.1f\n", Rad2Deg * alpha);
+	printf ("alpha %8.1f\n", Constants::RADDEG * alpha);
 
   if (alpha < 0.0) {
 	printf ("alpha < 0 should not happen\n");
@@ -5843,14 +5844,14 @@ static int cusp_intersect_2 (CUSP_EDGE cusp_edge[], int icusp, int jcusp, // NOT
 	if (flag)
 	  printf ("circles don't intersect\n");
 	return 0;						/* circles don't intersect */
-  } else if (alpha > 0.5 * PI) {
+  } else if (alpha > 0.5 * Constants::PI) {
 	if (flag)
-	  printf ("alpha %8.1f > %8.1f\n", Rad2Deg * alpha, Rad2Deg * 0.5 * PI);
-	alpha = PI - alpha;
+	  printf ("alpha %8.1f > %8.1f\n", Constants::RADDEG * alpha, Constants::RADDEG * 0.5 * Constants::PI);
+	alpha = Constants::PI - alpha;
 	offset = h2 * sin (alpha) + (h1 + h2 * cos (alpha)) / tan (alpha);
 	if (flag) {
 	  printf ("alpha > pi/2\n");
-	  printf ("alpha %8.1f\n", Rad2Deg * alpha);
+	  printf ("alpha %8.1f\n", Constants::RADDEG * alpha);
 	  printf ("h1:%8.3f h2:%8.3f\n", h1, h2);
 	  printf ("sin(alpha) %8.3f\n", sin (alpha));
 	  printf ("cos(alpha) %8.3f\n", cos (alpha));
@@ -5883,7 +5884,7 @@ static int cusp_intersect_2 (CUSP_EDGE cusp_edge[], int icusp, int jcusp, // NOT
 	printf ("c1 height %8.3f c2 height %8.3f\n", h1, h2);
 	printf ("uv1: %8.3f%8.3f%8.3f\n", uv1[0], uv1[1], uv1[2]);
 	printf ("uv2: %8.3f%8.3f%8.3f\n", uv2[0], uv2[1], uv2[2]);
-	printf ("alpha %8.1f\n", Rad2Deg * alpha);
+	printf ("alpha %8.1f\n", Constants::RADDEG * alpha);
 	printf ("cos(alpha) %8.3f\n", cos (alpha));
 	printf ("tan(alpha) %8.3f\n", tan (alpha));
 	printf ("\n");
@@ -5926,7 +5927,7 @@ static int cusp_intersect_2 (CUSP_EDGE cusp_edge[], int icusp, int jcusp, // NOT
   }
   angle_range = acos (offset / concave_circle[c1].rad);
   if (flag) {
-	printf ("angle range %8.1f\n", Rad2Deg * angle_range);
+	printf ("angle range %8.1f\n", Constants::RADDEG * angle_range);
 	printf ("offset %8.3f\n", offset);
 	printf ("circle rad %8.3f\n", concave_circle[c1].rad);
 	printf ("offset/rad: %8.3f\n", offset / concave_circle[c1].rad);
@@ -5934,7 +5935,7 @@ static int cusp_intersect_2 (CUSP_EDGE cusp_edge[], int icusp, int jcusp, // NOT
   }
   if (flag) {
 	printf ("midpoint %8.3f%8.3f%8.3f\n", midpoint[0], midpoint[1], midpoint[2]);
-	printf ("angle range %8.1f\n", Rad2Deg * angle_range);
+	printf ("angle range %8.1f\n", Constants::RADDEG * angle_range);
   }
   if (DOT (concave_circle[c1].axis, yaxis) > 0.0) {
 	ivert1 = concave_edge[ie1].vert1;
@@ -5969,9 +5970,9 @@ static int cusp_intersect_2 (CUSP_EDGE cusp_edge[], int icusp, int jcusp, // NOT
 	return 1; //exit (ERROR);
   }
   if (flag)
-	printf ("angle1: %8.1f\n", Rad2Deg * v1_angle);
+	printf ("angle1: %8.1f\n", Constants::RADDEG * v1_angle);
   if (flag)
-	printf ("angle2: %8.1f\n", Rad2Deg * v2_angle);
+	printf ("angle2: %8.1f\n", Constants::RADDEG * v2_angle);
   if (fabs (v1_angle) < angle_range &&
 	  fabs (v2_angle) < angle_range) {
 	if (v2_angle > v1_angle) {
@@ -5991,29 +5992,29 @@ static int cusp_intersect_2 (CUSP_EDGE cusp_edge[], int icusp, int jcusp, // NOT
   if (v1_angle < 0.0) {
 	if (flag) {
 	  printf ("v1 < 0, changing to positive angle:");
-	  printf (" before %8.1f", Rad2Deg * v1_angle);
-	  printf (" + %8.1f", Rad2Deg * TWOPI);
+	  printf (" before %8.1f", Constants::RADDEG * v1_angle);
+	  printf (" + %8.1f", Constants::RADDEG * Constants::TWOPI);
 	}
-	v1_angle = TWOPI + v1_angle;
+	v1_angle = Constants::TWOPI + v1_angle;
 	if (flag)
-	  printf (" after %8.3f\n", Rad2Deg * v1_angle);
+	  printf (" after %8.3f\n", Constants::RADDEG * v1_angle);
   }
   if (v2_angle < 0.0) {
 	if (flag) {
 	  printf ("v2 < 0, changing to positive angle:");
-	  printf (" before %8.1f", Rad2Deg * v2_angle);
-	  printf (" + %8.1f", Rad2Deg * TWOPI);
+	  printf (" before %8.1f", Constants::RADDEG * v2_angle);
+	  printf (" + %8.1f", Constants::RADDEG * Constants::TWOPI);
 	}
-	v2_angle = TWOPI + v2_angle;
+	v2_angle = Constants::TWOPI + v2_angle;
 	if (flag)
-	  printf (" after %8.3f\n", Rad2Deg * v2_angle);
+	  printf (" after %8.3f\n", Constants::RADDEG * v2_angle);
   }
   if (v2_angle > v1_angle) {
 	if (flag) {
 	  printf (" add new cusp 2\n");
 	  printf ("v2_angle > v1_angle\n");
-	  printf ("v1 angle %8.1f\n", Rad2Deg * v1_angle);
-	  printf ("v2 angle %8.1f\n", Rad2Deg * v2_angle);
+	  printf ("v1 angle %8.1f\n", Constants::RADDEG * v1_angle);
+	  printf ("v2 angle %8.1f\n", Constants::RADDEG * v2_angle);
 	}
 	printf ("cusp_intersect_2: adding new cusp\n");
         if (add_new_cusp (cusp_edge, icusp, jcusp, probe, concave_cycle,
@@ -6024,9 +6025,9 @@ static int cusp_intersect_2 (CUSP_EDGE cusp_edge[], int icusp, int jcusp, // NOT
   }
   if (flag) {
 	printf ("no cusp \n");
-	printf ("v1_angle %8.1f\n", Rad2Deg * v1_angle);
-	printf ("v2_angle %8.1f\n", Rad2Deg * v2_angle);
-	printf ("angle range %8.1f\n", Rad2Deg * angle_range);
+	printf ("v1_angle %8.1f\n", Constants::RADDEG * v1_angle);
+	printf ("v2_angle %8.1f\n", Constants::RADDEG * v2_angle);
+	printf ("angle range %8.1f\n", Constants::RADDEG * angle_range);
   }
   return 1;
 }
@@ -6608,7 +6609,7 @@ static void get_xvertex (int nspan, int four_cusp[], EDGE concave_edge[],
 
 	  theta = get_angle (vec0, vec1, concave_circle[icircle].axis);
 	  if (theta < 0.0)
-		theta = theta + TWOPI;
+		theta = theta + Constants::TWOPI;
 	  if (theta < min_theta) {
 		min_pair = ip;
 		min_vert = 1;
@@ -6621,7 +6622,7 @@ static void get_xvertex (int nspan, int four_cusp[], EDGE concave_edge[],
 	  }
 	  theta = get_angle (vec0, vec2, concave_circle[icircle].axis);
 	  if (theta < 0.0)
-		theta = theta + TWOPI;
+		theta = theta + Constants::TWOPI;
 	  if (theta < min_theta) {
 		min_pair = ip;
 		min_vert = 2;
@@ -7137,7 +7138,7 @@ static REAL_T conc_cycle_piece (int ic, CONCAVE_CYCLE concave_cycle[],
 	}
 	int_angle = interior_angle (edge1, direction1, edge2, direction2, concave_edge, circle, vertex);
 
-	sum = sum - (PI - int_angle);
+	sum = sum - (Constants::PI - int_angle);
 
 	/* next do the saddle wrap stuff. This part is a little confusing and 
 	   Connolly's paper (J. Appl. Cryst.  16, 548-558 (1983)) is unclear about 
@@ -7160,7 +7161,7 @@ static REAL_T conc_cycle_piece (int ic, CONCAVE_CYCLE concave_cycle[],
                 *ierr = 1;
 		return 0; //exit (ERROR);
 	  }
-	  wrap_angle = 2.0 * PI;
+	  wrap_angle = 2.0 * Constants::PI;
 	} else {
 	  for (ii = 0; ii < 3; ++ii) {
 		v1[ii] = vertex[iv1].pos[ii] - circle[icircle].center[ii];
@@ -7168,7 +7169,7 @@ static REAL_T conc_cycle_piece (int ic, CONCAVE_CYCLE concave_cycle[],
 	  }
 	  wrap_angle = get_angle (v2, v1, circle[icircle].axis);
 	  if (wrap_angle < 0.0)
-		wrap_angle += 2.0 * PI;
+		wrap_angle += 2.0 * Constants::PI;
 	}
 
 	/*
@@ -7221,7 +7222,7 @@ static int broken_concave_area (REAL_T probe_rad,
                                       vertex, iprobe, probe, probe_rad, &ierr);
       if (ierr == 1) return -1;
     }
-    broken_concave_face[iface].area = probe_rad * probe_rad * (2 * PI * chi + area);
+    broken_concave_face[iface].area = probe_rad * probe_rad * (2 * Constants::PI * chi + area);
 
     total_area += broken_concave_face[iface].area;
     *broken_conc_area += broken_concave_face[iface].area;
