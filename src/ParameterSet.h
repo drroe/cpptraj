@@ -54,6 +54,8 @@ class ParameterSet {
       UpdateCount uc;
       return UpdateParams(s, uc);
     }
+    /// \return Size in memory in bytes
+    size_t DataSize() const;
   private:
     ParmHolder<AtomType> atomTypes_;          ///< Atom types
     ParmHolder<NonbondType> nbParm_;          ///< Lennard-Jones 6-12 A-B parameters

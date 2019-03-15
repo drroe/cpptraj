@@ -66,6 +66,8 @@ class TypeNameHolder {
         tstr.append( " " + std::string( *(*it) ) );
       return tstr;
     }
+    /// \return size in bytes
+    size_t DataSize() const { return (types_.size()*NameType::DataSize()) + NameType::DataSize(); }
   private:
     Narray types_;
     NameType wildcard_;
