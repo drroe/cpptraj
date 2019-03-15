@@ -36,6 +36,10 @@ class AtomType {
     }
     /// Used to modify LJ params
     LJparmType& SetLJ() { return lj_; }
+    /// Combine LJ params with this and another type using Lorentz-Berthelot rules
+    NonbondType Combine_LB(AtomType const&) const;
+    /// \return data size
+    static size_t DataSize() { return (3*sizeof(double)) + sizeof(int); }
   private:
     LJparmType lj_; ///< Default Lennard-Jones parameters (always valid for self).
     double mass_;   ///< Mass in amu
