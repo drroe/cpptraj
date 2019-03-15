@@ -13,10 +13,14 @@ Frame::Frame( ) :
   maxnatom_(0),
   ncoord_(0),
   T_(0.0),
+  pH_(0.0),
+  redox_(0.0),
   time_(0.0),
   X_(0),
   V_(0),
   F_(0),
+  repidx_(0),
+  crdidx_(0),
   memIsExternal_(false)
 {}
 
@@ -36,10 +40,14 @@ Frame::Frame(int natomIn) :
   maxnatom_(natomIn),
   ncoord_(natomIn*3), 
   T_(0.0),
+  pH_(0.0),
+  redox_(0.0),
   time_(0.0),
   X_(0),
   V_(0),
   F_(0),
+  repidx_(0),
+  crdidx_(0),
   Mass_(natomIn, 1.0),
   memIsExternal_(false)
 {
@@ -53,10 +61,14 @@ Frame::Frame(std::vector<Atom> const& atoms) :
   maxnatom_(natom_),
   ncoord_(natom_*3),
   T_(0.0),
+  pH_(0.0),
+  redox_(0.0),
   time_(0.0),
   X_(0),
   V_(0),
   F_(0),
+  repidx_(0),
+  crdidx_(0),
   memIsExternal_(false)
 {
   if (ncoord_ > 0) {
@@ -74,11 +86,15 @@ Frame::Frame(Frame const& frameIn, AtomMask const& maskIn) :
   ncoord_(natom_*3),
   box_(frameIn.box_),
   T_( frameIn.T_ ),
+  pH_( frameIn.pH_ ),
+  redox_( frameIn.redox_ ),
   time_( frameIn.time_ ),
   X_(0),
   V_(0),
   F_(0),
   remd_indices_(frameIn.remd_indices_),
+  repidx_(0),
+  crdidx_(0),
   memIsExternal_(false)
 {
   if (ncoord_ > 0) {
@@ -143,11 +159,15 @@ Frame::Frame(const Frame& rhs) :
   ncoord_(rhs.ncoord_),
   box_(rhs.box_),
   T_(rhs.T_),
+  pH_(rhs.pH_),
+  redox_(rhs.redox_),
   time_(rhs.time_),
   X_(0),
   V_(0),
   F_(0),
   remd_indices_(rhs.remd_indices_),
+  repidx_(rhs.repidx_),
+  crdidx_(rhs.crdidx_),
   Mass_(rhs.Mass_),
   memIsExternal_(false)
 {
@@ -174,6 +194,10 @@ void Frame::swap(Frame &first, Frame &second) {
   swap(first.maxnatom_, second.maxnatom_);
   swap(first.ncoord_, second.ncoord_);
   swap(first.T_, second.T_);
+  swap(first.repidx_, second.repidx_);
+  swap(first.crdidx_, second.crdidx_);
+  swap(first.pH_, second.pH_);
+  swap(first.redox_, second.redox_);
   swap(first.time_, second.time_);
   swap(first.X_, second.X_);
   swap(first.V_, second.V_);
@@ -198,6 +222,10 @@ Frame &Frame::operator=(Frame rhs) {
     ncoord_ = rhs.ncoord_;
     box_ = rhs.box_;
     T_ = rhs.T_;
+    repidx_ = rhs.repidx_;
+    crdidx_ = rhs.crdidx_;
+    pH_ = rhs.pH_;
+    redox_ = rhs.redox_;
     time_ = rhs.time_;
     remd_indices_ = rhs.remd_indices_;
     Mass_ = rhs.Mass_;
@@ -294,6 +322,22 @@ Frame::CRDtype Frame::ConvertToCRD(int numBoxCrd, bool hasVel) const {
 }
 
 // ---------- ACCESS INTERNAL DATA ---------------------------------------------
+// Frame::DataSize()
+/** Size of Frame in memory. */
+size_t Frame::DataSize() const {
+  size_t mySize = (5  * sizeof(int)) +
+                  (10 * sizeof(double)) + // box + class vars
+                  (remd_indices_.size() * sizeof(int)) +
+                  (Mass_.size() * sizeof(double));
+  if (!memIsExternal_ && X_ != 0)
+    mySize += (maxnatom_ * 3 * sizeof(double));
+  if (V_ != 0)
+    mySize += (maxnatom_ * 3 * sizeof(double));
+  if (F_ != 0)
+    mySize += (maxnatom_ * 3 * sizeof(double));
+  return mySize;
+}
+
 // Frame::printAtomCoord()
 void Frame::printAtomCoord(int atom) const {
   int atmidx = atom * 3;
@@ -439,8 +483,8 @@ int Frame::SetupFrameV(std::vector<Atom> const& atoms, CoordinateInfo const& cin
     Mass_.resize(maxnatom_);
   Darray::iterator mass = Mass_.begin();
   for (std::vector<Atom>::const_iterator atom = atoms.begin();
-                                         atom != atoms.end(); ++atom)
-    *(mass++) = (*atom).Mass();
+                                         atom != atoms.end(); ++atom, ++mass)
+    *mass = atom->Mass();
   // Box
   box_ = cinfo.TrajBox();
   // Replica indices
@@ -460,8 +504,8 @@ int Frame::SetupFrameFromMask(AtomMask const& maskIn, std::vector<Atom> const& a
     Mass_.resize(maxnatom_);
   // Copy masses according to maskIn
   Darray::iterator mass = Mass_.begin();
-  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom) 
-    *(mass++) = atoms[ *atom ].Mass();
+  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom, ++mass) 
+    *mass = atoms[ *atom ].Mass();
   return 0; 
 }
 
@@ -526,6 +570,10 @@ void Frame::SetCoordinates(Frame const& frameIn, AtomMask const& maskIn) {
   ncoord_ = natom_ * 3;
   box_ = frameIn.box_;
   T_ = frameIn.T_;
+  repidx_ = frameIn.repidx_;
+  crdidx_ = frameIn.crdidx_;
+  pH_ = frameIn.pH_;
+  redox_ = frameIn.redox_;
   time_ = frameIn.time_;
   remd_indices_ = frameIn.remd_indices_;
   double* newXptr = X_;
@@ -578,6 +626,10 @@ void Frame::SetFrame(Frame const& frameIn, AtomMask const& maskIn) {
   // Copy T/box
   box_ = frameIn.box_;
   T_ = frameIn.T_;
+  repidx_ = frameIn.repidx_;
+  crdidx_ = frameIn.crdidx_;
+  pH_ = frameIn.pH_;
+  redox_ = frameIn.redox_;
   time_ = frameIn.time_;
   remd_indices_ = frameIn.remd_indices_;
   double* newXptr = X_;
@@ -633,17 +685,21 @@ void Frame::SetCoordinatesByMap(Frame const& tgtIn, std::vector<int> const& mapI
   ncoord_ = natom_ * 3;
   box_ = tgtIn.box_;
   T_ = tgtIn.T_;
+  repidx_ = tgtIn.repidx_;
+  crdidx_ = tgtIn.crdidx_;
+  pH_ = tgtIn.pH_;
+  redox_ = tgtIn.redox_;
   time_ = tgtIn.time_;
   remd_indices_ = tgtIn.remd_indices_;
   // Copy Coords/Mass
   double* newXptr = X_;
   Darray::iterator newmass = Mass_.begin();
   for (std::vector<int>::const_iterator refatom = mapIn.begin(); 
-                                        refatom != mapIn.end(); ++refatom)
+                                        refatom != mapIn.end(); ++refatom, ++newmass)
   {
     memcpy( newXptr, tgtIn.X_ + ((*refatom) * 3), COORDSIZE_ );
     newXptr += 3;
-    *(newmass++) = tgtIn.Mass_[*refatom];
+    *newmass = tgtIn.Mass_[*refatom];
   }
   if (tgtIn.V_ != 0 && V_ != 0) {
     // Copy Velocities
@@ -685,6 +741,10 @@ void Frame::StripUnmappedAtoms(Frame const& refIn, std::vector<int> const& mapIn
   }
   box_ = refIn.box_;
   T_ = refIn.T_;
+  repidx_ = refIn.repidx_;
+  crdidx_ = refIn.crdidx_;
+  pH_ = refIn.pH_;
+  redox_ = refIn.redox_;
   time_ = refIn.time_;
   remd_indices_ = refIn.remd_indices_;
 
@@ -715,6 +775,10 @@ void Frame::ModifyByMap(Frame const& frameIn, std::vector<int> const& mapIn) {
   }
   box_ = frameIn.box_;
   T_ = frameIn.T_;
+  repidx_ = frameIn.repidx_;
+  crdidx_ = frameIn.crdidx_;
+  pH_ = frameIn.pH_;
+  redox_ = frameIn.redox_;
   time_ = frameIn.time_;
   remd_indices_ = frameIn.remd_indices_;
 
@@ -990,7 +1054,7 @@ double Frame::RMSD_CenteredRef( Frame const& Ref, Matrix_3x3& U, Vec3& Trans, bo
   Trans[0] /= total_mass;
   Trans[1] /= total_mass;
   Trans[2] /= total_mass;
-  //mprinterr("  FRAME COM: %lf %lf %lf\n",Trans[0],Trans[1],Trans[2]); //DEBUG
+  //mprintf("  FRAME COM: %f %f %f\n",Trans[0],Trans[1],Trans[2]); //DEBUG
 
   // Shift to common COM
   Trans.Neg();
@@ -1007,7 +1071,7 @@ double Frame::RMSD_CenteredRef( Frame const& Ref, Matrix_3x3& U, Vec3& Trans, bo
   // Calculate covariance matrix of Coords and Reference (R = Xt * Ref)
   Darray::iterator mass = Mass_.begin();
   double atom_mass = 1.0;
-  for (int i = 0; i < ncoord_; i += 3)
+  for (int i = 0; i < ncoord_; i += 3, ++mass)
   {
     double xt = X_[i  ];
     double yt = X_[i+1];
@@ -1016,8 +1080,8 @@ double Frame::RMSD_CenteredRef( Frame const& Ref, Matrix_3x3& U, Vec3& Trans, bo
     double yr = Ref.X_[i+1];
     double zr = Ref.X_[i+2];
     // Use atom_mass to hold mass for this atom if specified
-    if (useMassIn) 
-      atom_mass = *(mass++);
+    if (useMassIn)
+      atom_mass = *mass;
     mwss += atom_mass * ( (xt*xt)+(yt*yt)+(zt*zt)+(xr*xr)+(yr*yr)+(zr*zr) );
     // Calculate the Kabsch matrix: R = (rij) = Sum(yni*xnj)
     rot[0] += atom_mass*xt*xr;
@@ -1108,13 +1172,13 @@ double Frame::RMSD_NoFit( Frame const& Ref, bool useMass) const {
   
   Darray::const_iterator mass = Mass_.begin();
   double atom_mass = 1.0;
-  for (int i = 0; i < ncoord_; i += 3)
+  for (int i = 0; i < ncoord_; i += 3, ++mass)
   {
     double xx = Ref.X_[i  ] - X_[i  ];
     double yy = Ref.X_[i+1] - X_[i+1];
     double zz = Ref.X_[i+2] - X_[i+2];
     if (useMass) 
-      atom_mass = *(mass++);
+      atom_mass = *mass;
     total_mass += atom_mass;
     rms_return += (atom_mass * (xx*xx + yy*yy + zz*zz));
   }
@@ -1301,8 +1365,12 @@ int Frame::SendFrame(int recvrank, Parallel::Comm const& commIn) {
     commIn.Send( F_,              ncoord_, MPI_DOUBLE, recvrank, 1218 );
   commIn.Send( box_.boxPtr(),     6,       MPI_DOUBLE, recvrank, 1213 );
   commIn.Send( &T_,               1,       MPI_DOUBLE, recvrank, 1214 );
+  commIn.Send( &pH_,              1,       MPI_DOUBLE, recvrank, 1219 );
+  commIn.Send( &redox_,           1,       MPI_DOUBLE, recvrank, 1220 );
   commIn.Send( &time_,            1,       MPI_DOUBLE, recvrank, 1217 );
   commIn.Send( &remd_indices_[0], remd_indices_.size(), MPI_INT, recvrank, 1216 );
+  commIn.Send( &repidx_,          1,       MPI_INT,    recvrank, 1221 );
+  commIn.Send( &crdidx_,          1,       MPI_INT,    recvrank, 1222 );
   return 0;
 }
 
@@ -1316,8 +1384,12 @@ int Frame::RecvFrame(int sendrank, Parallel::Comm const& commIn) {
     commIn.Recv( F_,              ncoord_, MPI_DOUBLE, sendrank, 1218 );
   commIn.Recv( box_.boxPtr(),     6,       MPI_DOUBLE, sendrank, 1213 );
   commIn.Recv( &T_,               1,       MPI_DOUBLE, sendrank, 1214 );
+  commIn.Recv( &pH_,              1,       MPI_DOUBLE, sendrank, 1219 );
+  commIn.Recv( &redox_,           1,       MPI_DOUBLE, sendrank, 1220 );
   commIn.Recv( &time_,            1,       MPI_DOUBLE, sendrank, 1217 );
   commIn.Recv( &remd_indices_[0], remd_indices_.size(), MPI_INT, sendrank, 1216 );
+  commIn.Recv( &repidx_,          1,       MPI_INT,    sendrank, 1221 );
+  commIn.Recv( &crdidx_,          1,       MPI_INT,    sendrank, 1222 );
   return 0;
 }
 
@@ -1325,11 +1397,11 @@ int Frame::RecvFrame(int sendrank, Parallel::Comm const& commIn) {
 int Frame::SumToMaster(Parallel::Comm const& commIn) {
   if (commIn.Master()) {
     double* total = new double[ ncoord_ ];
-    commIn.Reduce( total, X_, ncoord_, MPI_DOUBLE, MPI_SUM );
+    commIn.ReduceMaster( total, X_, ncoord_, MPI_DOUBLE, MPI_SUM );
     std::copy( total, total + ncoord_, X_ );
     delete[] total;
   } else
-    commIn.Reduce( 0,     X_, ncoord_, MPI_DOUBLE, MPI_SUM );
+    commIn.ReduceMaster( 0,     X_, ncoord_, MPI_DOUBLE, MPI_SUM );
   return 0;
 }
 #endif

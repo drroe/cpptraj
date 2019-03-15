@@ -6,6 +6,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString 
 #include "Constants.h" // RADDEG, SMALL
+#include "AtomType.h"
 
 const NonbondType Topology::LJ_EMPTY = NonbondType();
 
@@ -144,6 +145,17 @@ std::string Topology::TruncResAtomName(int atom) const {
   return res_name;
 }
 
+/** Given an atom number, return a string containing the corresponding
+  * residue name and atom name with format:
+  * "<resname>@<atom name>"
+  * Truncate the residue and atom names so there are no blanks.
+  */
+std::string Topology::TruncResNameAtomName(int atom) const {
+  if (atom < 0 || atom >= (int)atoms_.size()) return std::string("");
+  int res = atoms_[atom].ResNum();
+  return residues_[res].Name().Truncated() + "@" + atoms_[atom].Name().Truncated();
+}
+
 // Topology::TruncResAtomNameNum()
 /** Given an atom number, return a string containing the corresponding 
   * residue name and number (starting from 1) along with the atom name 
@@ -269,7 +281,9 @@ int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)
   if ( residues_.empty() || 
        residues_.back().OriginalResNum() != resIn.OriginalResNum() ||
        residues_.back().SegID() != resIn.SegID() ||
-       residues_.back().Icode() != resIn.Icode() )
+       residues_.back().Icode() != resIn.Icode() ||
+       ( residues_.back().OriginalResNum() == resIn.OriginalResNum() &&
+         residues_.back().Name() != resIn.Name() ) )
   {
     // Last atom of old residue is == current # atoms.
     if (!residues_.empty())
@@ -288,6 +302,8 @@ int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)
 
 // Topology::StartNewMol()
 void Topology::StartNewMol() {
+  // No atoms, so no need to do anything.
+  if (atoms_.empty()) return;
   // If this is the first time this routine has been called, consider all
   // atoms to this point as belonging to first molecule. 
   if (molecules_.empty()) {
@@ -303,6 +319,12 @@ void Topology::StartNewMol() {
     //mprintf("DEBUG:\tMolecule %zu, atoms %i to %zu\n",
     //       molecules_.size(), lastAtom, atoms_.size());
   }
+  if (residues_.empty()) {
+    // No residues yet. Consider entire molecule to be the residue.
+    mprintf("Warning: Starting a molecule before residue info present.\n"
+            "Warning:   Creating residue named 'MOL'\n");
+    residues_.push_back( Residue("MOL",0,atoms_.size(),1,' ',' ') );
+  } 
   residues_.back().SetTerminal( true );
 }
 
@@ -445,11 +467,6 @@ int Topology::Setup_NoResInfo() {
   return 0;
 }
 
-static inline int NoAtomsErr(const char* msg) {
-  mprinterr("Error: Cannot set up %s, no atoms present.\n");
-  return 1;
-}
-
 // Topology::Resize()
 void Topology::Resize(Pointers const& pIn) {
   atoms_.clear();
@@ -485,6 +502,7 @@ void Topology::Resize(Pointers const& pIn) {
   dihedralparm_.resize( pIn.nDihParm_ );
 }
 
+/** \return Rmin for given atom. */
 double Topology::GetVDWradius(int a1) const {
   //TODO: return zero when no params?
   NonbondType const& LJ = GetLJparam(a1, a1);
@@ -494,6 +512,17 @@ double Topology::GetVDWradius(int a1) const {
     return 0.0;
 }
 
+/** \return sigma for given atom. */
+double Topology::GetVDWsigma(int a1) const {
+  //TODO: return zero when no params?
+  NonbondType const& LJ = GetLJparam(a1, a1);
+  if (LJ.B() > 0.0)
+    return ( 0.5 * pow(LJ.A() / LJ.B(), (1.0/6.0)) );
+  else
+    return 0.0;
+}
+
+/** \return epsilon for given atom. */
 double Topology::GetVDWdepth(int a1) const {
   NonbondType const& LJ = GetLJparam(a1, a1);
   if (LJ.A() > 0.0)
@@ -885,7 +914,7 @@ int Topology::DetermineMolecules() {
       molecule->SetFirst( atomNum );
       lastMol = atom->MolNum();
     } else if ( atom->MolNum()  < lastMol) {
-      mprinterr("Error: Atom %u was assigned a lower molecule # than previous atom.\n"
+      mprinterr("Error: Atom %u was assigned a lower molecule # (%i) than previous atom (%i).\n"
                 "Error:   This can happen if bond information is incorrect or missing, or if the\n"
                 "Error:   atom numbering in molecules is not sequential. Try one of the\n"
                 "Error:   following:\n"
@@ -895,7 +924,8 @@ int Topology::DetermineMolecules() {
                 "Error: - Use the 'fixatomorder' command to reorder the topology and any\n"
                 "Error:   associated coordinates.\n"
                 "Error: - Use the 'setMolecules' command in parmed to reorder only the\n"
-                "Error:   topology.\n", atom - atoms_.begin() + 1);
+                "Error:   topology.\n", atom - atoms_.begin() + 1,
+                atom->MolNum()+1, lastMol+1);
       ClearMolecules();
       return 1;
     }
@@ -1055,6 +1085,34 @@ int Topology::SetupIntegerMask(AtomMask &mask, Frame const& frame) const {
 int Topology::SetupCharMask(CharMask &mask, Frame const& frame) const {
   if (frame.empty()) return mask.SetupMask(atoms_, residues_, molecules_, 0);
   return mask.SetupMask(atoms_, residues_, molecules_, frame.xAddress());
+}
+
+//  Topology::ResnumsSelectedBy()
+std::vector<int> Topology::ResnumsSelectedBy(AtomMask const& mask) const {
+  std::vector<int> resnums;
+  int res = -1;
+  for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at)
+    if (atoms_[*at].ResNum() > res) {
+      res = atoms_[*at].ResNum();
+      resnums.push_back( res );
+    }
+  return resnums;
+}
+
+// Topology::MolnumsSelectedBy()
+std::vector<int> Topology::MolnumsSelectedBy(AtomMask const& mask) const {
+  std::vector<int> molnums;
+  if (molecules_.empty()) {
+    mprintf("Warning: Topology has no molecule information.\n");
+  } else {
+    int mol = -1;
+    for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at)
+      if (atoms_[*at].MolNum() > mol) {
+        mol = atoms_[*at].MolNum();
+        molnums.push_back( mol );
+      }
+  }
+  return molnums;
 }
 
 // -----------------------------------------------------------------------------
@@ -1564,35 +1622,6 @@ void Topology::AddDihArray(DihedralArray const& darray, DihedralParmArray const&
                                  dih->A3() + atomOffset, dih->A4() + atomOffset,
                                  dih->Type() ), dp[dih->Idx()] );
 }
-
-/// Hold LJ params for a unique atom type
-class AtomType {
-  public:
-    AtomType() : radius_(0.0), depth_(0.0) {}
-    AtomType(double r, double d, int o) : radius_(r), depth_(d), oidx_(o) {}
-    double Radius() const { return radius_; }
-    double Depth()  const { return depth_;  }
-    int OriginalIdx() const { return oidx_; }
-    bool operator<(AtomType const& rhs)  const {
-      return ( (radius_ < rhs.radius_) && (depth_ < rhs.depth_) );
-    }
-    bool operator==(AtomType const& rhs) const {
-      return ( (fabs(radius_ - rhs.radius_) < Constants::SMALL) &&
-               (fabs(depth_  - rhs.depth_ ) < Constants::SMALL) );
-    }
-    NonbondType Combine_LB(AtomType const& rhs) const {
-      double dR = radius_ + rhs.radius_;
-      double dE = sqrt( depth_ * rhs.depth_ );
-      double dR2 = dR * dR;
-      double dR6 = dR2 * dR2 * dR2;
-      double dER6 = dE * dR6;
-      return NonbondType( dER6*dR6, 2.0*dER6 );
-    }
-  private:
-    double radius_; ///< VDW radius
-    double depth_;  ///< LJ well-depth
-    int oidx_; ///< Original atom type index.
-};
 
 /// Map type indices to LJ parameters 
 class TypeArray {

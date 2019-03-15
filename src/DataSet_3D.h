@@ -35,6 +35,15 @@ class DataSet_3D : public DataSet {
     // -------------------------------------------
     // TODO: Remove this. Only needed by DataSet_1D.h
     void Add(size_t,const void*) { }
+    /*
+    double Coord(unsigned int d, size_t p) const {
+      long int idx[3];
+      for (unsigned int i = 0; i < 3; i++)
+        if (i == d) idx[i] = p; else idx[i] = 0;
+      Vec3 crd = gridBin_->Corner(idx[0], idx[1], idx[2]);
+      return crd[d];
+    }*/
+    // -------------------------------------------
     /// Set up grid from dims, origin, and spacing.
     int Allocate_N_O_D(size_t,size_t,size_t,Vec3 const&,Vec3 const&);
     /// Set up grid from dims, center, and spacing.
@@ -46,24 +55,7 @@ class DataSet_3D : public DataSet {
     /// Print grid info.
     void GridInfo() const;
     // -------------------------------------------
-    /// Convert X, Y, and Z coords to indices. Check bounds.
-    bool CalcBins(double x,double y,double z,size_t& i,size_t& j,size_t& k) const { 
-      return gridBin_->CalcBins(x, y, z, i, j, k);
-    }
-    /// Convert X, Y, and Z coords to indices. No bounds check.
-    void BinIndices(double x,double y,double z,long int& i,long int& j,long int& k) const {
-      gridBin_->BinIndices(x, y, z, i, j, k);
-    }
-    /// \return coordinates of specified voxel corner.
-    Vec3 BinCorner(long int i,long int j,long int k) const { return gridBin_->BinCorner(i, j, k); }
-    /// \return coordinates of specified voxel center.
-    Vec3 BinCenter(long int i,long int j,long int k) const { return gridBin_->BinCenter(i, j, k); }
-    /// \return coordinates of grid origin.
-    Vec3 const& GridOrigin()          const { return gridBin_->GridOrigin();       }
-    /// \return unit cell matrix.
-    Matrix_3x3 Ucell()                const { return gridBin_->Ucell();            }
-    /// \return voxel volume.
-    double VoxelVolume()              const { return gridBin_->VoxelVolume();      }
+    GridBin const& Bin() const { return *gridBin_; }
   private:
     /// Check if grid dimension is even; if not, increment it by 1.
     static void CheckEven(size_t&, char);

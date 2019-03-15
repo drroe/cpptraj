@@ -1,5 +1,6 @@
 #include "DataSet_GridDbl.h"
-#include "CpptrajStdio.h" // DEBUG
+#include "CpptrajStdio.h"
+#include "StringRoutines.h"
 
 DataSet_GridDbl::DataSet_GridDbl(DataSet_GridDbl const& rhs) : DataSet_3D(rhs), grid_(rhs.grid_) {}
 
@@ -19,10 +20,10 @@ int DataSet_GridDbl::Sync(size_t total, std::vector<int> const& rank_frames,
 {
   if (commIn.Master()) {
     std::vector<double> buf( grid_.size() );
-    commIn.Reduce( &(buf[0]), &(grid_[0]), grid_.size(), MPI_FLOAT, MPI_SUM );
+    commIn.ReduceMaster( &(buf[0]), &(grid_[0]), grid_.size(), MPI_FLOAT, MPI_SUM );
     std::copy( buf.begin(), buf.end(), grid_.begin() );
   } else
-    commIn.Reduce( 0,         &(grid_[0]), grid_.size(), MPI_FLOAT, MPI_SUM );
+    commIn.ReduceMaster( 0,         &(grid_[0]), grid_.size(), MPI_FLOAT, MPI_SUM );
   return 0;
 }
 #endif

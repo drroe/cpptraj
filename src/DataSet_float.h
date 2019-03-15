@@ -12,6 +12,8 @@ class DataSet_float : public DataSet_1D {
     void AddElement(float f)             { Data_.push_back( f );      }
     /// Make set size sizeIn, all values set to 0.0.
     void Resize(size_t sizeIn)           { Data_.resize(sizeIn, 0.0); }
+    /// Resize, filling extra values with given value
+    void Resize(size_t sizeIn, float f)  { Data_.resize(sizeIn, f);   }
     // ----- DataSet functions -------------------
     size_t Size()                  const { return Data_.size();       }
 #   ifdef MPI
@@ -22,6 +24,7 @@ class DataSet_float : public DataSet_1D {
     void Add( size_t, const void* );
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     int Append(DataSet*);
+    size_t MemUsageInBytes() const { return Data_.size() * sizeof(float); }
     // ----- DataSet_1D functions ----------------
     double Dval(size_t idx)        const { return (double)Data_[idx]; }
     double Xcrd(size_t idx)        const { return Dim(0).Coord(idx);  }

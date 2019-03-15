@@ -34,6 +34,9 @@
   *     1400+X: Action_AtomicCorr: Atomic movement vectors
   *     1500  : Action_NAstruct: Array containing BP step info on rank.
   *     1501+X:   Array of step series data from rank.
+  *     1600+X: Ensemble sort
+  *     1700  : DataSet_MatrixFlt size
+  *     1701  : DataSet_MatrixFlt buffer
   */
 class Parallel {
   public:
@@ -50,12 +53,29 @@ class Parallel {
 #   ifdef CPPTRAJ_MPI
     static int Abort(int);
     /// Set up ensemble and trajectory communicators for given ensemble size
-    static int SetupComms(int);
+    static int SetupComms(int, bool);
+    /// Set up communicators - do not allow fewer processes than groups. TODO remove
+    static int SetupComms(int n) { return SetupComms(n, false); }
     /// For DEBUG: infinite loop, gives time to attach a debugger.
     static void Lock();
+    /// \return Across-ensemble communicator; includes trajectory comm. masters.
     static Comm const& EnsembleComm()   { return ensembleComm_;   }
+    /// \return True if comms have been set up for a specific number of groups.
+    static bool EnsembleIsSetup()       { return ensemble_size_ > -1; }
+    /// \return total ensemble size.
+    static int Ensemble_Size()          { return ensemble_size_;  }
+    /// \return First ensemble member this process is responsible for.
+    static int Ensemble_Beg()           { return ensemble_beg_;   }
+    /// \return Last+1 ensemble member this process is responsible for.
+    static int Ensemble_End()           { return ensemble_end_;   }
+    /// \return Total number of ensemble members this process is responsible for.
+    static int N_Ens_Members()          { return n_ens_members_;  }
+    /// \return Rank in ensemble comm. for given member.
+    static int MemberEnsCommRank(int i) { return memberEnsRank_[i];}
+    /// \return Across-trajectory communicator.
     static Comm const& TrajComm()       { return trajComm_;       }
-    static Comm const& ActiveComm();
+    /// \return Communicator containing TrajComm() masters.
+    static Comm const& MasterComm()     { return masterComm_;     }
 #   ifdef PARALLEL_DEBUG_VERBOSE
     static FILE* mpidebugfile_;
 #   endif /* PARALLEL_DEBUG_VERBOSE */
@@ -64,6 +84,11 @@ class Parallel {
 #   ifdef CPPTRAJ_MPI
     static void printMPIerr(int, const char*, int);
     static int checkMPIerr(int, const char*, int);
+    static int ensemble_size_;  ///< Total number of ensemble members.
+    static int ensemble_beg_;   ///< Starting member for this ensemble process.
+    static int ensemble_end_;   ///< Ending member for this ensemble process.
+    static int n_ens_members_;  ///< Number of ensemble members process is responsible for.
+    static int* memberEnsRank_; ///< Rank in ensemble comm for each member.
 #   ifdef PARALLEL_DEBUG_VERBOSE
     static void dbgprintf(const char*, ...);
     static int debug_init();
@@ -71,10 +96,11 @@ class Parallel {
 #   endif /* PARALLEL_DEBUG_VERBOSE */
     static Comm ensembleComm_;   ///< Communicator across ensemble.
     static Comm trajComm_;       ///< Communicator across single trajectory.
+    static Comm masterComm_;     ///< Communicator between trajComm_ masters.
 #   endif /* CPPTRAJ_MPI */
-    static Comm world_;
+    static Comm world_;          ///< World communicator.
 };
-
+/// Wrapper around MPI communicator.
 class Parallel::Comm {
   public:
     int Rank()    const { return rank_;      }
@@ -86,6 +112,7 @@ class Parallel::Comm {
     //~Comm();
     Comm(Comm const&);
     Comm& operator=(Comm const&);
+    bool operator==(Comm const&) const;
     /// \return Internal MPI_Comm
     MPI_Comm MPIcomm() const { return comm_; }
     bool IsNull() const { return comm_ == MPI_COMM_NULL; }
@@ -93,12 +120,20 @@ class Parallel::Comm {
     /// Split this Comm into a new Comm, give current rank the given ID
     Comm Split(int) const;
     void Reset();
+    /// my_start, my_stop, maxElts
+    int DivideAmongProcesses(int&, int&, int) const;
     /// RecvBuffer, SendBuffer, Count, DataType, Op
-    int Reduce(void*, void*, int, MPI_Datatype, MPI_Op) const;
+    int ReduceMaster(void*, void*, int, MPI_Datatype, MPI_Op) const;
+    /// Rank, RecvBuffer, SendBuffer, Count, DataType, Op
+    int Reduce(int, void*, void*, int, MPI_Datatype, MPI_Op) const;
     /// Buffer, Count, Rank, DataType 
     int SendMaster(void*, int, int, MPI_Datatype) const;
     /// Return, Input, Count, DataType, Op
     int AllReduce(void*, void*, int, MPI_Datatype, MPI_Op) const;
+    /// Buffer, Count, DataType, Op
+    int AllReduce(void*, int, MPI_Datatype, MPI_Op) const;
+    /// SendBuffer, Count, DataType, RecvBuffer, Rank
+    int Gather(void*, int, MPI_Datatype, void*, int) const;
     /// SendBuffer, Count, DataType, RecvBuffer
     int GatherMaster(void*, int, MPI_Datatype, void*) const;
     /// SendBuffer, Count, DataType, RecvBuffer
@@ -120,7 +155,7 @@ class Parallel::Comm {
     int rank_;
     int size_;
 };
-
+/// Wrapper around MPI file routines.
 class Parallel::File {
   public:
     File() {}
@@ -131,6 +166,7 @@ class Parallel::File {
     int CloseFile();
     int Fread(void*, int, MPI_Datatype);
     int Fwrite(const void*, int, MPI_Datatype);
+    int Fwrite_shared(const void*, int, MPI_Datatype);
     int Fseek(off_t, int);
     char* Fgets(char*, int);
     int SetSize(long int);

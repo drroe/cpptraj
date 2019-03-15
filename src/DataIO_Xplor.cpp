@@ -100,11 +100,6 @@ int DataIO_Xplor::ReadData(FileName const& fname,
       }
     }
   }
-  // Set dimensions
-  // FIXME: This should be integrated with allocation
-  //grid.SetDim(Dimension::X, Dimension(origin[0], spacing[0], GridPts[0], "X"));
-  //grid.SetDim(Dimension::Y, Dimension(origin[1], spacing[1], GridPts[1], "Y"));
-  //grid.SetDim(Dimension::Z, Dimension(origin[2], spacing[2], GridPts[2], "Z"));
 
   return 0;
 }
@@ -170,7 +165,7 @@ int DataIO_Xplor::WriteSet3D(DataSet const& setIn, CpptrajFile& outfile) const {
   // Locate the indices of the absolute origin in order to find starting
   // indices for each axis. FIXME: Is this correct?
   long int grid_min_x, grid_min_y, grid_min_z;
-  set.BinIndices(0.0, 0.0, 0.0, grid_min_x, grid_min_y, grid_min_z);
+  set.Bin().Indices(0.0, 0.0, 0.0, grid_min_x, grid_min_y, grid_min_z);
   if (grid_min_x != 0L) grid_min_x = -grid_min_x;
   if (grid_min_y != 0L) grid_min_y = -grid_min_y;
   if (grid_min_z != 0L) grid_min_z = -grid_min_z;
@@ -178,7 +173,7 @@ int DataIO_Xplor::WriteSet3D(DataSet const& setIn, CpptrajFile& outfile) const {
                    set.NX(), grid_min_x, grid_min_x + set.NX() - 1,
                    set.NY(), grid_min_y, grid_min_y + set.NY() - 1,
                    set.NZ(), grid_min_z, grid_min_z + set.NZ() - 1,
-                   set.Ucell());
+                   set.Bin().Ucell());
   // Print grid bins
   for (size_t k = 0; k < set.NZ(); ++k) {
     outfile.Printf("%8i\n", k);

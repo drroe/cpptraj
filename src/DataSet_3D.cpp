@@ -1,3 +1,4 @@
+#include <cmath> // ceil
 #include "DataSet_3D.h"
 #include "CpptrajStdio.h"
 
@@ -13,7 +14,10 @@ DataSet_3D::DataSet_3D(DataSet_3D const& rhs) : DataSet(rhs), gridBin_(0) {
 int DataSet_3D::Allocate_N_O_Box(size_t nx, size_t ny, size_t nz, 
                                  Vec3 const& oxyz, Box const& boxIn)
 {
-  if (nx == 0 || ny == 0 || nz == 0) return 1;
+  if (nx == 0 || ny == 0 || nz == 0) {
+    mprinterr("Error: One or more grid sizes are 0: %zu %zu %zu\n", nx, ny, nz);
+    return 1;
+  }
   if (gridBin_ != 0) delete gridBin_;
   GridBin_Nonortho* gb = new GridBin_Nonortho();
   // Set origin and unit cell params.
@@ -26,7 +30,10 @@ int DataSet_3D::Allocate_N_O_Box(size_t nx, size_t ny, size_t nz,
 int DataSet_3D::Allocate_N_O_D(size_t nx, size_t ny, size_t nz,
                                Vec3 const& oxyz, Vec3 const& dxyz)
 {
-  if (nx == 0 || ny == 0 || nz == 0) return 1;
+  if (nx == 0 || ny == 0 || nz == 0) {
+    mprinterr("Error: One or more grid sizes are 0: %zu %zu %zu\n", nx, ny, nz);
+    return 1;
+  }
   if (gridBin_ != 0) delete gridBin_;
   GridBin_Ortho* gb = new GridBin_Ortho();
   // Set origin and spacing, calculate maximum (for binning).
@@ -63,12 +70,13 @@ int DataSet_3D::Allocate_N_C_D(size_t nx, size_t ny, size_t nz,
 int DataSet_3D::Allocate_X_C_D(Vec3 const& sizes, Vec3 const& center, Vec3 const& dxyz)
 {
   // Calculate bin counts
-  size_t nx = (size_t)(sizes[0] / dxyz[0]);
-  size_t ny = (size_t)(sizes[1] / dxyz[1]);
-  size_t nz = (size_t)(sizes[2] / dxyz[2]);
+  size_t nx = (size_t)ceil(sizes[0] / dxyz[0]);
+  size_t ny = (size_t)ceil(sizes[1] / dxyz[1]);
+  size_t nz = (size_t)ceil(sizes[2] / dxyz[2]);
   return Allocate_N_C_D( nx, ny, nz, center, dxyz );
 }
 
+// DataSet_3D::GridInfo()
 void DataSet_3D::GridInfo() const {
   if (gridBin_ == 0) return;
   Vec3 const& oxyz = gridBin_->GridOrigin();

@@ -1,20 +1,18 @@
 add_subdirectory(xdrfile)
 
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# Parse cpptrajfiles and ambpdbfiles
+# Parse cpptrajfiles
 
 # read each non-empty line into an element of a list
 file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/cpptrajfiles CPPTRAJFILES_CONTENTS)
-file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/ambpdbfiles AMBPDBFILES_CONTENTS)
 
 # get rid of backslashes
 string(REPLACE "\\" "" CPPTRAJFILES_CONTENTS "${CPPTRAJFILES_CONTENTS}")
-string(REPLACE "\\" "" AMBPDBFILES_CONTENTS "${AMBPDBFILES_CONTENTS}")
 
 # name of list that we are curreently appending to
 set(LIST_NAME "")
 
-foreach(LINE ${CPPTRAJFILES_CONTENTS} ${AMBPDBFILES_CONTENTS})
+foreach(LINE ${CPPTRAJFILES_CONTENTS})
 
 	# ignore comment lines
 	if(NOT "${LINE}" MATCHES "^#")
@@ -55,7 +53,6 @@ endforeach()
 # CSOURCES - all C source files used for cpptraj and libcpptraj
 # SOURCES - C++ sources for cpptraj only
 # LIBCPPTRAJ_OBJECTS - C++ sources for libcpptraj that should be compiled with the LIBCPPTRAJ definition 
-# AMBPDBSOURCES - C++ sources for AMBPDB
 
 # pub_fft.F90 is not in the source lists
 set(PUBFFT_FORTRAN_SOURCE pub_fft.F90)
@@ -63,7 +60,7 @@ set(PUBFFT_FORTRAN_SOURCE pub_fft.F90)
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 set_property(SOURCE ${PUBFFT_FORTRAN_SOURCE} PROPERTY COMPILE_FLAGS "${OPT_FFLAGS_SPC}")
-set_property(SOURCE ${COMMON_SOURCES} ${AMBPDBSOURCES} ${SOURCES} ${LIBCPPTRAJ_OBJECTS} PROPERTY COMPILE_FLAGS "${OPT_CXXFLAGS_SPC}")
+set_property(SOURCE ${COMMON_SOURCES} ${SOURCES} ${LIBCPPTRAJ_OBJECTS} PROPERTY COMPILE_FLAGS "${OPT_CXXFLAGS_SPC}")
 set_property(SOURCE ${CSOURCES} PROPERTY COMPILE_FLAGS "${OPT_CFLAGS_SPC}")
 
 include_directories(${AMBERTOOLS_INC_DIR})
@@ -100,13 +97,7 @@ add_executable(cpptraj $<TARGET_OBJECTS:cpptraj_common_obj> ${SOURCES})
 
 target_link_libraries(cpptraj netcdf netlib)
 
-#------------------------------------------------------------------------------------------
-# ambpdb executable
-
-add_executable(ambpdb ${AMBPDBSOURCES})
-target_link_libraries(ambpdb netcdf)
-install(TARGETS cpptraj ambpdb DESTINATION ${BINDIR})
-
+install(TARGETS cpptraj DESTINATION ${BINDIR})
 #------------------------------------------------------------------------------------------
 # libcpptraj library
 
@@ -120,6 +111,44 @@ install_libraries(libcpptraj)
 #tell others where to find the cpptraj includes
 target_include_directories(libcpptraj INTERFACE .)
 
+#------------------------------------------------------------------------------------------
+# DLL exports/imports
+
+if(SHARED)
+	# CMake automatically sets up the libcpptraj_EXPORTS definition for libcpptraj.
+	# We just have to apply it to the common obj as well.
+	target_compile_definitions(cpptraj_common_obj PRIVATE libcpptraj_EXPORTS)
+
+	# now set up the definition for other people to use
+	target_compile_definitions(libcpptraj INTERFACE CPPTRAJ_USE_DLL)
+endif()
+
+#------------------------------------------------------------------------------------------
+# Header installation
+
+if(INSTALL_HEADERS)
+	# grab all .h files from the main directory.
+	file(GLOB CPPTRAJ_HEADERS "*.h")
+	list(REMOVE_ITEM CPPTRAJ_HEADERS "SymbolExporting.h")
+	
+	# also grab xdrfile headers since some of them are used by cpptraj headers
+	file(GLOB XDRFILE_HEADERS "xdrfile/*.h")
+
+	install(FILES ${CPPTRAJ_HEADERS} DESTINATION ${INCDIR}/cpptraj)
+	install(FILES ${XDRFILE_HEADERS} DESTINATION ${INCDIR}/cpptraj/xdrfile)
+	
+	# configure SymbolExporting.h specially for the current install type
+	if(SHARED)
+		set(CPPTRAJ_IS_SHARED 1)
+	else()
+		set(CPPTRAJ_IS_SHARED 0)
+	endif()
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/SymbolExporting-installversion.h.in ${CMAKE_CURRENT_BINARY_DIR}/SymbolExporting-installversion.h @ONLY)
+	
+	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/SymbolExporting-installversion.h DESTINATION ${INCDIR}/cpptraj RENAME SymbolExporting.h)
+	
+endif()
+
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Deal with external libraries
 
@@ -130,13 +159,13 @@ target_include_directories(libcpptraj INTERFACE .)
 if(libbz2_ENABLED)
 	add_definitions(-DHASBZ2)
 	include_directories(${BZIP2_INCLUDE_DIR})
-	targets_link_libraries(cpptraj libcpptraj ambpdb LIBRARIES bzip2)
+	targets_link_libraries(cpptraj libcpptraj LIBRARIES bzip2)
 endif()
 
 if(zlib_ENABLED)
 	add_definitions(-DHASGZ)
 	include_directories(${ZLIB_INCLUDE_DIRS})
-	targets_link_libraries(cpptraj libcpptraj ambpdb LIBRARIES ${ZLIB_LIBRARIES})
+	targets_link_libraries(cpptraj libcpptraj LIBRARIES ${ZLIB_LIBRARIES})
 endif()
 
 if(fftw_ENABLED)
@@ -153,12 +182,12 @@ else()
 endif()
 
 #xdrfile
-targets_link_libraries(cpptraj libcpptraj ambpdb LIBRARIES xdrfile)
+targets_link_libraries(cpptraj libcpptraj LIBRARIES xdrfile)
 
 # libsander
 if(INSIDE_AMBER AND ("${AMBER_TOOLS}" MATCHES "sander" AND BUILD_SANDER_API))
 	#add the sander-specific definitions and libraries
-	set_property(TARGET cpptraj PROPERTY COMPILE_DEFINITIONS USE_SANDERLIB)
+	target_compile_definitions(cpptraj PRIVATE USE_SANDERLIB)
 	target_link_libraries(cpptraj libsander)
 endif()
 
@@ -192,7 +221,7 @@ if(OPENMP)
 	make_openmp_version(libcpptraj libcpptraj_omp LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj> TO $<TARGET_OBJECTS:cpptraj_common_obj_openmp> INSTALL)
 endif()
 
-if(MPI AND OPENMP)
+if(BUILD_PARALLEL_COMBINATIONS AND (MPI AND OPENMP))
 	make_openmp_version(cpptraj_common_obj_mpi cpptraj_common_obj_mpi_openmp LANGUAGES CXX)
 	make_openmp_version(cpptraj.MPI cpptraj.MPI.OMP LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_mpi> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_openmp> INSTALL)
 	make_openmp_version(libcpptraj_mpi libcpptraj_mpi_omp LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_mpi> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_openmp> INSTALL)
@@ -217,7 +246,7 @@ if(CUDA)
 	
 	install(TARGETS cpptraj.cuda DESTINATION ${BINDIR} COMPONENT CUDA)
 	
-	if(MPI)
+	if(BUILD_PARALLEL_COMBINATIONS AND MPI)
 		make_mpi_version(cpptraj_common_obj_cuda cpptraj_common_obj_mpi_cuda LANGUAGES CXX)
 		make_mpi_version(cpptraj.cuda cpptraj.MPI.cuda LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_cuda> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_cuda> INSTALL)
 		make_mpi_version(libcpptraj_cuda libcpptraj_mpi_cuda LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_cuda> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_cuda> INSTALL)
@@ -231,13 +260,13 @@ if(CUDA)
 		endif()
 	endif()
 
-	if(OPENMP)
+	if(BUILD_PARALLEL_COMBINATIONS AND OPENMP)
 		make_openmp_version(cpptraj_common_obj_cuda cpptraj_common_obj_openmp_cuda LANGUAGES CXX)
 		make_openmp_version(cpptraj.cuda cpptraj.OMP.cuda LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_cuda> TO $<TARGET_OBJECTS:cpptraj_common_obj_openmp_cuda> INSTALL)
 		make_openmp_version(libcpptraj_cuda libcpptraj_omp_cuda LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_cuda> TO $<TARGET_OBJECTS:cpptraj_common_obj_openmp_cuda> INSTALL)
 	endif()
 
-	if(MPI AND OPENMP)
+	if(BUILD_PARALLEL_COMBINATIONS AND (MPI AND OPENMP))
 		# THE ULTIMATE CHIMERA!!!!! Muahahahaha!
 		make_openmp_version(cpptraj_common_obj_mpi_cuda cpptraj_common_obj_mpi_openmp_cuda LANGUAGES CXX)
 		make_openmp_version(cpptraj.MPI.cuda cpptraj.MPI.OMP.cuda LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_mpi_cuda> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_openmp_cuda> INSTALL)

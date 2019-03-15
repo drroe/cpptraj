@@ -6,7 +6,7 @@
 CleanFiles mask.in mask.out mask.pdb.1 mask.mol2.1 M.dat
 
 TESTNAME='Mask command tests'
-Requires netcdf
+Requires netcdf maxthreads 10
 
 INPUT="-i mask.in"
 # Test 1
@@ -30,7 +30,7 @@ cat > mask.in <<EOF
 noprogress
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc
-mask "(:8@NZ <:3.0) & :WAT@O" name M out M.dat noxcol
+mask "(:8@NZ <:3.0) & :WAT@O" name M out M.dat
 EOF
 RunCpptraj "Mask longer command test."
 DoTest M.dat.save M.dat

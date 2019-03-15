@@ -16,8 +16,9 @@ class DataSet_GridDbl : public DataSet_3D {
     // FIXME: Currently just sums up. Should this be a separate Sync function?
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
 #   endif
-    void Info()                          const { return;                     }
+    void Info()                          const { return; }
     void WriteBuffer(CpptrajFile&,SizeArray const&) const;
+    size_t MemUsageInBytes() const { return grid_.DataSize(); }
     // ----- DataSet_3D functions ----------------
     int Allocate3D(size_t x,size_t y,size_t z) { return grid_.resize(x,y,z); }
     double GetElement(size_t x,size_t y,size_t z) const { return grid_.element(x,y,z); }
@@ -50,14 +51,14 @@ class DataSet_GridDbl : public DataSet_3D {
 // DataSet_GridDbl::Increment()
 long int DataSet_GridDbl::Increment(Vec3 const& xyz, double f) {
   size_t i,j,k;
-  if (CalcBins(xyz[0],xyz[1],xyz[2],i,j,k))
+  if (Bin().Calc(xyz[0],xyz[1],xyz[2],i,j,k))
     return grid_.incrementBy(i,j,k,f);
   return -1L; 
 }
 // DataSet_GridDbl::Increment()
 long int DataSet_GridDbl::Increment(const double* xyz, double f) {
   size_t i,j,k;
-  if (CalcBins(xyz[0],xyz[1],xyz[2],i,j,k))
+  if (Bin().Calc(xyz[0],xyz[1],xyz[2],i,j,k))
     return grid_.incrementBy(i,j,k,f);
   return -1L;
 }

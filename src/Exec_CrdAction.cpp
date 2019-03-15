@@ -105,15 +105,12 @@ Exec::RetType Exec_CrdAction::Execute(CpptrajState& State, ArgList& argIn) {
   int err = 0;
   // Create a communicator that just contains the master.
   int ID = MPI_UNDEFINED;
-  if (Parallel::TrajComm().IsNull()) {
-    if (Parallel::World().Master())
-      ID = 0;
-  } else if (Parallel::TrajComm().Master())
+  if (Parallel::TrajComm().Master())
     ID = Parallel::World().Rank();
   //rprintf("DEBUG: About to create new comm, ID= %i\n", ID);
   trajComm_ = Parallel::World().Split( ID );
   if (ID != MPI_UNDEFINED) {
-    mprintf("Warning: '%s' command does not yet use multiple MPI threads.\n", argIn.Command());
+    mprintf("Warning: '%s' command does not yet use multiple MPI processes.\n", argIn.Command());
     ret = ProcessArgs(State, argIn);
     if (ret != CpptrajState::OK)
       err = 1;

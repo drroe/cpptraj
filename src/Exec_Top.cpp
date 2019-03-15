@@ -4,9 +4,18 @@
 #include "TopInfo.h"
 
 void Exec_LoadParm::Help() const {
-  mprintf("\t<filename> [{[TAG] | name <setname>}] [nobondsearch | bondsearch [<offset>]]\n"
-          "  Add <filename> to the topology list.\n");
-  ParmFile::ReadOptions();
+  mprintf("\t<filename> [{[TAG] | name <setname>}]\n"
+          "\t [{ nobondsearch |\n"
+          "\t    [bondsearch <offset>] [searchtype {grid|pairlist}]\n"
+          "\t  }]\n"
+          "  Add <filename> to the topology list.\n"
+          "  For topologies that may not have bond information, 'bondsearch <offset>'\n"
+          "  controls the offset that will be added to atom-atom distances when\n"
+          "  searching for bonds (default 0.2 Ang), and 'searchtype' specifies\n"
+          "  different algorithms that can be used for searching bonds (still\n"
+          "  experimental. Bond searching can be skipped via 'nobondsearch' (not\n"
+          "  recommended).\n"
+          "  Use 'help Formats parm' for format-specific options.\n");
 }
 // -----------------------------------------------------------------------------
 void Exec_ParmInfo::Help() const {
@@ -57,9 +66,25 @@ Exec::RetType Exec_BondInfo::Execute(CpptrajState& State, ArgList& argIn) {
   TopInfo info;
   if (CommonSetup(info, State, argIn, "Bond info")) return CpptrajState::ERR;
   std::string mask1 = argIn.GetMaskNext();
-  if (info.PrintBondInfo( mask1, argIn.GetMaskNext() )) return CpptrajState::ERR;
+  if (info.PrintBondInfo( mask1, argIn.GetMaskNext(),false )) return CpptrajState::ERR;
   return CpptrajState::OK;
 }
+// -----------------------------------------------------------------------------
+void Exec_UBInfo::Help() const {
+  mprintf("\t[%s] [<mask1>] [<mask2>] [out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("  For specified topology (first by default) either print CHARMM Urey-Bradley\n"
+          "  info for all atoms in <mask1>, or print info for bonds with first atom in\n"
+          "  <mask1> and second atom in <mask2>.\n");
+}
+
+Exec::RetType Exec_UBInfo::Execute(CpptrajState& State, ArgList& argIn) {
+  TopInfo info;
+  if (CommonSetup(info, State, argIn, "Urey-Bradley info")) return CpptrajState::ERR;
+  std::string mask1 = argIn.GetMaskNext();
+  if (info.PrintBondInfo( mask1, argIn.GetMaskNext(), true )) return CpptrajState::ERR;
+  return CpptrajState::OK;
+}
+
 // -----------------------------------------------------------------------------
 void Exec_AngleInfo::Help() const {
   mprintf("\t[%s] [<mask1>] [<mask2> <mask3>]\n\t[out <file>]\n", DataSetList::TopIdxArgs);
@@ -95,7 +120,32 @@ Exec::RetType Exec_DihedralInfo::Execute(CpptrajState& State, ArgList& argIn) {
   std::string mask1 = argIn.GetMaskNext();
   std::string mask2 = argIn.GetMaskNext();
   std::string mask3 = argIn.GetMaskNext();
-  if (info.PrintDihedralInfo( mask1, mask2, mask3, argIn.GetMaskNext() )) return CpptrajState::ERR;
+  if (info.PrintDihedralInfo( mask1, mask2, mask3, argIn.GetMaskNext(), false ))
+    return CpptrajState::ERR;
+  return CpptrajState::OK;
+}
+
+// -----------------------------------------------------------------------------
+void Exec_ImproperInfo::Help() const {
+  mprintf("\t[%s] [<mask1>] [<mask2> <mask3> <mask4>]\n\t[out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("  For specified topology (first by default) either print CHARMM improper info\n"
+          "  for all atoms in <mask1>, or print info for dihedrals with first atom in <mask1>,\n"
+          "  second atom in <mask2>, third atom in <mask3>, and fourth atom in <mask4>.\n");
+}
+
+Exec::RetType Exec_ImproperInfo::Execute(CpptrajState& State, ArgList& argIn) {
+  if (argIn.hasKey("and")) {
+    mprinterr("Error: The 'and' keyword has been deprecated. To restrict improper\n"
+              "Error:   selection please use 4 masks.\n");
+    return CpptrajState::ERR;
+  }
+  TopInfo info;
+  if (CommonSetup(info, State, argIn, "Improper info")) return CpptrajState::ERR;
+  std::string mask1 = argIn.GetMaskNext();
+  std::string mask2 = argIn.GetMaskNext();
+  std::string mask3 = argIn.GetMaskNext();
+  if (info.PrintDihedralInfo( mask1, mask2, mask3, argIn.GetMaskNext(), true ))
+    return CpptrajState::ERR;
   return CpptrajState::OK;
 }
 

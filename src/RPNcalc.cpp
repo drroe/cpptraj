@@ -235,8 +235,9 @@ int RPNcalc::ProcessExpression(std::string const& expression) {
         bool has_colon = false; // For index
         enum BracketState { NONE, OPEN, CLOSED };
         BracketState bracket = NONE;
-        while (ptr != expression.end() && !isOpChar(*ptr) && !isspace(*ptr,loc))
+        while (ptr != expression.end() && !isspace(*ptr,loc))
         {
+          if (bracket != OPEN && isOpChar(*ptr)) break;
           //mprintf("DEBUG: Var '%c'\n", *ptr);
           varname.push_back( *(ptr++) );
           // Check for brackets (Aspect)
@@ -417,11 +418,12 @@ static inline bool ScalarTimeSeries(DataSet* ds) {
 }
 
 static inline bool IsMatrix(DataSet* ds) {
-  return (ds->Type()==DataSet::MATRIX_DBL ||
-          ds->Type()==DataSet::MATRIX_FLT);
+  return (ds->Group()==DataSet::MATRIX_2D);
 }
 
-static inline bool IsGrid(DataSet* ds) { return ds->Type()==DataSet::GRID_FLT; }
+static inline bool IsGrid(DataSet* ds) {
+  return ds->Group()==DataSet::GRID_3D;
+}
 
 // RPNcalc::Evaluate()
 int RPNcalc::Evaluate(DataSetList& DSL) const {
@@ -760,12 +762,14 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
                 return 1;
               }
               // Check if spacing is the same, warn if not.
-              if (G1.GridOrigin() != G2.GridOrigin())
+              if (G1.Bin().GridOrigin() != G2.Bin().GridOrigin())
                 mprintf("Warning: Grid origins do not match. Using origin %g %g %g\n",
-                        G1.GridOrigin()[0], G1.GridOrigin()[1], G1.GridOrigin()[2]);
+                        G1.Bin().GridOrigin()[0], G1.Bin().GridOrigin()[1],
+                        G1.Bin().GridOrigin()[2]);
               tempDS = LocalList.AddSet(DataSet::GRID_FLT, MetaData("TEMP", T-tokens_.begin()));
               DataSet_GridFlt& G0 = static_cast<DataSet_GridFlt&>( *tempDS );
-              G0.Allocate_N_O_Box(G1.NX(), G1.NY(), G1.NZ(), G1.GridOrigin(), Box(G1.Ucell()));
+              G0.Allocate_N_O_Box(G1.NX(), G1.NY(), G1.NZ(), G1.Bin().GridOrigin(),
+                                  Box(G1.Bin().Ucell()));
               G1.GridInfo();
               G0.GridInfo();
               for (unsigned int n = 0; n != G1.Size(); n++)

@@ -67,7 +67,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
   if (tvecType_ != NO_TVEC)
     vecsOut = init.DFL().AddDataFile(actionArgs.GetStringKey("vecsout"));
   // Reference keywords
-  REF_.InitRef(actionArgs, init.DSL(), fit_, useMass_ );
+  if (REF_.InitRef(actionArgs, init.DSL(), fit_, useMass_ )) return Action::ERR;
   // Per-res keywords
   perres_ = actionArgs.hasKey("perres");
   if (perres_) {
@@ -96,7 +96,10 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
   REF_.SetRefMask( rMaskExpr );
 
   // Set up the RMSD data set.
-  MetaData md( actionArgs.GetStringNext(), MetaData::M_RMS ); 
+  std::string dsname = actionArgs.GetStringNext();
+  if (dsname.empty())
+    dsname = init.DSL().GenerateDefaultName("RMSD");
+  MetaData md( dsname, MetaData::M_RMS ); 
   rmsd_ = init.DSL().AddSet(DataSet::DOUBLE, md, "RMSD");
   if (rmsd_==0) return Action::ERR;
   // Add dataset to data file list
@@ -320,6 +323,14 @@ Action::RetType Action_Rmsd::Setup(ActionSetup& setup) {
     mprintf("Warning: No atoms in mask '%s'.\n", tgtMask_.MaskString());
     return Action::SKIP;
   }
+  if ( fit_ && tgtMask_.Nselected() < 3 ) {
+    mprintf("Warning: Less than 3 atoms selected for best-fit RMSD. Cannot fully\n"
+            "Warning:   populate the coordinate covariance matrix.\n");
+    if (debug_ == 0) {
+      mprintf("Warning: Skipping.\n");
+      return Action::SKIP;
+    }
+  }
   // Allocate space for selected atoms in the frame. This will also put the
   // correct masses in based on the mask.
   tgtFrame_.SetupFrameFromMask(tgtMask_, setup.Top().Atoms());
@@ -339,13 +350,8 @@ Action::RetType Action_Rmsd::Setup(ActionSetup& setup) {
   }
 
   // Warn if PBC and rotating
-  if (fit_) {
-    if (mode_ == ROT_AND_TRANS && setup.CoordInfo().TrajBox().Type() != Box::NOBOX) {
-      mprintf("Warning: Coordinates are being rotated and box coordinates are present.\n"
-              "Warning: Unit cell vectors are NOT rotated; imaging will not be possible\n"
-              "Warning:  after the RMS-fit is performed.\n");
-    }
-  }
+  if (fit_ && mode_ == ROT_AND_TRANS)
+    Action::CheckImageRotationWarning(setup, "the RMS-fit");
 
   return Action::OK;
 }

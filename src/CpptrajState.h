@@ -28,6 +28,8 @@ class CpptrajState {
     DataSetList&       DSL()        { return DSL_;         }
     DataFileList const& DFL() const { return DFL_;         }
     DataFileList&       DFL()       { return DFL_;         }
+    AnalysisList const& Analyses() const { return analysisList_; }
+    AnalysisList&       Analyses()       { return analysisList_; }
     TrajModeType Mode()       const { return mode_;        }
     int Debug()               const { return debug_;       }
     bool ShowProgress()       const { return showProgress_;}
@@ -83,7 +85,7 @@ class CpptrajState {
     int RunNormal();
     int RunEnsemble();
 #   ifdef MPI
-    void DivideFramesAmongThreads(int&, int&, int&, int, Parallel::Comm const&) const;
+    void DivideFramesAmongProcesses(int&, int&, int&, int, Parallel::Comm const&) const;
     int PreloadCheck(int, int, int&, int&) const;
     int RunParallel();
     int RunParaEnsemble();

@@ -23,7 +23,7 @@ Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, ActionInit& init
   DataFile* outfile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   remap_ = actionArgs.hasKey("remap");
   // Reference keywords
-  REF_.InitRef(actionArgs, init.DSL(), fit, useMass);
+  if (REF_.InitRef(actionArgs, init.DSL(), fit, useMass)) return Action::ERR;
   // Get the RMS mask string for target
   std::string tMaskExpr = actionArgs.GetMaskNext();
   if (tgtMask_.SetMaskString( tMaskExpr )) return Action::ERR;
@@ -83,6 +83,8 @@ Action::RetType Action_SymmetricRmsd::Setup(ActionSetup& setup) {
   // Reference frame setup
   if (REF_.SetupRef(setup.Top(), tgtMask_.Nselected()))
     return Action::ERR;
+  if (SRMSD_.Fit())
+    Action::CheckImageRotationWarning(setup, "the RMS fit");
   return Action::OK;
 }
 

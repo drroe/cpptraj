@@ -19,11 +19,14 @@
 #include "Exec_DataSetCmd.h"
 #include "Exec_GenerateAmberRst.h"
 #include "Exec_Help.h"
+#include "Exec_ParallelAnalysis.h"
 #include "Exec_Precision.h"
 #include "Exec_PrintData.h"
 #include "Exec_ReadData.h"
+#include "Exec_ReadEnsembleData.h"
 #include "Exec_ReadInput.h"
 #include "Exec_RunAnalysis.h"
+#include "Exec_SortEnsembleData.h"
 #include "Exec_SequenceAlign.h"
 #include "Exec_ViewRst.h"
 // ----- SYSTEM ----------------------------------------------------------------
@@ -36,6 +39,8 @@
 #include "Exec_LoadTraj.h"
 #include "Exec_PermuteDihedrals.h"
 #include "Exec_RotateDihedral.h"
+#include "Exec_SplitCoords.h"
+#include "Exec_CatCrd.h"
 // ----- TRAJECTORY ------------------------------------------------------------
 #include "Exec_Traj.h"
 // ----- TOPOLOGY --------------------------------------------------------------
@@ -47,6 +52,7 @@
 #include "Exec_ParmWrite.h"
 #include "Exec_ScaleDihedralK.h"
 #include "Exec_Top.h"
+#include "Exec_UpdateParameters.h"
 // ----- ACTION ----------------------------------------------------------------
 #include "Action_Angle.h"
 #include "Action_Distance.h"
@@ -131,6 +137,7 @@
 #include "Action_FixImagedBonds.h"
 #include "Action_LipidOrder.h"
 #include "Action_InfraredSpectrum.h"
+#include "Action_XtalSymm.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -169,6 +176,8 @@
 #include "Analysis_State.h"
 #include "Analysis_Multicurve.h"
 #include "Analysis_TI.h"
+#include "Analysis_ConstantPHStats.h"
+#include "Analysis_HausdorffDistance.h"
 
 CmdList Command::commands_ = CmdList();
 
@@ -195,16 +204,19 @@ void Command::Init() {
   Command::AddCmd( new Exec_DataFileCmd(),     Cmd::EXE, 1, "datafile" );
   Command::AddCmd( new Exec_DataFilter(),      Cmd::EXE, 1, "datafilter" );
   Command::AddCmd( new Exec_DataSetCmd(),      Cmd::EXE, 1, "dataset" );
+  Command::AddCmd( new Exec_EnsFileExt(),      Cmd::EXE, 1, "ensextension" );
   Command::AddCmd( new Exec_GenerateAmberRst(),Cmd::EXE, 1, "rst" );
   Command::AddCmd( new Exec_Help(),            Cmd::EXE, 1, "help" );
   Command::AddCmd( new Exec_ListAll(),         Cmd::EXE, 1, "list" );
   Command::AddCmd( new Exec_NoExitOnError(),   Cmd::EXE, 1, "noexitonerror" );
   Command::AddCmd( new Exec_NoProgress(),      Cmd::EXE, 1, "noprogress" );
+  Command::AddCmd( new Exec_ParallelAnalysis(),Cmd::EXE, 1, "parallelanalysis" );
   Command::AddCmd( new Exec_Precision(),       Cmd::EXE, 1, "precision" );
   Command::AddCmd( new Exec_PrintData(),       Cmd::EXE, 1, "printdata" );
   Command::AddCmd( new Exec_QuietBlocks(),     Cmd::EXE, 1, "quietblocks" );
   Command::AddCmd( new Exec_Quit(),            Cmd::EXE, 2, "exit", "quit" );
   Command::AddCmd( new Exec_ReadData(),        Cmd::EXE, 1, "readdata" );
+  Command::AddCmd( new Exec_ReadEnsembleData(),Cmd::EXE, 1, "readensembledata" );
   Command::AddCmd( new Exec_ReadInput(),       Cmd::EXE, 1, "readinput" );
   Command::AddCmd( new Exec_RemoveData(),      Cmd::EXE, 1, "removedata" );
   Command::AddCmd( new Exec_Run(),             Cmd::EXE, 2, "go", "run" );
@@ -214,7 +226,9 @@ void Command::Init() {
   Command::AddCmd( new Exec_SetListDebug(),    Cmd::EXE, 2, "debug", "prnlev" );
   Command::AddCmd( new Exec_SilenceActions(),  Cmd::EXE, 1, "silenceactions" );
   Command::AddCmd( new Exec_SequenceAlign(),   Cmd::EXE, 1, "sequencealign" );
+  Command::AddCmd( new Exec_SortEnsembleData(),Cmd::EXE, 1, "sortensembledata" );
   Command::AddCmd( new Exec_WriteDataFile(),   Cmd::EXE, 2, "write", "writedata" );
+  Command::AddCmd( new Exec_UseDiskCache(),    Cmd::EXE, 1, "usediskcache" );
   Command::AddCmd( new Exec_ViewRst(),         Cmd::EXE, 1, "viewrst" ); // HIDDEN
 # ifdef MPI
   Command::AddCmd( new Exec_ForceParaEnsemble(), Cmd::EXE, 1, "forceparaensemble" );
@@ -222,6 +236,7 @@ void Command::Init() {
   // SYSTEM
   Command::AddCmd( new Exec_System(), Cmd::EXE, 6, "gnuplot", "head", "less", "ls", "pwd", "xmgrace" );
   // COORDS
+  Command::AddCmd( new Exec_CatCrd(),           Cmd::EXE, 1, "catcrd" );
   Command::AddCmd( new Exec_CombineCoords(),    Cmd::EXE, 1, "combinecrd" ); 
   Command::AddCmd( new Exec_CrdAction(),        Cmd::EXE, 1, "crdaction" );
   Command::AddCmd( new Exec_CrdOut(),           Cmd::EXE, 1, "crdout" );
@@ -229,6 +244,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_LoadTraj(),         Cmd::EXE, 1, "loadtraj" );
   Command::AddCmd( new Exec_PermuteDihedrals(), Cmd::EXE, 1, "permutedihedrals" );
   Command::AddCmd( new Exec_RotateDihedral(),   Cmd::EXE, 1, "rotatedihedral" );
+  Command::AddCmd( new Exec_SplitCoords(),      Cmd::EXE, 1, "splitcoords" );
   // TRAJECTORY
   Command::AddCmd( new Exec_Ensemble(),     Cmd::EXE, 1, "ensemble" );
   Command::AddCmd( new Exec_EnsembleSize(), Cmd::EXE, 1, "ensemblesize" );
@@ -243,6 +259,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_ChargeInfo(),    Cmd::EXE, 1, "charge" );
   Command::AddCmd( new Exec_CompareTop(),    Cmd::EXE, 1, "comparetop" );
   Command::AddCmd( new Exec_DihedralInfo(),Cmd::EXE, 3,"dihedrals","dihedralinfo","printdihedrals");
+  Command::AddCmd( new Exec_ImproperInfo(),Cmd::EXE, 3,"impropers","improperinfo","printimpropers");
   Command::AddCmd( new Exec_MassInfo(),      Cmd::EXE, 1, "mass" );
   Command::AddCmd( new Exec_MolInfo(),       Cmd::EXE, 1, "molinfo" );
   Command::AddCmd( new Exec_LoadParm(),      Cmd::EXE, 1, "parm" );
@@ -253,6 +270,8 @@ void Command::Init() {
   Command::AddCmd( new Exec_ParmWrite(),     Cmd::EXE, 1, "parmwrite" );
   Command::AddCmd( new Exec_ResInfo(),       Cmd::EXE, 1, "resinfo" );
   Command::AddCmd( new Exec_ScaleDihedralK(),Cmd::EXE, 1, "scaledihedralk" );
+  Command::AddCmd( new Exec_UBInfo(),        Cmd::EXE, 2, "ubinfo", "printub" );
+  Command::AddCmd( new Exec_UpdateParameters(), Cmd::EXE, 1, "updateparameters"); // HIDDEN
   // ACTION
   Command::AddCmd( new Action_Align(),         Cmd::ACT, 1, "align" );
   Command::AddCmd( new Action_Angle(),         Cmd::ACT, 1, "angle" );
@@ -337,6 +356,7 @@ void Command::Init() {
   Command::AddCmd( new Action_Volmap(),        Cmd::ACT, 1, "volmap" );
   Command::AddCmd( new Action_Volume(),        Cmd::ACT, 1, "volume" );
   Command::AddCmd( new Action_Watershell(),    Cmd::ACT, 1, "watershell" );
+  Command::AddCmd( new Action_XtalSymm(),      Cmd::ACT, 1, "xtalsymm" );
   // ANALYSIS
   Command::AddCmd( new Analysis_AmdBias(),     Cmd::ANA, 1, "amdbias" ); // HIDDEN
   Command::AddCmd( new Analysis_AutoCorr(),    Cmd::ANA, 1, "autocorr" );
@@ -344,6 +364,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_State(),       Cmd::ANA, 1, "calcstate" );
   Command::AddCmd( new Analysis_Clustering(),  Cmd::ANA, 1, "cluster" );
   Command::AddCmd( new Analysis_Corr(),        Cmd::ANA, 2, "corr", "correlationcoe" );
+  Command::AddCmd( new Analysis_ConstantPHStats,Cmd::ANA,1, "cphstats" );
   Command::AddCmd( new Analysis_CrankShaft(),  Cmd::ANA, 2, "crank", "crankshaft" );
   Command::AddCmd( new Analysis_CrdFluct(),    Cmd::ANA, 1, "crdfluct" );
   Command::AddCmd( new Analysis_CrossCorr(),   Cmd::ANA, 1, "crosscorr" );
@@ -351,6 +372,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_Matrix(),      Cmd::ANA, 2, "diagmatrix", "matrix" );
   Command::AddCmd( new Analysis_Divergence(),  Cmd::ANA, 1, "divergence" );
   Command::AddCmd( new Analysis_FFT(),         Cmd::ANA, 1, "fft" );
+  Command::AddCmd( new Analysis_HausdorffDistance,Cmd::ANA,1,"hausdorff" );
   Command::AddCmd( new Analysis_Hist(),        Cmd::ANA, 2, "hist", "histogram" );
   Command::AddCmd( new Analysis_Integrate(),   Cmd::ANA, 1, "integrate" );
   Command::AddCmd( new Analysis_IRED(),        Cmd::ANA, 1, "ired" );
@@ -462,13 +484,31 @@ Cmd const& Command::SearchToken(ArgList& argIn) {
   return EMPTY_;
 }
 
+/** 0 are hidden categories (i.e. should not appear in help). */
+static const char* ObjKeyword(DispatchObject::Otype typeIn) {
+  switch (typeIn) {
+    case DispatchObject::NONE: return 0;
+    case DispatchObject::PARM: return "Topology";
+    case DispatchObject::TRAJ: return "Trajectory";
+    case DispatchObject::COORDS: return "Coords";
+    case DispatchObject::ACTION: return "Action";
+    case DispatchObject::ANALYSIS: return "Analysis";
+    case DispatchObject::GENERAL: return "General";
+    case DispatchObject::SYSTEM: return "System";
+    case DispatchObject::CONTROL: return "Control";
+    case DispatchObject::HIDDEN: return 0;
+    case DispatchObject::DEPRECATED: return 0;
+  }
+  return 0;
+}
+
 /** First list the command category, then the commands for that category
   * in alphabetical order. Should not be called with NONE, HIDDEN, or
   * DEPRECATED.
   */
 void Command::ListCommandsForType(DispatchObject::Otype typeIn) {
   std::vector< std::string > command_keys;
-  mprintf("%s Commands:\n", DispatchObject::ObjKeyword(typeIn));
+  mprintf("%s Commands:\n", ObjKeyword(typeIn));
   for (CmdList::const_iterator cmd = commands_.begin(); cmd != commands_.end(); ++cmd)
   {
     if (cmd->Obj().Type() == typeIn)
@@ -666,6 +706,23 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
         break;
     }
   }
+# ifdef MPI
+  // Check that everyone had same return value from command
+  int iret = (int)ret_val;
+  std::vector<int> rvals(Parallel::World().Size(), 0);
+  Parallel::World().AllGather(&iret, 1, MPI_INT, &rvals[0]);
+  for (std::vector<int>::const_iterator it = rvals.begin(); it != rvals.end(); ++it)
+  {
+    if (*it != rvals.front()) {
+      // This thread had a return value different than thread 0 - notify and
+      // set the overall return value to error.
+      mprinterr("Internal Error: Thread %u command return value %i differs from world master %i\n",
+                it-rvals.begin(), *it, rvals.front());
+      ret_val = CpptrajState::ERR;
+    }
+  }
+  Parallel::World().Barrier();
+# endif
   return ret_val;
 }
 

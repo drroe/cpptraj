@@ -5,7 +5,10 @@
 // Data types go here
 #include "DataSet_double.h"
 #include "DataSet_float.h"
-#include "DataSet_integer.h"
+#include "DataSet_integer_mem.h"
+#ifdef BINTRAJ
+#include "DataSet_integer_disk.h"
+#endif
 #include "DataSet_string.h"
 #include "DataSet_MatrixDbl.h"
 #include "DataSet_MatrixFlt.h"
@@ -23,32 +26,68 @@
 #include "DataSet_Cmatrix_MEM.h"
 #include "DataSet_Cmatrix_NOMEM.h"
 #include "DataSet_Cmatrix_DISK.h"
+#include "DataSet_pH.h"
+#include "DataSet_PHREMD_Explicit.h"
+#include "DataSet_PHREMD_Implicit.h"
+#include "DataSet_Parameters.h"
 
-// IMPORTANT: THIS ARRAY MUST CORRESPOND TO DataSet::DataType
-const DataSetList::DataToken DataSetList::DataArray[] = {
-  { "unknown",     0                           }, // UNKNOWN_DATA
-  { "double",        DataSet_double::Alloc     }, // DOUBLE
-  { "float",         DataSet_float::Alloc      }, // FLOAT
-  { "integer",       DataSet_integer::Alloc    }, // INTEGER
-  { "string",        DataSet_string::Alloc     }, // STRING
-  { "double matrix", DataSet_MatrixDbl::Alloc  }, // MATRIX_DBL
-  { "float matrix",  DataSet_MatrixFlt::Alloc  }, // MATRIX_FLT
-  { "coordinates",   DataSet_Coords_CRD::Alloc }, // COORDS
-  { "vector",        DataSet_Vector::Alloc     }, // VECTOR
-  { "eigenmodes",    DataSet_Modes::Alloc      }, // MODES
-  { "float grid",    DataSet_GridFlt::Alloc    }, // GRID_FLT
-  { "double grid",   DataSet_GridDbl::Alloc    }, // GRID_DBL
-  { "remlog",        DataSet_RemLog::Alloc     }, // REMLOG
-  { "X-Y mesh",      DataSet_Mesh::Alloc       }, // XYMESH
-  { "trajectories",  DataSet_Coords_TRJ::Alloc }, // TRAJ
-  { "reference",     DataSet_Coords_REF::Alloc }, // REF_FRAME
-  { "3x3 matrices",  DataSet_Mat3x3::Alloc     }, // MAT3X3
-  { "topology",      DataSet_Topology::Alloc   }, // TOPOLOGY
-  { "cluster matrix",DataSet_Cmatrix_MEM::Alloc}, // CMATRIX
-  { "cluster matrix (no memory)",DataSet_Cmatrix_NOMEM::Alloc}, // CMATRIX_NOMEM
-  { "cluster matrix (disk)",     DataSet_Cmatrix_DISK::Alloc},  // CMATRIX_DISK
-  { 0, 0 }
-};
+bool DataSetList::useDiskCache_ = false;
+
+/** Master data set allocation routine. */
+DataSet* DataSetList::NewSet(DataSet::DataType typeIn) {
+  DataSet* ds = 0;
+  bool cannotUseDiskCache = true; // Most cannot.
+  switch (typeIn) {
+    case DataSet::UNKNOWN_DATA :
+      mprinterr("Internal Error: DataSetList::NewSet() called with no type.\n"); break;
+    case DataSet::DOUBLE  : ds = DataSet_double::Alloc(); break;
+    case DataSet::FLOAT   : ds = DataSet_float::Alloc(); break;
+    case DataSet::INTEGER :
+#     ifdef BINTRAJ
+      if (useDiskCache_) {
+        ds = DataSet_integer_disk::Alloc();
+        cannotUseDiskCache = false;
+      } else
+        ds = DataSet_integer_mem::Alloc();
+#     else
+      if (useDiskCache_)
+        mprintf("Warning: Integer data set disk cache requires NetCDF. Using memory.\n"
+      ds = DataSet_integer_mem::Alloc();
+#     endif
+      break;
+    case DataSet::STRING  : ds = DataSet_string::Alloc(); break;
+    case DataSet::MATRIX_DBL : ds = DataSet_MatrixDbl::Alloc(); break;
+    case DataSet::MATRIX_FLT : ds = DataSet_MatrixFlt::Alloc(); break;
+    case DataSet::COORDS     : ds = DataSet_Coords_CRD::Alloc(); break;
+    case DataSet::VECTOR     : ds = DataSet_Vector::Alloc() ; break;
+    case DataSet::MODES      : ds = DataSet_Modes::Alloc(); break;
+    case DataSet::GRID_FLT   : ds = DataSet_GridFlt::Alloc(); break;
+    case DataSet::GRID_DBL   : ds = DataSet_GridDbl::Alloc(); break;
+    case DataSet::REMLOG     : ds = DataSet_RemLog::Alloc(); break;
+    case DataSet::XYMESH     : ds = DataSet_Mesh::Alloc(); break;
+    case DataSet::TRAJ       : ds = DataSet_Coords_TRJ::Alloc(); break;
+    case DataSet::REF_FRAME  : ds = DataSet_Coords_REF::Alloc(); break;
+    case DataSet::MAT3X3     : ds = DataSet_Mat3x3::Alloc(); break;
+    case DataSet::TOPOLOGY   : ds = DataSet_Topology::Alloc(); break;
+    case DataSet::CMATRIX    : ds = DataSet_Cmatrix_MEM::Alloc(); break;
+    case DataSet::CMATRIX_NOMEM : ds = DataSet_Cmatrix_NOMEM::Alloc(); break;
+    case DataSet::CMATRIX_DISK  : ds = DataSet_Cmatrix_DISK::Alloc(); break;
+    case DataSet::PH            : ds = DataSet_pH::Alloc(); break;
+    case DataSet::PH_EXPL       : ds = DataSet_PHREMD_Explicit::Alloc(); break;
+    case DataSet::PH_IMPL       : ds = DataSet_PHREMD_Implicit::Alloc(); break;
+    case DataSet::PARAMETERS    : ds = DataSet_Parameters::Alloc(); break;
+    // Sanity check
+    default:
+      mprinterr("Internal Error: No allocator for DataSet type '%s'\n",
+                DataSet::description(typeIn));
+  }
+  if (ds == 0)
+    mprinterr("Error: Could not allocate DataSet type '%s'\n", DataSet::description(typeIn));
+  else if (useDiskCache_ && cannotUseDiskCache)
+    mprintf("Warning: Use disk cache specified, but DataSet type '%s' cannot use disk caching.\n",
+            DataSet::description(typeIn));
+  return ds;
+}
 
 // CONSTRUCTOR
 DataSetList::DataSetList() :
@@ -223,9 +262,18 @@ DataSet* DataSetList::PopSet( DataSet* dsIn ) {
 /** The set argument must match EXACTLY, so Data will not return Data:1 */
 DataSet* DataSetList::CheckForSet(MetaData const& md) const
 {
-  for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
-    if ( (*ds)->Matches_Exact( md ) )
-      return *ds;
+  // If incoming MetaData ensemble number is not set but DataSetList is,
+  // use DataSetList member number.
+  if (md.EnsembleNum() == -1 && ensembleNum_ != -1) {
+    MetaData md_ensNum( md );
+    md_ensNum.SetEnsembleNum( ensembleNum_ );
+    for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+      if ( (*ds)->Matches_Exact( md_ensNum ) )
+        return *ds;
+  } else
+    for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+      if ( (*ds)->Matches_Exact( md ) )
+        return *ds;
   return 0;
 }
 
@@ -431,12 +479,7 @@ void DataSetList::Timing() const {
 
 // DataSetList::Allocate()
 DataSet* DataSetList::Allocate(DataSet::DataType inType) {
-  TokenPtr token = &(DataArray[inType]);
-  if ( token->Alloc == 0) {
-    mprinterr("Internal Error: No allocator for DataSet type [%s]\n", token->Description);
-    return 0;
-  }
-  return (DataSet*)token->Alloc();
+  return NewSet(inType);
 }
 
 // FIXME Should probably just make a more efficient search of DSL
@@ -565,13 +608,13 @@ int DataSetList::AddOrAppendSets(std::string const& XlabelIn, Darray const& Xval
       }
       if (!canAppend)
         mprinterr("Error: Cannot append set of type %s to set of type %s\n",
-                  DataArray[(*ds)->Type()].Description,
-                  DataArray[existingSet->Type()].Description);
+                  DataSet::description((*ds)->Type()),
+                  DataSet::description(existingSet->Type()));
       // If cannot append or attempt to append fails, rename and add as new set.
       if (!canAppend || existingSet->Append( *ds )) { // TODO Dimension check?
         if (canAppend)
           mprintf("Warning: Append currently not supported for type %s\n",
-                  DataArray[existingSet->Type()].Description);
+                  DataSet::description(existingSet->Type()));
         MetaData md = (*ds)->Meta();
         md.SetName( GenerateDefaultName("X") );
         mprintf("Warning: Renaming %s to %s\n", (*ds)->Meta().PrintName().c_str(),
@@ -599,14 +642,40 @@ void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
 }
 
 void DataSetList::PrintList(DataListType const& dlist) {
+  size_t memTotal = 0;
   for (DataListType::const_iterator ds = dlist.begin(); ds != dlist.end(); ++ds) {
     DataSet const& dset = static_cast<DataSet const&>( *(*ds) );
-    mprintf("\t%s \"%s\" (%s%s), size is %zu", dset.Meta().PrintName().c_str(), dset.legend(),
-            DataArray[dset.Type()].Description, dset.Meta().ScalarDescription().c_str(),
+    mprintf("\t%s \"%s\" (%s%s), size is %zu", dset.Meta().PrintName().c_str(), 
+            dset.legend(), DataSet::description(dset.Type()),
+            dset.Meta().ScalarDescription().c_str(),
             dset.Size());
+    size_t memUsage = dset.MemUsageInBytes();
+    if (memUsage > 0)
+      mprintf(" (%s)", ByteString(memUsage, BYTE_DECIMAL).c_str());
+    memTotal += memUsage;
     dset.Info();
     mprintf("\n");
   }
+# ifdef MPI
+  // Print sets from remaining ranks.
+  if (Parallel::EnsembleIsSetup()) {
+    Parallel::EnsembleComm().Barrier();
+    for (int rank = 1; rank < Parallel::EnsembleComm().Size(); rank++) {
+      if (rank == Parallel::EnsembleComm().Rank() && Parallel::TrajComm().Master()) {
+        for (DataListType::const_iterator ds = dlist.begin(); ds != dlist.end(); ++ds) {
+          DataSet const& dset = static_cast<DataSet const&>( *(*ds) );
+          rprintf("%s \"%s\" (%s%s), size is %zu\n", dset.Meta().PrintName().c_str(),
+                  dset.legend(), DataSet::description(dset.Type()),
+                  dset.Meta().ScalarDescription().c_str(), dset.Size());
+        }
+      }
+      mflush();
+      Parallel::EnsembleComm().Barrier();
+    }
+    Parallel::EnsembleComm().Barrier();
+  }
+# endif
+  mprintf("    Total data set memory usage is at least %s\n", ByteString(memTotal, BYTE_DECIMAL).c_str());
 }
 
 // DataSetList::List()
@@ -647,14 +716,16 @@ int DataSetList::SynchronizeData(Parallel::Comm const& commIn) {
       SetsToSync.push_back( *ds );
       size_on_rank.push_back( (*ds)->Size() );
     }
-// DEBUG
-  //for (int rank = 0; rank != commIn.Size(); rank++) {
-  //  if (rank == commIn.Rank())
-  //    for (DataListType::const_iterator ds = SetsToSync.begin(); ds != SetsToSync.end(); ++ds)
-  //      rprintf("SET '%s'\n", (*ds)->legend());
-  //  commIn.Barrier();
-  //}
-// DEBUG END
+# ifdef PARALLEL_DEBUG_VERBOSE
+  // DEBUG
+  rprintf("DEBUG: SYNCING SETS\n");
+  for (int rank = 0; rank != commIn.Size(); rank++) {
+    if (rank == commIn.Rank())
+      for (DataListType::const_iterator ds = SetsToSync.begin(); ds != SetsToSync.end(); ++ds)
+        rprintf("SET '%s'\n", (*ds)->legend());
+    commIn.Barrier();
+  }
+# endif
   std::vector<int> n_on_rank( commIn.Size(), 0 );
   int nSets = (int)SetsToSync.size();
   commIn.AllGather( &nSets, 1, MPI_INT, &n_on_rank[0] );

@@ -38,6 +38,8 @@ class DataSetList {
     const_iterator end()   const { return DataList_.end();   }
     /// Clear all non-Topology and non-Reference DataSets
     void Clear();
+    /// Clear entire DataSetList
+    void ClearAll();
     /// Sort sets in the DataSetList
     void Sort();
     /// True if no DataSets in list.
@@ -52,6 +54,10 @@ class DataSetList {
     void SetDebug(int d) { debug_ = d; }
     /// Set DataSets pending status.
     void SetDataSetsPending(bool b) { dataSetsPending_ = b; }
+    /// Set whether set has copies (no ds mem free) or not (will free ds mem).
+    void SetHasCopies(bool b)       { hasCopies_ = b;       }
+    /// Set whether DataSets should be cached to disk if possible.
+    void SetDiskCache(bool b)       { useDiskCache_ = b; }
     /// Make all sets not part of an ensemble part of given ensemble.
     //void MakeDataSetsEnsemble(int);
     /// \return Ensemble number; -1 if not an ensemble
@@ -142,8 +148,8 @@ class DataSetList {
     void Timing() const;
 #   endif
   private:
-    /// Clear entire DataSetList
-    void ClearAll();
+    /// \return New set of given type.
+    static DataSet* NewSet(DataSet::DataType);
     /// Search for and remove specified data set if found, optionally free memory.
     DataSet* EraseSet( DataSet*, bool );
     /// Warn if DataSet not found but may be pending.
@@ -170,16 +176,10 @@ class DataSetList {
     int ensembleNum_;       ///< Ensemble member number
     bool hasCopies_;        ///< True if DataSets should not be freed.
     bool dataSetsPending_;  ///< True if Actions will generate DataSets in the future.
+    static bool useDiskCache_; ///< If true try to use disk-cached versions of data sets.
     DataListType DataList_; ///< List of DataSets
     DataListType RefList_;  ///< Pointers to reference data sets.
     DataListType TopList_;  ///< Pointers to topology data sets.
-    /// Hold descriptions and allocators for all DataSet types.
-    struct DataToken {
-      const char* Description;
-      DataSet::AllocatorType Alloc;
-    };
-    static const DataToken DataArray[];
-    typedef const DataToken* TokenPtr;
 #   ifdef MPI
     bool newSetsNeedSync_; ///< If true, any sets added need to be synced.
 #   endif

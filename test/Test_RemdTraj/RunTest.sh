@@ -6,6 +6,9 @@
 CleanFiles remd.in d1.offset.dat d1.crd.dat d1.nc.dat temp.crd.* \
            temp0.crd.* d1.ensemble.dat d1.ensemble.dat.? all.dat 
 
+TESTNAME='Replica exchange trajectory tests'
+Requires maxthreads 10
+
 INPUT="-i remd.in"
 
 # Test 0
@@ -64,7 +67,7 @@ EOF
   cat > remd.in <<EOF
 noprogress
 parm ala2.99sb.mbondi2.parm7 
-ensemble rem.crd.000 remdtraj remdtrajtemp 492.20 
+ensemble rem.crd.000
 trajout temp.crd 
 distance d1 out d1.ensemble.dat @1 @21
 EOF

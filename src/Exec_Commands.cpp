@@ -89,10 +89,10 @@ void Exec_ListAll::Help() const {
 void Exec_SilenceActions::Help() const { mprintf("Silence Actions Init/Setup output.\n"); }
 // -----------------------------------------------------------------------------
 void Exec_DataFileCmd::Help() const {
-  mprintf("\t{<data filename> | *} <datafile cmd>\n"
-          "  Pass <datafile cmd> to specified data file currently in data file list.\n");
+  mprintf("\t{<data filename> | *} <datafile cmd>\n");
   DataFile::WriteHelp();
-  DataFile::WriteOptions();
+  mprintf("  Pass <datafile cmd> to specified data file currently in data file list.\n"
+          "  Use 'help Formats writedata' for help with specific formats.\n");
 }
 // -----------------------------------------------------------------------------
 void Exec_SelectAtoms::Help() const {
@@ -128,6 +128,47 @@ Exec::RetType Exec_SelectDS::Execute(CpptrajState& State, ArgList& argIn) {
   if (!dsets.empty()) {
     mprintf("SelectDS: Arg '%s':\n", dsarg.c_str());
     dsets.List();
+  }
+  return CpptrajState::OK;
+}
+// -----------------------------------------------------------------------------
+void Exec_EnsFileExt::Help() const {
+  mprintf("\t{on|off}\n"
+          "  Turn printing of ensemble member number filename extensions on or off.\n");
+}
+
+Exec::RetType Exec_EnsFileExt::Execute(CpptrajState& State, ArgList& argIn) {
+  if        (argIn.hasKey("on" )) {
+    State.DFL().SetEnsExtension(true);
+    mprintf("\tEnsemble member number will be appended to output file names.\n");
+  } else if (argIn.hasKey("off")) {
+    State.DFL().SetEnsExtension(false);
+    mprintf("\tEnsemble member number will not be appended to output file names.\n");
+#   ifdef MPI
+    mprintf("Warning: This option has not been fully tested in parallel.\n");
+#   endif
+  } else {
+    mprinterr("Error: Expect 'on' or 'off'\n");
+    return CpptrajState::ERR;
+  }
+  return CpptrajState::OK;
+}
+// -----------------------------------------------------------------------------
+void Exec_UseDiskCache::Help() const {
+  mprintf("\t{on|off}\n"
+          "  If on, CPPTRAJ will attempt to cache data sets to disk if possible.\n");
+}
+
+Exec::RetType Exec_UseDiskCache::Execute(CpptrajState& State, ArgList& argIn) {
+  if (argIn.hasKey("on")) {
+    State.DSL().SetDiskCache(true);
+    mprintf("\tWill attempt to cache data sets to disk if possible.\n");
+  } else if (argIn.hasKey("off")) {
+    State.DSL().SetDiskCache(false);
+    mprintf("\tData sets will be stored in memory.\n");
+  } else {
+    mprinterr("Error: Expect 'on' or 'off'\n");
+    return CpptrajState::ERR;
   }
   return CpptrajState::OK;
 }

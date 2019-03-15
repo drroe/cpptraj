@@ -16,6 +16,7 @@ class Traj_CharmmDcd : public TrajectoryIO {
     bool isBigEndian_;       ///< True if file is Big endian
     bool is64bit_;           ///< True if file is 64 bit
     bool forceRead_;         ///< If true read DCD even if version not recognized
+    bool isVel_;             ///< True if this is a velocity trajectory
     unsigned int blockSize_; ///< Size of block bytes: 32 bit = 4, 64 bit = 8
     size_t dcd_dim_;         ///< Number of dimensions in DCD file.
     size_t boxBytes_;        ///< Number of bytes used by box coords if present.
@@ -41,6 +42,7 @@ class Traj_CharmmDcd : public TrajectoryIO {
     int ReadBox(double*);
     int writeDcdHeader();
     inline void seekToFrame(int);
+    inline int readXYZ(double*);
     void setFrameSizes();
 
     // Inherited functions
@@ -50,12 +52,12 @@ class Traj_CharmmDcd : public TrajectoryIO {
     int openTrajin();
     void closeTraj();
     int readFrame(int,Frame&);
+    int readVelocity(int,Frame&);
     int writeFrame(int,Frame const&);
     void Info();
     int processReadArgs(ArgList&);
     int processWriteArgs(ArgList&);
 
-    int readVelocity(int, Frame&) { return 1; }
     int readForce(int, Frame&)    { return 1; }
 #   ifdef MPI
     // Parallel functions

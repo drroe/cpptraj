@@ -3,13 +3,9 @@ include ../config.h
 
 include cpptrajfiles
 
+DEL_FILE = /bin/rm -f
+
 OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o)
-
-include ambpdbfiles
-
-AMBPDB_OBJECTS=$(AMBPDBSOURCES:.cpp=.o)
-
-CUDA_SOURCES=cuda_kernels/core_kernels.cu cuda_kernels/kernel_wrappers.cu
 
 # Default target: cpptraj only
 all: cpptraj$(SFX)$(EXE)
@@ -21,25 +17,18 @@ install: $(INSTALL_TARGETS)
 install_cpptraj: cpptraj$(SFX)$(EXE)
 	mv cpptraj$(SFX)$(EXE) $(CPPTRAJBIN)
 
-cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET)
-	$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(READLINE) $(CUDA_TARGET) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
-
-# AmbPDB -------------------------------
-install_ambpdb: ambpdb$(EXE)
-	mv ambpdb$(EXE) $(CPPTRAJBIN)
-
-ambpdb$(EXE): $(AMBPDB_OBJECTS) $(XDRFILE_TARGET)
-	$(CXX) -o ambpdb$(EXE) $(AMBPDB_OBJECTS) $(LDFLAGS)
+cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET)
+	$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(CUDA_TARGET) $(FFT_TARGET) $(READLINE_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 # libcpptraj ---------------------------
 # Rule to make libcpptraj-specific objects
 %.LIBCPPTRAJ.o : %.cpp
-	$(CXX) -c -o $@ $(CXXFLAGS) -DLIBCPPTRAJ $(DBGFLAGS) $<
+	$(CXX) $(DIRECTIVES) -DLIBCPPTRAJ $(INCLUDE) $(CXXFLAGS) -c -o $@ $<
 
 libcpptraj: $(LIBCPPTRAJ_TARGET)
 
-$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_DEPEND) $(XDRFILE_TARGET)
-	$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(LIBCPPTRAJ_OBJECTS) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
+$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET)
+	$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 nolibcpptraj:
 	@echo ""
@@ -51,12 +40,18 @@ nolibcpptraj:
 nproc:
 	cd ../util && $(MAKE)
 
-# Additional library targets
-readline/libreadline.a: readline/Makefile
-	cd $(READLINE_HOME) && $(MAKE) all
+# Internal object/library targets
+pub_fft.o:  pub_fft.F90
+	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ pub_fft.F90
 
-xdrfile/libxdrfile.a: xdrfile/Makefile
-	cd $(XDRFILE_HOME) && $(MAKE) all
+readline/libreadline.a: ../external.config.h
+	cd readline && $(MAKE) all
+
+xdrfile/libxdrfile.a: ../external.config.h
+	cd xdrfile && $(MAKE) all
+
+arpack/libarpack.a: ../external.config.h
+	cd arpack && $(MAKE) install
 
 noreadline:
 	@echo ""
@@ -68,37 +63,35 @@ noxdrfile:
 	@echo "Skipping bundled XDRFILE build"
 	@echo ""
 
-cuda_kernels/libcpptraj_cuda.a: $(CUDA_SOURCES)
+noarpack:
+	@echo ""
+	@echo "Skipping bundled ARPACK build"
+	@echo ""
+
+cuda_kernels/libcpptraj_cuda.a: ../external.config.h
 	cd cuda_kernels && $(MAKE) all
-
-# Individual file targets
-$(FFT_DEPEND):  pub_fft.F90
-	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ pub_fft.F90
-
-ReadLine.o: ReadLine.cpp
-	$(CXX) $(CXXFLAGS) -I$(READLINE_HOME) -c -o $@ ReadLine.cpp
 
 # Dependency targets
 findDepend: FindDepend.o 
 	$(CXX) -o findDepend FindDepend.o
 
 depend: findDepend
-	./findDepend $(SOURCES) $(CSOURCES) AmbPDB.cpp > cpptrajdepend
+	./findDepend $(SOURCES) $(CSOURCES) > cpptrajdepend
 
 dependclean:
-	/bin/rm -f FindDepend.o findDepend
+	$(DEL_FILE) FindDepend.o findDepend
 
 # Clean/uninstall targets
 clean:
-	/bin/rm -f $(OBJECTS) $(FFT_DEPEND) cpptraj$(SFX) AmbPDB.o ambpdb *.LIBCPPTRAJ.o libcpptraj$(SHARED_SUFFIX)
+	$(DEL_FILE) $(OBJECTS) $(FFT_TARGET) cpptraj$(SFX) *.LIBCPPTRAJ.o libcpptraj$(SHARED_SUFFIX)
 	cd readline && $(MAKE) clean
 	cd xdrfile && $(MAKE) clean
+	cd arpack && $(MAKE) clean
 	cd cuda_kernels && $(MAKE) clean
 
 uninstall:
-	/bin/rm -f $(CPPTRAJBIN)/cpptraj$(SFX)$(EXE)
-	/bin/rm -f $(CPPTRAJBIN)/ambpdb$(EXE)
-	/bin/rm -f $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)
+	$(DEL_FILE) $(CPPTRAJBIN)/cpptraj$(SFX)$(EXE)
+	$(DEL_FILE) $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)
 	cd readline && make uninstall
 	cd xdrfile && make uninstall
 	cd cuda_kernels && make uninstall

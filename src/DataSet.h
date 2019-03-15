@@ -26,11 +26,12 @@ class DataSet {
     enum DataType {
       UNKNOWN_DATA=0, DOUBLE, FLOAT, INTEGER, STRING, MATRIX_DBL, MATRIX_FLT, 
       COORDS, VECTOR, MODES, GRID_FLT, GRID_DBL, REMLOG, XYMESH, TRAJ, REF_FRAME,
-      MAT3X3, TOPOLOGY, CMATRIX, CMATRIX_NOMEM, CMATRIX_DISK
+      MAT3X3, TOPOLOGY, CMATRIX, CMATRIX_NOMEM, CMATRIX_DISK, PH, PH_EXPL, PH_IMPL,
+      PARAMETERS
     };
     /// Group DataSet belongs to.
     enum DataGroup {
-      GENERIC=0, SCALAR_1D, MATRIX_2D, GRID_3D, COORDINATES, CLUSTERMATRIX
+      GENERIC=0, SCALAR_1D, MATRIX_2D, GRID_3D, COORDINATES, CLUSTERMATRIX, PHREMD
     };
 
     DataSet();
@@ -62,10 +63,14 @@ class DataSet {
     virtual void Add( size_t, const void* ) = 0;
     /// Can be used to append given data set to this one.
     virtual int Append(DataSet*) = 0;
-    // TODO SizeInMB?
+    /// \return Size of data set in memory (in bytes).
+    virtual size_t MemUsageInBytes() const = 0;
 #   ifdef MPI
-    /// Consolidate this DataSet across all threads (MPI only)
+    /// Piece this DataSet together from multiple threads.
     virtual int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) = 0;
+    // TODO pure virtual
+    virtual int SendSet(int, Parallel::Comm const&) { return 1; }
+    virtual int RecvSet(int, Parallel::Comm const&) { return 1; }
 #   endif
     // -----------------------------------------------------
     /// Associate additional data with this set.
@@ -118,6 +123,8 @@ class DataSet {
         return *first < *second;
       }
     };
+    /// \return Text description based on DataType
+    static const char* description(DataType t) { return Descriptions_[t]; }
   protected:
     TextFormat format_;         ///< Text output data format.
   private:
@@ -128,7 +135,11 @@ class DataSet {
 
     /// Clear any associated data.
     void ClearAssociatedData();
-
+    /// Text descriptions of DataType
+    static const char* Descriptions_[];
+    // FIXME dim_ and associated functions like Coord need to be reworked
+    //       depending on the set type. For example, dim_ doesnt really work
+    //       for non-orthogonal grids.
     DimArray dim_;              ///< Holds info for each dimension in the DataSet.
     AdataArray associatedData_; ///< Holds any additonal data associated with this DataSet
     DataType dType_;            ///< The DataSet type
