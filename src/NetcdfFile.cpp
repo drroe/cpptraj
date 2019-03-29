@@ -1,6 +1,7 @@
 #include "NetcdfFile.h"
 #ifdef BINTRAJ
 #  include <netcdf.h>
+#  include <cstring> // strlen
 #  include "NC_Routines.h"
 #endif
 #ifdef MPI
@@ -976,7 +977,7 @@ int NetcdfFile::NC_create(File::Name const& fname, NCTYPE typeIn, int natomIn,
     return 1;
   }
   if (NC::CheckErr(nc_put_att_text(ncid_,NC_GLOBAL,"programVersion",
-                                   CPPTRAJ_VERSION_STRLEN, CPPTRAJ_VERSION_STRING)))
+                                   strlen(CPPTRAJ_INTERNAL_VERSION), CPPTRAJ_INTERNAL_VERSION)))
   {
     mprinterr("Error: Writing program version.\n");
     return 1;
