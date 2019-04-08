@@ -5,11 +5,11 @@
 CleanFiles atomic.in fluct.*.dat dpdp.fluct.dat dpdp.adp.dat
 TESTNAME='Atomic fluctuations tests' 
 Requires netcdf
-INPUT="atomic.in"
-TOP="../tz2.parm7"
+CPPTRAJ_INPUT="atomic.in"
+CPPTRAJ_TOP="../tz2.parm7"
 
 WriteInput() {
-  cat > $INPUT <<EOF
+  cat > $CPPTRAJ_INPUT <<EOF
 trajin ../tz2.nc
 atomicfluct out fluct.$2.dat $1
 EOF
@@ -22,8 +22,8 @@ WriteInput ":2-12 byatom" 2
 WriteInput "bymask :3,4,5" 3
 WriteInput "start 10 stop 30 offset 2 byres bfactor" 4
 
-TOP=../DPDP.parm7
-cat > $INPUT <<EOF
+CPPTRAJ_TOP=../DPDP.parm7
+cat > $CPPTRAJ_INPUT <<EOF
 trajin ../DPDP.nc
 rms first mass
 atomicfluct out dpdp.fluct.dat adpout dpdp.adp.dat

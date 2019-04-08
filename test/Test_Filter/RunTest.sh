@@ -5,8 +5,8 @@
 # Clean
 CleanFiles filter.in filter.crd filter.dat datafilter.dat
 
-INPUT='filter.in'
-TOP='../tz2.truncoct.parm7'
+CPPTRAJ_INPUT='filter.in'
+CPPTRAJ_TOP='../tz2.truncoct.parm7'
 
 # Test 1
 TESTNAME="Filter tests"

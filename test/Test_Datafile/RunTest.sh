@@ -8,8 +8,8 @@ CleanFiles prec.in prec.dat a1.dat a1.agr xprec.dat byname.dat dssp.dat \
 
 TESTNAME='Data file tests'
 
-TOP="../tz2.truncoct.parm7"
-INPUT="prec.in"
+CPPTRAJ_TOP="../tz2.truncoct.parm7"
+CPPTRAJ_INPUT="prec.in"
 
 # Test 1
 UNITNAME='Data file output precision test'
@@ -61,7 +61,7 @@ DoTest byname.dat.save byname.dat
 
 CheckFor netcdf maxthreads 10
 if [ $? -eq 0 ] ; then
-  TOP="../DPDP.parm7"
+  CPPTRAJ_TOP="../DPDP.parm7"
   cat > prec.in <<EOF
 trajin ../DPDP.nc 1 10
 secstruct DSSP

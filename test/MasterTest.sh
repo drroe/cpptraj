@@ -47,8 +47,8 @@
 #   CPPTRAJ_XDRFILE      : If set CPPTRAJ has XDR file support.
 #   CPPTRAJ_SINGLE_ENS   : If set CPPTRAJ has single ensemble support.
 # ----- Variables that can be set by individual scripts ----
-#   TOP                  : Topology file for cpptraj
-#   INPUT                : Input file for cpptraj
+#   CPPTRAJ_TOP          : Topology file for cpptraj
+#   CPPTRAJ_INPUT        : Input file for cpptraj
 #   CPPTRAJ_TEST_MODE    : Set to 'master' if executed from CpptrajTest.sh.
 # ----- Local setup variables ------------------------------
 VGMODE=0                 # Valgrind mode: 0 none, 1 memcheck, 2 helgrind
@@ -475,9 +475,9 @@ RunCpptraj() {
     OUT "  CPPTRAJ: $1"
   fi
   if [ ! -z "$CPPTRAJ_DEBUG" ] ; then
-    echo "$CPPTRAJ_TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $TOP $INPUT $CPPTRAJ_DEBUG >> $CPPTRAJ_OUTPUT 2>>$CPPTRAJ_ERROR"
+    echo "$CPPTRAJ_TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $CPPTRAJ_TOP $CPPTRAJ_INPUT $CPPTRAJ_DEBUG >> $CPPTRAJ_OUTPUT 2>>$CPPTRAJ_ERROR"
   fi
-  $CPPTRAJ_TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $TOP $INPUT $CPPTRAJ_DEBUG>> $CPPTRAJ_OUTPUT 2>>$CPPTRAJ_ERROR
+  $CPPTRAJ_TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $CPPTRAJ_TOP $CPPTRAJ_INPUT $CPPTRAJ_DEBUG>> $CPPTRAJ_OUTPUT 2>>$CPPTRAJ_ERROR
   STATUS=$?
   #echo "DEBUG: Cpptraj exited with status $STATUS"
   if [ $STATUS -ne 0 ] ; then

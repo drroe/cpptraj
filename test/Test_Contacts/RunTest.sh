@@ -6,8 +6,8 @@ CleanFiles ptraj.in contacts.dat byres.dat byres.dat.native
 TESTNAME='Contacts test'
 Requires netcdf notparallel
 
-TOP="../tz2.truncoct.parm7"
-INPUT="ptraj.in"
+CPPTRAJ_TOP="../tz2.truncoct.parm7"
+CPPTRAJ_INPUT="ptraj.in"
 cat > ptraj.in <<EOF
 trajin ../tz2.truncoct.nc
 reference ../tz2.truncoct.nc 1

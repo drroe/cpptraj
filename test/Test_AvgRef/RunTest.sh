@@ -7,9 +7,9 @@ CleanFiles rmsavg.in rmsavg.dat tz2.ncrst
 
 TESTNAME='Averaged reference coordinates tests'
 Requires netcdf
-TOP="../tz2.parm7"
+CPPTRAJ_TOP="../tz2.parm7"
 
-INPUT="rmsavg.in"
+CPPTRAJ_INPUT="rmsavg.in"
 if [ -z "$DO_PARALLEL" ] ; then
   cat > rmsavg.in <<EOF
 loadcrd ../tz2.nc name TZ2

@@ -15,8 +15,8 @@ Requires netcdf
 UNITNAME='Basic RMSD tests'
 CheckFor maxthreads 10
 if [ $? -eq 0 ] ; then
-  TOP='../tz2.truncoct.parm7'
-  INPUT='rms.in'
+  CPPTRAJ_TOP='../tz2.truncoct.parm7'
+  CPPTRAJ_INPUT='rms.in'
   cat > rms.in <<EOF
 noprogress
 trajin ../tz2.truncoct.nc
@@ -42,8 +42,8 @@ fi
 UNITNAME='RMS coordinate rotation/rotation matrices test'
 CheckFor maxthreads 10
 if [ $? -eq 0 ] ; then
-  TOP=''
-  INPUT='-i rms.in'
+  CPPTRAJ_TOP=''
+  CPPTRAJ_INPUT='-i rms.in'
   cat > rms.in <<EOF
 parm ../tz2.parm7 [NOWAT] 
 reference ../tz2.nc parm [NOWAT] 1 [first] 
@@ -62,8 +62,8 @@ EOF
 fi
 
 # Test RMS nomod
-TOP=''
-INPUT="-i rms.in"
+CPPTRAJ_TOP=''
+CPPTRAJ_INPUT="-i rms.in"
 cat > rms.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc

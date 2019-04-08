@@ -9,9 +9,9 @@ CleanFiles orderparam ired.vec noe v0.cjt v0.cmt ired.in v0 plateau.norm.dat cjt
 TESTNAME='IRED vector/matrix test'
 Requires mathlib
 
-TOP="1IEE_A_prot.prmtop"
-INPUT="ired.in"
-cat > $INPUT <<EOF
+CPPTRAJ_TOP="1IEE_A_prot.prmtop"
+CPPTRAJ_INPUT="ired.in"
+cat > $CPPTRAJ_INPUT <<EOF
 trajin 1IEE_A_test.mdcrd
 for atoms Natom inmask :2-129@N&!:PRO atoms Hatom inmask :2-129@H v=1;v++
   vector v\$v \$Natom ired \$Hatom

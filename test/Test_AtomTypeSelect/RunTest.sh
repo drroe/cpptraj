@@ -12,8 +12,8 @@ noprogress
 trajin ../tz2.nc 
 rms R0 first out rmsd.dat @%CT
 EOF
-INPUT="temp.in"
-TOP="../tz2.parm7"
+CPPTRAJ_INPUT="temp.in"
+CPPTRAJ_TOP="../tz2.parm7"
 RunCpptraj "Selection by atom type test."
 DoTest rmsd.dat.save rmsd.dat
 

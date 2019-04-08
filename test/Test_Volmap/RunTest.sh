@@ -6,8 +6,8 @@ CleanFiles ptraj.in volmap.dx peaks.xyz volmap2.dx volmap3.dx peaks1.xyz
 
 TESTNAME='VMD VolMap Algorithm test'
 Requires netcdf maxthreads 10
-TOP="../tz2.ortho.parm7"
-INPUT="ptraj.in"
+CPPTRAJ_TOP="../tz2.ortho.parm7"
+CPPTRAJ_INPUT="ptraj.in"
 
 cat > ptraj.in <<EOF
 trajin ../tz2.ortho.nc

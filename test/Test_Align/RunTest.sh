@@ -7,8 +7,8 @@ CleanFiles rms.in rmsd.dat rmsd.mass.dat rmsd.reftraj.dat
 
 TESTNAME='Align tests'
 Requires netcdf maxthreads 10
-TOP="../tz2.truncoct.parm7"
-INPUT="rms.in"
+CPPTRAJ_TOP="../tz2.truncoct.parm7"
+CPPTRAJ_INPUT="rms.in"
 
 # Test rmsd, mass-weighted rmsd, rmsd to reference traj.
 cat > rms.in <<EOF

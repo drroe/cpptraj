@@ -8,8 +8,8 @@ CleanFiles corr.in v1.auto.dat v1v2.cross.dat v1.dplr.auto.dat \
 
 TESTNAME='Timecorr test'
 Requires netcdf
-INPUT="corr.in"
-TOP=../tz2.parm7
+CPPTRAJ_INPUT="corr.in"
+CPPTRAJ_TOP=../tz2.parm7
 
 # Time correlation functions
 cat > corr.in <<EOF

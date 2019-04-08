@@ -10,8 +10,8 @@ Requires maxthreads 3
 
 # Test 1
 Nucleic() {
-  TOP=../adh026.3.pdb
-  INPUT=pucker.in
+  CPPTRAJ_TOP=../adh026.3.pdb
+  CPPTRAJ_INPUT=pucker.in
   cat > pucker.in <<EOF
 trajin ../adh026.3.pdb
 pucker p1-as :1@C1' :1@C2' :1@C3' :1@C4' :1@O4' out pucker.dat 
@@ -29,8 +29,8 @@ Furanoid() {
   UNITNAME='5-member ring pucker, Cremer & Pople Furanoid test'
   CheckFor maxthreads 1
   if [ $? -eq 0 ] ; then
-    TOP=""
-    INPUT="-i Ptest.in"
+    CPPTRAJ_TOP=""
+    CPPTRAJ_INPUT="-i Ptest.in"
     cat > Ptest.in <<EOF
 parm Furanoid.mol2
 trajin Furanoid.mol2
@@ -45,8 +45,8 @@ Pyranoid() {
   UNITNAME='6-member ring pucker, Cremer & Pople Pyranoid test'
   CheckFor maxthreads 1
   if [ $? -eq 0 ] ; then
-    TOP=""
-    INPUT="-i Ptest.in"
+    CPPTRAJ_TOP=""
+    CPPTRAJ_INPUT="-i Ptest.in"
     cat > Ptest.in <<EOF
 parm Pyranoid.mol2
 trajin Pyranoid.mol2

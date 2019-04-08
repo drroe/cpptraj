@@ -6,8 +6,8 @@ CleanFiles ptraj.in unwrap.crd unwrap.ortho.crd
 TESTNAME='Unwrap tests'
 Requires netcdf notparallel
 
-INPUT="ptraj.in"
-TOP="../tz2.truncoct.parm7"
+CPPTRAJ_INPUT="ptraj.in"
+CPPTRAJ_TOP="../tz2.truncoct.parm7"
 cat > ptraj.in <<EOF
 trajin ../tz2.truncoct.nc 1 2
 unwrap 
@@ -16,7 +16,7 @@ EOF
 RunCpptraj "Unwrap non-orthogonal test"
 DoTest unwrap.crd.save unwrap.crd
 
-TOP="../tz2.ortho.parm7"
+CPPTRAJ_TOP="../tz2.ortho.parm7"
 cat > ptraj.in <<EOF
 trajin ../tz2.ortho.nc 1 2
 unwrap 

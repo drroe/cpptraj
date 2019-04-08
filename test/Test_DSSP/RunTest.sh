@@ -7,8 +7,8 @@ CleanFiles cpptraj.in dssp.dat dssp.dat.sum dssp.sum.agr dssp.gnu \
            dssp2.gnu dssp2.sum.agr total.agr assign.4.dat \
            DSSP.assign.dat
 
-INPUT="-i cpptraj.in"
-TOP="../DPDP.parm7"
+CPPTRAJ_INPUT="-i cpptraj.in"
+CPPTRAJ_TOP="../DPDP.parm7"
 
 # Test 1
 UNITNAME='DSSP basic tests'
@@ -56,7 +56,7 @@ fi # END if netcdf
 UNITNAME='Secstruct (DSSP): SS assign output test'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
-  TOP=""
+  CPPTRAJ_TOP=""
   cat > cpptraj.in <<EOF
 parm test.4.pdb
 trajin test.4.pdb

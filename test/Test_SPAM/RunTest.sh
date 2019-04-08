@@ -9,9 +9,9 @@ CleanFiles spam.in spam.dat spam.info spampure.dat test.mdcrd summary.dat
 TESTNAME='SPAM tests'
 Requires netcdf maxthreads 10
 
-INPUT="spam.in"
+CPPTRAJ_INPUT="spam.in"
 # SPAM test
-TOP='../tz2.truncoct.parm7'
+CPPTRAJ_TOP='../tz2.truncoct.parm7'
 if [ -z "$DO_PARALLEL" ] ; then
   cat > spam.in <<EOF
 trajin ../tz2.truncoct.nc
@@ -40,7 +40,7 @@ EOF
 fi
 
 # Pure water test
-TOP="../spcbox.parm7"
+CPPTRAJ_TOP="../spcbox.parm7"
 cat > spam.in << EOF
 trajin ../spcbox.nc
 spam purewater name SPAM cut 12.0 out spampure.dat

@@ -4,7 +4,7 @@
 
 CleanFiles modes.in fluct.dat displ.dat corr.dat modestest.2.crd eigenval.dat rmsip.dat
 
-INPUT='modes.in'
+CPPTRAJ_INPUT='modes.in'
 TESTNAME='Modes Analysis'
 Requires mathlib
 
@@ -13,7 +13,7 @@ TestFluct() {
   UNITNAME='Modes analysis, RMS fluctuations'
   CheckFor netcdf
   if [ $? -eq 0 ] ; then
-    TOP=../tz2.parm7
+    CPPTRAJ_TOP=../tz2.parm7
     cat > modes.in <<EOF
 trajin ../tz2.nc
 matrix mwcovar name tz2 @CA
@@ -27,7 +27,7 @@ EOF
 
 # Test modes displ and modes file read
 TestDispl() {
-  TOP=../tz2.parm7
+  CPPTRAJ_TOP=../tz2.parm7
   # Since the displacement test can be fooled by eigenvector
   # sign flips, read in a previously generated set of modes.
   cat > modes.in <<EOF
@@ -43,7 +43,7 @@ TestCorr() {
   UNITNAME='Modes analysis, dipole correlation'
   CheckFor netcdf
   if [ $? -eq 0 ] ; then
-    TOP=../tz2.parm7
+    CPPTRAJ_TOP=../tz2.parm7
     cat > modes.in <<EOF
 trajin ../tz2.nc
 matrix mwcovar name tz2
@@ -57,7 +57,7 @@ EOF
 
 # Test modes trajout
 TestTrajout() {
-  TOP="INPpYLYP.FF14SB.parm7"
+  CPPTRAJ_TOP="INPpYLYP.FF14SB.parm7"
   cat > modes.in <<EOF
 readdata evecs.dat name evecs
 modes name evecs trajout modestest.2.crd pcmin -33 pcmax 46 tmode 2 trajoutmask !@H=

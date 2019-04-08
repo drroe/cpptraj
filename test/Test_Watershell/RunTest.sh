@@ -6,10 +6,10 @@ CleanFiles ws.in ws.agr ws.ortho.agr ws.noimage.agr
 
 TESTNAME='Watershell tests'
 Requires netcdf maxthreads 10
-INPUT="ws.in"
+CPPTRAJ_INPUT="ws.in"
 
 # Non-orthorhombic imaging
-TOP=../tz2.truncoct.parm7
+CPPTRAJ_TOP=../tz2.truncoct.parm7
 cat > ws.in <<EOF
 trajin ../tz2.truncoct.nc
 watershell !:WAT ws.agr Tz2
@@ -18,7 +18,7 @@ RunCpptraj "Watershell Test, non-orthorhombic imaging."
 DoTest ws.agr.save ws.agr
 
 # Orthorhombic imaging
-TOP=../tz2.ortho.parm7
+CPPTRAJ_TOP=../tz2.ortho.parm7
 cat > ws.in <<EOF
 trajin ../tz2.ortho.nc
 watershell !:WAT ws.ortho.agr Tz2
@@ -27,7 +27,7 @@ RunCpptraj "Watershell Test, orthorhombic imaging."
 DoTest ws.ortho.agr.save ws.ortho.agr
 
 # No imaging
-TOP=../tz2.truncoct.parm7
+CPPTRAJ_TOP=../tz2.truncoct.parm7
 cat > ws.in <<EOF
 trajin ../tz2.truncoct.nc
 watershell !:WAT ws.noimage.agr Tz2 noimage

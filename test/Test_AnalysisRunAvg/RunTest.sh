@@ -5,9 +5,9 @@
 CleanFiles runavg.in running_avg.dat cumulative_avg.dat distances.dat
 TESTNAME='Analysis Running Average'
 Requires netcdf maxthreads 14
-INPUT="runavg.in"
-TOP="../tz2.parm7"
-cat > $INPUT <<EOF
+CPPTRAJ_INPUT="runavg.in"
+CPPTRAJ_TOP="../tz2.parm7"
+cat > $CPPTRAJ_INPUT <<EOF
 trajin ../tz2.nc 1 14
 distance d1 :1 :7 out distances.dat
 distance d2 :10 :13 out distances.dat

@@ -6,7 +6,7 @@
 CleanFiles average.in test.pdb test2.pdb
 TESTNAME='Average test'
 Requires netcdf
-TOP="../tz2.parm7"
+CPPTRAJ_TOP="../tz2.parm7"
 
 # Test 1
 cat > average.in <<EOF
@@ -16,7 +16,7 @@ average crdset Tz2Avg
 run
 crdout Tz2Avg test2.pdb chainid X
 EOF
-INPUT="average.in"
+CPPTRAJ_INPUT="average.in"
 RunCpptraj "Average Test."
 DoTest test.pdb.save test.pdb
 DoTest test.pdb.save test2.pdb

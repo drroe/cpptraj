@@ -7,10 +7,10 @@ CleanFiles rms.in rmsd.dat test.crd T1.crd T2.crd maxmin.in maxmin.crd
 
 TESTNAME='Outtraj tests'
 Requires netcdf maxthreads 10
-TOP="../tz2.truncoct.parm7"
+CPPTRAJ_TOP="../tz2.truncoct.parm7"
 
 # Test 1
-INPUT="rms.in"
+CPPTRAJ_INPUT="rms.in"
 cat > rms.in <<EOF
 noprogress
 trajin ../tz2.truncoct.nc
@@ -28,7 +28,7 @@ DoTest ../tz2.truncoct.crd test.crd
 UNITNAME="Outtraj Test with maxmin."
 CheckFor notparallel
 if [ "$?" -eq 0 ] ; then
-  INPUT="maxmin.in"
+  CPPTRAJ_INPUT="maxmin.in"
   cat > maxmin.in <<EOF
 trajin ../tz2.truncoct.nc
 rms R1 first :2-11

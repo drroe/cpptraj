@@ -6,8 +6,8 @@ CleanFiles ptraj.in cd.dat cf.dat ci.dat cvt.dat
 TESTNAME='clusterdihedral test'
 Requires netcdf notparallel
 # clusterdihedral
-TOP="../tz2.parm7"
-INPUT="ptraj.in"
+CPPTRAJ_TOP="../tz2.parm7"
+CPPTRAJ_INPUT="ptraj.in"
 cat > ptraj.in <<EOF
 noprogress
 trajin ../tz2.nc

@@ -8,9 +8,9 @@ CleanFiles ncr.in nc.rst7* text.rst7*
 TESTNAME='NetCDF restart tests'
 Requires netcdf maxthreads 1
 
-INPUT="ncr.in"
+CPPTRAJ_INPUT="ncr.in"
 # Test 1-1: Convert text to netcdf restart
-TOP="../tz2.parm7"
+CPPTRAJ_TOP="../tz2.parm7"
 cat > ncr.in <<EOF
 noprogress
 trajin ../tz2.rst7
@@ -30,7 +30,7 @@ RunCpptraj "NetCDF Restart Test - NetCDF->TXT"
 DoTest ../tz2.rst7 text.rst7 -w
 
 # Test 2-1: Convert text restart w/ box coords to nc restart
-TOP="../tz2.ortho.parm7"
+CPPTRAJ_TOP="../tz2.ortho.parm7"
 cat > ncr.in <<EOF
 trajin ../tz2.ortho.rst7
 trajout nc.rst7 ncrestart

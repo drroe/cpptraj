@@ -6,11 +6,11 @@ CleanFiles ds.in *.summary.dat *.info.dat *.gnu *.d1.c1.dat \
            eps_v_n.dat twodihds.kmeans.info.dat onedihds.kmeans.info.dat \
            cvt.dat
 
-INPUT="-i ds.in"
+CPPTRAJ_INPUT="-i ds.in"
 TESTNAME='Clustering via datasets tests'
 Requires netcdf
 OneDS() {
-  TOP=../tz2.parm7
+  CPPTRAJ_TOP=../tz2.parm7
   cat > ds.in <<EOF
 trajin ../tz2.nc
 distance d1 :1 :13
@@ -27,7 +27,7 @@ EOF
 }
 
 TwoDS() {
-  TOP=../tz2.parm7
+  CPPTRAJ_TOP=../tz2.parm7
   cat > ds.in <<EOF
 trajin ../tz2.nc
 distance d1 :1 :13
@@ -41,7 +41,7 @@ EOF
 }
 
 OneDihDS() {
-  TOP=../tz2.parm7
+  CPPTRAJ_TOP=../tz2.parm7
   cat > ds.in <<EOF
 trajin ../tz2.nc
 dihedral gly7phi :6@C :7@N :7@CA :7@C
@@ -54,7 +54,7 @@ EOF
 }
 
 TwoDihDS() {
-  TOP=../tz2.parm7
+  CPPTRAJ_TOP=../tz2.parm7
   cat > ds.in <<EOF
 trajin ../tz2.nc
 dihedral gly7phi :6@C :7@N :7@CA :7@C
@@ -69,7 +69,7 @@ EOF
 }
 
 OneDihDSKmeans() {
-  TOP=../tz2.parm7
+  CPPTRAJ_TOP=../tz2.parm7
   cat > ds.in <<EOF
 trajin ../tz2.nc
 dihedral gly7phi :6@C :7@N :7@CA :7@C
@@ -82,7 +82,7 @@ EOF
 }
 
 TwoDihDSKmeans() {
-  TOP=../tz2.parm7
+  CPPTRAJ_TOP=../tz2.parm7
   cat > ds.in <<EOF
 trajin ../tz2.nc
 dihedral gly7phi :6@C :7@N :7@CA :7@C

@@ -2,9 +2,9 @@
 
 . ../MasterTest.sh
 
-INPUT="diffusion.in"
+CPPTRAJ_INPUT="diffusion.in"
 
-CleanFiles $INPUT diff_?.xmgr diff.dat diff.1.dat diff.2.dat diff.3.dat nw.dat \
+CleanFiles $CPPTRAJ_INPUT diff_?.xmgr diff.dat diff.1.dat diff.2.dat diff.3.dat nw.dat \
            WAT_O.agr DC.dat Nonortho.agr Nonortho.dat noimage.agr noimage.dat
 TESTNAME='Diffusion tests'
 Requires netcdf maxthreads 10
@@ -12,8 +12,8 @@ Requires netcdf maxthreads 10
 # Basic ptraj diffusion test
 # creates <prefix>_X.xmgr, X = {a,r,x,y,z}
 Test_diffusion_oldSyntax() {
-  TOP=../tz2.ortho.parm7
-  cat > $INPUT <<EOF
+  CPPTRAJ_TOP=../tz2.ortho.parm7
+  cat > $CPPTRAJ_INPUT <<EOF
 trajin ../tz2.ortho.nc
 diffusion :1-13 1.0 diff
 EOF
@@ -26,8 +26,8 @@ EOF
 }
 
 Test_diffusion_newSyntax() {
-  TOP=../tz2.ortho.parm7
-  cat > $INPUT <<EOF
+  CPPTRAJ_TOP=../tz2.ortho.parm7
+  cat > $CPPTRAJ_INPUT <<EOF
 trajin ../tz2.ortho.nc
 diffusion :WAT@O out WAT_O.agr WAT_O diffout DC.dat
 EOF
@@ -37,8 +37,8 @@ EOF
 }
 
 Test_diffusion_nonOrtho() {
-  TOP=../tz2.truncoct.parm7
-  cat > $INPUT <<EOF
+  CPPTRAJ_TOP=../tz2.truncoct.parm7
+  cat > $CPPTRAJ_INPUT <<EOF
 trajin ../tz2.truncoct.nc
 diffusion :WAT@O out Nonortho.agr WAT_O diffout Nonortho.dat
 EOF
@@ -48,8 +48,8 @@ EOF
 }
 
 Test_diffusion_noImage() {
-  TOP=../tz2.truncoct.parm7
-  cat > $INPUT <<EOF
+  CPPTRAJ_TOP=../tz2.truncoct.parm7
+  cat > $CPPTRAJ_INPUT <<EOF
 trajin ../tz2.truncoct.nc
 diffusion :WAT@O out noimage.agr WAT_O diffout noimage.dat noimage
 EOF
@@ -61,30 +61,30 @@ EOF
 # ------------------------------------------------------------------------------
 # STFC diffusion tests
 Test_stfc_diffusion() {
-  TOP=../tz2.ortho.parm7
+  CPPTRAJ_TOP=../tz2.ortho.parm7
   # Basic test
-  cat > $INPUT <<EOF
+  cat > $CPPTRAJ_INPUT <<EOF
 trajin ../tz2.ortho.nc
 stfcdiffusion mask :1-13 out diff.dat
 EOF
   RunCpptraj "STFC Diffusion Test"
   DoTest diff.dat.save diff.dat
   # Test with individual distances
-  cat > $INPUT <<EOF
+  cat > $CPPTRAJ_INPUT <<EOF
 trajin ../tz2.ortho.nc
 stfcdiffusion mask :1-13 out diff.1.dat distances
 EOF
   RunCpptraj "STFC Diffusion Test with individual distances"
   DoTest diff.1.dat.save diff.1.dat
   # Test with COM
-  cat > $INPUT <<EOF
+  cat > $CPPTRAJ_INPUT <<EOF
 trajin ../tz2.ortho.nc
 stfcdiffusion mask :1-13 out diff.2.dat com
 EOF
   RunCpptraj "STFC Diffusion Test with COM"
   DoTest diff.2.dat.save diff.2.dat
   # Test with second mask
-  cat > $INPUT <<EOF
+  cat > $CPPTRAJ_INPUT <<EOF
 trajin ../tz2.ortho.nc 
 stfcdiffusion mask :1-13 out diff.3.dat mask2 :WAT
 EOF

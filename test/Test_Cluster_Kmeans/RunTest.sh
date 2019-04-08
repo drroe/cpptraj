@@ -5,8 +5,8 @@
 CleanFiles kmeans.in ptraj.txt ptraj.c? summary.dat info.dat cpptraj.crd.c? random.dat rinfo.dat random.crd.c?
 TESTNAME='Cluster k-means tests'
 Requires netcdf
-TOP=../tz2.parm7
-INPUT="kmeans.in"
+CPPTRAJ_TOP=../tz2.parm7
+CPPTRAJ_INPUT="kmeans.in"
 
 RunPtraj() {
   SAVECPPTRAJ=$CPPTRAJ

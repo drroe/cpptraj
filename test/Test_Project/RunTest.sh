@@ -7,10 +7,10 @@ CleanFiles proj.in project.dat
 TESTNAME='PC projection test'
 Requires netcdf
 
-TOP=../tz2.parm7
+CPPTRAJ_TOP=../tz2.parm7
 TRJ=../tz2.nc
 
-INPUT="proj.in"
+CPPTRAJ_INPUT="proj.in"
 
 cat > proj.in <<EOF
 trajin $TRJ

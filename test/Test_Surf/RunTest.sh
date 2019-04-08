@@ -5,7 +5,7 @@
 # Clean
 CleanFiles cpptraj.in surf.dat tsurf.dat ral.surf.dat
 
-INPUT="-i cpptraj.in"
+CPPTRAJ_INPUT="-i cpptraj.in"
 
 # Test 1
 UNITNAME='Surface calculation test'
@@ -16,7 +16,7 @@ noprogress
 trajin ../DPDP.nc
 surf All out surf.dat
 EOF
-  TOP="../DPDP.parm7"
+  CPPTRAJ_TOP="../DPDP.parm7"
   RunCpptraj "$UNITNAME"
   DoTest surf.dat.save surf.dat
 fi
@@ -30,7 +30,7 @@ noprogress
 trajin ../DPDP.nc
 surf R1-12 out tsurf.dat :1-12
 EOF
-  TOP="../DPDP.parm7"
+  CPPTRAJ_TOP="../DPDP.parm7"
   RunCpptraj "$UNITNAME"
   DoTest tsurf.dat.save tsurf.dat
 fi
@@ -39,7 +39,7 @@ fi
 UNITNAME='LCPO test with GAFF atom types'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
-  TOP=""
+  CPPTRAJ_TOP=""
   cat > cpptraj.in <<EOF
 parm RAL.sol.top
 trajin RAL.crd

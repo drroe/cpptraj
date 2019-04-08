@@ -8,11 +8,11 @@ CleanFiles ptraj.in out.dipole out.xplor out.dx out.dx.2 test.dx box.dx mask.dx 
 
 TESTNAME='Grid tests'
 Requires netcdf maxthreads 10
-INPUT="ptraj.in"
+CPPTRAJ_INPUT="ptraj.in"
 
 # dipole
 Dipole() {
-  TOP="../tz2.ortho.parm7"
+  CPPTRAJ_TOP="../tz2.ortho.parm7"
   cat > ptraj.in <<EOF
 trajin ../tz2.ortho.nc
 autoimage origin
@@ -25,7 +25,7 @@ EOF
 
 # grid
 Grid() {
-  TOP="../tz2.truncoct.parm7"
+  CPPTRAJ_TOP="../tz2.truncoct.parm7"
   cat > ptraj.in <<EOF
 trajin ../tz2.truncoct.nc
 autoimage origin
@@ -45,7 +45,7 @@ EOF
 
 # grid dx read
 GridDxRead() {
-  TOP="../tz2.truncoct.parm7"
+  CPPTRAJ_TOP="../tz2.truncoct.parm7"
   cat > ptraj.in <<EOF
 readdata out.dx.save
 trajin ../tz2.truncoct.nc
@@ -59,7 +59,7 @@ EOF
 
 # Specified center
 SpecifiedCenter() {
-  TOP="../tz2.ortho.parm7"
+  CPPTRAJ_TOP="../tz2.ortho.parm7"
   cat > ptraj.in <<EOF
 trajin ../tz2.ortho.nc 1 10
 autoimage origin
@@ -71,7 +71,7 @@ EOF
 
 # Box center offset
 BoxCenterOffset() {
-  TOP="../tz2.ortho.parm7"
+  CPPTRAJ_TOP="../tz2.ortho.parm7"
   cat > ptraj.in <<EOF
 trajin ../tz2.ortho.nc 1 10
 grid box.dx 30 .5 30 .5 30 .5 box :WAT
@@ -82,7 +82,7 @@ EOF
 
 # Mask center offset
 MaskCenterOffset() {
-  TOP="../tz2.ortho.parm7"
+  CPPTRAJ_TOP="../tz2.ortho.parm7"
   cat > ptraj.in <<EOF
 trajin ../tz2.ortho.nc 1 10
 grid mask.dx 30 .5 30 .5 30 .5 center :1-12@CA :WAT
@@ -93,7 +93,7 @@ EOF
 
 # Non-orthogonal grid
 NonorthogonalGrid() {
-  TOP="../tz2.truncoct.parm7"
+  CPPTRAJ_TOP="../tz2.truncoct.parm7"
   cat > ptraj.in <<EOF
 trajin ../tz2.truncoct.nc
 reference ../tz2.truncoct.nc [REF]
@@ -107,7 +107,7 @@ EOF
 
 # Non-orthogonal grid, points centered on bins
 NonorthoGridBinCenter() {
-  TOP="../tz2.truncoct.parm7"
+  CPPTRAJ_TOP="../tz2.truncoct.parm7"
   cat > ptraj.in <<EOF
 trajin ../tz2.truncoct.nc
 reference ../tz2.truncoct.nc [REF]
@@ -120,7 +120,7 @@ EOF
 
 # Generate grid from bounds
 Bounds() {
-  TOP="../tz2.ortho.parm7"
+  CPPTRAJ_TOP="../tz2.ortho.parm7"
   cat > ptraj.in <<EOF
 trajin ../tz2.ortho.nc
 autoimage

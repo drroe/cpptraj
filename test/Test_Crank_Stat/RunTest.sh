@@ -4,8 +4,8 @@
 CleanFiles crank.in crank.dat results.dat stat.dat
 TESTNAME='Crankshaft test'
 Requires netcdf
-INPUT="crank.in"
-TOP=../tz2.parm7
+CPPTRAJ_INPUT="crank.in"
+CPPTRAJ_TOP=../tz2.parm7
 cat > crank.in <<EOF
 trajin ../tz2.nc
 dihedral phi2 :1@C :2@N :2@CA :2@C type phi

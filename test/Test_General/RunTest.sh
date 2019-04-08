@@ -56,8 +56,8 @@ trajin ../tz2.crd   \
 
 EOF
 
-INPUT="general.in"
-TOP="../tz2.parm7"
+CPPTRAJ_INPUT="general.in"
+CPPTRAJ_TOP="../tz2.parm7"
 RunCpptraj "General tests"
 
 DoTest distance.dat.save distance.dat

@@ -4,8 +4,8 @@
 
 CleanFiles vectors.dat dotproduct.dat corr.in v1init_dot_v1.dat
 
-INPUT="corr.in"
-TOP=../tz2.parm7
+CPPTRAJ_INPUT="corr.in"
+CPPTRAJ_TOP=../tz2.parm7
 
 TESTNAME='Vector dot/cross product test'
 Requires netcdf
