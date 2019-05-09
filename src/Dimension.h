@@ -62,9 +62,8 @@ class Dimension {
 bool Dimension::SetDimension(std::vector<double> const& Vals, std::string const& labelIn)
 {
   bool isMonotonic = true;
-  double step = 1.0;
   if (Vals.size() > 1) {
-    step = (Vals.back() - Vals.front()) / (double)(Vals.size() - 1);
+    double step = (Vals.back() - Vals.front()) / (double)(Vals.size() - 1);
     for (std::vector<double>::const_iterator X = Vals.begin()+2; X != Vals.end(); ++X)
       if ((*X - *(X-1)) - step > 0.00000000000001) {
         isMonotonic = false;
