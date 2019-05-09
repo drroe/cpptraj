@@ -30,7 +30,7 @@ class Matrix_3x3 {
     void Print(const char*) const;
 
     int Diagonalize( Vec3& );
-    int Diagonalize_Sort( Vec3& );
+    int Diagonalize_Sort(Vec3& v) { int i1,i2,i3; return Diagonalize_Sort(v, i1, i2, i3); }
     int Diagonalize_Sort_Chirality(Vec3&,int);
 
     void Transpose();
@@ -86,15 +86,11 @@ class Matrix_3x3 {
     const double* Dptr() const { return M_; }
     double* Dptr() { return M_; }
   private:
+    int Diagonalize_Sort( Vec3&, int&, int&, int& );
+
     double M_[9];
-    // The following three variables are set during Diagonalize_Sort. They
-    // indicate the original ordering of the eigenvalues/eigenvectors. This
-    // information can be used to prevent reflections when e.g. aligning
-    // coordinates along principal axes (see e.g. Action_Principal).
-    int i1_;
-    int i2_;
-    int i3_;
-    static const int MAX_ITERATIONS;
+    /// Max number of iterations to execute Jacobi algorithm
+    static const int MAX_ITERATIONS_;
 
     int jacobiCheckChirality();
 };

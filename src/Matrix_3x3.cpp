@@ -93,7 +93,7 @@ void Matrix_3x3::Print(const char* Title) const
 
 // -----------------------------------------------------------------------------
 /// Max number of iterations to execute Jacobi algorithm
-const int Matrix_3x3::MAX_ITERATIONS = 50;
+const int Matrix_3x3::MAX_ITERATIONS_ = 50;
 
 #define ROTATE(ARR,MAJ1,MIN1,MAJ2,MIN2) { \
   dg = ARR[MAJ1 + MIN1]; \
@@ -140,7 +140,7 @@ int Matrix_3x3::Diagonalize( Vec3& vecD )
   // MAIN LOOP
   double tresh = 0;
   //int nrot = 0;
-  for (int i = 0; i < MAX_ITERATIONS; ++i) {
+  for (int i = 0; i < MAX_ITERATIONS_; ++i) {
     // sm = SUM of UPPER RIGHT TRIANGLE
     double sm = fabs(mat[1]) + fabs(mat[2]) + fabs(mat[5]);
     if (sm == 0) return 0;
@@ -213,9 +213,16 @@ int Matrix_3x3::Diagonalize( Vec3& vecD )
 /** Diagonalize the matrix and sort eigenvalues/eigenvectors in 
   * descending order. Eigenvectors will be stored in rows,
   * (V0x, V0y, V0z, V1x, ... V2z).
+  * The i1, i2, and i3 parameters indicate the original ordering of the
+  * eigenvalues/eigenvectors. This information can be used to prevent
+  * reflections when e.g. aligning coordinates along principal axes
+  * (see e.g. Action_Principal).
   * \param EvalOut Output eigenvalues.
+  * \param i1 original index of the highest eigenvalue
+  * \param i2 original index of the next highest eigenvalue
+  * \param i3 original index of the lowest eigenvalue
   */
-int Matrix_3x3::Diagonalize_Sort(Vec3& EvalOut) 
+int Matrix_3x3::Diagonalize_Sort(Vec3& EvalOut, int& i1, int& i2, int& i3) 
 {
   Vec3 Eval;
   if ( Diagonalize( Eval ) ) 
@@ -227,41 +234,41 @@ int Matrix_3x3::Diagonalize_Sort(Vec3& EvalOut)
 
   if (Eval[0] > Eval[1] && Eval[0] > Eval[2]) { // 0 is max
     if (Eval[1] > Eval[2]) {
-      i1_ = 0; i2_ = 1; i3_ = 2;
+      i1 = 0; i2 = 1; i3 = 2;
     } else {
-      i1_ = 0; i2_ = 2; i3_ = 1;
+      i1 = 0; i2 = 2; i3 = 1;
     }
   } else if (Eval[1] > Eval[0] && Eval[1] > Eval[2]) { // 1 is max
     if (Eval[0] > Eval[2]) {
-      i1_ = 1; i2_ = 0; i3_ = 2;
+      i1 = 1; i2 = 0; i3 = 2;
     } else {
-      i1_ = 1; i2_ = 2; i3_ = 0;
+      i1 = 1; i2 = 2; i3 = 0;
     }
   } else if (Eval[0] > Eval[1]) { // 2 is max
-    i1_ = 2; i2_ = 0; i3_ = 1;
+    i1 = 2; i2 = 0; i3 = 1;
   } else {
-    i1_ = 2; i2_ = 1; i3_ = 0;
+    i1 = 2; i2 = 1; i3 = 0;
   }
-  //mprintf("EIGENVALUE ORDER (0=high, 3=med, 6=low): %i %i %i\n",i1_,i2_,i3_);
+  //mprintf("EIGENVALUE ORDER (0=high, 3=med, 6=low): %i %i %i\n",i1,i2,i3);
 
   // Swap Eigenvectors - place them in rows
   Matrix_3x3 Evec(*this);
-  M_[0] = Evec[i1_  ];
-  M_[1] = Evec[i1_+3];
-  M_[2] = Evec[i1_+6];
+  M_[0] = Evec[i1  ];
+  M_[1] = Evec[i1+3];
+  M_[2] = Evec[i1+6];
 
-  M_[3] = Evec[i2_  ];
-  M_[4] = Evec[i2_+3];
-  M_[5] = Evec[i2_+6];
+  M_[3] = Evec[i2  ];
+  M_[4] = Evec[i2+3];
+  M_[5] = Evec[i2+6];
 
-  M_[6] = Evec[i3_  ];
-  M_[7] = Evec[i3_+3];
-  M_[8] = Evec[i3_+6];
+  M_[6] = Evec[i3  ];
+  M_[7] = Evec[i3+3];
+  M_[8] = Evec[i3+6];
 
   // Swap eigenvalues
-  EvalOut[0] = Eval[i1_];
-  EvalOut[1] = Eval[i2_];
-  EvalOut[2] = Eval[i3_];
+  EvalOut[0] = Eval[i1];
+  EvalOut[1] = Eval[i2];
+  EvalOut[2] = Eval[i3];
 
   return 0;
 }
@@ -317,15 +324,16 @@ int Matrix_3x3::jacobiCheckChirality()
 // Matrix_3x3::Diagonalize_Sort_Chirality()
 int Matrix_3x3::Diagonalize_Sort_Chirality(Vec3& EvalOut, int debug)
 {
-  if ( Diagonalize_Sort( EvalOut ) )
+  int i1, i2, i3;
+  if ( Diagonalize_Sort( EvalOut, i1, i2, i3 ) )
     return 1;
 
   // Invert eigenvector signs based on ordering to avoid reflections
-  if (i1_ == 0 && i2_ == 2 && i3_ == 1) {
+  if (i1 == 0 && i2 == 2 && i3 == 1) {
     M_[3] = -M_[3];
     M_[4] = -M_[4];
     M_[5] = -M_[5];
-  } else if (i1_ == 2 && i2_ == 0 && i3_ == 1) {
+  } else if (i1 == 2 && i2 == 0 && i3 == 1) {
     M_[0] = -M_[0];
     M_[1] = -M_[1];
     M_[2] = -M_[2];
