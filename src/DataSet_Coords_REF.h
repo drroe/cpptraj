@@ -6,7 +6,7 @@
 class DataSet_Coords_REF : public DataSet_Coords {
   public:
     DataSet_Coords_REF() : DataSet_Coords(REF_FRAME) {}
-    static DataSet* Alloc() { return (DataSet*) new DataSet_Coords_REF(); }
+    static DataSet* Alloc() { return static_cast<DataSet*>( new DataSet_Coords_REF() ); }
     // ----- DataSet functions -------------------
     // NOTE: Technically a 1D data set so return 1 if not empty.
     size_t Size() const { if (!frame_.empty()) return 1; else return 0; }
