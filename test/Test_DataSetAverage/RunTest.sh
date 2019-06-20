@@ -8,6 +8,8 @@ INPUT="-i avg.in"
 cat > avg.in <<EOF
 readdata perres.peptide.dat
 avg perres.peptide.dat out output.dat name V
+precision V[avg] 16 7
+dataset outformat scientific V[avg]
 avg perres.peptide.dat oversets out avg.dat name Over
 runanalysis
 EOF

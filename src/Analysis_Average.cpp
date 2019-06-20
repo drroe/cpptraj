@@ -1,6 +1,7 @@
 #include <cmath>
 #include "Analysis_Average.h"
 #include "CpptrajStdio.h"
+#include "Accumulator.h"
 
 Analysis_Average::Analysis_Average() :
   avgOfSets_(0),
@@ -90,6 +91,15 @@ Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, AnalysisSetup& s
       outfile->AddDataSet(data_ymaxIdx_);
       outfile->AddDataSet(data_names_);
     }
+    // Default to better format for very large/small numbers
+    TextFormat Fmt(TextFormat::GDOUBLE, 10, 4);
+    data_avg_->SetupFormat() = Fmt;
+    data_sd_->SetupFormat() = Fmt;
+    data_ymin_->SetupFormat() = Fmt;
+    data_ymax_->SetupFormat() = Fmt;
+    Fmt = TextFormat(TextFormat::INTEGER, 10);
+    data_yminIdx_->SetupFormat() = Fmt;
+    data_ymaxIdx_->SetupFormat() = Fmt;
   }
 
   mprintf("    AVERAGE:");
@@ -159,15 +169,7 @@ Analysis::RetType Analysis_Average::Analyze() {
     data_yminIdx_->SetDim(Dimension::X, Xdim);
     data_ymaxIdx_->SetDim(Dimension::X, Xdim);
     data_names_->SetDim(Dimension::X, Xdim);
-    // Default to better format for very large/small numbers
-    TextFormat Fmt(TextFormat::GDOUBLE, 10, 4);
-    data_avg_->SetupFormat() = Fmt;
-    data_sd_->SetupFormat() = Fmt;
-    data_ymin_->SetupFormat() = Fmt;
-    data_ymax_->SetupFormat() = Fmt;
-    Fmt = TextFormat(TextFormat::INTEGER, 10);
-    data_yminIdx_->SetupFormat() = Fmt;
-    data_ymaxIdx_->SetupFormat() = Fmt;
+
     int set = 0;
     for (Array1D::const_iterator DS = input_dsets_.begin();
                                  DS != input_dsets_.end(); ++DS, ++set)
@@ -182,14 +184,16 @@ Analysis::RetType Analysis_Average::Analyze() {
         int idxYmin = 0;
         double Ymax = (*DS)->Dval(0);
         int idxYmax = 0;
-        // TODO X min max? 
-        double stdev = 0.0;
-        double avg = (*DS)->Avg( stdev );
-        data_avg_->Add( set, &avg );
-        data_sd_->Add( set, &stdev );
-        // Find min/max and indices
-        for (int idx = 1; idx != (int)(*DS)->Size(); idx++) {
+        // TODO X min max?
+        Accumulator* acc = 0;
+        if ((*DS)->Meta().IsTorsionArray() )
+          acc = new Accumulator_Torsion();
+        else
+          acc = new Accumulator_Scalar();
+        for (unsigned int idx = 0; idx < (*DS)->Size(); idx++) {
           double Yval = (*DS)->Dval(idx);
+          acc->accumulate( Yval );
+          // Find min/max and indices
           if (Yval < Ymin) {
             Ymin = Yval;
             idxYmin = idx;
@@ -199,6 +203,13 @@ Analysis::RetType Analysis_Average::Analyze() {
             idxYmax = idx;
           }
         }
+        double avg = acc->mean();
+        double stdev = acc->StdDev();
+        delete acc;
+        //double stdev = 0.0;
+        //double avg = (*DS)->Avg( stdev );
+        data_avg_->Add( set, &avg );
+        data_sd_->Add( set, &stdev );
         idxYmin++;
         idxYmax++;
         data_ymin_->Add( set, &Ymin );
