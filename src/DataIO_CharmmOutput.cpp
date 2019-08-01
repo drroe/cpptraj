@@ -46,21 +46,46 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
   const char* ptr = buffer.Line();
-  // Need to scan down until we get to DYNA
+  // Figure out if this contains DYNA and/or ENER
   bool DYNA = false;
+  bool ENER = false;
+  unsigned int headerOffset = 0;
+  // If both are present, prefer DYNA
   while (ptr != 0) {
     if ( ptr[0] == 'D' && ptr[1] == 'Y' && ptr[2] == 'N' && ptr[3] == 'A' ) {
+      // Reached DYNA which is preferred. Break now.
       DYNA = true;
       break;
     }
+    if ( ptr[0] == 'E' && ptr[1] == 'N' && ptr[2] == 'E' && ptr[3] == 'R' ) {
+      // Reached ENER but DYNA is preferred, so keep looking.
+      ENER = true;
+    }
     ptr = buffer.Line();
   }
-  if (!DYNA) {
-    mprinterr("Error: 'DYNA' not found in output file '%s'.\n", fname.full());
+  if (!DYNA && !ENER) {
+    mprinterr("Error: 'DYNA' or 'ENER' not found in output file '%s'.\n", fname.full());
     return 1;
   }
+  if (DYNA) {
+    if (ENER) mprintf("Warning: Both DYNA and ENER found. Only reading output from DYNA.\n");
+    ENER = false;
+    headerOffset = 14;
+  } else if (ENER) {
+    DYNA = false;
+    headerOffset = 16;
+    // Rewind and go to ENER
+    buffer.CloseFile();
+    if (buffer.OpenFileRead( fname )) return 1;
+    ptr = buffer.Line();
+    while (ptr != 0) {
+      if ( ptr[0] == 'E' && ptr[1] == 'N' && ptr[2] == 'E' && ptr[3] == 'R' ) break;
+      ptr = buffer.Line();
+    }
+  }
+
   // Figure out what terms we have. Format is 'DYNA <Type>: E0 E1 ...'
-  // Terms start at character 14.
+  // Terms start at character headerOffset.
   typedef std::vector<std::string> Sarray;
   Sarray Terms;
   Sarray LineHeaders;
@@ -73,7 +98,7 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
     std::string headerLine(ptr+5, 8);
     ArgList header(headerLine, " :");
     LineHeaders.push_back( header[0] + ">" );
-    ArgList line( ptr+14 );
+    ArgList line( ptr+headerOffset );
     for (int col = 0; col < line.Nargs(); col++) {
       if (line[col] == "Time") timeIdx = (int)Terms.size();
       Terms.push_back( line[col] );
@@ -88,12 +113,28 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
   bool isRestart = false;
   for (Sarray::const_iterator it = Terms.begin(); it != Terms.end(); ++it) {
     mprintf(" %s", it->c_str());
-    inputSets.push_back( new DataSet_double() );
     MetaData md(dsname, *it);
     DataSet* ds = dsl.CheckForSet( md );
-    if (ds != 0 && !isRestart)
-      isRestart = true;
-    inputSets.back()->SetMeta( md );
+    if (DYNA) {
+      if (ds != 0 && !isRestart)
+        isRestart = true;
+      inputSets.push_back( new DataSet_double() );
+      inputSets.back()->SetMeta( md );
+    } else {
+      if (ds == 0) {
+        // New ENER set
+        ds = dsl.AddSet( DataSet::DOUBLE, md );
+        if (ds == 0) return 1;
+      } else {
+        mprintf("\tAppending to existing ENER set '%s'\n", ds->legend());
+        if (ds->Type() != DataSet::DOUBLE) {
+          mprinterr("Error: Set '%s' is not of type DOUBLE.\n", ds->legend());
+          return 1;
+        }
+      }
+      inputSets.push_back( ds );
+    }
+    // TODO make default width.prec 12.5?
   }
   mprintf("\n");
   if (isRestart)
@@ -106,6 +147,10 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
       mprintf("DEBUG:\t\t[%u] '%s' %i terms.\n",
               i+1, LineHeaders[i].c_str(), nTermsInLine[i]);
   }
+  if (DYNA && timeIdx == -1) {
+    mprinterr("Error: Reading energy from DYNAmics but no Time field detected.\n");
+    return 1;
+  }
   // Read data.
   int set = 0;
   int lastStep = -1;
@@ -114,10 +159,15 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
   while (readFile) {
     // Scan to next DYNA> section
     while (ptr != 0) {
-      if (ptr[0] == 'D' && ptr[1] == 'Y' && ptr[2] == 'N' && ptr[3] == 'A' && ptr[4] == '>' )
-        break;
-      if (ptr[0] == 'R' && ptr[1] == 'E' && ptr[2] == 'P' && ptr[3] == 'D' && ptr[4] == '>' )
-        isRepD = true;
+      if (DYNA) {
+        if (ptr[0] == 'D' && ptr[1] == 'Y' && ptr[2] == 'N' && ptr[3] == 'A' && ptr[4] == '>' )
+          break;
+        if (ptr[0] == 'R' && ptr[1] == 'E' && ptr[2] == 'P' && ptr[3] == 'D' && ptr[4] == '>' )
+          isRepD = true;
+      } else { // ENER
+        if (ptr[0] == 'E' && ptr[1] == 'N' && ptr[2] == 'E' && ptr[3] == 'R' && ptr[4] == '>' )
+          break;
+      }
       ptr = buffer.Line();
     }
     if (ptr == 0)
@@ -167,7 +217,7 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
           // Only advance if the line was actually present.
           if (lineIsPresent) ptr = buffer.Line();
         } else if (lineIsPresent) {
-          int nvals = sscanf(ptr+14,"%13lf%13lf%13lf%13lf%13lf",
+          int nvals = sscanf(ptr+headerOffset,"%13lf%13lf%13lf%13lf%13lf",
                              dvals, dvals+1, dvals+2, dvals+3, dvals+4);
           // SANITY CHECK
           if (nvals != nTermsInLine[i]) {
@@ -199,18 +249,20 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
   if (isRepD)
     mprintf("\tREPD run detected. Repeated steps were ignored.\n");
   buffer.CloseFile();
-  // Separate out time values.
-  
-  DataSetList::DataListType dataSets;
-  dataSets.reserve( inputSets.size() - 1 );
-  for (int idx = 0; idx != (int)inputSets.size(); idx++) {
-    if (idx != timeIdx)
-      dataSets.push_back( inputSets[idx] );
+
+  if (DYNA) {
+    // Separate out time values.
+    DataSetList::DataListType dataSets;
+    dataSets.reserve( inputSets.size() - 1 );
+    for (int idx = 0; idx != (int)inputSets.size(); idx++) {
+      if (idx != timeIdx)
+        dataSets.push_back( inputSets[idx] );
+    }
+    DataSetList::Darray const& timeVals = ((DataSet_double*)inputSets[timeIdx])->Data();
+    if (dsl.AddOrAppendSets( "Time", timeVals, dataSets )) return 1;
+    // Delete the time value data set
+    delete inputSets[timeIdx];
   }
-  DataSetList::Darray const& timeVals = ((DataSet_double*)inputSets[timeIdx])->Data();
-  if (dsl.AddOrAppendSets( "Time", timeVals, dataSets )) return 1;
-  // Delete the time value data set
-  delete inputSets[timeIdx];
   
   return 0;
 }
