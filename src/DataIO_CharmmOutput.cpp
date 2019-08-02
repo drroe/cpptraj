@@ -214,7 +214,7 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
           while (*key != '\0' && isspace(*key)) ++key;
           lineIsPresent = (LineHeaders[i].compare(0, LineHeaders[i].size(),
                                                   key, LineHeaders[i].size()) == 0);
-          mprintf("\t%s lineIsPresent= %i {%s}\n", LineHeaders[i].c_str(), (int)lineIsPresent, key); // DEBUG
+          //mprintf("\t%s lineIsPresent= %i {%s}\n", LineHeaders[i].c_str(), (int)lineIsPresent, key); // DEBUG
           if (!lineIsPresent)
             mprintf("Warning: Missing expected term %s at line %i\n", LineHeaders[i].c_str(), buffer.LineNumber());
         } else {
