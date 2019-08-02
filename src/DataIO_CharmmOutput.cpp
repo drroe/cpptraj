@@ -46,11 +46,12 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
   const char* ptr = buffer.Line();
-  // Figure out if this contains DYNA and/or ENER
+  // Figure out if this contains DYNA/ENER/MINI
   bool DYNA = false;
   bool ENER = false;
+  bool MINI = false;
   unsigned int headerOffset = 0;
-  // If both are present, prefer DYNA
+  // Out of all present, prefer DYNA
   while (ptr != 0) {
     if ( ptr[0] == 'D' && ptr[1] == 'Y' && ptr[2] == 'N' && ptr[3] == 'A' ) {
       // Reached DYNA which is preferred. Break now.
@@ -58,21 +59,41 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
       break;
     }
     if ( ptr[0] == 'E' && ptr[1] == 'N' && ptr[2] == 'E' && ptr[3] == 'R' ) {
-      // Reached ENER but DYNA is preferred, so keep looking.
+      // Reached ENER but DYNA/MINI is preferred, so keep looking.
       ENER = true;
+    }
+    if ( ptr[0] == 'M' && ptr[1] == 'I' && ptr[2] == 'N' && ptr[3] == 'I' ) {
+      // Reached MINI but DYNA is preferred, so keep looking.
+      MINI = true;
     }
     ptr = buffer.Line();
   }
-  if (!DYNA && !ENER) {
-    mprinterr("Error: 'DYNA' or 'ENER' not found in output file '%s'.\n", fname.full());
+  if (!DYNA && !ENER && !MINI) {
+    mprinterr("Error: 'DYNA'/'ENER'/'MINI' not found in output file '%s'.\n", fname.full());
     return 1;
   }
   if (DYNA) {
     if (ENER) mprintf("Warning: Both DYNA and ENER found. Only reading output from DYNA.\n");
+    if (MINI) mprintf("Warning: Both DYNA and MINI found. Only reading output from DYNA.\n");
     ENER = false;
+    MINI = false;
     headerOffset = 14;
+  } else if (MINI) {
+    if (ENER) mprintf("Warning: Both MINI and ENER found. Only reading output from MINI.\n");
+    DYNA = false;
+    ENER = false;
+    headerOffset = 15;
+    // Rewind and go to MINI 
+    buffer.CloseFile();
+    if (buffer.OpenFileRead( fname )) return 1;
+    ptr = buffer.Line();
+    while (ptr != 0) {
+      if ( ptr[0] == 'M' && ptr[1] == 'I' && ptr[2] == 'N' && ptr[3] == 'I' ) break;
+      ptr = buffer.Line();
+    }
   } else if (ENER) {
     DYNA = false;
+    MINI = false;
     headerOffset = 16;
     // Rewind and go to ENER
     buffer.CloseFile();
@@ -164,6 +185,9 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
           break;
         if (ptr[0] == 'R' && ptr[1] == 'E' && ptr[2] == 'P' && ptr[3] == 'D' && ptr[4] == '>' )
           isRepD = true;
+      } else if (MINI) {
+        if (ptr[0] == 'M' && ptr[1] == 'I' && ptr[2] == 'N' && ptr[3] == 'I' && ptr[4] == '>' )
+          break;
       } else { // ENER
         if (ptr[0] == 'E' && ptr[1] == 'N' && ptr[2] == 'E' && ptr[3] == 'R' && ptr[4] == '>' )
           break;
@@ -190,7 +214,7 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
           while (*key != '\0' && isspace(*key)) ++key;
           lineIsPresent = (LineHeaders[i].compare(0, LineHeaders[i].size(),
                                                   key, LineHeaders[i].size()) == 0);
-          //mprintf("\t%s lineIsPresent= %i {%s}\n", LineHeaders[i].c_str(), (int)lineIsPresent, key); // DEBUG
+          mprintf("\t%s lineIsPresent= %i {%s}\n", LineHeaders[i].c_str(), (int)lineIsPresent, key); // DEBUG
           if (!lineIsPresent)
             mprintf("Warning: Missing expected term %s at line %i\n", LineHeaders[i].c_str(), buffer.LineNumber());
         } else {
