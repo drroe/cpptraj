@@ -68,6 +68,9 @@ class Residue {
     /// Convert this residue name to single letter.
     char SingleCharName() const { return ConvertResName( *resname_ ); }
   private:
+    enum ResidueType { PROTEIN=0, NUCLEIC, LIPID, SOLVENT, UNKNOWN };
+    static ResidueType TypeFromName(NameType const&);
+
     static const char BLANK_CHAINID_;
     static const char DEFAULT_CHAINID_;
     NameType resname_;   ///< Residue name.
