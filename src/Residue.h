@@ -57,10 +57,6 @@ class Residue {
     ResidueType Type()            const { return type_;           }
     inline bool IsTerminal()      const { return isTerminal_;     }
     inline int NumAtoms()         const { return (lastAtom_ - firstAtom_); }
-    inline bool NameIsSolvent()   const {
-      return (resname_=="WAT " || resname_=="HOH " || resname_=="TIP3" ||
-              resname_=="SOL ");
-    }
     /// Convert 3-letter residue code to single letter.
     static char ConvertResName(std::string const&);
     /// Convert 1-letter residue code to 3 letters.

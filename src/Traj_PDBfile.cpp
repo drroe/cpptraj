@@ -409,7 +409,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     {
       NameType rname = res->Name();
       // First check if this is water.
-      if ( res->NameIsSolvent() )
+      if ( res->Type() == Residue::SOLVENT )
         rname = "HOH ";
       // convert protein residue names back to more like PDBV3 format:
       else if (rname == "HID " || rname == "HIE " ||
@@ -579,7 +579,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
         // If this is a one atom molecule assume it is an ion.
         isIon = trajParm->Mol( molNum ).NumAtoms() == 1; 
       }
-      if (!res->NameIsSolvent() && !isIon) {
+      if (res->Type() != Residue::SOLVENT && !isIon) {
         // If this is the last residue, terminate the chain with final atom.
         // FIXME build this into the loop.
         if ( res+1 == trajParm->ResEnd() )
@@ -710,7 +710,7 @@ void Traj_PDBfile::WriteBonds() {
     // Write CONECT records for each HETATM residue EXCEPT water
     for (int ridx = 0; ridx != pdbTop_->Nres(); ridx++) {
       Residue const& res = pdbTop_->Res(ridx);
-      if (resIsHet_[ridx] && ! res.NameIsSolvent()) {
+      if (resIsHet_[ridx] && res.Type() != Residue::SOLVENT) {
         for (int aidx = res.FirstAtom(); aidx < res.LastAtom(); aidx++)
           file_.WriteCONECT( atrec_[aidx], atrec_, (*pdbTop_)[aidx] );
       }

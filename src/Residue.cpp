@@ -186,6 +186,9 @@ Residue::ResidueType Residue::TypeFromName(NameType const& nameIn) {
         case 'V' :
           if (nameIn[1] == 'A' && nameIn[2] == 'L') return PROTEIN;
         break; // END case nameIn[0]==V
+        case 'W' :
+          if (nameIn[1] == 'A' && nameIn[2] == 'T') return SOLVENT;
+        break; // END case nameIn[0]==W
 
       } // END switch nameIn[0]
     break; // END case 3

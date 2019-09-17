@@ -1047,7 +1047,7 @@ int Topology::SetSolventInfo() {
                                        mol != molecules_.end(); mol++)
   {
     int firstRes = atoms_[ mol->BeginAtom() ].ResNum();
-    if ( residues_[firstRes].NameIsSolvent() ) {
+    if ( residues_[firstRes].Type() == Residue::SOLVENT ) {
       mol->SetSolvent();
       ++NsolventMolecules_;
       numSolvAtoms += mol->NumAtoms();
