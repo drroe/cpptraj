@@ -193,6 +193,22 @@ Residue::ResidueType Residue::TypeFromName(NameType const& nameIn) {
       } // END switch nameIn[0]
     break; // END case 3
 
+    case 2 :
+      // 2 letters.
+      switch (nameIn[0]) {
+        case 'A' :
+          if (nameIn[1] == '3') return NUCLEIC;
+          if (nameIn[1] == '5') return NUCLEIC;
+        break; // END case nameIn[0]==A
+        case 'D' :
+          if (nameIn[1] == 'A') return NUCLEIC;
+          if (nameIn[1] == 'C') return NUCLEIC;
+          if (nameIn[1] == 'G') return NUCLEIC;
+          if (nameIn[1] == 'T') return NUCLEIC;
+        break; // END case nameIn[0]==D
+      } // END switch nameIn[0]
+    break; // END case 2
+
   } // END switch
   return UNKNOWN;
 }
