@@ -9,35 +9,43 @@ Residue::ResidueType Residue::TypeFromName(NameType const& nameIn) {
   switch (nameIn.len()) {
     case 4 :
       // 4 letters. Potentially Amber terminal protein or Charmm lipid
-      if (nameIn[0] == 'C') {
-        if (nameIn[1] == 'A') {
-          if (nameIn[2] == 'L' && nameIn[3] == 'A') return PROTEIN; // C-Alanine
-          if (nameIn[2] == 'R' && nameIn[3] == 'G') return PROTEIN; // C-Arginine
-          if (nameIn[2] == 'S' && nameIn[3] == 'N') return PROTEIN; // C-Asparagine
-          if (nameIn[2] == 'S' && nameIn[3] == 'P') return PROTEIN; // C-Aspartic acid
-        } // END if nameIn[1]==A
-        if (nameIn[0] == 'C') {
-          if (nameIn[2] == 'Y' && nameIn[3] == 'S') return PROTEIN; // Protonated (normal) C-CYS
-          if (nameIn[2] == 'Y' && nameIn[3] == 'X') return PROTEIN; // Disulphide C-CYS
-        } // END if nameIn[0]==C
-      } // END if nameIn[0]==C
-      break; // END case 4
+      switch (nameIn[0]) {
+        case 'C' :
+          switch (nameIn[1]) {
+            case 'A' :
+              if (nameIn[2] == 'L' && nameIn[3] == 'A') return PROTEIN; // C-Alanine
+              if (nameIn[2] == 'R' && nameIn[3] == 'G') return PROTEIN; // C-Arginine
+              if (nameIn[2] == 'S' && nameIn[3] == 'N') return PROTEIN; // C-Asparagine
+              if (nameIn[2] == 'S' && nameIn[3] == 'P') return PROTEIN; // C-Aspartic acid
+            break; // END case nameIn[1]==A
+            case 'C' :
+              if (nameIn[2] == 'Y' && nameIn[3] == 'S') return PROTEIN; // Protonated (normal) C-CYS
+              if (nameIn[2] == 'Y' && nameIn[3] == 'X') return PROTEIN; // Disulphide C-CYS
+            break; // END case nameIn[0]==C
+          } // END switch nameIn[1]
+        break; // END case nameIn[0]==C
+      } // END switch nameIn[0]
+    break; // END case 4
+
     case 3 :
       // 3 letters. Could be lots of things
-      if (nameIn[0] == 'A') {
-        if (nameIn[1] == 'C' && nameIn[2] == 'E') return PROTEIN; // Acetyl
-        if (nameIn[1] == 'L' && nameIn[2] == 'A') return PROTEIN; // Alanine
-        if (nameIn[1] == 'R' && nameIn[2] == 'G') return PROTEIN; // Arginine
-        if (nameIn[1] == 'S' && nameIn[2] == 'H') return PROTEIN; // Protonated ASP
-        if (nameIn[1] == 'S' && nameIn[2] == 'N') return PROTEIN; // Asparagine
-        if (nameIn[1] == 'S' && nameIn[2] == 'P') return PROTEIN; // Aspartic acid
-      } // END if nameIn[0]==A
-      if (nameIn[0] == 'C') {
-        if (nameIn[1] == 'Y' && nameIn[2] == 'M') return PROTEIN; // Deprotonated CYS
-        if (nameIn[1] == 'Y' && nameIn[2] == 'S') return PROTEIN; // Protonated (normal) CYS
-        if (nameIn[1] == 'Y' && nameIn[2] == 'X') return PROTEIN; // Disulphide CYS
-      } // END if nameIn[0]==C
-      break; // END case 3
+      switch (nameIn[0]) {
+        case 'A' :
+          if (nameIn[1] == 'C' && nameIn[2] == 'E') return PROTEIN; // Acetyl
+          if (nameIn[1] == 'L' && nameIn[2] == 'A') return PROTEIN; // Alanine
+          if (nameIn[1] == 'R' && nameIn[2] == 'G') return PROTEIN; // Arginine
+          if (nameIn[1] == 'S' && nameIn[2] == 'H') return PROTEIN; // Protonated ASP
+          if (nameIn[1] == 'S' && nameIn[2] == 'N') return PROTEIN; // Asparagine
+          if (nameIn[1] == 'S' && nameIn[2] == 'P') return PROTEIN; // Aspartic acid
+        break; // END case nameIn[0]==A
+        case 'C' :
+          if (nameIn[1] == 'Y' && nameIn[2] == 'M') return PROTEIN; // Deprotonated CYS
+          if (nameIn[1] == 'Y' && nameIn[2] == 'S') return PROTEIN; // Protonated (normal) CYS
+          if (nameIn[1] == 'Y' && nameIn[2] == 'X') return PROTEIN; // Disulphide CYS
+        break; // END case nameIn[0]==C
+      } // END switch nameIn[0]
+    break; // END case 3
+
   } // END switch
   return UNKNOWN;
 }
