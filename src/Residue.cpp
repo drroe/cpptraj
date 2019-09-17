@@ -21,9 +21,98 @@ Residue::ResidueType Residue::TypeFromName(NameType const& nameIn) {
             case 'C' :
               if (nameIn[2] == 'Y' && nameIn[3] == 'S') return PROTEIN; // Protonated (normal) C-CYS
               if (nameIn[2] == 'Y' && nameIn[3] == 'X') return PROTEIN; // Disulphide C-CYS
-            break; // END case nameIn[0]==C
+            break; // END case nameIn[1]==C
+            case 'G' :
+              if (nameIn[2] == 'L' && nameIn[3] == 'N') return PROTEIN; // C-Glutamine
+              if (nameIn[2] == 'L' && nameIn[3] == 'U') return PROTEIN; // C-Glutamic acid
+              if (nameIn[2] == 'L' && nameIn[3] == 'Y') return PROTEIN; // C-Glycine
+            break; // END case nameIn[1]==G
+            case 'H' :
+              if (nameIn[2] == 'I' && nameIn[3] == 'D') return PROTEIN;
+              if (nameIn[2] == 'I' && nameIn[3] == 'E') return PROTEIN;
+              if (nameIn[2] == 'I' && nameIn[3] == 'P') return PROTEIN;
+              if (nameIn[2] == 'I' && nameIn[3] == 'S') return PROTEIN;
+              if (nameIn[2] == 'Y' && nameIn[3] == 'P') return PROTEIN;
+            break; // END case nameIn[1]==H
+            case 'I' :
+              if (nameIn[2] == 'L' && nameIn[3] == 'E') return PROTEIN;
+            break; // END case nameIn[1]==I
+            case 'L' :
+              if (nameIn[2] == 'E' && nameIn[3] == 'U') return PROTEIN;
+              if (nameIn[2] == 'Y' && nameIn[3] == 'S') return PROTEIN;
+            break; // END case nameIn[1]==L
+            case 'M' :
+              if (nameIn[2] == 'E' && nameIn[3] == 'T') return PROTEIN;
+            break; // END case nameIn[1]==M
+            case 'P' :
+              if (nameIn[2] == 'H' && nameIn[3] == 'E') return PROTEIN;
+              if (nameIn[2] == 'R' && nameIn[3] == 'O') return PROTEIN;
+            break; // END case nameIn[1]==P
+            case 'S' :
+              if (nameIn[2] == 'E' && nameIn[3] == 'R') return PROTEIN;
+            break; // END case nameIn[1]==S
+            case 'T' :
+              if (nameIn[2] == 'H' && nameIn[3] == 'R') return PROTEIN;
+              if (nameIn[2] == 'R' && nameIn[3] == 'P') return PROTEIN;
+              if (nameIn[2] == 'Y' && nameIn[3] == 'R') return PROTEIN;
+            break; // END case nameIn[1]==T
+            case 'V' :
+              if (nameIn[2] == 'A' && nameIn[3] == 'L') return PROTEIN;
+            break; // END case nameIn[1]==V
           } // END switch nameIn[1]
         break; // END case nameIn[0]==C
+
+        case 'N' :
+          switch (nameIn[1]) {
+            case 'A' :
+              if (nameIn[2] == 'L' && nameIn[3] == 'A') return PROTEIN; // N-Alanine
+              if (nameIn[2] == 'R' && nameIn[3] == 'G') return PROTEIN; // N-Arginine
+              if (nameIn[2] == 'S' && nameIn[3] == 'N') return PROTEIN; // N-Asparagine
+              if (nameIn[2] == 'S' && nameIn[3] == 'P') return PROTEIN; // N-Aspartic acid
+            break; // END case nameIn[1]==A
+            case 'C' :
+              if (nameIn[2] == 'Y' && nameIn[3] == 'S') return PROTEIN; // Protonated (normal) N-CYS
+              if (nameIn[2] == 'Y' && nameIn[3] == 'X') return PROTEIN; // Disulphide N-CYS
+            break; // END case nameIn[1]==C
+            case 'G' :
+              if (nameIn[2] == 'L' && nameIn[3] == 'N') return PROTEIN; // N-Glutamine
+              if (nameIn[2] == 'L' && nameIn[3] == 'U') return PROTEIN; // N-Glutamic acid
+              if (nameIn[2] == 'L' && nameIn[3] == 'Y') return PROTEIN; // N-Glycine
+            break; // END case nameIn[1]==G
+            case 'H' :
+              if (nameIn[2] == 'I' && nameIn[3] == 'D') return PROTEIN;
+              if (nameIn[2] == 'I' && nameIn[3] == 'E') return PROTEIN;
+              if (nameIn[2] == 'I' && nameIn[3] == 'P') return PROTEIN;
+              if (nameIn[2] == 'I' && nameIn[3] == 'S') return PROTEIN;
+            break; // END case nameIn[1]==H
+            case 'I' :
+              if (nameIn[2] == 'L' && nameIn[3] == 'E') return PROTEIN;
+            break; // END case nameIn[1]==I
+            case 'L' :
+              if (nameIn[2] == 'E' && nameIn[3] == 'U') return PROTEIN;
+              if (nameIn[2] == 'Y' && nameIn[3] == 'S') return PROTEIN;
+            break; // END case nameIn[1]==L
+            case 'M' :
+              if (nameIn[2] == 'E' && nameIn[3] == 'T') return PROTEIN;
+            break; // END case nameIn[1]==M
+            case 'P' :
+              if (nameIn[2] == 'H' && nameIn[3] == 'E') return PROTEIN;
+              if (nameIn[2] == 'R' && nameIn[3] == 'O') return PROTEIN;
+            break; // END case nameIn[1]==P
+            case 'S' :
+              if (nameIn[2] == 'E' && nameIn[3] == 'R') return PROTEIN;
+            break; // END case nameIn[1]==S
+            case 'T' :
+              if (nameIn[2] == 'H' && nameIn[3] == 'R') return PROTEIN;
+              if (nameIn[2] == 'R' && nameIn[3] == 'P') return PROTEIN;
+              if (nameIn[2] == 'Y' && nameIn[3] == 'R') return PROTEIN;
+            break; // END case nameIn[1]==T
+            case 'V' :
+              if (nameIn[2] == 'A' && nameIn[3] == 'L') return PROTEIN;
+            break; // END case nameIn[1]==V
+          } // END switch nameIn[1]
+
+        break; // END case nameIn[0]==N
       } // END switch nameIn[0]
     break; // END case 4
 
@@ -43,6 +132,49 @@ Residue::ResidueType Residue::TypeFromName(NameType const& nameIn) {
           if (nameIn[1] == 'Y' && nameIn[2] == 'S') return PROTEIN; // Protonated (normal) CYS
           if (nameIn[1] == 'Y' && nameIn[2] == 'X') return PROTEIN; // Disulphide CYS
         break; // END case nameIn[0]==C
+        case 'G' :
+          if (nameIn[1] == 'L' && nameIn[2] == 'H') return PROTEIN; // Protonated GLU
+          if (nameIn[1] == 'L' && nameIn[2] == 'N') return PROTEIN; // Glutamine
+          if (nameIn[1] == 'L' && nameIn[2] == 'U') return PROTEIN; // Glutamic acid
+          if (nameIn[1] == 'L' && nameIn[2] == 'Y') return PROTEIN; // Glycine
+        break; // END case nameIn[0]==G
+        case 'H' :
+          if (nameIn[1] == 'I' && nameIn[2] == 'D') return PROTEIN;
+          if (nameIn[1] == 'I' && nameIn[2] == 'E') return PROTEIN;
+          if (nameIn[1] == 'I' && nameIn[2] == 'P') return PROTEIN;
+          if (nameIn[1] == 'I' && nameIn[2] == 'S') return PROTEIN;
+          if (nameIn[1] == 'Y' && nameIn[2] == 'P') return PROTEIN;
+        break; // END case nameIn[0]==H
+        case 'I' :
+          if (nameIn[1] == 'L' && nameIn[2] == 'E') return PROTEIN;
+        break; // END case nameIn[0]==I
+        case 'L' :
+          if (nameIn[1] == 'E' && nameIn[2] == 'U') return PROTEIN;
+          if (nameIn[1] == 'Y' && nameIn[2] == 'N') return PROTEIN;
+          if (nameIn[1] == 'Y' && nameIn[2] == 'S') return PROTEIN;
+        break; // END case nameIn[0]==L
+        case 'M' :
+          if (nameIn[1] == 'E' && nameIn[2] == 'T') return PROTEIN;
+        break; // END case nameIn[0]==M
+        case 'N' :
+          if (nameIn[1] == 'H' && nameIn[2] == 'E') return PROTEIN;
+          if (nameIn[1] == 'M' && nameIn[2] == 'E') return PROTEIN;
+        case 'P' :
+          if (nameIn[1] == 'H' && nameIn[2] == 'E') return PROTEIN;
+          if (nameIn[1] == 'R' && nameIn[2] == 'O') return PROTEIN;
+        break; // END case nameIn[0]==P
+        case 'S' :
+          if (nameIn[1] == 'E' && nameIn[2] == 'R') return PROTEIN;
+        break; // END case nameIn[0]==S
+        case 'T' :
+          if (nameIn[1] == 'H' && nameIn[2] == 'R') return PROTEIN;
+          if (nameIn[1] == 'R' && nameIn[2] == 'P') return PROTEIN;
+          if (nameIn[1] == 'Y' && nameIn[2] == 'R') return PROTEIN;
+        break; // END case nameIn[0]==T
+        case 'V' :
+          if (nameIn[1] == 'A' && nameIn[2] == 'L') return PROTEIN;
+        break; // END case nameIn[0]==V
+
       } // END switch nameIn[0]
     break; // END case 3
 
