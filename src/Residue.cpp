@@ -111,8 +111,18 @@ Residue::ResidueType Residue::TypeFromName(NameType const& nameIn) {
               if (nameIn[2] == 'A' && nameIn[3] == 'L') return PROTEIN;
             break; // END case nameIn[1]==V
           } // END switch nameIn[1]
-
         break; // END case nameIn[0]==N
+
+        case 'T' :
+          switch (nameIn[1]) {
+            case 'I' :
+              if (nameIn[2] == 'P' && nameIn[3] == '3') return SOLVENT; // TIP3P water
+              if (nameIn[2] == 'P' && nameIn[3] == '4') return SOLVENT; // TIP4P water
+              if (nameIn[2] == 'P' && nameIn[3] == '5') return SOLVENT; // TIP5P water
+            break; // END case nameIn[1]==I
+          } // END switch nameIn[1]
+        break; // END case nameIn[0]==T
+
       } // END switch nameIn[0]
     break; // END case 4
 
@@ -143,6 +153,7 @@ Residue::ResidueType Residue::TypeFromName(NameType const& nameIn) {
           if (nameIn[1] == 'I' && nameIn[2] == 'E') return PROTEIN;
           if (nameIn[1] == 'I' && nameIn[2] == 'P') return PROTEIN;
           if (nameIn[1] == 'I' && nameIn[2] == 'S') return PROTEIN;
+          if (nameIn[1] == 'O' && nameIn[2] == 'H') return SOLVENT; // PDB water 
           if (nameIn[1] == 'Y' && nameIn[2] == 'P') return PROTEIN;
         break; // END case nameIn[0]==H
         case 'I' :
@@ -165,6 +176,7 @@ Residue::ResidueType Residue::TypeFromName(NameType const& nameIn) {
         break; // END case nameIn[0]==P
         case 'S' :
           if (nameIn[1] == 'E' && nameIn[2] == 'R') return PROTEIN;
+          if (nameIn[1] == 'O' && nameIn[2] == 'L') return SOLVENT; // CHARMM water
         break; // END case nameIn[0]==S
         case 'T' :
           if (nameIn[1] == 'H' && nameIn[2] == 'R') return PROTEIN;
