@@ -223,7 +223,17 @@ void Topology::Summary() const {
     mprintf("\t\tTitle: %s\n", parmName_.c_str());
   if (!fileName_.empty())
     mprintf("\t\tOriginal filename: %s\n", fileName_.full());
-  mprintf("\t\t%zu residues.\n", residues_.size());
+  // Make a count of each residue type.
+  std::vector<int> rcounts( (int)Residue::UNKNOWN + 1, 0 );
+  for (res_iterator res = ResStart(); res != ResEnd(); ++res)
+    rcounts[res->Type()]++;
+  mprintf("\t\t%zu residues:", residues_.size());
+  for (std::vector<int>::const_iterator rc = rcounts.begin(); rc != rcounts.end(); ++rc)
+  {
+    if (*rc > 0)
+      mprintf(" %i %s", *rc, Residue::ResTypeStr((Residue::ResidueType)(rc-rcounts.begin())));
+  }
+  mprintf(".\n");
   mprintf("\t\t%zu molecules.\n", molecules_.size());
   size_t s1 = bondsh_.size();
   size_t s2 = bonds_.size();
@@ -1047,7 +1057,7 @@ int Topology::SetSolventInfo() {
                                        mol != molecules_.end(); mol++)
   {
     int firstRes = atoms_[ mol->BeginAtom() ].ResNum();
-    if ( residues_[firstRes].NameIsSolvent() ) {
+    if ( residues_[firstRes].Type() == Residue::SOLVENT ) {
       mol->SetSolvent();
       ++NsolventMolecules_;
       numSolvAtoms += mol->NumAtoms();

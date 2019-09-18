@@ -81,6 +81,14 @@ const char* Residue::ConvertResName(char letter) {
   return 0;
 }
 
+const char* Residue::resTypeStr_[] = {
+  "protein", "nucleic", "lipid", "solvent", "other"
+};
+
+const char* Residue::ResTypeStr(ResidueType rt) {
+  return resTypeStr_[rt];
+}
+
 Residue::ResNameMapType Residue::resNameMap_ = ResNameMapType();
 
 void Residue::InitResNameMap() {

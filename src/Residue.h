@@ -58,10 +58,6 @@ class Residue {
     ResidueType Type()     const { return type_; }
     bool IsTerminal()      const { return isTerminal_;     }
     int NumAtoms()         const { return (lastAtom_ - firstAtom_); }
-    bool NameIsSolvent()   const {
-      return (resname_=="WAT " || resname_=="HOH " || resname_=="TIP3" ||
-              resname_=="SOL ");
-    }
     /// Convert 3-letter residue code to single letter.
     static char ConvertResName(std::string const&);
     /// Convert 1-letter residue code to 3 letters.
@@ -74,6 +70,8 @@ class Residue {
     char SingleCharName() const { return ConvertResName( *resname_ ); }
     /// Initialize the residue-type name map. Called from Cpptraj constructor.
     static void InitResNameMap();
+    /// \return string corresponding to ResidueType
+    static const char* ResTypeStr(ResidueType);
   private:
     /// /return Residue type from given residue name
     static ResidueType GetTypeFromName(NameType const&);
@@ -85,6 +83,7 @@ class Residue {
     /// Map residue names to their associated type
     static ResNameMapType resNameMap_;
 
+    static const char* resTypeStr_[];
     static const char BLANK_CHAINID_;
     static const char DEFAULT_CHAINID_;
     NameType resname_;   ///< Residue name.

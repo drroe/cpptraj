@@ -296,7 +296,7 @@ int BondSearch_ByResidue( Topology& top, Frame const& frameIn, double offset, in
     }
     // If this residue is recognized as solvent, no need to check previous or
     // next residue
-    if ( res->NameIsSolvent() ) {
+    if ( res->Type() == Residue::SOLVENT ) {
       ++res;
       if (res == top.ResEnd()) break;
       continue;
@@ -304,7 +304,7 @@ int BondSearch_ByResidue( Topology& top, Frame const& frameIn, double offset, in
     // Get previous residue
     Topology::res_iterator previous_res = res - 1;
     // If previous residue is recognized as solvent, no need to check previous.
-    if ( previous_res->NameIsSolvent() ) continue;
+    if ( previous_res->Type() == Residue::SOLVENT ) continue;
     // Get previous residue start atom
     int startatom = previous_res->FirstAtom();
     // Previous residue stop atom, this residue start atom
