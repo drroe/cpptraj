@@ -42,7 +42,7 @@ class Residue {
     void SetSegID(int s)            { segID_ = s;          }
     void SetIcode(char c)           { icode_ = c;          }
     void SetChainID(char c)         { chainID_ = c;        }
-    void SetName(NameType const& n) { resname_ = n;        }
+    void SetName(NameType const& n) { resname_ = n; type_ = GetTypeFromName(n); }
     void SetTerminal(bool t)        { isTerminal_ = t;     }
     /// \return First atom in residue, indexing from 0
     int FirstAtom()        const { return firstAtom_;      }
