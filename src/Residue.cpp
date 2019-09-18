@@ -209,6 +209,12 @@ void Residue::InitResNameMap() {
   resNameMap_.insert( ResNamePairType("U5", NUCLEIC) );
   resNameMap_.insert( ResNamePairType("UMP", NUCLEIC) );
   resNameMap_.insert( ResNamePairType("UN", NUCLEIC) );
+  // CHARMM NA RESIDUES
+  resNameMap_.insert( ResNamePairType("GUA", NUCLEIC) );
+  resNameMap_.insert( ResNamePairType("ADE", NUCLEIC) );
+  resNameMap_.insert( ResNamePairType("CYT", NUCLEIC) );
+  resNameMap_.insert( ResNamePairType("THY", NUCLEIC) );
+  resNameMap_.insert( ResNamePairType("URA", NUCLEIC) );
   // LIPID RESIDUES
   resNameMap_.insert( ResNamePairType("AR", LIPID) );
   resNameMap_.insert( ResNamePairType("CHL", LIPID) );
@@ -259,5 +265,4 @@ void Residue::InitResNameMap() {
   resNameMap_.insert( ResNamePairType("SDPC", LIPID) );
   resNameMap_.insert( ResNamePairType("SOPC", LIPID) );
   resNameMap_.insert( ResNamePairType("DAPC", LIPID) );
-
 }
