@@ -6,55 +6,59 @@
 /// Hold information for a residue.
 class Residue {
   public:
+    /// Residue types.
+    enum ResidueType { PROTEIN = 0, NUCLEIC, LIPID, SOLVENT, UNKNOWN };
+
     /// CONSTRUCTOR
     Residue() :
-      resname_(""), firstAtom_(0), lastAtom_(0), originalResNum_(0), segID_(-1),
+      resname_(""), type_(UNKNOWN), firstAtom_(0), lastAtom_(0), originalResNum_(0), segID_(-1),
       icode_(' '), chainID_(BLANK_CHAINID_), isTerminal_(false)
     {}
     /// CONSTRUCTOR - Copy given Residue, set first and last atom indices.
     Residue(Residue const& r, int first, int last) :
-      resname_(r.resname_), firstAtom_(first), lastAtom_(last),
+      resname_(r.resname_), type_(r.type_), firstAtom_(first), lastAtom_(last),
       originalResNum_(r.originalResNum_), segID_(r.segID_), icode_(r.icode_),
       chainID_(r.chainID_), isTerminal_(false)
     {}
     /// CONSTRUCTOR - Res name, original resnum, icode, chain ID
     Residue(NameType const& n, int r, char ic, char cid) :
-      resname_(n), firstAtom_(-1), lastAtom_(-1), originalResNum_(r), segID_(-1),
+      resname_(n), type_(GetTypeFromName(n)), firstAtom_(-1), lastAtom_(-1), originalResNum_(r), segID_(-1),
       icode_(ic), chainID_(cid), isTerminal_(false)
     {}
     /// CONSTRUCTOR - Res name, first atom, last atom, original resnum, icode, chain ID
     Residue(NameType const& n, int first, int last, int r, char ic, char cid) :
-      resname_(n), firstAtom_(first), lastAtom_(last),
+      resname_(n), type_(GetTypeFromName(n)), firstAtom_(first), lastAtom_(last),
       originalResNum_(r), segID_(-1), icode_(ic), chainID_(cid),
       isTerminal_(false)
     {}
     /// CONSTRUCTOR - Res name, original resnum, res icode, segment ID
     Residue(NameType const& n, int r, char i, int s) :
-      resname_(n), firstAtom_(-1), lastAtom_(-1), originalResNum_(r), segID_(s),
+      resname_(n), type_(GetTypeFromName(n)), firstAtom_(-1), lastAtom_(-1), originalResNum_(r), segID_(s),
        icode_(i), chainID_(BLANK_CHAINID_), isTerminal_(false)
     {}
-    inline void SetFirstAtom(int i)        { firstAtom_ = i;      }
-    inline void SetLastAtom(int i)         { lastAtom_ = i;       }
-    inline void SetOriginalNum(int i)      { originalResNum_ = i; }
-    inline void SetSegID(int s)            { segID_ = s;          }
-    inline void SetIcode(char c)           { icode_ = c;          }
-    inline void SetChainID(char c)         { chainID_ = c;        }
-    inline void SetName(NameType const& n) { resname_ = n;        }
-    inline void SetTerminal(bool t)        { isTerminal_ = t;     }
+    void SetFirstAtom(int i)        { firstAtom_ = i;      }
+    void SetLastAtom(int i)         { lastAtom_ = i;       }
+    void SetOriginalNum(int i)      { originalResNum_ = i; }
+    void SetSegID(int s)            { segID_ = s;          }
+    void SetIcode(char c)           { icode_ = c;          }
+    void SetChainID(char c)         { chainID_ = c;        }
+    void SetName(NameType const& n) { resname_ = n;        }
+    void SetTerminal(bool t)        { isTerminal_ = t;     }
     /// \return First atom in residue, indexing from 0
-    inline int FirstAtom()        const { return firstAtom_;      }
+    int FirstAtom()        const { return firstAtom_;      }
     /// \return Atom _after_ the last in residue, indexing from 0
-    inline int LastAtom()         const { return lastAtom_;       }
-    inline int OriginalResNum()   const { return originalResNum_; }
-    inline int SegID()            const { return segID_;          }
-    inline char Icode()           const { return icode_;          }
+    int LastAtom()         const { return lastAtom_;       }
+    int OriginalResNum()   const { return originalResNum_; }
+    int SegID()            const { return segID_;          }
+    char Icode()           const { return icode_;          }
     inline char ChainID()         const;
-    bool HasChainID()             const { return (chainID_ != BLANK_CHAINID_); }
-    inline const char *c_str()    const { return *resname_;       }
-    inline NameType const& Name() const { return resname_;        }
-    inline bool IsTerminal()      const { return isTerminal_;     }
-    inline int NumAtoms()         const { return (lastAtom_ - firstAtom_); }
-    inline bool NameIsSolvent()   const {
+    bool HasChainID()      const { return (chainID_ != BLANK_CHAINID_); }
+    const char *c_str()    const { return *resname_;       }
+    NameType const& Name() const { return resname_;        }
+    ResidueType Type()     const { return type_; }
+    bool IsTerminal()      const { return isTerminal_;     }
+    int NumAtoms()         const { return (lastAtom_ - firstAtom_); }
+    bool NameIsSolvent()   const {
       return (resname_=="WAT " || resname_=="HOH " || resname_=="TIP3" ||
               resname_=="SOL ");
     }
@@ -71,8 +75,9 @@ class Residue {
     /// Initialize the residue-type name map. Called from Cpptraj constructor.
     static void InitResNameMap();
   private:
-    /// Residue types.
-    enum ResidueType { PROTEIN = 0, NUCLEIC, LIPID, SOLVENT, UNKNOWN };
+    /// /return Residue type from given residue name
+    static ResidueType GetTypeFromName(NameType const&);
+
     /// Used to map recognized residue names to types
     typedef std::map<NameType,ResidueType> ResNameMapType;
     /// Used to pair residue names to types
@@ -83,6 +88,7 @@ class Residue {
     static const char BLANK_CHAINID_;
     static const char DEFAULT_CHAINID_;
     NameType resname_;   ///< Residue name.
+    ResidueType type_;   ///< Residue type based on name.
     int firstAtom_;      ///< Index of first atom (from 0).
     int lastAtom_;       ///< Atom index after last atom in residue.
     int originalResNum_; ///< Original residue number.

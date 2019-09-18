@@ -265,4 +265,19 @@ void Residue::InitResNameMap() {
   resNameMap_.insert( ResNamePairType("SDPC", LIPID) );
   resNameMap_.insert( ResNamePairType("SOPC", LIPID) );
   resNameMap_.insert( ResNamePairType("DAPC", LIPID) );
+  // SOLVENT RESIDUES
+  resNameMap_.insert( ResNamePairType("WAT", SOLVENT) );
+  resNameMap_.insert( ResNamePairType("HOH", SOLVENT) );
+  resNameMap_.insert( ResNamePairType("TIP3", SOLVENT) );
+  resNameMap_.insert( ResNamePairType("TIP4", SOLVENT) );
+  resNameMap_.insert( ResNamePairType("TIP5", SOLVENT) );
+  resNameMap_.insert( ResNamePairType("SOL", SOLVENT) );
+}
+
+Residue::ResidueType Residue::GetTypeFromName(NameType const& nameIn) {
+  ResNameMapType::iterator it = resNameMap_.find( nameIn );
+  if (it == resNameMap_.end())
+    return UNKNOWN;
+  else
+    return it->second;
 }

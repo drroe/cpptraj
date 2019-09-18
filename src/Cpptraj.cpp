@@ -15,6 +15,7 @@
 #include "Timer.h"
 #include "StringRoutines.h" // TimeString
 #include "TrajectoryFile.h" // for autodetect
+#include "Residue.h" // For initializing residue name-type map
 #ifdef CUDA
 # include <cuda_runtime_api.h>
 #endif
@@ -56,6 +57,7 @@ Cpptraj::Cpptraj() {
 # endif
 
   Command::Init();
+  Residue::InitResNameMap();
 }
 
 /// DESTRUCTOR - free all commands
