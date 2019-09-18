@@ -22,7 +22,11 @@
 # include <omp.h>
 #endif
 
-/// CONSTRUCTOR - initializes all commands
+/** The CPPTRAJ constructor is where anything that is globally required
+  * should be initialized. E.g. the commands, any complicated class
+  * static variables, etc. This is also where the version string
+  * is constructed.
+  */
 Cpptraj::Cpptraj() {
 # ifdef _MSC_VER
   // To make sure output format on windows matches C specification, force

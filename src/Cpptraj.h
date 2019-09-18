@@ -8,9 +8,13 @@
  */
 class Cpptraj {
   public:
+    /// CONSTRUCTOR - initializes all commands and any static class variables.
     Cpptraj();
+    /// DESTRUCTOR - free anything initialized by the CONSTRUCTOR
     ~Cpptraj();
+    /// The main entry for cpptraj, called from main.cpp
     int RunCpptraj(int, char**);
+    /// \return a string containing what preprocessor defines were used to compile cpptraj.
     static std::string Defines();
   private:
     typedef std::vector<std::string> Sarray;

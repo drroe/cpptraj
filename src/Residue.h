@@ -1,5 +1,6 @@
 #ifndef INC_RESIDUE_H
 #define INC_RESIDUE_H
+#include <map> // for Residue name map
 #include "NameType.h"
 // Class: Residue
 /// Hold information for a residue.
@@ -67,7 +68,18 @@ class Residue {
     static char BlankChainID() { return BLANK_CHAINID_; }
     /// Convert this residue name to single letter.
     char SingleCharName() const { return ConvertResName( *resname_ ); }
+    /// Initialize the residue-type name map. Called from Cpptraj constructor.
+    static void InitResNameMap();
   private:
+    /// Residue types.
+    enum ResidueType { PROTEIN = 0, NUCLEIC, LIPID, SOLVENT, UNKNOWN };
+    /// Used to map recognized residue names to types
+    typedef std::map<NameType,ResidueType> ResNameMapType;
+    /// Used to pair residue names to types
+    typedef std::pair<NameType,ResidueType> ResNamePairType;
+    /// Map residue names to their associated type
+    static ResNameMapType resNameMap_;
+
     static const char BLANK_CHAINID_;
     static const char DEFAULT_CHAINID_;
     NameType resname_;   ///< Residue name.
