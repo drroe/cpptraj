@@ -166,6 +166,10 @@ void Residue::InitResNameMap() {
   resNameMap_.insert( ResNamePairType("TRP", PROTEIN) );
   resNameMap_.insert( ResNamePairType("TYR", PROTEIN) );
   resNameMap_.insert( ResNamePairType("VAL", PROTEIN) );
+  // CHARMM PROTEIN RESIDUES
+  resNameMap_.insert( ResNamePairType("HSD", PROTEIN) );
+  resNameMap_.insert( ResNamePairType("HSE", PROTEIN) );
+  resNameMap_.insert( ResNamePairType("HSP", PROTEIN) );
   // DNA RESIDUES
   resNameMap_.insert( ResNamePairType("DA", NUCLEIC) );
   resNameMap_.insert( ResNamePairType("DA3", NUCLEIC) );
