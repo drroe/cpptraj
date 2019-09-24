@@ -230,6 +230,7 @@ void Residue::InitResNameMap() {
   resNameMap_.insert( ResNamePairType("LAL", LIPID) );
   resNameMap_.insert( ResNamePairType("MY", LIPID) );
   resNameMap_.insert( ResNamePairType("OL", LIPID) );
+  resNameMap_.insert( ResNamePairType("OL2", LIPID) );
   resNameMap_.insert( ResNamePairType("PA", LIPID) );
   resNameMap_.insert( ResNamePairType("PC", LIPID) );
   resNameMap_.insert( ResNamePairType("PE", LIPID) );
@@ -276,6 +277,7 @@ void Residue::InitResNameMap() {
   // SOLVENT RESIDUES
   resNameMap_.insert( ResNamePairType("WAT", SOLVENT) );
   resNameMap_.insert( ResNamePairType("HOH", SOLVENT) );
+  resNameMap_.insert( ResNamePairType("H2O", SOLVENT) );
   resNameMap_.insert( ResNamePairType("TIP3", SOLVENT) );
   resNameMap_.insert( ResNamePairType("TIP4", SOLVENT) );
   resNameMap_.insert( ResNamePairType("TIP5", SOLVENT) );
