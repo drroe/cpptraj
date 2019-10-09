@@ -15,6 +15,10 @@ class CpptrajState {
     enum RetType { OK = 0, ERR, QUIT };
     /// Trajectory mode
     enum TrajModeType { UNDEFINED = 0, NORMAL, ENSEMBLE };
+#   ifdef MPI
+    /// Parallel trajectory mode. Only valid for MPI and NORMAL mode.
+    enum ParaModeType { DIV_WORLD = 0, DIV_SINGLE };
+#   endif
     /// CONSTRUCTOR
     CpptrajState();
     void SetNoExitOnError()  { exitOnError_ = false;  }
@@ -23,6 +27,8 @@ class CpptrajState {
     void SetActionSilence(bool b)  { actionList_.SetSilent(b); }
 #   ifdef MPI
     void SetForceParaEnsemble(bool b) { forceParallelEnsemble_ = b; }
+    ParaModeType ParallelMode() const { return paraMode_; }
+    void SetParaMode(ParaModeType);
 #   endif
     DataSetList const& DSL()  const { return DSL_;         }
     DataSetList&       DSL()        { return DSL_;         }
@@ -90,7 +96,7 @@ class CpptrajState {
     int PreloadCheck(int, int, int&, int&) const;
     int RunParallel();
     int RunParaEnsemble();
-    //int RunSingleTrajParallel();
+    int RunSingleTrajParallel();
 #   endif
     void Init_Timers();
     void Time_Summary() const;
@@ -120,6 +126,7 @@ class CpptrajState {
     Timer run_time_;      ///< Total run time.
     Timer write_time_;    ///< Run data file write time.
 #   ifdef MPI
+    ParaModeType paraMode_;      ///< Run type when in parallel and mode is NORMAL
     bool forceParallelEnsemble_; ///< If true run parallel ensemble even with 1 thread/member
     Timer sync_time_;     ///< DataSet/Action total sync time.
     Timer master_time_;   ///< Total frame processing time across all ranks.
