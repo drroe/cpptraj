@@ -1150,6 +1150,7 @@ int CpptrajState::RunSingleTrajParallel() {
   int total_read_frames = trajin->Traj().Counter().TotalReadFrames();
   int my_start, my_stop, my_frames;
   DivideFramesAmongProcesses(my_start, my_stop, my_frames, total_read_frames, TrajComm);
+
   // Ensure at least 1 frame per process, otherwise some ranks could cause hangups.
   int err = 0;
   if (my_frames > 0)
@@ -1159,6 +1160,12 @@ int CpptrajState::RunSingleTrajParallel() {
     err = 1;
   }
   if (TrajComm.CheckError( err )) return 1;
+
+  // Update my start and stop based on offset.
+  int traj_offset = trajin->Traj().Counter().Offset();
+  int traj_start  = my_start * traj_offset + trajin->Traj().Counter().Start();
+  int traj_stop   = my_stop  * traj_offset + trajin->Traj().Counter().Start();
+  rprintf("Start and stop adjusted for offset: %i to %i\n", traj_start, traj_stop);
 
   // Allocate DataSets in DataSetList based on # frames read by this process.
   DSL_.AllocateSets( my_frames );
@@ -1190,8 +1197,9 @@ int CpptrajState::RunSingleTrajParallel() {
     progress.SetupProgress( my_frames );
   Frame TrajFrame;
   TrajFrame.SetupFrameV(top->Atoms(), currentCoordInfo);
-  int actionSet = 0; // Internal data frame
-  for (int set = my_start; set != my_stop; set++, actionSet++)
+  int actionSet = 0;         // Internal data frame
+  int trajoutSet = my_start; // Trajout index
+  for (int set = traj_start; set < traj_stop; set+=traj_offset, actionSet++, trajoutSet++)
   {
     trajin->ParallelReadTrajFrame(set, TrajFrame);
     if (TrajFrame.CheckCoordsInvalid())
@@ -1200,16 +1208,16 @@ int CpptrajState::RunSingleTrajParallel() {
     bool suppress_output = actionList_.DoActions(actionSet, currentFrame);
     // Trajectory output
     if (!suppress_output) {
-      if (trajoutList_.WriteTrajout(set, currentFrame.Frm())) {
+      if (trajoutList_.WriteTrajout(trajoutSet, currentFrame.Frm())) {
         if (exitOnError_) return 1;
       }
     }
     if (showProgress_) progress.Update( actionSet );
   }
   frames_time.Stop();
+  TrajComm.Barrier();
   rprintf("TIME: Avg. throughput= %.4f frames / second.\n",
           (double)actionSet / frames_time.Total());
-  TrajComm.Barrier();
   trajin->ParallelEndTraj();
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
           (double)total_read_frames / frames_time.Total());

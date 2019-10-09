@@ -49,6 +49,15 @@ class Exec_ForceParaEnsemble : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_ForceParaEnsemble(); }
     RetType Execute(CpptrajState&, ArgList&);
 };
+
+/// Change the parallel trajectory mode
+class Exec_ParallelMode : public Exec {
+  public:
+    Exec_ParallelMode() : Exec(GENERAL) {}
+    void Help() const;
+    DispatchObject* Alloc() const { return (DispatchObject*)new Exec_ParallelMode(); }
+    RetType Execute(CpptrajState&, ArgList&);
+};
 #endif
 /// Exit CPPTRAJ
 class Exec_Quit : public Exec {

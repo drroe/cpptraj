@@ -31,6 +31,25 @@ Exec::RetType Exec_ForceParaEnsemble::Execute(CpptrajState& State, ArgList&) {
   mprintf("\tAlways using parallel trajectory routines during ensemble mode.\n");
   return CpptrajState::OK;
 }
+// -----------------------------------------------------------------------------
+void Exec_ParallelMode::Help() const {
+  mprintf("\t{world|single}\n"
+          "  When running in 'trajin' parallel mode, either divide processes\n"
+          "  among all input trajectories (world, default) or single input\n"
+          "  trajectories (single).\n");
+}
+
+Exec::RetType Exec_ParallelMode::Execute(CpptrajState& State, ArgList& argIn) {
+  if (argIn.hasKey("world")) {
+    mprintf("\tThe frames of all trajectories will be divded among processes.\n");
+    State.SetParaMode(CpptrajState::DIV_WORLD);
+  } else if (argIn.hasKey("single")) {
+    mprintf("\tThe frames of single trajectories will be divided among processes.\n");
+    State.SetParaMode(CpptrajState::DIV_SINGLE);
+  } else
+    mprintf("Warning: Expected 'world' or 'single'\n");
+  return CpptrajState::OK;
+}
 #endif
 // -----------------------------------------------------------------------------
 void Exec_NoProgress::Help() const {

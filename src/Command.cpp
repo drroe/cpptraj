@@ -235,7 +235,8 @@ void Command::Init() {
   Command::AddCmd( new Exec_UseDiskCache(),    Cmd::EXE, 1, "usediskcache" );
   Command::AddCmd( new Exec_ViewRst(),         Cmd::EXE, 1, "viewrst" ); // HIDDEN
 # ifdef MPI
-  Command::AddCmd( new Exec_ForceParaEnsemble(), Cmd::EXE, 1, "forceparaensemble" );
+  Command::AddCmd( new Exec_ForceParaEnsemble(), Cmd::EXE, 1, "forceparaensemble" ); // HIDDEN
+  Command::AddCmd( new Exec_ParallelMode(),    Cmd::EXE, 1, "paramode" );
 # endif
   // SYSTEM
   Command::AddCmd( new Exec_System(), Cmd::EXE, 6, "gnuplot", "head", "less", "ls", "pwd", "xmgrace" );
