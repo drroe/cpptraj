@@ -416,7 +416,7 @@ int Action_Pairwise::WriteCutFrame(int frameNum, Topology const& Parm, AtomMask 
                                    Frame const& frame, std::string const& outfilename) 
 {
   if (CutMask.Nselected() != (int)CutCharges.size()) {
-    mprinterr("Error: WriteCutFrame: # of charges (%u) != # mask atoms (%i)\n",
+    mprinterr("Error: WriteCutFrame: # of charges (%zu) != # mask atoms (%i)\n",
               CutCharges.size(), CutMask.Nselected());
     return 1;
   }
@@ -428,7 +428,8 @@ int Action_Pairwise::WriteCutFrame(int frameNum, Topology const& Parm, AtomMask 
     CutParm->SetAtom(i).SetCharge( CutCharges[i] );
   int err = 0;
   Trajout_Single tout;
-  if (tout.PrepareTrajWrite(outfilename, "multi", CutParm, CoordinateInfo(), 1,
+  // NOTE: Since no user-specified arguments, pass in blank data set list.
+  if (tout.PrepareTrajWrite(outfilename, "multi", DataSetList(), CutParm, CoordinateInfo(), 1,
                             TrajectoryFile::MOL2FILE))
   {
     mprinterr("Error: Could not set up cut mol2 file %s\n", outfilename.c_str());
