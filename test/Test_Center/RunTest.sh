@@ -9,7 +9,7 @@ CleanFiles center.in centered.crd origin.centered.crd origin.mass.centered.crd \
 TESTNAME='Center tests'
 Requires netcdf maxthreads 2
 
-INPUT="-i center.in"
+CPPTRAJ_INPUT="-i center.in"
 # Box center
 cat > center.in <<EOF
 noprogress

@@ -8,7 +8,7 @@ CleanFiles closest.in first.Closest.pdb.1 closestmols.dat \
            closest10.center2_4.crd closest10.mols.dat \
            solventmask.dat wato.dat
 
-INPUT="-i closest.in"
+CPPTRAJ_INPUT="-i closest.in"
 TESTNAME='Closest tests'
 Requires netcdf maxthreads 10
 

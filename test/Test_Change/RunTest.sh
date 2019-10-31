@@ -7,7 +7,7 @@ CleanFiles change.in ala3.mod.pdb ala3.chain.pdb crdala3.chain.pdb
 TESTNAME='Change command test'
 Requires maxthreads 1
 
-INPUT='-i change.in'
+CPPTRAJ_INPUT='-i change.in'
 
 cat > change.in <<EOF
 parm ../Test_Charmm/ala3.psf

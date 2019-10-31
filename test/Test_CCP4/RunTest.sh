@@ -4,7 +4,7 @@
 
 CleanFiles data.in fav8.dx fav8.ccp4
 
-INPUT="-i data.in"
+CPPTRAJ_INPUT="-i data.in"
 
 cat > data.in <<EOF
 readdata fav8.guv.O.1.ccp4 name MyCcp4

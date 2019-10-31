@@ -7,7 +7,7 @@ CleanFiles cat.in cat.crd.save cat.crd
 TESTNAME='Concatenate COORDS data set test'
 Requires maxthreads 1 netcdf
 
-INPUT='-i cat.in'
+CPPTRAJ_INPUT='-i cat.in'
 
 cat > cat.in <<EOF
 parm ../tz2.parm7

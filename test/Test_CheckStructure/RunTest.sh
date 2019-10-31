@@ -4,7 +4,7 @@
 
 CleanFiles check.in report.dat nprob.dat tz2.dat skip.dat around.dat d1.dat
 
-INPUT="-i check.in"
+CPPTRAJ_INPUT="-i check.in"
 
 TESTNAME='Structure check tests'
 Requires maxthreads 10

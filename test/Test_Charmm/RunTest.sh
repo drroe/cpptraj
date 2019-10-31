@@ -9,7 +9,7 @@ CleanFiles charmm.in test.ala3.pdb.? test.ala3.pdb.10 first.ala3.crd \
 TESTNAME='Charmm DCD tests'
 Requires maxthreads 10
 
-INPUT="-i charmm.in"
+CPPTRAJ_INPUT="-i charmm.in"
 cat > charmm.in <<EOF
 parm ala3.psf
 trajin ala3.dcd 1 10

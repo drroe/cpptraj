@@ -7,7 +7,7 @@ CleanFiles cif.in 1LE1.pdb temp?.crd
 TESTNAME='CIF tests'
 Requires maxthreads 6
 
-INPUT="-i cif.in"
+CPPTRAJ_INPUT="-i cif.in"
 UNITNAME='CIF read test'
 CheckFor notparallel
 if [ $? -eq 0 ] ; then

@@ -4,7 +4,7 @@
 
 CleanFiles calcstate.in state.dat curve.dat stateout states.dat trans.dat
 
-INPUT='-i calcstate.in'
+CPPTRAJ_INPUT='-i calcstate.in'
 
 cat > calcstate.in <<EOF
 readdata Phi9.dat name DIH
