@@ -5,7 +5,7 @@
 CleanFiles corr.in acorr.gnu
 TESTNAME='Atomic Correlation test'
 Requires netcdf
-INPUT="-i corr.in"
+CPPTRAJ_INPUT="-i corr.in"
 cat > corr.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc

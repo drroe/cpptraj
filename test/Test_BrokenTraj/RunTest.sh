@@ -14,7 +14,7 @@ parm ../tz2.parm7
 trajin ../tz2.crd 1 100 
 rmsd :2-18@N,CA,C out goodrmsd.dat
 EOF
-INPUT="-i goodtraj.in"
+CPPTRAJ_INPUT="-i goodtraj.in"
 RunCpptraj "Broken Traj: Running good trajectory."
 
 # Test 2
@@ -24,7 +24,7 @@ parm ../tz2.parm7
 trajin broken.tz2.crd
 rmsd :2-18@N,CA,C out badrmsd.dat
 EOF
-INPUT="-i brokentraj.in"
+CPPTRAJ_INPUT="-i brokentraj.in"
 RunCpptraj "Broken Traj: Running broken trajectory."
 DoTest goodrmsd.dat badrmsd.dat
 
@@ -40,7 +40,7 @@ parm ../tz2.parm7
 trajin zip.gz
 rmsd :2-18@N,CA,C out ziprmsd.dat
 EOF
-  INPUT="-i zip.in"
+  CPPTRAJ_INPUT="-i zip.in"
   RunCpptraj "$UNITNAME"
   DoTest goodrmsd.dat ziprmsd.dat
 fi

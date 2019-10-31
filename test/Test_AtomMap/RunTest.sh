@@ -10,7 +10,7 @@ CleanFiles atommap.in initial.mol2 atommap.dat reordered.pdb reordered.mol2 \
 TESTNAME='Atom map tests'
 Requires maxthreads 3
 
-INPUT="-i atommap.in"
+CPPTRAJ_INPUT="-i atommap.in"
 UNITNAME='Basic atommap test'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then

@@ -4,7 +4,7 @@
 
 CleanFiles calc.in calc.dat mag.dat
 
-INPUT='-i calc.in'
+CPPTRAJ_INPUT='-i calc.in'
 cat > calc.in <<EOF
      V0 = 7--sqrt(4)
 calc V1 = (5.031661 + 4.334282 + 3.947999) / 3

@@ -5,7 +5,7 @@
 CleanFiles apm.in apm.dat box.dat areaxy.dat mask.dat mask2.dat \
            xz.dat areaxz.dat yz.dat areayz.dat
 
-INPUT='-i apm.in'
+CPPTRAJ_INPUT='-i apm.in'
 TESTNAME='Area per molecule test'
 Requires maxthreads 1
 cat > apm.in <<EOF

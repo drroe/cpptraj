@@ -5,7 +5,7 @@
 CleanFiles image.in reimage.mdcrd image.G3_3A.rst7
 
 TRAJ=ptraj.image.nc
-INPUT="-i image.in"
+CPPTRAJ_INPUT="-i image.in"
 
 TESTNAME='AutoImage tests'
 Requires maxthreads 2

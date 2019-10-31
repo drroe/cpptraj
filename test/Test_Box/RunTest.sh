@@ -7,7 +7,7 @@ CleanFiles box.in addbox.rst7 addbox.rst7.? addbox.rst7.10 \
 TESTNAME='Box tests'
 Requires netcdf maxthreads 10
 
-INPUT="-i box.in"
+CPPTRAJ_INPUT="-i box.in"
 cat > box.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc 1 10 
