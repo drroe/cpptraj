@@ -79,7 +79,7 @@ DoTest NoMod.crd.save NoMod.crd
 UNITNAME='RMS fit to previous test'
 CheckFor notparallel
 if [ $? -eq 0 ] ; then
-  TOP=''
+  CPPTRAJ_TOP=''
   INPUT='-i rms.in'
   cat > rms.in <<EOF
 parm ../tz2.parm7

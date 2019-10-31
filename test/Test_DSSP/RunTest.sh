@@ -70,7 +70,7 @@ fi
 UNITNAME='FtuFabI Assignment test'
 CheckFor netcdf maxthreads 10
 if [ $? -eq 0 ] ; then
-  TOP=''
+  CPPTRAJ_TOP=''
   cat > cpptraj.in <<EOF
 parm ../FtuFabI.NAD.TCL.parm7
 trajin ../FtuFabI.NAD.TCL.nc
