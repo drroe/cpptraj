@@ -5,6 +5,8 @@
 #include "StringRoutines.h" // integerToString 
 #include "Constants.h" // RADDEG, SMALL
 #include "AtomType.h"
+#include "AtomMask.h"
+#include "CharMask.h"
 
 const NonbondType Topology::LJ_EMPTY = NonbondType();
 
@@ -916,7 +918,7 @@ int Topology::DetermineMolecules() {
     mprintf("\t%i molecules.\n", numberOfMolecules);
     if (debug_ > 1)
     for (std::vector<Atom>::const_iterator atom = atoms_.begin(); atom != atoms_.end(); ++atom)
-      mprintf("\t\tAtom %i assigned to molecule %i\n", atom - atoms_.begin(), atom->MolNum());
+      mprintf("\t\tAtom %li assigned to molecule %i\n", atom - atoms_.begin(), atom->MolNum());
   }
 
   // Update molecule information
@@ -937,7 +939,7 @@ int Topology::DetermineMolecules() {
       molecule->SetFirst( atomNum );
       lastMol = atom->MolNum();
     } else if ( atom->MolNum()  < lastMol) {
-      mprinterr("Error: Atom %u was assigned a lower molecule # (%i) than previous atom (%i).\n"
+      mprinterr("Error: Atom %li was assigned a lower molecule # (%i) than previous atom (%i).\n"
                 "Error:   This can happen if bond information is incorrect or missing, or if the\n"
                 "Error:   atom numbering in molecules is not sequential. Try one of the\n"
                 "Error:   following:\n"

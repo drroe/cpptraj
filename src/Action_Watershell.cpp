@@ -8,6 +8,7 @@
 #include "ImageRoutines.h"
 
 #ifdef CUDA
+# include "CharMask.h"
 // CUDA Kernel wrappers
 extern void Action_Closest_NoCenter(const double*,double*,const double*,double,int,int,int,ImagingType,const double*,const double*,const double*);
 #endif
@@ -44,11 +45,12 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, ActionInit& init, i
     mprinterr("Error: Solute mask must be specified.\n");
     return Action::ERR;
   }
-  soluteMask_.SetMaskString( maskexpr );
+  if (soluteMask_.SetMaskString( maskexpr )) return Action::ERR;
   // Check for solvent mask
   std::string solventmaskexpr = actionArgs.GetMaskNext();
-  if (!solventmaskexpr.empty())
-    solventMask_.SetMaskString( solventmaskexpr );
+  if (!solventmaskexpr.empty()) {
+    if (solventMask_.SetMaskString( solventmaskexpr )) return Action::ERR;
+  }
   // For backwards compat., if no 'out' assume next string is file name 
   if (filename.empty() && actionArgs.Nargs() > 2 && !actionArgs.Marked(2))
     filename = actionArgs.GetStringNext();

@@ -1,7 +1,7 @@
 #ifndef INC_PARAMETERHOLDERS_H
 #define INC_PARAMETERHOLDERS_H
 #include <vector>
-#include <utility>
+#include <utility> // std::pair
 #include "TypeNameHolder.h"
 #include "ParameterTypes.h"
 
@@ -18,7 +18,7 @@ template <class T> class ParmHolder {
   public:
     ParmHolder() {}
     void clear()              { bpmap_.clear(); }
-    unsigned int size() const { return bpmap_.size(); }
+    size_t size()       const { return bpmap_.size(); }
     bool empty()        const { return bpmap_.empty(); }
     /// Add (or update if allowed) given parameter to holder.
     ParameterHolders::RetType AddParm(TypeNameHolder const& types, T const& bp, bool allowUpdate) {
@@ -100,7 +100,7 @@ class DihedralParmHolder {
   public:
     DihedralParmHolder() {}
     void clear()              { bpmap_.clear();        }
-    unsigned int size() const { return bpmap_.size();  }
+    size_t size()       const { return bpmap_.size();  }
     bool empty()        const { return bpmap_.empty(); }
     /** Add (or update) a single dihedral parameter for given atom types. */
     ParameterHolders::RetType

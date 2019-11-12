@@ -4,6 +4,7 @@
 #include "Constants.h" // For FOURPI, TWOPI
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
+#include "CharMask.h"
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
@@ -102,7 +103,8 @@ Action::RetType Action_Surf::Setup(ActionSetup& setup) {
           SoluteMask_.AddSelectedAtom( at );
       }
     } else {
-      mprintf("Warning: No molecule info in '%s'. Considering all atoms as solute.\n");
+      mprintf("Warning: No molecule info in '%s'. Considering all atoms as solute.\n",
+              setup.Top().c_str());
       for (int at = 0; at != setup.Top().Natom(); at++)
         SoluteMask_.AddSelectedAtom( at );
     }

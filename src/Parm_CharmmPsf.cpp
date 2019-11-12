@@ -1,5 +1,6 @@
 // Parm_CharmmPsf.cpp
 #include <cstdio> // sscanf
+#include <cstdlib> // atoi
 #include <cstring> // strncmp
 #include <cctype> // isdigit
 #include "Parm_CharmmPsf.h"
@@ -127,6 +128,35 @@ int Parm_CharmmPsf::ReadDihedrals(CpptrajFile& infile, int ndihedral, const char
   return 0;
 }
 
+const unsigned int Parm_CharmmPsf::ChmStrMax_ = 9;
+
+int Parm_CharmmPsf::ParseResID(char& psficode, const char* psfresid)
+{
+  char buf[ChmStrMax_];
+  int bidx = -1;
+  const char* ptr = psfresid;
+  // Parse out residue number
+  int resnum = 0;
+  while ( isdigit( *ptr ) && bidx < (int)ChmStrMax_ )
+  {
+    buf[++bidx] = *ptr;
+    ++ptr;
+  }
+  bidx++;
+  buf[bidx] = '\0';
+  // Sanity check
+  if (bidx < 1)
+    mprintf("Warning: PSF residue ID does not begin with a digit: '%s'\n", psfresid);
+  else
+    resnum = atoi( buf );
+  // Check for icode
+  if (*ptr != '\0')
+    psficode = *ptr;
+  else
+    psficode = ' ';
+  return resnum;
+}
+
 // Parm_CharmmPsf::ReadParm()
 /** Open the Charmm PSF file specified by filename and set up topology data.
   * Mask selection requires natom, nres, names, resnames, resnums.
@@ -163,17 +193,17 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   }
   bool found; // Used when assigning parameters
   // DEBUG
-  //params_.Debug();
+  if (debug_ > 0) params_.Debug();
   // Read the next natom lines
-  int psfresnum = 0;
-  char psfresname[9];
-  char psfname[9];
-  char psftype[9];
-  char segmentID[9];
+  char psfresid[ChmStrMax_];
+  char psfresname[ChmStrMax_];
+  char psfname[ChmStrMax_];
+  char psftype[ChmStrMax_];
+  char segmentID[ChmStrMax_];
+  char psficode;
   double psfcharge;
   double psfmass;
   typedef std::vector<std::string> Sarray;
-  // TODO AtomTypeArray should eventually be in Topology
   ParmHolder<AtomType>& atomTypes = params_.AT();
   Sarray SegIDs;
   for (int atom=0; atom < natom; atom++) {
@@ -182,9 +212,12 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
       return 1;
     }
     // Read line
-    // ATOM# SEGID RES# RES ATNAME ATTYPE CHRG MASS (REST OF COLUMNS ARE LIKELY FOR CMAP AND CHEQ)
-    sscanf(buffer,"%*i %s %i %s %s %s %lf %lf", segmentID, &psfresnum, psfresname, 
+    // ATOM# SEGID RESID RES ATNAME ATTYPE CHRG MASS (REST OF COLUMNS ARE LIKELY FOR CMAP AND CHEQ)
+    sscanf(buffer,"%*i %s %s %s %s %s %lf %lf", segmentID, psfresid, psfresname, 
            psfname, psftype, &psfcharge, &psfmass);
+    // Extract residue number and alternatively insertion code.
+    int psfresnum = ParseResID(psficode, psfresid);
+    //mprintf("DEBUG: resnum %10i  icode %c\n", psfresnum, psficode);
     // Search for segment ID
     int idx = -1;
     for (int i = 0; i != (int)SegIDs.size(); i++)
@@ -199,7 +232,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
     }
     atomTypes.AddParm( TypeNameHolder(NameType(psftype)), AtomType(psfmass), false );
     Atom chmAtom( psfname, psfcharge, psfmass, psftype );
-    parmOut.AddTopAtom( chmAtom, Residue( psfresname, psfresnum, idx) );
+    parmOut.AddTopAtom( chmAtom, Residue(psfresname, psfresnum, ' ', idx) );
   } // END loop over atoms 
   // Advance to <nbond> !NBOND
   int bondatoms[9];
@@ -301,44 +334,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
 
   // Add nonbonded parameters
   if (params_.HasLJparams()) {
-    parmOut.AssignNonbondParams( atomTypes, params_.NB(), params_.NB14() );
-/*
-    int ntypes = (int)atomTypes.Size();
-    parmOut.SetNonbond().SetupLJforNtypes( ntypes );
-    mprintf("\tAtom Types:\n");
-    for (AtomTypeArray::const_iterator it = atomTypes.begin(); it != atomTypes.end(); ++it)
-    {
-      int idx1 = it->second;
-      int idx0 = params_.AT().AtomTypeIndex( it->first );
-      if (idx0 < 0)
-        mprintf("Warning: No LJ parameters for type '%s'\n", *(it->first));
-      else {
-        atomTypes.UpdateType(idx1).SetLJ().SetRadius( params_.AT()[idx0].LJ().Radius() );
-        atomTypes.UpdateType(idx1).SetLJ().SetDepth( params_.AT()[idx0].LJ().Depth() );
-      }
-      mprintf("\t\t%3i '%s' mass=%10.4f radius=%10.4f depth=%10.4f\n",
-              idx1, *(it->first),
-              atomTypes[idx1].Mass(),
-              atomTypes[idx1].LJ().Radius(),
-              atomTypes[idx1].LJ().Depth());
-    }
-    mprintf("\tAdding Lennard-Jones parameters using Lorentz-Berthelot combining rules.\n");
-    for (AtomTypeArray::const_iterator it1 = atomTypes.begin(); it1 != atomTypes.end(); ++it1)
-    {
-      int type1 = it1->second;
-      for (AtomTypeArray::const_iterator it2 = it1; it2 != atomTypes.end(); it2++)
-      {
-        int type2 = it2->second;
-        NonbondType LJ = atomTypes[type1].LJ().Combine_LB( atomTypes[type2].LJ() );
-        mprintf("\t%3i - %3i : Ri=%10.4f Ei=%10.4f Rj=%10.4f Ej=%10.4f A=%10.4f B=%10.4f\n",
-                type1, type2,
-                atomTypes[type1].LJ().Radius(), atomTypes[type1].LJ().Depth(),
-                atomTypes[type2].LJ().Radius(), atomTypes[type2].LJ().Depth(),
-                LJ.A(), LJ.B());
-        parmOut.SetNonbond().AddLJterm(type1, type2, LJ);
-      }
-    }
-*/
+    parmOut.AssignNonbondParams( atomTypes, params_.NB() );
   }
 
   return 0;

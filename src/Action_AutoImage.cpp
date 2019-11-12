@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
 #include "ImageRoutines.h"
+#include "CharMask.h"
 
 // CONSTRUCTOR
 Action_AutoImage::Action_AutoImage() :
@@ -139,7 +140,7 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
   if (!anchor_.empty()) {
     // Anchor molecule/region specified
     mprintf("\tAnchoring on atoms selected by mask '%s'\n", anchor_.c_str());
-    anchorMask_.SetMaskString( anchor_ );
+    if (anchorMask_.SetMaskString( anchor_ )) return Action::ERR;
     if ( setup.Top().SetupIntegerMask( anchorMask_ ) ) return Action::ERR;
     anchorMask_.MaskInfo();
     if (anchorMask_.None()) {

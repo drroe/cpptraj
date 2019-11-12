@@ -1,11 +1,14 @@
 #include <algorithm> // std::min, std::max
 #include "TopInfo.h"
+#include "CpptrajFile.h"
+#include "DataSet_Coords.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // DigitWidth
 #include "Constants.h" // RADDEG
 #include "DistRoutines.h" // DIST_NoImage
 #include "TorsionRoutines.h" // CalcAngle, Torsion
 #include "Mol.h"
+#include "CharMask.h"
 
 /// DESTRUCTOR
 TopInfo::~TopInfo() {
@@ -226,7 +229,7 @@ int TopInfo::PrintShortMolInfo(std::string const& maskString) const {
       outfile_->Printf("%-4s %*s %*s %*s\n", "#Mol", mwidth, "Count", 
                        awidth, "Natom", rwidth, "Nres");
       for (Mol::Marray::const_iterator mol = mols.begin(); mol != mols.end(); ++mol)
-        outfile_->Printf("%-4s %*u %*i %*i\n", mol->name_.c_str(),
+        outfile_->Printf("%-4s %*zu %*i %*i\n", mol->name_.c_str(),
                          mwidth, mol->idxs_.size(),
                          awidth, mol->natom_,
                          rwidth, mol->nres_);
@@ -271,7 +274,7 @@ int TopInfo::SetupMask(CharMask& maskIn) const {
 // TopInfo::SetupMask()
 int TopInfo::SetupMask(std::string const& maskexp, CharMask& maskIn) const {
   if (maskexp.empty()) return 0;
-  maskIn.SetMaskString( maskexp );
+  if (maskIn.SetMaskString( maskexp )) return 1;
   return SetupMask( maskIn );
 }
 
