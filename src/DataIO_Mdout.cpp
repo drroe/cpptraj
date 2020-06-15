@@ -68,6 +68,85 @@ DataIO_Mdout::FieldType DataIO_Mdout::getEindex(Sarray const& Name) {
   return N_FIELDTYPES;
 }
 
+/// Hold a single amber energy term
+class AmberEterm {
+  public:
+    AmberEterm(std::string const& nameIn, double valueIn) :
+      name_(nameIn), value_(valueIn) {}
+    std::string const& Name() const { return name_; }
+    double Value() const { return value_; }
+  private:
+    std::string name_; ///< ASCII text before '=' describing the term.
+    double value_;     ///< The value of the energy term.
+};
+
+/// Array of amber energy terms
+typedef std::vector<AmberEterm> EtermArray;
+
+/** Parse the incoming line into individual energy terms. In the Amber
+  * MDOUT file this takes the form of 1 or more '<name>=<value>'. There 
+  * may or may not be a space after <name>/before <value>. There should
+  * be spaces between different energy terms though.
+  */
+EtermArray GetAmberEterms(const char* ptr) {
+  //mprintf("DBG: [%s]\n", ptr);
+  EtermArray Terms;
+  if (ptr == 0) return Terms;
+  const char* beg = ptr;
+  //          111111111122222222223
+  //0123456789012345678901234567890
+  // NSTEP =        0   TIME(PS) =       0.000  TEMP(K) =   435.99  PRESS =-10207.6
+  bool eol = false;
+  while (!eol) {
+    // Skip leading whitespace
+    while (*beg == ' ' && *beg != '\0') ++beg;
+    if (*beg == '\0') {
+      // Line is blank or no more terms. Bail out.
+      break;
+    }
+    //mprintf("DBG: beg= %c\n", *beg);
+    // Search for next '='
+    const char* eq = beg + 1;
+    while (*eq != '=' && *eq != '\0') ++eq;
+    if (*eq == '\0')
+      eol = true;
+    else {
+      // Search for end token. Start just after '='.
+      const char* val = eq + 1;
+      // Skip leading whitespace
+      while (*val == ' ' && *val != '\0') ++val;
+      if (*val == '\0') {
+        eol = true;
+        mprintf("Warning: EOL encountered before energy term could be read.\n");
+        return Terms;
+      } else {
+        //mprintf("DBG: val= %c\n", *val);
+        // Search for next whitespace or line end.
+        const char* end = val + 1;
+        while (*end != ' ' && *end != '\0' && *end != '\n' && *end != '\r') ++end;
+        // Term is now complete. Convert.
+        std::string valstr(val, end);
+        //mprintf("DBG: valstr= '%s'\n", valstr.c_str());
+        if (!validDouble(valstr)) {
+          mprintf("Warning: Invalid number detected: %s\n", valstr.c_str());
+        } else {
+          Terms.push_back( AmberEterm(
+                             NoTrailingWhitespace(std::string(beg,eq)),
+                             convertToDouble(valstr)) );
+        }
+        beg = end;
+      }
+    }
+  } // END loop over line
+  // DEBUG
+  mprintf("DBG: %s\n", ptr);
+  mprintf("DBG: %zu terms:", Terms.size());
+  for (EtermArray::const_iterator it = Terms.begin(); it != Terms.end(); ++it)
+    mprintf(" %s = %g", it->Name().c_str(), it->Value());
+  mprintf("\n");
+  return Terms;
+}
+
 // DataIO_Mdout::ReadData()
 int DataIO_Mdout::ReadData(FileName const& fname,
                             DataSetList& datasetlist, std::string const& dsname)
@@ -216,6 +295,7 @@ int DataIO_Mdout::ReadData(FileName const& fname,
       ptr = buffer.Line();
     }
     // Tokenize line, scan through until '=' is reached; value after is target.
+    GetAmberEterms(ptr);
     int ntokens = buffer.TokenizeLine(" ");
     if (ntokens > 0) {
       int nidx = 0;
@@ -245,6 +325,7 @@ int DataIO_Mdout::ReadData(FileName const& fname,
         } else {
           if (nidx > 1) break; // Two tokens, no '=' found. Not an E line.
           Name[nidx++].assign( tkn );
+          //mprintf("DEBUG: %s\n", tkn);
         }
       }
     }
