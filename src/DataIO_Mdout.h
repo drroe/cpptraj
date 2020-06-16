@@ -52,6 +52,8 @@ class DataIO_Mdout : public DataIO {
     /// Minimization step (imin==1 or 5 only)
     int minStep_;
     /// MD step (imin==0 only)
-    int nstep_; 
+    int nstep_;
+    /// Write frequency in steps (imin==1 or 0 only)
+    int ntpr_;
 };
 #endif

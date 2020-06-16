@@ -140,11 +140,11 @@ int DataIO_Mdout::AddData(unsigned int idx, double value,
       }
       mprintf("\tCreated new set: %s\n", ds->legend());
       SetOffsets_[idx] = t0_;
-      std::string Xlabel;
-      if      (imin_ == 5) Xlabel.assign("Set");
-      else if (imin_ == 1) Xlabel.assign("Nstep");
-      else                 Xlabel.assign("Time"); // imin == 0
-      ds->ModifyDim(Dimension::X).SetLabel(Xlabel);
+      Dimension Xdim;
+      if      (imin_ == 5) Xdim = Dimension(1, 1, "Set");
+      else if (imin_ == 1) Xdim = Dimension(1, 1, "Nstep");
+      else                 Xdim = Dimension(t0_, ntpr_*dt_, "Time"); // imin == 0
+      ds->SetDim(Dimension::X, Xdim);
     } else {
       // Needs to be 1D scalar
       if (ds->Group() != DataSet::SCALAR_1D) {
@@ -248,6 +248,7 @@ int DataIO_Mdout::ReadData(FileName const& fname,
                             DataSetList& datasetlist, std::string const& dsname)
 {
   mprintf("\tReading from mdout file: %s\n", fname.full());
+  EneSets_.assign(EneSets_.size(), 0);
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
   const char* ptr = buffer.Line();
@@ -261,7 +262,7 @@ int DataIO_Mdout::ReadData(FileName const& fname,
   int frame = 0;           // Frame counter for this file
   dt_ = 1.0;         // Timestep for this file (MD)
   t0_ = 0.0;         // Initial time for this file (MD)
-  int ntpr = 1;            // Value of ntpr
+  ntpr_ = 1;            // Value of ntpr
   int irest = 0;           // Value of irest
   while ( ptr != 0 && strncmp(ptr, "   2.  CONTROL  DATA", 20) != 0 )
     ptr = buffer.Line();
@@ -294,8 +295,8 @@ int DataIO_Mdout::ReadData(FileName const& fname,
         t0_ = convertToDouble( mdin_args[ col1 ] );
         if (debug_ > 0) mprintf("\t\tMDIN: t is %f\n", t0_);
       } else if (mdin_args[col] == "ntpr") {
-        ntpr = convertToInteger( mdin_args[ col1 ] );
-        if (debug_ > 0) mprintf("\t\tMDIN: ntpr is %i\n", ntpr);
+        ntpr_ = convertToInteger( mdin_args[ col1 ] );
+        if (debug_ > 0) mprintf("\t\tMDIN: ntpr is %i\n", ntpr_);
       } else if (mdin_args[col] == "irest") {
         irest = convertToInteger( mdin_args[ col1 ] );
         if (debug_ > 0) mprintf("\t\tMDIN: irest is %i\n", irest);
@@ -324,11 +325,10 @@ int DataIO_Mdout::ReadData(FileName const& fname,
   // ----- PARSE THE RESULTS SECTION -----
   bool finalE = false;
   minStep_ = -1; // For imin=1 only
-  int nstep;
   if (irest == 0)
-    nstep = 0;
+    nstep_ = 0;
   else
-    nstep = ntpr;
+    nstep_ = ntpr_;
   //double time = 0.0;
   // Loop over remaining lines of the file.
   while (ptr != 0) {
@@ -345,7 +345,7 @@ int DataIO_Mdout::ReadData(FileName const& fname,
     }
     // Record set for energy post-processing
     if (imin_ == 5 && strncmp(ptr, "minimizing", 10) == 0)
-      nstep = atoi( ptr + 22 );
+      nstep_ = atoi( ptr + 22 );
     // MAIN OUTPUT ROUTINE
     // If the trigger has been reached print output.
     // For imin0 and imin1 the first trigger will have no data.
@@ -369,7 +369,7 @@ int DataIO_Mdout::ReadData(FileName const& fname,
           }
         }
         TimeVals.push_back( time );*/
-        nstep += ntpr;
+        nstep_ += ntpr_;
       //}
       frame++;
       if (finalE) break;
