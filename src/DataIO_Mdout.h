@@ -55,5 +55,7 @@ class DataIO_Mdout : public DataIO {
     int nstep_;
     /// Write frequency in steps (imin==1 or 0 only)
     int ntpr_;
+    /// False unless we are actually reading data
+    bool reachedNstep_;
 };
 #endif

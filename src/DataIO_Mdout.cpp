@@ -184,7 +184,7 @@ int DataIO_Mdout::GetAmberEterms(const char* ptr, std::string const& dsname,
                                  DataSetList& datasetlist)
 {
   //mprintf("DBG: [%s]\n", ptr);
-  if (ptr == 0) return 0;
+  if (ptr == 0 || ptr[0] == '|') return 0;
   const char* beg = ptr;
   //          111111111122222222223
   //0123456789012345678901234567890
@@ -220,17 +220,17 @@ int DataIO_Mdout::GetAmberEterms(const char* ptr, std::string const& dsname,
         // Term is now complete. Convert.
         std::string valstr(val, end);
         //mprintf("DBG: valstr= '%s'\n", valstr.c_str());
+        std::string termName = NoTrailingWhitespace(std::string(beg,eq));
+        if (!reachedNstep_ && termName != "NSTEP") return 0;
+        reachedNstep_ = true;
         if (!validDouble(valstr)) {
-          mprintf("Warning: Invalid number detected: %s\n", valstr.c_str());
+          mprintf("Warning: Invalid number detected: %s = %s\n", termName.c_str(), valstr.c_str());
         } else {
-          std::string termName = NoTrailingWhitespace(std::string(beg,eq));
           mprintf("DBG: %s = %s\n", termName.c_str(), valstr.c_str());
           // Special cases
-          if (termName == "TIME(PS)")
-            return 0;
-          else if (termName == "NSTEP")
+          if (termName == "NSTEP")
             nstep_ = convertToInteger(valstr);
-          else {
+          else if (termName != "TIME(PS)") {
             unsigned int idx = getTermIdx(termName);
             AddData(idx, convertToDouble(valstr), dsname, datasetlist);
           }
@@ -249,6 +249,7 @@ int DataIO_Mdout::ReadData(FileName const& fname,
 {
   mprintf("\tReading from mdout file: %s\n", fname.full());
   EneSets_.assign(EneSets_.size(), 0);
+  reachedNstep_ = false;
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
   const char* ptr = buffer.Line();
@@ -344,8 +345,10 @@ int DataIO_Mdout::ReadData(FileName const& fname,
       if (ptr == 0) return EOF_ERROR();
     }
     // Record set for energy post-processing
-    if (imin_ == 5 && strncmp(ptr, "minimizing", 10) == 0)
+    if (imin_ == 5 && strncmp(ptr, "minimizing", 10) == 0) {
+      reachedNstep_ = true;
       nstep_ = atoi( ptr + 22 );
+    }
     // MAIN OUTPUT ROUTINE
     // If the trigger has been reached print output.
     // For imin0 and imin1 the first trigger will have no data.
@@ -377,6 +380,7 @@ int DataIO_Mdout::ReadData(FileName const& fname,
     // Check for NSTEP in minimization or post-processing. Values will be
     // on the next line. NOTE: NSTEP means something different for imin=5.
     if ((imin_ == 1 || imin_ == 5) && strncmp(ptr, "   NSTEP", 8) == 0) {
+      reachedNstep_ = true;
       ptr = buffer.Line(); // Get next line
       //sscanf(ptr, " %6lf    %13lE  %13lE  %13lE", Energy+NSTEP, Energy+EPtot, Energy+RMS, Energy+GMAX);
       double tmpbuf[3];
