@@ -27,6 +27,14 @@ class DataIO_Mdout : public DataIO {
                      PRESS,    DVDL,  N_FIELDTYPES };
     /// These are the aspects for each FieldType
     static const char* fieldTypeStr_[];
+
+    /// \return Index corresponding to given energy term name
+    unsigned int getTermIdx(std::string const&);
+    /// Add value to the specified set.
+    int AddData(unsigned int, double, std::string const&, DataSetList&);
+    /// Parse amber energy terms from given line
+    int GetAmberEterms(const char*, std::string const&, DataSetList&);
+
     /// This array holds the aspect for each current field set.
     Sarray SetAspects_;
     /// This array holds the offset for each current field set (if applicable).
@@ -35,7 +43,15 @@ class DataIO_Mdout : public DataIO {
     DSarray EneSets_;
     /// Map field names to indices into energy sets.
     NameIdxMap termIdxMap_;
-
-    static FieldType getEindex(Sarray const&);
+    /// Time step for this file (MD only)
+    double dt_;
+    /// Initial time for this file (MD only)
+    double t0_;
+    /// Imin value for this file; determines MD, minimization, or post-process
+    int imin_;
+    /// Minimization step (imin==1 or 5 only)
+    int minStep_;
+    /// MD step (imin==0 only)
+    int nstep_; 
 };
 #endif
