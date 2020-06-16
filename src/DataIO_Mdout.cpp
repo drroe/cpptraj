@@ -7,6 +7,60 @@
 #include "StringRoutines.h" // convertToDouble
 #include "DataSet_double.h"
 
+/** Must correspond to FieldType enum:
+  * ETOT = 0, EPTOT, GMAX,        BOND,
+  * ANGLE,    DIHED, VDWAALS,     EEL,        EGB,    EPB, ECAVITY, EDISPER,
+  * VDW14,    EEL14, RESTRAINT,   EAMBER,     DENSITY,
+  * RMS,      EKTOT, ESURF,       EAMD_BOOST, VOLUME, TEMP,
+  * PRESS,    DVDL,  N_FIELDTYPES
+  */
+const char* DataIO_Mdout::fieldTypeStr_[] = {
+  "Etot",   "EPtot",  "GMAX",  "BOND",
+  "ANGLE",  "DIHED",  "VDW",   "EELEC",      "EGB",     "EPB", "ECAVITY", "EDISPER",
+  "VDW1-4", "EEL1-4", "RST",   "EAMBER",     "Density",
+  "RMS",    "EKtot",  "ESURF", "EAMD_BOOST", "VOLUME",  "TEMP",
+  "PRESS",  "DVDL",   0
+};
+
+/** CONSTRUCTOR - populate initial map and set aspects with known fields. */
+DataIO_Mdout::DataIO_Mdout() {
+  for (unsigned int idx = 0; idx != (unsigned int)N_FIELDTYPES; idx++)
+  {
+    SetAspects_.push_back( std::string(fieldTypeStr_[idx]) );
+    SetOffsets_.push_back(0);
+    EneSets_.push_back(0);
+  }
+  // Populate the term name to index map. In some cases, multiple term names
+  // map to the same index.
+  termIdxMap_.insert(NameIdxPair("Etot", ETOT));
+  termIdxMap_.insert(NameIdxPair("EPtot") return EPtot;
+  termIdxMap_.insert(NameIdxPair("GMAX") return GMAX; // Not necessary?
+  termIdxMap_.insert(NameIdxPair("BOND") return BOND;
+  termIdxMap_.insert(NameIdxPair("ANGLE") return ANGLE;
+  termIdxMap_.insert(NameIdxPair("DIHED") return DIHED;
+  termIdxMap_.insert(NameIdxPair("VDWAALS") return VDWAALS;
+  termIdxMap_.insert(NameIdxPair("EEL", EEL));
+  termIdxMap_.insert(NameIdxPair("EELEC", EEL));
+  termIdxMap_.insert(NameIdxPair("EGB") return EGB;
+  termIdxMap_.insert(NameIdxPair("EPB") return EPB;
+  termIdxMap_.insert(NameIdxPair("ECAVITY") return ECAVITY;
+  termIdxMap_.insert(NameIdxPair("EDISPER") return EDISPER;
+  if ((Name[0]=="1-4" && Name[1]=="VDW") || (Name[0]=="1-4" && Name[1]=="NB")) return VDW14;
+  if  (Name[0]=="1-4" && Name[1]=="EEL") return EEL14;
+  termIdxMap_.insert(NameIdxPair("RESTRAINT") return RESTRAINT;
+  termIdxMap_.insert(NameIdxPair("EAMBER") return EAMBER;
+  termIdxMap_.insert(NameIdxPair("Density") return Density;
+  termIdxMap_.insert(NameIdxPair("RMS") return RMS; // Not necessary?
+  termIdxMap_.insert(NameIdxPair("EKtot") return EKtot;
+  termIdxMap_.insert(NameIdxPair("ESURF") return ESURF;
+  termIdxMap_.insert(NameIdxPair("EAMD_BOOST") return EAMD_BOOST;
+  termIdxMap_.insert(NameIdxPair("VOLUME") return VOLUME;
+  termIdxMap_.insert(NameIdxPair("TEMP(K)") return TEMP;
+  termIdxMap_.insert(NameIdxPair("PRESS") return PRESS;
+  termIdxMap_.insert(NameIdxPair("DV/DL") return DVDL;
+
+}
+
 // DataIO_Mdout::ID_DataFormat()
 bool DataIO_Mdout::ID_DataFormat(CpptrajFile& infile) {
   if (infile.OpenFile()) return false;
@@ -29,42 +83,26 @@ static inline int EOF_ERROR() {
   return 1;
 }
 
-const char* DataIO_Mdout::Enames[] = {
-  "Etot",   "EPtot",  "GMAX",  "BOND",
-  "ANGLE",  "DIHED",  "VDW",   "EELEC",      "EGB",     "EPB", "ECAVITY", "EDISPER",
-  "VDW1-4", "EEL1-4", "RST",   "EAMBER",     "Density",
-  "RMS",    "EKtot",  "ESURF", "EAMD_BOOST", "VOLUME",  "TEMP",
-  "PRESS",  "DVDL",   0
-};
+/** \return Known idx of given term if known, next unknown idx otherwise.
+  */ 
+unsigned int DataIO_Mdout::getTermIdx(std::string const& name) {
+  NameIdxMap::const_iterator it = termIdxMap_.find( name );
+  if (it == termIdxMap_.end()) {
+    // New term. Create new term.
+    unsigned int newIdx = SetAspects_.size();
+    SetAspects_.push_back( name ); // TODO replace spaces?
+    SetOffsets_.push_back( 0 );
+    EneSets_.push_back( 0 );
+    termIdxMap_.insert( NameIdxPair(name, newIdx) );
+    return newIdx;
+  } else {
+    // Existing term. just return the index.
+    return it->second;
+  }
+}
 
-/// \return index of name in Energy[] array, N_FIELDTYPES if not recognized.
 DataIO_Mdout::FieldType DataIO_Mdout::getEindex(Sarray const& Name) {
   //mprintf("DEBUG:\tgetEindex(%s,%s)\n", Name[0].c_str(), Name[1].c_str());
-  if (Name[0]=="Etot")  return Etot;
-  if (Name[0]=="EPtot") return EPtot;
-  if (Name[0]=="GMAX") return GMAX; // Not necessary?
-  if (Name[0]=="BOND") return BOND;
-  if (Name[0]=="ANGLE") return ANGLE;
-  if (Name[0]=="DIHED") return DIHED;
-  if (Name[0]=="VDWAALS") return VDWAALS;
-  if (Name[0]=="EEL" || Name[0]=="EELEC") return EEL;
-  if (Name[0]=="EGB") return EGB;
-  if (Name[0]=="EPB") return EPB;
-  if (Name[0]=="ECAVITY") return ECAVITY;
-  if (Name[0]=="EDISPER") return EDISPER;
-  if ((Name[0]=="1-4" && Name[1]=="VDW") || (Name[0]=="1-4" && Name[1]=="NB")) return VDW14;
-  if  (Name[0]=="1-4" && Name[1]=="EEL") return EEL14;
-  if (Name[0]=="RESTRAINT") return RESTRAINT;
-  if (Name[0]=="EAMBER") return EAMBER;
-  if (Name[0]=="Density") return Density;
-  if (Name[0]=="RMS") return RMS; // Not necessary?
-  if (Name[0]=="EKtot") return EKtot;
-  if (Name[0]=="ESURF") return ESURF;
-  if (Name[0]=="EAMD_BOOST") return EAMD_BOOST;
-  if (Name[0]=="VOLUME") return VOLUME;
-  if (Name[0]=="TEMP(K)") return TEMP;
-  if (Name[0]=="PRESS") return PRESS;
-  if (Name[0]=="DV/DL") return DVDL;
   return N_FIELDTYPES;
 }
 
