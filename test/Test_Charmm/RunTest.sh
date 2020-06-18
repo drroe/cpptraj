@@ -10,6 +10,7 @@ TESTNAME='Charmm DCD tests'
 Requires maxthreads 10
 
 INPUT="-i charmm.in"
+# ------------------------------------------------
 cat > charmm.in <<EOF
 parm ala3.psf
 trajin ala3.dcd 1 10
@@ -18,6 +19,7 @@ EOF
 RunCpptraj "CHARMM PSF/DCD test"
 DoTest test.ala3.pdb.save test.ala3.pdb.1
 
+# ------------------------------------------------
 # Second test: Read in 10 frames of a dcd traj, write
 # both an Amber coord and dcd traj. Then read the written
 # dcd traj and convert to second amber traj. Compare the
@@ -38,14 +40,7 @@ EOF
 RunCpptraj "CHARMM DCD Write, step 2."
 DoTest first.ala3.crd second.ala3.crd
 
-# Third test; psf -> psf
-cat > charmm.in <<EOF
-parm ala3.psf
-parminfo
-parmwrite out test.psf
-EOF
-#RunCpptraj "CHARMM PSF Write test."
-
+# ------------------------------------------------
 # CHAMBER strip test
 cat > charmm.in <<EOF
 parm chamber.ala3.parm7
@@ -56,6 +51,7 @@ EOF
 RunCpptraj "CHAMBER topology read/strip test."
 DoTest strip.chamber.parm7.save strip.chamber.parm7 -I %VERSION
 
+# ------------------------------------------------
 UNITNAME='Read CHARMM restart'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
@@ -68,6 +64,7 @@ EOF
   DoTest run0.res_0.mol2.save run0.res_0.mol2
 fi
 
+# ------------------------------------------------
 UNITNAME='CHARMM PSF write'
 cat > charmm.in <<EOF
 parm ala3.psf
@@ -76,6 +73,7 @@ EOF
 RunCpptraj "$UNITNAME"
 DoTest cpptraj.psf.save cpptraj.psf
 
+# ------------------------------------------------
 UNITNAME='CHARMM COORdinates test'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
