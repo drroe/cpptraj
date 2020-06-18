@@ -413,7 +413,7 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   mprintf("Warning: Assigning segment IDs based on molecule type.\n");
   int currentMol = 0;
   int currentMtype = FindMolType(currentMol, mols);
-  const char* segid = mols[currentMtype].name_.c_str();
+  std::string segid( mols[currentMtype].name_.c_str() );
   Mol::Iarray::const_iterator mit = mols[currentMtype].idxs_.begin();
 //  bool inSolvent = false;
   // Output format.
@@ -438,12 +438,16 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   }
   for (Topology::atom_iterator atom = parm.begin(); atom != parm.end(); ++atom, ++idx) {
     int resnum = atom->ResNum();
-    if (atom->MolNum() != currentMol) {
+    // Try to figure out a segment ID. First try chain ID. If that doesnt work,
+    // use molecule name.
+    if (parm.Res(resnum).HasChainID())
+      segid.assign(1, parm.Res(resnum).ChainID());
+    else if (atom->MolNum() != currentMol) {
       currentMol = atom->MolNum();
       ++mit;
       if (mit == mols[currentMtype].idxs_.end() || *mit != currentMol) {
         currentMtype = FindMolType(currentMol, mols);
-        segid = mols[currentMtype].name_.c_str();
+        segid.assign( mols[currentMtype].name_.c_str() );
       }
     }
     // Figure out how atom type is being printed.
@@ -460,7 +464,7 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
     else
       imove = 0;
     // Write atom line
-    outfile.Printf(atmfmt, idx, segid,
+    outfile.Printf(atmfmt, idx, segid.c_str(),
                    parm.Res(resnum).OriginalResNum(), parm.Res(resnum).c_str(),
                    atom->c_str(), psftype.c_str(), atom->Charge(),
                    atom->Mass(), imove);
