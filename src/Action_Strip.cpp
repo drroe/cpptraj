@@ -79,7 +79,6 @@ Action::RetType Action_Strip::Setup(ActionSetup& setup) {
       mprinterr("Error: Could not create stripped topology.\n");
       return Action::ERR;
     }
-    setup.SetTopology( topSet->TopPtr() );
     // Remove box information if asked
     if (removeBoxInfo_) {
       topSet->ModifyTop().SetParmBox( Box() );
@@ -88,6 +87,7 @@ Action::RetType Action_Strip::Setup(ActionSetup& setup) {
       setup.SetCoordInfo( newCinfo_ );
     }
   }
+  setup.SetTopology( topSet->TopPtr() );
   topSet->Top().Brief("Stripped topology:");
   // Allocate space for new frame
   newFrame_.SetupFrameV(setup.Top().Atoms(), setup.CoordInfo());
