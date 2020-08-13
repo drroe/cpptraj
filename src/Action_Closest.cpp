@@ -7,6 +7,7 @@
 #include "Action_Closest.h"
 #include "CpptrajStdio.h"
 #include "ImageRoutines.h"
+#include "DataSet_Topology.h"
 
 #ifdef CUDA
 // CUDA kernel wrappers
@@ -32,7 +33,6 @@ Action_Closest::Action_Closest() :
   targetNclosest_(0),
   firstAtom_(false),
   useMaskCenter_(false),
-  newParm_(0),
   NsolventMolecules_(0)
 {} 
 
@@ -48,7 +48,6 @@ void Action_Closest::Help() const {
 
 // DESTRUCTOR
 Action_Closest::~Action_Closest() {
-  if (newParm_!=0) delete newParm_;
 # ifdef CUDA
   if (GPU_MEM_ != 0) delete[] GPU_MEM_;
 # endif
@@ -73,7 +72,7 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
     firstAtom_=true;
   useMaskCenter_ = actionArgs.hasKey("center");
   image_.InitImaging( !(actionArgs.hasKey("noimage")) );
-  topWriter_.InitTopWriter(actionArgs, "closest", debugIn);
+  topWriter_.InitTopWriter(actionArgs, "closest", debugIn, init.DslPtr());
   // Setup output file and sets if requested.
   // Will keep track of Frame, Mol#, Distance, and first solvent atom
   std::string filename = actionArgs.GetStringKey("closestout");
@@ -283,19 +282,22 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
   //       of action. I dont think iterators are thread-safe.
   NsolventMolecules_ = nSolvent;
   // Create stripped Parm
-  if (newParm_!=0) delete newParm_;
-  newParm_ = setup.Top().modifyStateByMask(stripMask_);
-  if (newParm_==0) {
-    mprinterr("Error: Could not create new topology.\n");
-    return Action::ERR;
+  DataSet_Topology* topSet = topWriter_.CreateTopSet( setup.Top() );
+  if (topSet == 0) return Action::ERR;
+  if (topSet->Top().Natom() == 0) {
+    // First time modifying this topology
+    if ( setup.Top().ModifyByMap( topSet->ModifyTop(), stripMask_.Selected() ) ) {
+      mprinterr("Error: Could not create closest topology.\n");
+      return Action::ERR;
+    }
   }
-  setup.SetTopology( newParm_ );
-  newParm_->Brief("Closest topology:");
+  setup.SetTopology( topSet->TopPtr() );
+  setup.Top().Brief("Closest topology:");
   // Allocate space for new frame
   newFrame_.SetupFrameV( setup.Top().Atoms(), setup.CoordInfo() );
 
   // If prefix given then output stripped parm
-  topWriter_.WriteTops( *newParm_ );
+  topWriter_.WriteTops( setup.Top() );
 
 # ifdef CUDA
   // Allocate space for simple arrays that will be sent to GPU.

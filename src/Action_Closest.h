@@ -44,7 +44,6 @@ class Action_Closest: public Action {
     AtomMask stripMask_;    ///< Mask including all solute and closest molecules.
     AtomMask distanceMask_; ///< Mask of atoms to calculate distance from solvent to.
     CharMask solventMask_;  ///< Optional mask selecting solvent.
-    Topology *newParm_;     ///< New topology with solute and closest molecules.
     int NsolventMolecules_; ///< # of solvent molecules in SolventMols.
     Frame newFrame_;        ///< New frame with solute and kept solvent.
     /// Used to write topology containing only closest solvent
