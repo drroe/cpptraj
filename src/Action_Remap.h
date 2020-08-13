@@ -5,7 +5,6 @@
 class Action_Remap : public Action {
   public:
     Action_Remap();
-    ~Action_Remap();
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_Remap(); }
     void Help() const;
   private:
@@ -15,7 +14,6 @@ class Action_Remap : public Action {
     void Print() {}
 
     std::vector<int> Map_; ///< Reference[refidx] = tgtidx
-    Topology* newParm_;
     Frame newFrame_;
     ActionTopWriter topWriter_;
 };

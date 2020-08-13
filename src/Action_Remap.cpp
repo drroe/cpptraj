@@ -1,14 +1,10 @@
 #include "Action_Remap.h"
 #include "CpptrajStdio.h"
 #include "DataSet_1D.h"
+#include "DataSet_Topology.h"
 
 // CONSTRUCTOR
-Action_Remap::Action_Remap() : newParm_(0) {}
-
-// DESTRUCTOR
-Action_Remap::~Action_Remap() {
-  if (newParm_ != 0) delete newParm_;
-}
+Action_Remap::Action_Remap() {}
 
 // Action_Remap::Help()
 void Action_Remap::Help() const {
@@ -30,7 +26,7 @@ Action::RetType Action_Remap::Init(ArgList& actionArgs, ActionInit& init, int de
     mprinterr("Error: Atom map data set name not specified.\n");
     return Action::ERR;
   }
-  topWriter_.InitTopWriter(actionArgs, "re-mapped", debugIn);
+  topWriter_.InitTopWriter(actionArgs, "re-mapped", debugIn, init.DslPtr());
   // Get dataset
   DataSet* mapset = init.DSL().GetDataSet( mapsetname );
   if (mapset == 0) {
@@ -66,14 +62,17 @@ Action::RetType Action_Remap::Setup(ActionSetup& setup) {
     return Action::SKIP;
   }
   // Attempt to create remapped topology
-  if (newParm_ != 0) delete newParm_;
-  newParm_ = setup.Top().ModifyByMap( Map_ );
-  if (newParm_ == 0) {
-    mprinterr("Error: Could not create re-mapped topology.\n");
-    return Action::ERR;
+  DataSet_Topology* topSet = topWriter_.CreateTopSet( setup.Top() );
+  if (topSet == 0) return Action::ERR;
+  if (topSet->Top().Natom() == 0) {
+    // First time modifying this topology
+    if ( setup.Top().ModifyByMap( topSet->ModifyTop(), Map_ ) ) {
+      mprinterr("Error: Could not create re-mapped topology.\n");
+      return Action::ERR;
+    }
   }
-  setup.SetTopology( newParm_ );
-  newParm_->Brief("Re-mapped topology:");
+  setup.SetTopology( topSet->TopPtr() );
+  topSet->Top().Brief("Re-mapped topology:");
   // Allocate space for new frame
   newFrame_.SetupFrameV(setup.Top().Atoms(), setup.CoordInfo());
   // Write output topology if specified
