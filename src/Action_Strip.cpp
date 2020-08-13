@@ -5,8 +5,12 @@
 
 // CONSTRUCTOR
 Action_Strip::Action_Strip() :
-  newParm_(0), newCinfo_(0), masterDSL_(0), removeBoxInfo_(false) {}
+  newCinfo_(0),
+  masterDSL_(0),
+  removeBoxInfo_(false)
+{}
 
+// Action_Strip::Help()
 void Action_Strip::Help() const {
   mprintf("\t<mask> [nobox]\n");
   mprintf("%s", ActionTopWriter::Keywords());

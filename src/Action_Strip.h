@@ -15,7 +15,6 @@ class Action_Strip: public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    Topology* newParm_;
     CoordinateInfo* newCinfo_;
     DataSetList* masterDSL_;
     Frame newFrame_;
