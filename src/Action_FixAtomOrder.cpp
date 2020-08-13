@@ -1,17 +1,12 @@
 // Action_FixAtomOrder 
 #include "Action_FixAtomOrder.h"
 #include "CpptrajStdio.h"
+#include "DataSet_Topology.h"
 
 /** CONSTRUCTOR */
 Action_FixAtomOrder::Action_FixAtomOrder() :
-  debug_(0),
-  newParm_(0)
+  debug_(0)
 {} 
-
-/** DESTRUCTOR */
-Action_FixAtomOrder::~Action_FixAtomOrder() {
-  if (newParm_ != 0) delete newParm_;
-}
 
 // void Action_FixAtomOrder::Help()
 void Action_FixAtomOrder::Help() const {
@@ -91,14 +86,18 @@ Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
       mprintf("\t\tNew atom %8li => old atom %8i\n", atom - atomMap_.begin() + 1, *atom + 1);
   }
   // Create new topology based on map
-  if (newParm_ != 0) delete newParm_;
-  newParm_ = setup.Top().ModifyByMap( atomMap_ );
-  if (newParm_ == 0) {
-    mprinterr("Error: Could not create re-ordered topology.\n");
-    return Action::ERR;
+  DataSet_Topology* topSet = topWriter_.CreateTopSet( setup.Top() );
+  if (topSet == 0) return Action::ERR;
+  if (topSet->Top().Natom() == 0) {
+    // First time modifying this topology
+    if (setup.Top().ModifyByMap( topSet->ModifyTop(), atomMap_ )) {
+      mprinterr("Error: Could not create re-ordered topology.\n");
+      return Action::ERR;
+    }
+    setup.SetTopology( topSet->TopPtr() );
   }
-  newParm_->Brief("Re-ordered parm:");
-  setup.SetTopology( newParm_ );
+  setup.SetTopology( topSet->TopPtr() );
+  topSet->Top().Brief("Re-ordered parm:");
   // Allocate space for new frame
   newFrame_.SetupFrameV( setup.Top().Atoms(), setup.CoordInfo() );
 

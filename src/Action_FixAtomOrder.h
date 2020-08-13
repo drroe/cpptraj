@@ -22,7 +22,6 @@ class Action_FixAtomOrder: public Action {
     typedef std::vector<int> MapType;
     MapType atomMap_;           ///< Map original atoms to new atoms.
     MapType molNums_;           ///< Hold molecule number for each atom.
-    Topology* newParm_;         ///< Re-ordered topology
     Frame newFrame_;            ///< Re-ordered frame
     ActionTopWriter topWriter_; ///< Use to write re-ordered Topology
 };
