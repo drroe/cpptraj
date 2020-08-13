@@ -19,7 +19,7 @@ void Action_FixAtomOrder::Help() const {
 Action::RetType Action_FixAtomOrder::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
-  topWriter_.InitTopWriter(actionArgs, "re-ordered", debug_);
+  topWriter_.InitTopWriter(actionArgs, "re-ordered", debug_, init.DslPtr());
 
   mprintf("    FIXATOMORDER: Will attempt to fix atom ordering when atom numbering\n"
           "                  in molecules is non-sequential.\n");
