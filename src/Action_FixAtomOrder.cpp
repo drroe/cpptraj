@@ -94,7 +94,6 @@ Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
       mprinterr("Error: Could not create re-ordered topology.\n");
       return Action::ERR;
     }
-    setup.SetTopology( topSet->TopPtr() );
   }
   setup.SetTopology( topSet->TopPtr() );
   topSet->Top().Brief("Re-ordered parm:");
