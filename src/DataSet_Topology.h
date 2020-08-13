@@ -25,6 +25,7 @@ class DataSet_Topology : public DataSet {
     void SetPindex(int p)          { top_.SetPindex( p ); }
     Topology* TopPtr()             { return &top_; } // NOTE: pytraj currently relies on this 
     Topology const& Top() const    { return top_;  }
+    Topology& ModifyTop()          { return top_;  }
   private:
     Topology top_;
 };

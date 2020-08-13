@@ -1303,11 +1303,31 @@ int Topology::ScaleDihedralK(double scale_factor, std::string const& maskExpr, b
 Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullParm) const {
   Topology *newParm = new Topology();
 
-  newParm->parmName_ = parmName_;
-  newParm->fileName_ = fileName_;
-  newParm->radius_set_ = radius_set_;
-  newParm->debug_ = debug_;
-  newParm->n_atom_types_ = n_atom_types_;
+  if (ModifyByMap(*newParm, MapIn, setupFullParm)) {
+    mprinterr("Error: Could not create modified Topology based on '%s'\n", c_str());
+    delete newParm;
+    return 0;
+  }
+  return newParm;
+}
+
+/** Modify the given Topology based on this Topology, deleting atoms
+  * that are not in the given map (Map[newatom] = oldatom).
+  */
+int Topology::ModifyByMap(Topology& newParm, std::vector<int> const& MapIn, bool setupFullParm)
+const
+{
+  // Sanity check
+  if (newParm.Natom() != 0) {
+    mprinterr("Internal Error: ModifyByMap(): Attempting to set a non-blank Topology.\n");
+    return 1;
+  }
+
+  newParm.parmName_ = parmName_;
+  newParm.fileName_ = fileName_;
+  newParm.radius_set_ = radius_set_;
+  newParm.debug_ = debug_;
+  newParm.n_atom_types_ = n_atom_types_;
 
   // Reverse Atom map
   std::vector<int> atomMap( atoms_.size(),-1 );
@@ -1330,36 +1350,36 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     // Check if this old atom is in a different residue than the last. If so,
     // set new residue information.
     if ( curres != oldres ) {
-      if (!newParm->residues_.empty())
-        newParm->residues_.back().SetLastAtom( newatom );
+      if (!newParm.residues_.empty())
+        newParm.residues_.back().SetLastAtom( newatom );
       Residue const& cr = residues_[curres];
-      newParm->residues_.push_back( cr );
-      newParm->residues_.back().SetFirstAtom( newatom );
-      newParm->residues_.back().SetTerminal( cr.IsTerminal() );
+      newParm.residues_.push_back( cr );
+      newParm.residues_.back().SetFirstAtom( newatom );
+      newParm.residues_.back().SetTerminal( cr.IsTerminal() );
       oldres = curres;
     }
     // Clear bond information from new atom
     newparmAtom.ClearBonds();
     // Set new atom num and residue num
-    newparmAtom.SetResNum( newParm->residues_.size() - 1 );
+    newparmAtom.SetResNum( newParm.residues_.size() - 1 );
     // Check if this atom belongs to a solvent molecule.
     if (!molecules_.empty())
       isSolvent.push_back( Mol(newparmAtom.MolNum()).IsSolvent() );
     // Place new atom in newParm
-    newParm->atoms_.push_back( newparmAtom );
+    newParm.atoms_.push_back( newparmAtom );
   }
-  if (newParm->atoms_.empty()) {
+  if (newParm.atoms_.empty()) {
     mprintf("Warning: All atoms have been stripped.\n");
-    return newParm;
+    return 0;
   }
 
   // Set last residue last atom
-  newParm->residues_.back().SetLastAtom( newParm->atoms_.size() );
+  newParm.residues_.back().SetLastAtom( newParm.atoms_.size() );
 
   // Copy reference if present
   if (!refCoords_.empty()) {
-    newParm->refCoords_.SetupFrameM( atoms_ );
-    newParm->refCoords_.ModifyByMap( refCoords_, MapIn );
+    newParm.refCoords_.SetupFrameM( atoms_ );
+    newParm.refCoords_.ModifyByMap( refCoords_, MapIn );
   }
 
   // NOTE: Since in the bond/angle/dihedral atom arrays the parm indices have 
@@ -1367,26 +1387,26 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   //       parameter arrays for now. May want to cull unused params later.
 
   // Set up new bond information
-  newParm->bonds_ = StripBondArray( bonds_, atomMap );
-  newParm->bondsh_ = StripBondArray( bondsh_, atomMap );
-  newParm->SetAtomBondInfo( newParm->bonds_ );
-  newParm->SetAtomBondInfo( newParm->bondsh_ );
+  newParm.bonds_ = StripBondArray( bonds_, atomMap );
+  newParm.bondsh_ = StripBondArray( bondsh_, atomMap );
+  newParm.SetAtomBondInfo( newParm.bonds_ );
+  newParm.SetAtomBondInfo( newParm.bondsh_ );
   std::vector<int> parmMap( bondparm_.size(), -1 ); // Map[oldidx] = newidx
-  StripBondParmArray( newParm->bonds_,  parmMap, newParm->bondparm_ );
-  StripBondParmArray( newParm->bondsh_, parmMap, newParm->bondparm_ );
+  StripBondParmArray( newParm.bonds_,  parmMap, newParm.bondparm_ );
+  StripBondParmArray( newParm.bondsh_, parmMap, newParm.bondparm_ );
   //mprintf("DEBUG: Original bond parm array= %zu, new bond parm array = %zu\n",
-  //        bondparm_.size(), newParm->bondparm_.size());
+  //        bondparm_.size(), newParm.bondparm_.size());
   // Give stripped parm the same pindex as original
-  newParm->pindex_ = pindex_;
+  newParm.pindex_ = pindex_;
   // Copy box information
-  newParm->parmBox_ = parmBox_;
+  newParm.parmBox_ = parmBox_;
   // If we dont care about setting up full parm information, exit now.
-  if (!setupFullParm) return newParm;
+  if (!setupFullParm) return 0;
 
   // Set new molecule information based on new bonds
-  if (newParm->DetermineMolecules()) {
+  if (newParm.DetermineMolecules()) {
     mprintf("Warning: Could not set up molecule information for stripped topology %s\n",
-            newParm->c_str());
+            newParm.c_str());
   }
 
   // Determine solvent
@@ -1395,13 +1415,13 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     // For speed just check the first atom. A strip should never create new
     // molecules, just break up previous ones, so if a new molecule has an atom
     // that was solvent it is still solvent.
-    newParm->NsolventMolecules_ = 0;
-    for (std::vector<Molecule>::iterator mol = newParm->molecules_.begin();
-                                         mol != newParm->molecules_.end(); ++mol)
+    newParm.NsolventMolecules_ = 0;
+    for (std::vector<Molecule>::iterator mol = newParm.molecules_.begin();
+                                         mol != newParm.molecules_.end(); ++mol)
     {
       if ( isSolvent[ mol->BeginAtom() ] ) {
         mol->SetSolvent();
-        newParm->NsolventMolecules_++;
+        newParm.NsolventMolecules_++;
       } else
         mol->SetNoSolvent();
     }
@@ -1409,31 +1429,31 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     // No solvent information previously. Check if there is solvent now,
     // which could be the case if molecule information was not previously
     // determined.
-    newParm->SetSolventInfo();
+    newParm.SetSolventInfo();
   }
 
   // Set up new angle info
-  newParm->angles_ = StripAngleArray( angles_, atomMap );
-  newParm->anglesh_ = StripAngleArray( anglesh_, atomMap );
+  newParm.angles_ = StripAngleArray( angles_, atomMap );
+  newParm.anglesh_ = StripAngleArray( anglesh_, atomMap );
   if (!angleparm_.empty()) {
     parmMap.assign( angleparm_.size(), -1 );
-    StripAngleParmArray( newParm->angles_,  parmMap, newParm->angleparm_ );
-    StripAngleParmArray( newParm->anglesh_, parmMap, newParm->angleparm_ );
+    StripAngleParmArray( newParm.angles_,  parmMap, newParm.angleparm_ );
+    StripAngleParmArray( newParm.anglesh_, parmMap, newParm.angleparm_ );
   }
   // Set up new dihedral info
-  newParm->dihedrals_ = StripDihedralArray( dihedrals_, atomMap );
-  newParm->dihedralsh_ = StripDihedralArray( dihedralsh_, atomMap );
+  newParm.dihedrals_ = StripDihedralArray( dihedrals_, atomMap );
+  newParm.dihedralsh_ = StripDihedralArray( dihedralsh_, atomMap );
   if (!dihedralparm_.empty()) {
     parmMap.assign( dihedralparm_.size(), -1 );
-    StripDihedralParmArray( newParm->dihedrals_,  parmMap, newParm->dihedralparm_ );
-    StripDihedralParmArray( newParm->dihedralsh_, parmMap, newParm->dihedralparm_ );
+    StripDihedralParmArray( newParm.dihedrals_,  parmMap, newParm.dihedralparm_ );
+    StripDihedralParmArray( newParm.dihedralsh_, parmMap, newParm.dihedralparm_ );
   }
   // Set up nonbond info. First determine which atom types remain.
   if (nonbond_.HasNonbond()) {
     parmMap.clear();               // parmMap[oldtype]      = newtype
     std::vector<int> oldTypeArray; // oldTypeArray[newtype] = oldtype
-    for (std::vector<Atom>::const_iterator atm = newParm->atoms_.begin();
-                                           atm != newParm->atoms_.end(); ++atm)
+    for (std::vector<Atom>::const_iterator atm = newParm.atoms_.begin();
+                                           atm != newParm.atoms_.end(); ++atm)
     {
       int oldidx = atm->TypeIndex();
       if (oldidx >= (int)parmMap.size())
@@ -1447,9 +1467,9 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     }
     //mprintf("DEBUG: # new types %zu\n", oldTypeArray.size());
     // Set up new nonbond and nonbond index arrays.
-    newParm->nonbond_.SetNtypes( oldTypeArray.size() );
+    newParm.nonbond_.SetNtypes( oldTypeArray.size() );
     if (chamber_.HasChamber())
-      newParm->chamber_.SetNLJ14terms( (oldTypeArray.size()*(oldTypeArray.size()+1))/2 );
+      newParm.chamber_.SetNLJ14terms( (oldTypeArray.size()*(oldTypeArray.size()+1))/2 );
     for (int a1idx = 0; a1idx != (int)oldTypeArray.size(); a1idx++)
     {
       int atm1 = oldTypeArray[a1idx];
@@ -1461,14 +1481,14 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
           // This is a traditional LJ 6-12 term. Because of the way the LJ 1-4
           // code is laid out in sander/pmemd the LJ matrix has to be laid out
           // indepdendent of the nonbond index array.
-          newParm->nonbond_.AddLJterm( a1idx, a2idx, nonbond_.NBarray(oldnbidx) );
+          newParm.nonbond_.AddLJterm( a1idx, a2idx, nonbond_.NBarray(oldnbidx) );
         } else {
           // This is an old LJ 10-12 hbond term. Add one to the LJ 6-12 matrix
           // and one to the hbond since that seems to be the convention.
-          newParm->nonbond_.AddLJterm( a1idx, a2idx, NonbondType() );
-          newParm->nonbond_.AddHBterm( a1idx, a2idx, nonbond_.HBarray((-oldnbidx)-1) );
+          newParm.nonbond_.AddLJterm( a1idx, a2idx, NonbondType() );
+          newParm.nonbond_.AddHBterm( a1idx, a2idx, nonbond_.HBarray((-oldnbidx)-1) );
         }
-        //int newnbidx = newParm->nonbond_.GetLJindex( a1idx, a2idx );
+        //int newnbidx = newParm.nonbond_.GetLJindex( a1idx, a2idx );
         //mprintf("DEBUG: oldtypei=%i oldtypej=%i Old NB index=%i, newtypi=%i newtypej=%i new NB idx=%i testidx=%i\n", 
         //        atm1, atm2, oldnbidx, a1idx, a2idx, newnbidx, testidx);
         if (chamber_.HasChamber()) {
@@ -1480,23 +1500,23 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
               ibig = a2idx + 1;
               isml = a1idx + 1;
           int newnbidx = (ibig*(ibig-1)/2+isml)-1;
-          newParm->chamber_.SetLJ14( newnbidx ) = chamber_.LJ14()[oldnbidx];
+          newParm.chamber_.SetLJ14( newnbidx ) = chamber_.LJ14()[oldnbidx];
         }
       }
     }
     // Update atom type indices.
-    for (std::vector<Atom>::iterator atm = newParm->atoms_.begin();
-                                     atm != newParm->atoms_.end(); ++atm)
+    for (std::vector<Atom>::iterator atm = newParm.atoms_.begin();
+                                     atm != newParm.atoms_.end(); ++atm)
       atm->SetTypeIndex( parmMap[atm->TypeIndex()] );
   }
   // LES info - FIXME: Not sure if stripping this is valid so print a warning.
   if (lesparm_.HasLES()) {
     mprintf("Warning: LES info present. Stripped topology may not have correct LES info.\n");
-    newParm->lesparm_.SetTypes( lesparm_.Ntypes(), lesparm_.FAC() );
+    newParm.lesparm_.SetTypes( lesparm_.Ntypes(), lesparm_.FAC() );
     for (std::vector<int>::const_iterator old_it = MapIn.begin(); old_it != MapIn.end(); ++old_it)
     {
       if (*old_it >= 0)
-        newParm->lesparm_.AddLES_Atom( lesparm_.Array()[*old_it] );
+        newParm.lesparm_.AddLES_Atom( lesparm_.Array()[*old_it] );
     }
   }
   // CAP info - dont support stripping such topologies right now
@@ -1504,17 +1524,17 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     mprintf("Warning: Stripping of CAP info not supported. Removing CAP info.\n");
   // CHAMBER info
   if (chamber_.HasChamber()) {
-    newParm->chamber_.SetDescription( chamber_.Description() );
+    newParm.chamber_.SetDescription( chamber_.Description() );
     // Urey-Bradley
-    newParm->chamber_.SetUB() = StripBondArray(chamber_.UB(),atomMap);
+    newParm.chamber_.SetUB() = StripBondArray(chamber_.UB(),atomMap);
     parmMap.assign( chamber_.UBparm().size(), -1 ); // Map[oldidx] = newidx
-    StripBondParmArray( newParm->chamber_.SetUB(), parmMap,
-                        newParm->chamber_.SetUBparm(), chamber_.UBparm() );
+    StripBondParmArray( newParm.chamber_.SetUB(), parmMap,
+                        newParm.chamber_.SetUBparm(), chamber_.UBparm() );
     // Impropers
-    newParm->chamber_.SetImpropers() = StripDihedralArray(chamber_.Impropers(), atomMap);
+    newParm.chamber_.SetImpropers() = StripDihedralArray(chamber_.Impropers(), atomMap);
     parmMap.assign( chamber_.ImproperParm().size(), -1 );
-    StripDihedralParmArray( newParm->chamber_.SetImpropers(), parmMap,
-                            newParm->chamber_.SetImproperParm(), chamber_.ImproperParm() );
+    StripDihedralParmArray( newParm.chamber_.SetImpropers(), parmMap,
+                            newParm.chamber_.SetImproperParm(), chamber_.ImproperParm() );
     // NOTE 1-4 LJ parameters handled above
     // CMAP terms
     if (chamber_.HasCmap()) {
@@ -1533,18 +1553,18 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
               if (newA4 != -1) {
                 int newA5 = atomMap[ cmap->A5() ];
                 if (newA5 != -1)
-                  newParm->chamber_.AddCmapTerm( CmapType(newA1,newA2,newA3,
-                                                          newA4,newA5,cmap->Idx()) );
+                  newParm.chamber_.AddCmapTerm( CmapType(newA1,newA2,newA3,
+                                                         newA4,newA5,cmap->Idx()) );
               }
             }
           }
         }
       }
       // Only add CMAP grids if there are CMAP terms left.
-      if (!newParm->chamber_.Cmap().empty()) {
+      if (!newParm.chamber_.Cmap().empty()) {
         for (CmapGridArray::const_iterator g = chamber_.CmapGrid().begin();
                                            g != chamber_.CmapGrid().end(); ++g)
-          newParm->chamber_.AddCmapGrid( *g );
+          newParm.chamber_.AddCmapGrid( *g );
       }
     }
   }
@@ -1552,16 +1572,16 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   if (!extra_.empty()) {
     for (std::vector<int>::const_iterator old_it = MapIn.begin(); old_it != MapIn.end(); ++old_it)
       if (*old_it >= 0)
-        newParm->extra_.push_back( extra_[*old_it] );
+        newParm.extra_.push_back( extra_[*old_it] );
   }
   
   // Setup excluded atoms list - Necessary?
-  newParm->DetermineExcludedAtoms();
+  newParm.DetermineExcludedAtoms();
 
   // Determine number of extra points
-  newParm->DetermineNumExtraPoints();
+  newParm.DetermineNumExtraPoints();
 
-  return newParm;
+  return 0;
 }
 
 /** \return BondArray with bonds for which both atoms are still present.

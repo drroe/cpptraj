@@ -188,6 +188,10 @@ class Topology {
     Topology* ModifyByMap(std::vector<int> const& m) const {
       return ModifyByMap(m, true);
     }
+    /// Rearrange atoms of this Topology according to given map, Map[newatom]=oldatom
+    int ModifyByMap(Topology& t, std::vector<int> const& m) const {
+      return ModifyByMap(t, m, true);
+    }
     /// Append topology to this one.
     int AppendTop( Topology const& );
   private:
@@ -214,6 +218,7 @@ class Topology {
     int scale_dihedral_K(DihedralArray&, CharMask const&, double, bool);
 
     Topology* ModifyByMap(std::vector<int> const&, bool) const;
+    int ModifyByMap(Topology&, std::vector<int> const&, bool) const;
     BondArray StripBondArray(BondArray const&, std::vector<int> const&) const;
     AngleArray StripAngleArray(AngleArray const&, std::vector<int> const&) const;
     DihedralArray StripDihedralArray(DihedralArray const&, std::vector<int> const&) const;
