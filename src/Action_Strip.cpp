@@ -1,6 +1,7 @@
 // Action_Strip
 #include "Action_Strip.h"
 #include "CpptrajStdio.h"
+#include "DataSet_Topology.h"
 
 // CONSTRUCTOR
 Action_Strip::Action_Strip() :
@@ -16,7 +17,6 @@ void Action_Strip::Help() const {
 
 // DESTRUCTOR
 Action_Strip::~Action_Strip() {
-  if (newParm_!=0) delete newParm_;
   if (newCinfo_ != 0) delete newCinfo_;
 }
 
@@ -24,7 +24,7 @@ Action_Strip::~Action_Strip() {
 Action::RetType Action_Strip::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get output stripped parm filename
-  topWriter_.InitTopWriter(actionArgs, "stripped", debugIn);
+  topWriter_.InitTopWriter(actionArgs, "stripped", debugIn, init.DslPtr());
   removeBoxInfo_ = actionArgs.hasKey("nobox");
 
   // Get mask of atoms to be stripped
@@ -67,20 +67,25 @@ Action::RetType Action_Strip::Setup(ActionSetup& setup) {
   }
 
   // Attempt to create new parmtop based on mask, set as new Topology
-  if (newParm_ != 0) delete newParm_;
-  newParm_ = setup.Top().modifyStateByMask(M1_);
-  if (newParm_ == 0) {
-    mprinterr("Error: Could not create new topology.\n");
-    return Action::ERR;
-  }
-  setup.SetTopology( newParm_ );
-  // Remove box information if asked
-  if (removeBoxInfo_) {
-    newParm_->SetParmBox( Box() );
-    newCinfo_ = new CoordinateInfo( setup.CoordInfo() );
-    newCinfo_->SetBox( Box() );
-    setup.SetCoordInfo( newCinfo_ );
-  }
+  DataSet_Topology* topSet = topWriter_.CreateTopSet( setup.Top() );
+  if (topSet == 0) return Action::ERR;
+  if (topSet->Top().Natom() == 0) {
+    // First time modifying this topology
+    if ( setup.Top().ModifyByMap( topSet->ModifyTop(), M1_.Selected() ) ) {
+      mprinterr("Error: Could not create stripped topology.\n");
+      return Action::ERR;
+    }
+    newParm_ = topSet->TopPtr();
+    setup.SetTopology( newParm_ );
+    // Remove box information if asked
+    if (removeBoxInfo_) {
+      newParm_->SetParmBox( Box() );
+      newCinfo_ = new CoordinateInfo( setup.CoordInfo() );
+      newCinfo_->SetBox( Box() );
+      setup.SetCoordInfo( newCinfo_ );
+    }
+  } else
+    newParm_ = topSet->TopPtr();
   newParm_->Brief("Stripped topology:");
   // Allocate space for new frame
   newFrame_.SetupFrameV(setup.Top().Atoms(), setup.CoordInfo());
