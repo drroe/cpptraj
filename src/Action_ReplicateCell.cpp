@@ -1,10 +1,17 @@
 #include "Action_ReplicateCell.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords.h"
+#include "DataSet_Topology.h"
 
 // CONSTRUCTOR
-Action_ReplicateCell::Action_ReplicateCell() : coords_(0), ncopies_(0), writeTraj_(false) {} 
+Action_ReplicateCell::Action_ReplicateCell() :
+  coords_(0),
+  ncopies_(0),
+  outtrajNatoms_(0),
+  writeTraj_(false)
+{}
 
+// Action_ReplicateCell::Help()
 void Action_ReplicateCell::Help() const {
   mprintf("\t[out <traj filename>] [name <dsname>]\n"
           "\t{ all | dir <XYZ> [dir <XYZ> ...] } [<mask>]\n");
@@ -14,6 +21,7 @@ void Action_ReplicateCell::Help() const {
   mprintf("%s", ActionTopWriter::Options());
 }
 
+// toDigit()
 static inline int toDigit(char c) {
   switch (c) {
     case '0' : return 0;
@@ -37,7 +45,7 @@ Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init
   image_.InitImaging( true );
   // Set up output traj
   std::string trajfilename = actionArgs.GetStringKey("out");
-  topWriter_.InitTopWriter( actionArgs, "replicated cell", debugIn );
+  topWriter_.InitTopWriter( actionArgs, "replicated cell", debugIn, init.DslPtr() );
   bool setAll = actionArgs.hasKey("all");
   std::string dsname = actionArgs.GetStringKey("name");
   if (!dsname.empty()) {
@@ -142,33 +150,52 @@ Action::RetType Action_ReplicateCell::Setup(ActionSetup& setup) {
     return Action::SKIP;
   }
   // Create combined topology.
-  if (combinedTop_.Natom() > 0) {
-    // Topology already set up. Check that # atoms matches.
-    if (Mask1_.Nselected() * ncopies_ != combinedTop_.Natom()) {
-      mprintf("Warning: Unit cell can currently only be replicated for"
-              " topologies with same # atoms.\n");
+  DataSet_Topology* topSet = topWriter_.CreateTopSet( setup.Top() );
+  if (topSet == 0) return Action::ERR;
+  if (topSet->Top().Natom() == 0) {
+    // First time modifying this topology
+    // First strip cell 0 topology according to Mask1_
+    Topology* stripParm = setup.Top().modifyStateByMask( Mask1_ );
+    if ( stripParm == 0 ) {
+      mprinterr("Error: Could not create stripped topology for replicated cell.\n");
+      return Action::ERR;
+    }
+    // Replicate the topology as many times as needed
+    for (int cell = 0; cell != ncopies_; cell++)
+      topSet->ModifyTop().AppendTop( *stripParm );
+    delete stripParm;
+  }
+  topSet->Top().Brief("Combined parm:");
+  // Set up combined frame
+  // Only coordinates for now. FIXME
+  combinedFrame_.SetupFrameM(topSet->Top().Atoms());
+  // Set up COORDS / output traj if necessary. Base it on the first Topology.
+  if (coords_ != 0) {
+    if (coords_->Top().Natom() == 0) {
+      // Coords need setup
+      coords_->CoordsSetup( topSet->Top(), CoordinateInfo() );
+    } else if (coords_->Top().Natom() != topSet->Top().Natom()) {
+      mprintf("Warning: COORDS output for replicated cells can only be done\n"
+              "Warning:  for topologies with same # atoms.\n");
       return Action::SKIP;
     }
-    // Otherwise assume top does not change.
-  } else {
-    // Set up topology and frame.
-    Topology* stripParm = setup.Top().modifyStateByMask( Mask1_ );
-    if (stripParm == 0) return Action::ERR;
-    for (int cell = 0; cell != ncopies_; cell++)
-      combinedTop_.AppendTop( *stripParm );
-    combinedTop_.Brief("Combined parm:");
-    delete stripParm;
-    topWriter_.WriteTops( combinedTop_ );
-    // Only coordinates for now. FIXME
-    combinedFrame_.SetupFrameM(combinedTop_.Atoms());
-    // Set up COORDS / output traj if necessary.
-    if (coords_ != 0)
-      coords_->CoordsSetup( combinedTop_, CoordinateInfo() );
-    if (writeTraj_) {
-      if ( outtraj_.SetupTrajWrite( &combinedTop_, CoordinateInfo(), setup.Nframes() ) )
+  }
+  // Set up output traj if necessary. Base it on the first Topology.
+  if (writeTraj_) {
+    if (outtrajNatoms_ == 0) {
+      // Traj needs setup
+      if ( outtraj_.SetupTrajWrite( topSet->TopPtr(), CoordinateInfo(), setup.Nframes() ) )
         return Action::ERR;
+      outtrajNatoms_ = topSet->Top().Natom();
+    } else if (outtrajNatoms_ != topSet->Top().Natom()) {
+      mprintf("Warning: Trajectory output for replicated cells can only be done\n"
+              "Warning:  for topologies with same # atoms.\n");
+      return Action::SKIP;
     }
   }
+
+  // If prefix given write out combined Topology
+  topWriter_.WriteTops( setup.Top() );
 
   return Action::OK;
 }

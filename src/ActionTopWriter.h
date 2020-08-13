@@ -17,12 +17,6 @@ class ActionTopWriter {
 
     /// Parse arguments.
     int InitTopWriter(ArgList&, const char*, int, DataSetList*);
-
-    // FIXME Remove this after debug
-    int InitTopWriter(ArgList& a, const char* c, int d) {
-      return InitTopWriter(a, c, d, 0);
-    }
-
     /// Write options to stdout.
     void PrintOptions() const;
     /// \return DataSet_Topology for containing modified version of given Topology
