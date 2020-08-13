@@ -7,7 +7,6 @@
 class Action_FixAtomOrder: public Action {
   public:
     Action_FixAtomOrder();
-    ~Action_FixAtomOrder();
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_FixAtomOrder(); }
     void Help() const;
   private:
