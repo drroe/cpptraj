@@ -12,15 +12,24 @@
 
 const NonbondType Topology::LJ_EMPTY = NonbondType();
 
+/// This is used to uniquely identify Topology classes
+int Topology::currentParmId_ = 0;
+
 // CONSTRUCTOR
 Topology::Topology() :
   debug_(0),
   ipol_(0),
   NsolventMolecules_(0),
-  pindex_(0),
+  pindex_(-1),
+  originalPindex_(-1),
+  // Set unique identifier for Toplogy so things like TrajinList::topFrames_
+  // will work.
+  parmId_(currentParmId_++),
   n_extra_pts_(0),
   n_atom_types_(0)
-{ }
+{
+  mprintf("DEBUG: ParmId %i created.\n", parmId_);
+}
 
 // Topology::SetParmName()
 void Topology::SetParmName(std::string const& title, FileName const& filename) {
@@ -1397,7 +1406,8 @@ const
   //mprintf("DEBUG: Original bond parm array= %zu, new bond parm array = %zu\n",
   //        bondparm_.size(), newParm.bondparm_.size());
   // Give stripped parm the same pindex as original
-  newParm.pindex_ = pindex_;
+  //newParm.pindex_ = pindex_;
+  newParm.originalPindex_ = originalPindex_;
   // Copy box information
   newParm.parmBox_ = parmBox_;
   // If we dont care about setting up full parm information, exit now.

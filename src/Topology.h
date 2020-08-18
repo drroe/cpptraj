@@ -21,7 +21,8 @@ class Topology {
     // ----- Set internal variables --------------
     void SetDebug(int dIn)                   { debug_ = dIn;                 }
     void SetIpol(int iIn)                    { ipol_ = iIn;                  }
-    void SetPindex(int pIn)                  { pindex_ = pIn;                }
+    /// Set the parm index of a Topology loaded with the 'parm' command.
+    void SetParmIndex(int pIn)               { pindex_ = pIn; originalPindex_ = pIn; }
     void SetGBradiiSet(std::string const& s) { radius_set_ = s;              }
     void SetParmName(std::string const&, FileName const&);
     void SetDistMaskRef( Frame const& );
@@ -29,7 +30,12 @@ class Topology {
     void SetNatyp(int n)                     { n_atom_types_ = n;            }
     // ----- Return internal variables -----------
     int Ipol()                     const { return ipol_;                  }
-    int Pindex()                   const { return pindex_;                }
+    /// \return Parm index if this Topology was loaded, -1 otherwise.
+    int ParmIndex()                const { return pindex_;                }
+    /// \return Original parm index this Topology is descended from
+    int OriginalParmIndex()        const { return originalPindex_;        }
+    /// \return Unique identifier for this Topology (set in CONSTRUCTOR)
+    int ParmId()                   const { return parmId_;                }
     int Natom()                    const { return (int)atoms_.size();     }
     int Nres()                     const { return (int)residues_.size();  }
     int Nmol()                     const { return (int)molecules_.size(); }
@@ -239,6 +245,7 @@ class Topology {
     void AssignDihedralParm(DihedralParmHolder const&, DihedralArray&);
 
     static const NonbondType LJ_EMPTY;
+    static int currentParmId_;
     std::vector<Atom> atoms_;
     std::vector<Residue> residues_;
     std::vector<Molecule> molecules_;
@@ -270,7 +277,9 @@ class Topology {
     int debug_;
     int ipol_;              ///< 0 if fixed charge, 1 if polarizable
     int NsolventMolecules_; ///< Number of molecules marked SOLVENT
-    int pindex_;            ///< Internal index used to ID Topology 
+    int pindex_;            ///< Index used to ID Topology based on order it was loaded from disk
+    int originalPindex_;    ///< Set with original pindex_ if this is a modified Topology
+    int parmId_;            ///< Unique identifier for this Topology
     int n_extra_pts_;       ///< Number of extra points.
     int n_atom_types_;      ///< Number of unique atom types.
 };
