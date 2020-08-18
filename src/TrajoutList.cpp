@@ -79,7 +79,7 @@ int TrajoutList::SetupTrajout(Topology* CurrentParm, CoordinateInfo const& cInfo
   active_.clear();
   for (unsigned int i = 0; i != trajout_.size(); i++) {
     // Check that input parm matches setup parm - if not, skip
-    if (CurrentParm->Pindex() == trajoutTops_[i]->Pindex()) {
+    if (CurrentParm->OriginalParmIndex() == trajoutTops_[i]->OriginalParmIndex()) {
       if (!open_[i]) { // Only set up if not already open.
         if ( trajout_[i]->SetupTrajWrite( CurrentParm, cInfo, Nframes) )
         {
@@ -147,7 +147,7 @@ void TrajoutList::List(std::vector<int> const& PindexFrames) const {
         trajout_[i]->PrintInfo( 0 );
     else
       for (unsigned int i = 0; i != trajout_.size(); i++)
-        trajout_[i]->PrintInfo( PindexFrames[trajoutTops_[i]->Pindex()] );
+        trajout_[i]->PrintInfo( PindexFrames[trajoutTops_[i]->ParmId()] );
   }
 }
 #ifdef MPI
@@ -159,7 +159,7 @@ int TrajoutList::ParallelSetupTrajout(Topology* CurrentParm,
   active_.clear();
   for (unsigned int i = 0; i != trajout_.size(); i++) {
     // Check that input parm matches setup parm - if not, skip
-    if (CurrentParm->Pindex() == trajoutTops_[i]->Pindex()) {
+    if (CurrentParm->OriginalParmIndex() == trajoutTops_[i]->OriginalParmIndex()) {
       if (!open_[i]) { // Only set up if not already open.
         trajout_[i]->SetTrajComm( commIn );
         if ( trajout_[i]->SetupTrajWrite( CurrentParm, cInfo, Nframes) )

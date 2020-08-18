@@ -18,7 +18,7 @@ Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, ActionInit& init, in
     mprinterr("Error: createcrd: No parm files loaded.\n");
     return Action::ERR;
   }
-  pindex_ = parm->Pindex();
+  pindex_ = parm->OriginalParmIndex();
   check_ = !actionArgs.hasKey("nocheck");
   // DataSet
   std::string setname = actionArgs.GetStringNext();
@@ -40,7 +40,7 @@ Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, ActionInit& init, in
 #       endif
         append = true;
         coords_ = (DataSet_Coords_CRD*)ds;
-        pindex_ = coords_->Top().Pindex();
+        pindex_ = coords_->Top().OriginalParmIndex();
       }
     }
     if (coords_ == 0)
@@ -67,7 +67,7 @@ Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, ActionInit& init, in
 
 Action::RetType Action_CreateCrd::Setup(ActionSetup& setup) {
   // Set COORDS topology now if not already set.
-  if (setup.Top().Pindex() == pindex_ && coords_->Top().Natom() == 0) {
+  if (setup.Top().OriginalParmIndex() == pindex_ && coords_->Top().Natom() == 0) {
     coords_->CoordsSetup( setup.Top(), setup.CoordInfo() );
     // Estimate memory usage
     mprintf("\tEstimated memory usage (%i frames): %s\n",

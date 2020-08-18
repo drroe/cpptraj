@@ -125,7 +125,7 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, ActionInit& in
 // Action_CreateReservoir::Setup()
 Action::RetType Action_CreateReservoir::Setup(ActionSetup& setup) {
   // Check that input parm matches current parm
-  if (original_trajparm_->Pindex() != setup.Top().Pindex()) {
+  if (original_trajparm_->OriginalParmIndex() != setup.Top().OriginalParmIndex()) {
     mprintf("Info: createreservoir was set up for topology %s\n", original_trajparm_->c_str());
     mprintf("Info: skipping topology %s\n", setup.Top().c_str());
     return Action::SKIP;

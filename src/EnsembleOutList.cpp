@@ -74,7 +74,7 @@ int EnsembleOutList::SetupEnsembleOut(Topology* CurrentParm, CoordinateInfo cons
   active_.clear();
   for (unsigned int i = 0; i != ensout_.size(); i++) {
     // Check that input parm matches setup parm - if not, skip
-    if (CurrentParm->Pindex() == ensTops_[i]->Pindex()) {
+    if (CurrentParm->OriginalParmIndex() == ensTops_[i]->OriginalParmIndex()) {
       if (!open_[i]) {
         if ( ensout_[i]->SetupEnsembleWrite( CurrentParm, cInfo, Nframes ) )
         {
@@ -137,7 +137,7 @@ void EnsembleOutList::List(std::vector<int> const& PindexFrames) const {
         ensout_[i]->PrintInfo( 0 );
     else
       for (unsigned int i = 0; i != ensout_.size(); i++)
-        ensout_[i]->PrintInfo( PindexFrames[ensTops_[i]->Pindex()] );
+        ensout_[i]->PrintInfo( PindexFrames[ensTops_[i]->ParmId()] );
   }
 }
 #ifdef MPI
@@ -149,7 +149,7 @@ int EnsembleOutList::ParallelSetupEnsembleOut(Topology* CurrentParm,
   active_.clear();
   for (unsigned int i = 0; i != ensout_.size(); i++) {
     // Check that input parm matches setup parm - if not, skip
-    if (CurrentParm->Pindex() == ensTops_[i]->Pindex()) {
+    if (CurrentParm->OriginalParmIndex() == ensTops_[i]->OriginalParmIndex()) {
       if (!open_[i]) {
         ensout_[i]->SetTrajComm( commIn );
         if ( ensout_[i]->SetupEnsembleWrite( CurrentParm, cInfo, Nframes ) )

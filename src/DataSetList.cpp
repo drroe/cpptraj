@@ -155,7 +155,6 @@ void DataSetList::Push_Back(DataSet* ds) {
       RefList_.push_back( ds );
       if (activeRef_ == 0) SetActiveReference( ds );
     } else if (ds->Type() == DataSet::TOPOLOGY) {
-      ((DataSet_Topology*)ds)->SetPindex( TopList_.size() );
       TopList_.push_back( ds );
     }
   }
@@ -241,9 +240,6 @@ DataSet* DataSetList::EraseSet( DataSet* dsIn, bool freeMemory ) {
             TopList_.erase( top );
             break;
           }
-        // Reset P indices so they are unique.
-        for (DataListType::iterator top = TopList_.begin(); top != TopList_.end(); ++top)
-          ((DataSet_Topology*)*top)->SetPindex( top - TopList_.begin() );
       }
       if (!hasCopies_ && freeMemory) delete *pos;
       DataList_.erase( pos );
@@ -967,6 +963,7 @@ int DataSetList::SetActiveReference(ArgList &argIn) {
   return SetActiveReference( ds );
 }
 
+/** Set the reference frame for distance-based masks for each topology/COORDS set. */
 int DataSetList::SetActiveReference(DataSet* dsIn) {
   if (dsIn == 0) return 1;
   activeRef_ = dsIn;
@@ -1024,11 +1021,19 @@ DataSet* DataSetList::GetTopByKeyword(ArgList& argIn, int& err) const {
     }
   } else {
     int topindex = argIn.getKeyInt("parmindex", -1);
-    if (topindex > -1 && topindex < (int)TopList_.size())
-      top = TopList_[topindex];
-    if (topindex != -1 && top == 0) {
-      mprinterr("Error: Topology index %i not found.\n", topindex);
-      err = 1;
+    if (topindex > -1) {
+      for (DataListType::const_iterator it = TopList_.begin(); it != TopList_.end(); ++it)
+      {
+        if ( ((DataSet_Topology*)(*it))->Top().ParmIndex() == topindex )
+        {
+          top = *it;
+          break;
+        }
+      }
+      if (topindex != -1 && top == 0) {
+        mprinterr("Error: Topology index %i not found.\n", topindex);
+        err = 1;
+      }
     }
   }
   return top;
@@ -1092,7 +1097,11 @@ void DataSetList::ListTopologies() const {
     for (DataListType::const_iterator ds = TopList_.begin(); ds != TopList_.end(); ++ds)
     {
       Topology const& top = ((DataSet_Topology*)*ds)->Top();
-      mprintf(" %i:", top.Pindex());
+      mprintf(" %i:", top.ParmId());
+      if (top.ParmIndex() == -1)
+        mprintf(" (orig. parmindex=%i)", top.OriginalParmIndex());
+      else
+        mprintf(" (parmindex=%i)", top.ParmIndex());
       if ( (*ds)->Meta().Name() != (*ds)->Meta().Fname().Base() )
         mprintf(" %s", (*ds)->Meta().Name().c_str());
       top.Brief(0);

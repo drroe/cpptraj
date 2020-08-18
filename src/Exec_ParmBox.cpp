@@ -25,7 +25,7 @@ Exec::RetType Exec_ParmBox::Execute(CpptrajState& State, ArgList& argIn) {
   Topology* parm = State.DSL().GetTopByIndex( argIn );
   if (parm == 0) return CpptrajState::ERR;
   if (nobox)
-    mprintf("\tRemoving box information from parm %i:%s\n", parm->Pindex(), parm->c_str());
+    mprintf("\tRemoving box information from parm %i:%s\n", parm->ParmId(), parm->c_str());
   else
     // Fill in missing parm box information from specified parm
     pbox.SetMissingInfo( parm->ParmBox() );

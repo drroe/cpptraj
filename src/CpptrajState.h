@@ -106,6 +106,7 @@ class CpptrajState {
     int debug_;         ///< Debug level.
     int refDebug_;      ///< Reference debug level.
     int topDebug_;      ///< Topology debug level.
+    int currentPindex_; ///< For setting Topology parmindex for loaded Topologies
     bool showProgress_; ///< If true, display progress during Run.
     bool quietBlocks_;  ///< If true suppress output when executing control blocks.
     bool exitOnError_;  ///< If true exit when errors encountered instead of continuing.

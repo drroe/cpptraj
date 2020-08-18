@@ -220,7 +220,7 @@ Action::RetType Action_AtomMap::Setup(ActionSetup& setup) {
     mprintf("\tmaponly was specified, not using atom map during traj read.\n");
     return Action::OK;
   }
-  if (setup.Top().Pindex() != TgtFrame_->Top().Pindex() ||
+  if (setup.Top().ParmId() != TgtFrame_->Top().ParmId() ||
       setup.Top().Natom() != TgtFrame_->Top().Natom()) 
   {
     mprintf("Warning: Map for topology %s -> %s (%i atom).\n",TgtFrame_->Top().c_str(),

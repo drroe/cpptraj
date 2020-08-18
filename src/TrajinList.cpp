@@ -9,10 +9,13 @@
 #include "StringRoutines.h" // ExpandToFilenames
 #include "ArgList.h"
 
+/** CONSTRUCTOR */
 TrajinList::TrajinList() : debug_(0), maxframes_(0), ensembleSize_(-1) {}
 
+/** DESTRUCTOR */
 TrajinList::~TrajinList() { Clear(); }
 
+/** Free up memory for input trajectories/ensembles. */
 void TrajinList::Clear() {
   for (tListType::iterator traj = trajin_.begin(); traj != trajin_.end(); ++traj)
     delete *traj;
@@ -30,16 +33,16 @@ void TrajinList::Clear() {
   */
 void TrajinList::UpdateMaxFrames(InputTrajCommon const& traj) {
   int trajFrames = traj.Counter().TotalReadFrames();
-  int pindex = traj.Parm()->Pindex();
-  if (pindex >= (int)topFrames_.size())
-    topFrames_.resize( pindex + 1 );
+  int parmId = traj.Parm()->ParmId();
+  if (parmId >= (int)topFrames_.size())
+    topFrames_.resize( parmId + 1, 0 );
   // If < 0 frames this indicates the number of frames could not be determined. 
   if (trajFrames < 0) {
     maxframes_ = -1;
-    topFrames_[pindex] = 0; // TODO should be -1?
+    topFrames_[parmId] = 0; // TODO should be -1?
   } else if (maxframes_ != -1) {
     // Only update # of frames if total # of frames so far is known.
-    topFrames_[pindex] += trajFrames;
+    topFrames_[parmId] += trajFrames;
     maxframes_ += trajFrames;
   }
 }

@@ -113,7 +113,7 @@ Action::RetType Action_LESsplit::Setup(ActionSetup& setup) {
       avgTraj_.PrintInfo(0);
     }
   } else {
-    if (lesParm_->Pindex() != setup.Top().Pindex()) {
+    if (lesParm_->ParmId() != setup.Top().ParmId()) {
       mprintf("Warning: Already set up for LES parm '%s'. Skipping '%s'\n",
               lesParm_->c_str(), setup.Top().c_str());
       return Action::SKIP;

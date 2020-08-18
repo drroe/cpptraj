@@ -201,7 +201,7 @@ int ParmFile::WriteTopology(Topology const& Top, FileName const& fnameIn,
   if (parmio == 0) return 1;
   parmio->SetDebug( debugIn );
   parmio->processWriteArgs( argIn );
-  mprintf("\tWriting topology %i (%s) to '%s' with format %s\n", Top.Pindex(),
+  mprintf("\tWriting topology %i (%s) to '%s' with format %s\n", Top.ParmId(),
           Top.c_str(), parmName_.full(), FileTypes::FormatDescription(PF_AllocArray, fmt));
   int err = parmio->WriteParm( parmName_.Full(), Top );
   delete parmio;

@@ -104,7 +104,7 @@ int Action_Outtraj::SyncAction() {
 
 // Action_Outtraj::Setup()
 Action::RetType Action_Outtraj::Setup(ActionSetup& setup) {
-  if (!isActive_ || associatedParm_->Pindex() != setup.Top().Pindex()) {
+  if (!isActive_ || associatedParm_->OriginalParmIndex() != setup.Top().OriginalParmIndex()) {
     mprintf("\tOutput trajectory not active for topology '%s'\n", setup.Top().c_str());
     return Action::SKIP;
   }

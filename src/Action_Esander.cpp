@@ -87,11 +87,11 @@ int Action_Esander::InitForRef() {
 /** Set angle up for this parmtop. Get masks etc.
   */
 Action::RetType Action_Esander::Setup(ActionSetup& setup) {
-  if (currentParm_ != 0 && currentParm_->Pindex() != setup.Top().Pindex())
+  if (currentParm_ != 0 && currentParm_->ParmId() != setup.Top().ParmId())
   {
     mprintf("Warning: Current topology is %i:%s but reference is %i:%s. Skipping.\n",
-            setup.Top().Pindex(), setup.Top().c_str(),
-            currentParm_->Pindex(), currentParm_->c_str());
+            setup.Top().ParmId(), setup.Top().c_str(),
+            currentParm_->ParmId(), currentParm_->c_str());
     return Action::SKIP;
   }
   // Check for LJ terms

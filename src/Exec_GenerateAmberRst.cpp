@@ -79,7 +79,7 @@ Exec::RetType Exec_GenerateAmberRst::Execute(CpptrajState& State, ArgList& argIn
   // If a reference frame was specified and distance restraint, use center of
   // mass distance/angle/torsion between masks as r2.
   if ( !RefCrd.empty() ) {
-    if ( RefCrd.Parm().Pindex() != parm->Pindex() )
+    if ( RefCrd.Parm().ParmId() != parm->ParmId() )
       mprintf("Warning: Reference topology does not match specified topology.\n");
     Vec3 a1 = RefCrd.Coord().VCenterOfMass( rstMasks[0] );
     Vec3 a2 = RefCrd.Coord().VCenterOfMass( rstMasks[1] );

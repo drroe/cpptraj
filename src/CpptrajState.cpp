@@ -19,6 +19,7 @@ CpptrajState::CpptrajState() :
   debug_(0),
   refDebug_(0),
   topDebug_(0),
+  currentPindex_(0),
   showProgress_(true),
   quietBlocks_(false),
   exitOnError_(true),
@@ -597,11 +598,11 @@ int CpptrajState::RunEnsemble() {
     Topology* currentTop = (*ens)->Traj().Parm();
     CoordinateInfo const& currentCoordInfo = (*ens)->EnsembleCoordInfo();
     currentTop->SetBoxFromTraj( currentCoordInfo.TrajBox() ); // FIXME necessary?
-    int topFrames = trajinList_.TopFrames( currentTop->Pindex() );
+    int topFrames = trajinList_.TopFrames( currentTop->ParmId() );
     for (int member = 0; member < ensembleSize; ++member)
       EnsembleParm[member].Set( currentTop, currentCoordInfo, topFrames );
     // Check if parm has changed
-    bool parmHasChanged = (lastPindex != currentTop->Pindex());
+    bool parmHasChanged = (lastPindex != currentTop->ParmId());
 #   ifdef TIMER
     setup_time.Start();
 #   endif
@@ -643,7 +644,7 @@ int CpptrajState::RunEnsemble() {
       ensembleOut_.SetupEnsembleOut( EnsembleParm[0].TopAddress(),
                                      EnsembleParm[0].CoordInfo(),
                                      EnsembleParm[0].Nframes() );
-      lastPindex = currentTop->Pindex();
+      lastPindex = currentTop->ParmId();
     }
 #   ifdef TIMER
     setup_time.Stop();
@@ -1010,7 +1011,7 @@ int CpptrajState::RunParallel() {
   CoordinateInfo const& currentCoordInfo = input_traj.CoordsInfo();
   Topology* top = input_traj.TopPtr();
   top->SetBoxFromTraj( currentCoordInfo.TrajBox() ); // FIXME necessary?
-  int topFrames = trajinList_.TopFrames( top->Pindex() );
+  int topFrames = trajinList_.TopFrames( top->ParmId() );
   ActionSetup currentParm( top, currentCoordInfo, topFrames );
   err = actionList_.SetupActions( currentParm, exitOnError_ );
   if (TrajComm.CheckError( err )) {
@@ -1163,7 +1164,7 @@ int CpptrajState::RunSingleTrajParallel() {
   CoordinateInfo const& currentCoordInfo = trajin->TrajCoordInfo();
   Topology* top = trajin->Traj().Parm();
   top->SetBoxFromTraj( currentCoordInfo.TrajBox() ); // FIXME necessary?
-  int topFrames = trajinList_.TopFrames( top->Pindex() );
+  int topFrames = trajinList_.TopFrames( top->ParmId() );
   ActionSetup currentParm( top, currentCoordInfo, topFrames );
   int err = actionList_.SetupActions( currentParm, exitOnError_ );
   if (Parallel::World().CheckError( err )) {
@@ -1270,9 +1271,9 @@ int CpptrajState::RunNormal() {
     Topology* top = (*traj)->Traj().Parm();
     top->SetBoxFromTraj( (*traj)->TrajCoordInfo().TrajBox() ); // FIXME necessary?
     ActionSetup currentSetup( top, (*traj)->TrajCoordInfo(),
-                             trajinList_.TopFrames( top->Pindex() ) );
+                             trajinList_.TopFrames( top->ParmId() ) );
     // Check if parm has changed
-    bool parmHasChanged = (lastPindex != currentSetup.Top().Pindex());
+    bool parmHasChanged = (lastPindex != currentSetup.Top().ParmId());
 #   ifdef TIMER
     setup_time.Start();
 #   endif
@@ -1293,7 +1294,7 @@ int CpptrajState::RunNormal() {
       trajoutList_.SetupTrajout( currentSetup.TopAddress(),
                                  currentSetup.CoordInfo(),
                                  currentSetup.Nframes() );
-      lastPindex = currentSetup.Top().Pindex();
+      lastPindex = currentSetup.Top().ParmId();
     }
 #   ifdef TIMER
     setup_time.Stop();
@@ -1520,6 +1521,8 @@ int CpptrajState::AddTopology( std::string const& fnameIn, ArgList const& args )
           DSL_.RemoveSet( ds );
           if (exitOnError_) return 1;
         }
+        // Set the parmindex
+        ds->ModifyTop().SetParmIndex( currentPindex_++ );
         // If a mask expression was specified, strip to match the expression.
         if (!maskexpr.empty()) {
           if (ds->StripTop( maskexpr )) return 1;
