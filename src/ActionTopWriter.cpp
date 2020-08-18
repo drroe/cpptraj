@@ -74,19 +74,19 @@ DataSet_Topology* ActionTopWriter::CreateTopSet(Topology const& oldTop)
     // Create a new set.
     MetaData md;
     // Determine the filename for the DataSet TODO tag
-    FileName fname;
-    if (!parmoutName_.empty())
-      fname = parmoutName_;
-    else if (!prefix_.empty())
-      fname = oldTop.OriginalFilename().PrependFileName(prefix_);
-    if (fname.empty()) {
+//    FileName fname;
+//    if (!parmoutName_.empty())
+//      fname = parmoutName_;
+//    else if (!prefix_.empty())
+//      fname = oldTop.OriginalFilename().PrependFileName(prefix_);
+//    if (fname.empty()) {
       // No file name. Use generic name
       md = MetaData( masterDSL_->GenerateDefaultName("TOP") );
       mprintf("\tModified topology data set name: %s\n", md.Name().c_str());
-    } else {
-      mprintf("\tModified topology data set name: %s\n", fname.full());
-      md = MetaData(fname, "", -1);
-    }
+//    } else {
+//      mprintf("\tModified topology data set name: %s\n", fname.full());
+//      md = MetaData(fname, "", -1);
+//    }
     topSet = (DataSet_Topology*)masterDSL_->AddSet(DataSet::TOPOLOGY, md);
     if (topSet == 0) {
       mprinterr("Internal Error: CreateTopSet(): Could not allocate Topology DataSet.\n");
