@@ -323,12 +323,7 @@ int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)
 {
   // If no residues or res num has changed, this is a new residue.
   // TODO check chain ID?
-  if ( residues_.empty() || 
-       residues_.back().OriginalResNum() != resIn.OriginalResNum() ||
-       residues_.back().SegID() != resIn.SegID() ||
-       residues_.back().Icode() != resIn.Icode() ||
-       ( residues_.back().OriginalResNum() == resIn.OriginalResNum() &&
-         residues_.back().Name() != resIn.Name() ) )
+  if ( residues_.empty() || residues_.back() != resIn )
   {
     // First atom of new residue is == current # atoms.
     residues_.push_back( resIn );
@@ -370,8 +365,13 @@ void Topology::StartNewMol() {
   residues_.back().SetTerminal( true );
 }
 
-// Topology::CommonSetup()
+/** Common setup with common excluded distance. */
 int Topology::CommonSetup(bool molsearch) {
+  return CommonSetup(molsearch, 4);
+}
+
+// Topology::CommonSetup()
+int Topology::CommonSetup(bool molsearch, int excludedDist) {
   // TODO: Make bond parm assignment / molecule search optional?
   // Assign default lengths if necessary (for e.g. CheckStructure)
   if (bondparm_.empty())
@@ -440,7 +440,7 @@ int Topology::CommonSetup(bool molsearch) {
   if (SetSolventInfo())
     mprinterr("Error: Could not determine solvent information for %s.\n", c_str());
   // Determine excluded atoms
-  DetermineExcludedAtoms();
+  DetermineExcludedAtoms(excludedDist);
   // Determine # of extra points.
   DetermineNumExtraPoints();
 
@@ -1067,10 +1067,11 @@ int Topology::DetermineMolecules() {
 
 // -----------------------------------------------------------------------------
 // Topology::AtomDistance()
-void Topology::AtomDistance(int originalAtom, int atom, int dist, std::set<int> &excluded) const 
+void Topology::AtomDistance(int originalAtom, int atom, int dist, std::set<int> &excluded,
+                            int TgtDist) const 
 {
   // If this atom is already too far away return
-  if (dist==4) return;
+  if (dist==TgtDist) return;
   // dist is less than 4 and this atom greater than original, add exclusion
   if (atom > originalAtom)
     excluded.insert( atom ); 
@@ -1078,14 +1079,14 @@ void Topology::AtomDistance(int originalAtom, int atom, int dist, std::set<int> 
   for (Atom::bond_iterator bondedatom = atoms_[atom].bondbegin();
                            bondedatom != atoms_[atom].bondend();
                            bondedatom++)
-    AtomDistance(originalAtom, *bondedatom, dist+1, excluded);
+    AtomDistance(originalAtom, *bondedatom, dist+1, excluded, TgtDist);
 }
 
 // Topology::DetermineExcludedAtoms()
 /** For each atom, determine which atoms with greater atom# are within
-  * 4 bonds (and therefore should be excluded from a non-bonded calc).
+  * TgtDist bonds (and therefore should be excluded from a non-bonded calc).
   */
-void Topology::DetermineExcludedAtoms() {
+void Topology::DetermineExcludedAtoms(int TgtDist) {
   // A set is used since it automatically sorts itself and rejects duplicates.
   std::set<int> excluded_i;
   int natom = (int)atoms_.size();
@@ -1093,7 +1094,7 @@ void Topology::DetermineExcludedAtoms() {
     excluded_i.clear();
     //mprintf("    Determining excluded atoms for atom %i\n",atomi+1);
     // AtomDistance recursively sets each atom bond distance from atomi
-    AtomDistance(atomi, atomi, 0, excluded_i);
+    AtomDistance(atomi, atomi, 0, excluded_i, TgtDist);
     atoms_[atomi].AddExclusionList( excluded_i );
     // DEBUG
     //mprintf("\tAtom %i Excluded:",atomi+1);
@@ -1102,6 +1103,14 @@ void Topology::DetermineExcludedAtoms() {
     //  mprintf(" %i",*ei + 1);
     //mprintf("\n");
   } // END loop over atomi
+}
+
+/** For each atom, determine which atoms with greater atom# are within
+  * 4 bonds (default for a force field with 4 atom through-bond i.e.
+  * torsion terms).
+  */
+void Topology::DetermineExcludedAtoms() {
+  DetermineExcludedAtoms(4);
 }
 
 // Topology::DetermineNumExtraPoints()
@@ -1818,7 +1827,7 @@ class TypeArray {
 // Topology::AppendTop()
 int Topology::AppendTop(Topology const& NewTop) {
   int atomOffset = (int)atoms_.size();
-  int resOffset = (int)residues_.size();
+  //int resOffset = (int)residues_.size();
 
   // NONBONDS
   // Make sure that either both topologies have non-bond parameters or neither
@@ -1909,7 +1918,8 @@ int Topology::AppendTop(Topology const& NewTop) {
         CurrentAtom.SetTypeIndex( newTypeIdx );
       }
     }
-    AddTopAtom( CurrentAtom, Residue(res.Name(), CurrentAtom.ResNum() + resOffset + 1,
+    //AddTopAtom( CurrentAtom, Residue(res.Name(), CurrentAtom.ResNum() + resOffset + 1,
+    AddTopAtom( CurrentAtom, Residue(res.Name(), res.OriginalResNum(),
                                      res.Icode(), res.ChainId()) );
   } // END loop over incoming atoms
   // NONBONDS
