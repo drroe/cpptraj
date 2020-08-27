@@ -367,6 +367,39 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
   return err;
 }
 
+static inline int ReadField(char* step_buffer, const char* ptr, const char* fmt, const char* description) {
+  if (sscanf(ptr, fmt, step_buffer) != 1) {
+    mprinterr("Error: Missing %s field in CPOUT.\n", description);
+    return 1;
+  }
+  // Check for overflow
+  if (step_buffer[0] == '*') {
+    mprintf("Warning: Overflow detected in field %s in CPOUT. Setting to 0.\n", description);
+    return -1;
+  }
+  return 0;
+}
+
+static inline int ReadFieldDouble(double& dval, const char* ptr, const char* fmt, const char* description) {
+  char step_buffer[128];
+  dval = 0;
+  int err = ReadField(step_buffer, ptr, fmt, description);
+  // Convert to double
+  if (err == 0)
+    dval = atof(step_buffer);
+  return err;
+}
+
+static inline int ReadFieldInteger(int& ival, const char* ptr, const char* fmt, const char* description) {
+  char step_buffer[128];
+  ival = 0;
+  int err = ReadField(step_buffer, ptr, fmt, description);
+  // Convert to integer
+  if (err == 0)
+    ival = atoi(step_buffer);
+  return err;
+}
+
 /** Read a single constant pH data record. For full records sets solvent_pH_,
   * mc_stepsize_, step_, s0_, and time_. For full and delta records sets
   * recType_, resStates_, and pHval_.
@@ -385,18 +418,14 @@ int DataIO_Cpout::ReadRecord(BufferedLine& infile, const char* fmt, const char* 
     sscanf(ptr, "Monte Carlo step size: %i", &mc_stepsize_);
     // Current MD time step
     ptr = infile.Line();
-    if (sscanf(ptr,"Time step: %d", &step_) != 1) {
-      mprinterr("Error: Could not get step.\n");
-      return -1;
-    }
+    int err = ReadFieldInteger(step_, ptr, "Time step: %s", "time step");
+    if (err == 1) return -1;
     if (s0_ < 0) s0_ = step_;
     //mprintf("DEBUG: step= %i\n", step_);
     // Current time (ps)
     ptr = infile.Line();
-    if (sscanf(ptr, "Time: %lf", &time_) != 1) {
-      mprinterr("Error: Could not get time.\n");
-      return -1;
-    }
+    err = ReadFieldDouble(time_, ptr, "Time: %s", "current time");
+    if (err == 1) return -1;
     if (t0_ < 0.0) t0_ = time_;
     //mprintf("DEBUG: time= %f\n", time_);
     ptr = infile.Line(); // Residue
@@ -405,10 +434,11 @@ int DataIO_Cpout::ReadRecord(BufferedLine& infile, const char* fmt, const char* 
   int res, state;
   pHval_ = solvent_pH_;
   nRes_ = 0;
-  //mprintf("DEBUG: Res: '%s'\n", ptr);
+  mprintf("DEBUG: Res: '%s'\n", ptr);
+  mprintf("DEBUG: rFmt= '%s'\n", rFmt);
   while (sscanf(ptr, rFmt, &res, &state, &pHval_) >= 2) {
-    //mprintf("DEBUG: res= %i state= %i pH= %f\n", res, state, pHval_);
-    //mprintf("DEBUG: res= %i state= %i\n", res, state);
+    mprintf("DEBUG: res= %i state= %i pH= %f\n", res, state, pHval_);
+    mprintf("DEBUG: res= %i state= %i\n", res, state);
     if (res < maxRes_)
       resStates_[res] = state;
     else {
