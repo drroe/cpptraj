@@ -138,7 +138,7 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
               return 1;
             }
             stateinf_ridx = atoi(stateinf[1].c_str());
-            //mprintf("DEBUG Res %i : %s\n", stateinf_ridx, stateinf[2].c_str());
+            if (debug_ > 0) mprintf("DEBUG Res %i : %s\n", stateinf_ridx, stateinf[2].c_str());
             if (stateinf_ridx >= (int)States.size())
               States.resize(stateinf_ridx+1); // TODO bounds check
             if (stateinf[2] == "NUM_STATES")
