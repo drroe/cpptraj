@@ -57,6 +57,7 @@ void mprintf(const char*format, ...) {
     vfprintf(Parallel::mpidebugfile_, format, args);
   } else
     vfprintf(Parallel::mpidebugfile_, format, args);
+  fflush(Parallel::mpidebugfile_);
   va_end(args);
 }
 
@@ -69,6 +70,7 @@ void mprinterr(const char *format, ...) {
     vfprintf(Parallel::mpidebugfile_, format, args);
   } else
     vfprintf(Parallel::mpidebugfile_, format, args);
+  fflush(Parallel::mpidebugfile_);
   va_end(args);
 }
 // -----------------------------------------------------------------------------
