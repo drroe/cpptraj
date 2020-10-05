@@ -774,6 +774,61 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
   return ret_val;
 }
 
+#ifdef PROCESSINPUT_FILE
+/** Read command input from file. */
+CpptrajState::RetType Command::ProcessInput(CpptrajState& State, std::string const& inputFilename)
+{
+# ifdef MPI
+  mprintf("DEBUG: Each process will open '%s' separately\n", inputFilename.c_str());
+# endif
+  BufferedLine infile;
+  if (infile.OpenFileRead( inputFilename )) {
+    if (!inputFilename.empty())
+      mprinterr("Error: Could not open input file '%s'\n", inputFilename.c_str());
+    return CpptrajState::ERR;
+  }
+  mprintf("INPUT: Reading input from '%s'\n", infile.Filename().full());
+  // Read in each line of input.
+  int nInputErrors = 0;
+  CpptrajState::RetType cmode = CpptrajState::OK;
+  CmdInput input;
+  const char* ptr = infile.Line();
+  while (ptr != 0) {
+    bool moreInput = input.AddInput( ptr );
+    while (moreInput) {
+      ptr = infile.Line();
+      moreInput = input.AddInput( ptr );
+    }
+    // Only attempt to execute if the command is not blank.
+    if (!input.Empty()) {
+#     ifdef TIMER
+      Timer time_cmd; // DEBUG
+      time_cmd.Start(); // DEBUG
+#     endif
+      // Call Dispatch to convert input to ArgList and process.
+      cmode = Command::Dispatch(State, input.Str());
+#     ifdef TIMER
+      time_cmd.Stop(); // DEBUG
+      time_cmd.WriteTiming(0," Command time: "); // DEBUG
+#     endif
+      if (cmode == CpptrajState::ERR) {
+        nInputErrors++;
+        if (State.ExitOnError()) break;
+      } else if (cmode == CpptrajState::QUIT)
+        break;
+    }
+    // Reset Input line
+    input.Clear();
+    ptr = infile.Line();
+  }
+  infile.CloseFile();
+  if (nInputErrors > 0) {
+    mprinterr("\t%i errors encountered reading input.\n", nInputErrors);
+    return CpptrajState::ERR;
+  }
+  return cmode;
+}
+#else /* PROCESSINPUT_FILE */
 /** Read command input from file.
   * NOTE: In MPI, all processes MUST call this. TODO pass in comm
   */
@@ -874,3 +929,4 @@ CpptrajState::RetType Command::ProcessInput(CpptrajState& State, std::string con
   }
   return cmode;
 }
+#endif /* PROCESSINPUT_FILE */
