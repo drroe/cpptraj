@@ -6,8 +6,13 @@
 
 // NOTE: MUST correspond to EntryType!
 const char* Parm_CIF::Entries[] = {
-  "label_atom_id", "label_comp_id", "Cartn_x", "Cartn_y", "Cartn_z", 
-  "label_seq_id", "label_asym_id"
+  "label_atom_id", // ANAME atom name
+  "label_comp_id", // RNAME residue name
+  "Cartn_x",       // X coords
+  "Cartn_y",       // Y coords
+  "Cartn_z",       // Z coords
+  "label_seq_id",  // RNUM residue num
+  "label_asym_id"  // CHAINID chain id
 };
 
 // Parm_CIF::ReadParm()
@@ -104,6 +109,45 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
                       Residue(currentResName, current_res, icode,
                               (*line)[ COL[CHAINID] ][0]) );
     Coords.AddXYZ( XYZ );
+  }
+  // Check if bond info is present
+  CIFfile::DataBlock const& bondblock = infile.GetDataBlock("_struct_conn");
+  if (!bondblock.empty()) {
+    mprintf("\tReading connectivity from CIF.\n");
+    // Read bonds
+    int a1_chain = bondblock.ColumnIndex("ptnr1_label_asym_id");
+    int a1_rname = bondblock.ColumnIndex("ptnr1_label_comp_id");
+    int a1_rnum  = bondblock.ColumnIndex("ptnr1_label_seq_id");
+    int a1_aname = bondblock.ColumnIndex("ptnr1_label_atom_id");
+    int a2_chain = bondblock.ColumnIndex("ptnr2_label_asym_id");
+    int a2_rname = bondblock.ColumnIndex("ptnr2_label_comp_id");
+    int a2_rnum  = bondblock.ColumnIndex("ptnr2_label_seq_id");
+    int a2_aname = bondblock.ColumnIndex("ptnr2_label_atom_id");
+    for (line = bondblock.begin(); line != bondblock.end(); ++line) {
+      //mprintf("DEBUG: Bond %s %s %s %s to %s %s %s %s\n",
+      //        (*line)[a1_chain].c_str(), (*line)[a1_rname].c_str(), (*line)[a1_rnum].c_str(), (*line)[a1_aname].c_str(),
+      //        (*line)[a2_chain].c_str(), (*line)[a2_rname].c_str(), (*line)[a2_rnum].c_str(), (*line)[a2_aname].c_str());
+      std::string str1 = "::" + (*line)[a1_chain] + "&:;" + (*line)[a1_rnum] + "&@" + (*line)[a1_aname];
+      std::string str2 = "::" + (*line)[a2_chain] + "&:;" + (*line)[a2_rnum] + "&@" + (*line)[a2_aname];
+      //mprintf("DEBUG:\t\t%s to %s\n", str1.c_str(), str2.c_str());
+      AtomMask mask1(str1);
+      AtomMask mask2(str2);
+      if (TopIn.SetupIntegerMask(mask1)) {
+        mprinterr("Internal Error: Could not set up mask 1 for bond.\n", str1.c_str());
+        continue;
+      }
+      if (TopIn.SetupIntegerMask(mask2)) {
+        mprinterr("Internal Error: Could not set up mask 2 for bond.\n", str2.c_str());
+        continue;
+      }
+      if (mask1.Nselected() != 1 || mask2.Nselected() != 1) {
+        mprinterr("Internal Error: %s selects %i, %s selects %i, both must select only 1.\n",
+                  str1.c_str(), mask1.Nselected(), str2.c_str(), mask2.Nselected());
+        continue;
+      }
+      //mprintf("DEBUG:\t\t%i to %i\n", mask1[0]+1, mask2[0]+1);
+      TopIn.AddBond(mask1[0], mask2[0]);
+    } // END loop over bondblock
   }
   // Search for bonds // FIXME nobondsearch?
   BondSearch( TopIn, searchType_, Coords, Offset_, debug_ );
