@@ -366,13 +366,12 @@ int CpptrajState::RemoveDataSet( ArgList& argIn ) {
 int CpptrajState::TrajLength( std::string const& topname, 
                               std::vector<std::string> const& trajinFiles)
 {
-  if (AddTopology( topname, ArgList() )) return 1;
+  if (AddTopology( topname, ArgList() )) return -1;
   for (std::vector<std::string>::const_iterator trajinName = trajinFiles.begin();
                                                 trajinName != trajinFiles.end();
                                                 ++trajinName)
-    if (AddInputTrajectory( *trajinName )) return 1;
-  loudPrintf("Frames: %i\n", trajinList_.MaxFrames());
-  return 0;
+    if (AddInputTrajectory( *trajinName )) return -1;
+  return trajinList_.MaxFrames();
 }
 
 void CpptrajState::Init_Timers() {
