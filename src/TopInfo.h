@@ -32,6 +32,8 @@ class TopInfo {
   private:
     inline int SetupMask(CharMask&) const;
     inline int SetupMask(std::string const&, CharMask&) const;
+    /// Print number of things selected to stdout
+    void PrintNumSelected(const char*, int) const;
     /// \return the longest atom/type name selected by mask.
     int maxAtomNamesWidth(AtomMask const&) const;
     /// \return the longest residue name in given list of residue #s

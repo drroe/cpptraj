@@ -101,6 +101,16 @@ int TopInfo::maxAtomNamesWidth(AtomMask const& mask) const {
   return nWidth;
 }
 
+/** Print number of things selected to STDOUT, use plural form if needed. */
+void TopInfo::PrintNumSelected(const char* typeStr, int nselected)
+const
+{
+  if (nselected == 1)
+    mprintf("\t1 %s selected.\n", typeStr);
+  else
+    mprintf("\t%i %ss selected.\n", nselected, typeStr);
+}
+
 // TopInfo::PrintAtomInfo()
 int TopInfo::PrintAtomInfo(std::string const& maskExpression) const {
   AtomMask mask( maskExpression );
@@ -108,7 +118,7 @@ int TopInfo::PrintAtomInfo(std::string const& maskExpression) const {
   if ( mask.None() )
     mprinterr("\tSelection is empty.\n");
   else {
-    mprintf("%i atoms selected.\n", mask.Nselected());
+    PrintNumSelected("atom", mask.Nselected());
     int width = DigitWidth(parm_->Natom());
     if (width < 5) width = 5;
     int nWidth = maxAtomNamesWidth(mask);
@@ -162,7 +172,7 @@ int TopInfo::PrintResidueInfo(std::string const& maskExpression) const {
     mprinterr("\tSelection is empty.\n");
   else {
     std::vector<int> resNums = parm_->ResnumsSelectedBy(mask);
-    mprintf("%zu residues selected.\n", resNums.size());
+    PrintNumSelected("residue", resNums.size());
     int rn_width = maxResNameWidth( resNums );
 
     int awidth = std::max(5, DigitWidth(parm_->Natom()));
@@ -268,7 +278,7 @@ int TopInfo::PrintMoleculeInfo(std::string const& maskString) const {
       mprintf("\tSelection is empty.\n");
     else {
       std::vector<int> molNums = parm_->MolnumsSelectedBy( mask );
-      mprintf("%zu molecules.\n", molNums.size());
+      PrintNumSelected("molecule", molNums.size());
       // TODO determine max segments
       int mn_width = maxMolNameWidth( molNums );
       int awidth = std::max(5, DigitWidth(parm_->Natom()));
