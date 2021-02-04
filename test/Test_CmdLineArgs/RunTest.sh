@@ -8,7 +8,7 @@
 # each test.
 TESTNAME='Command line arguments tests'
 
-CleanFiles out.crd test.traj.out test.tl.out test.ms.out
+CleanFiles out.crd test.traj.out test.tl.out test.ms.out test.mr.out
 
 # For old version of cpptraj that did not redirect output for command-line
 # arguments when -o given, this moves current test.out to target file.
@@ -36,5 +36,11 @@ INPUT='-p ../tz2.parm7 -ms @CA -o test.ms.out'
 RunCpptraj "Test command-line select atom numbers by mask"
 MoveTestOut test.ms.out
 DoTest test.ms.out.save test.ms.out
+
+# Test -mr
+INPUT='-p ../tz2.parm7 -mr @CA -o test.mr.out'
+RunCpptraj "Test command-line select residue numbers by mask"
+MoveTestOut test.mr.out
+DoTest test.mr.out.save test.mr.out
 
 EndTest
