@@ -9,11 +9,12 @@
     that during parallel runs messages are only printed to the master
     thread, etc.
  */
-void mflush();
-void loudPrintf(const char*, ...);
-void loudPrinterr(const char*, ...);
+#ifdef MPI
+void SetStdioRank(int);
+#endif
 void mprintf(const char *, ...);
 void mprinterr(const char *, ...);
+void mflush();
 void rprintf(const char *, ...);
 void rprinterr(const char *, ...);
 void SetWorldSilent(bool);
@@ -21,5 +22,6 @@ void SuppressAllOutput();
 void SuppressErrorMsg(bool);
 void FinalizeIO();
 int OutputToFile(const char*);
+int ErrToFile(const char*);
 void* CpptrajStdout();
 #endif

@@ -260,25 +260,29 @@ int Cpptraj::ProcessMask( Sarray const& topFiles, Sarray const& refFiles,
     parm.SetDistMaskRef( refCoords.RefFrame() );
   }
   if (!verbose) {
+    SetWorldSilent( false );
     AtomMask tempMask( maskexpr );
     if (parm.SetupIntegerMask( tempMask )) return 1;
-    loudPrintf("Selected=");
+    mprintf("Selected=");
     if (residue) {
       int res = -1;
       for (AtomMask::const_iterator atom = tempMask.begin();
                                     atom != tempMask.end(); ++atom)
       {
         if (parm[*atom].ResNum() > res) {
-          loudPrintf(" %i", parm[*atom].ResNum()+1);
+          mprintf(" %i", parm[*atom].ResNum()+1);
           res = parm[*atom].ResNum();
         }
       }
     } else
       for (AtomMask::const_iterator atom = tempMask.begin();
                                     atom != tempMask.end(); ++atom)
-        loudPrintf(" %i", *atom + 1);
-    loudPrintf("\n");
+        mprintf(" %i", *atom + 1);
+    mprintf("\n");
+    SetWorldSilent( true );
   } else {
+    // NOTE: This does not use SetWorldSilent since TopInfo will use CpptrajFile
+    //       to write to Stdout, which currently does not respect SetWorldSilent
     TopInfo info(&parm);
     if (residue)
       info.PrintResidueInfo( maskexpr );
@@ -377,31 +381,31 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     // ----- One-and-done flags ------------------
     if ( arg == "--help" || arg == "-h" ) {
       // --help, -help: Print usage and exit
-      SetWorldSilent(true);
       Usage();
+      SetWorldSilent(true);
       return QUIT;
     }
     if ( arg == "-V" || arg == "--version" ) {
       // -V, --version: Print version number and exit
+      mprintf("CPPTRAJ: Version %s\n", versionString_.c_str());
       SetWorldSilent( true );
-      loudPrintf("CPPTRAJ: Version %s\n", versionString_.c_str());
       return QUIT;
     }
     if ( arg == "--internal-version" ) {
       // --internal-version: Print internal version number and quit.
-      SetWorldSilent( true );
 #     ifdef GITHASH
-      loudPrintf("CPPTRAJ: Internal version # %s GIT hash %s\n", CPPTRAJ_INTERNAL_VERSION, GITHASH);
+      mprintf("CPPTRAJ: Internal version # %s GIT hash %s\n", CPPTRAJ_INTERNAL_VERSION, GITHASH);
 #     else
-      loudPrintf("CPPTRAJ: Internal version # %s\n", CPPTRAJ_INTERNAL_VERSION);
+      mprintf("CPPTRAJ: Internal version # %s\n", CPPTRAJ_INTERNAL_VERSION);
 #     endif
+      SetWorldSilent( true );
       return QUIT;
     }
     if ( arg == "--defines" ) {
       // --defines: Print information on compiler defines used and exit
+      mprintf("Compiled with:");
+      mprintf("%s\n", Cpptraj::Defines().c_str());
       SetWorldSilent( true );
-      loudPrintf("Compiled with:");
-      loudPrintf("%s\n", Cpptraj::Defines().c_str());
       return QUIT;
     }
     if (arg == "-tl") {
@@ -411,7 +415,11 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
         return ERROR;
       }
       SetWorldSilent( true );
-      if (State_.TrajLength( topFiles[0], trajinFiles )) return ERROR;
+      int trajLength = State_.TrajLength( topFiles[0], trajinFiles );
+      if (trajLength < 0) return ERROR;
+      SetWorldSilent( false );
+      mprintf("Frames: %i\n", trajLength);
+      SetWorldSilent( true );
       return QUIT;
     }
     // ----- Single flags ------------------------

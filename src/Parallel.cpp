@@ -1,5 +1,6 @@
 #include <cstdio>
 #include "Parallel.h"
+#include "CpptrajStdio.h"
 #ifdef PARALLEL_DEBUG_VERBOSE
 # include <stdarg.h>
 #endif
@@ -91,6 +92,7 @@ int Parallel::Init(int argc, char** argv) {
   }
   world_ = Comm(MPI_COMM_WORLD);
   SetupComms( -1 );
+  SetStdioRank( world_.Rank() );
 # ifdef PARALLEL_DEBUG_VERBOSE
   debug_init();
 # endif
