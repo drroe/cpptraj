@@ -1,6 +1,7 @@
 #include "CSA_CsaControl.h"
 #include "CpptrajStdio.h"
 #include "ArgList.h"
+#include <limits>
 
 using namespace Cpptraj::CSA;
 
@@ -80,6 +81,18 @@ int Cpptraj::CSA::CsaControl::InitCsa(ArgList& argIn) {
     idcut_ = DCUT_GEOM;
   else
     idcut_ = DCUT_NONE;
+  iranseed_ = argIn.getKeyInt("ranseed", -1);
+  nolower_cut_ = argIn.getKeyInt("nolowercut", -1);
+
+  use_seeds_ = argIn.hasKey("useseeds");
+  free_ene_ = argIn.hasKey("freeenergy");
+  write_banks_ = argIn.hasKey("writebanks");
+
+  min_ecut_ = argIn.getKeyDouble("minecut", -std::numeric_limits<double>::max());
+  dcut0_fac_ = argIn.getKeyDouble("dcut0", 2);
+  dcut1_fac_ = argIn.getKeyDouble("dcut1", 5);
+  temperature_ = argIn.getKeyDouble("temp", 300.0);
+  
 
   return 0;
 }
