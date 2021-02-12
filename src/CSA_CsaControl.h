@@ -8,7 +8,7 @@ namespace CSA {
 /** Used to control a conformational space annealing run. */
 class CsaControl {
   public:
-    CsaControl() {};
+    CsaControl();
   private:
     Bank currentBank_;
     Bank firstBank_;
@@ -31,6 +31,15 @@ class CsaControl {
     DcutType idcut_;   ///< How to decrease Dcut after each bank update
     int iranseed_;     ///< Seed for random number generator
     int nolower_cut_;  ///< Exit when lower conf is not found this many times in a row.
+
+    bool use_seeds_;   ///< If true, use seeds in trials.
+    bool free_ene_;    ///< If true, energy will be modified by -T*S
+    bool write_banks_; ///< If true, first bank and banks during iterations will be output to files.
+
+    double min_ecut_;    ///< End calculation when energy of minimum conformation is below this
+    double dcut0_fac_;   ///< Factor for determining initial dcut value.
+    double dcut1_fac_;   ///< Factor for determining final dcut value.
+    double temperature_; ///< Temperature : used when setting trial energy. Keyword 'TEMP'
 };
 
 }

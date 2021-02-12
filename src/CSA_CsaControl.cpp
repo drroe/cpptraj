@@ -1,0 +1,28 @@
+#include "CSA_CsaControl.h"
+using namespace Cpptraj::CSA;
+Cpptraj::CSA::CsaControl::CsaControl() :
+  num_conf_(0),
+  num_iter_(0),
+  num_seed_(0),
+  rnd_per_iter_(0),
+  nmove1_(0),
+  nmove2_(0),
+  nmove3_(0),
+  nmove4_(0),
+  move_maxnres_(0),
+  move_res0_(0),
+  move_res1_(0),
+  idist_(NO_DIST),
+  ietyp_(SCORE_NONE),
+  imanip_(MANIP_NONE),
+  idcut_(DCUT_NONE),
+  iranseed_(0),
+  nolower_cut_(0), 
+  use_seeds_(false),
+  free_ene_(false),
+  write_banks_(false),
+  min_ecut_(0),
+  dcut0_fac_(0),
+  dcut1_fac_(0),
+  temperature_(0)
+{}
