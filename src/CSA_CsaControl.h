@@ -2,6 +2,8 @@
 #define INC_CSA_CSACONTROL_H
 #include "CSA.h"
 #include "CSA_Bank.h"
+// Forward declares
+class ArgList;
 namespace Cpptraj {
 namespace CSA {
 
@@ -9,6 +11,10 @@ namespace CSA {
 class CsaControl {
   public:
     CsaControl();
+
+    static void Help();
+
+    int InitCsa(ArgList&);
   private:
     Bank currentBank_;
     Bank firstBank_;

@@ -1,5 +1,9 @@
 #include "CSA_CsaControl.h"
+#include "CpptrajStdio.h"
+#include "ArgList.h"
+
 using namespace Cpptraj::CSA;
+
 Cpptraj::CSA::CsaControl::CsaControl() :
   num_conf_(0),
   num_iter_(0),
@@ -26,3 +30,17 @@ Cpptraj::CSA::CsaControl::CsaControl() :
   dcut1_fac_(0),
   temperature_(0)
 {}
+
+void Cpptraj::CSA::CsaControl::Help() {
+  mprintf("\t[nconf <#>] [niter <#>] [nseed <#>]\n");
+}
+
+/** Process options */
+int Cpptraj::CSA::CsaControl::InitCsa(ArgList& argIn) {
+  num_conf_ = argIn.getKeyInt("nconf", 50);
+  num_iter_ = argIn.getKeyInt("niter", 99999);
+  num_seed_ = argIn.getKeyInt("nseed", 30);
+  rnd_per_iter_ = argIn.getKeyInt("roundsperiter", -1);
+
+  return 0;
+}
