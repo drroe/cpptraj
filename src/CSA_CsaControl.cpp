@@ -16,7 +16,7 @@ Cpptraj::CSA::CsaControl::CsaControl() :
   move_maxnres_(0),
   move_res0_(0),
   move_res1_(0),
-  idist_(NO_DIST),
+  idist_(DIST_NONE),
   ietyp_(SCORE_NONE),
   imanip_(MANIP_NONE),
   idcut_(DCUT_NONE),
@@ -41,6 +41,45 @@ int Cpptraj::CSA::CsaControl::InitCsa(ArgList& argIn) {
   num_iter_ = argIn.getKeyInt("niter", 99999);
   num_seed_ = argIn.getKeyInt("nseed", 30);
   rnd_per_iter_ = argIn.getKeyInt("roundsperiter", -1);
+  nmove1_ = argIn.getKeyInt("nmove1", 10);
+  nmove2_ = argIn.getKeyInt("nmove2", 10);
+  nmove3_ = argIn.getKeyInt("nmove3", 10);
+  nmove4_ = argIn.getKeyInt("nmove4", 10);
+  move_maxnres_ = argIn.getKeyInt("movemaxnres", 5);
+  move_res0_ = argIn.getKeyInt("moveres0", 4);
+  move_res1_ = argIn.getKeyInt("moveres1", 8);
+  std::string distarg = argIn.GetStringKey("dist");
+  if (distarg == "angle")
+    idist_ = DIST_ANGLE;
+  else if (distarg == "rmsd")
+    idist_ = DIST_RMSD;
+  else if (distarg == "tm")
+    idist_ = DIST_TMSCORE;
+  else if (distarg == "frechet")
+    idist_ = DIST_FRECHET;
+  else
+    idist_ = DIST_NONE;
+  std::string earg = argIn.GetStringKey("etype");
+  if (earg == "pe")
+    ietyp_ = SCORE_PE;
+  else if (earg == "om")
+    ietyp_ = SCORE_OM;
+  else
+    ietyp_ = SCORE_NONE;
+  std::string maniparg = argIn.GetStringKey("manip");
+  if (maniparg == "cart")
+    imanip_ = MANIP_CART;
+  else if (maniparg == "ic")
+    imanip_ = MANIP_IC;
+  else
+    imanip_ = MANIP_NONE;
+  std::string dcutarg = argIn.GetStringKey("dcut");
+  if (dcutarg == "linear")
+    idcut_ = DCUT_LINEAR;
+  else if (dcutarg == "geom")
+    idcut_ = DCUT_GEOM;
+  else
+    idcut_ = DCUT_NONE;
 
   return 0;
 }

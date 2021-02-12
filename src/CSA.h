@@ -4,7 +4,7 @@ namespace Cpptraj {
 namespace CSA {
 
 enum DistType {
-  NO_DIST = 0,  // No distance specified
+  DIST_NONE = 0,  // No distance specified
   DIST_ANGLE,   // Cumulative angle distance
   DIST_RMSD,    // RMSD
   DIST_TMSCORE, // TM score
