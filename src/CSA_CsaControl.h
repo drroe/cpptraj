@@ -15,6 +15,7 @@ class CsaControl {
     static void Help();
 
     int InitCsa(ArgList&);
+    void Status() const;
   private:
     Bank currentBank_;
     Bank firstBank_;

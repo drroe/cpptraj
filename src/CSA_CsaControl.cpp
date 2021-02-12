@@ -96,3 +96,48 @@ int Cpptraj::CSA::CsaControl::InitCsa(ArgList& argIn) {
 
   return 0;
 }
+
+/** Print status to STDOUT */
+void Cpptraj::CSA::CsaControl::Status() const {
+  //  write(outu,'(a,i6)') 'CSA> # selected atoms= ', nselected_atm 
+  mprintf("\tNumber of conformations to store in bank/firstbank= %i\n", num_conf_);
+  mprintf("\tNumber of CSA iterations= %i\n", num_iter_);
+  mprintf("\tNumber of seeds to use each round= %i\n", num_seed_);
+  if (use_seeds_)
+    mprintf("\tSeeds will be used as trials.\n");
+  else
+    mprintf("\tSeeds will not be used as trials.\n");
+  if (rnd_per_iter_ > 0) mprintf("\tRounds per iteration= %i\n", rnd_per_iter_);
+  if (write_banks_) mprintf("\tWriting first bank and banks during iterations.\n");
+  // TODO better description of the move types and which ranges apply to what moves
+  mprintf("\tNumber of moves of type 1= %i\n", nmove1_);
+  mprintf("\tNumber of moves of type 2= %i\n", nmove2_);
+  mprintf("\tNumber of moves of type 3= %i\n", nmove3_);
+  mprintf("\tNumber of moves of type 4= %i\n", nmove4_);
+  mprintf("\tMax number of residues to manipulate= %i\n", move_maxnres_);
+  mprintf("\tWhen moving blocks of residues, will move anywhere from %i to %i residues.\n", move_res0_, move_res1_);
+  mprintf("\tIterations will stop if minimum conformation energy is less than %g\n", min_ecut_);
+  if (nolower_cut_ > 0)
+    mprintf("\tIterations will stop if lower E conf cannot be found %i times in a row.\n", nolower_cut_);
+  mprintf("\tInitial value of Dcut will be <average distance> / %g\n", dcut0_fac_);
+  mprintf("\tFinal value of Dcut will be <average distance> / %g", dcut1_fac_);
+  mprintf("\tTemperature= %g\n", temperature_);
+  //  write(outu,'(a,a)') 'CSA> Molecule type= ', trim(mtype)
+  mprintf("\tRandom number generator seed= %i\n", iranseed_);
+  if (free_ene_) mprintf("\tEnergy will be modified by -T*S\n");
+
+  if (idist_ == DIST_ANGLE) mprintf("\tDistance type: cumulative angle distance.\n");
+  else if (idist_ == DIST_RMSD) mprintf("\tDistance type: RMSD\n");
+  else if (idist_ == DIST_TMSCORE) mprintf("\tDistance type: TM score\n");
+  else if (idist_ == DIST_FRECHET) mprintf("\tDistance type: Frechet distance\n");
+
+  if (ietyp_ == SCORE_PE) mprintf("\tEnergy type: potential energy.\n");
+  else if (ietyp_ == SCORE_OM) mprintf("\tEnergy type: Onsager-Machlup action.\n");
+
+  if (imanip_ == MANIP_IC) mprintf("\tManipulating internal coordinates.\n");
+  else if (imanip_ == MANIP_CART) mprintf("\tManipulating Cartesian coordinates.\n");
+
+  if (idcut_ == DCUT_LINEAR) mprintf("\tDcut will be decreased linearly after each update.\n");
+  else if (idcut_ == DCUT_GEOM) mprintf("\tDcut will be decreased geometrically after each update.\n");
+
+}
