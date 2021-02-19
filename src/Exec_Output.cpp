@@ -33,6 +33,12 @@ Exec::RetType Exec_Output::Execute(CpptrajState& State, ArgList& argIn)
     else
       err = OutputToFile(fname.c_str());
   }
+# ifdef MPI
+  if (Parallel::World().CheckError( err )) {
+    mprinterr("Error: Parallel error in 'output'.\n");
+    err = 1;
+  }
+# endif
   if (err != 0) return CpptrajState::ERR;
   return CpptrajState::OK;
 }
