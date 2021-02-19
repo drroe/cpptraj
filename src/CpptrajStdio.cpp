@@ -2,7 +2,7 @@
 #include <cstdarg>
 
 /// If this is false, do not allow any output to be written. 
-static bool enable_output_ = true;
+static bool allow_output_ = true;
 /// If true, enable the Xprintf functions.
 static bool enable_stdout_ = true;
 /// If true, enable the Xprinterr functions.
@@ -19,7 +19,7 @@ static int world_rank_ = -1;
 void SetStdioRank(int rankIn) {
   world_rank_ = rankIn;
   if (world_rank_ > 0) {
-    enable_output_ = false;
+    //enable_output_ = false;
     enable_stdout_ = false;
     enable_stderr_ = false;
   }
@@ -125,7 +125,7 @@ void rprinterr(const char *format, ...) {
   */
 void SetWorldSilent(bool silentIn) {
   //printf("DEBUG: Calling SetWorldSilent %i\n", (int)silentIn);
-  if (enable_output_) {
+  if (allow_output_) {
     enable_stdout_ = !silentIn;
   }
 }
@@ -133,7 +133,7 @@ void SetWorldSilent(bool silentIn) {
 /** Suppress all STDOUT/STDERR output for the entire run. */
 void SuppressAllOutput() { 
   //printf("DEBUG: Calling SuppressAllOutput\n");
-  enable_output_ = false;
+  allow_output_ = false;
   enable_stdout_ = false;
   enable_stderr_ = false;
 }
@@ -141,7 +141,7 @@ void SuppressAllOutput() {
 /** \param supressIn if true, silence STDERR output, otherwise enable. */
 void SuppressErrorMsg(bool suppressIn) {
   //printf("DEBUG: Calling SuppressErrorMsg %i\n", (int)suppressIn);
-  if (enable_output_) {
+  if (allow_output_) {
     enable_stderr_ = !suppressIn;
   }
 }
