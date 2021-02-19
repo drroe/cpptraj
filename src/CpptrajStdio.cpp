@@ -181,6 +181,11 @@ void* CpptrajStdout() {
   return (void*)STDOUT_;
 }
 
+/** \return STDOUT_ cast to a void pointer. */
+void* CpptrajStderr() {
+  return (void*)STDERR_;
+}
+
 /** Redirect errors to file. If no name given assume STDERR. */
 int ErrToFile(const char* fname) {
   if (!enable_stderr_) return 0;

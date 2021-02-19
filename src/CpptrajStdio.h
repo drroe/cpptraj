@@ -38,5 +38,5 @@ int ErrToFile(const char*);
 /// \retrun Current output FILE* stream as a void pointer.
 void* CpptrajStdout();
 /// \return Current error FILE* stream as a void pointer.
-void* CpprtajStderr();
+void* CpptrajStderr();
 #endif

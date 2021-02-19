@@ -30,7 +30,7 @@ void Parallel::printMPIerr(int err, const char *routineName, int rank) {
   // Remove newlines from MPI error string
   for (int i = 0; i != len; i++)
     if (buffer[i] == '\n') buffer[i] = ':';
-  fprintf(stderr, "[%i] MPI ERROR %d: %s: [%s]\n", rank, eclass, routineName, buffer);
+  fprintf((FILE*)CpptrajStderr(), "[%i] MPI ERROR %d: %s: [%s]\n", rank, eclass, routineName, buffer);
 
   return;
 }
