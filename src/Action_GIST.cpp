@@ -76,6 +76,26 @@ Action_GIST::Action_GIST() :
   includeIons_(true)
 {}
 
+/** Hold info needed to set up 3D grid sets. */
+const Action_GIST::GridToken Action_GIST::GridTokenArray_[] = {
+  { "gO", DataSet::GRID_FLT, "oxygen number density" },
+  { "gH", DataSet::GRID_FLT, "hydrogen number density" },
+  { "Esw", DataSet::GRID_FLT, "solute-water energy" },
+  { "Eww", DataSet::GRID_FLT, "water-water energy" },
+  { "dTStrans", DataSet::GRID_FLT, "translational entropy" },
+  { "dTSorient", DataSet::GRID_FLT, "orientational entropy" },
+  { "dTSsix", DataSet::GRID_FLT, "total entropy" },
+  { "neighbor", DataSet::GRID_FLT, "mean # water neighbors" },
+  { "dipole", DataSet::GRID_FLT, "mean water dipole" },
+  { "order", DataSet::GRID_DBL, "avg. tetrahedral order param" },
+  { "dipolex", DataSet::GRID_DBL, "X component of water dipole"},
+  { "dipoley", DataSet::GRID_DBL, "Y component of water dipole"},
+  { "dipolez", DataSet::GRID_DBL, "Z component of water dipole"},
+  { "PME", DataSet::GRID_FLT, "PME water energy" },
+  { "U_PME", DataSet::GRID_FLT, "PME solute energy" },
+  0
+};
+
 /** GIST help */
 void Action_GIST::Help() const {
   mprintf("\t[doorder] [doeij] [skipE] [skipS] [refdens <rdval>] [temp <tval>]\n"

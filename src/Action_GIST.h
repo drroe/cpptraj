@@ -101,6 +101,14 @@ class Action_GIST : public Action {
 
     // NOTE: '*' = Updated in DoAction(). '+' = Updated in Setup().
     ImageOption imageOpt_;  ///< Used to determine if imaging should be used.*
+    /// Enumerated type for all grids
+    enum GridType { SOLVENT_O = 0, SOLVENT_H,
+                    E_SOLUTE_SOLVENT, E_SOLVENT_SOLVENT,
+                    S_SOLVENT_TRANS, S_SOLVENT_ORIENT, S_TOTAL,
+                    NBR_NORM, DIPOLE, ORDER_NORM,
+                    DIPOLE_X, DIPOLE_Y, DIPOLE_Z,
+                    PME_WATER, PME_SOLUTE,
+                    N_GRIDS };
     // GIST float grid datasets
     DataSet_3D* gO_;        ///< Solvent oxygen density
     DataSet_3D* gH_;        ///< Solvent hydrogen density
@@ -121,6 +129,14 @@ class Action_GIST : public Action {
     DataSet_3D* U_PME_;         ///< The PME nonbond energy for solute atoms
     // GIST matrix datasets
     DataSet_MatrixFlt* ww_Eij_; ///< Water-water interaction energy matrix.*
+
+    std::vector<DataSet_3D*> gridSets_; ///< Hold all grids in a single array
+    struct GridToken {
+      const char* aspect_; ///< Grid DataSet aspect
+      DataSet::DataType type_; ///< Grid DataSet type
+      const char* desc_;       ///< Grid DataSet description
+    };
+    static const GridToken GridTokenArray_[];
 
     //Iarray mol_nums_;     ///< Absolute molecule number of each solvent molecule.+ //TODO needed?
     Iarray O_idxs_;         ///< Oxygen atom indices for each solvent molecule.+
