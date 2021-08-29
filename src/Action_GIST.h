@@ -109,6 +109,8 @@ class Action_GIST : public Action {
                     DIPOLE_X, DIPOLE_Y, DIPOLE_Z,
                     PME_WATER, PME_SOLUTE,
                     N_GRIDS };
+    /// Enumerated type describing when grid should be allocated.
+    enum GridStat { NO_ALLOC = 0, ALWAYS, PME_ONLY };
     // GIST float grid datasets
     DataSet_3D* gO_;        ///< Solvent oxygen density
     DataSet_3D* gH_;        ///< Solvent hydrogen density
@@ -132,9 +134,10 @@ class Action_GIST : public Action {
 
     std::vector<DataSet_3D*> gridSets_; ///< Hold all grids in a single array
     struct GridToken {
-      const char* aspect_; ///< Grid DataSet aspect
+      const char* aspect_;     ///< Grid DataSet aspect
       DataSet::DataType type_; ///< Grid DataSet type
       const char* desc_;       ///< Grid DataSet description
+      GridStat stat_;          ///< Describe when grid should be allocated
     };
     static const GridToken GridTokenArray_[];
 
