@@ -39,6 +39,11 @@ class Action_Spam: public Action {
     Parallel::Comm trajComm_;
 #   endif
 
+    /// Hold info for a solvent within a peak site
+    class SolventPeak;
+    /// Hold information for a solvent peak site
+    class PeakSite;
+
     typedef std::vector<int> Iarray;
     typedef std::vector<Iarray> Parray; ///< Peak array type
     typedef std::vector<double> Darray;
@@ -102,4 +107,24 @@ class Action_Spam: public Action {
     Timer t_reordr_;
 };
 
+// ----- SolventPeak class -----------------------------------------------------
+/** Hold information for specific solvent occupying a site. */
+class Action_Spam::SolventPeak {
+  public:
+    SolventPeak();
+  private:
+    DataSet* energies_; ///< Hold solvent energies for this peak.
+    Iarray ommitted_;   ///< Hold info on frames for which no solvent energies calcd.
+};
+
+// ----- PeakSite class --------------------------------------------------------
+/** Hold all information related to a solvent peak site. */
+class Action_Spam::PeakSite {
+  public:
+    PeakSite();
+  private:
+    typedef std::vector<SolventPeak> SolvPeakArray;
+    Vec3 xyz_;                ///< Solvent peak location in Cartesian space.
+    SolvPeakArray solvPeaks_; ///< Hold information for each solvent that might occupy this site.
+};
 #endif
