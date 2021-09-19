@@ -98,6 +98,8 @@ class Action_Spam: public Action {
     bool overflow_;           ///< True if cutoff overflowed our box coordinates
     DataSetList peaksdsl_;    ///< Will allocate DataSet for peaks data if loading from a file.
     DataSet_Vector_Scalar* peaksData_; ///< Hold peaks DataSet
+
+    std::vector<PeakSite> peakSites_; ///< Hold info for every solvent peak
     // Timers
     Timer t_action_;
     Timer t_resCom_;
@@ -122,6 +124,8 @@ class Action_Spam::SolventPeak {
 class Action_Spam::PeakSite {
   public:
     PeakSite();
+    /// Construct from given peak position.
+    PeakSite(Vec3 const&);
   private:
     typedef std::vector<SolventPeak> SolvPeakArray;
     Vec3 xyz_;                ///< Solvent peak location in Cartesian space.

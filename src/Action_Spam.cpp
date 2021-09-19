@@ -17,11 +17,18 @@
 
 // ----- SolventPeak class -----------------------------------------------------
 /** CONSTRUCTOR */
-Action_Spam::SolventPeak::SolventPeak() {}
+Action_Spam::SolventPeak::SolventPeak() :
+  energies_(0)
+{}
 
 // ----- PeakSite class --------------------------------------------------------
 /** CONSTRUCTOR */
 Action_Spam::PeakSite::PeakSite() {}
+
+/** Construct from given peak location. */
+Action_Spam::PeakSite::PeakSite(Vec3 const& xyzIn) :
+  xyz_(xyzIn)
+{}
 
 // -----------------------------------------------------------------------------
 // CONSTRUCTOR
@@ -76,6 +83,12 @@ int Action_Spam::GetPeaks(std::string const& name, DataSetList const& dsl)
     peaksData_ = (DataSet_Vector_Scalar*)peaksdsl_[0];
   } else {
     peaksData_ = (DataSet_Vector_Scalar*)ds;
+  }
+
+  // Add each peak to peakSites_;
+  for (unsigned int idx = 0; idx != peaksData_->Size(); idx++)
+  {
+    peakSites_.push_back( PeakSite( peaksData_->Vec(idx) ) );
   }
   return 0;
 }
