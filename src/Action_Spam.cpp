@@ -15,6 +15,26 @@
 #include "DataSet_Vector_Scalar.h"
 #include "DataIO_Peaks.h"
 
+// ----- SolventRes class ------------------------------------------------------
+/** CONSTRUCTOR */
+Action_Spam::SolventRes::SolventRes() :
+  at0_(-1),
+  at1_(-1),
+  sidx_(-1)
+{}
+
+/** Construct from res first atom, last atom, index into solvents_ */
+Action_Spam::SolventRes::SolventRes(int at0, int at1, int sidx) :
+  at0_(at0),
+  at1_(at1),
+  sidx_(sidx)
+{}
+
+/** Print solvent res info to stdout. */
+void Action_Spam::SolventRes::PrintInfo() const {
+  mprintf("\t%8i - %8i (%i)\n", at0_ + 1, at1_ + 1, sidx_);
+}
+
 // ----- SolventInfo class -----------------------------------------------------
 /** CONSTRUCTOR */
 Action_Spam::SolventInfo::SolventInfo() :
@@ -347,6 +367,24 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
     mprinterr("Error: Imaging not possible for %s; required for SPAM.\n", setup.Top().c_str());
     return Action::ERR;
   }
+
+  // Set up solvResArray_
+  solvResArray_.clear();
+  for (Topology::res_iterator res = setup.Top().ResStart();
+                              res != setup.Top().ResEnd(); res++)
+  {
+    for (int sidx = 0; sidx != (int)solvents_.size(); sidx++)
+    {
+      if (res->Name().Truncated() == solvents_[sidx].Name()) {
+        solvResArray_.push_back( SolventRes(res->FirstAtom(), res->LastAtom(), sidx) );
+        break;
+      }
+    }
+  }
+  mprintf("DEBUG: Solvent residues\n");
+  for (std::vector<SolventRes>::const_iterator it = solvResArray_.begin(); it != solvResArray_.end(); ++it)
+    it->PrintInfo();
+
   // Set up the solvent_residues_ vector
   mask_.ResetMask();
   int idx = 0;

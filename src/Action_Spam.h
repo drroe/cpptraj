@@ -39,6 +39,8 @@ class Action_Spam: public Action {
     Parallel::Comm trajComm_;
 #   endif
 
+    /// Hold info for solvent residue
+    class SolventRes;
     /// Hold info for a solvent type
     class SolventInfo;
     /// Hold info for a solvent within a peak site
@@ -101,8 +103,9 @@ class Action_Spam: public Action {
     DataSetList peaksdsl_;    ///< Will allocate DataSet for peaks data if loading from a file.
     DataSet_Vector_Scalar* peaksData_; ///< Hold peaks DataSet
 
-    std::vector<SolventInfo> solvents_; ///< Hold info for each solvent type
-    std::vector<PeakSite> peakSites_;   ///< Hold info for every solvent peak
+    std::vector<SolventInfo> solvents_;    ///< Hold info for each solvent type
+    std::vector<PeakSite> peakSites_;      ///< Hold info for every solvent peak
+    std::vector<SolventRes> solvResArray_; ///< Hold every solvent residue
     // Timers
     Timer t_action_;
     Timer t_resCom_;
@@ -110,6 +113,21 @@ class Action_Spam: public Action {
     Timer t_occupy_;
     Timer t_energy_;
     Timer t_reordr_;
+};
+
+// ----- SolventRes class ------------------------------------------------------
+/** Hold info for a solvent residue */
+class Action_Spam::SolventRes {
+  public:
+    SolventRes();
+    /// Construct with res first atom, last atom, adn index into solvents_ array
+    SolventRes(int, int, int);
+    /// Print solvent res info to stdout
+    void PrintInfo() const;
+  private:
+    int at0_;  ///< Residue first atom
+    int at1_;  ///< Residue last atom
+    int sidx_; ///< Index into the solvents_ array
 };
 
 // ----- SolventInfo class -----------------------------------------------------
@@ -121,6 +139,8 @@ class Action_Spam::SolventInfo {
     SolventInfo(DataSet_Vector_Scalar const*, double, std::string const&);
     /// Print info to stdout
     void PrintInfo() const;
+    /// \return solvent residue name
+    std::string const& Name() const { return name_; }
   private:
     DataSet_Vector_Scalar const* peaksData_; ///< Hold peaks DataSet for this solvent.
     double site_size_;                       ///< Size of solvent site (Ang.). Full edge length or diameter
