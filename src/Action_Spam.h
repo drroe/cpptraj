@@ -39,6 +39,8 @@ class Action_Spam: public Action {
     Parallel::Comm trajComm_;
 #   endif
 
+    /// Hold info for a solvent type
+    class SolventInfo;
     /// Hold info for a solvent within a peak site
     class SolventPeak;
     /// Hold information for a solvent peak site
@@ -99,7 +101,8 @@ class Action_Spam: public Action {
     DataSetList peaksdsl_;    ///< Will allocate DataSet for peaks data if loading from a file.
     DataSet_Vector_Scalar* peaksData_; ///< Hold peaks DataSet
 
-    std::vector<PeakSite> peakSites_; ///< Hold info for every solvent peak
+    std::vector<SolventInfo> solvents_; ///< Hold info for each solvent type
+    std::vector<PeakSite> peakSites_;   ///< Hold info for every solvent peak
     // Timers
     Timer t_action_;
     Timer t_resCom_;
@@ -107,6 +110,18 @@ class Action_Spam: public Action {
     Timer t_occupy_;
     Timer t_energy_;
     Timer t_reordr_;
+};
+
+// ----- SolventInfo class -----------------------------------------------------
+/** Hold information for a specific solvent type. */
+class Action_Spam::SolventInfo {
+  public:
+    SolventInfo();
+  private:
+    DataSet_Vector_Scalar const* peaksData_; ///< Hold peaks DataSet for this solvent.
+    double site_size_;                       ///< Size of solvent site (Ang.). Full edge length or diameter
+    std::string name_;                       ///< Solvent residue name.
+    Iarray resIdxs_;                         ///< Solvent residue indices.
 };
 
 // ----- SolventPeak class -----------------------------------------------------

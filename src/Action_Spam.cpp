@@ -15,6 +15,13 @@
 #include "DataSet_Vector_Scalar.h"
 #include "DataIO_Peaks.h"
 
+// ----- SolventInfo class -----------------------------------------------------
+/** CONSTRUCTOR */
+Action_Spam::SolventInfo::SolventInfo() :
+  peaksData_(0),
+  site_size_(0)
+{}
+
 // ----- SolventPeak class -----------------------------------------------------
 /** CONSTRUCTOR */
 Action_Spam::SolventPeak::SolventPeak() :
