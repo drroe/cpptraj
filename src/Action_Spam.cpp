@@ -666,6 +666,16 @@ int Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
     if (*it > -1)
       mprintf("DEBUG:\t%8li %i\n", it - resPeakNum_.begin(), *it);
 
+  // We want to make sure that each site is occupied once and only once.
+  // If a site is unoccupied, add frameNum to this peak's list of
+  // ommitted frames. If a site is multiply-occupied, add -frameNum to
+  // the list.
+  std::vector<unsigned int> numTimesPeakAssigned( peakSites_.size(), 0 );
+  for (Iarray::const_iterator peak = resPeakNum_.begin();
+                              peak != resPeakNum_.end(); ++peak)
+    if (*peak > -1)
+      numTimesPeakAssigned[*peak]++;
+
   return 0;
 }
 
