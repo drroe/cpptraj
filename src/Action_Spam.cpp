@@ -135,8 +135,6 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
   debug_ = debugIn;
   // Always use imaged distances
   imageOpt_.InitImaging(true);
-  // This is needed everywhere in this function scope
-  std::string peaksname;
 
   // See if we're doing pure water. If so, we don't need a peak file
   purewater_ = actionArgs.hasKey("purewater");
@@ -178,7 +176,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
       mprintf("Warning: 'purewater' specified but more arguments remain.\n");
   } else {
     // Get the file/dataset name with the peaks defined in it
-    peaksname = actionArgs.GetStringNext();
+    std::string peaksname = actionArgs.GetStringNext();
     if (peaksname.empty()) {
       mprinterr("Error: No Peak dataset/file specified.\n");
       return Action::ERR;
