@@ -22,6 +22,14 @@ Action_Spam::SolventInfo::SolventInfo() :
   site_size_(0)
 {}
 
+/** Construct from peaks data, solvent site size, solvent name */
+Action_Spam::SolventInfo::SolventInfo(DataSet_Vector_Scalar const* ds,
+                                      double s, std::string const& n) :
+  peaksData_(ds),
+  site_size_(s),
+  name_(n)
+{}
+
 // ----- SolventPeak class -----------------------------------------------------
 /** CONSTRUCTOR */
 Action_Spam::SolventPeak::SolventPeak() :
@@ -64,8 +72,9 @@ Action_Spam::Action_Spam() :
 /** Search for DataSet with peaks data. If that fails, try to load peaks
   * from a file.
   */
-int Action_Spam::GetPeaks(std::string const& name, DataSetList const& dsl)
+DataSet_Vector_Scalar* Action_Spam::GetPeaksData(std::string const& name, DataSetList const& dsl)
 {
+  DataSet_Vector_Scalar* pdata = 0;
   // Check for peaks DataSet.
   DataSet* ds = dsl.FindSetOfType(name, DataSet::VECTOR_SCALAR);
   if (ds == 0) {
@@ -74,30 +83,30 @@ int Action_Spam::GetPeaks(std::string const& name, DataSetList const& dsl)
     if (!File::Exists(fname)) {
       File::ErrorMsg( fname.full() );
       mprinterr("Error: No peak data or file with name '%s'.\n", name.c_str());
-      return 1;
+      return pdata;
     }
     // Try to load peaks from file.
     DataIO_Peaks infile;
     if (infile.ReadData(fname, peaksdsl_, fname.Base())) {
       mprinterr("Error: Could not load peaks data from %s\n", fname.full());
-      return 1;
+      return pdata;
     }
     // Sanity check
     if (peaksdsl_.size() < 1 || peaksdsl_[0]->Type() != DataSet::VECTOR_SCALAR) {
       mprinterr("Error: Could not allocate peaks data set for file.\n");
-      return 1;
+      return pdata;
     }
-    peaksData_ = (DataSet_Vector_Scalar*)peaksdsl_[0];
+    pdata = (DataSet_Vector_Scalar*)peaksdsl_[0];
   } else {
-    peaksData_ = (DataSet_Vector_Scalar*)ds;
+    pdata = (DataSet_Vector_Scalar*)ds;
   }
 
   // Add each peak to peakSites_;
-  for (unsigned int idx = 0; idx != peaksData_->Size(); idx++)
+  for (unsigned int idx = 0; idx != pdata->Size(); idx++)
   {
-    peakSites_.push_back( PeakSite( peaksData_->Vec(idx) ) );
+    peakSites_.push_back( PeakSite( pdata->Vec(idx) ) );
   }
-  return 0;
+  return pdata;
 }
 
 void Action_Spam::Help() const {
@@ -202,11 +211,19 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     // If it's a sphere, square the radius to compare with
     if (sphere_)
       site_size_ *= site_size_;
-    // Get or load the peaks data
-    if (GetPeaks(peaksname, init.DSL())) {
+
+    // ----- END processing input args -----------
+
+
+    // Get or load the peaks data for bulk
+    peaksData_ = GetPeaksData(peaksname, init.DSL());
+    if (peaksData_ == 0) {
       mprinterr("Error: Could not get peaks.\n");
       return Action::ERR;
     }
+    // Add bulk solvent site info TODO make these non-class vars
+    solvents_.push_back( SolventInfo(peaksData_, site_size_, solvname_) );
+
     // Now add all of the individual peak energy data sets
     for (unsigned int i = 0; i < peaksData_->Size(); i++) {
       DataSet* ds = init.DSL().AddSet(DataSet::DOUBLE, MetaData(ds_name,i+1));

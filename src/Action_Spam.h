@@ -61,7 +61,7 @@ class Action_Spam: public Action {
     Action::RetType DoPureWater(int, Frame const&);
     Action::RetType DoSPAM(int, Frame&);
 
-    int GetPeaks(std::string const&, DataSetList const&);
+    DataSet_Vector_Scalar* GetPeaksData(std::string const&, DataSetList const&);
     typedef bool (Action_Spam::*FxnType)(Vec3, Vec3, double) const;
     bool inside_box(Vec3, Vec3, double) const;
     bool inside_sphere(Vec3, Vec3, double) const;
@@ -117,6 +117,8 @@ class Action_Spam: public Action {
 class Action_Spam::SolventInfo {
   public:
     SolventInfo();
+    /// Construct with peaks data, size size, name
+    SolventInfo(DataSet_Vector_Scalar const*, double, std::string const&);
   private:
     DataSet_Vector_Scalar const* peaksData_; ///< Hold peaks DataSet for this solvent.
     double site_size_;                       ///< Size of solvent site (Ang.). Full edge length or diameter
