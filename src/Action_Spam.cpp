@@ -384,6 +384,10 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
   mprintf("DEBUG: Solvent residues\n");
   for (std::vector<SolventRes>::const_iterator it = solvResArray_.begin(); it != solvResArray_.end(); ++it)
     it->PrintInfo();
+  //if (solvResArray_.empty()) {
+  //  mprinterr("Error: No solvent residues.\n");
+  //  return Action::ERR;
+  //}
 
   // Set up the solvent_residues_ vector
   mask_.ResetMask();
@@ -457,8 +461,10 @@ Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
                            frm.Frm().BoxCrd().Param(Box::Z) < doublecut_;
   if (purewater_)
     return DoPureWater(frameNum, frm.Frm());
-  else
+  else {
+    SpamCalc(frameNum, frm.ModifyFrm());
     return DoSPAM(frameNum, frm.ModifyFrm());
+  }
 }
 
 /** \return Energy between atoms i and j with given distance squared.
@@ -569,14 +575,14 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
 }
 
 // Action_Spam::inside_box()
-bool Action_Spam::inside_box(Vec3 gp, Vec3 pt, double edge) const {
+bool Action_Spam::inside_box(Vec3 const& gp, Vec3 const& pt, double edge) const {
   return (gp[0] + edge > pt[0] && gp[0] - edge < pt[0] &&
           gp[1] + edge > pt[1] && gp[1] - edge < pt[1] &&
           gp[2] + edge > pt[2] && gp[2] - edge < pt[2]);
 }
 
 // Action_Spam::inside_sphere()
-bool Action_Spam::inside_sphere(Vec3 gp, Vec3 pt, double rad2) const {
+bool Action_Spam::inside_sphere(Vec3 const& gp, Vec3 const& pt, double rad2) const {
   return ( (gp[0]-pt[0])*(gp[0]-pt[0]) + (gp[1]-pt[1])*(gp[1]-pt[1]) +
            (gp[2]-pt[2])*(gp[2]-pt[2]) < rad2 );
 }
@@ -614,6 +620,53 @@ double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
     }
   }
   return result;
+}
+
+/** Do the SPAM calculation for each solvent peak site. */
+int Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
+//  t_action_.Start();
+  // For each solvent residue, try to find a peak that is close. If two peaks
+  // are close only assign the closest peak.
+  resPeakNum_.assign(solvResArray_.size(), -1);
+  std::vector<double> closest_peak_distance( solvResArray_.size(), -1 ); // TODO class array
+  int solvResIdx;
+  int solvResMax = (int)solvResArray_.size();
+  for (solvResIdx = 0; solvResIdx < solvResMax; solvResIdx++)
+  {
+    SolventRes const& res = solvResArray_[solvResIdx];
+    // Calculate solvent center of mass
+    Vec3 solvCoM = frameIn.VCenterOfMass(res.At0(), res.At1());
+    // Loop over each peak, determine if solvent is close enough to be "inside"
+    double closest_peak_distance2 = -1.0;
+    for (std::vector<PeakSite>::const_iterator peak = peakSites_.begin();
+                                               peak != peakSites_.end(); ++peak)
+    {
+      if ( (this->*Inside_)(peak->XYZ(), solvCoM, solvents_[res.Sidx()].SiteSize()) ) {
+        // Solvent is inside peak.
+        if (resPeakNum_[solvResIdx] < 0) {
+          // First peak that is close enough
+          closest_peak_distance2 = DIST2_NoImage(solvCoM.Dptr(), peak->XYZ().Dptr());
+          resPeakNum_[solvResIdx] = (int)(peak - peakSites_.begin());
+        } else {
+          // See if this peak is closer than previous peak
+          double dist2 = DIST2_NoImage(solvCoM.Dptr(), peak->XYZ().Dptr());
+          if (dist2 < closest_peak_distance2) {
+            closest_peak_distance2 = dist2;
+            resPeakNum_[solvResIdx] = (int)(peak - peakSites_.begin());
+          }
+        }
+      }
+    } // END loop over peaks
+
+  } // END loop over solvent residues
+
+  // DEBUG - print peak assignments for each solvent
+  mprintf("DEBUG: Peak assignments for each solvent idx (new):\n");
+  for (Iarray::const_iterator it = resPeakNum_.begin(); it != resPeakNum_.end(); ++it)
+    if (*it > -1)
+      mprintf("DEBUG:\t%8li %i\n", it - resPeakNum_.begin(), *it);
+
+  return 0;
 }
 
 // Action_Spam::DoSPAM
@@ -654,6 +707,11 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
       }
     }
   }
+  mprintf("DEBUG: Peak assignments for each solvent idx (old):\n");
+  for (Iarray::const_iterator it = resPeakNum_.begin(); it != resPeakNum_.end(); ++it)
+    if (*it > -1)
+      mprintf("DEBUG:\t%8li %i\n", it - resPeakNum_.begin(), *it);
+
   t_assign_.Stop();
   t_occupy_.Start();
   /* Now we have a vector of reservations. We want to make sure that each site

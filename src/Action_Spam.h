@@ -64,10 +64,14 @@ class Action_Spam: public Action {
     Action::RetType DoSPAM(int, Frame&);
 
     DataSet_Vector_Scalar* GetPeaksData(std::string const&, DataSetList const&);
-    typedef bool (Action_Spam::*FxnType)(Vec3, Vec3, double) const;
-    bool inside_box(Vec3, Vec3, double) const;
-    bool inside_sphere(Vec3, Vec3, double) const;
+
+    typedef bool (Action_Spam::*FxnType)(Vec3 const&, Vec3 const&, double) const;
+    bool inside_box(Vec3 const&, Vec3 const&, double) const;
+    bool inside_sphere(Vec3 const&, Vec3 const&, double) const;
+
     inline double Ecalc(int, int, double) const;
+
+    int SpamCalc(int, Frame&);
 
     int debug_;
     FxnType Inside_;          ///< Function for determining if water is inside peak.
@@ -124,6 +128,12 @@ class Action_Spam::SolventRes {
     SolventRes(int, int, int);
     /// Print solvent res info to stdout
     void PrintInfo() const;
+    /// \return First atom of the solvent residue.
+    int At0() const { return at0_; }
+    /// \return (one after the) Final atom of the solvent residue.
+    int At1() const { return at1_; }
+    /// \return Index into solvents_ array for this solvent residue.
+    int Sidx() const { return sidx_; }
   private:
     int at0_;  ///< Residue first atom
     int at1_;  ///< Residue last atom
@@ -141,6 +151,8 @@ class Action_Spam::SolventInfo {
     void PrintInfo() const;
     /// \return solvent residue name
     std::string const& Name() const { return name_; }
+    /// \return Solvent site size
+    double SiteSize() const { return site_size_; }
   private:
     DataSet_Vector_Scalar const* peaksData_; ///< Hold peaks DataSet for this solvent.
     double site_size_;                       ///< Size of solvent site (Ang.). Full edge length or diameter
