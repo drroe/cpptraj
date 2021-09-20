@@ -143,6 +143,8 @@ class Action_Spam::PeakSite {
     PeakSite();
     /// Construct from given peak position.
     PeakSite(Vec3 const&);
+    /// \return XYZ coords of peak location
+    Vec3 const& XYZ() const { return xyz_; }
   private:
     typedef std::vector<SolventPeak> SolvPeakArray;
     Vec3 xyz_;                ///< Solvent peak location in Cartesian space.

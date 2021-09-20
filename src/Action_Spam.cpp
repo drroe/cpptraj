@@ -101,7 +101,7 @@ DataSet_Vector_Scalar* Action_Spam::GetPeaksData(std::string const& name, DataSe
     pdata = (DataSet_Vector_Scalar*)ds;
   }
 
-  // Add each peak to peakSites_;
+  // Add each peak to peakSites_ TODO check for overlaps
   for (unsigned int idx = 0; idx != pdata->Size(); idx++)
   {
     peakSites_.push_back( PeakSite( pdata->Vec(idx) ) );
@@ -223,6 +223,12 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     }
     // Add bulk solvent site info TODO make these non-class vars
     solvents_.push_back( SolventInfo(peaksData_, site_size_, solvname_) );
+
+    // DEBUG print peaks
+    mprintf("DBEUG: Peak sites:\n");
+    for (std::vector<PeakSite>::const_iterator it = peakSites_.begin(); it != peakSites_.end(); ++it)
+      mprintf("DEBUG:\t%8li %8.3f %8.3f %8.3f\n", it - peakSites_.begin(),
+              it->XYZ()[0], it->XYZ()[1], it->XYZ()[2]);
 
     // Now add all of the individual peak energy data sets
     for (unsigned int i = 0; i < peaksData_->Size(); i++) {
