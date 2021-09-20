@@ -30,6 +30,11 @@ Action_Spam::SolventInfo::SolventInfo(DataSet_Vector_Scalar const* ds,
   name_(n)
 {}
 
+/** Print solvent info to stdout. */
+void Action_Spam::SolventInfo::PrintInfo() const {
+  mprintf("\t%s %6.2f '%s'\n", peaksData_->legend(), site_size_, name_.c_str());
+}
+
 // ----- SolventPeak class -----------------------------------------------------
 /** CONSTRUCTOR */
 Action_Spam::SolventPeak::SolventPeak() :
@@ -224,8 +229,13 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     // Add bulk solvent site info TODO make these non-class vars
     solvents_.push_back( SolventInfo(peaksData_, site_size_, solvname_) );
 
+    // DEBUG print solvents
+    mprintf("DEBUG: Solvents:\n");
+    for (std::vector<SolventInfo>::const_iterator it = solvents_.begin(); it != solvents_.end(); ++it)
+      it->PrintInfo();
+
     // DEBUG print peaks
-    mprintf("DBEUG: Peak sites:\n");
+    mprintf("DEBUG: Peak sites:\n");
     for (std::vector<PeakSite>::const_iterator it = peakSites_.begin(); it != peakSites_.end(); ++it)
       mprintf("DEBUG:\t%8li %8.3f %8.3f %8.3f\n", it - peakSites_.begin(),
               it->XYZ()[0], it->XYZ()[1], it->XYZ()[2]);
