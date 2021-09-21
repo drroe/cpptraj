@@ -61,6 +61,13 @@ Action_Spam::SolventPeak::SolventPeak() :
   energies_(0)
 {}
 
+/** Construct with given output energy DataSet */
+Action_Spam::SolventPeak::SolventPeak(DataSet* ds) :
+  energies_(ds)
+{
+  mprintf("DEBUG: Constructed with set '%s'\n", ds->legend());
+}
+
 // ----- PeakSite class --------------------------------------------------------
 /** CONSTRUCTOR */
 Action_Spam::PeakSite::PeakSite() {}
@@ -69,6 +76,29 @@ Action_Spam::PeakSite::PeakSite() {}
 Action_Spam::PeakSite::PeakSite(Vec3 const& xyzIn) :
   xyz_(xyzIn)
 {}
+
+/** Add output energy DataSets for each solvent type in given array. */
+int Action_Spam::PeakSite::AddEneDataSets(std::vector<SolventInfo> const& solvents,
+                                          std::string const& dsname,
+                                          DataSetList& DSL, unsigned int peakIdx)
+{
+  solvPeaks_.clear();
+  MetaData meta(dsname, peakIdx);
+  for (std::vector<SolventInfo>::const_iterator solv = solvents.begin();
+                                                solv != solvents.end(); ++solv)
+  {
+    if (solvents.size() > 1)
+      meta.SetAspect( solv->Name() );
+    DataSet* ds = DSL.AddSet( DataSet::DOUBLE, meta );
+    if (ds == 0) {
+      mprinterr("Error: AddEneDataSets failed for '%s' peak %u solvent '%s'\n",
+                dsname.c_str(), peakIdx, solv->Name().c_str());
+      return 1;
+    }
+    solvPeaks_.push_back( SolventPeak(ds) );
+  }
+  return 0;
+}
 
 // -----------------------------------------------------------------------------
 // CONSTRUCTOR
@@ -259,6 +289,12 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     for (std::vector<PeakSite>::const_iterator it = peakSites_.begin(); it != peakSites_.end(); ++it)
       mprintf("DEBUG:\t%8li %8.3f %8.3f %8.3f\n", it - peakSites_.begin(),
               it->XYZ()[0], it->XYZ()[1], it->XYZ()[2]);
+
+    // Add DataSets for each solvent to all peak sites
+    for (std::vector<PeakSite>::iterator it = peakSites_.begin(); it != peakSites_.end(); ++it)
+      // FIXME remove T, only for debug
+      if (it->AddEneDataSets(solvents_, "T"+ds_name, init.DSL(), (it-peakSites_.begin())+1))
+        return Action::ERR;
 
     // Now add all of the individual peak energy data sets
     for (unsigned int i = 0; i < peaksData_->Size(); i++) {

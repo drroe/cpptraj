@@ -165,6 +165,8 @@ class Action_Spam::SolventInfo {
 class Action_Spam::SolventPeak {
   public:
     SolventPeak();
+    /// Construct with given energy DataSet
+    SolventPeak(DataSet*);
   private:
     DataSet* energies_; ///< Hold solvent energies for this peak.
     Iarray ommitted_;   ///< Hold info on frames for which no solvent energies calcd.
@@ -179,6 +181,8 @@ class Action_Spam::PeakSite {
     PeakSite(Vec3 const&);
     /// \return XYZ coords of peak location
     Vec3 const& XYZ() const { return xyz_; }
+    /// Add an energy DataSet for each solvent in given array
+    int AddEneDataSets(std::vector<SolventInfo> const&, std::string const&, DataSetList&, unsigned int);
   private:
     typedef std::vector<SolventPeak> SolvPeakArray;
     Vec3 xyz_;                ///< Solvent peak location in Cartesian space.
