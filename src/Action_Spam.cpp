@@ -624,9 +624,10 @@ double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
 
 /** Do the SPAM calculation for each solvent peak site. */
 int Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
-//  t_action_.Start();
+  t_action_.Start();
   // For each solvent residue, try to find a peak that is close. If two peaks
   // are close only assign the closest peak.
+  t_assign_.Start();
   resPeakNum_.assign(solvResArray_.size(), -1);
   std::vector<double> closest_peak_distance( solvResArray_.size(), -1 ); // TODO class array
   int solvResIdx;
@@ -665,7 +666,9 @@ int Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
   for (Iarray::const_iterator it = resPeakNum_.begin(); it != resPeakNum_.end(); ++it)
     if (*it > -1)
       mprintf("DEBUG:\t%8li %i\n", it - resPeakNum_.begin(), *it);
+  t_assign_.Stop();
 
+  t_occupy_.Start();
   // We want to make sure that each site is occupied once and only once.
   // If a site is unoccupied, add frameNum to this peak's list of
   // ommitted frames. If a site is multiply-occupied, add -frameNum to
@@ -675,7 +678,15 @@ int Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
                               peak != resPeakNum_.end(); ++peak)
     if (*peak > -1)
       numTimesPeakAssigned[*peak]++;
+  // DEBUG - print peak assignment stats
+  mprintf("DEBUG: Peak assignment stats:\n");
+  for (std::vector<unsigned int>::const_iterator it = numTimesPeakAssigned.begin(); it != numTimesPeakAssigned.end(); ++it)
+    if (*it > 0)
+      mprintf("DEBUG:\t%8li %u\n", it - numTimesPeakAssigned.begin(), *it);
 
+  t_occupy_.Stop();
+
+  t_action_.Stop();
   return 0;
 }
 
@@ -744,6 +755,12 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
       }
     }
   }
+  // DEBUG - print peak assignment stats
+  mprintf("DEBUG: Peak assignment stats:\n");
+  for (unsigned int idx = 0; idx < peaksData_->Size(); idx++)
+    if (occupied[idx] || doubled[idx])
+      mprintf("DEBUG:\t%8u occ=%i double=%i\n", idx, (int)occupied[idx], (int)doubled[idx]);
+
   // Now loop through and add all non-occupied sites
   for (unsigned int i = 0; i < peaksData_->Size(); i++)
     if (!occupied[i]) 
