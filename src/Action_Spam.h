@@ -124,7 +124,7 @@ class Action_Spam: public Action {
 class Action_Spam::SolventRes {
   public:
     SolventRes();
-    /// Construct with res first atom, last atom, adn index into solvents_ array
+    /// Construct with res first atom, last atom, and index into solvents_ array
     SolventRes(int, int, int);
     /// Print solvent res info to stdout
     void PrintInfo() const;

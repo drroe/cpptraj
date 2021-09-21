@@ -665,7 +665,6 @@ int Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
   // are close only assign the closest peak.
   t_assign_.Start();
   resPeakNum_.assign(solvResArray_.size(), -1);
-  std::vector<double> closest_peak_distance( solvResArray_.size(), -1 ); // TODO class array
   int solvResIdx;
   int solvResMax = (int)solvResArray_.size();
   for (solvResIdx = 0; solvResIdx < solvResMax; solvResIdx++)
@@ -711,13 +710,17 @@ int Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
   // the list.
   // Number of times peak is associated with a solvent residue.
   std::vector<unsigned int> numTimesPeakAssigned( peakSites_.size(), 0 );
-  // The type index of solvent last associated with the peak.
-  std::vector<int> peakSidx( peakSites_.size(), -1 );
+  // Hold indices into solvResArray_ for solvent occupying a peak.
+  std::vector<int> peakResIdx( peakSites_.size(), -1 );
+  // Hold indices into solvResArray_ for solvent singly-occupying a peak.
+  std::vector<int> singleOccSolvResIdx;
+  // Hold indices into peakSites_ for singly-occupied peaks.
+  std::vector<int> singleOccPeakIdx;
   for (Iarray::const_iterator peak = resPeakNum_.begin();
                               peak != resPeakNum_.end(); ++peak)
     if (*peak > -1) {
       numTimesPeakAssigned[*peak]++;
-      peakSidx[*peak] = solvResArray_[peak-resPeakNum_.begin()].Sidx();
+      peakResIdx[*peak] = (peak-resPeakNum_.begin());
     }
   for (unsigned int idx = 0; idx != peakSites_.size(); ++idx)
   {
@@ -727,15 +730,65 @@ int Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
     else if (numTimesPeakAssigned[idx] > 1)
       // Multiple occupancy - add -frameNum-1
       peakSites_[idx].AddOmittedFrame( -frameNum-1 );
+    else { // single occupy
+      singleOccSolvResIdx.push_back( peakResIdx[idx] );
+      singleOccPeakIdx.push_back( idx );
+    }
   }
   // DEBUG - print peak assignment stats
   mprintf("DEBUG: Peak assignment stats:\n");
   for (unsigned int idx = 0; idx != peakSites_.size(); ++idx)
     if (numTimesPeakAssigned[idx] > 0)
-      mprintf("DEBUG:\t%8u %u (%i)\n", idx, numTimesPeakAssigned[idx], peakSidx[idx]);
+      mprintf("DEBUG:\t%8u %u (%i)\n", idx, numTimesPeakAssigned[idx], peakResIdx[idx]);
+  mprintf("DEBUG: Singly-occupied peaks:\n");
+  for (std::vector<int>::const_iterator it = singleOccSolvResIdx.begin();
+                                        it != singleOccSolvResIdx.end(); ++it)
+    mprintf("DEBUG:\t%8i %8i - %8i\n", *it,
+            solvResArray_[*it].At0()+1, solvResArray_[*it].At1()+1);
   
 
   t_occupy_.Stop();
+
+  // Energy calculation
+
+  //if (calcEnergy_) {
+    t_energy_.Start();
+    // Energy associated with each peak
+    std::vector<double> peakEne( peakSites_.size(), 0 );
+    for (int atom0 = 0; atom0 != frameIn.Natom(); atom0++)
+    {
+      const double* atm1 = frameIn.XYZ(atom0);
+      for (unsigned int idx = 0; idx != singleOccSolvResIdx.size(); idx++)
+      {
+        SolventRes const& solvRes = solvResArray_[singleOccSolvResIdx[idx]];
+        for (int resat1 = solvRes.At0(); resat1 != solvRes.At1(); resat1++)
+        {
+          if (atom0 >= solvRes.At0() && atom0 < solvRes.At1()) continue;
+          const double* atm2 = frameIn.XYZ(resat1);
+          // Get imaged distance
+          double dist2 = DIST2( imageOpt_.ImagingType(), atm1, atm2, frameIn.BoxCrd() );
+          if (dist2 < cut2_) {
+            double qiqj = atom_charge_[atom0] * atom_charge_[resat1];
+            NonbondType const& LJ = CurrentParm_->GetLJparam(atom0, resat1);
+            double r2 = 1 / dist2;
+            double r6 = r2 * r2 * r2;
+            // Shifted electrostatics: qiqj/r * (1-r/rcut)^2 + VDW
+            double shift = (1 - dist2 * onecut2_);
+            //result += qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
+            double eval = qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
+            //if (i > 2 && i < 6)
+            //  mprintf("DEBUG: %6i %6i %8.3f %8.3f\n", i, j, sqrt(dist2), eval);
+            peakEne[singleOccPeakIdx[idx]] += eval;
+          }
+        } // END loop over solvent residue atoms
+      } // END loop over singly occupied peaks
+    } // END loop over all atoms
+    mprintf("DEBUG: Singly-occupied peak energies:\n");
+    for (std::vector<int>::const_iterator it = singleOccPeakIdx.begin(); it != singleOccPeakIdx.end(); ++it)
+      mprintf("%8i : %g\n", *it, peakEne[*it]);
+
+    t_energy_.Stop();
+  //} // END calcEnergy_
 
   t_action_.Stop();
   return 0;
@@ -846,8 +899,8 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
             // provide some time savings.
             double ene = Calculate_Energy(frameIn, solvent_residues_[i]);
             myDSL_[peak]->Add(frameNum, &ene);
-            //mprintf("DEBUG: Frm %6i peak %6i residx %6u solvres %6i ene %g\n",
-            //        frameNum+1, peak+1, i, solvent_residues_[i].OriginalResNum(), ene);
+            mprintf("DEBUG: Frm %6i peak %6i residx %6u solvres %6i ene %g\n",
+                    frameNum+1, peak+1, i, solvent_residues_[i].OriginalResNum(), ene);
             break;
           }
       } else
