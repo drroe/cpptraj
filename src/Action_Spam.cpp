@@ -707,18 +707,33 @@ int Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
   t_occupy_.Start();
   // We want to make sure that each site is occupied once and only once.
   // If a site is unoccupied, add frameNum to this peak's list of
-  // ommitted frames. If a site is multiply-occupied, add -frameNum to
+  // omitted frames. If a site is multiply-occupied, add -frameNum to
   // the list.
+  // Number of times peak is associated with a solvent residue.
   std::vector<unsigned int> numTimesPeakAssigned( peakSites_.size(), 0 );
+  // The type index of solvent last associated with the peak.
+  std::vector<int> peakSidx( peakSites_.size(), -1 );
   for (Iarray::const_iterator peak = resPeakNum_.begin();
                               peak != resPeakNum_.end(); ++peak)
-    if (*peak > -1)
+    if (*peak > -1) {
       numTimesPeakAssigned[*peak]++;
+      peakSidx[*peak] = solvResArray_[peak-resPeakNum_.begin()].Sidx();
+    }
+  for (unsigned int idx = 0; idx != peakSites_.size(); ++idx)
+  {
+    if (numTimesPeakAssigned[idx] == 0)
+      // No occupancy - add frameNum
+      peakSites_[idx].AddOmittedFrame( frameNum );
+    else if (numTimesPeakAssigned[idx] > 1)
+      // Multiple occupancy - add -frameNum-1
+      peakSites_[idx].AddOmittedFrame( -frameNum-1 );
+  }
   // DEBUG - print peak assignment stats
   mprintf("DEBUG: Peak assignment stats:\n");
-  for (std::vector<unsigned int>::const_iterator it = numTimesPeakAssigned.begin(); it != numTimesPeakAssigned.end(); ++it)
-    if (*it > 0)
-      mprintf("DEBUG:\t%8li %u\n", it - numTimesPeakAssigned.begin(), *it);
+  for (unsigned int idx = 0; idx != peakSites_.size(); ++idx)
+    if (numTimesPeakAssigned[idx] > 0)
+      mprintf("DEBUG:\t%8u %u (%i)\n", idx, numTimesPeakAssigned[idx], peakSidx[idx]);
+  
 
   t_occupy_.Stop();
 

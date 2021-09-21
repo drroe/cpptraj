@@ -167,14 +167,19 @@ class Action_Spam::SolventPeak {
     SolventPeak();
     /// Construct with given energy DataSet
     SolventPeak(DataSet*);
+    /// Add an omitted frame number to omitted_
+    void AddOmittedFrameNum(int fn) { omitted_.push_back( fn ); }
+    /// \return the energy DataSet pointer
+    DataSet* DS() { return energies_; }
   private:
     DataSet* energies_; ///< Hold solvent energies for this peak.
-    Iarray ommitted_;   ///< Hold info on frames for which no solvent energies calcd.
+    Iarray omitted_;   ///< Hold info on frames for which no solvent energies calcd.
 };
 
 // ----- PeakSite class --------------------------------------------------------
 /** Hold all information related to a solvent peak site. */
 class Action_Spam::PeakSite {
+    typedef std::vector<SolventPeak> SolvPeakArray;
   public:
     PeakSite();
     /// Construct from given peak position.
@@ -183,8 +188,20 @@ class Action_Spam::PeakSite {
     Vec3 const& XYZ() const { return xyz_; }
     /// Add an energy DataSet for each solvent in given array
     int AddEneDataSets(std::vector<SolventInfo> const&, std::string const&, DataSetList&, unsigned int);
+    /// Add given frame number to omitted array for all solvents
+    void AddOmittedFrame(int fn) {
+      for (SolvPeakArray::iterator it = solvPeaks_.begin(); it != solvPeaks_.end(); ++it)
+        it->AddOmittedFrameNum( fn );
+    }
+    /// Add given energy for specified solvent; all other solvents get omitted.
+    void AddSolventEne(int fn, double ene, unsigned int tgtSidx) {
+      for (unsigned int sidx = 0; sidx != solvPeaks_.size(); sidx++)
+        if (sidx == tgtSidx)
+          solvPeaks_[sidx].DS()->Add(fn, &ene);
+        else
+          solvPeaks_[sidx].AddOmittedFrameNum( fn );
+    }
   private:
-    typedef std::vector<SolventPeak> SolvPeakArray;
     Vec3 xyz_;                ///< Solvent peak location in Cartesian space.
     SolvPeakArray solvPeaks_; ///< Hold information for each solvent that might occupy this site.
 };
