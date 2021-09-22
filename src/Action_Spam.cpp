@@ -872,16 +872,14 @@ const
 
 /** Calculate the G, H and TS for bulk water. */
 int Action_Spam::Calc_Bulk() const {
-  DataSet_1D const& dataIn = static_cast<DataSet_1D const&>( *bulk_ene_set_ );
-  DataSet_double enevec;
+  DataSet_double const& enevec = static_cast<DataSet_double const&>( *bulk_ene_set_ );
   Stats<double> Havg;
-  double min = dataIn.Dval(0);
-  double max = dataIn.Dval(0);
-  for (unsigned int frm = 0; frm != dataIn.Size(); frm++) {
-    double ene = dataIn.Dval(frm);
+  double min = enevec.Dval(0);
+  double max = enevec.Dval(0);
+  for (unsigned int frm = 0; frm != enevec.Size(); frm++) {
+    double ene = enevec.Dval(frm);
     min = std::min(min, ene);
     max = std::max(max, ene);
-    enevec.AddElement( ene );
     Havg.accumulate( ene );
   }
   // Get the G value
@@ -895,6 +893,19 @@ int Action_Spam::Calc_Bulk() const {
           "\t  <G>= %g, <H>= %g +/- %g, -TdS= %g\n", DG, Havg.mean(), DG - Havg.mean());
   return 0;
 }
+
+/** Calculate G, H, and TS for a peak site. */
+/*
+int Action_Spam::Calc_G_Wat(unsigned int peakNum, PeakSite const& peakSite) const {
+  // Assume the first solvent type is to be calculated relative to bulk.
+  double G_ref = DG_BULK_;
+  double H_ref = DH_BULK_;
+
+  // Loop over solvent types for this peak
+  for (PeakSite::const_iterator solv = peakSite.begin(); solv != peakSite.end(); ++solv)
+  {
+    // Create energy vector containing
+*/
 
 /** Calculate the DELTA G of an individual water site */
 int Action_Spam::Calc_G_Wat(DataSet* dsIn, int peaknum, Iarray const& SkipFrames)
