@@ -803,9 +803,6 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
   return ret;
 }
 
-/// \return absolute value of integer
-static inline int absval(int i) { if (i < 0) return -(i+1); else return i; }
-
 /** Calculate G by integrating the probability distribution constructed
   * from the input array of energy values.
   * \return 1 if energy array is empty.
@@ -894,9 +891,11 @@ int Action_Spam::Calc_Bulk() const {
   return 0;
 }
 
+/// \return absolute value of integer
+static inline int absval(int i) { if (i < 0) return -(i+1); else return i; }
+
 /** Calculate G, H, and TS for a peak site. */
-/*
-int Action_Spam::Calc_G_Wat(unsigned int peakNum, PeakSite const& peakSite) const {
+int Action_Spam::Calc_G_Peak(unsigned int peakNum, PeakSite const& peakSite) const {
   // Assume the first solvent type is to be calculated relative to bulk.
   double G_ref = DG_BULK_;
   double H_ref = DH_BULK_;
@@ -904,8 +903,54 @@ int Action_Spam::Calc_G_Wat(unsigned int peakNum, PeakSite const& peakSite) cons
   // Loop over solvent types for this peak
   for (PeakSite::const_iterator solv = peakSite.begin(); solv != peakSite.end(); ++solv)
   {
-    // Create energy vector containing
-*/
+    // Create energy vector containing only frames that are singly-occupied.
+    // Calculate the mean enthalpy while doing this.
+    Iarray const& SkipFrames = solv->Omitted();
+    DataSet_1D const& dataIn = static_cast<DataSet_1D const&>( *(solv->DS()) );
+    double min = 0.0;
+    double max = 0.0;
+    DataSet_double enevec;
+    Stats<double> Havg;
+    Iarray::const_iterator fnum = SkipFrames.begin();
+    for (int frm = 0; frm != (int)dataIn.Size(); frm++) {
+      bool frameIsSkipped = (fnum != SkipFrames.end() && absval(*fnum) == frm);
+      if (frameIsSkipped)
+        ++fnum;
+      else {
+        double ene = dataIn.Dval(frm);
+        if (enevec.Size() < 1) {
+          min = ene; 
+          max = ene;
+        } else {
+          min = std::min(min, ene);
+          max = std::max(max, ene);
+        }
+        enevec.AddElement( ene );
+        Havg.accumulate( ene );
+      }
+    }
+    double DG = 0;
+    // TODO put all peak-related messages in this function instead of Calc_G
+    int err = Calc_G(DG, peakNum, min, max, Havg.variance(), enevec);
+    if (err != 0) return err;
+
+    double adjustedDG = DG - G_ref;
+    double adjustedDH = Havg.mean() - H_ref;
+    double ntds = adjustedDG - adjustedDH;
+
+    if (solv == peakSite.begin()) {
+      // Record delta from bulk
+      ((DataSet_Mesh*)ds_dg_)->AddXY(peakNum+1, adjustedDG);
+      ((DataSet_Mesh*)ds_dh_)->AddXY(peakNum+1, adjustedDH);
+      ((DataSet_Mesh*)ds_ds_)->AddXY(peakNum+1, ntds);
+      // The reference for the next solvents will be this solvent
+      G_ref = DG;
+      H_ref = Havg.mean();
+    }
+
+  } // END loop over solvent types for peak
+  return 0;
+}
 
 /** Calculate the DELTA G of an individual water site */
 int Action_Spam::Calc_G_Wat(DataSet* dsIn, int peaknum, Iarray const& SkipFrames)
