@@ -189,9 +189,14 @@ class Action_Spam::PeakSite {
     /// Add an energy DataSet for each solvent in given array
     int AddEneDataSets(std::vector<SolventInfo> const&, std::string const&, DataSetList&, unsigned int);
     /// Add given frame number to omitted array for all solvents
-    void AddOmittedFrame(int fn) {
-      for (SolvPeakArray::iterator it = solvPeaks_.begin(); it != solvPeaks_.end(); ++it)
-        it->AddOmittedFrameNum( fn );
+    void AddOmittedFrame(int fn, unsigned int count) {
+      for (SolvPeakArray::iterator it = solvPeaks_.begin(); it != solvPeaks_.end(); ++it) {
+        if (count == 0)
+          it->AddOmittedFrameNum( fn );
+        else if (count > 0)
+          it->AddOmittedFrameNum( -fn - 1 );
+        it->DS()->Add(fn, &ZERO_);
+      }
     }
     /// Add given energy for specified solvent; all other solvents get omitted.
     void AddSolventEne(int fn, double ene, unsigned int tgtSidx) {
@@ -202,6 +207,8 @@ class Action_Spam::PeakSite {
           solvPeaks_[sidx].AddOmittedFrameNum( fn );
     }
   private:
+    static const double ZERO_;
+
     Vec3 xyz_;                ///< Solvent peak location in Cartesian space.
     SolvPeakArray solvPeaks_; ///< Hold information for each solvent that might occupy this site.
 };

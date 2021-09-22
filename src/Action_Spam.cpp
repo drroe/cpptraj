@@ -69,6 +69,9 @@ Action_Spam::SolventPeak::SolventPeak(DataSet* ds) :
 }
 
 // ----- PeakSite class --------------------------------------------------------
+/** For adding zero energy to omitted frames. */
+const double Action_Spam::PeakSite::ZERO_ = 0.0;
+
 /** CONSTRUCTOR */
 Action_Spam::PeakSite::PeakSite() {}
 
@@ -726,15 +729,13 @@ int Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
   std::vector<int> singleOccPeakIdx;
   for (unsigned int idx = 0; idx != peakSites_.size(); ++idx)
   {
-    if (numTimesPeakAssigned[idx] == 0)
-      // No occupancy - add frameNum
-      peakSites_[idx].AddOmittedFrame( frameNum );
-    else if (numTimesPeakAssigned[idx] > 1)
-      // Multiple occupancy - add -frameNum-1
-      peakSites_[idx].AddOmittedFrame( -frameNum-1 );
-    else { // single occupy
+    if (numTimesPeakAssigned[idx] == 1) {
+      // Singly occupied peak
       singleOccSolvResIdx.push_back( peakResIdx[idx] );
       singleOccPeakIdx.push_back( idx );
+    } else {
+      // No occupancy or multiple occupancy - omit 
+      peakSites_[idx].AddOmittedFrame( frameNum, numTimesPeakAssigned[idx] );
     }
   }
   // DEBUG - print peak assignment stats
@@ -789,6 +790,14 @@ int Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
     mprintf("DEBUG: Singly-occupied peak energies:\n");
     for (unsigned int idx = 0; idx != singleOccPeakIdx.size(); idx++)
       mprintf("%8i : %g\n", singleOccPeakIdx[idx], singleOccPeakEne[idx]);
+
+    /// Add the energy to the singly-occupied peak sites
+    for (unsigned int idx = 0; idx != singleOccPeakIdx.size(); idx++)
+    {
+      int peakNum = singleOccPeakIdx[idx];
+      peakSites_[peakNum].AddSolventEne(frameNum, singleOccPeakEne[idx],
+                                        solvResArray_[peakResIdx[peakNum]].Sidx());
+    }
 
     t_energy_.Stop();
   //} // END calcEnergy_
