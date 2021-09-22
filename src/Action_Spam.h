@@ -7,6 +7,7 @@
 #include "PairList.h"
 // Forward declares
 class DataSet_Vector_Scalar;
+class DataSet_double;
 /**
 SPAM is a water profiling technique developed by Guanglei Cui at
 GlaxoSmithKline (GSK). The original implementation involved a set of specialized
@@ -54,6 +55,7 @@ class Action_Spam: public Action {
     // ------------------- Functions -------------------
     DataSet_Vector_Scalar* GetPeaksData(std::string const&, DataSetList const&);
     int SetupParms(Topology const&);
+    int Calc_G(double&, int, double, double, double, DataSet_double const&) const;
     int Calc_G_Wat(DataSet*, int, Iarray const&);
     RetType DoPureWater(int, Frame const&);
     RetType SpamCalc(int, Frame&);

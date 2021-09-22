@@ -806,6 +806,70 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
 /// \return absolute value of integer
 static inline int absval(int i) { if (i < 0) return -(i+1); else return i; }
 
+/** Calculate G by integrating the probability distribution constructed
+  * from the input array of energy values.
+  * \return 1 if energy array is empty.
+  * \return -1 if number of bins cannot be calculated.
+  * \return 0 if the calculation completed successfully.
+  */
+int Action_Spam::Calc_G(double& DG, int peaknum, double min, double max, double variance,
+                        DataSet_double const& enevec)
+const
+{
+  DG = 0;
+  if (enevec.Size() < 1)
+    return 1;
+  // Calculate distribution of energy values using KDE. Get the bandwidth
+  // factor here since we already know the SD.
+  double BWfac = KDE::BandwidthFactor( enevec.Size() );
+  if (debug_ > 0)
+    mprintf("DEBUG:\tNvals=%zu min=%g max=%g BWfac=%g\n", enevec.Size(), min, max, BWfac);
+  // Estimate number of bins the same way spamstats.py does.
+  int nbins = (int)(((max - min) / BWfac) + 0.5) + 100;
+  if (nbins < 0) {
+    // Probably an overflow due to extremely large energy.
+    mprintf("Warning: Large magnitude energy observed for peak %i (min=%g max=%g)\n",
+            peaknum+1, min, max);
+    mprintf("Warning: Skipping peak.\n");
+    return -1;
+  }
+  // Construct the KDE histogram
+  HistBin Xdim(nbins, min - (50*BWfac), BWfac, "P(Ewat)");
+  //Xdim.CalcBinsOrStep(min - Havg.variance(), max + Havg.variance(), 0.0, nbins, "P(Ewat)");
+  if (debug_ > 0) {
+    mprintf("DEBUG:");
+    Xdim.PrintHistBin();
+  }
+  DataSet_double kde1;
+  KDE gkde;
+  double bandwidth;
+  if (enevec.Size() == 1) {
+    // Special case. Juse use BWfac to avoid a zero bandwidth.
+    bandwidth = BWfac;
+  } else
+    bandwidth = 1.06 * sqrt(variance) * BWfac;
+  if (gkde.CalcKDE( kde1, enevec, Xdim, bandwidth )) {
+    mprinterr("Error: Could not calculate E KDE histogram.\n");
+    return -1;
+  }
+  // Summation over the probability distribution 
+  kde1.SetupFormat() = TextFormat(TextFormat::GDOUBLE, 12, 5);
+  // Determine SUM[ P(Ewat) * exp(-Ewat / RT) ]
+  double RT = Constants::GASK_KCAL * temperature_;
+  double KB = 1.0 / RT;
+  double sumQ = 0.0;
+  for (unsigned int i = 0; i != kde1.Size(); i++) {
+    double Ewat = kde1.Xcrd(i);
+    double PEwat = kde1.Dval(i);
+    sumQ += (PEwat * exp( -Ewat * KB ));
+    //mprintf("DEBUG:\t\tEwat %20.10E PEwat %20.10E sumQ %20.10E\n", Ewat, PEwat, sumQ);
+  }
+  if (debug_ > 0)
+    mprintf("DEBUG: peak %6i sumQ= %20.10E\n", peaknum+1, sumQ);
+  DG = -RT * log(BWfac * sumQ);
+  return 0;
+}
+
 /** Calculate the DELTA G of an individual water site */
 int Action_Spam::Calc_G_Wat(DataSet* dsIn, int peaknum, Iarray const& SkipFrames)
 {
