@@ -719,6 +719,28 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
   // Energy calculation
   if (calcEnergy_) {
     t_energy_.Start();
+/*
+    // Loop over each singly-occupied peak
+    for (unsigned int idx = 0; idx != singleOccSolvResIdx.size(); idx++)
+    {
+      double etot = 0.0;
+      SolventRes const& solvRes = solvResArray_[singleOccSolvResIdx[idx]];
+      for (int resat1 = solvRes.At0(); resat1 != solvRes.At1(); resat1++)
+      {
+        const double* atm1 = frameIn.XYZ(resat1);
+        for (int atom0 = 0; atom0 != frameIn.Natom(); atom0++)
+        {
+          if (atom0 >= solvRes.At0() && atom0 < solvRes.At1()) continue;
+          // Get imaged distance
+          double dist2 = DIST2( imageOpt_.ImagingType(), frameIn.XYZ(atom0), atm1, frameIn.BoxCrd() );
+          if (dist2 < cut2_)
+            etot += Ecalc(atom0, resat1, dist2);
+        } // END loop over all atoms
+      } // END loop over solvent residue atoms
+      // Add energy to singly-occupied peak site
+      peakSites_[singleOccPeakIdx[idx]].AddSolventEne(frameNum, etot, solvRes.Sidx());
+    } // END loop over singly-occupied peaks
+*/
     // Energy associated with each peak
     std::vector<double> singleOccPeakEne( singleOccPeakIdx.size(), 0 );
     for (int atom0 = 0; atom0 != frameIn.Natom(); atom0++)
@@ -739,11 +761,11 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
         } // END loop over solvent residue atoms
       } // END loop over singly occupied peaks
     } // END loop over all atoms
-/*
-    mprintf("DEBUG: Singly-occupied peak energies:\n");
-    for (unsigned int idx = 0; idx != singleOccPeakIdx.size(); idx++)
-      mprintf("%8i : %g\n", singleOccPeakIdx[idx], singleOccPeakEne[idx]);
-*/
+//
+//    mprintf("DEBUG: Singly-occupied peak energies:\n");
+//    for (unsigned int idx = 0; idx != singleOccPeakIdx.size(); idx++)
+//      mprintf("%8i : %g\n", singleOccPeakIdx[idx], singleOccPeakEne[idx]);
+//
     /// Add the energy to the singly-occupied peak sites
     for (unsigned int idx = 0; idx != singleOccPeakIdx.size(); idx++)
     {
