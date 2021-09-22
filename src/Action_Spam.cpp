@@ -65,7 +65,7 @@ Action_Spam::SolventPeak::SolventPeak() :
 Action_Spam::SolventPeak::SolventPeak(DataSet* ds) :
   energies_(ds)
 {
-  mprintf("DEBUG: Constructed with set '%s'\n", ds->legend());
+  //mprintf("DEBUG: Constructed with set '%s'\n", ds->legend());
 }
 
 // ----- PeakSite class --------------------------------------------------------
@@ -294,10 +294,12 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
       it->PrintInfo();
 
     // DEBUG print peaks
-    mprintf("DEBUG: Peak sites:\n");
-    for (std::vector<PeakSite>::const_iterator it = peakSites_.begin(); it != peakSites_.end(); ++it)
-      mprintf("DEBUG:\t%8li %8.3f %8.3f %8.3f\n", it - peakSites_.begin(),
-              it->XYZ()[0], it->XYZ()[1], it->XYZ()[2]);
+    if (debug_ > 0) {
+      mprintf("DEBUG: Peak sites:\n");
+      for (std::vector<PeakSite>::const_iterator it = peakSites_.begin(); it != peakSites_.end(); ++it)
+        mprintf("DEBUG:\t%8li %8.3f %8.3f %8.3f\n", it - peakSites_.begin(),
+                it->XYZ()[0], it->XYZ()[1], it->XYZ()[2]);
+    }
 
     // Add DataSets for each solvent to all peak sites
     if (calcEnergy_) {
@@ -421,9 +423,11 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
       }
     }
   }
-  mprintf("DEBUG: Solvent residues\n");
-  for (std::vector<SolventRes>::const_iterator it = solvResArray_.begin(); it != solvResArray_.end(); ++it)
-    it->PrintInfo();
+  if (debug_ > 0) {
+    mprintf("DEBUG: Solvent residues\n");
+    for (std::vector<SolventRes>::const_iterator it = solvResArray_.begin(); it != solvResArray_.end(); ++it)
+      it->PrintInfo();
+  }
   if (solvResArray_.empty()) {
     mprinterr("Error: No solvent residues.\n");
     return Action::ERR;
@@ -657,10 +661,12 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
   } // END loop over solvent residues
 
   // DEBUG - print peak assignments for each solvent
+/*
   mprintf("DEBUG: Peak assignments for each solvent idx (new):\n");
   for (Iarray::const_iterator it = resPeakNum_.begin(); it != resPeakNum_.end(); ++it)
     if (*it > -1)
       mprintf("DEBUG:\t%8li %i\n", it - resPeakNum_.begin(), *it);
+*/
   t_assign_.Stop();
 
   t_occupy_.Start();
@@ -696,6 +702,7 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
     }
   }
   // DEBUG - print peak assignment stats
+/*
   mprintf("DEBUG: Peak assignment stats:\n");
   for (unsigned int idx = 0; idx != peakSites_.size(); ++idx)
     if (numTimesPeakAssigned[idx] > 0)
@@ -705,7 +712,7 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
                               it != singleOccSolvResIdx.end(); ++it)
     mprintf("DEBUG:\t%8i %8i - %8i\n", *it,
             solvResArray_[*it].At0()+1, solvResArray_[*it].At1()+1);
-  
+*/
 
   t_occupy_.Stop();
 
@@ -732,10 +739,11 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
         } // END loop over solvent residue atoms
       } // END loop over singly occupied peaks
     } // END loop over all atoms
+/*
     mprintf("DEBUG: Singly-occupied peak energies:\n");
     for (unsigned int idx = 0; idx != singleOccPeakIdx.size(); idx++)
       mprintf("%8i : %g\n", singleOccPeakIdx[idx], singleOccPeakEne[idx]);
-
+*/
     /// Add the energy to the singly-occupied peak sites
     for (unsigned int idx = 0; idx != singleOccPeakIdx.size(); idx++)
     {
