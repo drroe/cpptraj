@@ -870,6 +870,32 @@ const
   return 0;
 }
 
+/** Calculate the G, H and TS for bulk water. */
+int Action_Spam::Calc_Bulk() const {
+  DataSet_1D const& dataIn = static_cast<DataSet_1D const&>( *bulk_ene_set_ );
+  DataSet_double enevec;
+  Stats<double> Havg;
+  double min = dataIn.Dval(0);
+  double max = dataIn.Dval(0);
+  for (unsigned int frm = 0; frm != dataIn.Size(); frm++) {
+    double ene = dataIn.Dval(frm);
+    min = std::min(min, ene);
+    max = std::max(max, ene);
+    enevec.AddElement( ene );
+    Havg.accumulate( ene );
+  }
+  // Get the G value
+  double DG = 0;
+  int err = Calc_G(DG, -1, min, max, Havg.variance(), enevec);
+  if (err != 0) {
+    mprinterr("Error: Could not get SPAM bulk energy values.\n");
+    return 1;
+  }
+  mprintf("\tSPAM bulk energy values:\n"
+          "\t  <G>= %g, <H>= %g +/- %g, -TdS= %g\n", DG, Havg.mean(), DG - Havg.mean());
+  return 0;
+}
+
 /** Calculate the DELTA G of an individual water site */
 int Action_Spam::Calc_G_Wat(DataSet* dsIn, int peaknum, Iarray const& SkipFrames)
 {
@@ -1102,5 +1128,5 @@ void Action_Spam::Print() {
         mprintf("Warning: No energies for %i peaks.\n", n_peaks_no_energy);
     }
   } else
-    Calc_G_Wat( bulk_ene_set_, -1, Iarray() );
+    Calc_Bulk();
 }
