@@ -198,7 +198,7 @@ class Action_Spam::PeakSite {
           it->AddOmittedFrameNum( fn );
         else if (count > 0)
           it->AddOmittedFrameNum( -fn - 1 );
-        it->DS()->Add(fn, &ZERO_);
+        if (it->DS() != 0) it->DS()->Add(fn, &ZERO_);
       }
     }
     /// Add given energy for specified solvent; all other solvents get omitted.

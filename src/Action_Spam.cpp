@@ -267,6 +267,8 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     infofile_ = init.DFL().AddCpptrajFile(infoname, "SPAM info");
     if (infofile_ == 0) return Action::ERR;
     summaryfile = init.DFL().AddDataFile(actionArgs.GetStringKey("summary"), actionArgs);
+    // Determine if energy calculation needs to happen
+    calcEnergy_ = (summaryfile != 0 || datafile != 0);
     // Divide site size by 2 to make it half the edge length (or radius)
     site_size_ = actionArgs.getKeyDouble("site_size", 2.5) / 2.0;
     sphere_ = actionArgs.hasKey("sphere");
@@ -298,9 +300,11 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
               it->XYZ()[0], it->XYZ()[1], it->XYZ()[2]);
 
     // Add DataSets for each solvent to all peak sites
-    for (std::vector<PeakSite>::iterator it = peakSites_.begin(); it != peakSites_.end(); ++it)
-      if (it->AddEneDataSets(solvents_, ds_name, init.DSL(), datafile, (it-peakSites_.begin())+1))
-        return Action::ERR;
+    if (calcEnergy_) {
+      for (std::vector<PeakSite>::iterator it = peakSites_.begin(); it != peakSites_.end(); ++it)
+        if (it->AddEneDataSets(solvents_, ds_name, init.DSL(), datafile, (it-peakSites_.begin())+1))
+          return Action::ERR;
+    }
 
 /*    // Now add all of the individual peak energy data sets
     for (unsigned int i = 0; i < peaksData_->Size(); i++) {
@@ -335,8 +339,6 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     return Action::ERR;
   }
 
-  // Determine if energy calculation needs to happen
-  calcEnergy_ = (summaryfile != 0 || datafile != 0);
   // Set function for determining if water is inside peak
   if (sphere_)
     Inside_ = &Action_Spam::inside_sphere;
@@ -762,7 +764,7 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
 
   // Energy calculation
 
-  //if (calcEnergy_) {
+  if (calcEnergy_) {
     t_energy_.Start();
     // Energy associated with each peak
     std::vector<double> singleOccPeakEne( singleOccPeakIdx.size(), 0 );
@@ -797,7 +799,7 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
     }
 
     t_energy_.Stop();
-  //} // END calcEnergy_
+  } // END calcEnergy_
 
   Action::RetType ret = Action::OK;
   if (reorder_) {
