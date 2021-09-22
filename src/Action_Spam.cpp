@@ -1190,14 +1190,16 @@ void Action_Spam::Print() {
       int n_peaks_no_energy = 0;
       for (int p = 0; p != (int)peakSites_.size(); p++)
       {
-        for (PeakSite::const_iterator solv = peakSites_[p].begin(); solv != peakSites_[p].end(); ++solv)
-        {
-          int err = Calc_G_Wat( solv->DS(), p, solv->Omitted() );
+        int err = Calc_G_Peak(p, peakSites_[p]);
+//
+//        for (PeakSite::const_iterator solv = peakSites_[p].begin(); solv != peakSites_[p].end(); ++solv)
+//        {
+//          int err = Calc_G_Wat( solv->DS(), p, solv->Omitted() );
           if (err == 1)
             n_peaks_no_energy++;
           else if (err == -1)
             mprintf("Warning: Error calculating SPAM energies for peak %i\n", p + 1);
-        }
+//        }
       }
       if (n_peaks_no_energy > 0)
         mprintf("Warning: No energies for %i peaks.\n", n_peaks_no_energy);
