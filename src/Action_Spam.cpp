@@ -864,6 +864,23 @@ const
   if (debug_ > 0)
     mprintf("DEBUG: peak %6i sumQ= %20.10E\n", peaknum+1, sumQ);
   DG = -RT * log(BWfac * sumQ);
+
+  // DEBUG
+  if (debug_ > 1) {
+    FileName rawname("dbgraw." + integerToString(peaknum+1) + ".dat");
+    FileName kdename("dbgkde." + integerToString(peaknum+1) + ".dat");
+    mprintf("DEBUG: Writing peak %u raw energy values to '%s', KDE histogram to '%s'\n",
+            peaknum+1, rawname.full(), kdename.full());
+    DataFile rawout;
+    rawout.SetupDatafile( rawname, 0 );
+    rawout.AddDataSet( (DataSet*)(&enevec) );
+    rawout.WriteDataOut();
+    DataFile kdeout;
+    kdeout.SetupDatafile( kdename, 0 );
+    kdeout.AddDataSet( &kde1 );
+    kdeout.WriteDataOut();
+  }
+
   return 0;
 }
 
@@ -946,6 +963,8 @@ int Action_Spam::Calc_G_Peak(unsigned int peakNum, PeakSite const& peakSite) con
       // The reference for the next solvents will be this solvent
       G_ref = DG;
       H_ref = Havg.mean();
+    } else {
+      mprintf("# Peak %8u DG= %16.8E  DH= %16.8E  TDS= %16.8E\n", adjustedDG, adjustedDH, ntds);
     }
 
   } // END loop over solvent types for peak
