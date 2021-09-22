@@ -1070,8 +1070,13 @@ void Action_Spam::Print() {
         for (Iarray::const_iterator it = peakFrameData.begin(); it != peakFrameData.end(); ++it)
           if (*it < 0)
             ndouble++;
-        infofile_->Printf("# Peak %li has %zu omitted frames (%u double-occupied)\n", //TODO add solv idx
-                          peak - peakSites_.begin() + 1, peakFrameData.size(), ndouble);
+        if (solvents_.size() == 1)
+          infofile_->Printf("# Peak %li has %zu omitted frames (%u double-occupied)\n",
+                            peak - peakSites_.begin() + 1, peakFrameData.size(), ndouble);
+        else
+          infofile_->Printf("# Peak %li solvent %li has %zu omitted frames (%u double-occupied)\n",
+                            peak - peakSites_.begin() + 1, 
+                            solv - peak->begin() + 1, peakFrameData.size(), ndouble);
         // Print omitted frames
         for (unsigned int j = 0; j < peakFrameData.size(); j++) {
           if (j > 0 && j % 10 == 0) infofile_->Printf("\n");
