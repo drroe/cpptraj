@@ -55,12 +55,11 @@ class Action_Spam: public Action {
     // ------------------- Functions -------------------
     DataSet_Vector_Scalar* GetPeaksData(std::string const&, DataSetList const&);
     int SetupParms(Topology const&);
+    RetType DoPureWater(int, Frame const&);
+    RetType SpamCalc(int, Frame&);
     int Calc_G(double&, int, double, double, double, DataSet_double const&) const;
     int Calc_Bulk() const;
     int Calc_G_Peak(unsigned int, PeakSite const&) const;
-    int Calc_G_Wat(DataSet*, int, Iarray const&);
-    RetType DoPureWater(int, Frame const&);
-    RetType SpamCalc(int, Frame&);
 
     typedef bool (Action_Spam::*FxnType)(Vec3 const&, Vec3 const&, double) const;
     bool inside_box(Vec3 const&, Vec3 const&, double) const;

@@ -971,128 +971,6 @@ int Action_Spam::Calc_G_Peak(unsigned int peakNum, PeakSite const& peakSite) con
   return 0;
 }
 
-/** Calculate the DELTA G of an individual water site */
-int Action_Spam::Calc_G_Wat(DataSet* dsIn, int peaknum, Iarray const& SkipFrames)
-{
-  DataSet_1D const& dataIn = static_cast<DataSet_1D const&>( *dsIn );
-  // Create energy vector containing only frames that are singly-occupied.
-  // Calculate the mean (enthalpy) while doing this.
-  DataSet_double enevec;
-  Stats<double> Havg;
-  double min = 0.0, max = 0.0;
-  if (!SkipFrames.empty()) {
-    Iarray::const_iterator fnum = SkipFrames.begin();
-    for (int frm = 0; frm != (int)dataIn.Size(); frm++) {
-      bool frameIsSkipped = (fnum != SkipFrames.end() && absval(*fnum) == frm);
-      if (frameIsSkipped)
-        ++fnum;
-      else {
-        double ene = dataIn.Dval(frm);
-        if (enevec.Size() < 1) {
-          min = ene; 
-          max = ene;
-        } else {
-          min = std::min(min, ene);
-          max = std::max(max, ene);
-        }
-        enevec.AddElement( ene );
-        Havg.accumulate( ene );
-      }
-    }
-  } else {
-    min = dataIn.Dval(0);
-    max = dataIn.Dval(0);
-    for (unsigned int frm = 0; frm != dataIn.Size(); frm++) {
-      double ene = dataIn.Dval(frm);
-      min = std::min(min, ene);
-      max = std::max(max, ene);
-      enevec.AddElement( ene );
-      Havg.accumulate( ene );
-    }
-  }
-  if (enevec.Size() < 1)
-    return 1;
-  // Calculate distribution of energy values using KDE. Get the bandwidth
-  // factor here since we already know the SD.
-  double BWfac = KDE::BandwidthFactor( enevec.Size() );
-  if (debug_ > 0)
-    mprintf("DEBUG:\tNvals=%zu min=%g max=%g BWfac=%g\n", enevec.Size(), min, max, BWfac);
-  // Estimate number of bins the same way spamstats.py does.
-  int nbins = (int)(((max - min) / BWfac) + 0.5) + 100;
-  if (nbins < 0) {
-    // Probably an overflow due to extremely large energy.
-    mprintf("Warning: Large magnitude energy observed for peak %i (min=%g max=%g)\n",
-            peaknum+1, min, max);
-    mprintf("Warning: Skipping peak.\n");
-    return -1;
-  }
-
-  HistBin Xdim(nbins, min - (50*BWfac), BWfac, "P(Ewat)");
-  //Xdim.CalcBinsOrStep(min - Havg.variance(), max + Havg.variance(), 0.0, nbins, "P(Ewat)");
-  if (debug_ > 0) {
-    mprintf("DEBUG:");
-    Xdim.PrintHistBin();
-  }
-  DataSet_double kde1;
-  KDE gkde;
-  double bandwidth;
-  if (enevec.Size() == 1) {
-    // Special case. Juse use BWfac to avoid a zero bandwidth.
-    bandwidth = BWfac;
-  } else
-    bandwidth = 1.06 * sqrt(Havg.variance()) * BWfac;
-  if (gkde.CalcKDE( kde1, enevec, Xdim, bandwidth )) {
-    mprinterr("Error: Could not calculate E KDE histogram.\n");
-    return -1;
-  }
-  kde1.SetupFormat() = TextFormat(TextFormat::GDOUBLE, 12, 5);
-  // Determine SUM[ P(Ewat) * exp(-Ewat / RT) ]
-  double RT = Constants::GASK_KCAL * temperature_;
-  double KB = 1.0 / RT;
-  double sumQ = 0.0;
-  for (unsigned int i = 0; i != kde1.Size(); i++) {
-    double Ewat = kde1.Xcrd(i);
-    double PEwat = kde1.Dval(i);
-    sumQ += (PEwat * exp( -Ewat * KB ));
-    //mprintf("DEBUG:\t\tEwat %20.10E PEwat %20.10E sumQ %20.10E\n", Ewat, PEwat, sumQ);
-  }
-  if (debug_ > 0)
-    mprintf("DEBUG: peak %6i sumQ= %20.10E\n", peaknum+1, sumQ);
-  double DG = -RT * log(BWfac * sumQ);
-
-  double adjustedDG = DG - DG_BULK_;
-  double adjustedDH = Havg.mean() - DH_BULK_;
-  double ntds = adjustedDG - adjustedDH;
-
-  if (ds_dg_ == 0) {
-    mprintf("\tSPAM bulk energy values:\n"
-            "\t  <G>= %g, <H>= %g +/- %g, -TdS= %g\n", adjustedDG, adjustedDH,
-            sqrt(Havg.variance()), ntds);
-  } else {
-    ((DataSet_Mesh*)ds_dg_)->AddXY(peaknum+1, adjustedDG);
-    ((DataSet_Mesh*)ds_dh_)->AddXY(peaknum+1, adjustedDH);
-    ((DataSet_Mesh*)ds_ds_)->AddXY(peaknum+1, ntds);
-  }
-
-  // DEBUG
-  if (debug_ > 1) {
-    FileName rawname("dbgraw." + integerToString(peaknum+1) + ".dat");
-    FileName kdename("dbgkde." + integerToString(peaknum+1) + ".dat");
-    mprintf("DEBUG: Writing peak %u raw energy values to '%s', KDE histogram to '%s'\n",
-            peaknum+1, rawname.full(), kdename.full());
-    DataFile rawout;
-    rawout.SetupDatafile( rawname, 0 );
-    rawout.AddDataSet( &enevec );
-    rawout.WriteDataOut();
-    DataFile kdeout;
-    kdeout.SetupDatafile( kdename, 0 );
-    kdeout.AddDataSet( &kde1 );
-    kdeout.WriteDataOut();
-  }
-
-  return 0;
-}
-
 #ifdef MPI
 int Action_Spam::SyncAction() {
   // Get total number of frames.
@@ -1191,15 +1069,10 @@ void Action_Spam::Print() {
       for (int p = 0; p != (int)peakSites_.size(); p++)
       {
         int err = Calc_G_Peak(p, peakSites_[p]);
-//
-//        for (PeakSite::const_iterator solv = peakSites_[p].begin(); solv != peakSites_[p].end(); ++solv)
-//        {
-//          int err = Calc_G_Wat( solv->DS(), p, solv->Omitted() );
-          if (err == 1)
-            n_peaks_no_energy++;
-          else if (err == -1)
-            mprintf("Warning: Error calculating SPAM energies for peak %i\n", p + 1);
-//        }
+        if (err == 1)
+          n_peaks_no_energy++;
+        else if (err == -1)
+          mprintf("Warning: Error calculating SPAM energies for peak %i\n", p + 1);
       }
       if (n_peaks_no_energy > 0)
         mprintf("Warning: No energies for %i peaks.\n", n_peaks_no_energy);
