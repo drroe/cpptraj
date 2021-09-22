@@ -243,6 +243,8 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     // Shouldn't need any more arguments.
     if (actionArgs.NremainingArgs() > 0)
       mprintf("Warning: 'purewater' specified but more arguments remain.\n");
+    // Add bulk water info; only need name if not calculating peaks
+    solvents_.push_back( SolventInfo(0, 0, solvname_) );
   } else {
     // Get the file/dataset name with the peaks defined in it
     std::string peaksname = actionArgs.GetStringNext();
