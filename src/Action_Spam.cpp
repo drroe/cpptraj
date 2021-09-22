@@ -712,16 +712,18 @@ int Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
   std::vector<unsigned int> numTimesPeakAssigned( peakSites_.size(), 0 );
   // Hold indices into solvResArray_ for solvent occupying a peak.
   std::vector<int> peakResIdx( peakSites_.size(), -1 );
-  // Hold indices into solvResArray_ for solvent singly-occupying a peak.
-  std::vector<int> singleOccSolvResIdx;
-  // Hold indices into peakSites_ for singly-occupied peaks.
-  std::vector<int> singleOccPeakIdx;
   for (Iarray::const_iterator peak = resPeakNum_.begin();
                               peak != resPeakNum_.end(); ++peak)
+  {
     if (*peak > -1) {
       numTimesPeakAssigned[*peak]++;
       peakResIdx[*peak] = (peak-resPeakNum_.begin());
     }
+  }
+  // Hold indices into solvResArray_ for solvent singly-occupying a peak.
+  std::vector<int> singleOccSolvResIdx;
+  // Hold indices into peakSites_ for singly-occupied peaks.
+  std::vector<int> singleOccPeakIdx;
   for (unsigned int idx = 0; idx != peakSites_.size(); ++idx)
   {
     if (numTimesPeakAssigned[idx] == 0)
@@ -754,7 +756,7 @@ int Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
   //if (calcEnergy_) {
     t_energy_.Start();
     // Energy associated with each peak
-    std::vector<double> peakEne( peakSites_.size(), 0 );
+    std::vector<double> singleOccPeakEne( singleOccPeakIdx.size(), 0 );
     for (int atom0 = 0; atom0 != frameIn.Natom(); atom0++)
     {
       const double* atm1 = frameIn.XYZ(atom0);
@@ -768,7 +770,7 @@ int Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
           // Get imaged distance
           double dist2 = DIST2( imageOpt_.ImagingType(), atm1, atm2, frameIn.BoxCrd() );
           if (dist2 < cut2_) {
-            double qiqj = atom_charge_[atom0] * atom_charge_[resat1];
+            /*double qiqj = atom_charge_[atom0] * atom_charge_[resat1];
             NonbondType const& LJ = CurrentParm_->GetLJparam(atom0, resat1);
             double r2 = 1 / dist2;
             double r6 = r2 * r2 * r2;
@@ -778,14 +780,15 @@ int Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
             double eval = qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
             //if (i > 2 && i < 6)
             //  mprintf("DEBUG: %6i %6i %8.3f %8.3f\n", i, j, sqrt(dist2), eval);
-            peakEne[singleOccPeakIdx[idx]] += eval;
+            peakEne[singleOccPeakIdx[idx]] += eval;*/
+            singleOccPeakEne[idx] += Ecalc(atom0, resat1, dist2);
           }
         } // END loop over solvent residue atoms
       } // END loop over singly occupied peaks
     } // END loop over all atoms
     mprintf("DEBUG: Singly-occupied peak energies:\n");
-    for (std::vector<int>::const_iterator it = singleOccPeakIdx.begin(); it != singleOccPeakIdx.end(); ++it)
-      mprintf("%8i : %g\n", *it, peakEne[*it]);
+    for (unsigned int idx = 0; idx != singleOccPeakIdx.size(); idx++)
+      mprintf("%8i : %g\n", singleOccPeakIdx[idx], singleOccPeakEne[idx]);
 
     t_energy_.Stop();
   //} // END calcEnergy_
