@@ -49,19 +49,19 @@ class Action_Spam: public Action {
     class PeakSite;
 
     typedef std::vector<int> Iarray;
-    typedef std::vector<Iarray> Parray; ///< Peak array type
+//    typedef std::vector<Iarray> Parray; ///< Peak array type
     typedef std::vector<double> Darray;
-    typedef std::vector<Vec3> Varray;
-    typedef std::vector<Residue> Rarray;
+//    typedef std::vector<Vec3> Varray;
+//    typedef std::vector<Residue> Rarray;
     typedef std::vector<DataSet*> DSarray;
 
     // ------------------- Functions -------------------
     int SetupParms(Topology const&);
-    double Calculate_Energy(Frame const&, Residue const&);
-    int Calc_G_Wat(DataSet*, unsigned int);
+    //double Calculate_Energy(Frame const&, Residue const&);
+    int Calc_G_Wat(DataSet*, int, Iarray const&);
     // Custom Do- routines
     Action::RetType DoPureWater(int, Frame const&);
-    Action::RetType DoSPAM(int, Frame&);
+    //Action::RetType DoSPAM(int, Frame&);
 
     DataSet_Vector_Scalar* GetPeaksData(std::string const&, DataSetList const&);
 
@@ -71,7 +71,7 @@ class Action_Spam: public Action {
 
     inline double Ecalc(int, int, double) const;
 
-    int SpamCalc(int, Frame&);
+    RetType SpamCalc(int, Frame&);
 
     int debug_;
     FxnType Inside_;          ///< Function for determining if water is inside peak.
@@ -95,13 +95,14 @@ class Action_Spam: public Action {
     Topology* CurrentParm_;   ///< Current topology (for NB params).
     Darray atom_charge_;      ///< Charges that have been converted to Amber units
     bool sphere_;             ///< Is our site shape a sphere? If no, it's a box.
+    DataSet* bulk_ene_set_;   ///< Hold bulk solvent energies (purewater_)
     DataSet* ds_dg_;          ///< Hold final delta G values for each peak
     DataSet* ds_dh_;          ///< Hold final delta H values for each peak
     DataSet* ds_ds_;          ///< Hold final -T*S values for each peak
-    Parray peakFrameData_;    ///< A list of all omitted frames for each peak
-    DSarray myDSL_;           ///< Hold energy data sets
-    Varray comlist_;          ///< For given frame, each residue C.O.M. coords.
-    Rarray solvent_residues_; ///< List of each solvent residue
+//    Parray peakFrameData_;    ///< A list of all omitted frames for each peak
+//    DSarray myDSL_;           ///< Hold energy data sets
+//    Varray comlist_;          ///< For given frame, each residue C.O.M. coords.
+//    Rarray solvent_residues_; ///< List of each solvent residue
     int Nframes_;             ///< Total number of frames
     bool overflow_;           ///< True if cutoff overflowed our box coordinates
     DataSetList peaksdsl_;    ///< Will allocate DataSet for peaks data if loading from a file.
@@ -170,7 +171,9 @@ class Action_Spam::SolventPeak {
     /// Add an omitted frame number to omitted_
     void AddOmittedFrameNum(int fn) { omitted_.push_back( fn ); }
     /// \return the energy DataSet pointer
-    DataSet* DS() { return energies_; }
+    DataSet* DS() const { return energies_; }
+    /// \return Omitted frames array
+    Iarray const& Omitted() const { return omitted_; }
   private:
     DataSet* energies_; ///< Hold solvent energies for this peak.
     Iarray omitted_;   ///< Hold info on frames for which no solvent energies calcd.
@@ -187,7 +190,7 @@ class Action_Spam::PeakSite {
     /// \return XYZ coords of peak location
     Vec3 const& XYZ() const { return xyz_; }
     /// Add an energy DataSet for each solvent in given array
-    int AddEneDataSets(std::vector<SolventInfo> const&, std::string const&, DataSetList&, unsigned int);
+    int AddEneDataSets(std::vector<SolventInfo> const&, std::string const&, DataSetList&, DataFile*, unsigned int);
     /// Add given frame number to omitted array for all solvents
     void AddOmittedFrame(int fn, unsigned int count) {
       for (SolvPeakArray::iterator it = solvPeaks_.begin(); it != solvPeaks_.end(); ++it) {
@@ -206,6 +209,12 @@ class Action_Spam::PeakSite {
         else
           solvPeaks_[sidx].AddOmittedFrameNum( fn );
     }
+
+    typedef SolvPeakArray::const_iterator const_iterator;
+    /// \return iterator to beginning of solvent peak array
+    const_iterator begin() const { return solvPeaks_.begin(); }
+    /// \return iterator to end of solvent peak array
+    const_iterator end()   const { return solvPeaks_.end(); }
   private:
     static const double ZERO_;
 

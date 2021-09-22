@@ -83,7 +83,7 @@ Action_Spam::PeakSite::PeakSite(Vec3 const& xyzIn) :
 /** Add output energy DataSets for each solvent type in given array. */
 int Action_Spam::PeakSite::AddEneDataSets(std::vector<SolventInfo> const& solvents,
                                           std::string const& dsname,
-                                          DataSetList& DSL, unsigned int peakIdx)
+                                          DataSetList& DSL, DataFile* df, unsigned int peakIdx)
 {
   solvPeaks_.clear();
   MetaData meta(dsname, peakIdx);
@@ -99,6 +99,8 @@ int Action_Spam::PeakSite::AddEneDataSets(std::vector<SolventInfo> const& solven
       return 1;
     }
     solvPeaks_.push_back( SolventPeak(ds) );
+    if (df != 0)
+      df->AddDataSet( ds );
   }
   return 0;
 }
@@ -119,6 +121,7 @@ Action_Spam::Action_Spam() :
   infofile_(0),
   site_size_(2.5),
   sphere_(false),
+  bulk_ene_set_(0),
   ds_dg_(0),
   ds_dh_(0),
   ds_ds_(0),
@@ -231,11 +234,10 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
 
   if (purewater_) {
     // We only have one data set averaging over every water. Add it here
-    DataSet* ds = init.DSL().AddSet(DataSet::DOUBLE, MetaData(ds_name));
-    if (ds == 0) return Action::ERR;
-    if (datafile != 0) datafile->AddDataSet( ds );
-    ds->ModifyDim(Dimension::X).SetLabel("Index");
-    myDSL_.push_back( ds );
+    bulk_ene_set_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(ds_name));
+    if (bulk_ene_set_ == 0) return Action::ERR;
+    if (datafile != 0) datafile->AddDataSet( bulk_ene_set_ );
+    bulk_ene_set_->ModifyDim(Dimension::X).SetLabel("Index");
     DG_BULK_ = 0.0;
     DH_BULK_ = 0.0;
     // Shouldn't need any more arguments.
@@ -295,17 +297,16 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
 
     // Add DataSets for each solvent to all peak sites
     for (std::vector<PeakSite>::iterator it = peakSites_.begin(); it != peakSites_.end(); ++it)
-      // FIXME remove T, only for debug
-      if (it->AddEneDataSets(solvents_, "T"+ds_name, init.DSL(), (it-peakSites_.begin())+1))
+      if (it->AddEneDataSets(solvents_, ds_name, init.DSL(), datafile, (it-peakSites_.begin())+1))
         return Action::ERR;
 
-    // Now add all of the individual peak energy data sets
+/*    // Now add all of the individual peak energy data sets
     for (unsigned int i = 0; i < peaksData_->Size(); i++) {
       DataSet* ds = init.DSL().AddSet(DataSet::DOUBLE, MetaData(ds_name,i+1));
       if (ds == 0) return Action::ERR;
       myDSL_.push_back( ds );
       if (datafile != 0) datafile->AddDataSet( ds );
-    }
+    }*/
     // Make the peak overall energy sets Mesh so we can skip unoccupied peaks
     Dimension Pdim( 1.0, 0.0, "Peak" );
     ds_dg_ = init.DSL().AddSet(DataSet::XYMESH, MetaData(ds_name,"DG"));
@@ -325,9 +326,6 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     ds_dh_->SetNeedsSync(false);
     ds_ds_->SetNeedsSync(false);
 #   endif
-    // peakFrameData will keep track of omitted frames for each peak.
-    peakFrameData_.clear();
-    peakFrameData_.resize( peaksData_->Size() );
   }
   // Determine if energy calculation needs to happen
   calcEnergy_ = (summaryfile != 0 || datafile != 0);
@@ -343,7 +341,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tCalculating bulk value for pure solvent\n");
     if (datafile != 0)
       mprintf("\tPrinting solvent energies to %s\n", datafile->DataFilename().full());
-    mprintf("\tData set '%s' index is water # * frame.\n", myDSL_[0]->legend());
+    mprintf("\tData set '%s' index is water # * frame.\n", bulk_ene_set_->legend());
     mprintf("\tUsing a %.2f Angstrom non-bonded cutoff with shifted EEL.\n",
             sqrt(cut2_));
     if (reorder_)
@@ -423,12 +421,12 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
   mprintf("DEBUG: Solvent residues\n");
   for (std::vector<SolventRes>::const_iterator it = solvResArray_.begin(); it != solvResArray_.end(); ++it)
     it->PrintInfo();
-  //if (solvResArray_.empty()) {
-  //  mprinterr("Error: No solvent residues.\n");
-  //  return Action::ERR;
-  //}
+  if (solvResArray_.empty()) {
+    mprinterr("Error: No solvent residues.\n");
+    return Action::ERR;
+  }
 
-  // Set up the solvent_residues_ vector
+  // Set up mask_ and watidx_ 
   mask_.ResetMask();
   int idx = 0;
   watidx_.clear();
@@ -437,25 +435,25 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
                               res != setup.Top().ResEnd(); res++)
   {
     if (res->Name().Truncated() == solvname_) {
-      solvent_residues_.push_back(*res);
+      //solvent_residues_.push_back(*res);
       // Tabulate COM
-      double mass = 0.0;
+      //double mass = 0.0;
       for (int i = res->FirstAtom(); i < res->LastAtom(); i++) {
         mask_.AddAtom( i );
         watidx_.push_back( idx ); // TODO currently purewater only - skip if not purewater?
-        mass += setup.Top()[i].Mass();
+        //mass += setup.Top()[i].Mass();
       }
       idx++;
     }
   }
-  if (solvent_residues_.empty()) {
-    mprinterr("Error: No solvent residues found with name '%s'\n", solvname_.c_str());
-    return Action::ERR;
-  }
-  resPeakNum_.reserve( solvent_residues_.size() );
-  comlist_.reserve( solvent_residues_.size() );
+//  if (solvent_residues_.empty()) {
+//    mprinterr("Error: No solvent residues found with name '%s'\n", solvname_.c_str());
+//    return Action::ERR;
+//  }
+  resPeakNum_.reserve( solvResArray_.size() );
+//  comlist_.reserve( solvent_residues_.size() );
 
-  mprintf("\tFound %zu solvent residues [%s]\n", solvent_residues_.size(),
+  mprintf("\tFound %zu solvent residues [%s]\n", solvResArray_.size(), // FIXME fix for multiple solvents
           solvname_.c_str());
 
   // Set up pair list
@@ -501,8 +499,8 @@ Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
   if (purewater_)
     return DoPureWater(frameNum, frm.Frm());
   else {
-    SpamCalc(frameNum, frm.ModifyFrm());
-    return DoSPAM(frameNum, frm.ModifyFrm());
+    return SpamCalc(frameNum, frm.ModifyFrm());
+    //return DoSPAM(frameNum, frm.ModifyFrm());
   }
 }
 
@@ -544,10 +542,10 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
     return Action::ERR;
   }
   int wat = 0, wat1 = 0;
-  int basenum = frameNum * solvent_residues_.size();
-  DataSet_double& evals = static_cast<DataSet_double&>( *myDSL_[0] );
+  int basenum = frameNum * solvResArray_.size();
+  DataSet_double& evals = static_cast<DataSet_double&>( *bulk_ene_set_ );
   // Make room for each solvent residue energy this frame.
-  evals.Resize( evals.Size() + solvent_residues_.size() );
+  evals.Resize( evals.Size() + solvResArray_.size() );
   t_energy_.Start();
   // Loop over all grid cells
   for (int cidx = 0; cidx < pairList_.NGridMax(); cidx++)
@@ -630,6 +628,7 @@ bool Action_Spam::inside_sphere(Vec3 const& gp, Vec3 const& pt, double rad2) con
 /** Calculate energy between given residue and all other residues in the
   * system within the cutoff.
   */
+/*
 double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
   // The first atom of the solvent residue we want the energy from
   double result = 0;
@@ -660,9 +659,10 @@ double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
   }
   return result;
 }
+*/
 
 /** Do the SPAM calculation for each solvent peak site. */
-int Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
+Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
   t_action_.Start();
   // For each solvent residue, try to find a peak that is close. If two peaks
   // are close only assign the closest peak.
@@ -714,7 +714,7 @@ int Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
   // Number of times peak is associated with a solvent residue.
   std::vector<unsigned int> numTimesPeakAssigned( peakSites_.size(), 0 );
   // Hold indices into solvResArray_ for solvent occupying a peak.
-  std::vector<int> peakResIdx( peakSites_.size(), -1 );
+  Iarray peakResIdx( peakSites_.size(), -1 );
   for (Iarray::const_iterator peak = resPeakNum_.begin();
                               peak != resPeakNum_.end(); ++peak)
   {
@@ -724,9 +724,9 @@ int Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
     }
   }
   // Hold indices into solvResArray_ for solvent singly-occupying a peak.
-  std::vector<int> singleOccSolvResIdx;
+  Iarray singleOccSolvResIdx;
   // Hold indices into peakSites_ for singly-occupied peaks.
-  std::vector<int> singleOccPeakIdx;
+  Iarray singleOccPeakIdx;
   for (unsigned int idx = 0; idx != peakSites_.size(); ++idx)
   {
     if (numTimesPeakAssigned[idx] == 1) {
@@ -744,8 +744,8 @@ int Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
     if (numTimesPeakAssigned[idx] > 0)
       mprintf("DEBUG:\t%8u %u (%i)\n", idx, numTimesPeakAssigned[idx], peakResIdx[idx]);
   mprintf("DEBUG: Singly-occupied peaks:\n");
-  for (std::vector<int>::const_iterator it = singleOccSolvResIdx.begin();
-                                        it != singleOccSolvResIdx.end(); ++it)
+  for (Iarray::const_iterator it = singleOccSolvResIdx.begin();
+                              it != singleOccSolvResIdx.end(); ++it)
     mprintf("DEBUG:\t%8i %8i - %8i\n", *it,
             solvResArray_[*it].At0()+1, solvResArray_[*it].At1()+1);
   
@@ -803,18 +803,19 @@ int Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
   //} // END calcEnergy_
 
   t_action_.Stop();
-  return 0;
+  return Action::OK;
 }
 
 // Action_Spam::DoSPAM
 /** Carries out SPAM analysis on a typical system */
+/*
 Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
   t_action_.Start();
   t_resCom_.Start();
-  /* A list of all solvent residues and the sites that they are reserved for. An
+  * A list of all solvent residues and the sites that they are reserved for. An
    * unreserved solvent residue has an index -1. At the end, we will go through
    * and re-order the frame if requested.
-   */
+   *
   resPeakNum_.assign(solvent_residues_.size(), -1);
   // Tabulate all of the COMs
   comlist_.clear();
@@ -851,11 +852,11 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
 
   t_assign_.Stop();
   t_occupy_.Start();
-  /* Now we have a vector of reservations. We want to make sure that each site
+  * Now we have a vector of reservations. We want to make sure that each site
    * is occupied once and only once. If a site is unoccupied, add frameNum to
    * this peak's data set in peakFrameData_. If a site is double-occupied, add
    * -frameNum to this peak's data set in peakFrameData_.
-   */
+   *
   typedef std::vector<bool> Barray;
   Barray occupied(peaksData_->Size(), false);
   Barray doubled(peaksData_->Size(), false); // to avoid double-additions
@@ -927,9 +928,9 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
   // If we have to re-order trajectories, do that here
   Action::RetType ret = Action::OK;
   if (reorder_) {
-    /* Loop over every occupied site and swap the atoms so the same solvent
+    * Loop over every occupied site and swap the atoms so the same solvent
      * residue is always in the same site
-     */
+     *
     for (int i = 0; i < (int)peaksData_->Size(); i++) {
       // Skip unoccupied sites
       if (!occupied[i]) continue;
@@ -954,11 +955,12 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
 
   return ret;
 }
+*/
 
 static inline int absval(int i) { if (i < 0) return -(i+1); else return i; }
 
 /** Calculate the DELTA G of an individual water site */
-int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
+int Action_Spam::Calc_G_Wat(DataSet* dsIn, int peaknum, Iarray const& SkipFrames)
 {
   DataSet_1D const& dataIn = static_cast<DataSet_1D const&>( *dsIn );
   // Create energy vector containing only frames that are singly-occupied.
@@ -966,8 +968,7 @@ int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
   DataSet_double enevec;
   Stats<double> Havg;
   double min = 0.0, max = 0.0;
-  if (!peakFrameData_.empty()) {
-    Iarray const& SkipFrames = peakFrameData_[peaknum];
+  if (!SkipFrames.empty()) {
     Iarray::const_iterator fnum = SkipFrames.begin();
     for (int frm = 0; frm != (int)dataIn.Size(); frm++) {
       bool frameIsSkipped = (fnum != SkipFrames.end() && absval(*fnum) == frm);
@@ -1008,7 +1009,7 @@ int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
   int nbins = (int)(((max - min) / BWfac) + 0.5) + 100;
   if (nbins < 0) {
     // Probably an overflow due to extremely large energy.
-    mprintf("Warning: Large magnitude energy observed for peak %u (min=%g max=%g)\n",
+    mprintf("Warning: Large magnitude energy observed for peak %i (min=%g max=%g)\n",
             peaknum+1, min, max);
     mprintf("Warning: Skipping peak.\n");
     return -1;
@@ -1044,7 +1045,7 @@ int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
     //mprintf("DEBUG:\t\tEwat %20.10E PEwat %20.10E sumQ %20.10E\n", Ewat, PEwat, sumQ);
   }
   if (debug_ > 0)
-    mprintf("DEBUG: peak %6u sumQ= %20.10E\n", peaknum+1, sumQ);
+    mprintf("DEBUG: peak %6i sumQ= %20.10E\n", peaknum+1, sumQ);
   double DG = -RT * log(BWfac * sumQ);
 
   double adjustedDG = DG - DG_BULK_;
@@ -1140,42 +1141,53 @@ void Action_Spam::Print() {
     if (overflow_)
       mprinterr("Warning: SPAM: Some frames had a box too small for the cutoff.\n");
 
-    // Print information about each missing peak
+    // Print information about omitted frames
     infofile_->Printf("# There are %zu density peaks and %d frames\n\n",
-                      peaksData_->Size(), Nframes_);
-    // Loop over every Data set
-    for (unsigned int i = 0; i < peakFrameData_.size(); i++) {
-      // Skip peaks with 0 unoccupied sites
-      if (peakFrameData_[i].size() == 0) continue;
-      // Find out how many double-occupied frames there are
-      int ndouble = 0;
-      for (unsigned int j = 0; j < peakFrameData_[i].size(); j++)
-        if (peakFrameData_[i][j] < 0) ndouble++;
-      infofile_->Printf("# Peak %u has %d omitted frames (%d double-occupied)\n",
-                        i+1, (int)peakFrameData_[i].size(), ndouble);
-      for (unsigned int j = 0; j < peakFrameData_[i].size(); j++) {
-        if (j > 0 && j % 10 == 0) infofile_->Printf("\n");
-        // Adjust frame number.
-        int fnum = peakFrameData_[i][j];
-        if (fnum > -1)
-          fnum++;
-        infofile_->Printf(" %7d", fnum);
+                      peakSites_.size(), Nframes_);
+    // Loop over every peak
+    for (std::vector<PeakSite>::const_iterator peak = peakSites_.begin();
+                                               peak != peakSites_.end(); ++peak)
+    {
+      // Loop over every solvent type
+      for (PeakSite::const_iterator solv = peak->begin(); solv != peak->end(); ++solv)
+      {
+        Iarray const& peakFrameData = solv->Omitted();
+        // Skip peaks with 0 omitted frames
+        if (peakFrameData.empty()) continue;
+        // Find out how many multiple-occupied frames there are
+        unsigned int ndouble = 0;
+        for (Iarray::const_iterator it = peakFrameData.begin(); it != peakFrameData.end(); ++it)
+          if (*it < 0)
+            ndouble++;
+        infofile_->Printf("# Peak %li has %zu omitted frames (%u double-occupied)\n", //TODO add solv idx
+                          peak - peakSites_.begin() + 1, peakFrameData.size(), ndouble);
+        // Print omitted frames
+        for (unsigned int j = 0; j < peakFrameData.size(); j++) {
+          if (j > 0 && j % 10 == 0) infofile_->Printf("\n");
+          // Adjust frame number.
+          int fnum = peakFrameData[j];
+          if (fnum > -1)
+            fnum++;
+          infofile_->Printf(" %7d", fnum);
+        }
+        infofile_->Printf("\n\n");
       }
-      infofile_->Printf("\n\n");
     }
 
-    unsigned int p = 0;
     int n_peaks_no_energy = 0;
-    for (DSarray::const_iterator ds = myDSL_.begin(); ds != myDSL_.end(); ++ds, ++p)
+    for (int p = 0; p != (int)peakSites_.size(); p++)
     {
-      int err = Calc_G_Wat( *ds, p );
-      if (err == 1)
-        n_peaks_no_energy++;
-      else if (err == -1)
-        mprintf("Warning: Error calculating SPAM energies for peak %u\n", p + 1);
+      for (PeakSite::const_iterator solv = peakSites_[p].begin(); solv != peakSites_[p].end(); ++solv)
+      {
+        int err = Calc_G_Wat( solv->DS(), p, solv->Omitted() );
+        if (err == 1)
+          n_peaks_no_energy++;
+        else if (err == -1)
+          mprintf("Warning: Error calculating SPAM energies for peak %i\n", p + 1);
+      }
     }
     if (n_peaks_no_energy > 0)
       mprintf("Warning: No energies for %i peaks.\n", n_peaks_no_energy);
   } else
-    Calc_G_Wat( myDSL_[0], 0 );
+    Calc_G_Wat( bulk_ene_set_, -1, Iarray() );
 }
