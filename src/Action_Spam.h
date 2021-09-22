@@ -49,29 +49,20 @@ class Action_Spam: public Action {
     class PeakSite;
 
     typedef std::vector<int> Iarray;
-//    typedef std::vector<Iarray> Parray; ///< Peak array type
     typedef std::vector<double> Darray;
-//    typedef std::vector<Vec3> Varray;
-//    typedef std::vector<Residue> Rarray;
-    typedef std::vector<DataSet*> DSarray;
 
     // ------------------- Functions -------------------
-    int SetupParms(Topology const&);
-    //double Calculate_Energy(Frame const&, Residue const&);
-    int Calc_G_Wat(DataSet*, int, Iarray const&);
-    // Custom Do- routines
-    Action::RetType DoPureWater(int, Frame const&);
-    //Action::RetType DoSPAM(int, Frame&);
-
     DataSet_Vector_Scalar* GetPeaksData(std::string const&, DataSetList const&);
+    int SetupParms(Topology const&);
+    int Calc_G_Wat(DataSet*, int, Iarray const&);
+    RetType DoPureWater(int, Frame const&);
+    RetType SpamCalc(int, Frame&);
 
     typedef bool (Action_Spam::*FxnType)(Vec3 const&, Vec3 const&, double) const;
     bool inside_box(Vec3 const&, Vec3 const&, double) const;
     bool inside_sphere(Vec3 const&, Vec3 const&, double) const;
 
     inline double Ecalc(int, int, double) const;
-
-    RetType SpamCalc(int, Frame&);
 
     int debug_;
     FxnType Inside_;          ///< Function for determining if water is inside peak.
@@ -99,10 +90,7 @@ class Action_Spam: public Action {
     DataSet* ds_dg_;          ///< Hold final delta G values for each peak
     DataSet* ds_dh_;          ///< Hold final delta H values for each peak
     DataSet* ds_ds_;          ///< Hold final -T*S values for each peak
-//    Parray peakFrameData_;    ///< A list of all omitted frames for each peak
-//    DSarray myDSL_;           ///< Hold energy data sets
-//    Varray comlist_;          ///< For given frame, each residue C.O.M. coords.
-//    Rarray solvent_residues_; ///< List of each solvent residue
+
     int Nframes_;             ///< Total number of frames
     bool overflow_;           ///< True if cutoff overflowed our box coordinates
     DataSetList peaksdsl_;    ///< Will allocate DataSet for peaks data if loading from a file.

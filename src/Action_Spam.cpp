@@ -306,13 +306,6 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
           return Action::ERR;
     }
 
-/*    // Now add all of the individual peak energy data sets
-    for (unsigned int i = 0; i < peaksData_->Size(); i++) {
-      DataSet* ds = init.DSL().AddSet(DataSet::DOUBLE, MetaData(ds_name,i+1));
-      if (ds == 0) return Action::ERR;
-      myDSL_.push_back( ds );
-      if (datafile != 0) datafile->AddDataSet( ds );
-    }*/
     // Make the peak overall energy sets Mesh so we can skip unoccupied peaks
     Dimension Pdim( 1.0, 0.0, "Peak" );
     ds_dg_ = init.DSL().AddSet(DataSet::XYMESH, MetaData(ds_name,"DG"));
@@ -445,23 +438,15 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
                               res != setup.Top().ResEnd(); res++)
   {
     if (res->Name().Truncated() == solvname_) {
-      //solvent_residues_.push_back(*res);
-      // Tabulate COM
-      //double mass = 0.0;
       for (int i = res->FirstAtom(); i < res->LastAtom(); i++) {
         mask_.AddAtom( i );
         watidx_.push_back( idx ); // TODO currently purewater only - skip if not purewater?
-        //mass += setup.Top()[i].Mass();
       }
       idx++;
     }
   }
-//  if (solvent_residues_.empty()) {
-//    mprinterr("Error: No solvent residues found with name '%s'\n", solvname_.c_str());
-//    return Action::ERR;
-//  }
+  // Reserve space to hold assigned peak for each solvent residue
   resPeakNum_.reserve( solvResArray_.size() );
-//  comlist_.reserve( solvent_residues_.size() );
 
   mprintf("\tFound %zu solvent residues [%s]\n", solvResArray_.size(), // FIXME fix for multiple solvents
           solvname_.c_str());
@@ -510,7 +495,6 @@ Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
     return DoPureWater(frameNum, frm.Frm());
   else {
     return SpamCalc(frameNum, frm.ModifyFrm());
-    //return DoSPAM(frameNum, frm.ModifyFrm());
   }
 }
 
@@ -634,43 +618,6 @@ bool Action_Spam::inside_sphere(Vec3 const& gp, Vec3 const& pt, double rad2) con
            (gp[2]-pt[2])*(gp[2]-pt[2]) < rad2 );
 }
 
-// Action_Spam::Calculate_Energy()
-/** Calculate energy between given residue and all other residues in the
-  * system within the cutoff.
-  */
-/*
-double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
-  // The first atom of the solvent residue we want the energy from
-  double result = 0;
-
-  // Now loop through all atoms in the residue and loop through the pairlist to
-  // get the energies
-  for (int i = res.FirstAtom(); i < res.LastAtom(); i++) {
-    const double* atm1 = frameIn.XYZ(i);
-    for (int j = 0; j < CurrentParm_->Natom(); j++) {
-      if (j >= res.FirstAtom() && j < res.LastAtom()) continue;
-      const double* atm2 = frameIn.XYZ(j);
-      // Get imaged distance
-      double dist2 = DIST2( imageOpt_.ImagingType(), atm1, atm2, frameIn.BoxCrd() );
-      if (dist2 < cut2_) {
-        double qiqj = atom_charge_[i] * atom_charge_[j];
-        NonbondType const& LJ = CurrentParm_->GetLJparam(i, j);
-        double r2 = 1 / dist2;
-        double r6 = r2 * r2 * r2;
-        // Shifted electrostatics: qiqj/r * (1-r/rcut)^2 + VDW
-        double shift = (1 - dist2 * onecut2_);
-        //result += qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
-        double eval = qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
-        //if (i > 2 && i < 6)
-        //  mprintf("DEBUG: %6i %6i %8.3f %8.3f\n", i, j, sqrt(dist2), eval);
-        result += eval;
-      }
-    }
-  }
-  return result;
-}
-*/
-
 /** Do the SPAM calculation for each solvent peak site. */
 Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
   t_action_.Start();
@@ -763,7 +710,6 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
   t_occupy_.Stop();
 
   // Energy calculation
-
   if (calcEnergy_) {
     t_energy_.Start();
     // Energy associated with each peak
@@ -827,157 +773,7 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
   return ret;
 }
 
-// Action_Spam::DoSPAM
-/** Carries out SPAM analysis on a typical system */
-/*
-Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
-  t_action_.Start();
-  t_resCom_.Start();
-  * A list of all solvent residues and the sites that they are reserved for. An
-   * unreserved solvent residue has an index -1. At the end, we will go through
-   * and re-order the frame if requested.
-   *
-  resPeakNum_.assign(solvent_residues_.size(), -1);
-  // Tabulate all of the COMs
-  comlist_.clear();
-  for (Rarray::const_iterator res = solvent_residues_.begin();
-                              res != solvent_residues_.end(); res++)
-    comlist_.push_back(frameIn.VCenterOfMass(res->FirstAtom(), res->LastAtom()));
-  t_resCom_.Stop();
-  t_assign_.Start();
-  // Loop through each peak and then scan through every residue, and assign a
-  // solvent residue to each peak
-  for (unsigned int pknum = 0; pknum < peaksData_->Size(); pknum++)
-  {
-    Vec3 const& pk = peaksData_->Vec( pknum );
-    for (unsigned int resnum = 0; resnum != comlist_.size(); resnum++)
-    {
-      // If we're inside, make sure this residue is not already `claimed'. If it
-      // is, assign it to the closer peak center
-      if ((this->*Inside_)(pk, comlist_[resnum], site_size_)) {
-        if (resPeakNum_[resnum] > 0) {
-          Vec3 diff1 = comlist_[resnum] - pk;
-          Vec3 diff2 = comlist_[resnum] - peaksData_->Vec( resPeakNum_[resnum] );
-          // If we are closer, update. Otherwise do nothing
-          if (diff1.Magnitude2() < diff2.Magnitude2())
-            resPeakNum_[resnum] = pknum;
-        } else
-          resPeakNum_[resnum] = pknum;
-      }
-    }
-  }
-  mprintf("DEBUG: Peak assignments for each solvent idx (old):\n");
-  for (Iarray::const_iterator it = resPeakNum_.begin(); it != resPeakNum_.end(); ++it)
-    if (*it > -1)
-      mprintf("DEBUG:\t%8li %i\n", it - resPeakNum_.begin(), *it);
-
-  t_assign_.Stop();
-  t_occupy_.Start();
-  * Now we have a vector of reservations. We want to make sure that each site
-   * is occupied once and only once. If a site is unoccupied, add frameNum to
-   * this peak's data set in peakFrameData_. If a site is double-occupied, add
-   * -frameNum to this peak's data set in peakFrameData_.
-   *
-  typedef std::vector<bool> Barray;
-  Barray occupied(peaksData_->Size(), false);
-  Barray doubled(peaksData_->Size(), false); // to avoid double-additions
-  for (Iarray::const_iterator it = resPeakNum_.begin();
-                              it != resPeakNum_.end(); it++)
-  {
-    if (*it > -1) {
-      if (!occupied[*it])
-        occupied[*it] = true;
-      else if (!doubled[*it]) {
-        peakFrameData_[*it].push_back(-frameNum-1); // double-occupied, frameNum will be ignored
-        doubled[*it] = true;
-      }
-    }
-  }
-  // DEBUG - print peak assignment stats
-  mprintf("DEBUG: Peak assignment stats:\n");
-  for (unsigned int idx = 0; idx < peaksData_->Size(); idx++)
-    if (occupied[idx] || doubled[idx])
-      mprintf("DEBUG:\t%8u occ=%i double=%i\n", idx, (int)occupied[idx], (int)doubled[idx]);
-
-  // Now loop through and add all non-occupied sites
-  for (unsigned int i = 0; i < peaksData_->Size(); i++)
-    if (!occupied[i]) 
-      peakFrameData_[i].push_back(frameNum);
-  // Now adjust the occupied vectors to only contain 'true' for sites we need to
-  // analyze (i.e., make all doubled points 'unoccupied')
-  for (unsigned int i = 0; i < peaksData_->Size(); i++)
-    if (doubled[i])
-      occupied[i] = false;
-  t_occupy_.Stop();
-  t_energy_.Start();
-  // If we have to calculate energies, do that here
-  if (calcEnergy_) {
-    int peak;
-    int npeaks = (int)peaksData_->Size();
-    const double ZERO = 0.0;
-    // Loop through every peak, then loop through the water molecules to find
-    // which one is in that site, and calculate the LJ and EEL energies for that
-    // water molecule within a given cutoff.
-#   ifdef _OPENMP
-#   pragma omp parallel private(peak)
-    {
-#   pragma omp for schedule(dynamic)
-#   endif
-    for (peak = 0; peak < npeaks; peak++)
-    {
-      if (occupied[peak]) {
-        for (unsigned int i = 0; i < resPeakNum_.size(); i++)
-          if (resPeakNum_[i] == peak) {
-            // Now we have our residue number. Create a pairlist for each solvent
-            // molecule that can be used for each atom in that residue. Should
-            // provide some time savings.
-            double ene = Calculate_Energy(frameIn, solvent_residues_[i]);
-            myDSL_[peak]->Add(frameNum, &ene);
-            mprintf("DEBUG: Frm %6i peak %6i residx %6u solvres %6i ene %g\n",
-                    frameNum+1, peak+1, i, solvent_residues_[i].OriginalResNum(), ene);
-            break;
-          }
-      } else
-        myDSL_[peak]->Add(frameNum, &ZERO);
-    }
-#   ifdef _OPENMP
-    }
-#   endif
-  }
-  t_energy_.Stop();
-  t_reordr_.Start();
-  // If we have to re-order trajectories, do that here
-  Action::RetType ret = Action::OK;
-  if (reorder_) {
-    * Loop over every occupied site and swap the atoms so the same solvent
-     * residue is always in the same site
-     *
-    for (int i = 0; i < (int)peaksData_->Size(); i++) {
-      // Skip unoccupied sites
-      if (!occupied[i]) continue;
-      for (unsigned int j = 0; j < solvent_residues_.size(); j++) {
-        // This is the solvent residue in our site
-        if (resPeakNum_[j] == i) {
-          for (int k = 0; k < solvent_residues_[j].NumAtoms(); k++)
-            frameIn.SwapAtoms(solvent_residues_[i].FirstAtom()+k,
-                              solvent_residues_[j].FirstAtom()+k);
-          // Since we swapped solvent_residues_ of 2 solvent atoms, we also have
-          // to swap reservations[i] and reservations[j]...
-          int tmp = resPeakNum_[j];
-          resPeakNum_[j] = resPeakNum_[i];
-          resPeakNum_[i] = tmp;
-        }
-      }
-    }
-    ret = MODIFY_COORDS;
-  }
-  t_reordr_.Stop();
-  t_action_.Stop();
-
-  return ret;
-}
-*/
-
+/// \return absolute value of integer
 static inline int absval(int i) { if (i < 0) return -(i+1); else return i; }
 
 /** Calculate the DELTA G of an individual water site */
@@ -1195,20 +991,22 @@ void Action_Spam::Print() {
       }
     }
 
-    int n_peaks_no_energy = 0;
-    for (int p = 0; p != (int)peakSites_.size(); p++)
-    {
-      for (PeakSite::const_iterator solv = peakSites_[p].begin(); solv != peakSites_[p].end(); ++solv)
+    if (calcEnergy_) {
+      int n_peaks_no_energy = 0;
+      for (int p = 0; p != (int)peakSites_.size(); p++)
       {
-        int err = Calc_G_Wat( solv->DS(), p, solv->Omitted() );
-        if (err == 1)
-          n_peaks_no_energy++;
-        else if (err == -1)
-          mprintf("Warning: Error calculating SPAM energies for peak %i\n", p + 1);
+        for (PeakSite::const_iterator solv = peakSites_[p].begin(); solv != peakSites_[p].end(); ++solv)
+        {
+          int err = Calc_G_Wat( solv->DS(), p, solv->Omitted() );
+          if (err == 1)
+            n_peaks_no_energy++;
+          else if (err == -1)
+            mprintf("Warning: Error calculating SPAM energies for peak %i\n", p + 1);
+        }
       }
+      if (n_peaks_no_energy > 0)
+        mprintf("Warning: No energies for %i peaks.\n", n_peaks_no_energy);
     }
-    if (n_peaks_no_energy > 0)
-      mprintf("Warning: No energies for %i peaks.\n", n_peaks_no_energy);
   } else
     Calc_G_Wat( bulk_ene_set_, -1, Iarray() );
 }
