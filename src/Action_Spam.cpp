@@ -329,6 +329,12 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     ds_ds_->SetNeedsSync(false);
 #   endif
   }
+
+  if (reorder_ && solvents_.size() > 1) {
+    mprinterr("Error: 'reorder' cannot be specified with multiple solvents.\n");
+    return Action::ERR;
+  }
+
   // Determine if energy calculation needs to happen
   calcEnergy_ = (summaryfile != 0 || datafile != 0);
   // Set function for determining if water is inside peak
@@ -773,17 +779,6 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
           // Get imaged distance
           double dist2 = DIST2( imageOpt_.ImagingType(), atm1, atm2, frameIn.BoxCrd() );
           if (dist2 < cut2_) {
-            /*double qiqj = atom_charge_[atom0] * atom_charge_[resat1];
-            NonbondType const& LJ = CurrentParm_->GetLJparam(atom0, resat1);
-            double r2 = 1 / dist2;
-            double r6 = r2 * r2 * r2;
-            // Shifted electrostatics: qiqj/r * (1-r/rcut)^2 + VDW
-            double shift = (1 - dist2 * onecut2_);
-            //result += qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
-            double eval = qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
-            //if (i > 2 && i < 6)
-            //  mprintf("DEBUG: %6i %6i %8.3f %8.3f\n", i, j, sqrt(dist2), eval);
-            peakEne[singleOccPeakIdx[idx]] += eval;*/
             singleOccPeakEne[idx] += Ecalc(atom0, resat1, dist2);
           }
         } // END loop over solvent residue atoms
@@ -804,8 +799,30 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
     t_energy_.Stop();
   //} // END calcEnergy_
 
+  Action::RetType ret = Action::OK;
+  if (reorder_) {
+    t_reordr_.Start();
+    // For each occupied peak N, swap the location of that solvent in the frame
+    // with solvent position N.
+    // NOTE: This should only happen when 1 solvent is present!
+    for (unsigned int peakNum = 0; peakNum != peakSites_.size(); peakNum++)
+    {
+      if (numTimesPeakAssigned[peakNum] == 1) {
+        int solvIdxP = peakResIdx[peakNum];
+        int solvIdxS = (int)peakNum;
+        SolventRes const& solvP = solvResArray_[solvIdxP];
+        SolventRes const& solvS = solvResArray_[solvIdxS];
+        int atP = solvP.At0();
+        for (int atS = solvS.At0(); atS != solvS.At1(); atS++, atP++)
+          frameIn.SwapAtoms(atP, atS);
+      }
+    }
+    ret = Action::MODIFY_COORDS;
+    t_reordr_.Stop();
+  }
   t_action_.Stop();
-  return Action::OK;
+
+  return ret;
 }
 
 // Action_Spam::DoSPAM
