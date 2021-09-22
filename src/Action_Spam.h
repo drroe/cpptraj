@@ -149,7 +149,7 @@ class Action_Spam::SolventInfo {
     DataSet_Vector_Scalar const* peaksData_; ///< Hold peaks DataSet for this solvent.
     double site_size_;                       ///< Size of solvent site (Ang.). Full edge length or diameter
     std::string name_;                       ///< Solvent residue name.
-    Iarray resIdxs_;                         ///< Solvent residue indices.
+    Iarray resIdxs_;                         ///< Solvent residue indices. TODO needed?
 };
 
 // ----- SolventPeak class -----------------------------------------------------

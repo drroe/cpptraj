@@ -275,6 +275,8 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     // If it's a sphere, square the radius to compare with
     if (sphere_)
       site_size_ *= site_size_;
+    // Get heterosolvents. Only 1 for now.
+    std::string hetSolventStr = actionArgs.GetStringKey("hetsolvent");
 
     // ----- END processing input args -----------
 
@@ -287,6 +289,25 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     }
     // Add bulk solvent site info TODO make these non-class vars
     solvents_.push_back( SolventInfo(peaksData_, site_size_, solvname_) );
+    // Process heterosolvents
+    if (!hetSolventStr.empty()) {
+      ArgList hetArgs(hetSolventStr, ",");
+      // Expect <name>,<peaks>,<size>
+      if (hetArgs.Nargs() != 3) {
+        mprinterr("Error: Expected 3 comma-separated args for 'hetsolvent', got %i\n", hetArgs.Nargs());
+        return Action::ERR;
+      }
+      std::string sname = hetArgs.GetStringNext();
+      DataSet_Vector_Scalar* pdat = GetPeaksData(hetArgs.GetStringNext(), init.DSL());
+      if (pdat == 0) {
+        mprinterr("Error: Could not get peaks for solvent '%s'\n", hetArgs[0].c_str());
+        return Action::ERR;
+      }
+      double ssize = hetArgs.getNextDouble(2.5) / 2.0;
+      if (sphere_)
+        ssize *= ssize;
+      solvents_.push_back( SolventInfo(pdat, ssize, sname) );
+    }
 
     // DEBUG print solvents
     mprintf("DEBUG: Solvents:\n");
@@ -964,7 +985,7 @@ int Action_Spam::Calc_G_Peak(unsigned int peakNum, PeakSite const& peakSite) con
       G_ref = DG;
       H_ref = Havg.mean();
     } else {
-      mprintf("# Peak %8u DG= %16.8E  DH= %16.8E  TDS= %16.8E\n", adjustedDG, adjustedDH, ntds);
+      mprintf("# Peak %8u DG= %16.8E  DH= %16.8E  TDS= %16.8E\n", peakNum+1, adjustedDG, adjustedDH, ntds);
     }
 
   } // END loop over solvent types for peak
