@@ -572,7 +572,7 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
   t_action_.Start();
   int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell(), mask_);
   if (retVal != 0) {
-    mprinterr("Error: Grid setup failed.\n");
+    mprinterr("Error: Grid setup for bulk energy calculation failed.\n");
     return Action::ERR;
   }
   int wat = 0, wat1 = 0;
@@ -647,6 +647,72 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
   t_energy_.Stop();
   t_action_.Stop();
   return Action::OK;
+}
+
+/** For each occupied peak, calculate the energy between the solvent
+  * molecule occupying the peak and every other atom.
+  * \param singleOccSolvResIdx Contain indices into solvResArray_ for solvent associated with singly-occupied peaks
+  * \param singleOccPeakIdx Contain indices into peakSites_ for single-occupied peaks
+  */
+int Action_Spam::Peaks_Ene_Calc(Iarray const& singleOccSolvResIdx,
+                                Iarray const& singleOccPeakIdx,
+                                Frame const& frameIn,
+                                int frameNum)
+{
+  int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell(), mask_);
+  if (retVal != 0) {
+    mprinterr("Error: Grid setup for peaks energy calculation failed.\n");
+    return Action::ERR;
+  }
+  std::vector<Atom> const& Atoms = CurrentParm_->Atoms();
+  // Loop over singly-occupied peaks
+  for (unsigned int idx = 0; idx != singleOccSolvResIdx.size(); idx++)
+  {
+    SolventRes const& solvRes = solvResArray_[singleOccSolvResIdx[idx]];
+    PeakSite& currentPeak = peakSites_[singleOccPeakIdx[idx]];
+    double etot = 0;
+    // Loop over solvent atoms
+    for (int solvAt = solvRes.At0(); solvAt != solvRes.At1(); solvAt++)
+    {
+      int res0 = Atoms[solvAt].ResNum();
+      const double* xyz0 = frameIn.XYZ(solvAt);
+      // Get the grid cell corresponding to solvAt
+      int cidx = pairList_.GetCellIdxForAtom( solvAt );
+      // NOTE: This only works if the entire system is in the pair list, which
+      //       should be the case when !purewater_.
+      PairList::CellType const& thisCell = pairList_.Cell( cidx );
+      // cellList contains this cell index and all neighbors.
+      PairList::Iarray const& cellList = thisCell.CellList();
+      // transList contains index to translation for the neighbor.
+      PairList::Iarray const& transList = thisCell.TransList();
+      // Loop over this cell and all neighbor cells
+      for (unsigned int nidx = 0; nidx != cellList.size(); nidx++)
+      {
+        PairList::CellType const& myCell = pairList_.Cell( cellList[nidx] );
+        // Translate vector for myCell
+        Vec3 const& tVec = pairList_.TransVec( transList[nidx] );
+        // Loop over every atom in myCell
+        for (PairList::CellType::const_iterator it1 = myCell.begin();
+                                                it1 != myCell.end(); ++it1)
+        {
+          //wat1 = resNumForMaskIdx_[it1->Idx()];
+          int res1 = Atoms[mask_[it1->Idx()]].ResNum();
+          if ( res0 != res1 ) {
+            Vec3 const& xyz1 = it1->ImageCoords();
+            Vec3 dxyz = xyz1 + tVec - xyz0;
+            double D2 = dxyz.Magnitude2();
+            if (D2 < cut2_) {
+              double eval = Ecalc(solvAt, mask_[it1->Idx()], D2);
+              etot += eval;
+            }
+          }
+        } // END loop over every atom in myCell
+      } // END loop over this cell and neighbor cells
+    } // END loop over solvent atoms
+    // Add energy to singly-occupied peak site
+    currentPeak.AddSolventEne(frameNum, etot, solvRes.Sidx());
+  } // END loop over singly-occupied peaks
+  return 0;
 }
 
 // Action_Spam::inside_box()

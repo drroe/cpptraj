@@ -56,6 +56,7 @@ class Action_Spam: public Action {
     DataSet_Vector_Scalar* GetPeaksData(std::string const&, DataSetList const&);
     int SetupParms(Topology const&);
     RetType DoPureWater(int, Frame const&);
+    int Peaks_Ene_Calc(Iarray const&, Iarray const&, Frame const&, int);
     RetType SpamCalc(int, Frame&);
     int Calc_G(double&, int, double, double, double, DataSet_double const&) const;
     int Calc_Bulk() const;
