@@ -197,8 +197,10 @@ class Action_Spam::PeakSite {
       for (unsigned int sidx = 0; sidx != solvPeaks_.size(); sidx++)
         if (sidx == tgtSidx)
           solvPeaks_[sidx].DS()->Add(fn, &ene);
-        else
+        else {
           solvPeaks_[sidx].AddOmittedFrameNum( fn );
+          solvPeaks_[sidx].DS()->Add(fn, &ZERO_);
+        }
     }
 
     typedef SolvPeakArray::const_iterator const_iterator;
