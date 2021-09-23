@@ -71,7 +71,7 @@ class Action_Spam: public Action {
     FxnType Inside_;          ///< Function for determining if water is inside peak.
     ImageOption imageOpt_;    ///< Used to determine if imaging should be used.
     PairList pairList_;       ///< Atom pair list (purewater_ only)
-    Iarray resNumForMaskIdx_; ///< Hold residue number corresponding to atom at each mask index.
+//    Iarray resNumForMaskIdx_; ///< Hold residue number corresponding to atom at each mask index.
     std::string solvname_;    ///< Name of the solvent residues
     double DG_BULK_;          ///< SPAM free energy of the bulk solvent
     double DH_BULK_;          ///< SPAM enthalpy of the bulk solvent
