@@ -496,7 +496,7 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
     if (pairList_.SetupPairList( currentBox )) return Action::ERR;
   }
 
-  // Set up the charge array and check that we have enough info
+  // Set up the charge array and check that we have nonbonded params 
   if (SetupParms(setup.Top())) return Action::ERR;
 
   // Save topology address so we can get NB params during energy calc. 
