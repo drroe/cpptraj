@@ -431,8 +431,13 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
     return Action::ERR;
   }
 
-  // Set up solvResArray_
+  // Set up solvResArray_, mask_, and resNumForMaskIdx_
+  mask_.ResetMask();
+  int idx = 0;
+  resNumForMaskIdx_.clear();
+  resNumForMaskIdx_.reserve( setup.Top().Natom() );
   solvResArray_.clear();
+  // Loop over all residues
   for (Topology::res_iterator res = setup.Top().ResStart();
                               res != setup.Top().ResEnd(); res++)
   {
@@ -442,6 +447,16 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
         solvResArray_.push_back( SolventRes(res->FirstAtom(), res->LastAtom(), sidx) );
         break;
       }
+    }
+    // Set up solvent for purewater_, everything otherwise
+    if ( (purewater_ && res->Name().Truncated() == solvents_.front().Name()) ||
+         !purewater_ )
+    {
+      for (int i = res->FirstAtom(); i < res->LastAtom(); i++) {
+        mask_.AddAtom( i );
+        resNumForMaskIdx_.push_back( idx );
+      }
+      idx++;
     }
   }
   if (debug_ > 0) {
@@ -455,7 +470,7 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
   }
 
   // Set up mask_ and resNumForMaskIdx_ 
-  mask_.ResetMask();
+/*  mask_.ResetMask();
   int idx = 0;
   resNumForMaskIdx_.clear();
   resNumForMaskIdx_.reserve( setup.Top().Natom() );
@@ -469,7 +484,7 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
       }
       idx++;
     }
-  }
+  }*/
   // Reserve space to hold assigned peak for each solvent residue
   resPeakNum_.reserve( solvResArray_.size() );
 
