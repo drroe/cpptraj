@@ -454,18 +454,18 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
     return Action::ERR;
   }
 
-  // Set up mask_ and watidx_ 
+  // Set up mask_ and resNumForMaskIdx_ 
   mask_.ResetMask();
   int idx = 0;
-  watidx_.clear();
-  watidx_.reserve( setup.Top().Natom() );
+  resNumForMaskIdx_.clear();
+  resNumForMaskIdx_.reserve( setup.Top().Natom() );
   for (Topology::res_iterator res = setup.Top().ResStart();
                               res != setup.Top().ResEnd(); res++)
   {
     if (res->Name().Truncated() == solvname_) {
       for (int i = res->FirstAtom(); i < res->LastAtom(); i++) {
         mask_.AddAtom( i );
-        watidx_.push_back( idx ); // TODO currently purewater only - skip if not purewater?
+        resNumForMaskIdx_.push_back( idx ); // TODO currently purewater only - skip if not purewater?
       }
       idx++;
     }
@@ -580,14 +580,14 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
       for (PairList::CellType::const_iterator it0 = thisCell.begin();
                                               it0 != thisCell.end(); ++it0)
       {
-        wat = watidx_[it0->Idx()];
+        wat = resNumForMaskIdx_[it0->Idx()];
         int atomi = mask_[it0->Idx()];
         Vec3 const& xyz0 = it0->ImageCoords();
         // Calc interaction of atom to all other atoms in thisCell.
         for (PairList::CellType::const_iterator it1 = it0 + 1;
                                                 it1 != thisCell.end(); ++it1)
         {
-          wat1 = watidx_[it1->Idx()];
+          wat1 = resNumForMaskIdx_[it1->Idx()];
           if ( wat != wat1 ) {
             Vec3 const& xyz1 = it1->ImageCoords();
             Vec3 dxyz = xyz1 - xyz0;
@@ -609,7 +609,7 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
           for (PairList::CellType::const_iterator it1 = nbrCell.begin();
                                                   it1 != nbrCell.end(); ++it1)
           {
-            wat1 = watidx_[it1->Idx()];
+            wat1 = resNumForMaskIdx_[it1->Idx()];
             if ( wat != wat1 ) {
               Vec3 const& xyz1 = it1->ImageCoords();
               Vec3 dxyz = xyz1 + tVec - xyz0;
