@@ -448,7 +448,7 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
         break;
       }
     }
-    // Set up solvent for purewater_, everything otherwise
+    // Set up mask/resnums only for solvent for purewater_, everything otherwise
     if ( (purewater_ && res->Name().Truncated() == solvents_.front().Name()) ||
          !purewater_ )
     {
