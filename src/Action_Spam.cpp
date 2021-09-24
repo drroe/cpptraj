@@ -697,7 +697,7 @@ int Action_Spam::Peaks_Ene_Calc(Iarray const& singleOccSolvResIdx,
       //int cidx = pairList_.GetCellIdxForAtom( solvAt );
       int i1, i2, i3;
       int cidx = pairList_.CalcCellIdx( solvAt, i1, i2, i3 );
-      mprintf("DEBUG: solvAt= %i i1= %i i2= %i i3= %i cid %i\n", solvAt, i1, i2, i3, cidx);
+//      mprintf("DEBUG: solvAt= %i i1= %i i2= %i i3= %i cid %i\n", solvAt, i1, i2, i3, cidx);
       // NOTE: This only works if the entire system is in the pair list, which
       //       should be the case when !purewater_.
       int cellOffset = 3; // FIXME get from pairlist
@@ -721,7 +721,7 @@ int Action_Spam::Peaks_Ene_Calc(Iarray const& singleOccSolvResIdx,
             int ix = wrapidx(nx, pairList_.NX(), ox);
             //int thisCellIdx = Cidx2 + nx; // Absolute grid cell index
             int thisCellIdx = (iz*nGridXY)+(iy*pairList_.NX())+ix;
-            mprintf("DEBUG:\t\t cell %i abs {%i %i %i} wrapped {%i %i %i}\n", thisCellIdx, nx, ny, nz, ix, iy, iz);
+//            mprintf("DEBUG:\t\t cell %i abs {%i %i %i} wrapped {%i %i %i}\n", thisCellIdx, nx, ny, nz, ix, iy, iz);
             PairList::CellType const& myCell = pairList_.Cell( thisCellIdx );
             // Loop over every atom in myCell
             for (PairList::CellType::const_iterator it1 = myCell.begin();
@@ -732,17 +732,17 @@ int Action_Spam::Peaks_Ene_Calc(Iarray const& singleOccSolvResIdx,
                 Vec3 transVec(0.0);
                 if (ox != 0 || oy != 0 || oz != 0)
                   transVec = frameIn.BoxCrd().UnitCell().TransposeMult( Vec3(ox, oy, oz) );
-                mprintf("DEBUG:\t\t\t offsets %i %i %i  transVec= %f %f %f\n",
-                        ox, oy, oz, transVec[0], transVec[1], transVec[2]);
+//                mprintf("DEBUG:\t\t\t offsets %i %i %i  transVec= %f %f %f\n",
+//                        ox, oy, oz, transVec[0], transVec[1], transVec[2]);
                 Vec3 const& xyz1 = it1->ImageCoords();
                 Vec3 dxyz = xyz1 + transVec - xyz0;
                 double D2 = dxyz.Magnitude2();
                 if (D2 < cut2_) {
                   double eval = Ecalc(solvAt, mask_[it1->Idx()], D2);
-                  if (solvAt < mask_[it1->Idx()])
-                    mprintf("DEBUG1: %8i - %8i = %g\n", solvAt, mask_[it1->Idx()], eval);
-                  else
-                    mprintf("DEBUG1: %8i - %8i = %g\n", mask_[it1->Idx()], solvAt, eval);
+//                  if (solvAt < mask_[it1->Idx()])
+//                    mprintf("DEBUG1: %8i - %8i = %g\n", solvAt, mask_[it1->Idx()], eval);
+//                  else
+//                    mprintf("DEBUG1: %8i - %8i = %g\n", mask_[it1->Idx()], solvAt, eval);
                   etot += eval;
                 }
               }
