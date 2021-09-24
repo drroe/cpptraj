@@ -44,12 +44,14 @@ class PairList {
     /// \return Array containing wrapped fractional coords.
     Varray const& FracCoords()     const { return Frac_;  }
     /// \return Grid cell index for given atom position index.
+    int CalcCellIdx(int, int&, int&, int&) const;
+    /// \return Grid cell index for given atom position index.
     int GetCellIdxForAtom(int at)  const { return gridCellIdxs_[at]; }
-#   ifdef DEBUG_PAIRLIST
+//#   ifdef DEBUG_PAIRLIST
     int NX() const { return nGridX_; }
     int NY() const { return nGridY_; }
     int NZ() const { return nGridZ_; }
-#   endif
+//#   endif
   private:
     /// Determine neighbors and translation vectors for each cell.
     void CalcGridPointers(int,int);

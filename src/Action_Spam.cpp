@@ -225,9 +225,6 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
 
   // Get energy cutoff
   double cut = actionArgs.getKeyDouble("cut", 12.0);
-  if (purewater_) {
-    if (pairList_.InitPairList( cut, 0.1, debug_ )) return Action::ERR;
-  }
   cut2_ = cut * cut;
   doublecut_ = 2 * cut;
   onecut2_ = 1 / cut2_;
@@ -348,6 +345,10 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     ds_dh_->SetNeedsSync(false);
     ds_ds_->SetNeedsSync(false);
 #   endif
+  }
+
+  if (purewater_ || calcEnergy_) {
+    if (pairList_.InitPairList( cut, 0.1, debug_ )) return Action::ERR;
   }
 
   if (reorder_ && solvents_.size() > 1) {
@@ -492,7 +493,7 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
           solvname_.c_str());
 
   // Set up pair list
-  if (purewater_) {
+  if (purewater_ || calcEnergy_) {
     if (pairList_.SetupPairList( currentBox )) return Action::ERR;
   }
 
@@ -649,6 +650,22 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
   return Action::OK;
 }
 
+static inline int wrapidx(int nz, int MAXZ, int& offset) {
+        int iz;
+        if (nz < 0) {
+          iz = nz + MAXZ;
+          offset = -1;
+        } else if (nz >= MAXZ) {
+          iz = nz - MAXZ;
+          offset = 1;
+        } else {
+          iz = nz;
+          offset = 0;
+        }
+        return iz;
+}
+
+
 /** For each occupied peak, calculate the energy between the solvent
   * molecule occupying the peak and every other atom.
   * \param singleOccSolvResIdx Contain indices into solvResArray_ for solvent associated with singly-occupied peaks
@@ -677,9 +694,63 @@ int Action_Spam::Peaks_Ene_Calc(Iarray const& singleOccSolvResIdx,
       int res0 = Atoms[solvAt].ResNum();
       const double* xyz0 = frameIn.XYZ(solvAt);
       // Get the grid cell corresponding to solvAt
-      int cidx = pairList_.GetCellIdxForAtom( solvAt );
+      //int cidx = pairList_.GetCellIdxForAtom( solvAt );
+      int i1, i2, i3;
+      int cidx = pairList_.CalcCellIdx( solvAt, i1, i2, i3 );
+      mprintf("DEBUG: solvAt= %i i1= %i i2= %i i3= %i cid %i\n", solvAt, i1, i2, i3, cidx);
       // NOTE: This only works if the entire system is in the pair list, which
       //       should be the case when !purewater_.
+      int cellOffset = 3; // FIXME get from pairlist
+      int minz = i3 - cellOffset;
+      int maxz = i3 + cellOffset + 1;
+      int miny = i2 - cellOffset;
+      int maxy = i2 + cellOffset + 1;
+      int minx = i1 - cellOffset;
+      int maxx = i1 + cellOffset + 1;
+      int nGridXY = pairList_.NX() * pairList_.NY();
+      for (int nz = minz; nz != maxz; nz++) {
+        int oz;
+        int iz = wrapidx(nz, pairList_.NZ(), oz);
+        //int Cidx3 = nz * nGridXY;
+        for (int ny = miny; ny != maxy; ny++) {
+          int oy;
+          int iy = wrapidx(ny, pairList_.NY(), oy);
+          //int Cidx2 = Cidx3 + (ny*nGridX_);
+          for (int nx = minx; nx != maxx; nx++) {
+            int ox;
+            int ix = wrapidx(nx, pairList_.NX(), ox);
+            //int thisCellIdx = Cidx2 + nx; // Absolute grid cell index
+            int thisCellIdx = (iz*nGridXY)+(iy*pairList_.NX())+ix;
+            mprintf("DEBUG:\t\t cell %i abs {%i %i %i} wrapped {%i %i %i}\n", thisCellIdx, nx, ny, nz, ix, iy, iz);
+            PairList::CellType const& myCell = pairList_.Cell( thisCellIdx );
+            // Loop over every atom in myCell
+            for (PairList::CellType::const_iterator it1 = myCell.begin();
+                                                    it1 != myCell.end(); ++it1)
+            {
+              int res1 = Atoms[mask_[it1->Idx()]].ResNum();
+              if ( res0 != res1 ) {
+                Vec3 transVec(0.0);
+                if (ox != 0 || oy != 0 || oz != 0)
+                  transVec = frameIn.BoxCrd().UnitCell().TransposeMult( Vec3(ox, oy, oz) );
+                mprintf("DEBUG:\t\t\t offsets %i %i %i  transVec= %f %f %f\n",
+                        ox, oy, oz, transVec[0], transVec[1], transVec[2]);
+                Vec3 const& xyz1 = it1->ImageCoords();
+                Vec3 dxyz = xyz1 + transVec - xyz0;
+                double D2 = dxyz.Magnitude2();
+                if (D2 < cut2_) {
+                  double eval = Ecalc(solvAt, mask_[it1->Idx()], D2);
+                  if (solvAt < mask_[it1->Idx()])
+                    mprintf("DEBUG1: %8i - %8i = %g\n", solvAt, mask_[it1->Idx()], eval);
+                  else
+                    mprintf("DEBUG1: %8i - %8i = %g\n", mask_[it1->Idx()], solvAt, eval);
+                  etot += eval;
+                }
+              }
+            } // END loop over every atom in myCell
+          } // END nx loop
+        } // END ny loop
+      } // END nz loop
+/*
       PairList::CellType const& thisCell = pairList_.Cell( cidx );
       // cellList contains this cell index and all neighbors.
       PairList::Iarray const& cellList = thisCell.CellList();
@@ -703,14 +774,20 @@ int Action_Spam::Peaks_Ene_Calc(Iarray const& singleOccSolvResIdx,
             double D2 = dxyz.Magnitude2();
             if (D2 < cut2_) {
               double eval = Ecalc(solvAt, mask_[it1->Idx()], D2);
+              if (solvAt < mask_[it1->Idx()])
+                mprintf("DEBUG1: %8i - %8i = %g\n", solvAt, mask_[it1->Idx()], eval);
+              else
+                mprintf("DEBUG1: %8i - %8i = %g\n", mask_[it1->Idx()], solvAt, eval);
               etot += eval;
             }
           }
         } // END loop over every atom in myCell
       } // END loop over this cell and neighbor cells
+*/
     } // END loop over solvent atoms
     // Add energy to singly-occupied peak site
     currentPeak.AddSolventEne(frameNum, etot, solvRes.Sidx());
+    //mprintf("DEBUG: PL ene: peak %8i = %g\n", singleOccPeakIdx[idx], etot);
   } // END loop over singly-occupied peaks
   return 0;
 }
@@ -847,6 +924,7 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
       peakSites_[singleOccPeakIdx[idx]].AddSolventEne(frameNum, etot, solvRes.Sidx());
     } // END loop over singly-occupied peaks
 */
+/*
     // Energy associated with each peak
     std::vector<double> singleOccPeakEne( singleOccPeakIdx.size(), 0 );
     for (int atom0 = 0; atom0 != frameIn.Natom(); atom0++)
@@ -862,15 +940,21 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
           // Get imaged distance
           double dist2 = DIST2( imageOpt_.ImagingType(), atm1, atm2, frameIn.BoxCrd() );
           if (dist2 < cut2_) {
-            singleOccPeakEne[idx] += Ecalc(atom0, resat1, dist2);
+            double eval = Ecalc(atom0, resat1, dist2);
+            if (atom0 < resat1)
+              mprintf("DEBUG0: %8i - %8i = %g\n", atom0, resat1, eval);
+            else
+              mprintf("DEBUG0: %8i - %8i = %g\n", resat1, atom0, eval);
+            singleOccPeakEne[idx] += eval;
+            //singleOccPeakEne[idx] += Ecalc(atom0, resat1, dist2);
           }
         } // END loop over solvent residue atoms
       } // END loop over singly occupied peaks
     } // END loop over all atoms
 //
-//    mprintf("DEBUG: Singly-occupied peak energies:\n");
-//    for (unsigned int idx = 0; idx != singleOccPeakIdx.size(); idx++)
-//      mprintf("%8i : %g\n", singleOccPeakIdx[idx], singleOccPeakEne[idx]);
+    mprintf("DEBUG: Singly-occupied peak energies:\n");
+    for (unsigned int idx = 0; idx != singleOccPeakIdx.size(); idx++)
+      mprintf("%8i : %g\n", singleOccPeakIdx[idx], singleOccPeakEne[idx]);
 //
     /// Add the energy to the singly-occupied peak sites
     for (unsigned int idx = 0; idx != singleOccPeakIdx.size(); idx++)
@@ -879,6 +963,8 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
       peakSites_[peakNum].AddSolventEne(frameNum, singleOccPeakEne[idx],
                                         solvResArray_[peakResIdx[peakNum]].Sidx());
     }
+*/
+    Peaks_Ene_Calc(singleOccSolvResIdx, singleOccPeakIdx, frameIn, frameNum);
 
     t_energy_.Stop();
   } // END calcEnergy_

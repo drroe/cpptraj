@@ -90,6 +90,16 @@ int PairList::CreatePairList(Frame const& frmIn, Matrix_3x3 const& ucell,
   return nOffGrid;
 }
 
+// PairList::CalcCellIdx
+/** Calculate the grid cell indices for given atom. */
+int PairList::CalcCellIdx(int atomIdx, int& i1, int& i2, int& i3) const {
+  Vec3 const& frac = Frac_[atomIdx];
+  i1 = (int)((frac[0]) * (double)nGridX_);
+  i2 = (int)((frac[1]) * (double)nGridY_);
+  i3 = (int)((frac[2]) * (double)nGridZ_);
+  return (i3*nGridX_*nGridY_)+(i2*nGridX_)+i1;
+}
+
 // PairList::GridAtom()
 int PairList::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
   int i1 = (int)((frac[0]) * (double)nGridX_);
