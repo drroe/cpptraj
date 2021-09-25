@@ -460,6 +460,7 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
       //idx++;
     }
   }
+  //mask_.MaskInfo();
   if (debug_ > 0) {
     mprintf("DEBUG: Solvent residues\n");
     for (std::vector<SolventRes>::const_iterator it = solvResArray_.begin(); it != solvResArray_.end(); ++it)
@@ -687,17 +688,19 @@ int Action_Spam::Peaks_Ene_Calc(Iarray const& singleOccSolvResIdx,
   {
     SolventRes const& solvRes = solvResArray_[singleOccSolvResIdx[idx]];
     PeakSite& currentPeak = peakSites_[singleOccPeakIdx[idx]];
+    //mprintf("DEBUG: PL solvRes %i - %i peak %i\n", solvRes.At0(), solvRes.At1(), singleOccPeakIdx[idx]);
     double etot = 0;
     // Loop over solvent atoms
     for (int solvAt = solvRes.At0(); solvAt != solvRes.At1(); solvAt++)
     {
       int res0 = Atoms[solvAt].ResNum();
-      const double* xyz0 = frameIn.XYZ(solvAt);
+      // get the imaged coords corresponding to solvAt
+      Vec3 xyz0 = frameIn.BoxCrd().UnitCell().TransposeMult( pairList_.FracCoords()[solvAt] );
       // Get the grid cell corresponding to solvAt
-      //int cidx = pairList_.GetCellIdxForAtom( solvAt );
+      int cidxcached = pairList_.GetCellIdxForAtom( solvAt ); // TODO remove
       int i1, i2, i3;
       int cidx = pairList_.CalcCellIdx( solvAt, i1, i2, i3 );
-//      mprintf("DEBUG: solvAt= %i i1= %i i2= %i i3= %i cid %i\n", solvAt, i1, i2, i3, cidx);
+//      mprintf("DEBUG: solvAt= %i i1= %i i2= %i i3= %i cidx %i %i\n", solvAt, i1, i2, i3, cidx, cidxcached);
       // NOTE: This only works if the entire system is in the pair list, which
       //       should be the case when !purewater_.
       int cellOffset = 3; // FIXME get from pairlist
@@ -728,6 +731,7 @@ int Action_Spam::Peaks_Ene_Calc(Iarray const& singleOccSolvResIdx,
                                                     it1 != myCell.end(); ++it1)
             {
               int res1 = Atoms[mask_[it1->Idx()]].ResNum();
+//              mprintf("DEBUG: At %i res %i\n", mask_[it1->Idx()], res1);
               if ( res0 != res1 ) {
                 Vec3 transVec(0.0);
                 if (ox != 0 || oy != 0 || oz != 0)
@@ -737,6 +741,7 @@ int Action_Spam::Peaks_Ene_Calc(Iarray const& singleOccSolvResIdx,
                 Vec3 const& xyz1 = it1->ImageCoords();
                 Vec3 dxyz = xyz1 + transVec - xyz0;
                 double D2 = dxyz.Magnitude2();
+//                mprintf("DEBUG:\t\t\tDist= %g\n", sqrt(D2));
                 if (D2 < cut2_) {
                   double eval = Ecalc(solvAt, mask_[it1->Idx()], D2);
 //                  if (solvAt < mask_[it1->Idx()])
@@ -885,6 +890,7 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
     }
   }
   // DEBUG - print peak assignment stats
+
 /*
   mprintf("DEBUG: Peak assignment stats:\n");
   for (unsigned int idx = 0; idx != peakSites_.size(); ++idx)
@@ -894,7 +900,7 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
   for (Iarray::const_iterator it = singleOccSolvResIdx.begin();
                               it != singleOccSolvResIdx.end(); ++it)
     mprintf("DEBUG:\t%8i %8i - %8i\n", *it,
-            solvResArray_[*it].At0()+1, solvResArray_[*it].At1()+1);
+            solvResArray_[*it].At0(), solvResArray_[*it].At1());
 */
 
   t_occupy_.Stop();
@@ -941,10 +947,10 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
           double dist2 = DIST2( imageOpt_.ImagingType(), atm1, atm2, frameIn.BoxCrd() );
           if (dist2 < cut2_) {
             double eval = Ecalc(atom0, resat1, dist2);
-            if (atom0 < resat1)
-              mprintf("DEBUG0: %8i - %8i = %g\n", atom0, resat1, eval);
-            else
-              mprintf("DEBUG0: %8i - %8i = %g\n", resat1, atom0, eval);
+//            if (atom0 < resat1)
+//              mprintf("DEBUG0: %8i - %8i = %g\n", atom0, resat1, eval);
+//            else
+//              mprintf("DEBUG0: %8i - %8i = %g\n", resat1, atom0, eval);
             singleOccPeakEne[idx] += eval;
             //singleOccPeakEne[idx] += Ecalc(atom0, resat1, dist2);
           }
@@ -952,9 +958,9 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
       } // END loop over singly occupied peaks
     } // END loop over all atoms
 //
-    mprintf("DEBUG: Singly-occupied peak energies:\n");
-    for (unsigned int idx = 0; idx != singleOccPeakIdx.size(); idx++)
-      mprintf("%8i : %g\n", singleOccPeakIdx[idx], singleOccPeakEne[idx]);
+//    mprintf("DEBUG: Singly-occupied peak energies:\n");
+//    for (unsigned int idx = 0; idx != singleOccPeakIdx.size(); idx++)
+//      mprintf("%8i : %g\n", singleOccPeakIdx[idx], singleOccPeakEne[idx]);
 //
     /// Add the energy to the singly-occupied peak sites
     for (unsigned int idx = 0; idx != singleOccPeakIdx.size(); idx++)
