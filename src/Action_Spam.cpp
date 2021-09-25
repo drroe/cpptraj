@@ -697,7 +697,6 @@ int Action_Spam::Peaks_Ene_Calc(Iarray const& singleOccSolvResIdx,
       // get the imaged coords corresponding to solvAt
       Vec3 xyz0 = frameIn.BoxCrd().UnitCell().TransposeMult( pairList_.FracCoords()[solvAt] );
       // Get the grid cell corresponding to solvAt
-      int cidxcached = pairList_.GetCellIdxForAtom( solvAt ); // TODO remove
       int i1, i2, i3;
       int cidx = pairList_.CalcCellIdx( solvAt, i1, i2, i3 );
 //      mprintf("DEBUG: solvAt= %i i1= %i i2= %i i3= %i cidx %i %i\n", solvAt, i1, i2, i3, cidx, cidxcached);

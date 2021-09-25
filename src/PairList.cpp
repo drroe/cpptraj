@@ -118,7 +118,6 @@ int PairList::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
   }
   cells_[idx].AddAtom( AtmType(atomIdx, cart) );
   Frac_.push_back( frac );
-  gridCellIdxs_.push_back( idx );
   return 0;
 }
 
@@ -133,8 +132,6 @@ int PairList::GridUnitCell(Frame const& frmIn, Matrix_3x3 const& ucell,
     cell->ClearAtoms();
   Frac_.clear();
   Frac_.reserve( maskIn.Nselected() );
-  gridCellIdxs_.clear();
-  gridCellIdxs_.reserve( maskIn.Nselected() );
   int nOffGrid = 0;
   if (frmIn.BoxCrd().Is_X_Aligned_Ortho()) {
     // Orthogonal imaging
@@ -423,6 +420,5 @@ void PairList::PrintMemory() const {
   for (Carray::const_iterator cell = cells_.begin(); cell != cells_.end(); ++cell)
     total += cell->MemSize();
   total += ((Frac_.size() * sizeof(Vec3)) + sizeof(Varray));
-  total += ((gridCellIdxs_.size() * sizeof(int)) + sizeof(Iarray));
   mprintf("\tTotal Grid memory: %s\n", ByteString(total, BYTE_DECIMAL).c_str());
 }
