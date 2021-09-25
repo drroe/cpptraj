@@ -707,10 +707,12 @@ int Action_Spam::Peaks_Ene_Calc(Iarray const& singleOccSolvResIdx,
       Vec3 xyz0 = frameIn.BoxCrd().UnitCell().TransposeMult( pairList_.FracCoords()[solvAt] );
       // Get the grid cell corresponding to solvAt
       int i1, i2, i3;
-      int cidx = pairList_.CalcCellIdx( solvAt, i1, i2, i3 );
-//      mprintf("DEBUG: solvAt= %i i1= %i i2= %i i3= %i cidx %i %i\n", solvAt, i1, i2, i3, cidx, cidxcached);
       // NOTE: This only works if the entire system is in the pair list, which
       //       should be the case when !purewater_.
+      pairList_.CalcCellIdx( solvAt, i1, i2, i3 );
+//      int cidx = pairList_.CalcCellIdx( solvAt, i1, i2, i3 );
+//      mprintf("DEBUG: solvAt= %i i1= %i i2= %i i3= %i cidx %i %i\n", solvAt, i1, i2, i3, cidx, cidxcached);
+      // Loop over cell and all surrounding cells
       int cellOffset = 3; // FIXME get from pairlist
       int minz = i3 - cellOffset;
       int maxz = i3 + cellOffset + 1;
