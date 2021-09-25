@@ -52,7 +52,10 @@ Action_Spam::SolventInfo::SolventInfo(DataSet_Vector_Scalar const* ds,
 
 /** Print solvent info to stdout. */
 void Action_Spam::SolventInfo::PrintInfo() const {
-  mprintf("\t%s %6.2f '%s'\n", peaksData_->legend(), site_size_, name_.c_str());
+  if (site_size_ > 0)
+    mprintf("%s %6.2f '%s'", peaksData_->legend(), site_size_, name_.c_str());
+  else
+    mprintf("'%s'", name_.c_str());
 }
 
 // ----- SolventPeak class -----------------------------------------------------
@@ -218,10 +221,10 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
   DataFile* datafile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   DataFile* summaryfile = 0;
 
-  // Solvent residue name
-  solvname_ = actionArgs.GetStringKey("solv");
-  if (solvname_.empty())
-    solvname_ = std::string("WAT");
+  // Bulk solvent residue name
+  std::string solvname = actionArgs.GetStringKey("solv");
+  if (solvname.empty())
+    solvname = std::string("WAT");
 
   // Get energy cutoff
   double cut = actionArgs.getKeyDouble("cut", 12.0);
@@ -241,7 +244,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     if (actionArgs.NremainingArgs() > 0)
       mprintf("Warning: 'purewater' specified but more arguments remain.\n");
     // Add bulk water info; only need name if not calculating peaks
-    solvents_.push_back( SolventInfo(0, 0, solvname_) );
+    solvents_.push_back( SolventInfo(0, 0, solvname) );
   } else {
     // Get the file/dataset name with the peaks defined in it
     std::string peaksname = actionArgs.GetStringNext();
@@ -285,7 +288,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
       return Action::ERR;
     }
     // Add bulk solvent site info TODO make these non-class vars
-    solvents_.push_back( SolventInfo(peaksData_, site_size_, solvname_) );
+    solvents_.push_back( SolventInfo(peaksData_, site_size_, solvname) );
     // Process heterosolvents
     if (!hetSolventStr.empty()) {
       ArgList hetArgs(hetSolventStr, ",");
@@ -307,9 +310,9 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     }
 
     // DEBUG print solvents
-    mprintf("DEBUG: Solvents:\n");
-    for (std::vector<SolventInfo>::const_iterator it = solvents_.begin(); it != solvents_.end(); ++it)
-      it->PrintInfo();
+    //mprintf("DEBUG: Solvents:\n");
+    //for (std::vector<SolventInfo>::const_iterator it = solvents_.begin(); it != solvents_.end(); ++it)
+    // it->PrintInfo();
 
     // DEBUG print peaks
     if (debug_ > 0) {
@@ -364,8 +367,15 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
 
   // Print info now
   mprintf("    SPAM:\n");
+  mprintf("\tSolvent info:\n");
+  for (std::vector<SolventInfo>::const_iterator it = solvents_.begin(); it != solvents_.end(); ++it)
+  {
+    mprintf("\t  ");
+    it->PrintInfo();
+    mprintf("\n");
+  }
   if (purewater_) {
-    mprintf("\tCalculating bulk value for pure solvent\n");
+    mprintf("\tCalculating bulk value for pure solvent.\n");
     if (datafile != 0)
       mprintf("\tPrinting solvent energies to %s\n", datafile->DataFilename().full());
     mprintf("\tData set '%s' index is water # * frame.\n", bulk_ene_set_->legend());
@@ -377,8 +387,6 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
       mprintf("\tPrinting solvent SPAM summary to %s\n",
                summaryfile->DataFilename().full());
   } else {
-    mprintf("\tSolvent [%s], %zu density peaks taken from %s.\n",
-            solvname_.c_str(), peaksData_->Size(), peaksData_->legend());
     mprintf("\tOccupation information printed to %s.\n", infofile_->Filename().full());
     mprintf("\tSites are ");
     if (sphere_)
@@ -439,12 +447,14 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
 //  resNumForMaskIdx_.reserve( setup.Top().Natom() );
   solvResArray_.clear();
   // Loop over all residues
+  std::vector<unsigned int> solvCount(solvents_.size(), 0);
   for (Topology::res_iterator res = setup.Top().ResStart();
                               res != setup.Top().ResEnd(); res++)
   {
     for (int sidx = 0; sidx != (int)solvents_.size(); sidx++)
     {
       if (res->Name().Truncated() == solvents_[sidx].Name()) {
+        solvCount[sidx]++;
         solvResArray_.push_back( SolventRes(res->FirstAtom(), res->LastAtom(), sidx) );
         break;
       }
@@ -490,8 +500,8 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
   // Reserve space to hold assigned peak for each solvent residue
   resPeakNum_.reserve( solvResArray_.size() );
 
-  mprintf("\tFound %zu solvent residues [%s]\n", solvResArray_.size(), // FIXME fix for multiple solvents
-          solvname_.c_str());
+  for (unsigned int sidx = 0; sidx != solvents_.size(); sidx++)
+    mprintf("\tFound %u '%s' solvent residues.\n", solvCount[sidx], solvents_[sidx].Name().c_str());
 
   // Set up pair list
   if (purewater_ || calcEnergy_) {
