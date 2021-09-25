@@ -72,7 +72,6 @@ class Action_Spam: public Action {
     FxnType Inside_;          ///< Function for determining if water is inside peak.
     ImageOption imageOpt_;    ///< Used to determine if imaging should be used.
     PairList pairList_;       ///< Atom pair list for energy calculations. 
-//    std::string solvname_;    ///< Name of the solvent residues
     double DG_BULK_;          ///< SPAM free energy of the bulk solvent
     double DH_BULK_;          ///< SPAM enthalpy of the bulk solvent
     double temperature_;      ///< Temperature at which SPAM simulation was run
@@ -80,12 +79,11 @@ class Action_Spam: public Action {
     bool reorder_;            ///< True if solvent should be reordered
     bool calcEnergy_;         ///< True if energy needs to be calculated.
     double cut2_;             ///< Non-bonded cutoff in Angstroms (squared)
-    double onecut2_;          ///< 1 / cut2_
+    double onecut2_;          ///< 1 / cut2_ (for truncation scheme)
     double doublecut_;        ///< twice the cutoff (to test if boxes are big enough)
     CpptrajFile* infofile_;   ///< SPAM info file
-    AtomMask mask_;           ///< Mask for selecting individual solvent residues
-    Iarray resPeakNum_;       ///< Peak that each solvent residue is assigned to; -1 is unassigned
-    double site_size_;        ///< Size of the water site. This is a full edge length or diameter
+    AtomMask mask_;           ///< Mask for selecting atoms for pair list 
+    Iarray resPeakNum_;       ///< Peak that each solvent residue is assigned to each frame; -1 is unassigned
     Topology* CurrentParm_;   ///< Current topology (for NB params).
     Darray atom_charge_;      ///< Charges that have been converted to Amber units
     bool sphere_;             ///< Is our site shape a sphere? If no, it's a box.

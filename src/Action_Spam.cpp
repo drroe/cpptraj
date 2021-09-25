@@ -53,9 +53,10 @@ Action_Spam::SolventInfo::SolventInfo(DataSet_Vector_Scalar const* ds,
 /** Print solvent info to stdout. */
 void Action_Spam::SolventInfo::PrintInfo() const {
   if (site_size_ > 0)
-    mprintf("%s %6.2f '%s'", peaksData_->legend(), site_size_, name_.c_str());
+    mprintf("Peaks Data= '%s'  Site Size= %6.2f Ang.  Name= '%s'",
+            peaksData_->legend(), site_size_, name_.c_str());
   else
-    mprintf("'%s'", name_.c_str());
+    mprintf("Name= '%s'", name_.c_str());
 }
 
 // ----- SolventPeak class -----------------------------------------------------
@@ -122,7 +123,6 @@ Action_Spam::Action_Spam() :
   onecut2_(1.0 / 144.0),
   doublecut_(24.0),
   infofile_(0),
-  site_size_(2.5),
   sphere_(false),
   bulk_ene_set_(0),
   ds_dg_(0),
@@ -270,11 +270,11 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     // Determine if energy calculation needs to happen
     calcEnergy_ = (summaryfile != 0 || datafile != 0);
     // Divide site size by 2 to make it half the edge length (or radius)
-    site_size_ = actionArgs.getKeyDouble("site_size", 2.5) / 2.0;
+    double site_size = actionArgs.getKeyDouble("site_size", 2.5) / 2.0;
     sphere_ = actionArgs.hasKey("sphere");
     // If it's a sphere, square the radius to compare with
     if (sphere_)
-      site_size_ *= site_size_;
+      site_size *= site_size;
     // Get heterosolvents. Only 1 for now.
     std::string hetSolventStr = actionArgs.GetStringKey("hetsolvent");
 
@@ -288,7 +288,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
       return Action::ERR;
     }
     // Add bulk solvent site info TODO make these non-class vars
-    solvents_.push_back( SolventInfo(peaksData_, site_size_, solvname) );
+    solvents_.push_back( SolventInfo(peaksData_, site_size, solvname) );
     // Process heterosolvents
     if (!hetSolventStr.empty()) {
       ArgList hetArgs(hetSolventStr, ",");
@@ -390,9 +390,9 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tOccupation information printed to %s.\n", infofile_->Filename().full());
     mprintf("\tSites are ");
     if (sphere_)
-      mprintf("spheres with diameter %.3f\n", site_size_);
+      mprintf("spheres.\n");
     else
-      mprintf("boxes with edge length %.3f\n", site_size_);
+      mprintf("boxes.\n");
     if (reorder_)
       mprintf("\tRe-ordering trajectory so each site always has the same water molecule.\n");
     if (!calcEnergy_) {
