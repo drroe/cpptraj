@@ -95,7 +95,6 @@ class Action_Spam: public Action {
     int Nframes_;             ///< Total number of frames
     bool overflow_;           ///< True if cutoff overflowed our box coordinates
     DataSetList peaksdsl_;    ///< Will allocate DataSet for peaks data if loading from a file.
-    DataSet_Vector_Scalar* peaksData_; ///< Hold peaks DataSet
 
     std::vector<SolventInfo> solvents_;    ///< Hold info for each solvent type
     std::vector<PeakSite> peakSites_;      ///< Hold info for every solvent peak

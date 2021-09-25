@@ -129,8 +129,7 @@ Action_Spam::Action_Spam() :
   ds_dh_(0),
   ds_ds_(0),
   Nframes_(0),
-  overflow_(false),
-  peaksData_(0)
+  overflow_(false)
 { }
 
 /** Search for DataSet with peaks data. If that fails, try to load peaks
@@ -282,13 +281,13 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
 
 
     // Get or load the peaks data for bulk
-    peaksData_ = GetPeaksData(peaksname, init.DSL());
-    if (peaksData_ == 0) {
+    DataSet_Vector_Scalar* peaksData = GetPeaksData(peaksname, init.DSL());
+    if (peaksData == 0) {
       mprinterr("Error: Could not get peaks.\n");
       return Action::ERR;
     }
-    // Add bulk solvent site info TODO make these non-class vars
-    solvents_.push_back( SolventInfo(peaksData_, site_size, solvname) );
+    // Add bulk solvent site info
+    solvents_.push_back( SolventInfo(peaksData, site_size, solvname) );
     // Process heterosolvents
     if (!hetSolventStr.empty()) {
       ArgList hetArgs(hetSolventStr, ",");
