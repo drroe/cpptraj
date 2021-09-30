@@ -134,6 +134,8 @@ class Action_Spam::SolventRes {
 class Action_Spam::SolventInfo {
   public:
     SolventInfo();
+    /// Construct with solvent name (bulk)
+    SolventInfo(std::string const&);
     /// Construct with peaks data, size size, name
     SolventInfo(DataSet_Vector_Scalar const*, double, std::string const&);
     /// Print info to stdout
@@ -146,7 +148,7 @@ class Action_Spam::SolventInfo {
     DataSet_Vector_Scalar const* peaksData_; ///< Hold peaks DataSet for this solvent.
     double site_size_;                       ///< Size of solvent site (Ang.). Full edge length or diameter
     std::string name_;                       ///< Solvent residue name.
-    Iarray resIdxs_;                         ///< Solvent residue indices. TODO needed?
+    //Iarray resIdxs_;                         ///< Solvent residue indices. TODO needed?
 };
 
 // ----- SolventPeak class -----------------------------------------------------

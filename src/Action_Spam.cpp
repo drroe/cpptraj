@@ -42,6 +42,13 @@ Action_Spam::SolventInfo::SolventInfo() :
   site_size_(0)
 {}
 
+/** Construct with bulk solvent name. */
+Action_Spam::SolventInfo::SolventInfo(std::string const& n) :
+  peaksData_(0),
+  site_size_(0),
+  name_(n)
+{}
+
 /** Construct from peaks data, solvent site size, solvent name */
 Action_Spam::SolventInfo::SolventInfo(DataSet_Vector_Scalar const* ds,
                                       double s, std::string const& n) :
@@ -243,7 +250,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     if (actionArgs.NremainingArgs() > 0)
       mprintf("Warning: 'purewater' specified but more arguments remain.\n");
     // Add bulk water info; only need name if not calculating peaks
-    solvents_.push_back( SolventInfo(0, 0, solvname) );
+    solvents_.push_back( SolventInfo(solvname) );
   } else {
     // Get the file/dataset name with the peaks defined in it
     std::string peaksname = actionArgs.GetStringNext();
