@@ -3,7 +3,8 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles spam.in spam.dat spam.info spampure.dat test.mdcrd summary.dat
+CleanFiles spam.in spam.dat spam.info spampure.dat test.mdcrd summary.dat \
+           skipe.spam.info
 
 # Check libraries
 TESTNAME='SPAM tests'
@@ -47,6 +48,17 @@ spam purewater name SPAM cut 12.0 out spampure.dat
 EOF
 RunCpptraj "SPAM Pure Solvent Test"
 DoTest spampure.dat.save spampure.dat
+
+# Test skipE keyword
+TOP='../tz2.truncoct.parm7'
+cat > spam.in <<EOF
+trajin ../tz2.truncoct.nc
+autoimage
+spam peaks.xyz name SPAM cut 12.0 info skipe.spam.info skipE
+EOF
+RunCpptraj "SPAM Test, skip energy calc"
+DoTest spam.info.save skipe.spam.info
+
 
 EndTest
 
