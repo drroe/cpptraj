@@ -93,7 +93,7 @@ int Action_Spam::SolventInfo::CreateDeltaEneSets(std::string const& dsname, int 
     DataFile* sfile = 0;
     if (solventIdx > 0) {
       // Beyond first solvent; prepend name with hetero solvent name
-      sfile = DFL.AddDataFile( summaryfile->DataFilename().PrependFileName(Name()) );
+      sfile = DFL.AddDataFile( summaryfile->DataFilename().PrependFileName(Name() + ".") );
       if (sfile == 0) {
         mprinterr("Error: Could not create summary file for solvent '%s'\n", Name().c_str());
         return 1;
