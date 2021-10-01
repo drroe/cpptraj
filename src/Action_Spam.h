@@ -88,9 +88,6 @@ class Action_Spam: public Action {
     Darray atom_charge_;      ///< Charges that have been converted to Amber units
     bool sphere_;             ///< Is our site shape a sphere? If no, it's a box.
     DataSet* bulk_ene_set_;   ///< Hold bulk solvent energies (purewater_)
-    DataSet* ds_dg_;          ///< Hold final delta G values for each peak
-    DataSet* ds_dh_;          ///< Hold final delta H values for each peak
-    DataSet* ds_ds_;          ///< Hold final -T*S values for each peak
 
     int Nframes_;             ///< Total number of frames
     bool overflow_;           ///< True if cutoff overflowed our box coordinates
@@ -138,16 +135,27 @@ class Action_Spam::SolventInfo {
     SolventInfo(std::string const&);
     /// Construct with peaks data, size size, name
     SolventInfo(DataSet_Vector_Scalar const*, double, std::string const&);
+    /// Create total delta E sets for solvent
+    int CreateDeltaEneSets(std::string const&, int, DataSetList&, DataFileList&, DataFile*);
     /// Print info to stdout
     void PrintInfo() const;
     /// \return solvent residue name
     std::string const& Name() const { return name_; }
     /// \return Solvent site size
     double SiteSize() const { return site_size_; }
+    /// \return Pointer to delta G of solvent for each peak set
+    DataSet* DG() const { return ds_dg_; }
+    /// \return Pointer to delta H of solvent for each peak set
+    DataSet* DH() const { return ds_dh_; }
+    /// \return Pointer to -T * delta S of solvent for each peak set
+    DataSet* TDS() const { return ds_ds_; }
   private:
     DataSet_Vector_Scalar const* peaksData_; ///< Hold peaks DataSet for this solvent.
     double site_size_;                       ///< Size of solvent site (Ang.). Full edge length or diameter
     std::string name_;                       ///< Solvent residue name.
+    DataSet* ds_dg_;                         ///< Solvent Delta G for each peak
+    DataSet* ds_dh_;                         ///< Solvent Delta H for each peak
+    DataSet* ds_ds_;                         ///< Solvent -T * Delta S for each peak
     //Iarray resIdxs_;                         ///< Solvent residue indices. TODO needed?
 };
 

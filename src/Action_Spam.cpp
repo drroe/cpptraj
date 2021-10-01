@@ -39,14 +39,20 @@ void Action_Spam::SolventRes::PrintInfo() const {
 /** CONSTRUCTOR */
 Action_Spam::SolventInfo::SolventInfo() :
   peaksData_(0),
-  site_size_(0)
+  site_size_(0),
+  ds_dg_(0),
+  ds_dh_(0),
+  ds_ds_(0)
 {}
 
 /** Construct with bulk solvent name. */
 Action_Spam::SolventInfo::SolventInfo(std::string const& n) :
   peaksData_(0),
   site_size_(0),
-  name_(n)
+  name_(n),
+  ds_dg_(0),
+  ds_dh_(0),
+  ds_ds_(0)
 {}
 
 /** Construct from peaks data, solvent site size, solvent name */
@@ -54,8 +60,59 @@ Action_Spam::SolventInfo::SolventInfo(DataSet_Vector_Scalar const* ds,
                                       double s, std::string const& n) :
   peaksData_(ds),
   site_size_(s),
-  name_(n)
+  name_(n),
+  ds_dg_(0),
+  ds_dh_(0),
+  ds_ds_(0)
 {}
+
+/** Create total delta energy DataSets */
+int Action_Spam::SolventInfo::CreateDeltaEneSets(std::string const& dsname, int solventIdx,
+                                                 DataSetList& DSL,
+                                                 DataFileList& DFL, DataFile* summaryfile)
+{
+  Dimension Pdim( 1.0, 0.0, "Peak" );
+  // Create total DG DH TDS sets
+  MetaData md(dsname);
+  if (solventIdx > 0)
+    md.SetIdx( solventIdx );
+  md.SetAspect("DG");
+  ds_dg_ = DSL.AddSet(DataSet::XYMESH, md);
+  md.SetAspect("DH");
+  ds_dh_ = DSL.AddSet(DataSet::XYMESH, md);
+  md.SetAspect("-TDS");
+  ds_ds_ = DSL.AddSet(DataSet::XYMESH, md);
+  if (ds_dg_ == 0 || ds_dh_ == 0 || ds_ds_ == 0) {
+    mprinterr("Error: Could not create delta energy sets for solvent '%s'\n", Name().c_str());
+    return 1;
+  }
+  ds_dg_->SetDim(Dimension::X, Pdim);
+  ds_dh_->SetDim(Dimension::X, Pdim);
+  ds_ds_->SetDim(Dimension::X, Pdim);
+  if (summaryfile != 0) {
+    DataFile* sfile = 0;
+    if (solventIdx > 0) {
+      // Beyond first solvent; prepend name with hetero solvent name
+      sfile = DFL.AddDataFile( summaryfile->DataFilename().PrependFileName(Name()) );
+      if (sfile == 0) {
+        mprinterr("Error: Could not create summary file for solvent '%s'\n", Name().c_str());
+        return 1;
+      }
+    } else {
+      // First solvent; use summaryfile
+      sfile = summaryfile;
+    }
+    sfile->AddDataSet( ds_dg_ );
+    sfile->AddDataSet( ds_dh_ );
+    sfile->AddDataSet( ds_ds_ );
+  }
+# ifdef MPI
+  ds_dg->SetNeedsSync(false);
+  ds_dh->SetNeedsSync(false);
+  ds_ds->SetNeedsSync(false);
+# endif
+  return 0;
+}
 
 /** Print solvent info to stdout. */
 void Action_Spam::SolventInfo::PrintInfo() const {
@@ -132,9 +189,6 @@ Action_Spam::Action_Spam() :
   infofile_(0),
   sphere_(false),
   bulk_ene_set_(0),
-  ds_dg_(0),
-  ds_dh_(0),
-  ds_ds_(0),
   Nframes_(0),
   overflow_(false)
 { }
@@ -333,28 +387,11 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
       for (std::vector<PeakSite>::iterator it = peakSites_.begin(); it != peakSites_.end(); ++it)
         if (it->AddEneDataSets(solvents_, ds_name, init.DSL(), datafile, (it-peakSites_.begin())+1))
           return Action::ERR;
+      for (std::vector<SolventInfo>::iterator it = solvents_.begin(); it != solvents_.end(); ++it)
+        if (it->CreateDeltaEneSets(ds_name, (it-solvents_.begin()), init.DSL(), init.DFL(), summaryfile))
+          return Action::ERR;
     }
-
-    // Make the peak overall energy sets Mesh so we can skip unoccupied peaks
-    Dimension Pdim( 1.0, 0.0, "Peak" );
-    ds_dg_ = init.DSL().AddSet(DataSet::XYMESH, MetaData(ds_name,"DG"));
-    ds_dh_ = init.DSL().AddSet(DataSet::XYMESH, MetaData(ds_name,"DH"));
-    ds_ds_ = init.DSL().AddSet(DataSet::XYMESH, MetaData(ds_name,"-TDS"));
-    if (ds_dg_==0 || ds_dh_==0 || ds_ds_==0) return Action::ERR;
-    ds_dg_->SetDim(Dimension::X, Pdim);
-    ds_dh_->SetDim(Dimension::X, Pdim);
-    ds_ds_->SetDim(Dimension::X, Pdim);
-    if (summaryfile != 0) {
-      summaryfile->AddDataSet( ds_dg_ );
-      summaryfile->AddDataSet( ds_dh_ );
-      summaryfile->AddDataSet( ds_ds_ );
-    }
-#   ifdef MPI
-    ds_dg_->SetNeedsSync(false);
-    ds_dh_->SetNeedsSync(false);
-    ds_ds_->SetNeedsSync(false);
-#   endif
-  }
+  } // END if purewater_
 
   if (purewater_ || calcEnergy_) {
     if (pairList_.InitPairList( cut, 0.1, debug_ )) return Action::ERR;
@@ -1166,20 +1203,21 @@ int Action_Spam::Calc_G_Peak(unsigned int peakNum, PeakSite const& peakSite) con
     int err = Calc_G(DG, peakNum, min, max, Havg.variance(), enevec);
     if (err != 0) return err;
 
+    // Calculate and record delta G, H, -TdS
     double adjustedDG = DG - G_ref;
     double adjustedDH = Havg.mean() - H_ref;
     double ntds = adjustedDG - adjustedDH;
 
+    long int sidx = solv - peakSite.begin();
+
+    ((DataSet_Mesh*)solvents_[sidx].DG())->AddXY(peakNum+1, adjustedDG);
+    ((DataSet_Mesh*)solvents_[sidx].DH())->AddXY(peakNum+1, adjustedDH);
+    ((DataSet_Mesh*)solvents_[sidx].TDS())->AddXY(peakNum+1, ntds);
+
     if (solv == peakSite.begin()) {
-      // Record delta from bulk
-      ((DataSet_Mesh*)ds_dg_)->AddXY(peakNum+1, adjustedDG);
-      ((DataSet_Mesh*)ds_dh_)->AddXY(peakNum+1, adjustedDH);
-      ((DataSet_Mesh*)ds_ds_)->AddXY(peakNum+1, ntds);
-      // The reference for the next solvents will be this solvent
+      // The reference energies for the next solvents will be this solvents
       G_ref = DG;
       H_ref = Havg.mean();
-    } else {
-      mprintf("# Peak %8u DG= %16.8E  DH= %16.8E  TDS= %16.8E\n", peakNum+1, adjustedDG, adjustedDH, ntds);
     }
 
   } // END loop over solvent types for peak
