@@ -907,6 +907,11 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
   resPeakNum_.assign(solvResArray_.size(), -1);
   int solvResIdx;
   int solvResMax = (int)solvResArray_.size();
+# ifdef _OPENMP
+# pragma omp parallel private(solvResIdx)
+  {
+# pragma omp for
+# endif
   for (solvResIdx = 0; solvResIdx < solvResMax; solvResIdx++)
   {
     SolventRes const& res = solvResArray_[solvResIdx];
@@ -935,6 +940,9 @@ Action::RetType Action_Spam::SpamCalc(int frameNum, Frame& frameIn) {
     } // END loop over peaks
 
   } // END loop over solvent residues
+# ifdef _OPENMP
+  } // END omp parallel
+# endif
 
   // DEBUG - print peak assignments for each solvent
 /*
