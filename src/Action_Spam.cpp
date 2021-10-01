@@ -362,7 +362,6 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
 
     // ----- END processing input args -----------
 
-
     // Get or load the peaks data for bulk
     DataSet_Vector_Scalar* peaksData = GetPeaksData(peaksname, init.DSL());
     if (peaksData == 0) {
@@ -507,9 +506,6 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
 
   // Set up solvResArray_ and mask_ (for PairList)
   mask_.ResetMask();
-//  int idx = 0;
-//  resNumForMaskIdx_.clear();
-//  resNumForMaskIdx_.reserve( setup.Top().Natom() );
   solvResArray_.clear();
   // Loop over all residues
   std::vector<unsigned int> solvCount(solvents_.size(), 0);
@@ -530,9 +526,7 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
     {
       for (int i = res->FirstAtom(); i < res->LastAtom(); i++) {
         mask_.AddAtom( i );
-        //resNumForMaskIdx_.push_back( idx );
       }
-      //idx++;
     }
   }
   //mask_.MaskInfo();
@@ -546,22 +540,6 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
     return Action::ERR;
   }
 
-  // Set up mask_ and resNumForMaskIdx_ 
-/*  mask_.ResetMask();
-  int idx = 0;
-  resNumForMaskIdx_.clear();
-  resNumForMaskIdx_.reserve( setup.Top().Natom() );
-  for (Topology::res_iterator res = setup.Top().ResStart();
-                              res != setup.Top().ResEnd(); res++)
-  {
-    if (res->Name().Truncated() == solvname_) {
-      for (int i = res->FirstAtom(); i < res->LastAtom(); i++) {
-        mask_.AddAtom( i );
-        resNumForMaskIdx_.push_back( idx ); // TODO currently purewater only - skip if not purewater?
-      }
-      idx++;
-    }
-  }*/
   // Reserve space to hold assigned peak for each solvent residue
   resPeakNum_.reserve( solvResArray_.size() );
 
@@ -673,7 +651,6 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
       for (PairList::CellType::const_iterator it0 = thisCell.begin();
                                               it0 != thisCell.end(); ++it0)
       {
-        //wat = resNumForMaskIdx_[it0->Idx()];
         int atomi = mask_[it0->Idx()];
         wat = Atoms[atomi].ResNum();
         Vec3 const& xyz0 = it0->ImageCoords();
@@ -681,7 +658,6 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
         for (PairList::CellType::const_iterator it1 = it0 + 1;
                                                 it1 != thisCell.end(); ++it1)
         {
-          //wat1 = resNumForMaskIdx_[it1->Idx()];
           wat1 = Atoms[mask_[it1->Idx()]].ResNum();
           if ( wat != wat1 ) {
             Vec3 const& xyz1 = it1->ImageCoords();
@@ -704,7 +680,6 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
           for (PairList::CellType::const_iterator it1 = nbrCell.begin();
                                                   it1 != nbrCell.end(); ++it1)
           {
-            //wat1 = resNumForMaskIdx_[it1->Idx()];
             wat1 = Atoms[mask_[it1->Idx()]].ResNum();
             if ( wat != wat1 ) {
               Vec3 const& xyz1 = it1->ImageCoords();
@@ -831,40 +806,6 @@ int Action_Spam::Peaks_Ene_Calc(Iarray const& singleOccSolvResIdx,
           } // END nx loop
         } // END ny loop
       } // END nz loop
-/*
-      PairList::CellType const& thisCell = pairList_.Cell( cidx );
-      // cellList contains this cell index and all neighbors.
-      PairList::Iarray const& cellList = thisCell.CellList();
-      // transList contains index to translation for the neighbor.
-      PairList::Iarray const& transList = thisCell.TransList();
-      // Loop over this cell and all neighbor cells
-      for (unsigned int nidx = 0; nidx != cellList.size(); nidx++)
-      {
-        PairList::CellType const& myCell = pairList_.Cell( cellList[nidx] );
-        // Translate vector for myCell
-        Vec3 const& tVec = pairList_.TransVec( transList[nidx] );
-        // Loop over every atom in myCell
-        for (PairList::CellType::const_iterator it1 = myCell.begin();
-                                                it1 != myCell.end(); ++it1)
-        {
-          //wat1 = resNumForMaskIdx_[it1->Idx()];
-          int res1 = Atoms[mask_[it1->Idx()]].ResNum();
-          if ( res0 != res1 ) {
-            Vec3 const& xyz1 = it1->ImageCoords();
-            Vec3 dxyz = xyz1 + tVec - xyz0;
-            double D2 = dxyz.Magnitude2();
-            if (D2 < cut2_) {
-              double eval = Ecalc(solvAt, mask_[it1->Idx()], D2);
-              if (solvAt < mask_[it1->Idx()])
-                mprintf("DEBUG1: %8i - %8i = %g\n", solvAt, mask_[it1->Idx()], eval);
-              else
-                mprintf("DEBUG1: %8i - %8i = %g\n", mask_[it1->Idx()], solvAt, eval);
-              etot += eval;
-            }
-          }
-        } // END loop over every atom in myCell
-      } // END loop over this cell and neighbor cells
-*/
     } // END loop over solvent atoms
     // Add energy to singly-occupied peak site
     currentPeak.AddSolventEne(frameNum, etot, solvRes.Sidx());
