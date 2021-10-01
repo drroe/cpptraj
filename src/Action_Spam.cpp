@@ -805,7 +805,14 @@ int Action_Spam::Peaks_Ene_Calc(Iarray const& singleOccSolvResIdx,
   }
   std::vector<Atom> const& Atoms = CurrentParm_->Atoms();
   // Loop over singly-occupied peaks
-  for (unsigned int idx = 0; idx != singleOccSolvResIdx.size(); idx++)
+  int idx;
+  int maxidx = (int)singleOccSolvResIdx.size();
+# ifdef _OPENMP
+# pragma omp parallel private(idx)
+  {
+# pragma omp for
+# endif
+  for (idx = 0; idx < maxidx; idx++)
   {
     SolventRes const& solvRes = solvResArray_[singleOccSolvResIdx[idx]];
     PeakSite& currentPeak = peakSites_[singleOccPeakIdx[idx]];
@@ -882,6 +889,9 @@ int Action_Spam::Peaks_Ene_Calc(Iarray const& singleOccSolvResIdx,
     currentPeak.AddSolventEne(frameNum, etot, solvRes.Sidx());
     //mprintf("DEBUG: PL ene: peak %8i = %g\n", singleOccPeakIdx[idx], etot);
   } // END loop over singly-occupied peaks
+# ifdef _OPENMP
+  } // END omp parallel
+# endif
   return 0;
 }
 
