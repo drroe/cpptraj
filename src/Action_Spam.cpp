@@ -42,7 +42,8 @@ Action_Spam::SolventInfo::SolventInfo() :
   site_size_(0),
   ds_dg_(0),
   ds_dh_(0),
-  ds_ds_(0)
+  ds_ds_(0),
+  sfile_(0)
 {}
 
 /** Construct with bulk solvent name. */
@@ -52,7 +53,8 @@ Action_Spam::SolventInfo::SolventInfo(std::string const& n) :
   name_(n),
   ds_dg_(0),
   ds_dh_(0),
-  ds_ds_(0)
+  ds_ds_(0),
+  sfile_(0)
 {}
 
 /** Construct from peaks data, solvent site size, solvent name */
@@ -63,7 +65,8 @@ Action_Spam::SolventInfo::SolventInfo(DataSet_Vector_Scalar const* ds,
   name_(n),
   ds_dg_(0),
   ds_dh_(0),
-  ds_ds_(0)
+  ds_ds_(0),
+  sfile_(0)
 {}
 
 /** Create total delta energy DataSets */
@@ -89,22 +92,22 @@ int Action_Spam::SolventInfo::CreateDeltaEneSets(std::string const& dsname, int 
   ds_dg_->SetDim(Dimension::X, Pdim);
   ds_dh_->SetDim(Dimension::X, Pdim);
   ds_ds_->SetDim(Dimension::X, Pdim);
+  sfile_ = 0;
   if (summaryfile != 0) {
-    DataFile* sfile = 0;
     if (solventIdx > 0) {
       // Beyond first solvent; prepend name with hetero solvent name
-      sfile = DFL.AddDataFile( summaryfile->DataFilename().PrependFileName(Name() + ".") );
-      if (sfile == 0) {
+      sfile_ = DFL.AddDataFile( summaryfile->DataFilename().PrependFileName(Name() + ".") );
+      if (sfile_ == 0) {
         mprinterr("Error: Could not create summary file for solvent '%s'\n", Name().c_str());
         return 1;
       }
     } else {
       // First solvent; use summaryfile
-      sfile = summaryfile;
+      sfile_ = summaryfile;
     }
-    sfile->AddDataSet( ds_dg_ );
-    sfile->AddDataSet( ds_dh_ );
-    sfile->AddDataSet( ds_ds_ );
+    sfile_->AddDataSet( ds_dg_ );
+    sfile_->AddDataSet( ds_dh_ );
+    sfile_->AddDataSet( ds_ds_ );
   }
 # ifdef MPI
   ds_dg->SetNeedsSync(false);
@@ -114,13 +117,14 @@ int Action_Spam::SolventInfo::CreateDeltaEneSets(std::string const& dsname, int 
   return 0;
 }
 
-/** Print solvent info to stdout. */
+/** Print solvent info to stdout, no newline. */
 void Action_Spam::SolventInfo::PrintInfo() const {
-  if (site_size_ > 0)
-    mprintf("Peaks Data= '%s'  Site Size= %6.2f Ang.  Name= '%s'",
-            peaksData_->legend(), site_size_, name_.c_str());
+  if (peaksData_ != 0)
+    mprintf("'%s', Peaks= '%s', Site size= %.2f Ang.",
+            name_.c_str(), peaksData_->legend(), site_size_);
   else
-    mprintf("Name= '%s'", name_.c_str());
+    mprintf("'%s'", name_.c_str());
+  if (sfile_ != 0) mprintf(", output to '%s'", sfile_->DataFilename().full());
 }
 
 // ----- SolventPeak class -----------------------------------------------------
@@ -277,7 +281,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
   if (ds_name.empty())
     ds_name = init.DSL().GenerateDefaultName("SPAM");
 
-  // Get output data file
+  // Get energy vs frame output data file
   DataFile* datafile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   DataFile* summaryfile = 0;
 

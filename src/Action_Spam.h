@@ -149,6 +149,8 @@ class Action_Spam::SolventInfo {
     DataSet* DH() const { return ds_dh_; }
     /// \return Pointer to -T * delta S of solvent for each peak set
     DataSet* TDS() const { return ds_ds_; }
+    /// \return Pointer to DataFile that solvent sets will be written to
+    DataFile* SolventFile() const { return sfile_; }
   private:
     DataSet_Vector_Scalar const* peaksData_; ///< Hold peaks DataSet for this solvent.
     double site_size_;                       ///< Size of solvent site (Ang.). Full edge length or diameter
@@ -156,6 +158,7 @@ class Action_Spam::SolventInfo {
     DataSet* ds_dg_;                         ///< Solvent Delta G for each peak
     DataSet* ds_dh_;                         ///< Solvent Delta H for each peak
     DataSet* ds_ds_;                         ///< Solvent -T * Delta S for each peak
+    DataFile* sfile_;                        ///< File that solvent sets will be written to (for info only).
     //Iarray resIdxs_;                         ///< Solvent residue indices. TODO needed?
 };
 
