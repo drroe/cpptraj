@@ -78,6 +78,7 @@ class Action_Spam: public Action {
     bool purewater_;          ///< True if running a pure water simulation to derive bulk properties
     bool reorder_;            ///< True if solvent should be reordered
     bool calcEnergy_;         ///< True if energy needs to be calculated.
+    bool printFrameInfo_;     ///< If true print details for omitted frames.
     double cut2_;             ///< Non-bonded cutoff in Angstroms (squared)
     double onecut2_;          ///< 1 / cut2_ (for truncation scheme)
     double doublecut_;        ///< twice the cutoff (to test if boxes are big enough)

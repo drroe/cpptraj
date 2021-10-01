@@ -197,6 +197,7 @@ Action_Spam::Action_Spam() :
   purewater_(false),
   reorder_(false),
   calcEnergy_(false),
+  printFrameInfo_(true),
   cut2_(144.0),
   onecut2_(1.0 / 144.0),
   doublecut_(24.0),
@@ -250,8 +251,8 @@ DataSet_Vector_Scalar* Action_Spam::GetPeaksData(std::string const& name, DataSe
 void Action_Spam::Help() const {
   mprintf("\t[name <name>] [out <datafile>] [cut <cut>] [solv <solvname>]\n"
           "\t{ pure |\n"
-          "\t  <peaksname> [reorder] [info <infofile>] [summary <summary>]\n"
-          "\t  [site_size <size>] [sphere] [temperature <T>]\n"
+          "\t  <peaksname> [reorder] [summary <summary>] [info <infofile>]\n"
+          "\t  [noframeinfo] [site_size <size>] [sphere] [temperature <T>]\n"
           "\t  [skipE] [dgbulk <dgbulk>] [dhbulk <dhbulk>]\n"
           "\t  [hetsolvent <hname>,<hpeaks>,<hsize>] }\n"
           "  Perform SPAM solvent analysis. If 'pure' is specified calculate\n"
@@ -265,8 +266,9 @@ void Action_Spam::Help() const {
           "    <peaksname>  : DataSet/File (XYZ format) with the peak locations for bulk solvent.\n"
           "    [reorder]    : The solvent should be re-ordered so the same solvent molecule\n"
           "                   is always in the same site.\n"
-          "    <infofile>   : File with stats about which peak sites are occupied when.\n"
           "    <summary>    : File with the summary of all SPAM results.\n"
+          "    <infofile>   : File with stats about which peak sites are occupied when.\n"
+          "    [noframeinfo] : If specified do not print individual frame #s to info file.\n"
           "    <size>       : Edge length (or diameter for 'sphere') of each solvent peak site.\n"
           "    [sphere]     : Treat each site like a sphere instead of a box.\n"
           "    <T>          : Temperature at which SPAM calculation was run.\n"
@@ -345,6 +347,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
       infoname = std::string("spam.info");
     infofile_ = init.DFL().AddCpptrajFile(infoname, "SPAM info");
     if (infofile_ == 0) return Action::ERR;
+    printFrameInfo_ = !actionArgs.hasKey("noframeinfo");
     DataFile* summaryfile = init.DFL().AddDataFile(actionArgs.GetStringKey("summary"), actionArgs);
     // Determine if energy calculation needs to happen
     calcEnergy_ = !actionArgs.hasKey("skipE");
@@ -452,6 +455,8 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
       mprintf("\tWarning: Re-ordering makes no sense for pure solvent.\n");
   } else {
     mprintf("\tOccupation information printed to %s.\n", infofile_->Filename().full());
+    if (!printFrameInfo_)
+      mprintf("\tNot printing individual frame #s to info file.\n");
     mprintf("\tSites are ");
     if (sphere_)
       mprintf("spheres.\n");
@@ -1327,15 +1332,17 @@ void Action_Spam::Print() {
                             peak - peakSites_.begin() + 1, 
                             solv - peak->begin() + 1, peakFrameData.size(), ndouble);
         // Print omitted frames
-        for (unsigned int j = 0; j < peakFrameData.size(); j++) {
-          if (j > 0 && j % 10 == 0) infofile_->Printf("\n");
-          // Adjust frame number.
-          int fnum = peakFrameData[j];
-          if (fnum > -1)
-            fnum++;
-          infofile_->Printf(" %7d", fnum);
+        if (printFrameInfo_) {
+          for (unsigned int j = 0; j < peakFrameData.size(); j++) {
+            if (j > 0 && j % 10 == 0) infofile_->Printf("\n");
+            // Adjust frame number.
+            int fnum = peakFrameData[j];
+            if (fnum > -1)
+              fnum++;
+            infofile_->Printf(" %7d", fnum);
+          }
+          infofile_->Printf("\n\n");
         }
-        infofile_->Printf("\n\n");
       }
     }
 
