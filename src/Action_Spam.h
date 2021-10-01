@@ -180,6 +180,10 @@ class Action_Spam::SolventPeak {
     DataSet* DS() const { return energies_; }
     /// \return Omitted frames array
     Iarray const& Omitted() const { return omitted_; }
+#   ifdef MPI
+    /// \return Modifiable omitted frames array (for syncing)
+    Iarray& ModifyOmitted() { return omitted_; }
+#   endif
   private:
     DataSet* energies_; ///< Hold solvent energies for this peak.
     Iarray omitted_;   ///< Hold info on frames for which no solvent energies calcd.
@@ -225,6 +229,12 @@ class Action_Spam::PeakSite {
     const_iterator begin() const { return solvPeaks_.begin(); }
     /// \return iterator to end of solvent peak array
     const_iterator end()   const { return solvPeaks_.end(); }
+#   ifdef MPI
+    /// \return Number of solvents set up for this peak
+    unsigned int Nsolvs() const { return solvPeaks_.size(); }
+    /// \return Modifiable solvent (used for syncing omitted frames).
+    SolventPeak& ModifySolv(unsigned int idx) { return solvPeaks_[idx]; }
+#   endif
   private:
     static const double ZERO_;
 

@@ -113,9 +113,9 @@ int Action_Spam::SolventInfo::CreateDeltaEneSets(std::string const& dsname, int 
     sfile_->AddDataSet( ds_ds_ );
   }
 # ifdef MPI
-  ds_dg->SetNeedsSync(false);
-  ds_dh->SetNeedsSync(false);
-  ds_ds->SetNeedsSync(false);
+  ds_dg_->SetNeedsSync(false);
+  ds_dh_->SetNeedsSync(false);
+  ds_ds_->SetNeedsSync(false);
 # endif
   return 0;
 }
@@ -1288,32 +1288,36 @@ int Action_Spam::SyncAction() {
 
   // Sync peakFrameData_
   Iarray size_on_rank( trajComm_.Size() );
-  for (unsigned int i = 0; i != peakFrameData_.size(); i++)
+  for (std::vector<PeakSite>::iterator peak = peakSites_.begin(); peak != peakSites_.end(); ++peak)
   {
-    Iarray& Data = peakFrameData_[i];
-    int mysize = (int)Data.size();
-    trajComm_.GatherMaster( &mysize, 1, MPI_INT, &size_on_rank[0] );
-    if (trajComm_.Master()) {
-      int total = size_on_rank[0];
-      for (int rank = 1; rank < trajComm_.Size(); rank++)
-        total += size_on_rank[rank];
-      Data.resize( total );
-      int* endptr = &(Data[0]) + size_on_rank[0];
-      // Receive data from each rank
-      int offset = 0;
-      for (int rank = 1; rank < trajComm_.Size(); rank++) {
-        offset += frames_on_rank[rank-1];
-        trajComm_.SendMaster( endptr, size_on_rank[rank], rank, MPI_INT );
-        // Properly offset the frame numbers
-        for (int j = 0; j != size_on_rank[rank]; j++, endptr++)
-          if (*endptr < 0)
-            *endptr -= offset;
-          else
-            *endptr += offset;
-      }
-    } else // Send data to master
-      trajComm_.SendMaster( &(Data[0]), Data.size(), trajComm_.Rank(), MPI_INT );
-  }
+    for (unsigned int sidx = 0; sidx != peak->Nsolvs(); sidx++)
+    {
+
+      Iarray& Data = peak->ModifySolv(sidx).ModifyOmitted();
+      int mysize = (int)Data.size();
+      trajComm_.GatherMaster( &mysize, 1, MPI_INT, &size_on_rank[0] );
+      if (trajComm_.Master()) {
+        int total = size_on_rank[0];
+        for (int rank = 1; rank < trajComm_.Size(); rank++)
+          total += size_on_rank[rank];
+        Data.resize( total );
+        int* endptr = &(Data[0]) + size_on_rank[0];
+        // Receive data from each rank
+        int offset = 0;
+        for (int rank = 1; rank < trajComm_.Size(); rank++) {
+          offset += frames_on_rank[rank-1];
+          trajComm_.SendMaster( endptr, size_on_rank[rank], rank, MPI_INT );
+          // Properly offset the frame numbers
+          for (int j = 0; j != size_on_rank[rank]; j++, endptr++)
+            if (*endptr < 0)
+              *endptr -= offset;
+            else
+              *endptr += offset;
+        }
+      } else // Send data to master
+        trajComm_.SendMaster( &(Data[0]), Data.size(), trajComm_.Rank(), MPI_INT );
+    } // END loop over solvents at this peak
+  } // END loop over peaks
   return 0;
 }
 #endif
