@@ -202,6 +202,8 @@ class Action_Spam::PeakSite {
         if (it->DS() != 0) it->DS()->Add(fn, &ZERO_);
       }
     }
+    /// Add an empty SolventPeak for each solvent in given array (when not calculating energy)
+    int AddSolventPeaks(std::vector<SolventInfo> const&);
     /// Add given energy for specified solvent; all other solvents get omitted.
     void AddSolventEne(int fn, double ene, unsigned int tgtSidx) {
       for (unsigned int sidx = 0; sidx != solvPeaks_.size(); sidx++)

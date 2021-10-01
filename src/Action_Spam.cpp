@@ -177,6 +177,16 @@ int Action_Spam::PeakSite::AddEneDataSets(std::vector<SolventInfo> const& solven
   return 0;
 }
 
+/** Add SolventPeak with no output energy DataSet for each solvent type in given array. */
+int Action_Spam::PeakSite::AddSolventPeaks(std::vector<SolventInfo> const& solvents)
+{
+  solvPeaks_.clear();
+  for (std::vector<SolventInfo>::const_iterator solv = solvents.begin();
+                                                solv != solvents.end(); ++solv)
+    solvPeaks_.push_back( SolventPeak() );
+  return 0;
+}
+
 // -----------------------------------------------------------------------------
 // CONSTRUCTOR
 Action_Spam::Action_Spam() :
@@ -385,13 +395,18 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
                 it->XYZ()[0], it->XYZ()[1], it->XYZ()[2]);
     }
 
-    // Add DataSets for each solvent to all peak sites
     if (calcEnergy_) {
+      // Add energy vs frame DataSets for each solvent to all peak sites
       for (std::vector<PeakSite>::iterator it = peakSites_.begin(); it != peakSites_.end(); ++it)
         if (it->AddEneDataSets(solvents_, ds_name, init.DSL(), datafile, (it-peakSites_.begin())+1))
           return Action::ERR;
       for (std::vector<SolventInfo>::iterator it = solvents_.begin(); it != solvents_.end(); ++it)
         if (it->CreateDeltaEneSets(ds_name, (it-solvents_.begin()), init.DSL(), init.DFL(), summaryfile))
+          return Action::ERR;
+    } else {
+      // Add SolventPeak for each solvent to all peak sites.
+      for (std::vector<PeakSite>::iterator it = peakSites_.begin(); it != peakSites_.end(); ++it)
+        if (it->AddSolventPeaks(solvents_))
           return Action::ERR;
     }
   } // END if purewater_
@@ -439,12 +454,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     if (reorder_)
       mprintf("\tRe-ordering trajectory so each site always has the same water molecule.\n");
     if (!calcEnergy_) {
-      mprintf("\tSkipping the energy calculation.\n");
-      if (!reorder_) {
-        mprinterr("Error: Not re-ordering trajectory or calculating energies. Nothing to do!\n");
-        return Action::ERR;
-      }
-      mprintf("\tNot calculating any SPAM energies\n");
+      mprintf("\tSkipping calculation of SPAM energies.\n");
     } else {
       mprintf("\tUsing a non-bonded cutoff of %.2f Ang. with a EEL shifting function.\n",
               sqrt(cut2_));
