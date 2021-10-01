@@ -249,28 +249,34 @@ DataSet_Vector_Scalar* Action_Spam::GetPeaksData(std::string const& name, DataSe
 
 void Action_Spam::Help() const {
   mprintf("\t[name <name>] [out <datafile>] [cut <cut>] [solv <solvname>]\n"
-          "\t{ purewater |\n"
+          "\t{ pure |\n"
           "\t  <peaksname> [reorder] [info <infofile>] [summary <summary>]\n"
           "\t  [site_size <size>] [sphere] [temperature <T>]\n"
-          "\t  [skipE] [dgbulk <dgbulk>] [dhbulk <dhbulk>] }\n"
-          "  Perform SPAM water analysis. If 'purewater' is specified calculate\n"
-          "  bulk energy values for a pure water system. Otherwise determine SPAM\n"
+          "\t  [skipE] [dgbulk <dgbulk>] [dhbulk <dhbulk>]\n"
+          "\t  [hetsolvent <hname>,<hpeaks>,<hsize>] }\n"
+          "  Perform SPAM solvent analysis. If 'pure' is specified calculate\n"
+          "  bulk energy values for a pure solvent system. Otherwise determine SPAM\n"
           "  energies from peaks previously identified from the 'volmap' action.\n"
-          "    <name>      : Output data set name.\n"
-          "    <datafile>  : Data file with all SPAM energies for each snapshot.\n"
-          "    <cut>       : Non-bonded cutoff for energy evaluation\n"
-          "    <solvname>  : Name of the solvent residues\n"
-          "    [purewater] : The system is pure water---used to parametrize the bulk values.\n"
-          "    <peaksname> : Dataset/File (XYZ format) with the peak locations present.\n"
-          "    [reorder]   : The solvent should be re-ordered so the same solvent molecule\n"
-          "                  is always in the same site.\n"
-          "    <infofile>  : File with stats about which sites are occupied when.\n"
-          "    <summary>   : File with the summary of all SPAM results.\n"
-          "    <size>      : Size of the water site around each density peak.\n"
-          "    [sphere]    : Treat each site like a sphere.\n"
-          "    <T>         : Temperature at which SPAM calculation was run.\n"
-          "    <dgbulk>    : SPAM free energy of the bulk solvent in kcal/mol\n"
-          "    <dhbulk>    : SPAM enthalpy of the bulk solvent in kcal/mol\n");
+          "    <name>       : Output data set name.\n"
+          "    <datafile>   : Data file with all SPAM energies for each snapshot.\n"
+          "    <cut>        : Non-bonded cutoff for energy evaluation.\n"
+          "    <solvname>   : Name of the bulk solvent residues.\n"
+          "    [pure]       : The system is pure solvent. Used to parametrize the bulk values.\n"
+          "    <peaksname>  : DataSet/File (XYZ format) with the peak locations for bulk solvent.\n"
+          "    [reorder]    : The solvent should be re-ordered so the same solvent molecule\n"
+          "                   is always in the same site.\n"
+          "    <infofile>   : File with stats about which peak sites are occupied when.\n"
+          "    <summary>    : File with the summary of all SPAM results.\n"
+          "    <size>       : Edge length (or diameter for 'sphere') of each solvent peak site.\n"
+          "    [sphere]     : Treat each site like a sphere instead of a box.\n"
+          "    <T>          : Temperature at which SPAM calculation was run.\n"
+          "    [skipE]      : If specified, skip SPAM energy calculation.\n"
+          "    <dgbulk>     : SPAM free energy of the bulk solvent in kcal/mol.\n"
+          "    <dhbulk>     : SPAM enthalpy of the bulk solvent in kcal/mol.\n"
+          "    [hetsolvent] : If specified, also calculate SPAM energy for heterosolvent with.\n"
+          "                   residue name <hname>, peaks DataSet/File <hpeaks>, and site size\n"
+          "                   <hsize> (in Ang.).\n"
+         );
 }
 
 // Action_Spam::Init()
@@ -283,8 +289,8 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
   // Always use imaged distances
   imageOpt_.InitImaging(true);
 
-  // See if we're doing pure water. If so, we don't need a peak file
-  purewater_ = actionArgs.hasKey("purewater");
+  // See if we're doing pure solvent. If so, we don't need a peak file
+  purewater_ = actionArgs.hasKey("pure") || actionArgs.hasKey("purewater");
 
   // Get data set name.
   std::string ds_name = actionArgs.GetStringKey("name");
@@ -315,7 +321,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     DH_BULK_ = 0.0;
     // Shouldn't need any more arguments.
     if (actionArgs.NremainingArgs() > 0)
-      mprintf("Warning: 'purewater' specified but more arguments remain.\n");
+      mprintf("Warning: 'pure' specified but more arguments remain.\n");
     // Add bulk water info; only need name if not calculating peaks
     solvents_.push_back( SolventInfo(solvname) );
   } else {
@@ -439,7 +445,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tCalculating bulk value for pure solvent.\n");
     if (datafile != 0)
       mprintf("\tPrinting solvent energies to %s\n", datafile->DataFilename().full());
-    mprintf("\tData set '%s' index is water # * frame.\n", bulk_ene_set_->legend());
+    mprintf("\tData set '%s' index is solvent # * frame.\n", bulk_ene_set_->legend());
     mprintf("\tUsing a %.2f Angstrom non-bonded cutoff with shifted EEL.\n",
             sqrt(cut2_));
     if (reorder_)
@@ -452,7 +458,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     else
       mprintf("boxes.\n");
     if (reorder_)
-      mprintf("\tRe-ordering trajectory so each site always has the same water molecule.\n");
+      mprintf("\tRe-ordering trajectory so each site always has the same solvent molecule.\n");
     if (!calcEnergy_) {
       mprintf("\tSkipping calculation of SPAM energies.\n");
     } else {
