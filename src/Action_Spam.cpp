@@ -242,7 +242,7 @@ void Action_Spam::Help() const {
           "\t{ purewater |\n"
           "\t  <peaksname> [reorder] [info <infofile>] [summary <summary>]\n"
           "\t  [site_size <size>] [sphere] [temperature <T>]\n"
-          "\t  [dgbulk <dgbulk>] [dhbulk <dhbulk>] }\n"
+          "\t  [skipE] [dgbulk <dgbulk>] [dhbulk <dhbulk>] }\n"
           "  Perform SPAM water analysis. If 'purewater' is specified calculate\n"
           "  bulk energy values for a pure water system. Otherwise determine SPAM\n"
           "  energies from peaks previously identified from the 'volmap' action.\n"
@@ -331,7 +331,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     if (infofile_ == 0) return Action::ERR;
     DataFile* summaryfile = init.DFL().AddDataFile(actionArgs.GetStringKey("summary"), actionArgs);
     // Determine if energy calculation needs to happen
-    calcEnergy_ = (summaryfile != 0 || datafile != 0);
+    calcEnergy_ = !actionArgs.hasKey("skipE");
     // Divide site size by 2 to make it half the edge length (or radius)
     double site_size = actionArgs.getKeyDouble("site_size", 2.5) / 2.0;
     sphere_ = actionArgs.hasKey("sphere");
@@ -439,6 +439,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     if (reorder_)
       mprintf("\tRe-ordering trajectory so each site always has the same water molecule.\n");
     if (!calcEnergy_) {
+      mprintf("\tSkipping the energy calculation.\n");
       if (!reorder_) {
         mprinterr("Error: Not re-ordering trajectory or calculating energies. Nothing to do!\n");
         return Action::ERR;
