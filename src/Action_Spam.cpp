@@ -701,6 +701,7 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
   return Action::OK;
 }
 
+/// Wrap the given grid index if out of bounds; set offset to original direction
 static inline int wrapidx(int nz, int MAXZ, int& offset) {
         int iz;
         if (nz < 0) {
