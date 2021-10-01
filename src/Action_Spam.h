@@ -85,6 +85,7 @@ class Action_Spam: public Action {
     CpptrajFile* infofile_;   ///< SPAM info file
     AtomMask mask_;           ///< Mask for selecting atoms for pair list 
     Iarray resPeakNum_;       ///< Peak that each solvent residue is assigned to each frame; -1 is unassigned
+    Iarray watidx_;           ///< For each atom in mask_, solvResArray index (purewater only)
     Topology* CurrentParm_;   ///< Current topology (for NB params).
     Darray atom_charge_;      ///< Charges that have been converted to Amber units
     bool sphere_;             ///< Is our site shape a sphere? If no, it's a box.

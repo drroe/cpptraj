@@ -507,6 +507,10 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
   // Set up solvResArray_ and mask_ (for PairList)
   mask_.ResetMask();
   solvResArray_.clear();
+  watidx_.clear();
+  if (purewater_)
+    watidx_.reserve( setup.Top().Natom() );
+  int idx = 0;
   // Loop over all residues
   std::vector<unsigned int> solvCount(solvents_.size(), 0);
   for (Topology::res_iterator res = setup.Top().ResStart();
@@ -521,12 +525,17 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
       }
     }
     // Set up mask/resnums only for solvent for purewater_, everything otherwise
-    if ( (purewater_ && res->Name().Truncated() == solvents_.front().Name()) ||
-         !purewater_ )
-    {
-      for (int i = res->FirstAtom(); i < res->LastAtom(); i++) {
-        mask_.AddAtom( i );
+    if (purewater_) {
+      if (res->Name().Truncated() == solvents_.front().Name()) {
+        for (int i = res->FirstAtom(); i < res->LastAtom(); i++) {
+          mask_.AddAtom( i );
+          watidx_.push_back( idx );
+        }
+        idx++;
       }
+    } else {
+      for (int i = res->FirstAtom(); i < res->LastAtom(); i++)
+        mask_.AddAtom( i );
     }
   }
   //mask_.MaskInfo();
@@ -636,7 +645,7 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
   // Make room for each solvent residue energy this frame.
   evals.Resize( evals.Size() + solvResArray_.size() );
   t_energy_.Start();
-  std::vector<Atom> const& Atoms = CurrentParm_->Atoms();
+  //std::vector<Atom> const& Atoms = CurrentParm_->Atoms();
   // Loop over all grid cells
   for (int cidx = 0; cidx < pairList_.NGridMax(); cidx++)
   {
@@ -652,13 +661,13 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
                                               it0 != thisCell.end(); ++it0)
       {
         int atomi = mask_[it0->Idx()];
-        wat = Atoms[atomi].ResNum();
+        wat = watidx_[it0->Idx()]; //Atoms[atomi].ResNum();
         Vec3 const& xyz0 = it0->ImageCoords();
         // Calc interaction of atom to all other atoms in thisCell.
         for (PairList::CellType::const_iterator it1 = it0 + 1;
                                                 it1 != thisCell.end(); ++it1)
         {
-          wat1 = Atoms[mask_[it1->Idx()]].ResNum();
+          wat1 = watidx_[it1->Idx()]; //Atoms[mask_[it1->Idx()]].ResNum();
           if ( wat != wat1 ) {
             Vec3 const& xyz1 = it1->ImageCoords();
             Vec3 dxyz = xyz1 - xyz0;
@@ -680,7 +689,7 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
           for (PairList::CellType::const_iterator it1 = nbrCell.begin();
                                                   it1 != nbrCell.end(); ++it1)
           {
-            wat1 = Atoms[mask_[it1->Idx()]].ResNum();
+            wat1 = watidx_[it1->Idx()]; //Atoms[mask_[it1->Idx()]].ResNum();
             if ( wat != wat1 ) {
               Vec3 const& xyz1 = it1->ImageCoords();
               Vec3 dxyz = xyz1 + tVec - xyz0;
