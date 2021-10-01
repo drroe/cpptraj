@@ -91,7 +91,7 @@ int DataIO_Peaks::ReadData(FileName const& fname, DataSetList& dsl, std::string 
     mprinterr("Error: Could not read number of peaks in file.\n");
     return 1;
   }
-  mprintf("\tAttempting to read %i peaks.\n", npeaks_in_file);
+  mprintf("\tAttempting to read %i peaks from '%s'.\n", npeaks_in_file, fname.full());
   //   Line 2   : Blank
   ptr = peakfile.NextLine();
   //   Line 3-X : C <X> <Y> <Z> <Val>

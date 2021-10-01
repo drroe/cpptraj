@@ -283,7 +283,6 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
 
   // Get energy vs frame output data file
   DataFile* datafile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
-  DataFile* summaryfile = 0;
 
   // Bulk solvent residue name
   std::string solvname = actionArgs.GetStringKey("solv");
@@ -330,7 +329,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
       infoname = std::string("spam.info");
     infofile_ = init.DFL().AddCpptrajFile(infoname, "SPAM info");
     if (infofile_ == 0) return Action::ERR;
-    summaryfile = init.DFL().AddDataFile(actionArgs.GetStringKey("summary"), actionArgs);
+    DataFile* summaryfile = init.DFL().AddDataFile(actionArgs.GetStringKey("summary"), actionArgs);
     // Determine if energy calculation needs to happen
     calcEnergy_ = (summaryfile != 0 || datafile != 0);
     // Divide site size by 2 to make it half the edge length (or radius)
@@ -430,9 +429,6 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
             sqrt(cut2_));
     if (reorder_)
       mprintf("\tWarning: Re-ordering makes no sense for pure solvent.\n");
-    if (summaryfile != 0)
-      mprintf("\tPrinting solvent SPAM summary to %s\n",
-               summaryfile->DataFilename().full());
   } else {
     mprintf("\tOccupation information printed to %s.\n", infofile_->Filename().full());
     mprintf("\tSites are ");
