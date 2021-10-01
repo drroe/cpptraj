@@ -105,6 +105,9 @@ class Action_Spam: public Action {
     Timer t_occupy_;
     Timer t_energy_;
     Timer t_reordr_;
+#   ifdef _OPENMP
+    std::vector<Darray> threadResEne_; ///< For each thread, hold 'purewater' ene for each res
+#   endif
 };
 
 // ----- SolventRes class ------------------------------------------------------

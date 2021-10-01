@@ -14,6 +14,9 @@
 #include "DataSet_Mesh.h"
 #include "DataSet_Vector_Scalar.h"
 #include "DataIO_Peaks.h"
+#ifdef _OPENMP
+# include <omp.h>
+#endif
 
 // ----- SolventRes class ------------------------------------------------------
 /** CONSTRUCTOR */
@@ -324,6 +327,16 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     // Shouldn't need any more arguments.
     if (actionArgs.NremainingArgs() > 0)
       mprintf("Warning: 'pure' specified but more arguments remain.\n");
+#   ifdef _OPENMP
+    // Set up temp space for each thread
+    int numthreads;
+#   pragma omp parallel
+    {
+    if (omp_get_thread_num() == 0)
+      numthreads = omp_get_num_threads();
+    }
+    threadResEne_.resize( numthreads );
+#   endif
     // Add bulk water info; only need name if not calculating peaks
     solvents_.push_back( SolventInfo(solvname) );
   } else {
@@ -445,6 +458,8 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
   }
   if (purewater_) {
     mprintf("\tCalculating bulk value for pure solvent.\n");
+    if (threadResEne_.size() > 1)
+      mprintf("\tParallelizing energy calculation with %zu threads.\n", threadResEne_.size());
     if (datafile != 0)
       mprintf("\tPrinting solvent energies to %s\n", datafile->DataFilename().full());
     mprintf("\tData set '%s' index is solvent # * frame.\n", bulk_ene_set_->legend());
@@ -538,6 +553,10 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
         mask_.AddAtom( i );
     }
   }
+# ifdef _OPENMP
+  for (std::vector<Darray>::iterator it = threadResEne_.begin(); it != threadResEne_.end(); ++it)
+    it->resize( solvResArray_.size() );
+# endif
   //mask_.MaskInfo();
   if (debug_ > 0) {
     mprintf("DEBUG: Solvent residues\n");
@@ -625,6 +644,15 @@ double Action_Spam::Ecalc(int i, int j, double dist2) const {
   return eval;
 }
 
+/*static inline void dbgprint(int wat, int wat1, double eval)
+{
+  if (wat < wat1)
+    mprintf("DEBUG: %8i - %8i = %10.5f\n", wat, wat1, eval);
+  else
+    mprintf("DEBUG: %8i - %8i = %10.5f\n", wat, wat1, eval);
+}*/
+    
+
 // Action_Spam::DoPureWater
 /** Carries out SPAM analysis for pure water to parametrize bulk.
   * This is relatively simple. For each frame, calculate the interaction
@@ -639,7 +667,7 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
     mprinterr("Error: Grid setup for bulk energy calculation failed.\n");
     return Action::ERR;
   }
-  int wat = 0, wat1 = 0;
+//  int wat = 0, wat1 = 0;
   int basenum = frameNum * solvResArray_.size();
   DataSet_double& evals = static_cast<DataSet_double&>( *bulk_ene_set_ );
   // Make room for each solvent residue energy this frame.
@@ -647,7 +675,18 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
   t_energy_.Start();
   //std::vector<Atom> const& Atoms = CurrentParm_->Atoms();
   // Loop over all grid cells
-  for (int cidx = 0; cidx < pairList_.NGridMax(); cidx++)
+  int cidx;
+# ifdef _OPENMP
+  int mythread;
+  double* resEne;
+# pragma omp parallel private(cidx, mythread, resEne)
+  {
+  mythread = omp_get_thread_num();
+  threadResEne_[mythread].assign(threadResEne_[mythread].size(), 0);
+  resEne = &(threadResEne_[mythread][0]);
+# pragma omp for
+# endif
+  for (cidx = 0; cidx < pairList_.NGridMax(); cidx++)
   {
     PairList::CellType const& thisCell = pairList_.Cell( cidx );
     if (thisCell.NatomsInGrid() > 0)
@@ -661,21 +700,27 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
                                               it0 != thisCell.end(); ++it0)
       {
         int atomi = mask_[it0->Idx()];
-        wat = watidx_[it0->Idx()]; //Atoms[atomi].ResNum();
+        int wat = watidx_[it0->Idx()]; //Atoms[atomi].ResNum();
         Vec3 const& xyz0 = it0->ImageCoords();
         // Calc interaction of atom to all other atoms in thisCell.
         for (PairList::CellType::const_iterator it1 = it0 + 1;
                                                 it1 != thisCell.end(); ++it1)
         {
-          wat1 = watidx_[it1->Idx()]; //Atoms[mask_[it1->Idx()]].ResNum();
+          int wat1 = watidx_[it1->Idx()]; //Atoms[mask_[it1->Idx()]].ResNum();
           if ( wat != wat1 ) {
             Vec3 const& xyz1 = it1->ImageCoords();
             Vec3 dxyz = xyz1 - xyz0;
             double D2 = dxyz.Magnitude2();
             if (D2 < cut2_) {
               double eval = Ecalc(atomi, mask_[it1->Idx()], D2);
+#             ifdef _OPENMP
+//              dbgprint(atomi, mask_[it1->Idx()], eval);
+              resEne[wat] += eval;
+              resEne[wat1] += eval;
+#             else
               evals[basenum + wat] += eval;
               evals[basenum + wat1] += eval;
+#             endif
             }
           }
         } // END loop over all other atoms in thisCell
@@ -689,15 +734,21 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
           for (PairList::CellType::const_iterator it1 = nbrCell.begin();
                                                   it1 != nbrCell.end(); ++it1)
           {
-            wat1 = watidx_[it1->Idx()]; //Atoms[mask_[it1->Idx()]].ResNum();
+            int wat1 = watidx_[it1->Idx()]; //Atoms[mask_[it1->Idx()]].ResNum();
             if ( wat != wat1 ) {
               Vec3 const& xyz1 = it1->ImageCoords();
               Vec3 dxyz = xyz1 + tVec - xyz0;
               double D2 = dxyz.Magnitude2();
               if (D2 < cut2_) {
                 double eval = Ecalc(atomi, mask_[it1->Idx()], D2);
+#               ifdef _OPENMP
+//                dbgprint(atomi, mask_[it1->Idx()], eval);
+                resEne[wat] += eval;
+                resEne[wat1] += eval;
+#               else
                 evals[basenum + wat] += eval;
                 evals[basenum + wat1] += eval;
+#               endif
               }
             }
           } // END loop over atoms in neighbor cell
@@ -705,6 +756,16 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
       } // END loop over atoms in thisCell
     } // END cell not empty
   } // END loop over grid cells
+# ifdef _OPENMP
+  } // END omp parallel
+  // Sum resEne into evals
+  for (std::vector<Darray>::const_iterator it = threadResEne_.begin(); it != threadResEne_.end(); ++it)
+  {
+    int idx = basenum;
+    for (Darray::const_iterator jt = it->begin(); jt != it->end(); ++jt, ++idx)
+      evals[idx] += *jt;
+  }
+# endif
   t_energy_.Stop();
   t_action_.Stop();
   return Action::OK;
