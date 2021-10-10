@@ -16,10 +16,12 @@ class Counter {
     /// Go to the next number and update internal index
     void UpdateCounter() { ++currentIdx_; update(); }
   protected:
+    /// \return the current internal index
+    unsigned int CurrentIdx() const { return currentIdx_; }
     /// Go to the next number.
     virtual void update() = 0;
   private:
-    int currentIdx_; ///< Current internal index.
+    unsigned int currentIdx_; ///< Current internal index.
 };
 
 }
