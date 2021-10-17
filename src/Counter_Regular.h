@@ -7,6 +7,8 @@ class Counter_Regular : public Counter {
   public:
     /// CONSTRUCTOR
     Counter_Regular();
+    /// CONSTRUCTOR - start/stop/offset
+    Counter_Regular(int,int,int);
     /// \return current number
     int CurrentNumber() const { return current_; }
     /// \return True if the count is finished

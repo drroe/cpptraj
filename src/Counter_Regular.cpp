@@ -9,3 +9,10 @@ Counter_Regular::Counter_Regular() :
   current_(0)
 {}
 
+/** CONSTRUCTOR - start stop offset */
+Counter_Regular::Counter_Regular(int start, int stop, int offset) :
+  start_(start),
+  stop_(stop),
+  offset_(offset),
+  current_(0)
+{}
