@@ -1,5 +1,6 @@
 #ifndef INC_COUNTER_H
 #define INC_COUNTER_H
+#include <string>
 namespace Cpptraj {
 /// Used to generate and keep track of a series of numbers to be iterated over.
 class Counter {
@@ -12,6 +13,8 @@ class Counter {
     virtual int CurrentNumber() const = 0;
     /// \return True if the count is finished
     virtual bool IsFinished() const = 0;
+    /// \return String containing counter info
+    virtual std::string CounterInfo() const = 0;
 
     /// Go to the next number and update internal index
     void UpdateCounter() { ++currentIdx_; update(); }

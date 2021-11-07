@@ -8,18 +8,20 @@ class Topology;
 class InputTrajCommon {
   public:
     InputTrajCommon() : trajParm_(0) {}
-    FileName const& Filename()        const { return trajName_; }
+    FileName const& Filename()                 const { return trajName_; }
     // TODO: return const&, modify all TrajectoryIO routines?
-    Topology* Parm()                  const { return trajParm_; }
-    TrajFrameCounter const& Counter() const { return frameCount_; }
-    TrajFrameCounter& Counter()             { return frameCount_; }
+    Topology* Parm()                           const { return trajParm_; }
+    /// \return internal frame counter
+    Cpptraj::TrajFrameCounter const& Counter() const { return frameCount_; }
+    /// \return modifiable internal frame counter
+    Cpptraj::TrajFrameCounter& SetCounter()          { return frameCount_; }
     /// Set trajectory file name and associated Topology.
     int SetNameAndParm(FileName const&, Topology*);
     /// Print trajectory info to one line.
     void PrintInfoLine() const { frameCount_.PrintInfoLine(trajName_.base()); }
   private:
-    TrajFrameCounter frameCount_; ///< Frame counter for GetNextX routines.
-    FileName trajName_;           ///< Trajectory file name (lowest rep for ensembles).
-    Topology* trajParm_; ///< Pointer to Topology associated with trajectory/ensemble.
+    Cpptraj::TrajFrameCounter frameCount_; ///< Frame counter for GetNextX routines.
+    FileName trajName_;                    ///< Trajectory file name (lowest rep for ensembles).
+    Topology* trajParm_;                   ///< Pointer to Topology associated with trajectory/ensemble.
 };
 #endif

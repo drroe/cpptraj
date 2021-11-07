@@ -12,6 +12,8 @@ class TrajFrameCounter {
     ~TrajFrameCounter();
     /// Set up from arguments
     int CheckFrameArgs(int, ArgList&);
+    /// Print counter info to stdout
+    void PrintInfoLine(const char*) const;
   private:
     /// Regular start/stop/offset
     int startStopOffset(ArgList&);

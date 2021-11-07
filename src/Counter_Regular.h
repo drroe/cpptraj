@@ -13,6 +13,8 @@ class Counter_Regular : public Counter {
     int CurrentNumber() const { return current_; }
     /// \return True if the count is finished
     bool IsFinished() const { return !(current_ < stop_ || stop_ == -1); }
+    /// \return string with counter info (<start>-<stop>, <offset>)
+    std::string CounterInfo() const;
   private:
     void update() { current_ += offset_; }
 
