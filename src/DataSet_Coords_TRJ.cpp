@@ -38,7 +38,7 @@ int DataSet_Coords_TRJ::CoordsSetup(Topology const& topIn, CoordinateInfo const&
 }
 
 // DataSet_Coords_TRJ::UpdateTrjFrames()
-int DataSet_Coords_TRJ::UpdateTrjFrames(TrajFrameCounter const& count) {
+int DataSet_Coords_TRJ::UpdateTrjFrames(Cpptraj::TrajFrameCounter const& count) {
   if (count.TotalReadFrames() > 0)
     IDX_.AddTraj( count.TotalReadFrames(), count.Start(), count.Offset() );
   else {

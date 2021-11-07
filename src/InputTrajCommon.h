@@ -14,7 +14,7 @@ class InputTrajCommon {
     /// \return internal frame counter
     Cpptraj::TrajFrameCounter const& Counter() const { return frameCount_; }
     /// \return modifiable internal frame counter
-    Cpptraj::TrajFrameCounter& SetCounter()          { return frameCount_; }
+    //Cpptraj::TrajFrameCounter& SetCounter()          { return frameCount_; }
     /// Set trajectory file name and associated Topology.
     int SetNameAndParm(FileName const&, Topology*);
     /// Print trajectory info to one line.

@@ -14,6 +14,8 @@ class Counter_Array : public Counter {
     bool IsFinished() const { return CurrentIdx() >= numbers_.size(); }
     /// \return string containing counter info
     std::string CounterInfo() const;
+    /// \return Total to be counted
+    int CounterTotal() const { return (int)numbers_.size(); }
   private:
     typedef std::vector<int> Iarray;
     /// update internal counter. Nothing needed since using CurrentIdx

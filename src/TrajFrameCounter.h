@@ -20,7 +20,7 @@ class TrajFrameCounter {
     /// /return Current frame number
     int Current() const { return counter_->CurrentNumber(); }
     /// Update internal counter
-    void UpdateCounters() { counter_->UpdateCounter(); }
+    void UpdateCounters() const { counter_->UpdateCounter(); }
   private:
     /// Regular start/stop/offset
     int startStopOffset(ArgList&);

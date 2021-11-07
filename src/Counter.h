@@ -15,6 +15,8 @@ class Counter {
     virtual bool IsFinished() const = 0;
     /// \return String containing counter info
     virtual std::string CounterInfo() const = 0;
+    /// \return Total number of frames represented by the counter
+    virtual int CounterTotal() const = 0;
 
     /// Go to the next number and update internal index
     void UpdateCounter() { ++currentIdx_; update(); }

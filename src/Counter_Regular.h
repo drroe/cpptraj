@@ -15,13 +15,19 @@ class Counter_Regular : public Counter {
     bool IsFinished() const { return !(current_ < stop_ || stop_ == -1); }
     /// \return string with counter info (<start>-<stop>, <offset>)
     std::string CounterInfo() const;
+    /// \return Total number to be counted
+    int CounterTotal() const { return total_read_frames_; }
   private:
     void update() { current_ += offset_; }
+
+    /// Determine total from arguments
+    int determineTotal() const;
 
     int start_;   ///< Start number
     int stop_;    ///< Stop number
     int offset_;  ///< Increment
     int current_; ///< Current number
+    int total_read_frames_; ///< Total number to be accessed based on args
 };
 
 }
