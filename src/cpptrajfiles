@@ -159,6 +159,9 @@ COMMON_SOURCES= \
         ControlBlock_For.cpp \
         CoordinateInfo.cpp \
         Corr.cpp \
+        Counter.cpp \
+        Counter_Array.cpp \
+        Counter_Regular.cpp \
         Cph.cpp \
         CpptrajFile.cpp \
         CpptrajState.cpp \
