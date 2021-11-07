@@ -1,8 +1,8 @@
 #ifndef INC_TRAJFRAMECOUNTER_H
 #define INC_TRAJFRAMECOUNTER_H
+#include "Counter.h"
 class ArgList;
 namespace Cpptraj {
-class Counter;
 /// Used to keep track of input frames in trajectory
 class TrajFrameCounter {
   public:
@@ -14,6 +14,13 @@ class TrajFrameCounter {
     int CheckFrameArgs(int, ArgList&);
     /// Print counter info to stdout
     void PrintInfoLine(const char*) const;
+
+    /// Check if the counter is finished
+    bool CheckFinished() const { return counter_->IsFinished(); }
+    /// /return Current frame number
+    int Current() const { return counter_->CurrentNumber(); }
+    /// Update internal counter
+    void UpdateCounters() { counter_->UpdateCounter(); }
   private:
     /// Regular start/stop/offset
     int startStopOffset(ArgList&);
