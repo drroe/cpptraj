@@ -131,7 +131,7 @@ int TrajFrameCounter::startStopOffset(ArgList& argIn) {
   }
   //mprintf("DEBUG SetArgs: Start %i Stop %i  Offset %i\n", start, stop, offset);
   // Calculate actual number of frames that will be read based on start,
-  // stop, and offset.
+  // stop, and offset. TODO remove, now in Counter
   total_read_frames_ = -1;
   if (stop != -1) {
     int Nframes = stop - start;
