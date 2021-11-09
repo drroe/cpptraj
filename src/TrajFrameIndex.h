@@ -1,58 +1,53 @@
 #ifndef INC_TRAJFRAMEINDEX_H
 #define INC_TRAJFRAMEINDEX_H
-#include <vector>
 /// Class used to find absolute position inside a group of trajectories.
-class TrajFrameIndex {
+template <class T> class TrajFrameIndex {
   public:
-    TrajFrameIndex() : currentTrajNum_(-1), maxFrames_(0), trajHasChanged_(false) {}
-    /// \return Internal index for current traj given a global index
-    inline int FindIndex(int);
-    inline void AddTraj(int, int, int); 
-    inline int CurrentTrajNum()  const { return currentTrajNum_; }
-    inline int MaxFrames()       const { return maxFrames_;      }
-    inline bool TrajHasChanged() const { return trajHasChanged_; }
-    inline size_t DataSize()     const;
+    /// CONSTRUCTOR
+    TrajFrameIndex() : currentTrajNum_(-1), trajHasChanged_(false) {}
+    /// \return Internal index for current traj given a global index 
+    int FindIndex(int, T const&);
+    /// \return Total # of readable frames in all trajectories
+    int MaxFrames(T const&) const;
+    /// \return size in bytes used
+    unsigned int DataSize() const { return sizeof(int) + sizeof(bool); }
+    /// \return true if a different traj was accessed after last call to FindIndex()
+    bool TrajHasChanged() const { return trajHasChanged_; }
+    /// \return # of last accessed trajectory
+    int CurrentTrajNum() const { return currentTrajNum_; }
   private:
-    typedef std::vector<int> Iarray;
-    Iarray TotalReadFrames_; ///< Total number of read frames in each trajectory.
-    Iarray Starts_;          ///< Start argument for each trajectory.
-    Iarray Offsets_;         ///< Offset argument for each trajectory.
-    int currentTrajNum_;     ///< # of currently open input trajectory.
-    int maxFrames_;          ///< Total # of readable frames in all trajectories.
-    bool trajHasChanged_;    ///< True if new traj opened after last call to FindIndex()
+    int currentTrajNum_;  ///< # of currently open input trajectory.
+    bool trajHasChanged_; ///< True if new traj opened after last call to FindIndex()
 };
-// ----- INLINE FUNCTIONS ------------------------------------------------------
-// TrajFrameIndex::FindIndex()
-int TrajFrameIndex::FindIndex(int idx) {
+
+/** \return Internal index within current trajectory that corresponds to global index */
+template <class T> int TrajFrameIndex<T>::FindIndex(int idx, T const& trajArray)
+{
   // Determine which trajectory has the desired index.
   int globalOffset = 0; // Internal offset for converting global index to traj index.
   int currentMax = 0;   // Index after which we are in next trajectory.
   int desiredTrajNum = 0;
-  for (; desiredTrajNum < (int)TotalReadFrames_.size(); ++desiredTrajNum) {
-    currentMax += TotalReadFrames_[desiredTrajNum];
+  for (; desiredTrajNum < (int)trajArray.size(); ++desiredTrajNum) {
+    currentMax += trajArray[desiredTrajNum]->Traj().Counter().TotalReadFrames();
     if (idx < currentMax) break;
-    globalOffset += TotalReadFrames_[desiredTrajNum];
+    globalOffset += trajArray[desiredTrajNum]->Traj().Counter().TotalReadFrames();
   }
-  if (desiredTrajNum == (int)TotalReadFrames_.size()) return -1;
+  if (desiredTrajNum == (int)trajArray.size()) return -1;
   trajHasChanged_ = (desiredTrajNum != currentTrajNum_);
   currentTrajNum_ = desiredTrajNum;
   // Convert desired index into trajectory internal index.
-  int internalIdx = ((idx - globalOffset) * Offsets_[currentTrajNum_]) +
-                    Starts_[currentTrajNum_];
-  return internalIdx;
+  int idx_in_traj = idx - globalOffset;
+  return trajArray[currentTrajNum_]->Traj().Counter().IdxToFrame(idx_in_traj);
+  //int internalIdx = ((idx - globalOffset) * Offsets_[currentTrajNum_]) +
+  //                  Starts_[currentTrajNum_];
+  //return internalIdx;
 }
-// TrajFrameIndex::AddTraj()
-void TrajFrameIndex::AddTraj(int total, int start, int offset) {
-  TotalReadFrames_.push_back( total );
-  maxFrames_ += total;
-  Starts_.push_back( start );
-  Offsets_.push_back( offset );
-}
-// TrajFrameIndex::DataSize()
-size_t TrajFrameIndex::DataSize() const {
-  return (TotalReadFrames_.size() * sizeof(int)) +
-         (Starts_.size() * sizeof(int)) +
-         (Offsets_.size() * sizeof(int)) +
-         (2*sizeof(int) + sizeof(bool));
+
+/** \return total number of readable frames in all trajectories */
+template <class T> int TrajFrameIndex<T>::MaxFrames(T const& trajArray) const {
+  int maxFrames = 0;
+  for (unsigned int idx = 0; idx != trajArray.size(); idx++)
+    maxFrames += trajArray[idx]->Traj().Counter().TotalReadFrames();
+  return maxFrames;
 }
 #endif

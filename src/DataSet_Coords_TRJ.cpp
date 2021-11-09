@@ -39,9 +39,10 @@ int DataSet_Coords_TRJ::CoordsSetup(Topology const& topIn, CoordinateInfo const&
 
 // DataSet_Coords_TRJ::UpdateTrjFrames()
 int DataSet_Coords_TRJ::UpdateTrjFrames(Cpptraj::TrajFrameCounter const& count) {
-  if (count.TotalReadFrames() > 0)
-    IDX_.AddTraj( count.TotalReadFrames(), count.Start(), count.Offset() );
-  else {
+  //if (count.TotalReadFrames() > 0)
+  //  IDX_.AddTraj( count.TotalReadFrames(), count.Start(), count.Offset() );
+  //else {
+  if (count.TotalReadFrames() < 1) {
     mprinterr("Error: Cannot use trajectories with unknown # of frames as data set.\n");
     return 1;
   }
@@ -99,7 +100,7 @@ void DataSet_Coords_TRJ::GetFrame(int idx, Frame& fIn) {
 # endif
   int err = 0; // NOTE: Needed because exiting from OMP critical block is illegal.
   // Determine which trajectory has the desired index
-  int internalIdx = IDX_.FindIndex( idx );
+  int internalIdx = IDX_.FindIndex( idx, trajinList_ );
   if (internalIdx < 0) {
     mprinterr("Internal Error: Global index %i is out of range.\n", idx);
     err = 1;

@@ -24,6 +24,8 @@ class Counter_Array : public Counter {
     void update() { return; }
     /// position at first number. Nothing needed since using CurrentIdx()
     void start() { return; }
+    /// position at CurrentIdx();
+    void assign() { return; }
 
     Iarray numbers_;
 };

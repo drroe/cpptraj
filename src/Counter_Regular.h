@@ -22,6 +22,7 @@ class Counter_Regular : public Counter {
   private:
     void update() { current_ += offset_; }
     void start()  { current_ = start_; }
+    void assign() { current_ = (CurrentIdx() * offset_) + start_; }
 
     /// Determine total from arguments
     int determineTotal() const;

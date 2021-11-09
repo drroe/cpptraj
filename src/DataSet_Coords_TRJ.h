@@ -15,7 +15,7 @@ class DataSet_Coords_TRJ : public DataSet_Coords {
     int AddSingleTrajin(std::string const&, ArgList&, Topology*);
     int AddInputTraj(Trajin*);
     // ---- DataSet functions -------------------
-    size_t Size() const                          { return IDX_.MaxFrames(); }
+    size_t Size() const                          { return IDX_.MaxFrames(trajinList_); }
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
 #   endif
@@ -39,7 +39,7 @@ class DataSet_Coords_TRJ : public DataSet_Coords {
 
       typedef std::vector<Trajin*> ListType;
       ListType trajinList_; ///< Input trajectories
-      TrajFrameIndex IDX_;  ///< Used to calculate internal index from global one.
+      TrajFrameIndex<ListType> IDX_;  ///< Used to calculate internal index from global one.
       Trajin* Traj_;        ///< Current input trajectory. 
       Frame readFrame_;     ///< For reading in with mask
       bool deleteTrajectories_;

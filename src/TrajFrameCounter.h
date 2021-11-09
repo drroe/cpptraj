@@ -29,6 +29,8 @@ class TrajFrameCounter {
     int NumFramesProcessed() const { return (int)counter_->CurrentIdx(); }
     /// \return Total number of frames that will be read by the counter.
     int TotalReadFrames() const { return counter_->CounterTotal(); }
+    /// \return Frame number corresponding to given index
+    int IdxToFrame(int idx) const { counter_->SetCounter(idx); return counter_->CurrentNumber(); }
   private:
     /// Regular start/stop/offset
     int startStopOffset(ArgList&);

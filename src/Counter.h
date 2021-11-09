@@ -24,6 +24,8 @@ class Counter {
     void StartCounter() { currentIdx_ = 0; start(); }
     /// Go to the next number and update internal index
     void UpdateCounter() { ++currentIdx_; update(); }
+    /// Position counter at specified index
+    void SetCounter(int idx) { currentIdx_ = idx; assign(); }
     /// \return the current internal index
     unsigned int CurrentIdx() const { return currentIdx_; }
   protected:
@@ -31,6 +33,8 @@ class Counter {
     virtual void update() = 0;
     /// Position at first number.
     virtual void start() = 0;
+    /// Position at currentIdx_
+    virtual void assign() = 0;
   private:
     unsigned int currentIdx_; ///< Current internal index. Also serves to count calls to UpdateCounter()
 };
