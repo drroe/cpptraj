@@ -15,12 +15,20 @@ class TrajFrameCounter {
     /// Print counter info to stdout
     void PrintInfoLine(const char*) const;
 
+    /// Prepare counter for use
+    void Begin() { counter_->StartCounter(); }
     /// Check if the counter is finished
     bool CheckFinished() const { return counter_->IsFinished(); }
     /// /return Current frame number
     int Current() const { return counter_->CurrentNumber(); }
+    /// \return Previous frame number (before UpdateCounters() was called)
+    int PreviousFrameNumber() const { return counter_->PreviousNumber(); }
     /// Update internal counter
     void UpdateCounters() const { counter_->UpdateCounter(); }
+    /// \return How many times UpdateCounters has been called
+    int NumFramesProcessed() const { return (int)counter_->CurrentIdx(); }
+    /// \return Total number of frames that will be read by the counter.
+    int TotalReadFrames() const { return counter_->CounterTotal(); }
   private:
     /// Regular start/stop/offset
     int startStopOffset(ArgList&);

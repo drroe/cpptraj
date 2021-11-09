@@ -10,6 +10,8 @@ class Counter_Array : public Counter {
     Counter_Array();
     /// \return current number
     int CurrentNumber() const { return numbers_[CurrentIdx()]; }
+    /// \return previous number
+    int PreviousNumber() const { return numbers_[CurrentIdx()-1]; }
     /// \return true if count is finished
     bool IsFinished() const { return CurrentIdx() >= numbers_.size(); }
     /// \return string containing counter info
@@ -18,8 +20,10 @@ class Counter_Array : public Counter {
     int CounterTotal() const { return (int)numbers_.size(); }
   private:
     typedef std::vector<int> Iarray;
-    /// update internal counter. Nothing needed since using CurrentIdx
+    /// update internal counter. Nothing needed since using CurrentIdx()
     void update() { return; }
+    /// position at first number. Nothing needed since using CurrentIdx()
+    void start() { return; }
 
     Iarray numbers_;
 };

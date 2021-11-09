@@ -11,6 +11,8 @@ class Counter_Regular : public Counter {
     Counter_Regular(int,int,int);
     /// \return current number
     int CurrentNumber() const { return current_; }
+    /// \return previous number
+    int PreviousNumber() const { return current_ - offset_; }
     /// \return True if the count is finished
     bool IsFinished() const { return !(current_ < stop_ || stop_ == -1); }
     /// \return string with counter info (<start>-<stop>, <offset>)
@@ -19,6 +21,7 @@ class Counter_Regular : public Counter {
     int CounterTotal() const { return total_read_frames_; }
   private:
     void update() { current_ += offset_; }
+    void start()  { current_ = start_; }
 
     /// Determine total from arguments
     int determineTotal() const;
