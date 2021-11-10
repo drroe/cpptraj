@@ -16,6 +16,8 @@ class TrajFrameCounter {
     int TotalFrames() const { return total_frames_; }
     /// Print counter info to stdout
     void PrintInfoLine(const char*) const;
+    /// Print verbose counter info to stdout
+    void PrintFrameInfo() const;
 
     // NOTE: Even though Begin() and UpdateCounters() _can_ be const since
     //       they are only accessing a pointer, make them non-const to

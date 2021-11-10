@@ -162,3 +162,8 @@ int TrajFrameCounter::startStopOffset(ArgList& argIn) {
 void TrajFrameCounter::PrintInfoLine(const char* fname) const {
   mprintf( "----- %s (%s) -----\n", fname, counter_->CounterInfo().c_str());
 }
+
+/** Print verbose counter info to stdout. */
+void TrajFrameCounter::PrintFrameInfo() const {
+  mprintf("(%s)", counter_->Verbose(total_frames_).c_str());
+}

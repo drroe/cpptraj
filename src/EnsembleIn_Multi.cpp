@@ -1,9 +1,10 @@
 #include "EnsembleIn_Multi.h"
-#include "FrameArray.h"
+#include "ArgList.h"
 #include "CpptrajStdio.h"
 #include "DataFile.h" // TODO remove
+#include "FrameArray.h"
 #include "StringRoutines.h" // integerToString TODO remove
-#include "ArgList.h"
+#include "TrajectoryIO.h"
 
 // EnsembleIn_Multi::SetupEnsembleRead()
 int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn, Topology *tparmIn)
@@ -58,7 +59,7 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   // Set ensemble member number.
   SetEnsembleMemberNum( EnsembleComm().Rank() );
 # else
-  if (REMDtraj_.SetupIOarray(argIn, SetTraj().Counter(), cInfo_, Traj().Parm())) return 1;
+  if (REMDtraj_.SetupIOarray(argIn, SetTraj().SetCounter(), cInfo_, Traj().Parm())) return 1;
 # endif
   // Unless nosort was specified, figure out target type
   if (no_sort)
@@ -302,7 +303,7 @@ int EnsembleIn_Multi::BeginEnsemble() {
   }
 # endif
   // Initialize counter.
-  SetTraj().Counter().Begin();
+  SetTraj().SetCounter().Begin();
   return 0;
 }
 
