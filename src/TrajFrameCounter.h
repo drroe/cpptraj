@@ -15,22 +15,26 @@ class TrajFrameCounter {
     /// Print counter info to stdout
     void PrintInfoLine(const char*) const;
 
+    // NOTE: Even though Begin() and UpdateCounters() _can_ be const since
+    //       they are only accessing a pointer, make them non-const to
+    //       reflect the fact that they are modifying counter_.
     /// Prepare counter for use
-    void Begin() { counter_->StartCounter(); }
+    void Begin()          { counter_->StartCounter(); }
+    /// Update internal counter
+    void UpdateCounters() { counter_->UpdateCounter(); }
+
     /// Check if the counter is finished
-    bool CheckFinished() const { return counter_->IsFinished(); }
+    bool CheckFinished()      const { return counter_->IsFinished(); }
     /// /return Current frame number
-    int Current() const { return counter_->CurrentNumber(); }
+    int Current()             const { return counter_->CurrentNumber(); }
     /// \return Previous frame number (before UpdateCounters() was called)
     int PreviousFrameNumber() const { return counter_->PreviousNumber(); }
-    /// Update internal counter
-    void UpdateCounters() const { counter_->UpdateCounter(); }
     /// \return How many times UpdateCounters has been called
-    int NumFramesProcessed() const { return (int)counter_->CurrentIdx(); }
+    int NumFramesProcessed()  const { return (int)counter_->CurrentIdx(); }
     /// \return Total number of frames that will be read by the counter.
-    int TotalReadFrames() const { return counter_->CounterTotal(); }
+    int TotalReadFrames()     const { return counter_->CounterTotal(); }
     /// \return Frame number corresponding to given index
-    int IdxToFrame(int idx) const { counter_->SetCounter(idx); return counter_->CurrentNumber(); }
+    int IdxToFrame(int idx)   const { return counter_->NumberAtIdx(idx); }
   private:
     /// Regular start/stop/offset
     int startStopOffset(ArgList&);

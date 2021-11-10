@@ -9,6 +9,8 @@ class Counter_Regular : public Counter {
     Counter_Regular();
     /// CONSTRUCTOR - start/stop/offset
     Counter_Regular(int,int,int);
+    /// \return Number corresponding to given index
+    int NumberAtIdx(int idx) const { return (idx * offset_) + start_; }
     /// \return current number
     int CurrentNumber() const { return current_; }
     /// \return previous number
@@ -22,7 +24,6 @@ class Counter_Regular : public Counter {
   private:
     void update() { current_ += offset_; }
     void start()  { current_ = start_; }
-    void assign() { current_ = (CurrentIdx() * offset_) + start_; }
 
     /// Determine total from arguments
     int determineTotal() const;
