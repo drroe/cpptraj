@@ -22,6 +22,7 @@ int regular(int start, int stop, int offset) {
   regular.StartCounter();
   int frame = start;
   printf("Regular Counter: (%i-%i, %i)\n", start, stop, offset);
+  printf("(%s)\n", regular.CounterInfo().c_str());
   while (!regular.IsFinished()) {
     printf("\t[%6i] %8i %8i\n", regular.CurrentIdx(), frame, regular.CurrentNumber());
     if (frame != regular.CurrentNumber()) {
@@ -49,6 +50,7 @@ int array(int start, int stop, int offset) {
   regular.StartCounter();
   frame = start;
   printf("Array Counter: (%i-%i, %i)\n", start, stop, offset);
+  printf("(%s)\n", regular.CounterInfo().c_str());
   while (!regular.IsFinished()) {
     printf("\t[%6i] %8i %8i\n", regular.CurrentIdx(), frame, regular.CurrentNumber());
     if (frame != regular.CurrentNumber()) {
