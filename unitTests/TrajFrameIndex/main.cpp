@@ -3,9 +3,8 @@
 #include <string>
 #include <vector>
 #include "ArgList.h"
-//#include "Counter_Regular.h"
-//#include "Counter_Array.h"
 #include "TrajFrameCounter.h"
+#include "TrajFrameIndex.h"
 
 using namespace Cpptraj;
 
@@ -95,6 +94,27 @@ int main() {
       printf("[%8i] %8i\n", idx++, fnum+1);
     }
   }
+
+  TrajFrameIndex<ListType> TFI;
+  if (TFI.MaxFrames( trajectories ) != 15)
+    return Err("Number of frames covered by TrajFrameIndex is not 15.");
+
+  if (TFI.FindIndex(0, trajectories) != 4) return Err("FindIndex(0) failed.");
+  if (TFI.CurrentTrajNum() != 0) return Err("Current traj is not 0.");
+  if (TFI.FindIndex(4, trajectories) != 16) return Err("FindIndex(4) failed.");
+  if (TFI.CurrentTrajNum() != 0) return Err("Current traj is not 0.");
+
+  if (TFI.FindIndex(7, trajectories) != 8) return Err("FindIndex(7) failed.");
+  if (TFI.CurrentTrajNum() != 1) return Err("Current traj is not 1.");
+  if (!TFI.TrajHasChanged()) return Err("Traj change detection failed.");
+  if (TFI.FindIndex(9, trajectories) != 12) return Err("FindIndex(9) failed.");
+  if (TFI.CurrentTrajNum() != 1) return Err("Current traj is not 1.");
+  if (TFI.TrajHasChanged()) return Err("No Traj change detection failed.");
+
+  if (TFI.FindIndex(11, trajectories) != 42) return Err("FindIndex(11) failed.");
+  if (TFI.CurrentTrajNum() != 2) return Err("Current traj is not 2.");
+  if (TFI.FindIndex(14, trajectories) != 45) return Err("FindIndex(14) failed.");
+  if (TFI.CurrentTrajNum() != 2) return Err("Current traj is not 2.");
 
   for (ListType::iterator it = trajectories.begin(); it != trajectories.end(); ++it)
     delete *it;
