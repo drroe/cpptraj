@@ -11,6 +11,8 @@ class Counter {
     virtual ~Counter() {}
     /// \return number at the specified index
     virtual int NumberAtIdx(int) const = 0;
+    /// \return the first number.
+    virtual int FirstNumber() const = 0;
     /// \return the current number.
     virtual int CurrentNumber() const = 0;
     /// \return previous frame number (last # before UpdateCounter() was called).

@@ -12,6 +12,8 @@ class TrajFrameCounter {
     ~TrajFrameCounter();
     /// Set up from arguments
     int CheckFrameArgs(int, ArgList&);
+    /// \return Total number of frames passed to CheckFrameArgs()
+    int TotalFrames() const { return total_frames_; }
     /// Print counter info to stdout
     void PrintInfoLine(const char*) const;
 
@@ -25,6 +27,8 @@ class TrajFrameCounter {
 
     /// Check if the counter is finished
     bool CheckFinished()      const { return counter_->IsFinished(); }
+    /// \return First frame number
+    int Start()               const { return counter_->FirstNumber(); }
     /// /return Current frame number
     int Current()             const { return counter_->CurrentNumber(); }
     /// \return Previous frame number (before UpdateCounters() was called)

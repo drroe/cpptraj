@@ -13,6 +13,8 @@ class Counter_Array : public Counter {
     Counter_Array(Iarray const&);
     /// \return Number at given index
     int NumberAtIdx(int idx) const { return numbers_[idx]; }
+    /// \return first number
+    int FirstNumber() const { return numbers_.front(); }
     /// \return current number
     int CurrentNumber() const { return numbers_[CurrentIdx()]; }
     /// \return previous number
