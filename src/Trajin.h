@@ -41,7 +41,7 @@ class Trajin {
 int Trajin::GetNextFrame(Frame& frameIn) {
   if (traj_.Counter().CheckFinished()) return 0;
   if (ReadTrajFrame( traj_.Counter().Current(), frameIn )) return 0;
-  traj_.Counter().UpdateCounters();
+  traj_.SetCounter().UpdateCounters();
   return 1;
 }
 #endif 
