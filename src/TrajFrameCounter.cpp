@@ -9,8 +9,7 @@ using namespace Cpptraj;
 /** CONSTRUCTOR */
 TrajFrameCounter::TrajFrameCounter() :
   counter_(0),
-  total_frames_(-1),
-  total_read_frames_(-1)
+  total_frames_(-1)
 {}
 
 /** DESTRUCTOR */
@@ -31,11 +30,16 @@ int TrajFrameCounter::CheckFrameArgs(int nframes, ArgList &argIn) {
     mprinterr("Error: Could not process trajectory start/stop/offset arguments.\n");
     return 1;
   }
-  // Sanity check
+  // Sanity checks
   if (counter_ == 0) {
     mprinterr("Internal error: Counter was not allocated.\n");
     return 1;
   }
+  if (TotalReadFrames() < 1) {
+    mprinterr("Error: No frames will be read based on given arguments.\n");
+    return 1;
+  }
+
   return 0;
 }
 
@@ -132,7 +136,7 @@ int TrajFrameCounter::startStopOffset(ArgList& argIn) {
   //mprintf("DEBUG SetArgs: Start %i Stop %i  Offset %i\n", start, stop, offset);
   // Calculate actual number of frames that will be read based on start,
   // stop, and offset. TODO remove, now in Counter
-  total_read_frames_ = -1;
+/*  total_read_frames_ = -1;
   if (stop != -1) {
     int Nframes = stop - start;
     total_read_frames_ = Nframes / offset;
@@ -144,7 +148,7 @@ int TrajFrameCounter::startStopOffset(ArgList& argIn) {
                 "and offset values (%i, %i, %i)\n", start+1, stop, offset);
       return 1;
     }
-  }
+  }*/
 
   counter_ = new Counter_Regular(start, stop, offset);
   if (counter_ == 0) {

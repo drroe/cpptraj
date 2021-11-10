@@ -40,8 +40,7 @@ class TrajFrameCounter {
     int startStopOffset(ArgList&);
 
     Counter* counter_;      ///< Used to keep track of frames.
-    int total_frames_;      ///< Total number of frames in the trajectory.
-    int total_read_frames_; ///< Total number of frames that will be read.
+    int total_frames_;      ///< Total number of frames in the trajectory, set by CheckFrameArgs().
 };
 } // END namespace cpptraj
 #endif
