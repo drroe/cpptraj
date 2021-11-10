@@ -62,17 +62,17 @@ Exec::RetType Exec_CrdOut::WriteCrd(CpptrajState& State, ArgList& argIn) {
   outtraj.PrintInfo(0);
   Frame currentFrame = CRD->AllocateFrame();
   ProgressBar progress( frameCount.TotalReadFrames() );
-  int set = 0;
-  for (int frame = frameCount.Start(); frame < frameCount.Stop();
-           frame += frameCount.Offset(), ++set)
+  frameCount.Begin();
+  while (!frameCount.CheckFinished())
   {
-    progress.Update( set );
-    CRD->GetFrame( frame, currentFrame );
-    if ( outtraj.WriteSingle( frame, currentFrame ) ) {
+    progress.Update( frameCount.NumFramesProcessed() );
+    CRD->GetFrame( frameCount.Current(), currentFrame );
+    if ( outtraj.WriteSingle( frameCount.Current(), currentFrame ) ) {
       mprinterr("Error writing %s to output trajectory, frame %i.\n",
-                CRD->legend(), frame + 1);
+                CRD->legend(), frameCount.Current() + 1);
       break;
     }
+    frameCount.UpdateCounters();
   }
   return CpptrajState::OK;
 }

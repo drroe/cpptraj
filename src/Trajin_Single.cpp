@@ -84,7 +84,7 @@ int Trajin_Single::SetupTrajRead(FileName const& tnameIn, ArgList& argIn,
   }
   // Set the start, stop, and offset args based on user input. Do some bounds
   // checking.
-  if (SetTraj().Counter().CheckFrameArgs( nframes, argIn )) return 1;
+  if (SetTraj().SetCounter().CheckFrameArgs( nframes, argIn )) return 1;
   // Set trajectory coordinate info.
   cInfo_ = trajio_->CoordInfo();
   // Check if a separate mdvel file will be read
@@ -132,7 +132,7 @@ int Trajin_Single::BeginTraj() {
      return 1;
   }
   // Initialize counter.
-  SetTraj().Counter().Begin();
+  SetTraj().SetCounter().Begin();
   return 0;
 }
 

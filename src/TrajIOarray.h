@@ -1,9 +1,9 @@
 #ifndef INC_TRAJIOARRAY_H
 #define INC_TRAJIOARRAY_H
 #include "FileName.h" // File::NameArray
-namespace Cpptraj {
+//namespace Cpptraj {
 class TrajFrameCounter;
-}
+//}
 class ArgList;
 class CoordinateInfo;
 class Topology;
@@ -18,13 +18,13 @@ class TrajIOarray {
     /// Set up replica file names from arguments or by searching.
     int SetupReplicaFilenames(FileName const&, ArgList&);
     /// Setup TrajectoryIO classes for all file names.
-    int SetupIOarray(ArgList&, Cpptraj::TrajFrameCounter&, CoordinateInfo&, Topology*);
+    int SetupIOarray(ArgList&, TrajFrameCounter&, CoordinateInfo&, Topology*);
 #   ifdef MPI
     /// Set up replica filenames such that each ensemble rank checks 1 file
     int SetupReplicaFilenames(FileName const&, ArgList&, Parallel::Comm const&,
                               Parallel::Comm const&);
     /// Each ensemble rank sets up TrajectoryIO class only for member it will process.
-    int SetupIOarray(ArgList& argIn, Cpptraj::TrajFrameCounter& counter,
+    int SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
                      CoordinateInfo& cInfo, Topology* trajParm,
                      Parallel::Comm const&, Parallel::Comm const&);
 #   endif

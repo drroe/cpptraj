@@ -35,7 +35,7 @@ class DataSet_Coords_TRJ : public DataSet_Coords {
     /// Set topology and coordinate information.
     int CoordsSetup(Topology const&, CoordinateInfo const&);
    private:
-      int UpdateTrjFrames(Cpptraj::TrajFrameCounter const&);
+      int UpdateTrjFrames(TrajFrameCounter const&);
 
       typedef std::vector<Trajin*> ListType;
       ListType trajinList_; ///< Input trajectories

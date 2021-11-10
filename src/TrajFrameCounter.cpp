@@ -4,7 +4,7 @@
 
 #include "Counter_Regular.h"
 
-using namespace Cpptraj;
+//using namespace Cpptraj;
 
 /** CONSTRUCTOR */
 TrajFrameCounter::TrajFrameCounter() :

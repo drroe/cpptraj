@@ -2,7 +2,7 @@
 #define INC_TRAJFRAMECOUNTER_H
 #include "Counter.h"
 class ArgList;
-namespace Cpptraj {
+//namespace Cpptraj {
 /// Used to keep track of input frames in trajectory
 class TrajFrameCounter {
   public:
@@ -48,5 +48,5 @@ class TrajFrameCounter {
     Counter* counter_;      ///< Used to keep track of frames.
     int total_frames_;      ///< Total number of frames in the trajectory, set by CheckFrameArgs().
 };
-} // END namespace cpptraj
+//} // END namespace cpptraj
 #endif

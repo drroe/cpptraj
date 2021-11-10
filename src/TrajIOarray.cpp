@@ -7,7 +7,7 @@
 #include "TrajectoryIO.h"
 #include "TrajFrameCounter.h"
 
-using namespace Cpptraj;
+//using namespace Cpptraj;
 
 TrajIOarray::~TrajIOarray() { ClearIOarray(); }
 

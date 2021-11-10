@@ -1,8 +1,9 @@
 #include "Trajin_Multi.h"
 #include "ArgList.h"
-#include "Topology.h"
-#include "StringRoutines.h" // convertToInteger
 #include "CpptrajStdio.h"
+#include "Topology.h"
+#include "TrajectoryIO.h"
+#include "StringRoutines.h" // convertToInteger
 
 Trajin_Multi::Trajin_Multi() :
   targetType_(ReplicaInfo::NONE),
@@ -59,7 +60,7 @@ int Trajin_Multi::SetupTrajRead(FileName const& tnameIn, ArgList& argIn, Topolog
   if (REMDtraj_.SetupReplicaFilenames( tnameIn, argIn )) return 1;
 
   // Set up TrajectoryIO classes for all file names.
-  if (REMDtraj_.SetupIOarray(argIn, SetTraj().Counter(), cInfo_, Traj().Parm())) return 1;
+  if (REMDtraj_.SetupIOarray(argIn, SetTraj().SetCounter(), cInfo_, Traj().Parm())) return 1;
 
   // Additional setup for replica values.
   if (cInfo_.UseRemdValues()) {
@@ -181,7 +182,7 @@ int Trajin_Multi::BeginTraj() {
     }
   }
   // Initialize counter.
-  SetTraj().Counter().Begin();
+  SetTraj().SetCounter().Begin();
   return 0;
 }
 

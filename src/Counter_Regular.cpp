@@ -1,7 +1,7 @@
 #include "Counter_Regular.h"
 #include "StringRoutines.h"
 
-using namespace Cpptraj;
+//using namespace Cpptraj;
 /** CONSTRUCTOR */
 Counter_Regular::Counter_Regular() :
   start_(0),

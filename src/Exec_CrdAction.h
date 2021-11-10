@@ -11,7 +11,7 @@ class Exec_CrdAction : public Exec {
   private:
     RetType ProcessArgs(CpptrajState&, ArgList&);
     RetType DoCrdAction(CpptrajState&, ArgList&, DataSet_Coords*,
-                        Action*, Cpptraj::TrajFrameCounter&) const;
+                        Action*, TrajFrameCounter&) const;
 #   ifdef MPI
     Parallel::Comm trajComm_;
 #   endif

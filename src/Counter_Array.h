@@ -2,7 +2,7 @@
 #define INC_COUNTER_ARRAY_H
 #include "Counter.h"
 #include <vector>
-namespace Cpptraj {
+//namespace Cpptraj {
 /// Counter for numbers that may not be in a monotonic order
 class Counter_Array : public Counter {
     typedef std::vector<int> Iarray;
@@ -37,5 +37,5 @@ class Counter_Array : public Counter {
 
     Iarray numbers_;
 };
-}
+//}
 #endif

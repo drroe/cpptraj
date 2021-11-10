@@ -5,7 +5,7 @@
 #include "ProgressBar.h"
 #include "DataSet_Coords_CRD.h"
 
-using namespace Cpptraj;
+//using namespace Cpptraj;
 
 void Exec_CrdAction::Help() const {
   mprintf("\t<crd set> <actioncmd> [<action args>] [crdframes <start>,<stop>,<offset>]\n"
@@ -67,17 +67,17 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
   ProgressBar* progress = 0;
   if (State.ShowProgress())
     progress = new ProgressBar( frameCount.TotalReadFrames() );
-  int set = 0;
   frameCount.Begin();
   while (!frameCount.CheckFinished())
   {
     // Since Frame can be modified by actions, save original and use currentFrame
-    ActionFrame frm( &originalFrame, set );
-    if (progress != 0) progress->Update( set );
+    ActionFrame frm( &originalFrame, frameCount.NumFramesProcessed() );
+    if (progress != 0) progress->Update( frameCount.NumFramesProcessed() );
     CRD->GetFrame( frameCount.Current(), originalFrame );
-    Action::RetType ret = act->DoAction( set, frm );
+    Action::RetType ret = act->DoAction( frameCount.NumFramesProcessed(), frm );
     if (ret == Action::ERR) {
-      mprinterr("Error: crdaction: Frame %i, set %i\n", frameCount.Current() + 1, set + 1);
+      mprinterr("Error: crdaction: Frame %i, set %i\n", frameCount.Current() + 1,
+                frameCount.NumFramesProcessed() + 1);
       break;
     }
     // Check if frame was modified. If so, update COORDS.

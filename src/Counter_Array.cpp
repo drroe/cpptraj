@@ -1,7 +1,7 @@
 #include "Counter_Array.h"
 #include "StringRoutines.h"
 
-using namespace Cpptraj;
+//using namespace Cpptraj;
 /** CONSTRUCTOR */
 Counter_Array::Counter_Array() {}
 

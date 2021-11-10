@@ -1,7 +1,7 @@
 #ifndef INC_COUNTER_REGULAR_H
 #define INC_COUNTER_REGULAR_H
 #include "Counter.h"
-namespace Cpptraj {
+//namespace Cpptraj {
 /// Regular count with a start, stop, and offset
 class Counter_Regular : public Counter {
   public:
@@ -39,5 +39,5 @@ class Counter_Regular : public Counter {
     int total_read_frames_; ///< Total number to be accessed based on args
 };
 
-}
+//}
 #endif

@@ -1,13 +1,14 @@
 #include "TrajinList.h"
-#include "Topology.h"
+#include "ArgList.h"
 #include "CpptrajStdio.h"
+#include "EnsembleIn_Multi.h"
+#include "EnsembleIn_Single.h"
+#include "Topology.h"
 #include "TrajectoryFile.h"
+#include "TrajectoryIO.h"
 #include "Trajin_Single.h"
 #include "Trajin_Multi.h"
-#include "EnsembleIn_Single.h"
-#include "EnsembleIn_Multi.h"
 #include "StringRoutines.h" // ExpandToFilenames
-#include "ArgList.h"
 
 TrajinList::TrajinList() : debug_(0), maxframes_(0), ensembleSize_(-1) {}
 

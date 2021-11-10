@@ -1,7 +1,7 @@
 #ifndef INC_COUNTER_H
 #define INC_COUNTER_H
 #include <string>
-namespace Cpptraj {
+//namespace Cpptraj {
 /// Used to generate and keep track of a series of numbers to be iterated over.
 class Counter {
   public:
@@ -41,5 +41,5 @@ class Counter {
     unsigned int currentIdx_; ///< Current internal index. Also serves to count calls to UpdateCounter()
 };
 
-}
+//}
 #endif
