@@ -10,10 +10,18 @@ unit.NameType:
 unit.ArgList:
 	@-cd ArgList && ./UnitTest.sh $(OPT)
 
+unit.Counter:
+	@-cd Counter && && ./UnitTest.sh $(OPT)
+
+unit.TrajFrameIndex:
+	@cd TrajFrameIndex && ./UnitTest.sh $(OPT)
+
 # ----- Every unit test should go here -----------
 COMPLETETESTS= \
   unit.NameType \
-  unit.ArgList
+  unit.ArgList \
+  unit.Counter \
+  unit.TrajFrameIndex
 
 test.cpptraj: $(COMPLETETESTS)
 
