@@ -8,7 +8,7 @@ Counter_Regular::Counter_Regular() :
   stop_(-1),
   offset_(1),
   current_(0),
-  total_read_frames_(0)
+  total_read_frames_(-1)
 {}
 
 /** Determine total number of elements represented based on start, stop, and offset. */
