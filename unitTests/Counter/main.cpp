@@ -69,5 +69,19 @@ int main() {
   if (regular(5,23,3)) return 1;
   if (array(0,10,1)) return 1;
   if (array(5,23,3)) return 1;
+
+  // Test NumberAtIdx()
+  Counter_Regular c0(5,23,3);
+  if (c0.NumberAtIdx(2) != 11)
+    return Err("NumberAtIdx() failed for Counter_Regular");
+  std::vector<int> numbers;
+  numbers.push_back(5);
+  numbers.push_back(2);
+  numbers.push_back(8);
+  numbers.push_back(7);
+  Counter_Array c1(numbers);
+  if (c1.NumberAtIdx(2) != 8)
+    return Err("NumberAtIdx() failed for Counter_Array");
+
   return 0;
 }
