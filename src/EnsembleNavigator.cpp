@@ -30,9 +30,9 @@ int EnsembleNavigator::AddEnsembles(TrajinList::ensemble_it const& begin,
         return 1;
       }
     }
-    IDX_.AddTraj( (*ens)->Traj().Counter().TotalReadFrames(),
-                  (*ens)->Traj().Counter().Start(),
-                  (*ens)->Traj().Counter().Offset() );
+    //IDX_.AddTraj( (*ens)->Traj().Counter().TotalReadFrames(),
+    //              (*ens)->Traj().Counter().Start(),
+    //              (*ens)->Traj().Counter().Offset() );
     Ensembles_.push_back( *ens );
   }
   return 0;

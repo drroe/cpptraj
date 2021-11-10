@@ -8,6 +8,7 @@
   * facilitating access to a collection of ensembles.
   */
 class EnsembleNavigator {
+    typedef std::vector<EnsembleIn*> Earray;
   public:
     EnsembleNavigator() : currentEns_(0), FirstParm_(0) {}
     int AddEnsembles(TrajinList::ensemble_it const&, TrajinList::ensemble_it const&);
@@ -15,12 +16,11 @@ class EnsembleNavigator {
     EnsembleIn* CurrentEns()                   { return currentEns_;   }
     Topology* FirstParm()                      { return FirstParm_;    }
     CoordinateInfo const& EnsCoordInfo() const { return ensCoordInfo_; }
-    TrajFrameIndex const& IDX()          const { return IDX_;          }
+    //TrajFrameIndex<Earray> const& IDX()          const { return IDX_;          }
   private:
-    typedef std::vector<EnsembleIn*> Earray;
     Earray Ensembles_;            ///< Array of input ensembles
     CoordinateInfo ensCoordInfo_; ///< Coordinate info for all ensembles
-    TrajFrameIndex IDX_;          ///< Used to convert global index to individual index
+    TrajFrameIndex<Earray> IDX_;          ///< Used to convert global index to individual index
     EnsembleIn* currentEns_;      ///< Currently open ensemble
     Topology* FirstParm_;         ///< Topology associated with first ensemble
 };
@@ -28,7 +28,7 @@ class EnsembleNavigator {
 int EnsembleNavigator::GetEnsemble(int set, FrameArray& FrameEnsemble,
                                    FramePtrArray& SortedFrames)
 {
-  int internalIdx = IDX_.FindIndex( set );
+  int internalIdx = IDX_.FindIndex( set, Ensembles_ );
   // If desired ensemble is different than current, open desired ensemble.
   if (IDX_.TrajHasChanged()) {
     if (currentEns_ != 0) currentEns_->EndEnsemble();
