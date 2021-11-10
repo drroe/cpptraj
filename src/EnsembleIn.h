@@ -80,7 +80,7 @@ class EnsembleIn {
 int EnsembleIn::GetNextEnsemble(FrameArray& fa, FramePtrArray& fp) {
   if (traj_.Counter().CheckFinished()) return 0;
   if (ReadEnsemble( traj_.Counter().Current(), fa, fp )) return 0;
-  traj_.Counter().UpdateCounters();
+  traj_.SetCounter().UpdateCounters();
   return 1;
 }
 #endif
