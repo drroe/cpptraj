@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cmath>
+#include <vector>
 #include "Counter_Regular.h"
 #include "Counter_Array.h"
 
@@ -22,7 +23,7 @@ int regular(int start, int stop, int offset) {
   int frame = start;
   printf("Regular Counter: (%i-%i, %i)\n", start, stop, offset);
   while (!regular.IsFinished()) {
-    printf("\t%8i %8i\n", frame, regular.CurrentNumber());
+    printf("\t[%6i] %8i %8i\n", regular.CurrentIdx(), frame, regular.CurrentNumber());
     if (frame != regular.CurrentNumber()) {
       fprintf(stderr,"Error: %i != %i\n", frame, regular.CurrentNumber());
       return Err("Regular counter value does not match.");
@@ -36,8 +37,37 @@ int regular(int start, int stop, int offset) {
   return 0;
 }
 
+int array(int start, int stop, int offset) {
+  std::vector<int> numbers;
+  int frame = start;
+  while (frame < stop) {
+    numbers.push_back(frame);
+    frame += offset;
+  }
+
+  Counter_Array regular(numbers);
+  regular.StartCounter();
+  frame = start;
+  printf("Array Counter: (%i-%i, %i)\n", start, stop, offset);
+  while (!regular.IsFinished()) {
+    printf("\t[%6i] %8i %8i\n", regular.CurrentIdx(), frame, regular.CurrentNumber());
+    if (frame != regular.CurrentNumber()) {
+      fprintf(stderr,"Error: %i != %i\n", frame, regular.CurrentNumber());
+      return Err("Array counter value does not match.");
+    }
+    regular.UpdateCounter();
+    frame += offset;
+    if (frame > stop*2) {
+      return Err("Array counter IsFinished() failed.");
+    }
+  }
+  return 0;
+}
+
 int main() {
   if (regular(0,10,1)) return 1;
   if (regular(5,23,3)) return 1;
+  if (array(0,10,1)) return 1;
+  if (array(5,23,3)) return 1;
   return 0;
 }
