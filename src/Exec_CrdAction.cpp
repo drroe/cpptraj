@@ -5,6 +5,8 @@
 #include "ProgressBar.h"
 #include "DataSet_Coords_CRD.h"
 
+using namespace Cpptraj;
+
 void Exec_CrdAction::Help() const {
   mprintf("\t<crd set> <actioncmd> [<action args>] [crdframes <start>,<stop>,<offset>]\n"
           "  Perform action <actioncmd> on COORDS data set <crd set>.\n");
@@ -12,7 +14,7 @@ void Exec_CrdAction::Help() const {
 
 Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionargs,
                                           DataSet_Coords* CRD, Action* act,
-                                          TrajFrameCounter const& frameCount) const
+                                          TrajFrameCounter& frameCount) const
 {
   Timer total_time;
   total_time.Start();
@@ -66,16 +68,16 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
   if (State.ShowProgress())
     progress = new ProgressBar( frameCount.TotalReadFrames() );
   int set = 0;
-  for (int frame = frameCount.Start(); frame < frameCount.Stop();
-           frame += frameCount.Offset(), ++set)
+  frameCount.Begin();
+  while (!frameCount.CheckFinished())
   {
     // Since Frame can be modified by actions, save original and use currentFrame
     ActionFrame frm( &originalFrame, set );
     if (progress != 0) progress->Update( set );
-    CRD->GetFrame( frame, originalFrame );
+    CRD->GetFrame( frameCount.Current(), originalFrame );
     Action::RetType ret = act->DoAction( set, frm );
     if (ret == Action::ERR) {
-      mprinterr("Error: crdaction: Frame %i, set %i\n", frame + 1, set + 1);
+      mprinterr("Error: crdaction: Frame %i, set %i\n", frameCount.Current() + 1, set + 1);
       break;
     }
     // Check if frame was modified. If so, update COORDS.
@@ -83,9 +85,10 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
       if (crdOut != 0)
         crdOut->AddFrame( frm.Frm() );
       else
-        CRD->SetCRD( frame, frm.Frm() );
+        CRD->SetCRD( frameCount.Current(), frm.Frm() );
     }
-  } 
+    frameCount.UpdateCounters();
+  }
   if (progress != 0) delete progress;
 # ifdef MPI
   act->SyncAction();
