@@ -21,6 +21,8 @@ class Counter_Regular : public Counter {
     bool IsFinished() const { return !(current_ < stop_ || stop_ == -1); }
     /// \return string with counter info (<start>-<stop>, <offset>)
     std::string CounterInfo() const;
+    /// \return more verbose counter info string
+    std::string Verbose(int) const;
     /// \return Total number to be counted
     int CounterTotal() const { return total_read_frames_; }
   private:

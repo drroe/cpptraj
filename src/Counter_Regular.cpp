@@ -43,3 +43,19 @@ std::string Counter_Regular::CounterInfo() const {
     sstop.assign("EOF");
   return integerToString(start_) + "-" + sstop + ", " + integerToString(offset_);
 }
+
+/** \return String with verbose counter info. */
+std::string Counter_Regular::Verbose(int total_frames) const {
+  std::string out;
+  if (stop_ != -1 && total_frames > 0)
+    //mprintf(": %i-%i, %i (reading %i of %i)",start,stop,offset,total_read_frames,total_frames);
+    out.assign("reading " + integerToString(total_read_frames_) + " of " +
+               integerToString(total_frames));
+  else if (stop_ != -1 && total_frames < 0)
+    out.assign("reading " + integerToString(total_read_frames_));
+  else
+    out.assign("unknown # frames, start=" + integerToString(start_) +
+               " offset=" + integerToString(offset_));
+  return out;
+}
+  

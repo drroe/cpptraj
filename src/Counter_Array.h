@@ -23,6 +23,8 @@ class Counter_Array : public Counter {
     bool IsFinished() const { return CurrentIdx() >= numbers_.size(); }
     /// \return string containing counter info
     std::string CounterInfo() const;
+    /// \return String with more verbose info
+    std::string Verbose(int) const;
     /// \return Total to be counted
     int CounterTotal() const { return (int)numbers_.size(); }
   private:

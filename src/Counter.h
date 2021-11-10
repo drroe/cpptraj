@@ -21,6 +21,8 @@ class Counter {
     virtual bool IsFinished() const = 0;
     /// \return String containing counter info
     virtual std::string CounterInfo() const = 0;
+    /// \return String with more verbose counter info
+    virtual std::string Verbose(int) const = 0;
     /// \return Total number of frames represented by the counter
     virtual int CounterTotal() const = 0;
 
