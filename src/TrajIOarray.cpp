@@ -1,9 +1,13 @@
 #include "TrajIOarray.h"
-#include "Topology.h"
-#include "StringRoutines.h" // integerToString, validInteger
-#include "CpptrajStdio.h"
-#include "TrajectoryFile.h"
 #include "ArgList.h"
+#include "CpptrajStdio.h"
+#include "StringRoutines.h" // integerToString, validInteger
+#include "Topology.h"
+#include "TrajectoryFile.h"
+#include "TrajectoryIO.h"
+#include "TrajFrameCounter.h"
+
+using namespace Cpptraj;
 
 TrajIOarray::~TrajIOarray() { ClearIOarray(); }
 
