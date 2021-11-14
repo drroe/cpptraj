@@ -170,5 +170,5 @@ void TrajFrameCounter::PrintInfoLine(const char* fname) const {
 
 /** Print verbose counter info to stdout. */
 void TrajFrameCounter::PrintFrameInfo() const {
-  mprintf("(%s)", counter_->Verbose(total_frames_).c_str());
+  mprintf(" (%s)", counter_->Verbose(total_frames_).c_str());
 }
