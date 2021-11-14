@@ -35,10 +35,6 @@ int TrajFrameCounter::CheckFrameArgs(int nframes, ArgList &argIn) {
     mprinterr("Internal error: Counter was not allocated.\n");
     return 1;
   }
-  if (TotalReadFrames() < 1) {
-    mprinterr("Error: No frames will be read based on given arguments.\n");
-    return 1;
-  }
 
   return 0;
 }
@@ -155,6 +151,15 @@ int TrajFrameCounter::startStopOffset(ArgList& argIn) {
     mprinterr("Internal Error: Could not allocate regular counter.\n");
     return 1;
   }
+  // If stop frame is known, check that  we will actually read some frames
+  if (stop != -1) {
+    if (counter_->CounterTotal() == 0) {
+      mprinterr("Error: No frames will be read based on start, stop, "
+                "and offset values (%i, %i, %i)\n", start+1, stop, offset);
+      return 1;
+    }
+  }
+
   return 0;
 }
 
