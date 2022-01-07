@@ -5,6 +5,7 @@
 #include "Atom.h"
 #include "Residue.h"
 #include "Molecule.h"
+#include "Replicate.h"
 #include "ParameterTypes.h"
 #include "ParameterSet.h"
 #include "Frame.h"
@@ -271,6 +272,7 @@ class Topology {
     std::vector<Atom> atoms_;
     std::vector<Residue> residues_;
     std::vector<Molecule> molecules_;
+    std::vector<Replicate> replicates_;
     // NOTE: Filename is stored to enable things like 'strip outprefix'
     FileName fileName_; 
     std::string parmName_;

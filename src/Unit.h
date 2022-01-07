@@ -3,7 +3,7 @@
 #include "Segment.h"
 #include <vector>
 //namespace Cpptraj {
-/// Hold 1 or more contiguous segments of atoms
+/// Hold 1 or more segments of atoms
 class Unit {
     typedef std::vector<Segment> SegArrayType;
   public:
