@@ -225,6 +225,8 @@ class Topology {
     }
     /// Append topology to this one.
     int AppendTop( Topology const& );
+    /// Replicate all or part of the Topology
+    int ReplicateAtoms(AtomMask const&, int);
   private:
     void SetAtomBondInfo(BondArray const&);
     // NOTE: Use set so that elements are always sorted.

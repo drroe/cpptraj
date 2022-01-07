@@ -2660,3 +2660,41 @@ int Topology::UpdateParams(ParameterSet const& set1) {
   if (debug_ > 0) set0.Debug("newp.dat");
   return 0;
 }
+
+/** Replicate part or all of the system. */
+int Topology::ReplicateAtoms(AtomMask const& maskIn, int nrep) {
+  if (maskIn.None()) {
+    mprintf("Warning: No atoms selected to replicate.\n");
+    return 0;
+  }
+
+  if (nrep < 1) {
+    mprinterr("Error: Number of times to replicate less than 1.\n");
+    return 1;
+  }
+
+  if (replicates_.empty()) {
+    // Everything in the current Topology is replicate 0
+    replicates_.push_back( Replicate(0, atoms_.size()) );
+    
+    // Get new topology from selection
+    Topology* selection = modifyStateByMask(maskIn);
+    if (selection == 0) {
+      mprinterr("Error: Could not select atoms using mask '%s'\n", maskIn.MaskString());
+      return 1;
+    }
+    selection->Brief("Replicate");
+
+    int repAt0 = atoms_.size();
+    int repAt1 = repAt0 + maskIn.Nselected();
+    // Append selection to this topology
+    AppendTop( *selection );
+    replicates_.push_back( Replicate(repAt0, repAt1) );
+
+    mprintf("\t%zu total replicates in topology.\n", replicates_.size());
+
+    delete selection;
+  }
+
+  return 0;
+}
