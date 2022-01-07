@@ -150,6 +150,36 @@ int CpptrajState::AddInputEnsemble( ArgList& argIn ) {
   return (SetTrajMode( ENSEMBLE, argIn.GetStringNext(), top, argIn ));
 }
 
+/** Check if given topology has been used to set up an input trajectory.
+  * \return Name of input traj, or blank if Topology not used for input traj.
+  */
+std::string CpptrajState::TopUsedInInputTraj(Topology* parm) const {
+  //bool topology_in_use = false;
+  std::string fname;
+  for (TrajinList::trajin_it tIn = InputTrajList().trajin_begin();
+                             tIn != InputTrajList().trajin_end(); ++tIn)
+  {
+    if ( (*tIn)->Traj().Parm() == parm ) {
+      //topology_in_use = true;
+      fname = (*tIn)->Traj().Filename().Full();
+      break;
+    }
+  }
+  //if (!topology_in_use)
+  if (fname.empty()) {
+    for (TrajinList::ensemble_it eIn = InputTrajList().ensemble_begin();
+                                 eIn != InputTrajList().ensemble_end(); ++eIn)
+    {
+      if ( (*eIn)->Traj().Parm() == parm ) {
+        //topology_in_use = true;
+        fname = (*eIn)->Traj().Filename().Full();
+        break;
+      }
+    }
+  }
+  return fname;
+}
+
 // CpptrajState::AddOutputTrajectory()
 int CpptrajState::AddOutputTrajectory( ArgList& argIn ) {
   // Default to NORMAL if not set.

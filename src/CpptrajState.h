@@ -49,6 +49,8 @@ class CpptrajState {
     int AddInputTrajectory( std::string const& );
     int AddInputTrajectory( ArgList& );
     int AddInputEnsemble( ArgList& );
+    /// \return Name (if any) of input trajectory being used by given topology
+    std::string TopUsedInInputTraj(Topology*) const;
     int AddOutputTrajectory( ArgList& );
     int AddOutputTrajectory( std::string const& );
     int RunAnalyses();
