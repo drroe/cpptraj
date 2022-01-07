@@ -11,9 +11,10 @@ Exec::RetType Exec_ParmStrip::Execute(CpptrajState& State, ArgList& argIn) {
   if (parm == 0) return CpptrajState::ERR;
   // Check if this topology has already been used to set up an input
   // trajectory, as this will break the traj read.
-  bool topology_in_use = false;
-  const char* fname = 0;
-  for (TrajinList::trajin_it tIn = State.InputTrajList().trajin_begin();
+  //bool topology_in_use = false;
+  //const char* fname = 0;
+  std::string fname = State.TopUsedInInputTraj(parm);
+/*  for (TrajinList::trajin_it tIn = State.InputTrajList().trajin_begin();
                              tIn != State.InputTrajList().trajin_end(); ++tIn)
     if ( (*tIn)->Traj().Parm() == parm ) {
       topology_in_use = true;
@@ -29,10 +30,11 @@ Exec::RetType Exec_ParmStrip::Execute(CpptrajState& State, ArgList& argIn) {
         break;
       }
   }
-  if (topology_in_use) {
+  if (topology_in_use)*/
+  if (!fname.empty()) {
     mprinterr("Error: Topology '%s' has already been used to set up trajectory '%s'.\n"
               "Error:   To strip this topology use the 'strip' action.\n",
-              parm->c_str(), fname);
+              parm->c_str(), fname.c_str());
     return CpptrajState::ERR;
   }
   AtomMask tempMask( argIn.GetMaskNext() );
