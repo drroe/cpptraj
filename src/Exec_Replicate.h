@@ -4,7 +4,7 @@
 /// <Enter description of Exec_Replicate here>
 class Exec_Replicate : public Exec {
   public:
-    Exec_Replicate() : Exec(GENERAL) {}
+    Exec_Replicate() : Exec(COORDS) {}
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Replicate(); }
     RetType Execute(CpptrajState&, ArgList&);
