@@ -274,6 +274,7 @@ COMMON_SOURCES= \
         Exec_ReadData.cpp \
         Exec_ReadEnsembleData.cpp \
         Exec_ReadInput.cpp \
+        Exec_Replicate.cpp \
         Exec_RotateDihedral.cpp \
         Exec_RunAnalysis.cpp \
         Exec_ScaleDihedralK.cpp \
