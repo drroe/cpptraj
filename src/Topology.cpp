@@ -2687,7 +2687,7 @@ int Topology::ReplicateAtoms(AtomMask const& maskIn, int nrep) {
       mprinterr("Error: Could not select atoms using mask '%s'\n", maskIn.MaskString());
       return 1;
     }
-    selection->Brief("Replicate");
+    selection->Brief("Replicating");
 
     for (int i = 0; i != nrep; i++) {
       int repAt0 = atoms_.size();

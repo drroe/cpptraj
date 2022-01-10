@@ -5,12 +5,13 @@
 // Exec_Replicate::Help()
 void Exec_Replicate::Help() const
 {
-  mprintf("\t<mask> [%s]\n", DataSetList::TopIdxArgs);
+  mprintf("\t<mask> [nrep <#>] [%s]\n", DataSetList::TopIdxArgs);
 }
 
 // Exec_Replicate::Execute()
 Exec::RetType Exec_Replicate::Execute(CpptrajState& State, ArgList& argIn)
 {
+  int nrep = argIn.getKeyInt("nrep", 1);
   Topology* parm = State.DSL().GetTopByIndex( argIn );
   if (parm == 0) return CpptrajState::ERR;
   // Check if this topology has already been used to set up an input
@@ -23,11 +24,12 @@ Exec::RetType Exec_Replicate::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
   AtomMask tempMask( argIn.GetMaskNext() );
+
   if (parm->SetupIntegerMask( tempMask )) return CpptrajState::ERR;
-  mprintf("\tReplicating atoms in topology '%s'\n", parm->c_str());
+  mprintf("\tReplicating atoms in topology '%s' %i times.\n", parm->c_str(), nrep);
   tempMask.MaskInfo();
 
-  if (parm->ReplicateAtoms( tempMask, 1 )) {
+  if (parm->ReplicateAtoms( tempMask, nrep )) {
     mprinterr("Error: Replication failed.\n");
     return CpptrajState::ERR;
   }
