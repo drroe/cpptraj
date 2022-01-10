@@ -93,6 +93,8 @@ class Topology {
     int NresInMol(int) const;
     /// Determine molecules based on bond information
     int DetermineMolecules();
+    // ----- Replicate-specific routines ---------
+    std::vector<Replicate> const& Replicates() const { return replicates_; } 
     // ----- Bond-specific routines --------------
     size_t Nbonds()                            const { return bonds_.size()+bondsh_.size(); }
     BondArray         const& Bonds()        const { return bonds_;        }

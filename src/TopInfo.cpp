@@ -370,6 +370,66 @@ int TopInfo::PrintShortMolInfo(std::string const& maskString) const {
   return 0;
 }
 
+// TopInfo::PrintReplicateInfo()
+int TopInfo::PrintReplicateInfo(std::string const& maskString) const {
+  if (maskString.empty()) {
+    mprinterr("Error: No valid mask given to select replicates.\n");
+    return 1;
+  }
+  if (parm_->Replicates().empty())
+    mprintf("\t'%s' No replicate info.\n", parm_->c_str());
+  else {
+    AtomMask mask( maskString );
+    if (parm_->SetupIntegerMask( mask )) return 1;
+    if ( mask.None() )
+      mprintf("\tSelection is empty.\n");
+    else {
+      //std::vector<int> molNums = parm_->MolnumsSelectedBy( mask );
+      // FIXME do an actual replicate selection
+      std::vector<int> repNums;
+      for (unsigned int i = 0; i < parm_->Replicates().size(); i++)
+        repNums.push_back( i );
+      mprintf("%zu replicates.\n", repNums.size());
+      // TODO determine max segments
+      //int mn_width = maxMolNameWidth( molNums );
+      int rep_width = 5;
+      for (std::vector<int>::const_iterator rep = repNums.begin(); rep != repNums.end(); ++rep)
+        if (parm_->Replicates()[*rep].ID().size() > (unsigned int)rep_width)
+          rep_width = parm_->Replicates()[*rep].ID().size();
+      int awidth = std::max(5, DigitWidth(parm_->Natom()));
+      int rwidth = std::max(5, DigitWidth(parm_->Nres()));
+      int mwidth = std::max(5, DigitWidth(parm_->Replicates().size()));
+      outfile_->Printf("%-*s %*s %*s %*s %*s %-*s\n",
+                       mwidth, "#Rep",
+                       awidth, "Natom",
+                       rwidth, "Nres",
+                       rwidth, "Res0",
+                       rwidth, "Res1", 
+                       rep_width, "Name");
+      for (std::vector<int>::const_iterator rep = repNums.begin();
+                                            rep != repNums.end(); ++rep)
+      {
+        Replicate const& Rep = parm_->Replicates()[*rep];
+        outfile_->Printf("%*u %*u", mwidth, *rep+1, awidth, Rep.RepUnit().Size());
+        // Loop over segments
+        for (Unit::const_iterator seg = Rep.RepUnit().segBegin();
+                                  seg != Rep.RepUnit().segEnd(); ++seg)
+        {
+          int firstres = (*parm_)[ seg->Begin() ].ResNum();
+          int lastres  = (*parm_)[ seg->End()-1 ].ResNum();
+          outfile_->Printf(" %*i %*i %*i %-*s",
+                           rwidth, lastres-firstres+1,
+                           rwidth, firstres+1,
+                           rwidth, lastres+1,
+                           rep_width, Rep.ID().c_str());
+        } // END loop over segments
+        outfile_->Printf("\n");
+      }
+    }
+  }
+  return 0;
+}
+
 // TopInfo::PrintChargeInfo()
 int TopInfo::PrintChargeInfo(std::string const& maskExpression, double& sumQ) const {
   if (maskExpression.empty()) {
