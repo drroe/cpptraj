@@ -298,6 +298,7 @@ class Frame {
 
     void swap(Frame&, Frame&);
     void IncreaseX();
+    bool ReallocateAndPreserve(int);
     inline bool ReallocateX(int);
     /// Allocate coords/velo/force based on given num atoms and coordinate info.
     bool setupFrame(unsigned int, CoordinateInfo const&);

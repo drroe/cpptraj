@@ -368,6 +368,48 @@ void Frame::CopyFrom(Frame const& tgtIn, Unit const& unit) {
 }
 
 // ---------- FRAME MEMORY ALLOCATION/REALLOCATION -----------------------------
+/** Rellocate the frame to the given number of atoms. If the given number of
+  * atoms is larger than the current max atoms and memory reallocation occurs,
+  * ensure current contents are preserved.
+  */
+bool Frame::ReallocateAndPreserve(int natomIn) {
+  natom_ = natomIn;
+  bool reallocated = false;
+  if (natom_ > maxnatom_ || memIsExternal_) {
+    reallocated = true;
+    // Rellocation must occur.
+    double* newX = 0;
+    double* newV = 0;
+    double* newF = 0;
+    if (X_ != 0) {
+      newX = new double[ natom_*3 ];
+      std::copy(X_, X_ + ncoord_, newX);
+    }
+    if (V_ != 0) {
+      newV = new double[ natom_*3 ];
+      std::copy(V_, V_ + ncoord_, newV);
+    }
+    if (F_ != 0) {
+      newF = new double[ natom_*3 ];
+      std::copy(F_, F_ + ncoord_, newF);
+    }
+    if (memIsExternal_)
+      memIsExternal_ = false;
+    else {
+      if (X_ != 0) { delete[] X_; }
+      if (V_ != 0) { delete[] V_; }
+      if (F_ != 0) { delete[] F_; }
+    }
+    X_ = newX;
+    V_ = newV;
+    F_ = newF;
+    Mass_.resize( natom_ );
+    maxnatom_ = natom_;
+  }
+  ncoord_ = natom_ * 3;
+  return reallocated;
+}
+
 /** \return True if reallocation of coordinate arrray must occur based on 
   *         given number of atoms.
   */
