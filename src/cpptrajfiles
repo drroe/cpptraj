@@ -358,6 +358,7 @@ COMMON_SOURCES= \
         ExternalFxn.cpp \
         Random.cpp \
         Range.cpp \
+        Replicate.cpp \
         RNG.cpp \
         RNG_Marsaglia.cpp \
         RNG_MersenneTwister.cpp \
