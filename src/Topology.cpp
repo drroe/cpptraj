@@ -275,6 +275,8 @@ void Topology::Summary() const {
     mprintf("\t\tOriginal filename: %s\n", fileName_.full());
   mprintf("\t\t%zu residues.\n", residues_.size());
   mprintf("\t\t%zu molecules.\n", molecules_.size());
+  if (!replicates_.empty())
+    mprintf("\t\t%zu replicates.\n", replicates_.size());
   size_t s1 = bondsh_.size();
   size_t s2 = bonds_.size();
   if (s1 + s2 > 0)
@@ -321,6 +323,8 @@ void Topology::Brief(const char* heading) const {
     mprintf(" %s,", c_str());
   mprintf(" %zu atoms, %zu res, box: %s, %zu mol", atoms_.size(), 
           residues_.size(), parmBox_.CellShapeName(), molecules_.size());
+  if (!replicates_.empty())
+    mprintf(", %zu replicates", replicates_.size());
   if (NsolventMolecules_>0)
     mprintf(", %i solvent", NsolventMolecules_);
   if (heading != 0)
@@ -2685,11 +2689,13 @@ int Topology::ReplicateAtoms(AtomMask const& maskIn, int nrep) {
     }
     selection->Brief("Replicate");
 
-    int repAt0 = atoms_.size();
-    int repAt1 = repAt0 + maskIn.Nselected();
-    // Append selection to this topology
-    AppendTop( *selection );
-    replicates_.push_back( Replicate(repAt0, repAt1) );
+    for (int i = 0; i != nrep; i++) {
+      int repAt0 = atoms_.size();
+      int repAt1 = repAt0 + maskIn.Nselected();
+      // Append selection to this topology
+      AppendTop( *selection );
+      replicates_.push_back( Replicate(repAt0, repAt1) );
+    }
 
     mprintf("\t%zu total replicates in topology.\n", replicates_.size());
 
