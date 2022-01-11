@@ -368,29 +368,30 @@ void Frame::CopyFrom(Frame const& tgtIn, Unit const& unit) {
 }
 
 // ---------- FRAME MEMORY ALLOCATION/REALLOCATION -----------------------------
-/** Rellocate the frame to the given number of atoms. If the given number of
+/** Ensure the Frame can hold the given number of atoms. If the given number of
   * atoms is larger than the current max atoms and memory reallocation occurs,
-  * ensure current contents are preserved.
+  * ensure that the current contents of the Frame are preserved.
   */
-bool Frame::ReallocateAndPreserve(int natomIn) {
-  natom_ = natomIn;
+bool Frame::IncreaseMaxNatom(int natomIn) {
   bool reallocated = false;
-  if (natom_ > maxnatom_ || memIsExternal_) {
+  mprintf("DEBUG: IncreaseMaxNatom: Current max %i, new max %i\n", maxnatom_, natomIn);
+  if (natomIn > maxnatom_ || memIsExternal_) {
+    mprintf("DEUBG: IncreaseMaxNatom: Doing reallocation.\n");
     reallocated = true;
     // Rellocation must occur.
     double* newX = 0;
     double* newV = 0;
     double* newF = 0;
     if (X_ != 0) {
-      newX = new double[ natom_*3 ];
+      newX = new double[ natomIn*3 ];
       std::copy(X_, X_ + ncoord_, newX);
     }
     if (V_ != 0) {
-      newV = new double[ natom_*3 ];
+      newV = new double[ natomIn*3 ];
       std::copy(V_, V_ + ncoord_, newV);
     }
     if (F_ != 0) {
-      newF = new double[ natom_*3 ];
+      newF = new double[ natomIn*3 ];
       std::copy(F_, F_ + ncoord_, newF);
     }
     if (memIsExternal_)
@@ -403,10 +404,9 @@ bool Frame::ReallocateAndPreserve(int natomIn) {
     X_ = newX;
     V_ = newV;
     F_ = newF;
-    Mass_.resize( natom_ );
-    maxnatom_ = natom_;
+    Mass_.resize( natomIn );
+    maxnatom_ = natomIn;
   }
-  ncoord_ = natom_ * 3;
   return reallocated;
 }
 
@@ -524,6 +524,52 @@ int Frame::SetupFrameFromMask(AtomMask const& maskIn, std::vector<Atom> const& a
   for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom, ++mass) 
     *mass = atoms[ *atom ].Mass();
   return 0; 
+}
+
+/** Append given Frame to this Frame. */
+void Frame::AppendFrame(Frame const& frameIn) {
+  // Ensure this Frame can hold the given Frame
+  IncreaseMaxNatom(natom_ + frameIn.Natom());
+  // Append coords
+  if (X_ != 0 && frameIn.X_ != 0)
+    std::copy( frameIn.X_, frameIn.X_ + frameIn.ncoord_, X_ + ncoord_ );
+  // Append velocities
+  if (V_ != 0 && frameIn.V_ != 0)
+    std::copy( frameIn.V_, frameIn.V_ + frameIn.ncoord_, V_ + ncoord_ );
+  // Append forces
+  if (F_ != 0 && frameIn.F_ != 0)
+    std::copy( frameIn.F_, frameIn.F_ + frameIn.ncoord_, F_ + ncoord_ );
+  // Append masses
+  std::copy(frameIn.Mass_.begin(), frameIn.Mass_.end(), Mass_.begin() + ncoord_);
+
+  // Update natom and ncoords
+  natom_ += frameIn.Natom();
+  ncoord_ = natom_ * 3;
+}
+
+/** Replicate part or all of the system. */
+int Frame::ReplicateFrameAtoms(AtomMask const& maskIn, int nrep) {
+  if (maskIn.None()) {
+    mprintf("Warning: No atoms selected to replicate coordinates.\n");
+    return 0;
+  }
+
+  if (nrep < 1) {
+    mprinterr("Error: Number of times to replicate coordinates is less than 1.\n");
+    return 1;
+  }
+
+  // Create a copy of the system to replicate.
+  Frame selection;
+  selection.SetFrame(*this, maskIn);
+
+  // Increase memory
+  IncreaseMaxNatom(natom_ + (nrep*selection.Natom()));
+
+  for (int i = 0; i != nrep; i++)
+    AppendFrame( selection );
+
+  return 0;
 }
 
 // ---------- FRAME Add/remove components --------------------------------------

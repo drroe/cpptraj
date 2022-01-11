@@ -152,6 +152,10 @@ class Frame {
     int SetupFrameV(std::vector<Atom> const&, CoordinateInfo const&);
     /// Allocate frame for selected # atoms, coords/mass only.
     int SetupFrameFromMask(AtomMask const&, std::vector<Atom> const&);
+    /// Append given Frame to this Frame
+    void AppendFrame(Frame const&);
+    /// Replicate all or part of the Frame
+    int ReplicateFrameAtoms(AtomMask const&, int);
     // ----- Add/remove components from Frame ----
     int AddVelocities(Darray const&);
     void RemoveVelocities();
@@ -298,7 +302,7 @@ class Frame {
 
     void swap(Frame&, Frame&);
     void IncreaseX();
-    bool ReallocateAndPreserve(int);
+    bool IncreaseMaxNatom(int);
     inline bool ReallocateX(int);
     /// Allocate coords/velo/force based on given num atoms and coordinate info.
     bool setupFrame(unsigned int, CoordinateInfo const&);
