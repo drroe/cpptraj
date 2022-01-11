@@ -23,5 +23,14 @@ int main() {
   if (*(it++) != 19) return Err("Expected 19");
   if (*(it++) != 20) return Err("Expected 20");
 
+  Range range2;
+  range2.SetRange("22,10-12,8,27", Range::UNSORTED);
+  it = range2.begin();
+  if (*(it++) != 22) return Err("Expected 22");
+  if (*(it++) != 10) return Err("Expected 10");
+  if (*(it++) != 11) return Err("Expected 11");
+  if (*(it++) != 12) return Err("Expected 12");
+  if (*(it++) !=  8) return Err("Expected 8");
+  if (*(it++) != 27) return Err("Expected 27");
   return 0;
 }
