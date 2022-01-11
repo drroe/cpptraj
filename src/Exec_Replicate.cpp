@@ -41,8 +41,14 @@ Exec::RetType Exec_Replicate::Execute(CpptrajState& State, ArgList& argIn)
       mprinterr("Error: Could not set range '%s'\n", useFramesArg.c_str());
       return CpptrajState::ERR;
     }
+    // User frame args start from 1
+    useFrames.ShiftBy(-1);
+    if (useFrames.Size() < 2) {
+      mprinterr("Error: Need to specify at least 2 frames for 'useframes'\n");
+      return CpptrajState::ERR;
+    }
     if (nrep == -1)
-      nrep = useFrames.Size();
+      nrep = useFrames.Size() - 1;
     else if (nrep != useFrames.Size()) {
       mprinterr("Error: # reps (%i) not equal to # frames to use (%i).\n", nrep, useFrames.Size());
       return CpptrajState::ERR;
