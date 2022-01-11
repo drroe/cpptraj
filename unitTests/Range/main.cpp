@@ -8,7 +8,7 @@ static const int Err(const char* msg) {
 }
 
 int main() {
-  Range range1("1-4,8,12,15-20");
+  Range range1("8,1-4,15-20,12");
   Range::const_iterator it = range1.begin();
   if (*(it++) != 1) return Err("Expected 1");
   if (*(it++) != 2) return Err("Expected 2");
