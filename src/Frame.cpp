@@ -1,5 +1,6 @@
 #include <cmath> // sqrt
 #include <cstring> // memcpy, memset
+#include <algorithm> // copy
 #include "Frame.h"
 #include "Constants.h" // SMALL
 #include "CpptrajStdio.h"
@@ -514,7 +515,7 @@ int Frame::SetupFrameV(std::vector<Atom> const& atoms, CoordinateInfo const& cin
   * information is passed in store the masses corresponding to
   * selected atoms in the mask. No velocity info. Only reallocate
   * memory if Nselected > maxnatom.
-  */
+  */ // TODO deprecate in favor of AssignFrame?
 int Frame::SetupFrameFromMask(AtomMask const& maskIn, std::vector<Atom> const& atoms) {
   bool reallocate = ReallocateX( maskIn.Nselected() );
   if (reallocate || Mass_.empty())
@@ -526,8 +527,9 @@ int Frame::SetupFrameFromMask(AtomMask const& maskIn, std::vector<Atom> const& a
   return 0; 
 }
 
-/** Append given Frame to this Frame. */
+/** Append coords/vel/force/mass from given Frame to this Frame. */
 void Frame::AppendFrame(Frame const& frameIn) {
+  mprintf("DEBUG: Appending %i atoms to %i atoms\n", frameIn.Natom(), natom_);
   // Ensure this Frame can hold the given Frame
   IncreaseMaxNatom(natom_ + frameIn.Natom());
   // Append coords
@@ -540,11 +542,44 @@ void Frame::AppendFrame(Frame const& frameIn) {
   if (F_ != 0 && frameIn.F_ != 0)
     std::copy( frameIn.F_, frameIn.F_ + frameIn.ncoord_, F_ + ncoord_ );
   // Append masses
-  std::copy(frameIn.Mass_.begin(), frameIn.Mass_.end(), Mass_.begin() + ncoord_);
+  std::copy(frameIn.Mass_.begin(), frameIn.Mass_.end(), Mass_.begin() + natom_);
 
   // Update natom and ncoords
   natom_ += frameIn.Natom();
   ncoord_ = natom_ * 3;
+}
+
+/** Assign selected atoms from given Frame to this Frame. */
+void Frame::AssignFrame(Frame const& frameIn, AtomMask const& maskIn) {
+  mprintf("DEBUG: Calling AssignFrame for %i selected atoms.\n", maskIn.Nselected());
+  // Ensure this Frame can hold selected atoms
+  IncreaseMaxNatom( maskIn.Nselected() );
+  // Assign coords/vel/forces/masses
+  unsigned int tgt = 0;
+  for (AtomMask::const_iterator at = maskIn.begin(); at != maskIn.end(); ++at, ++tgt) {
+    unsigned int tgt3 = tgt * 3;
+    unsigned int beg = *at * 3;
+    unsigned int end = beg + 3;
+    if (X_ != 0 && frameIn.X_ != 0)
+      std::copy( frameIn.X_ + beg, frameIn.X_ + end, X_ + tgt3 );
+    if (V_ != 0 && frameIn.V_ != 0)
+      std::copy( frameIn.V_ + beg, frameIn.V_ + end, V_ + tgt3 );
+    if (F_ != 0 && frameIn.F_ != 0)
+      std::copy( frameIn.F_ + beg, frameIn.F_ + end, F_ + tgt3 );
+    Mass_[tgt] = frameIn.Mass_[*at];
+  }
+  // Assign the rest
+  natom_        = maskIn.Nselected();
+  ncoord_       = natom_ * 3;
+  step_         = frameIn.step_;
+  box_          = frameIn.box_;
+  T_            = frameIn.T_;
+  repidx_       = frameIn.repidx_;
+  crdidx_       = frameIn.crdidx_;
+  pH_           = frameIn.pH_;
+  redox_        = frameIn.redox_;
+  time_         = frameIn.time_;
+  remd_indices_ = frameIn.remd_indices_;
 }
 
 /** Replicate part or all of the system. */
@@ -561,7 +596,7 @@ int Frame::ReplicateFrameAtoms(AtomMask const& maskIn, int nrep) {
 
   // Create a copy of the system to replicate.
   Frame selection;
-  selection.SetFrame(*this, maskIn);
+  selection.AssignFrame(*this, maskIn);
 
   // Increase memory
   IncreaseMaxNatom(natom_ + (nrep*selection.Natom()));

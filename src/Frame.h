@@ -154,6 +154,8 @@ class Frame {
     int SetupFrameFromMask(AtomMask const&, std::vector<Atom> const&);
     /// Append given Frame to this Frame
     void AppendFrame(Frame const&);
+    /// Assign selected atoms from given Frame to this Frame
+    void AssignFrame(Frame const&, AtomMask const&);
     /// Replicate all or part of the Frame
     int ReplicateFrameAtoms(AtomMask const&, int);
     // ----- Add/remove components from Frame ----
