@@ -62,6 +62,7 @@ Exec::RetType Exec_Replicate::Execute(CpptrajState& State, ArgList& argIn)
   // Get the first frame
   Range::const_iterator frmnum = useFrames.begin();
   Frame frameIn = CRD->AllocateFrame();
+  mprintf("\tFirst frame is %i\n", *frmnum + 1);
   CRD->GetFrame(*(frmnum++), frameIn);
 
   
@@ -92,6 +93,7 @@ Exec::RetType Exec_Replicate::Execute(CpptrajState& State, ArgList& argIn)
 
   // Topology from input coords will be modified.
   Topology topIn = CRD->Top();
+  int originalNatom = topIn.Natom();
 
   if (topIn.SetupIntegerMask( tempMask )) return CpptrajState::ERR;
   mprintf("\tReplicating atoms in topology '%s' %i times.\n", topIn.c_str(), nrep);
@@ -110,7 +112,19 @@ Exec::RetType Exec_Replicate::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
-  // Set
+  // Set coords from useframes
+  if (useFrames.Size() > 1) {
+    Frame selected;
+    selected.AssignFrame( frameIn, tempMask );
+    int repStart = originalNatom;
+    while (frmnum != useFrames.end()) {
+      mprintf("DEBUG: Getting frame %i, copy starting at atom %i\n", *frmnum + 1, repStart+1);
+      CRD->GetFrame( *frmnum, selected, tempMask );
+      frameIn.CopyFrom(repStart, selected, 0, selected.Natom());
+      repStart += selected.Natom();
+      frmnum++;
+    }
+  }
 
   // Assign to output coords
   CoordinateInfo cinfo = CRD->CoordsInfo();

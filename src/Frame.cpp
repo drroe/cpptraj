@@ -362,6 +362,14 @@ void Frame::CopyFrom(Frame const& tgtIn, int firstAtom, int lastAtom)
   std::copy( tgtIn.xAddress()+i3, tgtIn.xAddress()+(lastAtom*3), xAddress()+i3 );
 }
 
+/** Copy from firstAtom to lastAtom in tgtin to startAtom in this Frame. */
+void Frame::CopyFrom(int startAtom, Frame const& tgtIn, int firstAtom, int lastAtom)
+{
+  int s3 = startAtom * 3;
+  int i3 = firstAtom * 3;
+  std::copy( tgtIn.xAddress()+i3, tgtIn.xAddress()+(lastAtom*3), xAddress()+s3 );
+}
+
 /** Copy unit in tgtIn to this Frame. */
 void Frame::CopyFrom(Frame const& tgtIn, Unit const& unit) {
   for (Unit::const_iterator seg = unit.segBegin(); seg != unit.segEnd(); ++seg)

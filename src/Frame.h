@@ -120,6 +120,8 @@ class Frame {
     void SetMass(std::vector<Atom> const&);
     /// Copy atoms from input frame to here
     void CopyFrom(Frame const&, int, int);
+    /// Copy atoms from input frame to specified location here
+    void CopyFrom(int, Frame const&, int, int);
     /// Copy unit from input frame to here
     void CopyFrom(Frame const&, Unit const&);
     // ----- Access to internal data pointers ----
