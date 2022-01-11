@@ -15,7 +15,8 @@ void Exec_Replicate::Help() const
   */
 Exec::RetType Exec_Replicate::Execute(CpptrajState& State, ArgList& argIn)
 {
-  int nrep = argIn.getKeyInt("nrep", 1);
+  int nrep = argIn.getKeyInt("nrep", -1);
+
   // Get input COORDS set
   std::string setname = argIn.GetStringKey("crdset");
   if (setname.empty()) {
@@ -33,9 +34,29 @@ Exec::RetType Exec_Replicate::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
+  Range useFrames;
+  std::string useFramesArg = argIn.GetStringKey("useframes");
+  if (!useFramesArg.empty()) {
+    if (useFrames.SetRange( useFramesArg, Range::UNSORTED )) {
+      mprinterr("Error: Could not set range '%s'\n", useFramesArg.c_str());
+      return CpptrajState::ERR;
+    }
+    if (nrep == -1)
+      nrep = useFrames.Size();
+    else if (nrep != useFrames.Size()) {
+      mprinterr("Error: # reps (%i) not equal to # frames to use (%i).\n", nrep, useFrames.Size());
+      return CpptrajState::ERR;
+    }
+  } else {
+    useFrames = Range(0);
+    if (nrep == -1)
+      nrep = 1;
+  }
+  mprintf("\t%i replicates\n", nrep);
   // Get the first frame
+  Range::const_iterator frmnum = useFrames.begin();
   Frame frameIn = CRD->AllocateFrame();
-  CRD->GetFrame(0, frameIn);
+  CRD->GetFrame(*(frmnum++), frameIn);
 
 /*  int tgtframe = argIn.getKeyInt("frame", 0);
   if (tgtframe < 0 || tgtframe >= (int)CRD->Size()) {
