@@ -10,7 +10,7 @@ Range::Range() { }
 /** CONSTRUCTOR - Takes argument string as input */
 Range::Range( std::string const& argIn ) {
   if (!argIn.empty())
-    SetRange( argIn );
+    SetRange( argIn, SORTED );
 }
 
 /** CONSTRUCTOR - Single number */
@@ -19,7 +19,7 @@ Range::Range(int start) { SetRange(start, start+1); }
 /** CONSTRUCTOR - Argument string with offset */
 Range::Range( std::string const& argIn, int offsetIn) {
   if (!argIn.empty()) {
-    SetRange( argIn );
+    SetRange( argIn, SORTED );
     ShiftBy( offsetIn );
   }
 }
@@ -42,10 +42,10 @@ Range &Range::operator=(const Range &rhs) {
 // Range::SetRange()
 /** Given an argument containing numbers separated by "," (concatentation), and 
   * "-" (number range), construct an ordered list of numbers corresponding to 
-  * the argument. Remove any duplicate numbers.
+  * the argument. Remove any duplicate numbers if sorting.
   * \return 0 on success, 1 on error.
   */
-int Range::SetRange(std::string const& ArgIn) {
+int Range::SetRange(std::string const& ArgIn, SortType sortType) {
   std::string arg;
   int R[2], upper;
   ArgList DashList;
@@ -93,27 +93,29 @@ int Range::SetRange(std::string const& ArgIn) {
     return 1;
   
   // Sort frames using default comparison
-  rangeList_.sort();
-  //for (it=rangeList_.begin(); it!=rangeList_.end(); it++)
-  //  fprintf(stdout,"RangeList= %i\n",*it); 
-  // Remove duplicates
-  err=-1;
-  //fprintf(stdout,"Size of RangeList is %lu\n",rangeList_.size());
-  std::list<int>::iterator it = rangeList_.begin();
-  while (!rangeList_.empty()) {
-    //fprintf(stdout,"     List= %i  Last= %i",*it,err);
-    upper=*it;
-    if (*it == err) {
-      //fprintf(stdout,"REMOVING."); 
-      // Erasing effectively increments the iterator
-      it = rangeList_.erase(it);
-    } else {
-      ++it;
+  if (sortType == SORTED) {
+    rangeList_.sort();
+   //for (it=rangeList_.begin(); it!=rangeList_.end(); it++)
+    //  fprintf(stdout,"RangeList= %i\n",*it); 
+    // Remove duplicates
+    err = -1;
+    //fprintf(stdout,"Size of RangeList is %lu\n",rangeList_.size());
+    std::list<int>::iterator it = rangeList_.begin();
+    while (!rangeList_.empty()) {
+      //fprintf(stdout,"     List= %i  Last= %i",*it,err);
+      upper=*it;
+      if (*it == err) {
+        //fprintf(stdout,"REMOVING."); 
+        // Erasing effectively increments the iterator
+        it = rangeList_.erase(it);
+      } else {
+        ++it;
+      }
+      err=upper;
+      //fprintf(stdout,"\n");
+      // If we are past the last element exit now
+      if (it == rangeList_.end()) break;
     }
-    err=upper;
-    //fprintf(stdout,"\n");
-    // If we are past the last element exit now
-    if (it == rangeList_.end()) break;
   }
 
   return 0;

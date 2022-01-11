@@ -23,6 +23,8 @@ class Range {
     /// ASSIGNMENT
     Range& operator=(const Range&);
 
+    enum SortType { SORTED = 0, UNSORTED };
+
     typedef std::list<int>::const_iterator const_iterator;
     const_iterator begin() const { return rangeList_.begin();      }
     const_iterator end()   const { return rangeList_.end();        }
@@ -33,7 +35,9 @@ class Range {
     void Clear() { rangeArg_.clear(); rangeList_.clear(); }
 
     /// Set range from argument
-    int SetRange(std::string const&);
+    int SetRange(std::string const&, SortType);
+    /// Set range from argument, sorted
+    int SetRange(std::string const& a) { return SetRange(a, SORTED); }
     /// Set range from start up to but not including end
     int SetRange(int,int);
     /// \return the range argument
