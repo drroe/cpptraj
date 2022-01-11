@@ -43,8 +43,9 @@ class Range {
     void ShiftBy(int);
     /// Add a number to the range. Range is NOT explicitly sorted in this case. 
     void AddToRange(int num) { rangeList_.push_back(num); }
+    /// Remove number from range
     void RemoveFromRange(int);
-    /// \return true if given number is within the Range.
+    /// \return true if given number is in the Range list.
     bool InRange(int) const;
   private:
     std::string rangeArg_;

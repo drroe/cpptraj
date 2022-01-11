@@ -4,18 +4,19 @@
 #include "ArgList.h"
 #include "CpptrajStdio.h"
 
-// CONSTRUCTOR
+/** CONSTRUCTOR */
 Range::Range() { }
 
-/// CONSTRUCTOR - Takes argument string as input
+/** CONSTRUCTOR - Takes argument string as input */
 Range::Range( std::string const& argIn ) {
   if (!argIn.empty())
     SetRange( argIn );
 }
 
-/// CONSTRUCTOR - Single number
+/** CONSTRUCTOR - Single number */
 Range::Range(int start) { SetRange(start, start+1); }
 
+/** CONSTRUCTOR - Argument string with offset */
 Range::Range( std::string const& argIn, int offsetIn) {
   if (!argIn.empty()) {
     SetRange( argIn );
@@ -23,13 +24,13 @@ Range::Range( std::string const& argIn, int offsetIn) {
   }
 }
 
-// COPY CONSTRUCTOR
+/** COPY CONSTRUCTOR */
 Range::Range(const Range &rhs) :
   rangeArg_(rhs.rangeArg_),
   rangeList_(rhs.rangeList_)
 {}
 
-// ASSIGNMENT OPERATOR
+/** ASSIGNMENT OPERATOR */
 Range &Range::operator=(const Range &rhs) {
   // Check for self assignment
   if ( this == &rhs ) return *this;
