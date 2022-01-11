@@ -10,11 +10,17 @@
 */
 class Range {
   public:
+    /// CONSTRUCTOR
     Range();
+    /// CONSTRUCTOR - Takes argument string as input
     Range(std::string const&);
+    /// CONSTRUCTOR - Single number
     Range(int);
+    /// CONSTRUCTOR - Argument with offset
     Range(std::string const&,int);
+    /// COPY CONSTRUCTOR
     Range(const Range&);
+    /// ASSIGNMENT
     Range& operator=(const Range&);
 
     typedef std::list<int>::const_iterator const_iterator;
@@ -26,7 +32,9 @@ class Range {
     int Front()            const { return rangeList_.front();      }
     void Clear() { rangeArg_.clear(); rangeList_.clear(); }
 
+    /// Set range from argument
     int SetRange(std::string const&);
+    /// Set range from start up to but not including end
     int SetRange(int,int);
     /// \return the range argument
     const char *RangeArg() const { return rangeArg_.c_str(); }
