@@ -208,6 +208,7 @@ COMMON_SOURCES= \
         DataSet_pH.cpp \
         DataSet_PHREMD_Explicit.cpp \
         DataSet_PHREMD_Implicit.cpp \
+        DataSet_PotentialFxn.cpp \
         DataSet_RemLog.cpp \
         DataSet_Topology.cpp \
         DataSet_Vector.cpp \
