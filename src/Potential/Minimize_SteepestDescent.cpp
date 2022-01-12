@@ -2,12 +2,12 @@
 #include <algorithm> // std::fill
 #include <cmath> // sqrt
 #include "PotentialFunction.h"
-#include "Frame.h"
-#include "Trajout_Single.h"
-#include "CpptrajStdio.h"
-#include "ArgList.h"
-#include "DataSetList.h"
-#include "CpptrajFile.h"
+#include "../Frame.h"
+#include "../Trajout_Single.h"
+#include "../CpptrajStdio.h"
+#include "../ArgList.h"
+#include "../DataSetList.h"
+#include "../CpptrajFile.h"
 
 /** CONSTRUCTOR */
 Minimize_SteepestDescent::Minimize_SteepestDescent() :

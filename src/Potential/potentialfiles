@@ -1,0 +1,15 @@
+# Files related to potential function code 
+POTENTIAL_SOURCES= \
+  Constraints.cpp \
+  EnergyArray.cpp \
+  MdOpts.cpp \
+  Minimize_SteepestDescent.cpp \
+  OMM_helpers.cpp \
+  PotentialFunction.cpp \
+  PotentialTerm.cpp \
+  PotentialTerm_Angle.cpp \
+  PotentialTerm_Bond.cpp \
+  PotentialTerm_Dihedral.cpp \
+  PotentialTerm_LJ_Coulomb.cpp \
+  PotentialTerm_OpenMM.cpp 
+
