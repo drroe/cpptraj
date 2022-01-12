@@ -34,6 +34,7 @@
 #include "DataSet_StringVar.h"
 #include "DataSet_Vector_Scalar.h"
 #include "DataSet_unsignedInt.h"
+#include "DataSet_PotentialFxn.h"
 
 bool DataSetList::useDiskCache_ = false;
 
@@ -91,6 +92,7 @@ DataSet* DataSetList::NewSet(DataSet::DataType typeIn) {
     case DataSet::TENSOR        : ds = DataSet_Tensor::Alloc(); break;
     case DataSet::STRINGVAR     : ds = DataSet_StringVar::Alloc(); break;
     case DataSet::VECTOR_SCALAR : ds = DataSet_Vector_Scalar::Alloc(); break;
+    case DataSet::POTENTIALFXN  : ds = DataSet_PotentialFxn::Alloc(); break;
     // Sanity check
     default:
       mprinterr("Internal Error: No allocator for DataSet type '%s'\n",
