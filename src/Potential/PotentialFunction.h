@@ -2,7 +2,7 @@
 #define INC_POTENTIALFUNCTION_H
 #include "PotentialTerm.h"
 #include "EnergyArray.h"
-#include "CharMask.h"
+#include "../CharMask.h"
 #include <string>
 // Forward declares
 class Topology;

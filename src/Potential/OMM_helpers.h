@@ -1,7 +1,7 @@
 #ifndef INC_OMM_HELPERS_H
 #define INC_OMM_HELPERS_H
 #ifdef HAS_OPENMM
-#include "ParameterTypes.h"
+#include "../ParameterTypes.h"
 #include <vector>
 // Forward declares
 namespace OpenMM {

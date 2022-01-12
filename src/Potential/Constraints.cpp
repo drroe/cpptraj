@@ -1,12 +1,12 @@
 #include <algorithm> // sort
 #include <cmath> // fabs
 #include "Constraints.h"
-#include "CpptrajStdio.h"
-#include "Constants.h"
-#include "Topology.h"
-#include "ArgList.h"
-#include "Frame.h"
-#include "CharMask.h"
+#include "../CpptrajStdio.h"
+#include "../Constants.h"
+#include "../Topology.h"
+#include "../ArgList.h"
+#include "../Frame.h"
+#include "../CharMask.h"
 
 /// CONSTRUCTOR
 Constraints::Constraints() :

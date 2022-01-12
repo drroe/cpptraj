@@ -1,7 +1,7 @@
 #ifndef INC_POTENTIALTERM_DIHEDRAL_H
 #define INC_POTENTIALTERM_DIHEDRAL_H
 #include "PotentialTerm.h"
-#include "ParameterTypes.h"
+#include "../ParameterTypes.h"
 class Atom;
 /// Torsion term, truncated Fourier series
 class PotentialTerm_Dihedral : public PotentialTerm {

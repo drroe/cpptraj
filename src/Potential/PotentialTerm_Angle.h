@@ -1,7 +1,7 @@
 #ifndef INC_POTENTIALTERM_ANGLE_H
 #define INC_POTENTIALTERM_ANGLE_H
 #include "PotentialTerm.h"
-#include "ParameterTypes.h"
+#include "../ParameterTypes.h"
 /// Simple Hooke's law angle term
 class PotentialTerm_Angle : public PotentialTerm {
   public:

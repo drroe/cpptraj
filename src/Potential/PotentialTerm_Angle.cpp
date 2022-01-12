@@ -1,6 +1,6 @@
 #include "PotentialTerm_Angle.h"
-#include "Topology.h"
-#include "CharMask.h"
+#include "../Topology.h"
+#include "../CharMask.h"
 #include "EnergyArray.h"
 //#incl ude "CpptrajStdio.h" 
 

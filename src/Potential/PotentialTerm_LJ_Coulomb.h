@@ -1,7 +1,7 @@
 #ifndef INC_POTENTIALTERM_LJ_COULOMB_H
 #define INC_POTENTIALTERM_LJ_COULOMB_H
 #include "PotentialTerm.h"
-#include "ExclusionArray.h"
+#include "../ExclusionArray.h"
 #include <vector>
 // Forward declares
 class NonbondParmType;

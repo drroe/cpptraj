@@ -1,8 +1,8 @@
 #ifndef INC_ENERGYKERNEL_NONBOND_SIMPLE_H
 #define INC_ENERGYKERNEL_NONBOND_SIMPLE_H
 #include <cmath> //sqrt
-#include "Frame.h"
-#include "CharMask.h"
+#include "../Frame.h"
+#include "../CharMask.h"
 //#incl ude "CpptrajStdio.h" // DEBUG
 /// Simple LJ and electrostatics
 template <class REAL> class EnergyKernel_NonBond_Simple {

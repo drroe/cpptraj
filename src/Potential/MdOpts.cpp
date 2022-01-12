@@ -1,7 +1,7 @@
 #include "MdOpts.h"
-#include "ArgList.h"
-#include "CpptrajStdio.h"
-#include "Constants.h"
+#include "../ArgList.h"
+#include "../CpptrajStdio.h"
+#include "../Constants.h"
 
 MdOpts::MdOpts() :
   shakeType_(Constraints::OFF),

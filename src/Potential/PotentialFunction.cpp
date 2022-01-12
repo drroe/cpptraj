@@ -1,6 +1,6 @@
 #include "PotentialFunction.h"
-#include "CpptrajStdio.h"
-#include "Topology.h"
+#include "../CpptrajStdio.h"
+#include "../Topology.h"
 #include "MdOpts.h"
 // ----- All potential terms -----------
 #include "PotentialTerm_Bond.h"

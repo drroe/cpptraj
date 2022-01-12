@@ -1,6 +1,6 @@
 #include "EnergyArray.h"
-#include "CpptrajStdio.h"
-#include "CpptrajFile.h"
+#include "../CpptrajStdio.h"
+#include "../CpptrajFile.h"
 
 /** CONSTRUCTOR */
 EnergyArray::EnergyArray() :

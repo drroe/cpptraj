@@ -1,11 +1,11 @@
 #include "PotentialTerm_LJ_Coulomb.h"
-#include "Topology.h"
-#include "CharMask.h"
+#include "../Topology.h"
+#include "../CharMask.h"
 #include "EnergyArray.h"
 #include "EnergyKernel_NonBond_Simple.h"
 #include "MdOpts.h"
-#include "CpptrajStdio.h"
-#include "Constants.h" // SMALL
+#include "../CpptrajStdio.h"
+#include "../Constants.h" // SMALL
 #include <cmath> //fabs
 
 /**  CONSTRUCTOR */

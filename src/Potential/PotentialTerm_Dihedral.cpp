@@ -1,10 +1,10 @@
 #include "PotentialTerm_Dihedral.h"
-#include "Topology.h"
-#include "CharMask.h"
+#include "../Topology.h"
+#include "../CharMask.h"
 #include "EnergyArray.h"
 #include "EnergyKernel_NonBond_Simple.h"
-#include "Constants.h"
-#include "CpptrajStdio.h"
+#include "../Constants.h"
+#include "../CpptrajStdio.h"
 
 /** CONSTRUCTOR */
 PotentialTerm_Dihedral::PotentialTerm_Dihedral() :

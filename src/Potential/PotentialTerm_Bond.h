@@ -1,7 +1,7 @@
 #ifndef INC_POTENTIALTERM_BOND_H
 #define INC_POTENTIALTERM_BOND_H
 #include "PotentialTerm.h"
-#include "ParameterTypes.h"
+#include "../ParameterTypes.h"
 /// Simple Hooke's law bond term
 class PotentialTerm_Bond : public PotentialTerm {
   public:

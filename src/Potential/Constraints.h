@@ -1,6 +1,6 @@
 #ifndef INC_CONSTRAINTS_H
 #define INC_CONSTRAINTS_H
-#include "ParameterTypes.h"
+#include "../ParameterTypes.h"
 class Topology;
 class ArgList;
 class AtomMask;
