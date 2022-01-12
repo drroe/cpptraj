@@ -1,8 +1,8 @@
 #include "Exec_Emin.h"
 #include "CpptrajStdio.h"
-#include "PotentialFunction.h"
-#include "Minimize_SteepestDescent.h"
-#include "MdOpts.h"
+#include "Potential/PotentialFunction.h"
+#include "Potential/Minimize_SteepestDescent.h"
+#include "Potential/MdOpts.h"
 
 // Exec_Emin::Help()
 void Exec_Emin::Help() const

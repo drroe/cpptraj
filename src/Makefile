@@ -7,7 +7,7 @@ DEL_FILE = /bin/rm -f
 
 OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o)
 
-CLUSTER_TARGET=Cluster/libcpptraj_cluster.a
+INTERNAL_TARGETS=Cluster/libcpptraj_cluster.a Potential/libcpptraj_potential.a
 
 # Default target: cpptraj only
 all: cpptraj$(SFX)$(EXE)
@@ -19,8 +19,8 @@ install: $(INSTALL_TARGETS)
 install_cpptraj: cpptraj$(SFX)$(EXE)
 	mv cpptraj$(SFX)$(EXE) $(CPPTRAJBIN)
 
-cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) $(CLUSTER_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(TNGFILE_TARGET)
-	$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(CUDA_TARGET) $(CLUSTER_TARGET) $(FFT_TARGET) $(READLINE_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
+cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) $(INTERNAL_TARGETS) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(TNGFILE_TARGET)
+	$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(CUDA_TARGET) $(INTERNAL_TARGETS) $(FFT_TARGET) $(READLINE_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 # libcpptraj ---------------------------
 # Rule to make libcpptraj-specific objects
@@ -29,8 +29,8 @@ cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) 
 
 libcpptraj: $(LIBCPPTRAJ_TARGET)
 
-$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(CLUSTER_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(TNGFILE_TARGET)
-	$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(CLUSTER_TARGET) $(CPPTRAJ_LIB) $(LDFLAGS)
+$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(INTERNAL_TARGETS) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(TNGFILE_TARGET)
+	$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(INTERNAL_TARGETS) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 # Data directory -----------------------
 install_dat:
@@ -103,8 +103,9 @@ noarpack:
 cuda_kernels/libcpptraj_cuda.a: ../external.config.h
 	cd cuda_kernels && $(MAKE) all
 
-$(CLUSTER_TARGET)::
+$(INTERNAL_TARGETS)::
 	cd Cluster && $(MAKE) all
+	cd Potential && $(MAKE) all
 
 # Dependency targets
 findDepend: FindDepend.cpp FindDepend.o 

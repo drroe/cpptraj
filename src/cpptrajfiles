@@ -155,7 +155,6 @@ COMMON_SOURCES= \
         CmdList.cpp \
         CompactFrameArray.cpp \
         ComplexArray.cpp \
-        Constraints.cpp \
         ControlBlock_For.cpp \
         CoordinateInfo.cpp \
         Corr.cpp \
@@ -225,7 +224,6 @@ COMMON_SOURCES= \
         DihedralSearch.cpp \
         DistRoutines.cpp \
         Energy.cpp \
-        EnergyArray.cpp \
         EnsembleIn.cpp \
         EnsembleIn_Multi.cpp \
         EnsembleIn_Single.cpp \
@@ -319,15 +317,12 @@ COMMON_SOURCES= \
         MaskArray.cpp \
         MaskToken.cpp \
         Matrix_3x3.cpp \
-        MdOpts.cpp \
         MetaData.cpp \
-        Minimize_SteepestDescent.cpp \
         Mol.cpp \
         Mol2File.cpp \
         NameType.cpp \
         NC_Routines.cpp \
         NetcdfFile.cpp \
-        OMM_helpers.cpp \
         OutputTrajCommon.cpp \
         ParameterSet.cpp \
         PDBfile.cpp \
@@ -343,13 +338,6 @@ COMMON_SOURCES= \
         Parm_PDB.cpp \
         Parm_SDF.cpp \
         Parm_Tinker.cpp \
-        PotentialFunction.cpp \
-        PotentialTerm.cpp \
-        PotentialTerm_Angle.cpp \
-        PotentialTerm_Bond.cpp \
-        PotentialTerm_Dihedral.cpp \
-        PotentialTerm_LJ_Coulomb.cpp \
-        PotentialTerm_OpenMM.cpp \
         ProgressBar.cpp \
         ProgressTimer.cpp \
         PubFFT.cpp \

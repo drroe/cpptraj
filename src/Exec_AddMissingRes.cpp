@@ -4,10 +4,10 @@
 #include "CharMask.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords_CRD.h"
-#include "Minimize_SteepestDescent.h"
+#include "Potential/Minimize_SteepestDescent.h"
 #include "ParmFile.h"
-#include "PotentialFunction.h"
-#include "MdOpts.h"
+#include "Potential/PotentialFunction.h"
+#include "Potential/MdOpts.h"
 #include "Trajin_Single.h"
 #include "Trajout_Single.h"
 #include <cmath>

@@ -1,7 +1,7 @@
 #ifndef INC_ACTION_TEMPERATURE_H
 #define INC_ACTION_TEMPERATURE_H
 #include "Action.h"
-#include "Constraints.h"
+#include "Potential/Constraints.h"
 /// Calculate the temperature of parts of a system.
 class Action_Temperature : public Action {
   public:

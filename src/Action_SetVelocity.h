@@ -2,7 +2,7 @@
 #define INC_ACTION_SETVELOCITY_H
 #include "Action.h"
 #include "Random.h"
-#include "Constraints.h"
+#include "Potential/Constraints.h"
 /// Set velocities for selected atoms in a system. 
 class Action_SetVelocity : public Action {
   public:
