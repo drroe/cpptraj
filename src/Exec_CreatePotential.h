@@ -4,7 +4,7 @@
 /// Create a potential function 
 class Exec_CreatePotential : public Exec {
   public:
-    Exec_CreatePotential() : Exec(GENERAL) {}
+    Exec_CreatePotential();
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_CreatePotential(); }
     RetType Execute(CpptrajState&, ArgList&);

@@ -1,6 +1,13 @@
 #include "Exec_CreatePotential.h"
 #include "CpptrajStdio.h"
 
+/** CONSTRUCTOR */
+Exec_CreatePotential::Exec_CreatePotential() :
+  Exec(GENERAL)
+{
+  SetHidden(true);
+}
+
 // Exec_CreatePotential::Help()
 void Exec_CreatePotential::Help() const
 {

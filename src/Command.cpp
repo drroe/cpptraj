@@ -16,6 +16,7 @@
 #include "Exec_Calc.h"
 #include "Exec_ClusterMap.h"
 #include "Exec_Commands.h"
+#include "Exec_CreatePotential.h"
 #include "Exec_CreateSet.h"
 #include "Exec_DataFile.h"
 #include "Exec_DataFilter.h"
@@ -215,6 +216,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_Clear(),           Cmd::EXE, 1, "clear" );
   Command::AddCmd( new Exec_ClusterMap(),      Cmd::EXE, 1, "clustermap" ); // hidden
   Command::AddCmd( new Exec_CreateDataFile(),  Cmd::EXE, 1, "create" );
+  Command::AddCmd( new Exec_CreatePotential(), Cmd::EXE, 1, "createpotential" ); // hidden
   Command::AddCmd( new Exec_CreateSet(),       Cmd::EXE, 1, "createset" );
   Command::AddCmd( new Exec_DataFileCmd(),     Cmd::EXE, 1, "datafile" );
   Command::AddCmd( new Exec_DataFilter(),      Cmd::EXE, 1, "datafilter" );
