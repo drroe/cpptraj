@@ -66,5 +66,6 @@ Exec::RetType Exec_CreatePotential::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   mprintf("    CREATEPOTENTIAL: Created potential function '%s'\n", ds->legend());
+  potential->FnInfo();
   return CpptrajState::OK;
 }
