@@ -3,6 +3,8 @@
 #include "DataSet_PotentialFxn.h"
 #include "Potential/MdOpts.h"
 #include "Potential/PotentialFunction.h"
+#include "DataSet_Coords.h"
+#include "DataSet_Topology.h"
 
 /** CONSTRUCTOR */
 Exec_CreatePotential::Exec_CreatePotential() :
@@ -25,6 +27,29 @@ Exec::RetType Exec_CreatePotential::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: 'nrep' cannot be less than 1.\n");
     return CpptrajState::ERR;
   }*/
+  Topology* parm = 0;
+  std::string crdset = argIn.GetStringKey("crdset");
+  std::string parmarg = argIn.GetStringKey("parm");
+  if (!crdset.empty()) {
+    DataSet_Coords* ds = (DataSet_Coords*)State.DSL().FindSetOfGroup(crdset, DataSet::COORDINATES);
+    if (ds == 0) return CpptrajState::ERR;
+    mprintf("\tUsing topology from data set '%s'\n", ds->legend());
+    parm = ds->TopPtr();
+  } else if (!parmarg.empty()) {
+    DataSet_Topology* ds = (DataSet_Topology*)State.DSL().FindSetOfType(parmarg, DataSet::TOPOLOGY);
+    if (ds == 0) return CpptrajState::ERR;
+    mprintf("\tUsing topology '%s'\n", ds->legend());
+    parm = ds->TopPtr();
+  }
+  int nbonds = 1;
+  int nangles = 1;
+  int ndihedrals = 1;
+  if (parm != 0) {
+    nbonds = parm->Nbonds();
+    nangles = parm->Nangles();
+    ndihedrals = parm->Ndihedrals();
+  }
+  // ----------
   std::string dsname = argIn.GetStringKey("name");
   if (dsname.empty()) {
     mprinterr("Error: No 'name' specified for potential function.\n");
@@ -57,11 +82,11 @@ Exec::RetType Exec_CreatePotential::Execute(CpptrajState& State, ArgList& argIn)
   else if (use_openmm)
     potential->AddTerm( PotentialTerm::OPENMM, opts );
   else {
-    //if (crdset->Top().Nbonds() > 0)
+    if (nbonds > 0)
       potential->AddTerm( PotentialTerm::BOND, opts );
-    //if (crdset->Top().Nangles() > 0)
+    if (nangles > 0)
       potential->AddTerm( PotentialTerm::ANGLE, opts );
-    //if (crdset->Top().Ndihedrals() > 0)
+    if (ndihedrals > 0)
       potential->AddTerm( PotentialTerm::DIHEDRAL, opts );
     if (useNonbond) potential->AddTerm( PotentialTerm::SIMPLE_LJ_Q, opts );
   }
