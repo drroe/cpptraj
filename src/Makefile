@@ -125,6 +125,7 @@ clean:
 	cd arpack && $(MAKE) clean
 	cd cuda_kernels && $(MAKE) clean
 	cd Cluster && $(MAKE) clean
+	cd Potential && $(MAKE) clean
 	cd tng && $(MAKE) clean
 
 uninstall_lib:
