@@ -19,6 +19,8 @@ class DataSet_PotentialFxn : public DataSet {
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
 #   endif
     // -------------------------------------------
+    /// \return Pointer to new potential function added to the set
+    PotentialFunction* AddNewFunction();
   private:
     typedef std::vector<PotentialFunction> FnArray;
     FnArray functions_;

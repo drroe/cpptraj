@@ -21,3 +21,9 @@ size_t DataSet_PotentialFxn::MemUsageInBytes() const {
   // TODO each potential term should return usage in bytes
   return (functions_.size() * sizeof(PotentialFunction));
 }
+
+/** \return pointer to new potential function added to this set */
+PotentialFunction* DataSet_PotentialFxn::AddNewFunction() {
+  functions_.push_back( PotentialFunction() );
+  return &(functions_.back());
+}
