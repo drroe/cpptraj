@@ -73,25 +73,31 @@ Exec::RetType Exec_CreatePotential::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   DataSet_PotentialFxn& pfxn = static_cast<DataSet_PotentialFxn&>( *ds );
+  mprintf("    CREATEPOTENTIAL: Created potential function '%s'\n", ds->legend());
   // NOTE: This is a little clunky but easier right now since I don't want to
   //       implement a copy constructor for every term.
   // TODO trap if term copy constructor invoked
   PotentialFunction* potential = pfxn.AddNewFunction();
+  int err = 0;
   if (use_replicate)
-    potential->AddTerm( PotentialTerm::REPLICATE, opts );
+    err += potential->AddTerm( PotentialTerm::REPLICATE, opts );
   else if (use_openmm)
-    potential->AddTerm( PotentialTerm::OPENMM, opts );
+    err += potential->AddTerm( PotentialTerm::OPENMM, opts );
   else {
     if (nbonds > 0)
-      potential->AddTerm( PotentialTerm::BOND, opts );
+      err += potential->AddTerm( PotentialTerm::BOND, opts );
     if (nangles > 0)
-      potential->AddTerm( PotentialTerm::ANGLE, opts );
+      err += potential->AddTerm( PotentialTerm::ANGLE, opts );
     if (ndihedrals > 0)
-      potential->AddTerm( PotentialTerm::DIHEDRAL, opts );
-    if (useNonbond) potential->AddTerm( PotentialTerm::SIMPLE_LJ_Q, opts );
+      err += potential->AddTerm( PotentialTerm::DIHEDRAL, opts );
+    if (useNonbond)
+      err += potential->AddTerm( PotentialTerm::SIMPLE_LJ_Q, opts );
+  }
+  if (err > 0) {
+    mprinterr("Error: Problems encountered when adding terms to potential function.\n");
+    return CpptrajState::ERR;
   }
 
-  mprintf("    CREATEPOTENTIAL: Created potential function '%s'\n", ds->legend());
   potential->FnInfo();
   return CpptrajState::OK;
 }
