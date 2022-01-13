@@ -8,7 +8,7 @@ CleanFiles emin.in cpptraj.ene.dat cpptraj.emin.nc \
            omm.ene.dat ommangle.ene.dat ommdihedral.ene.dat \
            ommnb.ene.dat omm.tz2.ene.dat omm.tz2.pme.dat \
            cpptraj.angle.dat cpptraj.dihedral.dat \
-           cpptraj.nonbond.dat
+           cpptraj.nonbond.dat cpptraj2.ene.dat
 
 INPUT='-i emin.in'
 
@@ -21,6 +21,16 @@ emin crdset O2mol nsteps 100 out cpptraj.ene.dat #trajoutname cpptraj.emin.nc
 EOF
 RunCpptraj "$UNITNAME"
 DoTest cpptraj.ene.dat.save cpptraj.ene.dat
+
+UNITNAME='Basic energy minimization with specified potential test.' # TODO remove when obsolete
+cat > emin.in <<EOF
+parm O2mol.parm7
+loadcrd O2mol.rst7 name O2mol
+createpotential name MyPot crdset O2mol
+emin crdset O2mol potential MyPot nsteps 100 out cpptraj2.ene.dat
+EOF
+RunCpptraj "$UNITNAME"
+DoTest cpptraj.ene.dat.save cpptraj2.ene.dat
 
 UNITNAME='Energy minimization with angle term test.'
 cat > emin.in <<EOF
