@@ -41,6 +41,7 @@ int PotentialTerm_Replicate::addRepTerm(MdOpts const& opts) {
   PotentialTerm_OpenMM* pterm = new PotentialTerm_OpenMM();
 
   if (pterm->InitTerm( opts )) {
+    mprinterr("Error: Could not initialize replicate term.\n");
     delete pterm;
     return 1;
   }
