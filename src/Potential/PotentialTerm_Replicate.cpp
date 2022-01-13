@@ -105,7 +105,7 @@ int PotentialTerm_Replicate::SetupTerm(Topology const& topIn, Box const& boxIn,
 void PotentialTerm_Replicate::CalcForce(Frame& frameIn, CharMask const& maskIn) const
 {
   for (unsigned int rep = 0; rep != REPTERM_.size(); ++rep) {
-    CalcForce(frameIn, *(REPMASK_[rep]));
+    REPTERM_[rep]->CalcForce(frameIn, *(REPMASK_[rep]));
     mprintf("DEBUG: Replicate %i energy= %f \n", REPENE_[rep]->Ene(EnergyArray::E_OPENMM));
     *ene_ += REPENE_[rep]->Ene(EnergyArray::E_OPENMM);
   }
