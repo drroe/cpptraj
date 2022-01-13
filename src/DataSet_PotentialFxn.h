@@ -1,11 +1,12 @@
 #ifndef INC_DATASET_POTENTIALFXN_H
 #define INC_DATASET_POTENTIALFXN_H
 #include "DataSet.h"
-#include "Potential/PotentialFunction.h"
+class PotentialFunction;
 /// Hold 1 or more Potential functions for energy calculations 
 class DataSet_PotentialFxn : public DataSet {
   public:
     DataSet_PotentialFxn();
+    ~DataSet_PotentialFxn();
     static DataSet* Alloc() { return (DataSet*)new DataSet_PotentialFxn(); }
     // ----- DataSet functions -------------------
     size_t Size()                                    const { return functions_.size(); }
@@ -21,8 +22,10 @@ class DataSet_PotentialFxn : public DataSet {
     // -------------------------------------------
     /// \return Pointer to new potential function added to the set
     PotentialFunction* AddNewFunction();
+    /// \return Pointer to first function
+    PotentialFunction* Pfunction(unsigned int i) const { return functions_[i]; }
   private:
-    typedef std::vector<PotentialFunction> FnArray;
+    typedef std::vector<PotentialFunction*> FnArray;
     FnArray functions_;
 };
 #endif
