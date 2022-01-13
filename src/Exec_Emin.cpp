@@ -97,7 +97,7 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
   std::string potarg = argIn.GetStringKey("potential");
   if (!potarg.empty()) {
     // Use previous potential function
-    DataSet* ds = State.DSL().FindSetOfType(potarg, DataSet::POTENTIALFXN);
+    ds = State.DSL().FindSetOfType(potarg, DataSet::POTENTIALFXN);
     if (ds == 0) {
       mprinterr("Error: No potential function found with name '%s'\n", potarg.c_str());
       return CpptrajState::ERR;
@@ -106,6 +106,7 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
       mprinterr("Error: Potential function %s is empty.\n", ds->legend());
       return CpptrajState::ERR;
     }
+    mprintf("\tUsing potential '%s'\n", ds->legend());
     potential = ((DataSet_PotentialFxn*)ds)->Pfunction(0);
   } else {
     // Need to create on the fly TODO deprecate
