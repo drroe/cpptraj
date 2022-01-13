@@ -11,6 +11,7 @@ class MdOpts;
 /// Abstract base class for a term of a potential function.
 class PotentialTerm {
   public:
+    // NOTE: New types should update typeStr_ as well
     enum Type { BOND = 0, ANGLE, DIHEDRAL, SIMPLE_LJ_Q, OPENMM, REPLICATE, NTERMS };
     PotentialTerm(Type t) : type_(t) {}
     virtual ~PotentialTerm() {} // Virtual since this is inherited.

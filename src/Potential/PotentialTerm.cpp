@@ -6,6 +6,7 @@ const char* PotentialTerm::typeStr_[] = {
   "Dihedral",
   "SimpleNonbond",
   "OpenMM",
+  "Replicate",
   0
 };
 
