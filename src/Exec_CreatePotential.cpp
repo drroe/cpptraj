@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_PotentialFxn.h"
 #include "Potential/MdOpts.h"
+#include "Potential/PotentialFunction.h"
 
 /** CONSTRUCTOR */
 Exec_CreatePotential::Exec_CreatePotential() :

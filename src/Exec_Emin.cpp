@@ -3,6 +3,7 @@
 #include "Potential/PotentialFunction.h"
 #include "Potential/Minimize_SteepestDescent.h"
 #include "Potential/MdOpts.h"
+#include "DataSet_PotentialFxn.h"
 
 // Exec_Emin::Help()
 void Exec_Emin::Help() const
@@ -87,28 +88,51 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
     mprintf("\tMask expression: %s\n", maskexpr.c_str());
 
   bool use_openmm = argIn.hasKey("openmm");
+
   // Create the potential function. This is done last so potential term
   // arguments are parsed last.
-  PotentialFunction potential;
-  MdOpts opts;
-  if (opts.GetOptsFromArgs(argIn)) return CpptrajState::ERR;
-  opts.PrintOpts();
-  if (use_openmm)
-    potential.AddTerm( PotentialTerm::OPENMM, opts );
-  else {
-    if (crdset->Top().Nbonds() > 0) potential.AddTerm( PotentialTerm::BOND, opts );
-    if (crdset->Top().Nangles() > 0) potential.AddTerm( PotentialTerm::ANGLE, opts );
-    if (crdset->Top().Ndihedrals() > 0) potential.AddTerm( PotentialTerm::DIHEDRAL, opts );
-    if (useNonbond) potential.AddTerm( PotentialTerm::SIMPLE_LJ_Q, opts );
+  PotentialFunction* potential = 0;
+  DataSet* ds = 0;
+
+  std::string potarg = argIn.GetStringKey("potential");
+  if (!potarg.empty()) {
+    // Use previous potential function
+    DataSet* ds = State.DSL().FindSetOfType(potarg, DataSet::POTENTIALFXN);
+    if (ds == 0) {
+      mprinterr("Error: No potential function found with name '%s'\n", potarg.c_str());
+      return CpptrajState::ERR;
+    }
+    if (ds->Size() < 1) {
+      mprinterr("Error: Potential function %s is empty.\n", ds->legend());
+      return CpptrajState::ERR;
+    }
+    potential = ((DataSet_PotentialFxn*)ds)->Pfunction(0);
+  } else {
+    // Need to create on the fly TODO deprecate
+    potential = new PotentialFunction();
+    
+    MdOpts opts;
+    if (opts.GetOptsFromArgs(argIn)) return CpptrajState::ERR;
+    opts.PrintOpts();
+    if (use_openmm)
+      potential->AddTerm( PotentialTerm::OPENMM, opts );
+    else {
+      if (crdset->Top().Nbonds() > 0) potential->AddTerm( PotentialTerm::BOND, opts );
+      if (crdset->Top().Nangles() > 0) potential->AddTerm( PotentialTerm::ANGLE, opts );
+      if (crdset->Top().Ndihedrals() > 0) potential->AddTerm( PotentialTerm::DIHEDRAL, opts );
+      if (useNonbond) potential->AddTerm( PotentialTerm::SIMPLE_LJ_Q, opts );
+    }
   }
+
+  // Minimizer
   Minimize_SteepestDescent SD;
 
   // Set up the potential function
-  if (potential.SetupPotential( crdset->Top(), frameIn.BoxCrd(), maskexpr )) {
+  if (potential->SetupPotential( crdset->Top(), frameIn.BoxCrd(), maskexpr )) {
     mprinterr("Error: Could not set up potential.\n");
     return CpptrajState::ERR;
   }
-  potential.FnInfo();
+  potential->FnInfo();
 
   // Set up and run minimization
   if (SD.SetupMin(trajoutname, min_tol, dx0, nMinSteps)) {
@@ -116,7 +140,7 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
-  if (SD.RunMin(potential, frameIn, *outfile)) {
+  if (SD.RunMin(*potential, frameIn, *outfile)) {
     mprinterr("Error: Minimization failed.\n");
     return CpptrajState::ERR;
   }
@@ -124,6 +148,10 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
   // Update frame
   if (crdset->Type() != DataSet::TRAJ)
     crdset->SetCRD( framenum, frameIn );
+
+  // Clean up
+  if (ds == 0)
+    delete potential;
 
   return CpptrajState::OK;
 }
