@@ -61,6 +61,11 @@ int PotentialTerm_Replicate::InitTerm(MdOpts const& opts) {
 int PotentialTerm_Replicate::SetupTerm(Topology const& topIn, Box const& boxIn,
                                     CharMask const& maskIn, EnergyArray& earrayIn)
 {
+  if (topIn.Replicates().empty()) {
+    mprinterr("Error: Topology '%s' has no replicates.\n", topIn.c_str());
+    return 1;
+  }
+
   clearMasks();
   clearEarrays();
   // Create a CharMask with selected atoms from each replicate

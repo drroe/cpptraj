@@ -8,6 +8,7 @@
 #include "PotentialTerm_LJ_Coulomb.h"
 #include "PotentialTerm_Angle.h"
 #include "PotentialTerm_Dihedral.h"
+#include "PotentialTerm_Replicate.h"
 
 /** Add a term to the potential function. */
 int PotentialFunction::AddTerm(PotentialTerm::Type typeIn, MdOpts const& opts) {
@@ -18,6 +19,7 @@ int PotentialFunction::AddTerm(PotentialTerm::Type typeIn, MdOpts const& opts) {
     case PotentialTerm::SIMPLE_LJ_Q : term = (PotentialTerm*)new PotentialTerm_LJ_Coulomb(); break;
     case PotentialTerm::ANGLE : term = (PotentialTerm*)new PotentialTerm_Angle(); break;
     case PotentialTerm::DIHEDRAL : term = (PotentialTerm*)new PotentialTerm_Dihedral(); break;
+    case PotentialTerm::REPLICATE : term = (PotentialTerm*)new PotentialTerm_Replicate(); break;
     default :
       mprinterr("Internal Error: No allocator type for potential term type #%i.\n", (int)typeIn);
       return 1;

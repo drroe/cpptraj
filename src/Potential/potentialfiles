@@ -11,5 +11,6 @@ POTENTIAL_SOURCES= \
   PotentialTerm_Bond.cpp \
   PotentialTerm_Dihedral.cpp \
   PotentialTerm_LJ_Coulomb.cpp \
-  PotentialTerm_OpenMM.cpp 
+  PotentialTerm_OpenMM.cpp \
+  PotentialTerm_Replicate.cpp
 
