@@ -2835,8 +2835,9 @@ fi
 # ----- Clean the source directory if necessary --
 if [ "$CLEAN" = 'yes' ] ; then
   echo 'Cleaning source directory.'
-  cd src && make clean > make.log 2>&1
+  cd $WORKDIR/src && make clean > make.log 2>&1
   rm make.log
+  cd $CURRENTDIR
 fi
 
 if [ ! -z "$RFILE" ] ; then
