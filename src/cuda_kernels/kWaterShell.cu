@@ -1,7 +1,7 @@
 #include "kWaterShell.cuh"
 #include "NonOrtho_dist2.cuh"
 #include "ortho_dist2.cuh"
-//#include <cstdio> // DEBUG
+#include <cstdio> // DEBUG
 
 // -----------------------------------------------------------------------------
 /** Calculate # waters in 1st and 2nd solvation shells based on distance cutoffs. */
@@ -25,8 +25,10 @@ __global__ void kWaterShell_NoImage(const CpptrajGpu::FpType* xyz1, int N1, cons
     CpptrajGpu::FpType dist2 = (x*x) + (y*y) + (z*z);
     if (dist2 < upperCut2) {
       atomicAdd( Counts + 1, 1 );
-      if (dist2 < lowerCut2)
+      if (dist2 < lowerCut2) {
+        printf("a1= %i  a2= %i  dist= %f lower.\n", a1+1, a2+1, sqrt(dist2));
         atomicAdd( Counts, 1 );
+      }
     }
   }
 }

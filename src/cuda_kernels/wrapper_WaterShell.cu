@@ -57,11 +57,12 @@ int Cpptraj_GPU_WaterShell(int& nlower, int& nupper,
 
   dim3 threadsPerBlock(BLOCKDIM, BLOCKDIM);
   dim3 numBlocks(calc_nblocks(N1, threadsPerBlock.x), calc_nblocks(N2, threadsPerBlock.y));
-  //mprintf("#Atoms = %i, %i; Threads per block = %i, %i;  #Blocks = %i, %i\n",
-  //        N1, N2, threadsPerBlock.x, threadsPerBlock.y, numBlocks.x, numBlocks.y);
+  mprintf("#Atoms = %i, %i; Threads per block = %i, %i;  #Blocks = %i, %i\n",
+          N1, N2, threadsPerBlock.x, threadsPerBlock.y, numBlocks.x, numBlocks.y);
 
   // Launch kernel
   // Must have Non-overlapping coords
+  mprintf("DEBUG: before launch: nlower= %i nupper= %i\n", nlower, nupper);
   switch (imageType) {
       case ImageOption::NONORTHO:
         kWaterShell_nonOrtho<<<numBlocks, threadsPerBlock>>>(
@@ -79,6 +80,7 @@ int Cpptraj_GPU_WaterShell(int& nlower, int& nupper,
       //  mprinterr("Internal Error: kernel_rdf: Unhandled image type.\n");
       //  return 1;
   }
+  mprintf("DEBUG: after launch: nlower= %i nupper= %i\n", nlower, nupper);
 
   // Error check
   Cuda_check(cudaGetLastError(), "watershell kernel launch");

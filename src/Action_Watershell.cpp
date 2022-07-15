@@ -7,8 +7,9 @@
 #include "CpptrajStdio.h"
 #include "ImageRoutines.h"
 #ifdef CUDA
-# include "CharMask.h"
-# include "cuda_kernels/kernel_wrappers.cuh"
+# include "Gpu.h"
+# include "mask_to_xyz.h"
+# include "cuda_kernels/wrapper_WaterShell.cuh"
 #else
 # include "DistRoutines.h"
 #endif
@@ -143,7 +144,8 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
       mprintf("Warning: No solvent atoms in topology %s\n", setup.Top().c_str());
     return Action::SKIP;
   }
-#ifdef CUDA
+#ifndef CUDA
+/*
   // Since we are using the 'closest' kernels under the hood, all solvent mols
   // must have the same size.
   int first_solvent_mol = setup.Top()[ solventMask_[0] ].MolNum();
@@ -169,7 +171,7 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
   // Allocate space for selected solvent atom coords and distances
   V_atom_coords_.resize( NsolventMolecules_ * NAtoms_ * 3, 0.0 );
   V_distances_.resize( NsolventMolecules_ );
-#else /* CUDA */
+#else */ /* CUDA */ 
   // Allocate space to record status of each solvent molecule.
   // NOTE: Doing this by residue instead of by molecule does waste some memory,
   //       but it means watershell can be used even if no molecule info present. 
@@ -203,6 +205,18 @@ Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
     imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
 # ifdef CUDA
   // Copy solvent atom coords to array
+  std::vector<CpptrajGpu::FpType> solventxyz = mask_to_xyz<CpptrajGpu::FpType>( solventMask_, frm.Frm() );
+  const CpptrajGpu::FpType* solventxyzPtr = &solventxyz[0];
+  // Copy solute atoms coords to array
+  std::vector<CpptrajGpu::FpType> solutexyz = mask_to_xyz<CpptrajGpu::FpType>( soluteMask_, frm.Frm() );
+  const CpptrajGpu::FpType* solutexyzPtr = &solutexyz[0];
+
+  Cpptraj_GPU_WaterShell( nlower, nupper, lowerCutoff_, upperCutoff_,
+                          solventxyzPtr, solventMask_.Nselected(),
+                          solutexyzPtr, soluteMask_.Nselected(),
+                          imageOpt_.ImagingType(),
+                          CpptrajGpu::HostBox<CpptrajGpu::FpType>( frm.Frm().BoxCrd() ) );
+/*
   unsigned int idx = 0; // Index into V_atom_coords_
   for (AtomMask::const_iterator atm = solventMask_.begin();
                                 atm != solventMask_.end(); ++atm, idx += 3)
@@ -240,7 +254,7 @@ Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
       if (*dist2 < lowerCutoff_)
         ++nlower;
     }
-
+*/
 # else
   // ---------------------------------------------------------------------------
   int NV = solventMask_.Nselected();
