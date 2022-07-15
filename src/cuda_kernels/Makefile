@@ -13,7 +13,15 @@ TARGET        = libcpptraj_cuda.a
 
 # Source files
 
-CUDA_SOURCES=core_kernels.cu kernel_wrappers.cu GistCudaCalc.cu GistCudaSetup.cu wrapper_RDF.cu kRDF.cu kWaterShell.cu
+CUDA_SOURCES= \
+  core_kernels.cu \
+  kernel_wrappers.cu \
+  GistCudaCalc.cu \
+  GistCudaSetup.cu \
+  wrapper_RDF.cu \
+  kRDF.cu \
+  kWaterShell.cu \
+  wrapper_WaterShell.cu
 
 # Objects
 

@@ -5,3 +5,4 @@ kRDF.o : kRDF.cu ../Gpu.h NonOrtho_dist2.cuh kRDF.cuh ortho_dist2.cuh
 kWaterShell.o : kWaterShell.cu ../Gpu.h NonOrtho_dist2.cuh kWaterShell.cuh ortho_dist2.cuh
 kernel_wrappers.o : kernel_wrappers.cu ../HipDefinitions.h ../ImageOption.h core_kernels.cuh kernel_wrappers.cuh
 wrapper_RDF.o : wrapper_RDF.cu ../CpptrajStdio.h ../Gpu.h ../HipDefinitions.h ../ImageOption.h cuda_box.cuh kRDF.cuh wrapper_RDF.cuh
+wrapper_WaterShell.o : wrapper_WaterShell.cu ../CpptrajStdio.h ../Gpu.h ../HipDefinitions.h ../ImageOption.h cuda_box.cuh kWaterShell.cuh wrapper_WaterShell.cuh
