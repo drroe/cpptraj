@@ -144,7 +144,9 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
       mprintf("Warning: No solvent atoms in topology %s\n", setup.Top().c_str());
     return Action::SKIP;
   }
-#ifndef CUDA
+#ifdef CUDA
+  // Array that will track what shell each selected solvent atom is in
+  VatomShell_.assign( solventMask_.Nselected(), 0 );
 /*
   // Since we are using the 'closest' kernels under the hood, all solvent mols
   // must have the same size.
@@ -171,7 +173,8 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
   // Allocate space for selected solvent atom coords and distances
   V_atom_coords_.resize( NsolventMolecules_ * NAtoms_ * 3, 0.0 );
   V_distances_.resize( NsolventMolecules_ );
-#else */ /* CUDA */ 
+*/
+#else /* CUDA */ 
   // Allocate space to record status of each solvent molecule.
   // NOTE: Doing this by residue instead of by molecule does waste some memory,
   //       but it means watershell can be used even if no molecule info present. 
@@ -182,7 +185,9 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
     it->assign( setup.Top().Nres(), 0 );
 # else
   shellStatus_.assign( setup.Top().Nres(), 0 );
-# endif
+# endif /* OPENMP */
+  // Allocate temp space for selected solute atom coords.
+  soluteCoords_.resize( soluteMask_.Nselected() * 3 );
 #endif /* CUDA */
   // Set up imaging
   imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
@@ -190,8 +195,7 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
     mprintf("\tImaging is on.\n");
   else
     mprintf("\tImaging is off.\n");
-  // Allocate temp space for selected solute atom coords.
-  soluteCoords_.resize( soluteMask_.Nselected() * 3 );
+
   // Store current topology
   CurrentParm_ = setup.TopAddress();
   return Action::OK;    
@@ -211,11 +215,33 @@ Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
   std::vector<CpptrajGpu::FpType> solutexyz = mask_to_xyz<CpptrajGpu::FpType>( soluteMask_, frm.Frm() );
   const CpptrajGpu::FpType* solutexyzPtr = &solutexyz[0];
 
-  Cpptraj_GPU_WaterShell( nlower, nupper, lowerCutoff_, upperCutoff_,
+  Cpptraj_GPU_WaterShell( &VatomShell_[0], lowerCutoff_, upperCutoff_,
                           solventxyzPtr, solventMask_.Nselected(),
                           solutexyzPtr, soluteMask_.Nselected(),
                           imageOpt_.ImagingType(),
                           CpptrajGpu::HostBox<CpptrajGpu::FpType>( frm.Frm().BoxCrd() ) );
+
+  Iarray resStat( CurrentParm_->Nres(), 0 );
+  for (int idx = 0; idx != solventMask_.Nselected(); idx++) {
+    Atom const& vatom = (*CurrentParm_)[ solventMask_[idx] ];
+    int vres = vatom.ResNum();
+    if (VatomShell_[idx] == 1) {
+      resStat[vres] = 1;
+    } else if (VatomShell_[idx] == 2 && resStat[vres] != 1) {
+      resStat[vres] = 2;
+    }
+  }
+  // Do the actual count
+  for (Iarray::const_iterator it = resStat.begin(); it != resStat.end(); ++it) {
+    if (*it == 1) {
+      ++nlower;
+      ++nupper;
+    } else if (*it == 2) {
+      ++nupper;
+    }
+  }
+      
+    
 /*
   unsigned int idx = 0; // Index into V_atom_coords_
   for (AtomMask::const_iterator atm = solventMask_.begin();

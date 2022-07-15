@@ -25,8 +25,9 @@ __global__ void kWaterShell_NoImage(const CpptrajGpu::FpType* xyz1, int N1, cons
     CpptrajGpu::FpType dist2 = (x*x) + (y*y) + (z*z);
     if (dist2 < upperCut2) {
       VatomShell[a1] = 2;
+      //printf("a1= %i  a2= %i  dist= %f UPPER.\n", a1+1, a2+1, sqrt(dist2));
       if (dist2 < lowerCut2) {
-        printf("a1= %i  a2= %i  dist= %f lower.\n", a1+1, a2+1, sqrt(dist2));
+        printf("a1= %i  a2= %i  dist= %f LOWER.\n", a1+1, a2+1, sqrt(dist2));
         VatomShell[a1] = 1;
       }
     }

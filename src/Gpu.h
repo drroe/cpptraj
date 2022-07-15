@@ -7,7 +7,8 @@ void SetComputeVersion(int);
 /// \return Max block dimensions if using 2D blocks
 unsigned int MaxBlockDim_2D();
 /// Default floating point type
-typedef float FpType;
+//typedef float FpType;
+typedef double FpType;
 /// Used to hold box parameters on host
 template <class T> class HostBox {
   public:
