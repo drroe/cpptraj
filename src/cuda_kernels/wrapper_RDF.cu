@@ -1,5 +1,5 @@
-#include "kernel_rdf.cuh"
-#include "core_kernels.cuh"
+#include "wrapper_RDF.cuh"
+#include "kRDF.cuh"
 #include "../CpptrajStdio.h"
 #if defined(__HIP_PLATFORM_HCC__)
 #include <hip/hip_runtime.h>

@@ -1,5 +1,5 @@
-#ifndef INC_KERNEL_RDF_CUH
-#define INC_KERNEL_RDF_CUH
+#ifndef INC_WRAPPER_RDF_CUH
+#define INC_WRAPPER_RDF_CUH
 #include "../Gpu.h"
 #include "../ImageOption.h"
 int Cpptraj_GPU_RDF(unsigned long*, int, CpptrajGpu::FpType, CpptrajGpu::FpType,

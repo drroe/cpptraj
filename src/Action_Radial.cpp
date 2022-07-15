@@ -9,7 +9,7 @@
 #endif
 #ifdef CUDA
 #  include "Gpu.h"
-#  include "cuda_kernels/kernel_rdf.cuh"
+#  include "cuda_kernels/wrapper_RDF.cuh"
 #endif
 
 // CONSTRUCTOR
