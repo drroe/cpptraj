@@ -2,5 +2,6 @@ GistCudaCalc.o : GistCudaCalc.cu GistCudaCalc.cuh
 GistCudaSetup.o : GistCudaSetup.cu ../HipDefinitions.h GistCudaCalc.cuh GistCudaSetup.cuh
 core_kernels.o : core_kernels.cu NonOrtho_dist2.cuh core_kernels.cuh ortho_dist2.cuh
 kRDF.o : kRDF.cu ../Gpu.h NonOrtho_dist2.cuh kRDF.cuh ortho_dist2.cuh
+kWaterShell.o : kWaterShell.cu ../Gpu.h NonOrtho_dist2.cuh kWaterShell.cuh ortho_dist2.cuh
 kernel_wrappers.o : kernel_wrappers.cu ../HipDefinitions.h ../ImageOption.h core_kernels.cuh kernel_wrappers.cuh
 wrapper_RDF.o : wrapper_RDF.cu ../CpptrajStdio.h ../Gpu.h ../HipDefinitions.h ../ImageOption.h cuda_box.cuh kRDF.cuh wrapper_RDF.cuh
