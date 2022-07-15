@@ -31,7 +31,7 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, CpptrajGpu::FpType maximum2,
                      const CpptrajGpu::FpType* xyz1, int N1,
                      const CpptrajGpu::FpType* xyz2, int N2,
                      ImageOption::Type imageType,
-                     const CpptrajGpu::FpType* box, const CpptrajGpu::FpType* ucell, const CpptrajGpu::FpType* recip)
+                     const CpptrajGpu::FpType* box, const CpptrajGpu::FpType* ucell, const CpptrajGpu::FpType* frac)
 {
   int* device_rdf;
   Cuda_check(cudaMalloc(((void**)(&device_rdf)), nbins * sizeof(int)), "Allocating rdf bins");
@@ -50,7 +50,7 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, CpptrajGpu::FpType maximum2,
   }
 
   cuda_box<CpptrajGpu::FpType> gpuBox;
-  if ( gpuBox.Setup( imageType, box, ucell, recip ) ) {
+  if ( gpuBox.Setup( imageType, box, ucell, frac ) ) {
     Cuda_check( gpuBox.LastErr(), gpuBox.LastErrDesc() );
     return 1;
   }
