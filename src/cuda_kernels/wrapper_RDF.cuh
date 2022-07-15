@@ -4,6 +4,6 @@
 #include "../ImageOption.h"
 int Cpptraj_GPU_RDF(unsigned long*, int, CpptrajGpu::FpType, CpptrajGpu::FpType,
                     const CpptrajGpu::FpType*, int, const CpptrajGpu::FpType*, int,
-                    ImageOption::Type, const CpptrajGpu::FpType*,
-                    const CpptrajGpu::FpType*, const CpptrajGpu::FpType*);
+                    ImageOption::Type,
+                    CpptrajGpu::HostBox<CpptrajGpu::FpType> const&);
 #endif

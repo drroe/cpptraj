@@ -32,8 +32,7 @@ int Cpptraj_GPU_WaterShell(int& nlower, int& nupper,
                            const CpptrajGpu::FpType* xyz1, int N1,
                            const CpptrajGpu::FpType* xyz2, int N2,
                            ImageOption::Type imageType,
-                           const CpptrajGpu::FpType* box,
-                           const CpptrajGpu::FpType* ucell, const CpptrajGpu::FpType* frac)
+                           CpptrajGpu::HostBox<CpptrajGpu::FpType> const& box)
 {
   int* device_counts;
   Cuda_check(cudaMalloc(((void**)(&device_counts)), 2 * sizeof(int)), "Allocating watershell bins");
@@ -48,7 +47,7 @@ int Cpptraj_GPU_WaterShell(int& nlower, int& nupper,
   Cuda_check(cudaMemcpy(device_xyz2, xyz2, N2 * 3 * sizeof(CpptrajGpu::FpType), cudaMemcpyHostToDevice), "Copying xyz2");
 
   cuda_box<CpptrajGpu::FpType> gpuBox;
-  if ( gpuBox.Setup( imageType, box, ucell, frac ) ) {
+  if ( gpuBox.Setup( imageType, box.BoxLengths(), box.Ucell(), box.Frac() ) ) {
     Cuda_check( gpuBox.LastErr(), gpuBox.LastErrDesc() );
     return 1;
   }
