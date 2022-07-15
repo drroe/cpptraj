@@ -1,5 +1,6 @@
 #include "wrapper_RDF.cuh"
 #include "kRDF.cuh"
+#include "cuda_box.cuh"
 #include "../CpptrajStdio.h"
 #if defined(__HIP_PLATFORM_HCC__)
 #include <hip/hip_runtime.h>
@@ -48,16 +49,10 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, CpptrajGpu::FpType maximum2,
     device_xyz2 = device_xyz1;
   }
 
-  CpptrajGpu::FpType *boxDev;
-  CpptrajGpu::FpType *ucellDev, *fracDev;
-  if (imageType == ImageOption::ORTHO) {
-    Cuda_check(cudaMalloc(((void**)(&boxDev)), 3 * sizeof(CpptrajGpu::FpType)), "Allocating box");
-    Cuda_check(cudaMemcpy(boxDev,box, 3 * sizeof(CpptrajGpu::FpType), cudaMemcpyHostToDevice), "Copying box");
-  } else if (imageType == ImageOption::NONORTHO) {
-    Cuda_check(cudaMalloc(((void**)(&ucellDev)), 9 * sizeof(CpptrajGpu::FpType)), "Allocating ucell");
-    Cuda_check(cudaMalloc(((void**)(&fracDev)), 9 * sizeof(CpptrajGpu::FpType)), "Allocating frac");
-    Cuda_check(cudaMemcpy(ucellDev,ucell, 9 * sizeof(CpptrajGpu::FpType), cudaMemcpyHostToDevice), "Copying ucell");
-    Cuda_check(cudaMemcpy(fracDev,recip, 9 * sizeof(CpptrajGpu::FpType), cudaMemcpyHostToDevice), "Copying frac");
+  cuda_box<CpptrajGpu::FpType> gpuBox;
+  if ( gpuBox.Setup( imageType, box, ucell, recip ) ) {
+    Cuda_check( gpuBox.LastErr(), gpuBox.LastErrDesc() );
+    return 1;
   }
 
   // Determine number of blocks
@@ -74,11 +69,11 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, CpptrajGpu::FpType maximum2,
     switch (imageType) {
       case ImageOption::NONORTHO:
         kBinDistances_nonOverlap_nonOrtho<<<numBlocks, threadsPerBlock>>>(
-          device_rdf, device_xyz1, N1, device_xyz2, N2, fracDev, ucellDev, maximum2, one_over_spacing);
+          device_rdf, device_xyz1, N1, device_xyz2, N2, gpuBox.FracDev(), gpuBox.UcellDev(), maximum2, one_over_spacing);
       break;
       case ImageOption::ORTHO:
         kBinDistances_nonOverlap_Ortho<<<numBlocks, threadsPerBlock>>>(
-          device_rdf, device_xyz1, N1, device_xyz2, N2, boxDev, maximum2, one_over_spacing);
+          device_rdf, device_xyz1, N1, device_xyz2, N2, gpuBox.BoxDev(), maximum2, one_over_spacing);
       break;
       case ImageOption::NO_IMAGE:
         kBinDistances_nonOverlap_NoImage<<<numBlocks, threadsPerBlock>>>(
@@ -109,11 +104,6 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, CpptrajGpu::FpType maximum2,
   cudaFree(device_rdf);
   cudaFree(device_xyz1);
   if (xyz2 != 0) cudaFree(device_xyz2);
-  if (imageType == ImageOption::ORTHO)
-    cudaFree(boxDev);
-  else if (imageType == ImageOption::NONORTHO) {
-    cudaFree(ucellDev);
-    cudaFree(fracDev);
-  } 
+
   return 0;
 }
