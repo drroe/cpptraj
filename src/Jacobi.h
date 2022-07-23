@@ -159,7 +159,7 @@ int Diagonalize_Sort(T* EvalOut, T* M_)
   // Swap Eigenvectors - place them in rows
   T Evec[9];
   for (unsigned int idx = 0; idx != 9; idx++)
-    Evec = M_[idx];
+    Evec[idx] = M_[idx];
   //Matrix_3x3 Evec(*this);
   M_[0] = Evec[i1_  ];
   M_[1] = Evec[i1_+3];

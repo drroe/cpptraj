@@ -48,6 +48,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
       mode_ = NONE;
   }
   useMass_ = actionArgs.hasKey("mass");
+  RMSDK_.SetUseMass( useMass_ );
   DataFile* outfile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   DataFile* matricesOut = 0;
   DataFile* vecsOut = 0;
@@ -361,6 +362,12 @@ Action::RetType Action_Rmsd::Setup(ActionSetup& setup) {
 Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
   // Perform any needed reference actions
   REF_.ActionRef( frm.TrajoutNum(), frm.Frm() );
+  if (RMSDK_.SetRmsRef( REF_.CurrentReference(), REF_.RefMask() ) )
+    return Action::ERR; // TODO error message
+  Vec3 testtrans;
+  Matrix_3x3 testrot;
+  double testrms = RMSDK_.RMSD_CenteredRef(testtrans, testrot, frm.Frm(), tgtMask_);
+  mprintf("DEBUG: Test rms= %f\n", testrms);
   // Calculate RMSD
   double rmsdval;
   Action::RetType err = Action::OK;
@@ -389,6 +396,7 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
       case NONE: break;
     }
   }
+  mprintf("DEBUG: Original rms= %f\n", rmsdval);
   rmsd_->Add(frameNum, &rmsdval);
 
   // ---=== Per Residue RMSD ===---

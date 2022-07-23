@@ -22,6 +22,8 @@ class RMSD_Kabsch {
     enum ErrType { OK = 0, ERR_DIV_BY_ZERO };
     /// CONSTRUCTOR
     RMSD_Kabsch() : err_(OK), useMass_(false) {}
+    /// Set mass weighting on or off
+    void SetUseMass(bool useMassIn) { useMass_ = useMassIn; }
     /// Calculate RMSD to already-centered reference
     T RMSD_CenteredRef(Vec3& tgtTrans, Matrix_3x3& Rot, Frame const& Tgt, AtomMask const& maskIn)
     {

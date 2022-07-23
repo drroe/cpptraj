@@ -40,6 +40,8 @@ class ReferenceAction {
     Vec3 const& RefTrans()          const { return refTrans_;    }
     /// \return Current reference mode
     RefModeType RefMode()           const { return refMode_;     }
+    /// \return Reference mask
+    AtomMask const& RefMask()       const { return refMask_;     }
     /// \return Help text
     static const char* Help() { return help_.c_str(); }
     /// \return Pointer to reference COORDS topology if possible.

@@ -3,6 +3,7 @@
 #include "Action.h"
 #include "Range.h"
 #include "ReferenceAction.h"
+#include "RMSD_Kabsch.h"
 class DataSet_1D;
 class DataSet_Vector;
 /// Action to calculate the RMSD between frame and a reference frame.
@@ -44,6 +45,8 @@ class Action_Rmsd: public Action {
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
     // ------------------------
+    Cpptraj::RMSD_Kabsch<double> RMSDK_;
+
     ReferenceAction REF_; ///< Hold reference frame/traj/options
     AtomMask tgtMask_; ///< Mask of selected target atoms.
     int debug_;
