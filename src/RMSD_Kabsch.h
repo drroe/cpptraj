@@ -153,19 +153,18 @@ class RMSD_Kabsch {
       b[6] = cp[0];
       b[7] = cp[1];
       b[8] = cp[2];
-      // U has the best rotation
-      T U[9]; 
-      U[0] = (Evector[0]*b[0]) + (Evector[3]*b[3]) + (Evector[6]*b[6]);  
-      U[1] = (Evector[1]*b[0]) + (Evector[4]*b[3]) + (Evector[7]*b[6]);
-      U[2] = (Evector[2]*b[0]) + (Evector[5]*b[3]) + (Evector[8]*b[6]);
+      // Rot has the best rotation
+      Rot[0] = (double)((Evector[0]*b[0]) + (Evector[3]*b[3]) + (Evector[6]*b[6]));  
+      Rot[1] = (double)((Evector[1]*b[0]) + (Evector[4]*b[3]) + (Evector[7]*b[6]));
+      Rot[2] = (double)((Evector[2]*b[0]) + (Evector[5]*b[3]) + (Evector[8]*b[6]));
 
-      U[3] = (Evector[0]*b[1]) + (Evector[3]*b[4]) + (Evector[6]*b[7]);
-      U[4] = (Evector[1]*b[1]) + (Evector[4]*b[4]) + (Evector[7]*b[7]);
-      U[5] = (Evector[2]*b[1]) + (Evector[5]*b[4]) + (Evector[8]*b[7]);
+      Rot[3] = (double)((Evector[0]*b[1]) + (Evector[3]*b[4]) + (Evector[6]*b[7]));
+      Rot[4] = (double)((Evector[1]*b[1]) + (Evector[4]*b[4]) + (Evector[7]*b[7]));
+      Rot[5] = (double)((Evector[2]*b[1]) + (Evector[5]*b[4]) + (Evector[8]*b[7]));
 
-      U[6] = (Evector[0]*b[2]) + (Evector[3]*b[5]) + (Evector[6]*b[8]);
-      U[7] = (Evector[1]*b[2]) + (Evector[4]*b[5]) + (Evector[7]*b[8]);
-      U[8] = (Evector[2]*b[2]) + (Evector[5]*b[5]) + (Evector[8]*b[8]);
+      Rot[6] = (double)((Evector[0]*b[2]) + (Evector[3]*b[5]) + (Evector[6]*b[8]));
+      Rot[7] = (double)((Evector[1]*b[2]) + (Evector[4]*b[5]) + (Evector[7]*b[8]));
+      Rot[8] = (double)((Evector[2]*b[2]) + (Evector[5]*b[5]) + (Evector[8]*b[8]));
 
       // E=E0-sqrt(mu1)-sqrt(mu2)-sig3*sqrt(mu3) 
       T rms_return = mwss - sqrt(fabs(Eigenvalue[0])) 
@@ -179,6 +178,9 @@ class RMSD_Kabsch {
       //DEBUG
       //printRotTransInfo(U,Trans);
       //fprintf(stdout,"RMS is %lf\n",rms_return);
+      tgtTrans[0] = (double)Trans[0];
+      tgtTrans[1] = (double)Trans[1];
+      tgtTrans[2] = (double)Trans[2];
       return rms_return;
     }
     // -------------------------------------------
