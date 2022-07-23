@@ -362,21 +362,24 @@ Action::RetType Action_Rmsd::Setup(ActionSetup& setup) {
 Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
   // Perform any needed reference actions
   REF_.ActionRef( frm.TrajoutNum(), frm.Frm() );
-  if (RMSDK_.SetRmsRef( REF_.CurrentReference(), REF_.RefMask() ) )
+  //if (RMSDK_.SetRmsRef( REF_.CurrentReference(), REF_.RefMask() ) )
+  if (RMSDK_.SetCenteredRmsRef( REF_.RefTrans(), REF_.SelectedRef() ) )
     return Action::ERR; // TODO error message
-  Vec3 testtrans;
-  Matrix_3x3 testrot;
-  double testrms = RMSDK_.RMSD_CenteredRef(testtrans, testrot, frm.Frm(), tgtMask_);
-  mprintf("DEBUG: Test rms= %f\n", testrms);
+//  Vec3 testtrans;
+//  Matrix_3x3 testrot;
+//  double testrms = RMSDK_.RMSD_CenteredRef(testtrans, testrot, frm.Frm(), tgtMask_);
+//  mprintf("DEBUG: Test rms= %f\n", testrms);
   // Calculate RMSD
   double rmsdval;
   Action::RetType err = Action::OK;
   // Set selected frame atoms. Masses have already been set.
-  tgtFrame_.SetCoordinates(frm.Frm(), tgtMask_);
-  if (!fit_)
+//  tgtFrame_.SetCoordinates(frm.Frm(), tgtMask_);
+  if (!fit_) {
+    tgtFrame_.SetCoordinates(frm.Frm(), tgtMask_);
     rmsdval = tgtFrame_.RMSD_NoFit(REF_.SelectedRef(), useMass_);
-  else {
-    rmsdval = tgtFrame_.RMSD_CenteredRef(REF_.SelectedRef(), rot_, tgtTrans_, useMass_);
+  } else {
+    rmsdval = RMSDK_.RMSD_CenteredRef(tgtTrans_, rot_, frm.Frm(), tgtMask_);
+    //rmsdval = tgtFrame_.RMSD_CenteredRef(REF_.SelectedRef(), rot_, tgtTrans_, useMass_);
     if (rmatrices_ != 0) rmatrices_->Add(frameNum, rot_.Dptr());
     if (tvecType_ == COMBINED)
       tvecs_->AddVxyz( tgtTrans_ + REF_.RefTrans() );
@@ -396,7 +399,7 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
       case NONE: break;
     }
   }
-  mprintf("DEBUG: Original rms= %f\n", rmsdval);
+  //mprintf("DEBUG: Original rms= %f\n", rmsdval);
   rmsd_->Add(frameNum, &rmsdval);
 
   // ---=== Per Residue RMSD ===---

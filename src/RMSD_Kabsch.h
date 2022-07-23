@@ -190,6 +190,7 @@ class RMSD_Kabsch {
       refTrans_[1] = 0;
       refTrans_[2] = 0;
       T total_mass = 0;
+      selected_ref_.clear();
       selected_ref_.reserve( maskIn.Nselected() * 3 );
       if (useMass_) {
         for (AtomMask::const_iterator at = maskIn.begin(); at != maskIn.end(); ++at) {
@@ -221,6 +222,17 @@ class RMSD_Kabsch {
         selected_ref_.push_back( (T)xyz[1] - refTrans_[1] );
         selected_ref_.push_back( (T)xyz[2] - refTrans_[2] );
       }
+      return 0;
+    }
+    /// Set previously centered reference and reference translation
+    int SetCenteredRmsRef(Vec3 const& refTransIn, Frame const& Ref) {
+      refTrans_[0] = (T)refTransIn[0];
+      refTrans_[1] = (T)refTransIn[1];
+      refTrans_[2] = (T)refTransIn[2];
+      selected_ref_.clear();
+      selected_ref_.reserve( Ref.size() );
+      for (int idx = 0; idx != Ref.size(); idx++)
+        selected_ref_.push_back( (T)Ref[idx] );
       return 0;
     }
   private:
