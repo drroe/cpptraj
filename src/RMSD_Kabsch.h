@@ -33,33 +33,33 @@ class RMSD_Kabsch {
       Trans[1] = 0;
       Trans[2] = 0;
       T total_mass = 0;
-      std::vector<T> selected_mass;
-      selected_mass.reserve( maskIn.Nselected() );
-      std::vector<T> selected_tgt;
-      selected_tgt.reserve( maskIn.Nselected() * 3 );
+      selected_mass_.clear();
+      selected_mass_.reserve( maskIn.Nselected() );
+      selected_tgt_.clear();
+      selected_tgt_.reserve( maskIn.Nselected() * 3 );
       if (useMass_) {
         for (AtomMask::const_iterator at = maskIn.begin(); at != maskIn.end(); ++at) {
           total_mass += Tgt.Mass(*at);
-          selected_mass.push_back( Tgt.Mass(*at) );
+          selected_mass_.push_back( Tgt.Mass(*at) );
           const double* xyz = Tgt.XYZ( *at );
           Trans[0] += (T)xyz[0] * Tgt.Mass(*at);
           Trans[1] += (T)xyz[1] * Tgt.Mass(*at);
           Trans[2] += (T)xyz[2] * Tgt.Mass(*at);
-          selected_tgt.push_back( (T)xyz[0] );
-          selected_tgt.push_back( (T)xyz[1] );
-          selected_tgt.push_back( (T)xyz[2] );
+          selected_tgt_.push_back( (T)xyz[0] );
+          selected_tgt_.push_back( (T)xyz[1] );
+          selected_tgt_.push_back( (T)xyz[2] );
         }
       } else {
         total_mass = (T)maskIn.Nselected();
-        selected_mass.assign( maskIn.Nselected(), 1 );
+        selected_mass_.assign( maskIn.Nselected(), 1 );
         for (AtomMask::const_iterator at = maskIn.begin(); at != maskIn.end(); ++at) {
           const double* xyz = Tgt.XYZ( *at );
           Trans[0] += (T)xyz[0];
           Trans[1] += (T)xyz[1];
           Trans[2] += (T)xyz[2];
-          selected_tgt.push_back( (T)xyz[0] );
-          selected_tgt.push_back( (T)xyz[1] );
-          selected_tgt.push_back( (T)xyz[2] );
+          selected_tgt_.push_back( (T)xyz[0] );
+          selected_tgt_.push_back( (T)xyz[1] );
+          selected_tgt_.push_back( (T)xyz[2] );
         }
       }
       if ( total_mass < Constants::SMALL ) {
@@ -80,12 +80,12 @@ class RMSD_Kabsch {
       for (unsigned int idx = 0; idx != 9; idx++)
         rot[idx] = 0;
       // Calculate covariance matrix of Coords and Reference (R = Xt * Ref)
-      typename std::vector<T>::const_iterator mass = selected_mass.begin();
-      for (unsigned int i = 0; i < selected_tgt.size(); i += 3, ++mass)
+      typename std::vector<T>::const_iterator mass = selected_mass_.begin();
+      for (unsigned int i = 0; i < selected_tgt_.size(); i += 3, ++mass)
       {
-        T xt = selected_tgt[i  ] + Trans[0];
-        T yt = selected_tgt[i+1] + Trans[1];
-        T zt = selected_tgt[i+2] + Trans[2];
+        T xt = selected_tgt_[i  ] + Trans[0];
+        T yt = selected_tgt_[i+1] + Trans[1];
+        T zt = selected_tgt_[i+2] + Trans[2];
         T xr = selected_ref_[i  ];
         T yr = selected_ref_[i+1];
         T zr = selected_ref_[i+2];
@@ -239,6 +239,8 @@ class RMSD_Kabsch {
     ErrType err_;
     bool useMass_; ///< If true, mass weight the rmsd
     std::vector<T> selected_ref_; ///< Hold selected reference atoms, translated to the origin
+    std::vector<T> selected_tgt_; ///< Hold selected target atoms
+    std::vector<T> selected_mass_; ///< Hold selected target masses
     T refTrans_[3]; ///< Hold translation from origin to reference
 };
 } // END namespace Cpptraj
