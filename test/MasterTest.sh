@@ -75,6 +75,7 @@ WARNCOUNT=0              # Total number of warnings detected by DoTest this test
 PROGCOUNT=0              # Total number of times RunCpptraj has been called this test.
 PROGERROR=0              # Total number of program errors this test
 CHECKERR=0               # Total errors this test from CheckEnv routine.
+CHECKSILENT=0            # If 1 make the TestLibrary routine silent
 TESTNAME=''              # Current test name for Requires routine.
 UNITNAME=''              # Current unit name for CheckFor routine.
 DESCRIP=''               # Current test/unit name for CheckEnv routine.
@@ -264,6 +265,62 @@ NcTest() {
     fi
     DoTest $DIFFARGS
     $CPPTRAJ_RM nc0.save nc0
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# EvecTest() <save> <test>
+# Compare eigenmode files <save> and <test>.
+# Since eigenvector sign can flip for certain versions of BLAS/LAPACK, use
+# CPPTRAJ root-mean-square-inner-product of the files.
+EvecTest() {
+  #echo "DEBUG: EvecTest $1 $2"
+  if [ -z "$1" -o -z "$2" ] ; then
+    ErrMsg "EvecTest(): One or both files not specified."
+    exit 1
+  fi
+  # Save remaining args for DoTest
+  NEV1=$1
+  NEV2=$2
+  shift
+  shift
+  DIFFARGS="ev0.save ev0"
+  CALC_NUM_ERR=0
+  while [ ! -z "$1" ] ; do
+    if [ "$1" = '-r' -o "$1" = '-a' ] ; then
+      CALC_NUM_ERR=1
+    fi
+    #DIFFARGS=$DIFFARGS" $1"
+    shift
+  done
+  if [ $CALC_NUM_ERR -eq 1 ] ; then
+    echo "Warning: EvecTest does not use '-r' or '-a' arguments."
+  fi
+  CheckTestFiles $NEV1 $NEV2
+  if [ $? -ne 0 ] ; then
+    ((NUMCOMPARISONS++))
+    ((ERRCOUNT++))
+  else
+    # Create the 'good' RMSIP output file
+    cat > ev0.save <<EOF
+#Save_X_Test
+           1
+EOF
+    # Create cpptraj input
+    if [ -f 'ev0' ] ; then
+      $CPPTRAJ_RM ev0
+    fi
+    $CPPTRAJ > tmp.evectest.out <<EOF
+readdata $NEV1 name Save
+readdata $NEV2 name Test
+runanalysis modes rmsip name Save name2 Test beg 1 end 999999 out ev0
+EOF
+    STATUS=$?
+    if [ $STATUS -ne 0 ] ; then
+      ProgramError "EvecTest: cpptraj exited with status $STATUS"
+    fi
+    DoTest $DIFFARGS
+    $CPPTRAJ_RM ev0.save ev0 tmp.evectest.out
   fi
 }
 
@@ -932,8 +989,10 @@ SkipCheck() {
 #   CheckDefines.
 TestLibrary() {
   if [ -z "$2" ] ; then
-    echo "  $DESCRIP requires $1."
-    echo "  Cpptraj was compiled without $1 support."
+    if [ $CHECKSILENT -eq 0 ] ; then
+      echo "  $DESCRIP requires $1."
+      echo "  Cpptraj was compiled without $1 support."
+    fi
     ((CHECKERR++))
   fi
 }
@@ -1114,6 +1173,16 @@ CheckFor() {
     return 1
   fi
   return 0
+}
+
+# CheckForSilent() <list>
+# \return > 0 if anything in <list> is not present, 0 otherwise.
+CheckForSilent() {
+  CHECKSILENT=1
+  # Give generic name
+  DESCRIP='Test'
+  CheckEnv $*
+  return $CHECKERR
 }
 
 # ------------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 # Makefile for cpptraj cuda sources
-include ../../external.config.h
+include ../../config.h
 
 # Variables
 DEL_FILE      = /bin/rm -f
@@ -7,10 +7,13 @@ AR            = ar cqs
 TARGET        = libcpptraj_cuda.a
 
 # General rules
+%.o : %.cu
+	$(VB)echo NVCC $<
+	$(VB)$(NVCC) $(DBGFLAGS) $(NVCCFLAGS) -c -o $@ $<
 
 # Source files
 
-CUDA_SOURCES=core_kernels.cu kernel_wrappers.cu GistCudaCalc.cu GistCudaSetup.cu
+CUDA_SOURCES=core_kernels.cu kernel_wrappers.cu GistCudaCalc.cu GistCudaSetup.cu kernel_rdf.cu
 
 # Objects
 
