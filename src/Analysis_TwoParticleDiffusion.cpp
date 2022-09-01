@@ -12,10 +12,20 @@
 # include <omp.h>
 #endif
 
+/** CONSTRUCTOR */
+Analysis_TwoParticleDiffusion::Analysis_TwoParticleDiffusion() :
+  coords_(0),
+  outDrr_(0),
+  outDtt_(0),
+  rmax_(0),
+  rstep_(0),
+  maxlag_(0)
+{}
+
 // Analysis_TwoParticleDiffusion::Help()
 void Analysis_TwoParticleDiffusion::Help() const {
   mprintf("\t[crdset <crd set>] [<name>] [<mask>] [out <filename>]\n"
-          "\t[stop <maxlag>] rmax <max> rstep <step>\n");
+          "\t[stop <maxlag>] rmax <max> rstep <step> [noimage]\n");
 }
 
 // Analysis_TwoParticleDiffusion::Setup()
@@ -33,6 +43,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Setup(ArgList& analyzeArgs, Ana
   maxlag_ = analyzeArgs.getKeyInt("stop", -1);
   rmax_ = analyzeArgs.getKeyDouble("rmax", 10.0);
   rstep_ = analyzeArgs.getKeyDouble("rstep", 1.0);
+  imageOpt_.InitImaging( !analyzeArgs.hasKey("noimage") );
   // Some sanity checking
   if (maxlag_ != -1 && maxlag_ < 2) {
     mprinterr("Error: maxlag must be > 1\n");
@@ -92,6 +103,10 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Setup(ArgList& analyzeArgs, Ana
   else
     mprintf("\tMax lag is %i\n", maxlag_);
   mprintf("\tRmax is %g, Rstep is %g\n", rmax_, rstep_);
+  if (imageOpt_.UseImage())
+    mprintf("\tDistances will be imaged.\n");
+  else
+    mprintf("\tDistamces will not be imaged.\n");
   return Analysis::OK;
 }
 
@@ -184,18 +199,12 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   frame0.SetupFrameFromMask( mask_, coords_->Top().Atoms() );
   Frame frame1 = frame0;
   // Determine imaging type
-  ImagingType itype;
-  if (coords_->CoordsInfo().TrajBox().Type() == Box::NOBOX) {
-    mprintf("\tNo unit cell info; imaging for frame(t) distances disabled.\n");
-    itype = NOIMAGE;
-  } else if (coords_->CoordsInfo().TrajBox().Type() == Box::ORTHO) {
-    itype = ORTHO;
-    mprintf("\tUsing orthorhombic imaging for frame(t) distances.\n");
-  } else {
-    mprintf("\tUsing non-orthorhombic imaging for frame(t) distances.\n");
-    itype = NONORTHO;
-  }
-  Matrix_3x3 ucell, recip;
+  imageOpt_.SetupImaging( coords_->CoordsInfo().TrajBox().HasBox() );
+  if (imageOpt_.ImagingEnabled())
+    mprintf("\tImaging is enabled.\n");
+  else
+    mprintf("\tImaging is disabled.\n");
+
   // Determine size of the 'R' dimension
   double one_over_spacing = 1.0 / rstep_;
   int numRbins = (int)ceil(rmax_ / rstep_);
@@ -266,7 +275,7 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
   int frm;
 # ifdef _OPENMP
   int mythread;
-# pragma omp parallel private(frm, mythread, ucell, recip) firstprivate(progress, frame0, frame1) reduction(max: maxD, maxD2) reduction(+: skipOutOfRange)
+# pragma omp parallel private(frm, mythread) firstprivate(progress, frame0, frame1) reduction(max: maxD, maxD2) reduction(+: skipOutOfRange)
   {
   mythread = omp_get_thread_num();
   progress.SetThread(mythread);
@@ -280,10 +289,11 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
     t_frame.Start();
 #   endif
     coords_->GetFrame( frm, frame0, mask_ );
+    // Determine imaging
+    if (imageOpt_.ImagingEnabled())
+      imageOpt_.SetImageType( frame0.BoxCrd().Is_X_Aligned_Ortho() );
     //mprintf("DEBUG: Frame %i box:", frm+1);
     //frame0.BoxCrd().PrintInfo();
-    if (itype == NONORTHO)
-      frame0.BoxCrd().ToRecip(ucell, recip);
 #   ifdef TIMER
     t_frame.Stop();
 #   endif
@@ -300,10 +310,10 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
         const double* xyz01 = frame0.XYZ(at1);
         /// Vector connecting atom pair at time frm
         Vec3 pairVec;
-        switch (itype) {
-          case NOIMAGE  : pairVec = Vec3(xyz01) - Vec3(xyz00); break;
-          case ORTHO    : pairVec = MinImagedVec(xyz01, xyz00, frame0.BoxCrd()); break;
-          case NONORTHO : pairVec = MinImagedVec(xyz01, xyz00, ucell, recip); break;
+        switch (imageOpt_.ImagingType()) {
+          case ImageOption::NO_IMAGE  : pairVec = Vec3(xyz01) - Vec3(xyz00); break;
+          case ImageOption::ORTHO     : pairVec = MinImagedVec(xyz01, xyz00, frame0.BoxCrd()); break;
+          case ImageOption::NONORTHO  : pairVec = MinImagedVec(xyz01, xyz00, frame0.BoxCrd().UnitCell(), frame0.BoxCrd().FracCell()); break;
         }
         // Atom pair distance at time frm
         double d0 = pairVec.Normalize(); 
@@ -361,11 +371,11 @@ Analysis::RetType Analysis_TwoParticleDiffusion::Analyze() {
 #         else
           /// Vector connecting atom pair at time frm
           const double* xyz01 = frame0.XYZ(at1);
-          Vec3 pairVec;
-          switch (itype) {
-            case NOIMAGE  : pairVec = Vec3(xyz01) - Vec3(xyz00); break;
-            case ORTHO    : pairVec = MinImagedVec(xyz01, xyz00, frame0.BoxCrd()); break;
-            case NONORTHO : pairVec = MinImagedVec(xyz01, xyz00, ucell, recip); break;
+          Vec3 pairVec(0.0);
+          switch (imageOpt_.ImagingType()) {
+            case ImageOption::NO_IMAGE  : pairVec = Vec3(xyz01) - Vec3(xyz00); break;
+            case ImageOption::ORTHO     : pairVec = MinImagedVec(xyz01, xyz00, frame0.BoxCrd()); break;
+            case ImageOption::NONORTHO  : pairVec = MinImagedVec(xyz01, xyz00, frame0.BoxCrd().UnitCell(), frame0.BoxCrd().FracCell()); break;
           }
 /*
           Vec3 pairVec( xyz01[0] - xyz00[0],
