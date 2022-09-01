@@ -11,6 +11,7 @@
 #include <string>
 #include <set>
 #include <map>
+#include <vector>
 
 using namespace std;
 
@@ -36,22 +37,80 @@ enum FileType { SOURCE = 0, HEADER };
 /** \return true if this header should be ignored. */
 bool IgnoreHeader(const char* headername) {
   if (strcmp(headername,"mpi.h")==0) return true;
+  if (strcmp(headername,"mkl.h")==0) return true;
   if (strcmp(headername,"zlib.h")==0) return true;
   if (strcmp(headername,"bzlib.h")==0) return true;
   if (strcmp(headername,"netcdf.h")==0) return true;
   if (strcmp(headername,"pnetcdf.h")==0) return true;
   if (strcmp(headername,"sander.h")==0) return true;
   if (strcmp(headername,"omp.h")==0) return true;
+  if (strcmp(headername,"OpenMM.h")==0) return true;
   if (strncmp(headername,"readline",8)==0) return true;
   if (strncmp(headername,"xdrfile",7)==0) return true;
   if (strncmp(headername,"lisp",4)==0) return true; // for readline
   return false;
 }
 
+/** Try to simplify a directory prefix that may contain '../'. */
+std::string SimplifyDirPrefix(std::string const& dirPrefix) {
+  if (dirPrefix.empty()) return dirPrefix;
+
+  std::vector<long int> slashes;
+  for (std::string::const_iterator it = dirPrefix.begin(); it != dirPrefix.end(); ++it)
+    if ( *it == '/' ) {
+      slashes.push_back( it - dirPrefix.begin() );
+      //printf("\tSlash at %li\n", slashes.back());
+    }
+  // If only one slash, nothing to simplify
+  if (slashes.size() < 2) return dirPrefix;
+  //           012
+  // Check for ../
+  //           210
+  for (std::vector<long int>::const_iterator it = slashes.begin(); it != slashes.end(); ++it)
+  {
+    if (*it > 1) {
+      if ( dirPrefix[*it-2] == '.' && dirPrefix[*it-1] == '.' ) {
+        //printf("\t../ at %li\n", *it);
+        // If this is ../ corresponding to 2nd slash, negates everything from the beginning to here
+        if (it - slashes.begin() == 1) {
+          std::string newStr = dirPrefix.substr(*it+1, dirPrefix.size() - *it+1);
+          //printf("\tNew prefix= %s\n", newStr.c_str());
+          return newStr;
+        }
+      }
+    }
+  }
+  return dirPrefix;
+}
+
+void SplitIntoDirAndBase(std::string& filename, std::string& dirPrefix, std::string& baseName) {
+  // Determine path
+  size_t found = filename.find_last_of("/");
+  if (found == std::string::npos) {
+    baseName = filename;
+    //dirPrefix_.clear();
+  } else {
+    baseName = filename.substr(found+1);
+    dirPrefix = filename.substr(0, found+1);
+  }
+  //printf("DEBUG: Dir='%s' Base='%s'\n", dirPrefix.c_str(), baseName.c_str());
+  // Ascertain whether we can simplify the directory prefix
+  std::string newDirPrefix = SimplifyDirPrefix( dirPrefix );
+  if (!dirPrefix.empty() && newDirPrefix.empty()) {
+    dirPrefix.clear();
+    filename = baseName;
+  }
+}
+
 /** Add list of dependencies for the given file to appropriate map. */
-void GetDependencies(string const& filename) {
+void GetDependencies(string const& filenameIn) {
+  std::string filename = filenameIn;
   char buffer[BUFFERSIZE+1];
   char headername[BUFFERSIZE+1];
+  // Determine path
+  string baseName, dirPrefix;
+  SplitIntoDirAndBase(filename, dirPrefix, baseName);
+
   // Determine type
   FileType type;
   string ext;
@@ -60,7 +119,7 @@ void GetDependencies(string const& filename) {
     ext = filename.substr(found);
 
   //printf("FILE: %s  EXT: %s\n", filename.c_str(), ext.c_str());
-  if (ext == ".cpp" || ext == ".c") {
+  if (ext == ".cpp" || ext == ".c" || ext == ".cu") {
     type = SOURCE;
     // Each source file should only be accessed once
     Smap::iterator it = Sources.find( filename );
@@ -68,7 +127,7 @@ void GetDependencies(string const& filename) {
       fprintf(stderr,"Error: Source '%s' is being looked at more than once.\n", filename.c_str());
       return;
     }
-  } else if (ext == ".h") {
+  } else if (ext == ".h" || ext == ".cuh") {
     type = HEADER;
     // If this header was already looked at return
     Smap::iterator it = Headers.find( filename );
@@ -106,8 +165,12 @@ void GetDependencies(string const& filename) {
           // Get rid of last "
           size_t pos = strlen(headername);
           if (headername[pos-1]=='"') headername[pos-1]='\0';
-          if (!IgnoreHeader(headername))
-            depends.insert( string(headername) );
+          if (!IgnoreHeader(headername)) {
+            std::string newFileName = dirPrefix + string(headername);
+            std::string newdir, newbase;
+            SplitIntoDirAndBase(newFileName, newdir, newbase);
+            depends.insert( newFileName );
+          }
         } //else
           //printf("\tSkipping system header line: %s", buffer);
       }

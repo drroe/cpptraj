@@ -2,8 +2,12 @@
 // This file contains a collection of routines designed for reading
 // (and writing?) netcdf restart files used with amber.
 // Dan Roe 2011-01-07
-#include "Traj_AmberRestartNC.h"
 #include <netcdf.h>
+#include "Traj_AmberRestartNC.h"
+#include "Topology.h"
+#include "ArgList.h"
+#include "Frame.h"
+#include "CpptrajFile.h"
 #include "NC_Routines.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString 
@@ -88,7 +92,7 @@ void Traj_AmberRestartNC::WriteHelp() {
 }
 
 // Traj_AmberRestartNC::processWriteArgs()
-int Traj_AmberRestartNC::processWriteArgs(ArgList& argIn) {
+int Traj_AmberRestartNC::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   outputTemp_ = argIn.hasKey("remdtraj");
   prependExt_ = argIn.hasKey("keepext");
   time0_ = argIn.getKeyDouble("time0", -1.0);
@@ -189,18 +193,20 @@ int Traj_AmberRestartNC::readFrame(int set, Frame& frameIn) {
 
   // Read box info 
   if (cellLengthVID_ != -1) {
+    double xyzabg[6];
     count_[0] = 3;
     count_[1] = 0;
-    if (NC::CheckErr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, frameIn.bAddress())))
+    if (NC::CheckErr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, xyzabg)))
     {
       mprinterr("Error: Getting cell lengths, frame %i.\n", set+1);
       return 1;
     }
-    if (NC::CheckErr(nc_get_vara_double(ncid_,cellAngleVID_,start_,count_,frameIn.bAddress()+3)))
+    if (NC::CheckErr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, xyzabg+3)))
     {
       mprinterr("Error: Getting cell angles, frame %i.\n", set+1);
       return 1;
     }
+    frameIn.ModifyBox().AssignFromXyzAbg( xyzabg );
   }
 
   return 0;
@@ -284,14 +290,16 @@ int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
 
   // write box
   if (cellLengthVID_ != -1) {
+    if (!frameOut.BoxCrd().Is_X_Aligned())
+      mprintf("Warning: Set %i; unit cell is not X-aligned. Box cannot be properly stored as Amber NetCDF restart.\n", set+1);
     count_[0] = 3;
     count_[1] = 0;
-    if (NC::CheckErr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frameOut.bAddress())))
+    if (NC::CheckErr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frameOut.BoxCrd().XyzPtr())))
     {
       mprinterr("Error: Writing cell lengths, frame %i.\n", set+1);
       return 1;
     }
-    if (NC::CheckErr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_,frameOut.bAddress()+3)))
+    if (NC::CheckErr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_,frameOut.BoxCrd().AbgPtr())))
     {
       mprinterr("Error: Writing cell angles, frame %i.\n", set+1);
       return 1;
@@ -346,7 +354,7 @@ void Traj_AmberRestartNC::Info() {
 /// Since files are opened on write this does not need to do anything
 int Traj_AmberRestartNC::parallelOpenTrajout(Parallel::Comm const& commIn) { return 0; }
 
-/** No file access during setupTrajout, so have all threads call it.
+/** No file access during setupTrajout, so have all processes call it.
   * No need to sync.
   */
 int Traj_AmberRestartNC::parallelSetupTrajout(FileName const& fname, Topology* trajParm,

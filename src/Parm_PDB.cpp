@@ -6,15 +6,27 @@
 # include "Timer.h"
 #endif
 
+/** CONSTRUCTOR */
+Parm_PDB::Parm_PDB() :
+  ConectMode_(UNSPECIFIED),
+  LinkMode_(UNSPECIFIED),
+  keepAltLoc_(' '),
+  readAsPQR_(false),
+  readBox_(false) {}
+
+// Parm_PDB::ReadHelp()
 void Parm_PDB::ReadHelp() {
-  mprintf("\tpqr      : Read atomic charge/radius from occupancy/B-factor columns (PQR).\n"
-          "\treadbox  : Read unit cell information from CRYST1 record if present.\n"
-          "\tconect   : Read CONECT records if present (default).\n"
-          "\tnoconect : Do not read CONECT records if present.\n"
-          "\tlink     : Read LINK records if present.\n"
-          "\tnolink   : Do not read LINK records if present (default).\n");
+  mprintf("\tpqr               : Read atomic charge/radius from occupancy/B-factor columns (PQR).\n"
+          "\treadbox           : Read unit cell information from CRYST1 record if present.\n"
+          "\tconect            : Read CONECT records if present (default).\n"
+          "\tnoconect          : Do not read CONECT records if present.\n"
+          "\tlink              : Read LINK records if present.\n"
+          "\tnolink            : Do not read LINK records if present (default).\n"
+          "\tkeepaltloc <char> : If specified, alternate location ID to keep.\n"
+         );
 }
 
+// Parm_PDB::processReadArgs()
 int Parm_PDB::processReadArgs(ArgList& argIn) {
   readAsPQR_ = argIn.hasKey("pqr");
   readBox_ = argIn.hasKey("readbox");
@@ -26,9 +38,13 @@ int Parm_PDB::processReadArgs(ArgList& argIn) {
     LinkMode_ = READ;
   else if (argIn.hasKey("nolink"))
     LinkMode_ = SKIP;
+  std::string keepAltChar = argIn.GetStringKey("keepaltloc");
+  if (!keepAltChar.empty())
+    keepAltLoc_ = keepAltChar[0];
   return 0;
 }
 
+// Parm_PDB::ReadParm()
 int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   typedef std::vector<PDBfile::Link> Larray;
   PDBfile infile;
@@ -64,17 +80,25 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
     mprintf("\tReading bond info from LINK records.\n");
   else
     mprintf("\tNot reading bond info from LINK records.\n");
+  if (keepAltLoc_ != ' ')
+    mprintf("\tWhen present, only reading alternate location ID %c\n", keepAltLoc_);
 # ifdef TIMER
   Timer time_total, time_atom;
   time_total.Start();
 # endif
-  bool missingResidues = false;
+  bool hasMissingResidues = false;
+  std::vector<Residue> missingResidues;
+  bool hasMissingHet = false;
+  std::vector<Residue> missingHet;
+  int nAltLocSkipped = 0;
   // Loop over PDB records
   while ( infile.NextRecord() != PDBfile::END_OF_FILE ) {
     if (readBox_ && infile.RecType() == PDBfile::CRYST1) {
       // Box info from CRYST1 record.
-      infile.pdb_Box( XYZ );
-      TopIn.SetParmBox( XYZ );
+      infile.pdb_Box_verbose( XYZ );
+      Box pbox;
+      pbox.SetupFromXyzAbg( XYZ );
+      TopIn.SetParmBox( pbox );
     } else if (infile.RecType() == PDBfile::CONECT && readConect) {
       // BOND - first element will be atom, next few are bonded atoms.
       // To avoid duplicates only add the bond if atom2 > atom1
@@ -90,9 +114,9 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       links.push_back( infile.pdb_Link() );
       if (debug_ > 0) {
         PDBfile::Link const& lr = links.back();
-        mprintf("DEBUG: Link record: %s %s %i to %s %s %i\n",
-                lr.aname1(), lr.rname1(), lr.Rnum1(),
-                lr.aname2(), lr.rname2(), lr.Rnum2());
+        mprintf("DEBUG: Link record: %s %s %i %c to %s %s %i %c\n",
+                lr.aname1(), lr.rname1(), lr.Rnum1(), lr.Chain1(),
+                lr.aname2(), lr.rname2(), lr.Rnum2(), lr.Chain2());
       }
     } else if (infile.RecType() == PDBfile::ATOM) {
 #     ifdef TIMER
@@ -101,6 +125,12 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       // If this is an ATOM / HETATM keyword, add to topology.
       infile.pdb_XYZ( XYZ );
       Atom pdbAtom = infile.pdb_Atom(altLoc, atnum);
+      // Check if we are filtering alt loc IDs
+      if (keepAltLoc_ != ' ' && altLoc != ' ' && altLoc != keepAltLoc_) {
+        nAltLocSkipped++;
+        continue;
+      }
+      TopIn.AddAtomAltLoc( altLoc );
       if (atnum >= (int)serial.size())
         serial.resize( atnum+1, -1 );
       serial[atnum] = TopIn.Natom();
@@ -110,9 +140,16 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
         pdbAtom.SetGBradius( bfactor );
       } else {
         infile.pdb_OccupancyAndBfactor(occupancy, bfactor);
-        TopIn.AddExtraAtomInfo( AtomExtra(occupancy, bfactor, altLoc) );
+        TopIn.AddOccupancy( occupancy );
+        TopIn.AddBfactor( bfactor );
       }
       TopIn.AddTopAtom(pdbAtom, infile.pdb_Residue());
+      if (altLoc != ' ' && keepAltLoc_ == ' ') {
+        Residue const& lastRes = TopIn.Res(TopIn.Nres()-1);
+        mprintf("Warning: Atom %i %s in res %s %i %c has alternate location specifier %c\n",
+                atnum, *pdbAtom.Name(), *lastRes.Name(), lastRes.OriginalResNum(),
+                lastRes.ChainId(), altLoc);
+      }
       Coords.AddXYZ( XYZ );
 #     ifdef TIMER
       time_atom.Stop();
@@ -121,17 +158,52 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
                 infile.RecType() == PDBfile::END )
     {
       // Indicate end of molecule for TER/END. Finish if END.
-      TopIn.StartNewMol();
+      //TopIn.StartNewMol();
+      TopIn.SetRes( TopIn.Nres()-1 ).SetTerminal( true );
       if (infile.RecType() == PDBfile::END) break;
-    } else if ( !missingResidues && infile.RecType() == PDBfile::MISSING_RES ) {
-      missingResidues = true;
+    } else if ( !hasMissingResidues && infile.RecType() == PDBfile::MISSING_RES ) {
+      hasMissingResidues = true;
       mprintf("Warning: PDB file has MISSING RESIDUES section.\n");
-      if (readConect)
+      if (infile.Get_Missing_Res(missingResidues))
+        mprintf("Warning: Could not read MISSING RESIDUES section.\n");
+      /*if (readConect)
         mprintf("Warning: If molecule determination fails try specifying 'noconect' instead.\n");
       if (readLink)
-        mprintf("Warning: If molecule determination fails try not specifying 'link' instead.\n");
+        mprintf("Warning: If molecule determination fails try not specifying 'link' instead.\n");*/
+    } else if ( !hasMissingHet && infile.RecType() == PDBfile::MISSING_HET ) {
+      hasMissingHet = true;
+      mprintf("Warning: PDB file has MISSING HETEROATOM section.\n");
+      if (infile.Get_Missing_Het(missingHet))
+        mprintf("Warning: Could not read MISSING HETEROATOM section.\n");
+    }
+  } // END loop over PDB records
+
+  if (hasMissingResidues) {
+    mprintf("\t%zu missing residues.\n", missingResidues.size());
+    if (debug_ > 0) {
+      mprintf("DEBUG: Missing Residues: ");
+      for (std::vector<Residue>::const_iterator res = missingResidues.begin();
+                                                res != missingResidues.end(); ++res)
+        mprintf(" {%s %i %c %c}", *(res->Name()), res->OriginalResNum(),
+                                  res->Icode(), res->ChainId());
+      mprintf("\n");
     }
   }
+  if (hasMissingHet) {
+    mprintf("\t%zu HET residues with missing atoms.\n", missingHet.size());
+    if (debug_ > 0) {
+      mprintf("DEBUG: Residues missing heteroatoms: ");
+      for (std::vector<Residue>::const_iterator res = missingHet.begin();
+                                                res != missingHet.end(); ++res)
+        mprintf(" {%s %i %c %c}", *(res->Name()), res->OriginalResNum(),
+                                  res->Icode(), res->ChainId());
+      mprintf("\n");
+    }
+  }
+  TopIn.SetMissingResInfo(missingResidues, missingHet);
+
+  if (nAltLocSkipped > 0)
+    mprintf("\tSkipped %i alternate atom locations.\n", nAltLocSkipped);
   // Sanity check
   if (TopIn.Natom() < 1) {
     mprinterr("Error: No atoms present in PDB.\n");
@@ -148,12 +220,22 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   // Add LINK bonds. Need to search for original residue numbers here.
   if (!links.empty()) {
     for (Larray::const_iterator link = links.begin(); link != links.end(); ++link) {
+      // LINK records that require symmetry operations are not yet supported.
+      //mprintf("DEBUG: LINK1 %s %s %i %c (%i) %s\n", link->aname1(), link->rname1(), link->Rnum1(), link->Chain1(), (int)link->Sym1().NoOp(), link->Sym1().OpString().c_str());
+      //mprintf("DEBUG: LINK2 %s %s %i %c (%i) %s\n", link->aname2(), link->rname2(), link->Rnum2(), link->Chain2(), (int)link->Sym2().NoOp(), link->Sym2().OpString().c_str());
+      if (!link->Sym1().NoOp() || !link->Sym2().NoOp()) {
+        mprintf("Warning: LINK between atom %s res %s %i %c and atom %s res %s %i %c requires\n"
+                "Warning:   symmetry operations, which is not yet supported. Skipping.\n",
+                link->aname1(), link->rname1(), link->Rnum1(), link->Chain1(),
+                link->aname2(), link->rname2(), link->Rnum2(), link->Chain2());
+        continue;
+      }
       Topology::res_iterator r1 = TopIn.ResEnd();
       Topology::res_iterator r2 = TopIn.ResEnd();
       for (Topology::res_iterator res = TopIn.ResStart(); res != TopIn.ResEnd(); ++res) {
         if (r1 == TopIn.ResEnd()) {
           if (link->Rnum1() == res->OriginalResNum() &&
-              link->Chain1() == res->ChainID() &&
+              link->Chain1() == res->ChainId() &&
               link->Icode1() == res->Icode())
           {
             r1 = res;
@@ -162,7 +244,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
         }
         if (r2 == TopIn.ResEnd()) {
           if (link->Rnum2() == res->OriginalResNum() &&
-              link->Chain2() == res->ChainID() &&
+              link->Chain2() == res->ChainId() &&
               link->Icode2() == res->Icode())
           {
             r2 = res;
@@ -195,7 +277,8 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
     } // END loop over Link records
   } // END PDB has link records.
   // Fill in bonds
-  BondSearch( TopIn, searchType_, Coords, Offset_, debug_ );
+  BondSearch bondSearch;
+  bondSearch.FindBonds( TopIn, searchType_, Coords, Offset_, debug_ );
   // If Topology name not set with TITLE etc, use base filename.
   // TODO: Read in title.
   std::string pdbtitle;

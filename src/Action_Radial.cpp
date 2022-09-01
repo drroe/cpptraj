@@ -3,18 +3,25 @@
 #include "Action_Radial.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // FOURTHIRDSPI
+#include "DistRoutines.h"
 #ifdef _OPENMP
 #  include <omp.h>
+#endif
+#ifdef CUDA
+#  include "Gpu.h"
+#  include "cuda_kernels/kernel_rdf.cuh"
 #endif
 
 // CONSTRUCTOR
 Action_Radial::Action_Radial() :
-  RDF_(0),
-  rdf_thread_(0),
+# ifdef _OPENMP
+  threadsCombined_(false),
+# endif
   rmode_(NORMAL),
   currentParm_(0),
   intramol_distances_(0),
   useVolume_(false),
+  mask2_is_mask1_(false),
   volume_(0),
   maximum2_(0),
   spacing_(-1),
@@ -31,9 +38,11 @@ Action_Radial::Action_Radial() :
 {} 
 
 void Action_Radial::Help() const {
-  mprintf("\t[out <outfilename>] <spacing> <maximum> <solvent mask1> [<solute mask2>] [noimage]\n"
+  mprintf("\t[out <outfilename>] <spacing> <maximum> <solvent mask1> [<solute mask2>]\n"
+          "\t[noimage]\n"
           "\t[density <density> | volume] [<dataset name>] [intrdf <file>] [rawrdf <file>]\n"
-          "\t[{{center1|center2|nointramol} | [byres1] [byres2] [bymol1] [bymol2]}]\n"
+          "\t[{{center1|center2|nointramol|toxyz <x>,<y>,<z>} |\n"
+          "\t  [byres1] [byres2] [bymol1] [bymol2]}]\n"
           "  Calculate the radial distribution function (RDF) of atoms in <solvent mask1>.\n"
           "  If <solute mask2> is given calculate RDF of all atoms in <solvent mask1>\n"
           "  to each atom in <solute mask2>.\n"
@@ -43,18 +52,7 @@ void Action_Radial::Help() const {
           "  of residues/molecules selected by mask1 or mask2.\n");
 }
 
-// DESTRUCTOR
-Action_Radial::~Action_Radial() {
-  //fprintf(stderr,"Radial Destructor.\n");
-  if (RDF_!=0) delete[] RDF_;
-  if (rdf_thread_!=0) {
-    for (int i=0; i < numthreads_; i++)
-      delete[] rdf_thread_[i];
-    delete[] rdf_thread_;
-  }
-}
-
-inline Action::RetType RDF_ERR(const char* msg) {
+inline Action::RetType Rdf_Err(const char* msg) {
   mprinterr("Error: %s\n", msg);
   return Action::ERR;
 }
@@ -67,11 +65,13 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
 # endif
   debug_ = debugIn;
   // Get Keywords
-  image_.InitImaging( !(actionArgs.hasKey("noimage")) );
+  imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")) );
   std::string outfilename = actionArgs.GetStringKey("out");
   // Default particle density (mols/Ang^3) for water based on 1.0 g/mL
   density_ = actionArgs.getKeyDouble("density",0.033456);
+
   // Determine mode, by site TODO better integrate with other modes
+  bool needMask2 = true;
   siteMode1_ = OFF;
   siteMode2_ = OFF;
   if (actionArgs.hasKey("byres1")) siteMode1_ = BYRES;
@@ -85,8 +85,21 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     rmode_ = CENTER2;
   else if (actionArgs.hasKey("nointramol"))
     rmode_ = NO_INTRAMOL;
-  else
+  else if (actionArgs.Contains("toxyz")) {
+    std::string toxyz = actionArgs.GetStringKey("toxyz");
+    ArgList toxyzArg( toxyz, "," );
+    if (toxyzArg.Nargs() != 3) {
+      mprinterr("Error: Expected a comma-separated list of 3 coordinates after 'toxyz'.\n");
+      return Action::ERR;
+    }
+    specified_xyz_[0] = toxyzArg.getNextDouble(0);
+    specified_xyz_[1] = toxyzArg.getNextDouble(0);
+    specified_xyz_[2] = toxyzArg.getNextDouble(0);
+    rmode_ = SPECIFIED;
+    needMask2 = false;
+  } else
     rmode_ = NORMAL;
+
   // Check for mode incompatibility
   if (siteMode1_ != OFF || siteMode2_ != OFF) {
     if (rmode_ != NORMAL) {
@@ -95,6 +108,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     }
     rmode_ = BYSITE;
   }
+
   useVolume_ = actionArgs.hasKey("volume");
   DataFile* intrdfFile = init.DFL().AddDataFile(actionArgs.GetStringKey("intrdf"));
   DataFile* rawrdfFile = init.DFL().AddDataFile(actionArgs.GetStringKey("rawrdf"));
@@ -110,6 +124,10 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     Help();
     return Action::ERR;
   }
+  if (spacing_ > maximum) {
+    mprinterr("Error: Bin spacing %g is larger than the maximum %g\n", spacing_, maximum);
+    return Action::ERR;
+  }
   // Store max^2, distances^2 greater than max^2 do not need to be
   // binned and therefore do not need a sqrt calc.
   maximum2_ = maximum * maximum;
@@ -120,14 +138,19 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     mprinterr("Error: Radial: No mask given.\n");
     return Action::ERR;
   }
-  Mask1_.SetMaskString(mask1);
+  if (Mask1_.SetMaskString(mask1)) return Action::ERR;
 
   // Check for second mask - if none specified use first mask
-  std::string mask2 = actionArgs.GetMaskNext();
-  if (!mask2.empty()) 
-    Mask2_.SetMaskString(mask2);
-  else
-    Mask2_.SetMaskString(mask1);
+  mask2_is_mask1_ = false;
+  if (needMask2) {
+    std::string mask2 = actionArgs.GetMaskNext();
+    if (!mask2.empty()) {
+      if (Mask2_.SetMaskString(mask2)) return Action::ERR;
+    } else {
+      if (Mask2_.SetMaskString(mask1)) return Action::ERR;
+      mask2_is_mask1_ = true;
+    }
+  }
   // If filename not yet specified check for backwards compat.
   if (outfilename.empty() && actionArgs.Nargs() > 1 && !actionArgs.Marked(1))
     outfilename = actionArgs.GetStringNext();
@@ -135,13 +158,16 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   // Set up output dataset.
   Dset_ = init.DSL().AddSet( DataSet::DOUBLE, MetaData(actionArgs.GetStringNext(), "",
                                                        MetaData::NOT_TS), "g(r)");
-  if (Dset_ == 0) return RDF_ERR("Could not allocate RDF data set.");
+  if (Dset_ == 0) return Rdf_Err("Could not allocate RDF data set.");
   DataFile* outfile = init.DFL().AddDataFile(outfilename, actionArgs);
   if (outfile != 0) outfile->AddDataSet( Dset_ );
   // Make default precision a little higher than normal
   Dset_->SetupFormat().SetFormatWidthPrecision(12,6);
   // Set DataSet legend from mask strings.
-  Dset_->SetLegend(Mask1_.MaskExpression() + " => " + Mask2_.MaskExpression());
+  if (needMask2)
+    Dset_->SetLegend(Mask1_.MaskExpression() + " => " + Mask2_.MaskExpression());
+  else
+    Dset_->SetLegend(Mask1_.MaskExpression());
   // TODO: Set Yaxis label in DataFile
   // Calculate number of bins
   one_over_spacing_ = 1 / spacing_;
@@ -156,9 +182,12 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   if (intrdfFile != 0) {
     intrdf_ = init.DSL().AddSet( DataSet::DOUBLE, MetaData(Dset_->Meta().Name(), "int",
                                                            MetaData::NOT_TS) );
-    if (intrdf_ == 0) return RDF_ERR("Could not allocate RDF integral data set.");
+    if (intrdf_ == 0) return Rdf_Err("Could not allocate RDF integral data set.");
     intrdf_->SetupFormat().SetFormatWidthPrecision(12,6);
-    intrdf_->SetLegend("Int[" + Mask2_.MaskExpression() + "]");
+    if (needMask2)
+      intrdf_->SetLegend("Int[" + Mask2_.MaskExpression() + "]");
+    else
+      intrdf_->SetLegend("Int[" + Mask1_.MaskExpression() + "]");
     intrdf_->SetDim(Dimension::X, Rdim);
     intrdfFile->AddDataSet( intrdf_ );
   } else
@@ -167,7 +196,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   if (rawrdfFile != 0) {
     rawrdf_ = init.DSL().AddSet( DataSet::DOUBLE, MetaData(Dset_->Meta().Name(), "raw",
                                                            MetaData::NOT_TS) );
-    if (rawrdf_ == 0) return RDF_ERR("Could not allocate raw RDF data set.");
+    if (rawrdf_ == 0) return Rdf_Err("Could not allocate raw RDF data set.");
     rawrdf_->SetupFormat().SetFormatWidthPrecision(12,6);
     rawrdf_->SetLegend("Raw[" + Dset_->Meta().Legend() + "]");
     rawrdf_->SetDim(Dimension::X, Rdim);
@@ -181,9 +210,9 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   if (rawrdf_ != 0) rawrdf_->SetNeedsSync( false );
 # endif
   // Set up histogram
-  RDF_ = new int[ numBins_ ];
-  std::fill(RDF_, RDF_ + numBins_, 0);
+  RDF_.assign( numBins_, 0 );
 # ifdef _OPENMP
+  threadsCombined_ = false;
   // Since RDF is shared by all threads and we cant guarantee that a given
   // bin in RDF wont be accessed at the same time by the same thread,
   // each thread needs its own bin space.
@@ -192,16 +221,14 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   if (omp_get_thread_num()==0)
     numthreads_ = omp_get_num_threads();
 }
-  rdf_thread_ = new int*[ numthreads_ ];
-  for (int i=0; i < numthreads_; i++) {
-    rdf_thread_[i] = new int[ numBins_ ];
-    std::fill(rdf_thread_[i], rdf_thread_[i] + numBins_, 0);
-  }
-# endif
+  rdf_thread_.resize( numthreads_ );
+  for (int i=0; i < numthreads_; i++)
+    rdf_thread_[i].assign( numBins_, 0 );
+# endif /* _OPENMP */
   
-  mprintf("    RADIAL: Calculating RDF for atoms in mask [%s]",Mask1_.MaskString());
-  if (!mask2.empty()) 
-    mprintf(" to atoms in mask [%s]",Mask2_.MaskString());
+  mprintf("    RADIAL: Calculating RDF for atoms in mask1 [%s]",Mask1_.MaskString());
+  if (Mask2_.MaskStringSet()) 
+    mprintf(" to atoms in mask2 [%s]",Mask2_.MaskString());
   mprintf("\n");
   if (outfile != 0)
     mprintf("\tOutput to %s.\n", outfile->DataFilename().full());
@@ -227,6 +254,9 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
       mprintf("\tUsing center of all atoms selected by mask2.\n");
     else if (rmode_==NO_INTRAMOL)
       mprintf("\tIgnoring intramolecular distances.\n");
+    else if (rmode_ == SPECIFIED)
+      mprintf("\tCalculating RDF of atoms selected by mask1 to point %g %g %g\n",
+              specified_xyz_[0], specified_xyz_[1], specified_xyz_[2]);
   }
   mprintf("\tHistogram max %f, spacing %f, bins %i.\n",maximum,
           spacing_,numBins_);
@@ -234,10 +264,15 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     mprintf("\tNormalizing based on cell volume.\n");
   else
     mprintf("\tNormalizing using particle density of %f molecules/Ang^3.\n",density_);
-  if (!image_.UseImage()) 
+  if (!imageOpt_.UseImage()) 
     mprintf("\tImaging disabled.\n");
   if (numthreads_ > 1)
     mprintf("\tParallelizing RDF calculation with %i threads.\n",numthreads_);
+#ifdef CUDA
+  if (rmode_ == NORMAL) {
+    mprintf("\tRDF calculation will be accelerated with CUDA.\n");
+  }
+#endif
 
   return Action::OK;
 }
@@ -274,7 +309,7 @@ const
   if (debug_ > 1) {
     mprintf("DEBUG: Sites selected by residue for '%s'\n", mask.MaskString());
     for (Marray::const_iterator m = sites.begin(); m != sites.end(); ++m) {
-      mprintf("%8u :", m - sites.begin());
+      mprintf("%8li :", m - sites.begin());
       for (AtomMask::const_iterator at = m->begin(); at != m->end(); at++)
         mprintf(" %i", *at);
       mprintf("\n");
@@ -289,7 +324,7 @@ const
 {
   if (mask.Nselected() < 1) return 1;
   if (top.Nmol() < 1) {
-    mprinterr("Error: No topology info for '%s', cannot set up sites by molecule.\n");
+    mprinterr("Error: No topology info for '%s', cannot set up sites by molecule.\n", top.c_str());
     return -1;
   }
   sites.clear();
@@ -308,7 +343,7 @@ const
   if (debug_ > 1) {
     mprintf("DEBUG: Sites selected by molecule for '%s'\n", mask.MaskString());
     for (Marray::const_iterator m = sites.begin(); m != sites.end(); ++m) {
-      mprintf("%8u :", m - sites.begin());
+      mprintf("%8li :", m - sites.begin());
       for (AtomMask::const_iterator at = m->begin(); at != m->end(); at++)
         mprintf(" %i", *at);
       mprintf("\n");
@@ -328,12 +363,14 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
     mprintf("Warning: First mask has no atoms.\n");
     return Action::SKIP;
   }
-  if (setup.Top().SetupIntegerMask( Mask2_ ) ) return Action::ERR;
-  if (Mask2_.None()) {
-    mprintf("Warning: Second mask has no atoms.\n");
-    return Action::SKIP;
+  if (Mask2_.MaskStringSet()) {
+    if (setup.Top().SetupIntegerMask( Mask2_ ) ) return Action::ERR;
+    if (Mask2_.None()) {
+      mprintf("Warning: Second mask has no atoms.\n");
+      return Action::SKIP;
+    }
   }
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
+  imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
 
   // If not computing center for mask 1 or 2, make the outer loop for distance
   // calculation correspond to the mask with the most atoms.
@@ -350,6 +387,8 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
     InnerMask_ = Mask2_;
   } else if (rmode_ == CENTER2) {
     OuterMask_ = Mask2_;
+    InnerMask_ = Mask1_;
+  } else if (rmode_ == SPECIFIED) {
     InnerMask_ = Mask1_;
   } else if (rmode_ == BYSITE) {
     // One or both masks will be by residue.
@@ -393,7 +432,7 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
   }
 
   // Check volume information
-  if (useVolume_ && setup.CoordInfo().TrajBox().Type()==Box::NOBOX) {
+  if (useVolume_ && !setup.CoordInfo().TrajBox().HasBox()) {
     mprintf("Warning: 'volume' specified but no box information for %s, skipping.\n",
             setup.Top().c_str());
     return Action::SKIP;
@@ -403,15 +442,100 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
   if (rmode_ == BYSITE) {
     mprintf("\t%zu sites selected by Mask1 (%i atoms), %zu sites selected by Mask2 (%i atoms)\n",
             Sites1_.size(), Mask1_.Nselected(), Sites2_.size(), Mask2_.Nselected());
+  } else if (rmode_ == SPECIFIED) {
+    mprintf("\t%i atoms in Mask1.\n", Mask1_.Nselected());
   } else {
     mprintf("\t%i atoms in Mask1, %i atoms in Mask2\n",
             Mask1_.Nselected(), Mask2_.Nselected());
   }
-  if (image_.ImagingEnabled())
+  if (imageOpt_.ImagingEnabled())
     mprintf("\tImaging on.\n");
   else
     mprintf("\tImaging off.\n");
   return Action::OK;  
+}
+
+#ifdef CUDA
+/** Place coords for selected atoms into arrays. */
+static inline std::vector<CpptrajGpu::FpType> mask_to_xyz(AtomMask const& Mask, Frame const& frm)
+{
+  std::vector<CpptrajGpu::FpType> outerxyz;
+  outerxyz.reserve( Mask.Nselected()*3 );
+  for (AtomMask::const_iterator at = Mask.begin(); at != Mask.end(); ++at) {
+    const double* xyz = frm.XYZ( *at );
+    outerxyz.push_back( (CpptrajGpu::FpType)xyz[0] );
+    outerxyz.push_back( (CpptrajGpu::FpType)xyz[1] );
+    outerxyz.push_back( (CpptrajGpu::FpType)xyz[2] );
+  }
+  return outerxyz;
+}
+#endif
+
+void Action_Radial::calcRDF_singleMask(Frame const& frmIn) {
+  int outer_max = OuterMask_.Nselected();
+  int idx1;
+
+  long unsigned* myRDF = &RDF_[0];
+# ifdef _OPENMP
+# pragma omp parallel private(idx1, myRDF)
+  {
+    //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
+    myRDF = &(rdf_thread_[omp_get_thread_num()][0]);
+# pragma omp for schedule(dynamic)
+# endif
+  for (idx1 = 0; idx1 < outer_max; idx1++) {
+    const double* xyz1 = frmIn.XYZ( OuterMask_[idx1] );
+    for (int idx2 = idx1 + 1; idx2 < outer_max; idx2++) {
+      const double* xyz2 = frmIn.XYZ( OuterMask_[idx2] );
+      double D2 = DIST2( imageOpt_.ImagingType(), xyz1, xyz2, frmIn.BoxCrd() );
+      if (D2 <= maximum2_) {
+      // NOTE: Can we modify the histogram to store D^2?
+        double dist = sqrt(D2);
+        //mprintf("MASKLOOP: %10i %10i %10.4f\n",atom1,atom2,D);
+        int idx = (int) (dist * one_over_spacing_);
+        //if (idx > -1 && idx < numBins_) {
+          myRDF[idx] += 2;
+        //}
+      }
+    } // END inner loop
+  } // END outer loop
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
+}
+
+void Action_Radial::calcRDF_twoMask(Frame const& frmIn) {
+  int outer_max = OuterMask_.Nselected();
+  int inner_max = InnerMask_.Nselected();
+  int idx1;
+
+  long unsigned* myRDF = &RDF_[0];
+# ifdef _OPENMP
+# pragma omp parallel private(idx1, myRDF)
+  {
+    //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
+    myRDF = &(rdf_thread_[omp_get_thread_num()][0]);
+# pragma omp for
+# endif
+  for (idx1 = 0; idx1 < outer_max; idx1++) {
+    const double* xyz1 = frmIn.XYZ( OuterMask_[idx1] );
+    for (int idx2 = 0; idx2 < inner_max; idx2++) {
+      const double* xyz2 = frmIn.XYZ( InnerMask_[idx2] );
+      double D2 = DIST2( imageOpt_.ImagingType(), xyz1, xyz2, frmIn.BoxCrd() );
+      if (D2 <= maximum2_) {
+      // NOTE: Can we modify the histogram to store D^2?
+        double dist = sqrt(D2);
+        //mprintf("MASKLOOP: %10i %10i %10.4f\n",atom1,atom2,D);
+        int idx = (int) (dist * one_over_spacing_);
+        //if (idx > -1 && idx < numBins_) {
+          myRDF[idx]++;
+        //}
+      }
+    } // END inner loop
+  } // END outer loop
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
 }
 
 // Action_Radial::DoAction()
@@ -421,57 +545,52 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
 // NOTE: Because of maximum2 not essential to check idx>numBins?
 Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
   double D;
-  Matrix_3x3 ucell, recip;
   int atom1, atom2;
   int nmask1, nmask2;
   int idx;
 # ifdef _OPENMP
   int mythread;
 # endif
-
-  // Set imaging information and store volume if specified
-  // NOTE: Ucell and recip only needed for non-orthogonal boxes.
-  if (image_.ImagingEnabled() || useVolume_) {
-    D = frm.Frm().BoxCrd().ToRecip(ucell,recip);
-    if (useVolume_)  volume_ += D;
-  }
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
+  // Store volume if specified
+  if (useVolume_)
+    volume_ += frm.Frm().BoxCrd().CellVolume();
   // ---------------------------------------------
-  if ( rmode_ == NORMAL ) { 
+  if ( rmode_ == NORMAL ) {
+#ifdef CUDA
+  // Copy atoms for GPU 
+  std::vector<CpptrajGpu::FpType> outerxyz = mask_to_xyz(OuterMask_, frm.Frm());
+  const CpptrajGpu::FpType* outerxyzPtr = &outerxyz[0];
+  std::vector<CpptrajGpu::FpType> innerxyz;
+  const CpptrajGpu::FpType* innerxyzPtr = 0;
+  if (!mask2_is_mask1_) {
+    innerxyz = mask_to_xyz(InnerMask_, frm.Frm());
+    innerxyzPtr = &innerxyz[0];
+  }
+  CpptrajGpu::FpType gpu_box[3];
+  gpu_box[0] = (CpptrajGpu::FpType)frm.Frm().BoxCrd().Param(Box::X);
+  gpu_box[1] = (CpptrajGpu::FpType)frm.Frm().BoxCrd().Param(Box::Y);
+  gpu_box[2] = (CpptrajGpu::FpType)frm.Frm().BoxCrd().Param(Box::Z);
+  CpptrajGpu::FpType gpu_ucell[9], gpu_frac[9];
+  for (int ibox = 0; ibox != 9; ibox++) {
+    gpu_ucell[ibox] = (CpptrajGpu::FpType)frm.Frm().BoxCrd().UnitCell()[ibox];
+    gpu_frac[ibox]  = (CpptrajGpu::FpType)frm.Frm().BoxCrd().FracCell()[ibox];
+  }
+  Cpptraj_GPU_RDF( &RDF_[0], RDF_.size(), maximum2_, one_over_spacing_,
+                   outerxyzPtr, OuterMask_.Nselected(),
+                   innerxyzPtr, InnerMask_.Nselected(),
+                   imageOpt_.ImagingType(),
+                   gpu_box,
+                   gpu_ucell,
+                   gpu_frac );
+#else /* CUDA */ 
     // Calculation of all atoms in Mask1 to all atoms in Mask2
-    int outer_max = OuterMask_.Nselected();
-    int inner_max = InnerMask_.Nselected();
-#   ifdef _OPENMP
-#   pragma omp parallel private(nmask1,nmask2,atom1,atom2,D,idx,mythread)
-    {
-    //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
-    mythread = omp_get_thread_num();
-#   pragma omp for
-#   endif
-    for (nmask1 = 0; nmask1 < outer_max; nmask1++) {
-      atom1 = OuterMask_[nmask1];
-      for (nmask2 = 0; nmask2 < inner_max; nmask2++) {
-        atom2 = InnerMask_[nmask2];
-        if (atom1 != atom2) {
-          D = DIST2( frm.Frm().XYZ(atom1), frm.Frm().XYZ(atom2),
-                     image_.ImageType(), frm.Frm().BoxCrd(), ucell, recip);
-          if (D <= maximum2_) {
-            // NOTE: Can we modify the histogram to store D^2?
-            D = sqrt(D);
-            //mprintf("MASKLOOP: %10i %10i %10.4f\n",atom1,atom2,D);
-            idx = (int) (D * one_over_spacing_);
-            if (idx > -1 && idx < numBins_)
-#             ifdef _OPENMP
-              ++rdf_thread_[mythread][idx];
-#             else
-              ++RDF_[idx];
-#             endif
-          }
-        }
-      } // END loop over 2nd mask
-    } // END loop over 1st mask
-#   ifdef _OPENMP
-    } // END pragma omp parallel
-#   endif
+    if (mask2_is_mask1_)
+      calcRDF_singleMask( frm.Frm() );
+    else
+      calcRDF_twoMask( frm.Frm() );
+#endif /* CUDA */
   // ---------------------------------------------
   } else if ( rmode_ == NO_INTRAMOL ) {
     // Calculation of all atoms in Mask1 to all atoms in Mask2, ignoring
@@ -490,8 +609,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
       for (nmask2 = 0; nmask2 < inner_max; nmask2++) {
         atom2 = InnerMask_[nmask2];
         if ( (*currentParm_)[atom1].MolNum() != (*currentParm_)[atom2].MolNum() ) {
-          D = DIST2( frm.Frm().XYZ(atom1), frm.Frm().XYZ(atom2),
-                     image_.ImageType(), frm.Frm().BoxCrd(), ucell, recip);
+          D = DIST2( imageOpt_.ImagingType(), frm.Frm().XYZ(atom1), frm.Frm().XYZ(atom2), frm.Frm().BoxCrd());
           if (D <= maximum2_) {
             // NOTE: Can we modify the histogram to store D^2?
             D = sqrt(D);
@@ -528,8 +646,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
       {
         if (site1 != *site2) {
           Vec3 com2 = frm.Frm().VGeometricCenter( *site2 );
-          D = DIST2(com1.Dptr(), com2.Dptr(), image_.ImageType(),
-                    frm.Frm().BoxCrd(), ucell, recip);
+          D = DIST2(imageOpt_.ImagingType(), com1.Dptr(), com2.Dptr(), frm.Frm().BoxCrd());
           if (D <= maximum2_) {
             D = sqrt(D);
             //mprintf("MASKLOOP: %10i %10i %10.4f\n",atom1,atom2,D);
@@ -548,9 +665,14 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
     }
 #   endif
   // ---------------------------------------------
-  } else { // CENTER1 || CENTER2
+  } else { // CENTER1 || CENTER2 || SPECIFIED
     // Calculation of center of one Mask to all atoms in other Mask
-    Vec3 coord_center = frm.Frm().VGeometricCenter(OuterMask_);
+    // or specified point to all atoms in a mask (InnerMask_).
+    Vec3 coord_center;
+    if (rmode_ == SPECIFIED)
+      coord_center = specified_xyz_;
+    else
+      coord_center = frm.Frm().VGeometricCenter(OuterMask_);
     int mask2_max = InnerMask_.Nselected();
 #   ifdef _OPENMP
 #   pragma omp parallel private(nmask2,atom2,D,idx,mythread)
@@ -560,8 +682,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
 #   endif
     for (nmask2 = 0; nmask2 < mask2_max; nmask2++) {
       atom2 = InnerMask_[nmask2];
-      D = DIST2(coord_center.Dptr(), frm.Frm().XYZ(atom2), image_.ImageType(),
-                frm.Frm().BoxCrd(), ucell, recip);
+      D = DIST2(imageOpt_.ImagingType(), coord_center.Dptr(), frm.Frm().XYZ(atom2), frm.Frm().BoxCrd());
       if (D <= maximum2_) {
         // NOTE: Can we modify the histogram to store D^2?
         D = sqrt(D);
@@ -589,16 +710,18 @@ int Action_Radial::SyncAction() {
 # ifdef _OPENMP
   CombineRdfThreads();
 # endif
-  int total_frames = 0;
-  trajComm_.ReduceMaster( &total_frames, &numFrames_, 1, MPI_INT, MPI_SUM );
+  double total_volume = 0;
+  trajComm_.ReduceMaster( &total_volume, &volume_, 1, MPI_DOUBLE, MPI_SUM );
+  unsigned long total_frames = 0;
+  trajComm_.ReduceMaster( &total_frames, &numFrames_, 1, MPI_UNSIGNED_LONG, MPI_SUM );
   if (trajComm_.Master()) {
+    volume_ = total_volume;
     numFrames_ = total_frames;
-    int* sum_bins = new int[ numBins_ ];
-    trajComm_.ReduceMaster( sum_bins, RDF_, numBins_, MPI_INT, MPI_SUM );
-    std::copy( sum_bins, sum_bins + numBins_, RDF_ );
-    delete[] sum_bins;
+    Iarray sum_bins( numBins_ );
+    trajComm_.ReduceMaster( &sum_bins[0], &RDF_[0], numBins_, MPI_UNSIGNED_LONG, MPI_SUM );
+    RDF_ = sum_bins;
   } else
-    trajComm_.ReduceMaster( 0,        RDF_, numBins_, MPI_INT, MPI_SUM );
+    trajComm_.ReduceMaster( 0,            &RDF_[0], numBins_, MPI_UNSIGNED_LONG, MPI_SUM );
   return 0;
 }
 #endif
@@ -606,14 +729,12 @@ int Action_Radial::SyncAction() {
 #ifdef _OPENMP
 /** Combine results from each rdf_thread into rdf. */
 void Action_Radial::CombineRdfThreads() {
-  if (rdf_thread_ == 0) return;
+  if (threadsCombined_) return;
   for (int thread = 0; thread < numthreads_; thread++) { 
     for (int bin = 0; bin < numBins_; bin++)
       RDF_[bin] += rdf_thread_[thread][bin];
-    delete[] rdf_thread_[thread];
   }
-  delete[] rdf_thread_;
-  rdf_thread_ = 0;
+  threadsCombined_ = true;
 }
 #endif
 
@@ -628,7 +749,7 @@ void Action_Radial::Print() {
 # ifdef _OPENMP
   CombineRdfThreads(); 
 # endif
-  mprintf("    RADIAL: %i frames,", numFrames_);
+  mprintf("    RADIAL: %lu frames,", numFrames_);
   double nmask1 = (double)Mask1_.Nselected();
   double nmask2 = (double)Mask2_.Nselected();
   int numSameAtoms = 0;
@@ -650,6 +771,10 @@ void Action_Radial::Print() {
     // from mask 2. Assume COM of mask 2 != atom(s) in mask1.
     nmask2 = 1.0;
     numSameAtoms = 0;
+  } else if (rmode_ == SPECIFIED) {
+    // No mask 2; calculated distances to a single point.
+    nmask2 = 1.0;
+    numSameAtoms = 0;
   } else if (rmode_ == BYSITE) {
     // Count sites in common
     nmask1 = (double)Sites1_.size();
@@ -665,7 +790,7 @@ void Action_Radial::Print() {
   
   // If useVolume, calculate the density from the average volume
   if (useVolume_) {
-    double avgVol = volume_ / numFrames_;
+    double avgVol = volume_ / (double)numFrames_;
     mprintf("\tAverage volume is %f Ang^3.\n",avgVol);
     density_ = (nmask1 * nmask2 - (double)numSameAtoms) / avgVol;
     mprintf("\tAverage density is %f distances / Ang^3.\n",density_);
@@ -683,7 +808,7 @@ void Action_Radial::Print() {
   for (int bin = 0; bin < numBins_; bin++) {
     //mprintf("DBG:\tNumBins= %i\n",rdf[bin]); 
     // Number of particles in this volume slice over all frames.
-    double N = (double) RDF_[bin];
+    double N = (double)RDF_[bin];
     if (rawrdf_ != 0)
       rawrdf_->Add(bin, &N);
     // r, r + dr
@@ -695,7 +820,7 @@ void Action_Radial::Print() {
     double expectedD = dv * density_;
     if (debug_>0)
       mprintf("    \tBin %f->%f <Pop>=%f, V=%f, D=%f, norm %f distances.\n",
-              R,Rdr,N/numFrames_,dv,density_,expectedD);
+              R,Rdr,N/(double)numFrames_,dv,density_,expectedD);
     // Divide by # frames
     double norm = expectedD * (double)numFrames_;
     N /= norm;

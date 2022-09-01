@@ -58,7 +58,7 @@ Action_NativeContacts::Iarray Action_NativeContacts::SetupContactIndices(
 static void DebugContactList(AtomMask const& mask, Topology const& parmIn)
 {
   for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)
-    mprintf("\tPotential Contact %u: %s\n", atom - mask.begin(),
+    mprintf("\tPotential Contact %li: %s\n", atom - mask.begin(),
             parmIn.AtomMaskName(*atom).c_str());
 }
 
@@ -121,8 +121,7 @@ int Action_NativeContacts::SetupContactLists(Topology const& parmIn, Frame const
   */
 #define SetNativeContact() { \
         if (ValidContact(*c1, *c2, parmIn)) { \
-          double Dist2 = DIST2(fIn.XYZ(*c1), fIn.XYZ(*c2), image_.ImageType(), \
-                               fIn.BoxCrd(), ucell_, recip_); \
+          double Dist2 = DIST2(imageOpt_.ImagingType(), fIn.XYZ(*c1), fIn.XYZ(*c2), fIn.BoxCrd()); \
           minDist2 = std::min( Dist2, minDist2 ); \
           maxDist2 = std::max( Dist2, maxDist2 ); \
           if (Dist2 < distance_) { \
@@ -155,7 +154,7 @@ int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame
 # ifdef MPI
   Frame fIn = frameIn;
   if (trajComm_.Size() > 1) {
-    // Ensure all threads use same reference
+    // Ensure all processes use same reference
     if (trajComm_.Master())
       for (int rank = 1; rank < trajComm_.Size(); rank++)
         fIn.SendFrame( rank, trajComm_ );
@@ -263,7 +262,7 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& ini
   masterDSL_ = init.DslPtr();
   debug_ = debugIn;
   // Get Keywords
-  image_.InitImaging( !(actionArgs.hasKey("noimage")) );
+  imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")) );
   double dist = actionArgs.getKeyDouble("distance", 7.0);
   byResidue_ = actionArgs.hasKey("byresidue");
   resoffset_ = actionArgs.getKeyInt("resoffset", 0) + 1;
@@ -378,10 +377,11 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& ini
     }
   }
   // Get Masks
-  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask1_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   std::string mask2 = actionArgs.GetMaskNext();
-  if (!mask2.empty())
-    Mask2_.SetMaskString( mask2 );
+  if (!mask2.empty()) {
+    if (Mask2_.SetMaskString( mask2 )) return Action::ERR;
+  }
   mprintf("    NATIVECONTACTS: Mask1='%s'", Mask1_.MaskString());
   if (Mask2_.MaskStringSet())
     mprintf(" Mask2='%s'", Mask2_.MaskString());
@@ -402,7 +402,7 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& ini
   if (saveNonNative_)
     mprintf("\tSaving non-native contacts as well (may use a lot of memory).\n");
   mprintf("\tDistance cutoff is %g Angstroms,", sqrt(distance_));
-  if (!image_.UseImage())
+  if (!imageOpt_.UseImage())
     mprintf(" imaging is off.\n");
   else
     mprintf(" imaging is on.\n");
@@ -455,9 +455,7 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& ini
   // Set up reference if necessary.
   if (!first_) {
     // Set up imaging info for ref parm
-    image_.SetupImaging( REF.CoordsInfo().TrajBox().Type() );
-    if (image_.ImageType() == NONORTHO)
-      REF.Coord().BoxCrd().ToRecip(ucell_, recip_);
+    imageOpt_.SetupImaging( REF.CoordsInfo().TrajBox().HasBox() );
     if (DetermineNativeContacts( REF.Parm(), REF.Coord() )) return Action::ERR;
   }
   return Action::OK;
@@ -468,12 +466,12 @@ Action::RetType Action_NativeContacts::Setup(ActionSetup& setup) {
   // Setup potential contact lists for this topology
   if (SetupContactLists( setup.Top(), Frame()))
     return Action::SKIP;
-  mprintf("\t%zu potential contact sites for '%s'\n", Mask1_.Nselected(), Mask1_.MaskString());
+  mprintf("\t%i potential contact sites for '%s'\n", Mask1_.Nselected(), Mask1_.MaskString());
   if (Mask2_.MaskStringSet())
-    mprintf("\t%zu potential contact sites for '%s'\n", Mask2_.Nselected(), Mask2_.MaskString());
+    mprintf("\t%i potential contact sites for '%s'\n", Mask2_.Nselected(), Mask2_.MaskString());
   // Set up imaging info for this parm
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-  if (image_.ImagingEnabled())
+  imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
+  if (imageOpt_.ImagingEnabled())
     mprintf("\tImaging enabled.\n");
   else
     mprintf("\tImaging disabled.\n");
@@ -495,8 +493,7 @@ bool Action_NativeContacts::ValidContact(int a1, int a2, Topology const& parmIn)
   */
 #define UpdateNativeContact(M1_, M2_, CI1_, CI2_) { \
         if (ValidContact(M1_[c1], M2_[c2], *CurrentParm_)) { \
-          double Dist2 = DIST2(frm.Frm().XYZ(M1_[c1]), frm.Frm().XYZ(M2_[c2]), \
-                               image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_); \
+          double Dist2 = DIST2(imageOpt_.ImagingType(), frm.Frm().XYZ(M1_[c1]), frm.Frm().XYZ(M2_[c2]), frm.Frm().BoxCrd()); \
           minDist2 = std::min( Dist2, minDist2 ); \
           maxDist2 = std::max( Dist2, maxDist2 ); \
           if (Dist2 < distance_) { \
@@ -542,7 +539,8 @@ bool Action_NativeContacts::ValidContact(int a1, int a2, Topology const& parmIn)
 
 // Action_NativeContacts::DoAction()
 Action::RetType Action_NativeContacts::DoAction(int frameNum, ActionFrame& frm) {
-  if (image_.ImageType() == NONORTHO) frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
   if (first_) {
     mprintf("\tUsing first frame to determine native contacts.\n");
     if (DetermineNativeContacts( *CurrentParm_, frm.Frm() )) return Action::ERR;
@@ -608,7 +606,7 @@ int Action_NativeContacts::SyncAction() {
   trajComm_.ReduceMaster( &total_frames, &N, 1, MPI_INT, MPI_SUM );
   if (trajComm_.Master())
     nframes_ = (unsigned int)total_frames;
-  // Should have the same number of contacts on each thread since reference is shared.
+  // Should have the same number of contacts on each process since reference is shared.
   for (contactListType::iterator it = nativeContacts_.begin(); it != nativeContacts_.end(); ++it)
   {
     double total[3], buf[3];
@@ -733,7 +731,10 @@ void Action_NativeContacts::WriteContactPDB( contactListType& ContactsIn, Cpptra
     }
     // Normalize so the strongest contact value is 100.00
     norm = (double)*std::max_element(atomContactFrac.begin(), atomContactFrac.end());
-    norm = 100.00 / norm;
+    if (norm > 0)
+      norm = 100.00 / norm;
+    else
+      norm = 1.0;
     PDBfile& contactPDB = static_cast<PDBfile&>( *fileIn );
     mprintf("\tWriting contacts PDB to '%s'\n", fileIn->Filename().full());
     contactPDB.WriteTITLE( numnative_->Meta().Name() + " " + Mask1_.MaskExpression() + " " +

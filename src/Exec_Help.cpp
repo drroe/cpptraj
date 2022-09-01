@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "Command.h"
 #include "ParmFile.h"
+#include "TrajectoryFile.h"
 
 void Exec_Help::Help() const {
   mprintf("\t[ { All |\n"
@@ -9,7 +10,7 @@ void Exec_Help::Help() const {
           "\t    <command category> |\n"
           "\t    Form[ats] [{read|write}] |\n"
           "\t    Form[ats] [{trajin|trajout|readdata|writedata|parm|parmwrite} [<fmt key>]] |\n"
-          "\t    Mask\n"
+          "\t    Mask | Math\n"
           "\t   } ]\n"
           "\tCommand Categories: Gen[eral] Sys[tem] Coor[ds] Traj[ectory] Top[ology]\n"
           "\t                    Act[ion] Ana[lysis] Con[trol]\n"
@@ -17,7 +18,8 @@ void Exec_Help::Help() const {
           "  <cmd>              : Print help for command <cmd>.\n"
           "  <command category> : Print all commands in specified category.\n"
           "  Form[ats]          : Help for file formats.\n"
-          "  Mask               : Help for mask syntax.\n");
+          "  Mask               : Help for mask syntax.\n"
+          "  Math               : Help for math operations/functions.\n");
 }
 
 /** Print help for file formats. */
@@ -94,10 +96,10 @@ int Exec_Help::Masks(ArgList& argIn) const {
   mprintf("    CPPTRAJ mask syntax.\n"
           "  *** Basic selection ***\n"
           "    @{list}  : Select atoms by number/name. E.g. '@1-5,12-17,20', '@CA', '@CA,C,O,N,H'\n"
-          "    @%{list} : Select atom types. E.g. '@%%CT'\n"
+          "    @%%{list} : Select atom types. E.g. '@%%CT'\n"
           "    @/{list} : Select atom elements. E.g. '@/N'\n"
           "    :{list}  : Select residues by number/name. E.g. ':1-10,15,19-22', ':LYS', ':ASP,ALA'\n"
-          "    :/{list} : Select residues by chain ID. E.g. ':/B', ':/A,D'.\n"
+          "    ::{list} : Select residues by chain ID. E.g. '::B', '::A,D'.\n"
           "    :;{list} : Select by PDB residue number.\n"
           "    ^{list}  : Select by molecule number. E.g. '^1-10', '^2-4,8'\n"
           "  Combinations of atom/residue/molecule masks are interpreted as if 'AND'\n"
@@ -106,13 +108,15 @@ int Exec_Help::Masks(ArgList& argIn) const {
           "    <mask><distance op><distance>\n"
           "      <mask>        : Specify atoms to select around.\n"
           "      <distance op> : Distance operator.\n"
-          "                      @< means 'atoms within'\n"
-          "                      @> means 'atoms outside of'\n"
-          "                      :< means 'residues within'\n"
-          "                      :> means 'residues outside of'\n"
-          "                      ^< means 'molecules within'\n"
-          "                      ^> means 'molecules outside of'\n"
-          "      <distance>    : Cutoff for distance operator.\n"
+          "                      <@ means 'atoms within'\n"
+          "                      >@ means 'atoms outside of'\n"
+          "                      <: means 'residues within'\n"
+          "                      >: means 'residues outside of'\n"
+          "                      <; means 'residue centers within'\n"
+          "                      >; means 'residue centers outside of'\n"
+          "                      <^ means 'molecules within'\n"
+          "                      >^ means 'molecules outside of'\n"
+          "      <distance>    : Cutoff for distance operator (in Ang.).\n"
           "    E.g. ':11-17<@2.4' means 'select atoms within 2.4 Ang. distance of atoms\n"
           "      selected by ':11-17' (residues numbered 11 through 17).\n"
           "  *** Operators ***\n"
@@ -127,6 +131,36 @@ int Exec_Help::Masks(ArgList& argIn) const {
   return 1;
 }
 
+int Exec_Help::Math(ArgList& argIn) const {
+  mprintf("    Available Math Operations\n"
+          "\tSymbol    Operation\n"
+          "\t  -     : Minus, negate\n"
+          "\t  +     : Plus\n"
+          "\t  /     : Divide\n"
+          "\t  *     : Multiply\n"
+          "\t  ^     : Power\n"
+          "\t  =     : Assign\n"
+          "    Available functions\n"
+          "\tForm      Function\n"
+          "\tsqrt()  : Square root\n"
+          "\texp()   : Exponential\n"
+          "\tln()    : Natural logarithm\n"
+          "\tabs()   : Absolute value\n"
+          "\tsin()   : Sine\n"
+          "\tcos()   : Cosine\n"
+          "\ttan()   : Tangent\n"
+          "    Data set functions\n"
+          "\tsum()   : Summation\n"
+          "\tavg()   : Average\n"
+          "\tstdev() : Standard deviation\n"
+          "\tmin()   : Minimum\n"
+          "\tmax()   : Maximum\n"
+          "    Constants\n"
+          "\tPI      : Pi\n"
+         );
+  return 1;
+}
+
 /** \return 1 if a help topic was found, 0 otherwise. */
 int Exec_Help::Topics(ArgList& argIn) const {
   // By convention, Topics will start with uppercase letters and
@@ -136,6 +170,8 @@ int Exec_Help::Topics(ArgList& argIn) const {
       return Formats(argIn);
     else if (argIn[0].compare(0,4,"Mask")==0)
       return Masks(argIn);
+    else if (argIn[0].compare(0,4,"Math")==0)
+      return Math(argIn);
     else if (argIn.CommandIs("All")) {
       Command::ListCommands( NONE );
       return 1;
@@ -185,7 +221,10 @@ Exec::RetType Exec_Help::Execute(CpptrajState& State, ArgList& argIn) {
       if (cmd.Obj().Type() == DispatchObject::DEPRECATED)
         mprintf("Warning: '%s' is deprecated.\n", arg.Command());
       //arg.MarkArg(0);
-      cmd.Help();
+      if (arg.NremainingArgs() < 1)
+        cmd.Help();
+      else
+        cmd.Help(arg);
     }
   }
   return CpptrajState::OK;

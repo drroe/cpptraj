@@ -3,7 +3,8 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles rms.in rmsd1.dat rmsd2.dat ref.nc rmsd.mass.dat dme.dat trp.dat nofit.dat
+CleanFiles rms.in rmsd1.dat rmsd2.dat ref.nc rmsd.mass.dat dme.dat trp.dat \
+           nofit.dat rgacc.dat quat.rmsd2.dat
 
 TESTNAME='2D RMSD tests'
 Requires netcdf maxthreads 10
@@ -72,6 +73,29 @@ rms first :2-12@CA
 EOF
 RunCpptraj "2D RMSD test, no fitting."
 DoTest nofit.dat.save nofit.dat
+
+# Test 7 - coords with velocities
+TOP=''
+CRD=''
+cat > rms.in <<EOF
+parm ../rGACC.full.parm7
+for i=1;i<10;i++
+  trajin ../rGACC.full.nc
+done
+2drms crd1 :1-4&!@H= out rgacc.dat nosquare2d
+EOF
+RunCpptraj "2D RMSD test, read coords with velocity info"
+DoTest rgacc.dat.save rgacc.dat
+
+# Test 8 - 2drms with quaternion
+cat > rms.in <<EOF
+noprogress
+parm ../tz2.parm7
+trajin ../tz2.nc 1 10
+2drms crd1 :3-7 rmsout quat.rmsd2.dat qrmsd
+EOF
+RunCpptraj "2D RMSD Test with quaternion."
+DoTest rmsd.dat.save quat.rmsd2.dat
 
 EndTest
 

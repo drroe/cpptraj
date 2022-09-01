@@ -138,7 +138,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, AnalysisSetup& se
     }
   }
 
-  mprintf("   REMLOG: %s, %i replicas, %i exchanges\n", remlog_->legend(),
+  mprintf("   REMLOG: %s, %zu replicas, %i exchanges\n", remlog_->legend(),
           remlog_->Size(), remlog_->NumExchange());
   if (mode_ == CRDIDX)
     mprintf("\tGetting coordinate index vs exchange.\n");
@@ -174,7 +174,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
     return Analysis::ERR;
   }
   int Ndims = remlog_->DimTypes().Ndims();
-  mprintf("\t'%s' %i replicas, %i exchanges, %i dims.\n", remlog_->legend(),
+  mprintf("\t'%s' %zu replicas, %i exchanges, %i dims.\n", remlog_->legend(),
          remlog_->Size(), remlog_->NumExchange(), Ndims);
   // Set up arrays for tracking replica stats.
   std::vector<RepStats> DimStats;
@@ -291,8 +291,8 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       for (int crdidx = 0; crdidx < (int)remlog_->Size(); crdidx++) {
         for (int replica = 0; replica < (int)remlog_->Size(); replica++)
           mesh.SetY(replica, (double)replicaFrac[replica][crdidx] / (double)frame);
-        double slope, intercept, correl;
-        mesh.LinearRegression(slope, intercept, correl, 0);
+        double slope, intercept, correl, Fval;
+        mesh.LinearRegression(slope, intercept, correl, Fval, 0);
         repFracSlope_->Printf("  %14.7g %14.7g", slope * 100.0, correl);
                 //frame+1, crdidx, slope * 100.0, intercept * 100.0, correl
       }
@@ -316,7 +316,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
             ((double)DimStats[dim].acceptDown_[replica] / exchangeAttempts) * 100.0);
   }
   if (calculateStats_) {
-    statsout_->Printf("# %i replicas, %i exchanges.\n", remlog_->Size(), remlog_->NumExchange());
+    statsout_->Printf("# %zu replicas, %i exchanges.\n", remlog_->Size(), remlog_->NumExchange());
     for (int dim = 0; dim != Ndims; dim++) {
       if (Ndims > 1)
         statsout_->Printf("#Dim%i Round-trip stats:\n", dim+1);
@@ -330,7 +330,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       {
         double stdev = 0.0;
         double avg = rt->Avg( stdev );
-        statsout_->Printf("%-8u %8i %12.4f %12.4f %12.0f %12.0f\n", 
+        statsout_->Printf("%-8u %8zu %12.4f %12.4f %12.0f %12.0f\n", 
                           idx++, rt->Size(), avg, stdev, rt->Min(), rt->Max());
       }
     }

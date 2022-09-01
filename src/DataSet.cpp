@@ -22,13 +22,16 @@ const char* DataSet::Descriptions_[] = {
   "reference",      // REF_FRAME
   "3x3 matrices",   // MAT3X3
   "topology",       // TOPOLOGY
-  "cluster matrix", // CMATRIX
-  "cluster matrix (no memory)", // CMATRIX_NOMEM
-  "cluster matrix (disk)",      // CMATRIX_DISK
   "pH",                         // PH
   "pH REMD (explicit)",         // PH_EXPL
   "pH REMD (implicit)",         // PH_IMPL
-  "parameters"                  // PARAMETERS
+  "parameters",                 // PARAMETERS
+  "pairwise matrix (mem)",      // PMATRIX_MEM
+  "pairwise matrix (NetCDF)",   // PMATRIX_NC
+  "tensor",                     // TENSOR
+  "string variable",            // STRINGVAR
+  "vector with scalar",         // VECTOR_SCALAR
+  "unsigned integer"            // UNSIGNED_INTEGER
 };
 
 // CONSTRUCTOR
@@ -101,7 +104,7 @@ DataSet& DataSet::operator=(const DataSet& rhs) {
 int DataSet::SetMeta(MetaData const& In) {
   // Dataset name
   if (In.Name().empty()) {
-    mprinterr("Internal Error: DataSet has no name.\n"); //FIXME allow?
+    mprinterr("Internal Error: DataSet has no name.\n");
     return 1;
   }
   meta_ = In;

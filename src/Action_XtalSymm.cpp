@@ -52,9 +52,10 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
   molCentToASU_ = actionArgs.hasKey("centroid");
   // Allocate space to hold all of the symmetry operations.
   // No space group has more than 96.
-  R_.assign(   96 * nCopyA_ * nCopyB_ * nCopyC_, Matrix_3x3());
-  T_.assign(   96 * nCopyA_ * nCopyB_ * nCopyC_, Vec3());
-  RefT_.assign(96 * nCopyA_ * nCopyB_ * nCopyC_, Vec3());
+  size_t nCopyTotal = (96 * (size_t)nCopyA_ * (size_t)nCopyB_ * (size_t)nCopyC_);
+  R_.assign(   nCopyTotal, Matrix_3x3());
+  T_.assign(   nCopyTotal, Vec3());
+  RefT_.assign(nCopyTotal, Vec3());
   // Load symmetry operations for space group
   SpaceGroup SG;
   sgID_ = SG.ID( spaceGrp_ );
@@ -71,7 +72,7 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
   }
   // Prepare a table of transposed (inverse) rotation matrices
   Rinv_.clear();
-  Rinv_.reserve( 96 * nCopyA_ * nCopyB_ * nCopyC_ );
+  Rinv_.reserve( nCopyTotal );
   for (int i = 0; i < nops_; i++)
     Rinv_.push_back( R_[i].Transposed() );
 
@@ -98,7 +99,7 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
     mprintf("Error.  A mask for the asymmetric unit must be specified.\n");
     return Action::ERR;
   }
-  Masks_[0].SetMaskString(mask);
+  if (Masks_[0].SetMaskString(mask)) return Action::ERR;
   // Allocate memory for subunits
   other_.assign( nops_, Frame() );
 
@@ -157,7 +158,7 @@ const
       if (opIDi < 0 || opIDi >= nops_) {
         mprintf("opIDi = %d out of %d ops\n", opIDi, nops_);
       }
-      if (j >= othr[i].Natom() || j < 0) {
+      if (j >= othr[i].Natom()) {
         mprintf("j = %d out of %d atoms, i = %d out of %zu capacity.\n", j, othr[i].Natom(),
         i, operID.capacity());
       }
@@ -205,9 +206,8 @@ const
   Vec3 corig = orig.VCenterOfMass(0, orig.Natom());
   Vec3 cothr = othr.VCenterOfMass(0, othr.Natom());
   Vec3 cdiff = cothr - corig;
-  Matrix_3x3 U, invU;
-  U = RefFrame_.BoxCrd().UnitCell(1.0);
-  RefFrame_.BoxCrd().ToRecip(U, invU);
+  Matrix_3x3 const& U = RefFrame_.BoxCrd().UnitCell();
+  Matrix_3x3 const& invU = RefFrame_.BoxCrd().FracCell();
   cdiff = invU * cdiff;
   const double nearTwo = 1.999999999;  
   double minx = floor(cdiff[0] - nearTwo);
@@ -407,7 +407,7 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
   // Set up the mask for the entire topology, for making the RefFrame_ clone of it later
   std::string str;
   str.assign(":*");
-  tgtMask_.SetMaskString(str);
+  if (tgtMask_.SetMaskString(str)) return Action::ERR;
   if (setup.Top().SetupIntegerMask(tgtMask_)) {
     return Action::ERR;
   }
@@ -525,20 +525,27 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
       // separately and remove them from the list of individual atoms to remove.
       nMolecule_ = setup.Top().Nmol();
       molLimits_.clear();
-      molLimits_.reserve(2 * nMolecule_);
+      molLimits_.reserve(nMolecule_);
       molInSolvent_.assign(nMolecule_, true);
       for (i = 0; i < nMolecule_; i++) {
-        molLimits_.push_back( setup.Top().Mol(i).BeginAtom() );
-        molLimits_.push_back( setup.Top().Mol(i).EndAtom()   );
-        for (j = molLimits_[2*i]; j < molLimits_[2*i + 1]; j++) {
-          if (LoneAtoms[j] == 0) {
-            molInSolvent_[i] = false;
+        molLimits_.push_back( setup.Top().Mol(i).MolUnit() );
+        for (Unit::const_iterator seg = molLimits_.back().segBegin();
+                                  seg != molLimits_.back().segEnd(); ++seg)
+        {
+          for (j = seg->Begin(); j < seg->End(); j++) {
+            if (LoneAtoms[j] == 0) {
+              molInSolvent_[i] = false;
+            }
           }
         }
         if (molInSolvent_[i]) {
-          for (j = molLimits_[2*i]; j < molLimits_[2*i + 1]; j++) {
-            LoneAtoms[j] = 0;
-            MoleAtoms[j] = 1;
+          for (Unit::const_iterator seg = molLimits_.back().segBegin();
+                                    seg != molLimits_.back().segEnd(); ++seg)
+          {
+            for (j = seg->Begin(); j < seg->End(); j++) {
+              LoneAtoms[j] = 0;
+              MoleAtoms[j] = 1;
+            }
           }
         }
       }
@@ -604,7 +611,9 @@ bool Action_XtalSymm::OriginsAlign(XtalDock* leads, std::vector<int> const& HowT
 const
 {
   int i;
-  double origx, origy, origz;
+  double origx=0;
+  double origy=0;
+  double origz=0;
   
   // First, find a symmetry operation that involves an
   // actual rotation, where the origin would matter
@@ -657,8 +666,6 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
 {
   int i, j;
   Frame orig;
-  Matrix_3x3 U, invU;
-
   // Allocate space for the subunit frames
   orig = Frame(Masks_[0].Nselected());
 
@@ -675,8 +682,8 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
     // Ensure this is only done once FIXME ok?
     refType_ = NONE;
 
-    U = RefFrame_.BoxCrd().UnitCell(1.0);
-    RefFrame_.BoxCrd().ToRecip(U, invU);
+    Matrix_3x3 const& U = RefFrame_.BoxCrd().UnitCell();
+    Matrix_3x3 const& invU = RefFrame_.BoxCrd().FracCell(); 
     XtalDock* leads = new XtalDock[nops_ * nops_ * 125]; // TODO vector?
     int nLead = 0;
     for (i = 0; i < nops_; i++) {
@@ -812,8 +819,8 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
   
   // Loop over all subunits, set them according to the correct displacements from
   // the original subunits (imaging considerations), and apply the transformations.
-  U = frm.Frm().BoxCrd().UnitCell(1.0);
-  frm.Frm().BoxCrd().ToRecip(U, invU);
+  Matrix_3x3 const& U = frm.Frm().BoxCrd().UnitCell();
+  Matrix_3x3 const& invU = frm.Frm().BoxCrd().FracCell();
   orig = Frame(Masks_[0].Nselected());
 
   orig.SetCoordinates(frm.Frm(), Masks_[0]);
@@ -864,7 +871,8 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
         if (molInSolvent_[i]) {
 
           // Re-image the entire molecule
-          double x = 0.0;
+          Vec3 xyz = frm.Frm().VGeometricCenter( molLimits_[i] );
+          /*double x = 0.0;
           double y = 0.0;
           double z = 0.0;
           for (j = molLimits_[2*i]; j < molLimits_[2*i + 1]; j++) {
@@ -875,24 +883,26 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
           double dfac = 1.0 / (double)(molLimits_[2*i + 1] - molLimits_[2*i]);
           x *= dfac;
           y *= dfac;
-          z *= dfac;
-          frm.ModifyFrm().Translate(Vec3(0.5 - round(x), 0.5 - round(y), 0.5 - round(z)),
-                                    molLimits_[2*i], molLimits_[2*i + 1]);
-          x += 0.5 - round(x);
-          y += 0.5 - round(y);
-          z += 0.5 - round(z);
+          z *= dfac;*/
+          frm.ModifyFrm().Translate(Vec3(0.5 - round(xyz[0]),
+                                         0.5 - round(xyz[1]),
+                                         0.5 - round(xyz[2])),
+                                    molLimits_[i]);
+          xyz[0] += 0.5 - round(xyz[0]);
+          xyz[1] += 0.5 - round(xyz[1]);
+          xyz[2] += 0.5 - round(xyz[2]);
           
           // Use the grid to determine the asymmetric unit (if the grid says "operation -1",
           // an intensive search will be done to find the correct ASU)
-          int gidx = (int)(x * DASU_GRID_BINS_);
-          int gidy = (int)(y * DASU_GRID_BINS_);
-          int gidz = (int)(z * DASU_GRID_BINS_);
+          int gidx = (int)(xyz[0] * DASU_GRID_BINS_);
+          int gidy = (int)(xyz[1] * DASU_GRID_BINS_);
+          int gidz = (int)(xyz[2] * DASU_GRID_BINS_);
           gidx = (gidx*IASU_GRID_BINS_ + gidy)*IASU_GRID_BINS_ + gidz;
-          TransOp Vm = (AsuGrid_[gidx].opID_ == -1) ? DetectAsuResidence(x, y, z) :
+          TransOp Vm = (AsuGrid_[gidx].opID_ == -1) ? DetectAsuResidence(xyz[0], xyz[1], xyz[2]) :
                                                     AsuGrid_[gidx];
           frm.ModifyFrm().Translate(Vec3(Vm.tr_x_, Vm.tr_y_, Vm.tr_z_) - T_[Vm.opID_],
-                                    molLimits_[2*i], molLimits_[2*i + 1]);
-          frm.ModifyFrm().Rotate(Rinv_[Vm.opID_], molLimits_[2*i], molLimits_[2*i + 1]);
+                                    molLimits_[i]);
+          frm.ModifyFrm().Rotate(Rinv_[Vm.opID_], molLimits_[i]);
         }
       }
       frm.ModifyFrm().Rotate(U, SolventMolecules_);
@@ -1087,6 +1097,7 @@ const
       break;
     case 18:
       if (0.0 > x || x > half || 0.0 > y || y > half || 0.0 > z || z > 1.0) return false;
+      break;
     case 19:
       if (0.0 > x || x > half || 0.0 > y || y > half || 0.0 > z || z > 1.0) return false;
       break;

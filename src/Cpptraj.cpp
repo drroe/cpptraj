@@ -8,14 +8,22 @@
 #include "Cpptraj.h"
 #include "CpptrajStdio.h"
 #include "Command.h"
+#include "Gpu.h"
 #include "ReadLine.h"
 #include "Version.h"
 #include "ParmFile.h" // ProcessMask
 #include "TopInfo.h" // ProcessMask
 #include "Timer.h"
 #include "StringRoutines.h" // TimeString
-#ifdef CUDA
-# include <cuda_runtime_api.h>
+#include "TrajectoryFile.h" // for autodetect
+#if defined(CUDA)
+#  if defined(__HIP_PLATFORM_HCC__)
+#    include <hip/hip_runtime.h>
+#    include <hip/hip_runtime_api.h>
+#    include "HipDefinitions.h"
+#  else
+#    include <cuda_runtime_api.h>
+#  endif
 #endif
 #ifdef _OPENMP
 # include <omp.h>
@@ -31,6 +39,25 @@ Cpptraj::Cpptraj() {
   _set_output_format(_TWO_DIGIT_EXPONENT);
 # endif
 # endif
+
+  versionString_.assign(CPPTRAJ_INTERNAL_VERSION);
+# ifdef BUILDTYPE
+  versionString_.append(" (" + std::string(BUILDTYPE));
+# ifdef AT_VERSION_STRING
+  versionString_.append(" " + std::string(AT_VERSION_STRING));
+# endif
+  versionString_.append(")");
+# endif /* BUILDTYPE */
+# ifdef MPI
+  versionString_.append(" MPI");
+# endif
+# ifdef _OPENMP
+  versionString_.append(" OpenMP");
+# endif
+# ifdef CUDA
+  versionString_.append(" CUDA");
+# endif
+
   Command::Init();
 }
 
@@ -45,6 +72,7 @@ void Cpptraj::Usage() {
             "               [-h | --help] [-V | --version] [--defines] [-debug <#>]\n"
             "               [--interactive] [--log <logfile>] [-tl]\n"
             "               [-ms <mask>] [-mr <mask>] [--mask <mask>] [--resmask <mask>]\n"
+            "               [--rng %s]\n"
             "\t-p <Top0>        : * Load <Top0> as a topology file.\n"
             "\t-i <Input0>      : * Read input from file <Input0>.\n"
             "\t-y <trajin>      : * Read from trajectory file <trajin>; same as input 'trajin <trajin>'.\n"
@@ -67,30 +95,15 @@ void Cpptraj::Usage() {
             "\t-mr <mask>       : Print selected residue numbers to STDOUT.\n"
             "\t--mask <mask>    : Print detailed atom selection to STDOUT.\n"
             "\t--resmask <mask> : Print detailed residue selection to STDOUT.\n"
+            "\t--rng <type>     : Change default random number generator.\n"
             "      * Denotes flag may be specified multiple times.\n"
-            "\n");
+            "\n", CpptrajState::RngKeywords());
 }
 
-void Cpptraj::Intro() {
+void Cpptraj::Intro() const {
   mprintf("\nCPPTRAJ: Trajectory Analysis. %s"
-# ifdef BUILDTYPE
-          " (%s)"
-# endif
-# ifdef MPI
-          " MPI"
-# endif
-# ifdef _OPENMP
-          " OpenMP"
-# endif
-# ifdef CUDA
-          " CUDA"
-# endif
           "\n    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n\n",
-          CPPTRAJ_VERSION_STRING
-# ifdef BUILDTYPE
-          , BUILDTYPE
-# endif
-         );
+          versionString_.c_str());
 # ifdef MPI
   mprintf("| Running on %i processes.\n", Parallel::World().Size());
 # endif
@@ -110,6 +123,16 @@ void Cpptraj::Intro() {
       mprintf("| CUDA device: %s\n", deviceProp.name);
       mprintf("| Available GPU memory: %s\n",
               ByteString(deviceProp.totalGlobalMem, BYTE_DECIMAL).c_str());
+      mprintf("| Compute capability: %i.%i\n", deviceProp.major, deviceProp.minor);
+      CpptrajGpu::SetComputeVersion( deviceProp.major );
+      if (State_.Debug() > 0) {
+        mprintf("| Max threads/block: %i\n", deviceProp.maxThreadsPerBlock);
+        mprintf("| Max threads dim: %i %i %i\n",
+                deviceProp.maxThreadsDim[0],
+                deviceProp.maxThreadsDim[1],
+                deviceProp.maxThreadsDim[2]);
+        mprintf("| Max threads/multiprocessor: %i\n", deviceProp.maxThreadsPerMultiProcessor);
+      }
     }
   }
 # endif
@@ -219,14 +242,23 @@ std::string Cpptraj::Defines() {
 #ifdef NO_XDRFILE
   defined_str.append(" -DNO_XDRFILE");
 #endif
+#ifdef HAS_TNGFILE
+  defined_str.append(" -DHAS_TNGFILE");
+#endif
 #if defined(USE_SANDERLIB) && !defined(LIBCPPTRAJ)
   defined_str.append(" -DUSE_SANDERLIB");
 #endif
 #ifdef FFTW_FFT
   defined_str.append(" -DFFTW_FFT");
 #endif
+#ifdef C11_SUPPORT
+  defined_str.append(" -DC11_SUPPORT");
+#endif
 #ifdef LIBPME
   defined_str.append(" -DLIBPME");
+#endif
+#ifdef HAS_OPENMM
+  defined_str.append(" -DHAS_OPENMM");
 #endif
   return defined_str;
 }
@@ -374,11 +406,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     if ( arg == "-V" || arg == "--version" ) {
       // -V, --version: Print version number and exit
       SetWorldSilent( true );
-#     ifdef BUILDTYPE
-      loudPrintf("CPPTRAJ: Version %s (%s)\n", CPPTRAJ_VERSION_STRING, BUILDTYPE);
-#     else
-      loudPrintf("CPPTRAJ: Version %s\n", CPPTRAJ_VERSION_STRING);
-#     endif
+      loudPrintf("CPPTRAJ: Version %s\n", versionString_.c_str());
       return QUIT;
     }
     if ( arg == "--internal-version" ) {
@@ -473,6 +501,9 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       // --resmask: Parse mask string, print selected residue details
       if (ProcessMask( topFiles, refFiles, cmdLineArgs[++iarg], true, true )) return ERROR;
       return QUIT;
+    } else if ( NotFinalArg(cmdLineArgs, "--rng", iarg) ) {
+      // --rng: Change default RNG
+      if (State_.ChangeDefaultRng( cmdLineArgs[++iarg] )) return ERROR;
     } else {
       // Check if this is a file.
 #     ifdef MPI
@@ -586,7 +617,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       return INTERACTIVE;
     else {
       // "" means read from STDIN
-      CpptrajState::RetType c_err = Command::ProcessInput( State_, "" ); 
+      CpptrajState::RetType c_err = Command::ProcessInput( State_, "" );
       if (c_err == CpptrajState::ERR && State_.ExitOnError()) return ERROR;
       if (Command::UnterminatedControl()) return ERROR;
       if (c_err == CpptrajState::QUIT) return QUIT;
@@ -630,8 +661,11 @@ int Cpptraj::Interactive() {
   if (logfile_.IsOpen()) {
     // Write logfile header entry: date, cmd line opts, topologies
     logfile_.Printf("# %s\n", TimeString().c_str());
-    if (!commandLine_.empty())
-      logfile_.Printf("#%s\n", commandLine_.c_str());
+    if (!commandLine_.empty()) {
+      logfile_.Printf("# Args: ");
+      logfile_.Write(commandLine_.c_str(), commandLine_.size());
+      logfile_.Printf("\n");
+    }
     DataSetList tops = State_.DSL().GetSetsOfType("*", DataSet::TOPOLOGY);
     if (!tops.empty()) {
       logfile_.Printf("# Loaded topologies:\n");

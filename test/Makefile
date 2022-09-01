@@ -31,6 +31,8 @@ test.center:
 
 test.hbond:
 	@-cd Test_Hbond && ./RunTest.sh $(OPT)
+	@-cd Test_Hbond_Split && ./RunTest.sh $(OPT)
+	@-cd Test_Hbond_Matrix && ./RunTest.sh $(OPT)
 
 test.image:
 	@-cd Test_Image && ./RunTest.sh $(OPT)
@@ -67,6 +69,7 @@ test.mol2:
 
 test.nastruct:
 	@-cd Test_NAstruct && ./RunTest.sh $(OPT)
+	@-cd Test_NAstruct_8OG && ./RunTest.sh $(OPT)
 
 test.pucker:
 	@-cd Test_Pucker && ./RunTest.sh $(OPT)
@@ -106,6 +109,11 @@ test.cluster:
 	@-cd Test_Cluster_TrajWrites && ./RunTest.sh $(OPT)
 	@-cd Test_Cluster_Dpeaks && ./RunTest.sh $(OPT)
 	@-cd Test_Cluster_Nreps && ./RunTest.sh $(OPT)
+	@-cd Test_Cluster_AssignRefs && ./RunTest.sh $(OPT)
+	@-cd Test_Cluster_Cache && ./RunTest.sh $(OPT)
+	@-cd Test_Cluster_ReadInfo && ./RunTest.sh $(OPT)
+	@-cd Test_Cluster_CoordsAndData && ./RunTest.sh $(OPT)
+	@-cd Test_Cluster_QuatRMSD && ./RunTest.sh $(OPT)
 
 test.ired:
 	@-cd Test_IRED && ./RunTest.sh $(OPT)
@@ -115,6 +123,7 @@ test.molsurf:
 
 test.charmm:
 	@-cd Test_Charmm && ./RunTest.sh $(OPT)
+	@-cd Test_CharmmParams && ./RunTest.sh $(OPT)
 
 test.rotdif:
 	@-cd Test_Rotdif && ./RunTest.sh $(OPT)
@@ -154,6 +163,7 @@ test.atomicfluct:
 
 test.grid:
 	@-cd Test_Grid && ./RunTest.sh $(OPT)
+	@-cd Test_Grid_Rotate_Simple && ./RunTest.sh $(OPT)
 
 test.unwrap:
 	@-cd Test_Unwrap && ./RunTest.sh $(OPT)
@@ -345,6 +355,7 @@ test.topinfo:
 test.gromacs:
 	@-cd Test_GromacsTrr && ./RunTest.sh $(OPT)
 	@-cd Test_GromacsXtc && ./RunTest.sh $(OPT)
+	@-cd Test_GromacsTNG && ./RunTest.sh $(OPT)
 
 test.ewald:
 	@-cd Test_Ewald && ./RunTest.sh $(OPT)
@@ -447,6 +458,54 @@ test.catcrd:
 test.xtalsymm:
 	@-cd Test_XtalSymm && ./RunTest.sh $(OPT)
 
+test.time:
+	@-cd Test_Time && ./RunTest.sh $(OPT)
+
+test.splitcoords:
+	@-cd Test_SplitCoords && ./RunTest.sh $(OPT)
+
+test.dihedralrms:
+	@-cd Test_DihedralRMS && ./RunTest.sh $(OPT)
+
+test.slope:
+	@-cd Test_Slope && ./RunTest.sh $(OPT)
+
+test.diagmatrix:
+	@-cd Test_Diagmatrix && ./RunTest.sh $(OPT)
+
+test.emin:
+	@-cd Test_Emin && ./RunTest.sh $(OPT)
+
+test.evalplateau:
+	@-cd Test_EvalPlateau && ./RunTest.sh $(OPT)
+
+test.graft:
+	@-cd Test_Graft && ./RunTest.sh $(OPT)
+
+test.flatten:
+	@-cd Test_Flatten && ./RunTest.sh $(OPT)
+
+test.random:
+	@-cd Test_Random && ./RunTest.sh $(OPT)
+
+test.multipucker:
+	@-cd Test_MultiPucker && ./RunTest.sh $(OPT)
+
+test.ljc:
+	@-cd Test_LJC && ./RunTest.sh $(OPT)
+
+test.hmassrepartition:
+	@-cd Test_HmassRepartition && ./RunTest.sh $(OPT)
+
+test.prepareforleap:
+	@-cd Test_PrepareForLeap && ./RunTest.sh $(OPT)
+
+test.keep:
+	@-cd Test_Keep && ./RunTest.sh $(OPT)
+
+test.hremd:
+	@-cd Test_Ensemble_HREMD && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -527,6 +586,7 @@ COMPLETETESTS=test.general \
               test.symmrmsd \
               test.multidihedral \
               test.mremd \
+              test.hremd \
               test.makestructure \
               test.rotate \
               test.integrate \
@@ -590,7 +650,22 @@ COMPLETETESTS=test.general \
               test.xyzfmt \
               test.hausdorff \
               test.catcrd \
-              test.xtalsymm
+              test.xtalsymm \
+              test.time \
+              test.splitcoords \
+              test.dihedralrms \
+              test.slope \
+              test.diagmatrix \
+              test.emin \
+              test.evalplateau \
+              test.graft \
+              test.flatten \
+              test.random \
+              test.multipucker \
+              test.ljc \
+              test.hmassrepartition \
+              test.prepareforleap \
+              test.keep
 
 test.all:
 	$(MAKE) test.complete summary
@@ -603,6 +678,9 @@ test.openmp:
 
 test.cuda:
 	$(MAKE) test.complete summary OPT="$(OPT) cuda"
+
+test.hip:
+	$(MAKE) test.complete summary OPT="$(OPT) hip"
 
 test.libcpptraj:
 	@cd Test_Libcpptraj && ./RunTest.sh $(OPT)

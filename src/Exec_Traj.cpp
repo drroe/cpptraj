@@ -1,8 +1,9 @@
 #include "Exec_Traj.h"
 #include "CpptrajStdio.h"
+#include "ActionFrameCounter.h"
 
 void Exec_Trajin::Help() const {
-  mprintf("\t<filename> {[<start>] [<stop> | last] [offset]} | lastframe\n"
+  mprintf("\t<filename> {[<start>] [<stop> | last] [<offset>]} | lastframe\n"
           "\t           [%s]\n", DataSetList::TopArgs);
   mprintf("\t           [mdvel <velocities>] [mdfrc <forces>]\n"
           "\t           [as <format keyword>] [ <Format Options> ]\n"
@@ -11,6 +12,10 @@ void Exec_Trajin::Help() const {
           "\t                       remdtrajvalues <values list>}\n"
           "\t             [trajnames <rep1>,<rep2>,...,<repN>] ]\n"
           "  Load trajectory specified by <filename> to the input trajectory list.\n"
+          "  <start> specifies the start frame (default 1), <stop> specifies the\n"
+          "  stop frame (default last frame), and <offset> the frame offset (default 1).\n"
+          "  If a negative value is given for <start> it means begin <start> frames\n"
+          "  before <stop>.\n"
           "  If desired, additional velocity or force information can be read from\n"
           "  files specified by 'mdvel' and/or 'mdfrc'.\n"
           "  The 'remdtraj' keyword can be used to extract frames for a specific replica\n"
@@ -30,7 +35,9 @@ void Exec_Ensemble::Help() const {
   mprintf("\t<file0> {[<start>] [<stop> | last] [offset]} | lastframe\n"
           "\t        [%s]\n", DataSetList::TopArgs);
   mprintf("\t        [trajnames <file1>,<file2>,...,<fileN>]\n"
-          "\t        [nosort | [remlog <remlogfile> [nstlim <nstlim> ntwx <ntwx>]]]\n"
+          "\t        [{nosort |\n"
+          "\t          bycrdidx |\n"
+          "\t          remlog <remlogfile> [nstlim <nstlim> ntwx <ntwx>]}]\n"
           "  Load an ensemble of trajectories starting with <file0> that will be\n"
           "  processed together as an ensemble.\n"
           "  The default behavior is to sort the ensemble by replica. If 'nosort'\n"

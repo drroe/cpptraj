@@ -22,16 +22,17 @@ class DataSet {
   public:
     typedef DataSet* (*AllocatorType)();
     typedef std::vector<size_t> SizeArray;
-    /// DataSet base type. 
+    /// DataSet base type.
+    /** When adding new entries make sure that Descriptions_ is updated. */ 
     enum DataType {
       UNKNOWN_DATA=0, DOUBLE, FLOAT, INTEGER, STRING, MATRIX_DBL, MATRIX_FLT, 
       COORDS, VECTOR, MODES, GRID_FLT, GRID_DBL, REMLOG, XYMESH, TRAJ, REF_FRAME,
-      MAT3X3, TOPOLOGY, CMATRIX, CMATRIX_NOMEM, CMATRIX_DISK, PH, PH_EXPL, PH_IMPL,
-      PARAMETERS
+      MAT3X3, TOPOLOGY, PH, PH_EXPL, PH_IMPL,
+      PARAMETERS, PMATRIX_MEM, PMATRIX_NC, TENSOR, STRINGVAR, VECTOR_SCALAR, UNSIGNED_INTEGER
     };
     /// Group DataSet belongs to.
     enum DataGroup {
-      GENERIC=0, SCALAR_1D, MATRIX_2D, GRID_3D, COORDINATES, CLUSTERMATRIX, PHREMD
+      GENERIC=0, SCALAR_1D, MATRIX_2D, GRID_3D, COORDINATES, PHREMD, PWCACHE, VECTOR_1D
     };
 
     DataSet();
@@ -44,15 +45,19 @@ class DataSet {
     // ----------===== Inheritable functions =====----------
     /// \return the number of data elements stored in the DataSet.
     virtual size_t Size() const = 0;
+    /// \return SizeArray containing sizes in each dimension TODO pure virtual
+    virtual SizeArray DimSizes() const { return SizeArray(); }
     /// Print DataSet information //TODO return string instead?
     virtual void Info() const = 0;
-    /// Write data to file given start indices. FIXME Buffer? Should this function take number of elements as well?
+    /// Write data to file given start indices.
     virtual void WriteBuffer(CpptrajFile&, SizeArray const&) const = 0;
     /// \return value of coordinate for specified dimension d and position p.
     /** NOTE: It is assumed this can ALWAYS be represented as double precision. */
     virtual double Coord(unsigned int d, size_t p) const { return dim_[d].Coord(p); }
-    /// Allocate data given numbers of elements.
+    /// Reserve memory for given number(s) of elements. TODO rename?
     virtual int Allocate(SizeArray const&) = 0;
+    /// Actually allocate memory for given number(s) of elements TODO pure virtual?
+    virtual int MemAlloc(SizeArray const&) { return 1; }
     /// Add element to data set.
     /** A pointer to the data is passed in as void - it is up to the
       * inheriting class to cast it. The X value for the data is passed
@@ -65,8 +70,10 @@ class DataSet {
     virtual int Append(DataSet*) = 0;
     /// \return Size of data set in memory (in bytes).
     virtual size_t MemUsageInBytes() const = 0;
+    /// Copy a block to position in this set from given set OF SAME TYPE using specified position and size TODO pure virtual
+    virtual void CopyBlock(size_t, const DataSet*, size_t, size_t) {}
 #   ifdef MPI
-    /// Piece this DataSet together from multiple threads.
+    /// Sync data across all processes for this DataSet to the master process.
     virtual int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) = 0;
     // TODO pure virtual
     virtual int SendSet(int, Parallel::Comm const&) { return 1; }
@@ -123,8 +130,10 @@ class DataSet {
         return *first < *second;
       }
     };
-    /// \return Text description based on DataType
+    /// \return Text description based on given DataType
     static const char* description(DataType t) { return Descriptions_[t]; }
+    /// \return Text description based on current DataType
+    const char* description() const            { return Descriptions_[dType_]; }
   protected:
     TextFormat format_;         ///< Text output data format.
   private:

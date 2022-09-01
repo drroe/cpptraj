@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // DigitWidth
 #include "Constants.h" // For AddOrAppendSets
+#include "ArgList.h"
 // Data types go here
 #include "DataSet_double.h"
 #include "DataSet_float.h"
@@ -23,13 +24,16 @@
 #include "DataSet_Mat3x3.h"
 #include "DataSet_Topology.h"
 #include "DataSet_GridDbl.h"
-#include "DataSet_Cmatrix_MEM.h"
-#include "DataSet_Cmatrix_NOMEM.h"
-#include "DataSet_Cmatrix_DISK.h"
 #include "DataSet_pH.h"
 #include "DataSet_PHREMD_Explicit.h"
 #include "DataSet_PHREMD_Implicit.h"
 #include "DataSet_Parameters.h"
+#include "DataSet_PairwiseCache_MEM.h"
+#include "DataSet_PairwiseCache_NC.h"
+#include "DataSet_Tensor.h"
+#include "DataSet_StringVar.h"
+#include "DataSet_Vector_Scalar.h"
+#include "DataSet_unsignedInt.h"
 
 bool DataSetList::useDiskCache_ = false;
 
@@ -51,10 +55,11 @@ DataSet* DataSetList::NewSet(DataSet::DataType typeIn) {
         ds = DataSet_integer_mem::Alloc();
 #     else
       if (useDiskCache_)
-        mprintf("Warning: Integer data set disk cache requires NetCDF. Using memory.\n"
+        mprintf("Warning: Integer data set disk cache requires NetCDF. Using memory.\n");
       ds = DataSet_integer_mem::Alloc();
 #     endif
       break;
+    case DataSet::UNSIGNED_INTEGER : ds = DataSet_unsignedInt::Alloc(); break;
     case DataSet::STRING  : ds = DataSet_string::Alloc(); break;
     case DataSet::MATRIX_DBL : ds = DataSet_MatrixDbl::Alloc(); break;
     case DataSet::MATRIX_FLT : ds = DataSet_MatrixFlt::Alloc(); break;
@@ -69,13 +74,23 @@ DataSet* DataSetList::NewSet(DataSet::DataType typeIn) {
     case DataSet::REF_FRAME  : ds = DataSet_Coords_REF::Alloc(); break;
     case DataSet::MAT3X3     : ds = DataSet_Mat3x3::Alloc(); break;
     case DataSet::TOPOLOGY   : ds = DataSet_Topology::Alloc(); break;
-    case DataSet::CMATRIX    : ds = DataSet_Cmatrix_MEM::Alloc(); break;
-    case DataSet::CMATRIX_NOMEM : ds = DataSet_Cmatrix_NOMEM::Alloc(); break;
-    case DataSet::CMATRIX_DISK  : ds = DataSet_Cmatrix_DISK::Alloc(); break;
     case DataSet::PH            : ds = DataSet_pH::Alloc(); break;
     case DataSet::PH_EXPL       : ds = DataSet_PHREMD_Explicit::Alloc(); break;
     case DataSet::PH_IMPL       : ds = DataSet_PHREMD_Implicit::Alloc(); break;
     case DataSet::PARAMETERS    : ds = DataSet_Parameters::Alloc(); break;
+    // TODO useDiskCache
+    case DataSet::PMATRIX_MEM   : ds = DataSet_PairwiseCache_MEM::Alloc(); break;
+    case DataSet::PMATRIX_NC    :
+#     ifdef BINTRAJ
+      ds = DataSet_PairwiseCache_NC::Alloc();
+#     else
+      mprinterr("Error: NetCDF pairwise disk cache requires NetCDF.\n");
+      ds = 0;
+#     endif
+      break;
+    case DataSet::TENSOR        : ds = DataSet_Tensor::Alloc(); break;
+    case DataSet::STRINGVAR     : ds = DataSet_StringVar::Alloc(); break;
+    case DataSet::VECTOR_SCALAR : ds = DataSet_Vector_Scalar::Alloc(); break;
     // Sanity check
     default:
       mprinterr("Internal Error: No allocator for DataSet type '%s'\n",
@@ -198,7 +213,7 @@ void DataSetList::SetPrecisionOfDataSets(std::string const& nameIn, int widthIn,
   if (widthIn < 1)
     mprinterr("Error: Invalid data width (%i)\n", widthIn);
   else {
-    DataSetList Sets = GetMultipleSets( nameIn );
+    DataSetList Sets = SelectSets( nameIn );
     for (DataSetList::const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds)
       (*ds)->SetupFormat().SetFormatWidthPrecision(widthIn, precisionIn);
   }
@@ -355,6 +370,17 @@ DataSet* DataSetList::FindSetOfType(std::string const& nameIn, DataSet::DataType
   return dsetOut[0];
 }
 
+/** \return single set belonging to specified group. */
+DataSet* DataSetList::FindSetOfGroup(std::string const& nameIn, DataSet::DataGroup groupIn) const
+{
+  DataSetList dsetOut = SelectGroupSets( nameIn, groupIn );
+  if (dsetOut.empty())
+    return 0;
+  else if (dsetOut.size() > 1)
+    mprintf("Warning: '%s' selects multiple sets. Only using first.\n", nameIn.c_str());
+  return dsetOut[0];
+}
+
 /** Search for a COORDS DataSet. If no name specified, create a default
   * COORDS DataSet named _DEFAULTCRD_.
   */
@@ -402,12 +428,16 @@ DataSet* DataSetList::AddSet( DataSet::DataType inType, MetaData const& metaIn,
   return AddSet( inType, meta );
 }
 
-/** Add a DataSet of specified type, set it up and return pointer to it. 
+/** Allocate a DataSet of specified type, set it up and return pointer to it.
+  * It will not be added to the list. 
   * \param inType type of DataSet to add.
   * \param metaIn DataSet MetaData.
   * \return pointer to successfully set-up DataSet or 0 if error.
   */ 
-DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
+DataSet* DataSetList::AllocateSet(DataSet::DataType inType, MetaData const& metaIn)
+#ifndef TIMER
+const
+#endif
 { // TODO Always generate default name if empty?
 # ifdef TIMER
   time_total_.Start();
@@ -441,6 +471,10 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
 # ifdef TIMER
   time_setup_.Start();
 # endif
+  //mprintf("DEBUG: Adding and setting up data set '%s'\n", meta.PrintName().c_str());
+  //if (meta.TimeSeries() == MetaData::UNKNOWN_TS)
+  //  mprintf("DEBUG: UNKNOWN_TS\n");
+  //mprintf("DEBUG: ndim= %i\n", DS->Ndim());
   // If 1 dim set and time series status not set, set to true.
   if (meta.TimeSeries() == MetaData::UNKNOWN_TS && DS->Ndim() == 1) {
     meta.SetTimeSeries( MetaData::IS_TS );
@@ -458,13 +492,29 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
 # endif
 # ifdef TIMER
   time_setup_.Stop();
-  time_push_.Start();
 # endif
-  Push_Back(DS);
-# ifdef TIMER
-  time_push_.Stop();
-# endif
-  //fprintf(stderr,"ADDED dataset %s\n",dsetName);
+  //fprintf(stderr,"ALLOCATED dataset %s\n",dsetName);
+  return DS;
+}
+
+/** Add a DataSet of specified type, set it up and return pointer to it. 
+  * \param inType type of DataSet to add.
+  * \param metaIn DataSet MetaData.
+  * \return pointer to successfully set-up DataSet or 0 if error.
+  */ 
+DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
+{
+  DataSet* DS = AllocateSet(inType, metaIn);
+  if (DS != 0) {
+#   ifdef TIMER
+    time_push_.Start();
+#   endif
+    Push_Back(DS);
+#   ifdef TIMER
+    time_push_.Stop();
+#   endif
+    //fprintf(stderr,"ADDED dataset %s\n",dsetName);
+  }
   return DS;
 }
 
@@ -543,7 +593,7 @@ int DataSetList::AddOrAppendSets(std::string const& XlabelIn, Darray const& Xval
                                  DataListType const& Sets)
 {
   if (debug_ > 0)
-    mprintf("DEBUG: Calling AddOrAppendSets for %zu sets, %zu X values, Xlabel= %s.\n",
+    mprintf("DEBUG: Calling AddOrAppendSets for %zu sets, %zu X values, Xlabel= '%s'.\n",
             Sets.size(), Xvals.size(), XlabelIn.c_str());
   if (Sets.empty()) return 0; // No error for now.
   // If no X label assume 'Frame' for backwards compat.
@@ -700,6 +750,17 @@ void DataSetList::ListDataOnly() const {
   mprintf("\nDATASETS (%zu total):\n", temp.size());
   PrintList( temp );
 }
+
+void DataSetList::ListStringVar() const {
+  for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+  {
+    if ( (*ds)->Type() == DataSet::STRINGVAR) {
+      DataSet_StringVar const& var = static_cast<DataSet_StringVar const&>( *(*ds) );
+      mprintf("\t%s = %s\n", var.legend(), var.Value().c_str());
+    }
+  }
+}
+
 #ifdef MPI
 // DataSetList::SynchronizeData()
 /** Synchronize timeseries data from child ranks to master. */
@@ -720,9 +781,11 @@ int DataSetList::SynchronizeData(Parallel::Comm const& commIn) {
   // DEBUG
   rprintf("DEBUG: SYNCING SETS\n");
   for (int rank = 0; rank != commIn.Size(); rank++) {
-    if (rank == commIn.Rank())
-      for (DataListType::const_iterator ds = SetsToSync.begin(); ds != SetsToSync.end(); ++ds)
-        rprintf("SET '%s'\n", (*ds)->legend());
+    if (rank == commIn.Rank()) {
+      std::vector<int>::const_iterator sz = size_on_rank.begin();
+      for (DataListType::const_iterator ds = SetsToSync.begin(); ds != SetsToSync.end(); ++ds, ++sz)
+        rprintf("SET '%s' %i\n", (*ds)->legend(), *sz);
+    }
     commIn.Barrier();
   }
 # endif
@@ -769,6 +832,121 @@ int DataSetList::SynchronizeData(Parallel::Comm const& commIn) {
   return 0;
 }
 #endif
+// -----------------------------------------------------------------------------
+
+int DataSetList::UpdateStringVar(std::string const& varnameIn, std::string const& newValue)
+const
+{
+  DataSet* ds = FindSetOfType( varnameIn, DataSet::STRINGVAR );
+  if (ds == 0) {
+    mprinterr("Error: No string variable named '%s'\n", varnameIn.c_str());
+    return 1;
+  }
+  DataSet_StringVar& var = static_cast<DataSet_StringVar&>( *ds );
+  var.assign( newValue );
+  return 0;
+}
+
+/** Get a value from specified DataSet as a string. */
+std::string DataSetList::GetVariable(std::string const& varnameIn) const {
+  DataSet* ds = CheckForSet( varnameIn );
+  if (ds == 0) return std::string();
+  std::string val;
+  if (ds->Size() > 0) {
+    if (ds->Type() == DataSet::STRINGVAR) {
+      val = ((DataSet_StringVar*)ds)->Value();
+    } else if (ds->Type() == DataSet::STRING) {
+      val = (*((DataSet_string*)ds))[0];
+    } else if (ds->Group() == DataSet::SCALAR_1D) { 
+      val = doubleToString( ((DataSet_1D*)ds)->Dval(0) );
+    } else {
+      mprinterr("Internal Error: DataSetList::GetVariable(): Invalid set type: '%s'\n",
+                ds->legend());
+      return std::string();
+    }
+  }
+  
+  return val;
+}
+
+/** Replace all variables (beginning with $) in string with their values.
+  * \param varname Final string containing values.
+  * \param varnameIn Initial string containing variables to replace.
+  */
+int DataSetList::ReplaceVariables(std::string& varname, std::string const& varnameIn)
+const
+{
+  int nReplaced = 0;
+  varname = varnameIn;
+  size_t pos = varname.find("$");
+  while (pos != std::string::npos) {
+    // Argument is/contains a variable. Find first non-alphanumeric char
+    size_t len = 1;
+    for (size_t pos1 = pos+1; pos1 < varname.size(); pos1++, len++)
+      if (!isalnum(varname[pos1])) break;
+    std::string var_in_arg = varname.substr(pos+1, len-1);
+    // String variables will never have aspect/index etc. See if string
+    // variable with this name exists.
+    DataSet* ds = 0;
+    //mprintf("DEBUG: Check for string var: '%s'\n", var_in_arg.c_str());
+    for (const_iterator it = begin(); it != end(); ++it)
+    {
+      if ( (*it)->Type() == DataSet::STRINGVAR && (*it)->Matches_Exact(MetaData(var_in_arg)) ) {
+        ds = *it;
+        break;
+      }
+    }
+    if (ds == 0) {
+      // String variable not found; see if this is a DataSet.
+      for (size_t pos1 = pos+len; pos1 < varname.size(); pos1++, len++)
+      {
+        if (!isalnum(varname[pos1]) &&
+            varname[pos1] != '[' &&
+            varname[pos1] != ':' &&
+            varname[pos1] != ']' &&
+            varname[pos1] != '_' &&
+            varname[pos1] != '-' &&
+            varname[pos1] != '%')
+          break;
+      }
+      var_in_arg = varname.substr(pos+1, len-1);
+      ds = CheckForSet( var_in_arg );
+    }
+    if (ds == 0) {
+      mprinterr("Error: Unrecognized variable in command: %s\n", var_in_arg.c_str());
+      return -1;
+    } else {
+      if (ds->Type() != DataSet::STRINGVAR &&
+          ds->Type() != DataSet::STRING && 
+          ds->Group() != DataSet::SCALAR_1D)
+      {
+        mprinterr("Error: Only strings and 1D data sets supported for variable replacement.\n");
+        return -1;
+      }
+      if (ds->Size() < 1) {
+        mprinterr("Error: Set is empty.\n");
+        return -1;
+      }
+      if (ds->Size() > 1)
+        mprintf("Warning: Only using first value.\n");
+      std::string value;
+      if (ds->Type() == DataSet::STRINGVAR)
+        value = (*((DataSet_StringVar*)ds)).Value(); 
+      else if (ds->Type() == DataSet::STRING)
+        value = (*((DataSet_string*)ds))[0];
+      else
+        value = doubleToString(((DataSet_1D*)ds)->Dval(0));
+      if (debug_ > 0)
+        mprintf("DEBUG: Replaced variable '$%s' with value '%s' from DataSet '%s'\n",
+                var_in_arg.c_str(), value.c_str(), ds->legend());
+      varname.replace(pos, var_in_arg.size()+1, value);
+      nReplaced++;
+    }
+    pos = varname.find("$");
+  } // END loop over this argument
+  return nReplaced;
+}
+
 // -----------------------------------------------------------------------------
 const char* DataSetList::RefArgs = "reference | ref <name> | refindex <#>";
 
@@ -821,10 +999,10 @@ int DataSetList::SetActiveReference(ArgList &argIn) {
   return SetActiveReference( ds );
 }
 
-int DataSetList::SetActiveReference(DataSet* ds) {
-  if (ds == 0) return 1;
-  activeRef_ = ds;
-  ReferenceFrame REF((DataSet_Coords_REF*)ds);
+int DataSetList::SetActiveReference(DataSet* dsIn) {
+  if (dsIn == 0) return 1;
+  activeRef_ = dsIn;
+  ReferenceFrame REF((DataSet_Coords_REF*)dsIn);
   mprintf("\tSetting active reference for distance-based masks: '%s'\n", REF.refName());
   // Set in all Topologies and COORDS data sets.
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
@@ -842,7 +1020,7 @@ void DataSetList::ListReferenceFrames() const {
   if (!RefList_.empty()) {
     mprintf("\nREFERENCE FRAMES (%zu total):\n", RefList_.size());
     for (DataListType::const_iterator ref = RefList_.begin(); ref != RefList_.end(); ++ref)
-      mprintf("    %u: %s\n", ref - RefList_.begin(), (*ref)->Meta().PrintName().c_str());
+      mprintf("    %li: %s\n", ref - RefList_.begin(), (*ref)->Meta().PrintName().c_str());
     if (activeRef_ != 0)
       mprintf("\tActive reference frame for distance-based masks is '%s'\n", activeRef_->legend());
   }
@@ -903,7 +1081,7 @@ Topology* DataSetList::GetTopology(ArgList& argIn) const {
   return ((DataSet_Topology*)top)->TopPtr();
 }
 
-const char* DataSetList::TopIdxArgs = "parm <name> | parmindex <#> | <#>";
+const char* DataSetList::TopIdxArgs = "parm <name> | crdset <set> | parmindex <#> | <#>";
 
 // DataSetList::GetTopByIndex()
 /** \return Topology specfied by a keyword, or if no keywords specified
@@ -911,13 +1089,20 @@ const char* DataSetList::TopIdxArgs = "parm <name> | parmindex <#> | <#>";
   *         If no Topology loaded, return 0 and print error message.
   */
 Topology* DataSetList::GetTopByIndex(ArgList& argIn) const {
-  if (TopList_.empty()) {
-    mprinterr("Error: No Topologies are loaded.\n");
-    return 0;
-  }
+  //if (TopList_.empty()) {
+  //  mprinterr("Error: No Topologies are loaded.\n");
+  //  return 0;
+  //}
   int err;
   DataSet* top = GetTopByKeyword( argIn, err );
   if (err) return 0;
+  // Check coords sets
+  std::string crdset = argIn.GetStringKey("crdset");
+  if (!crdset.empty()) {
+    top = FindSetOfGroup(crdset, DataSet::COORDINATES);
+    if ( top == 0) return 0;
+    return ((DataSet_Coords*)top)->TopPtr();
+  }
   if (top == 0) { // For backwards compat., check for single integer arg.
     int topindex = argIn.getNextInteger(-1);
     if (topindex > -1 && topindex < (int)TopList_.size())
@@ -927,8 +1112,12 @@ Topology* DataSetList::GetTopByIndex(ArgList& argIn) const {
       return 0;
     }
   }
-  if (top == 0) // By default return first parm if nothing else specified.
+  if (top == 0) {
+    // By default return first parm if nothing else specified.
+    if (TopList_.empty())
+      return 0;
     top = TopList_.front();
+  }
   return ((DataSet_Topology*)top)->TopPtr();
 }
 

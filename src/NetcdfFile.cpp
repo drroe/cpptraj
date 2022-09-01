@@ -1,6 +1,7 @@
 #include "NetcdfFile.h"
 #ifdef BINTRAJ
 #  include <netcdf.h>
+#  include <cstring> // strlen
 #  include "NC_Routines.h"
 #endif
 #ifdef MPI
@@ -294,6 +295,21 @@ int NetcdfFile::SetupTime() {
       if (time == NC_FILL_FLOAT) {
         mprintf("Warning: NetCDF file time variable defined but empty. Disabling.\n");
         timeVID_ = -1;
+      } else {
+        // If first 2 values are 0, this is another indication of a bad time variable.
+        if (ncframe_ > 1) {
+          float time1;
+          start_[0] = 1;
+          if (NC::CheckErr(nc_get_vara_float(ncid_, timeVID_, start_, count_, &time1))) {
+            mprinterr("Error: Getting second time value for NetCDF file.\n");
+            return -1;
+          }
+          if (time1 == 0 && time1 == time)
+          {
+            mprintf("Warning: NetCDF file time variable defined but all zero. Disabling.\n");
+            timeVID_ = -1;
+          }
+        }
       }
     }
     return 0;
@@ -440,7 +456,13 @@ int NetcdfFile::SetupBox() {
     }
     if (ncdebug_ > 0) mprintf("\tNetCDF Box: XYZ={%f %f %f} ABG={%f %f %f}\n",
                               boxCrd[0], boxCrd[1], boxCrd[2], boxCrd[3], boxCrd[4], boxCrd[5]);
-    nc_box_.SetBox( boxCrd );
+    if (nc_box_.SetupFromXyzAbg( boxCrd )) {
+      mprintf("Warning: NetCDF file unit cell variables appear to be empty; disabling box.\n");
+      cellLengthVID_ = -1;
+      cellAngleVID_ = -1;
+      nc_box_.SetNoBox();
+      return -1;
+    }
     return 0;
   }
   // No box information
@@ -546,10 +568,12 @@ int NetcdfFile::NC_setupRead(std::string const& fname, NCTYPE expectedType, int 
 
 /** \return Coordinate info corresponding to current setup. */
 CoordinateInfo NetcdfFile::NC_coordInfo() const {
+  // TODO the 'false' is for step info. Enable this in the future when time
+  //      is present.
   return CoordinateInfo( ensembleSize_, remDimType_, nc_box_,
                          HasCoords(), HasVelocities(), HasForces(), 
                          HasTemperatures(), Has_pH(), HasRedOx(),
-                         HasTimes(), (repidxVID_ != -1), (crdidxVID_ != -1),
+                         HasTimes(), false, (repidxVID_ != -1), (crdidxVID_ != -1),
                          (RemdValuesVID_ != -1) );
 }
 
@@ -883,6 +907,9 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
   } 
   // Box Info
   if (coordInfo.HasBox()) {
+    // Check x-aligned
+    if (!coordInfo.TrajBox().Is_X_Aligned())
+      mprintf("Warning: Unit cell is not X-aligned. Box cannot be properly stored as Amber NetCDF\n");
     // Cell Spatial
     if ( NC::CheckErr( nc_def_dim( ncid_, NCCELL_SPATIAL, 3, &cell_spatialDID_)) ) {
       mprinterr("Error: Defining cell spatial dimension.\n");
@@ -962,7 +989,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
     return 1;
   }
   if (NC::CheckErr(nc_put_att_text(ncid_,NC_GLOBAL,"programVersion",
-                                   CPPTRAJ_VERSION_STRLEN, CPPTRAJ_VERSION_STRING)))
+                                   strlen(CPPTRAJ_INTERNAL_VERSION), CPPTRAJ_INTERNAL_VERSION)))
   {
     mprinterr("Error: Writing program version.\n");
     return 1;
@@ -1132,7 +1159,7 @@ void NetcdfFile::DebugVIDs() const {
 }
 
 #ifdef MPI
-void NetcdfFile::Sync(Parallel::Comm const& commIn) {
+void NetcdfFile::Broadcast(Parallel::Comm const& commIn) {
   static const unsigned int NCVARS_SIZE = 29;
   int nc_vars[NCVARS_SIZE];
   if (commIn.Master()) {

@@ -1,7 +1,7 @@
 #ifndef INC_ACTION_DIFFUSION_H
 #define INC_ACTION_DIFFUSION_H
 #include "Action.h"
-#include "ImagedAction.h"
+#include "ImageOption.h"
 class Action_Diffusion : public Action {
   public:
     Action_Diffusion();
@@ -20,7 +20,7 @@ class Action_Diffusion : public Action {
     void CalcDiffForSet(unsigned int&, Dlist const&, int, std::string const&) const;
     void CalcDiffusionConst(unsigned int&, DataSet*, int, std::string const&) const;
 
-    ImagedAction image_; ///< Imaging routines
+    ImageOption imageOpt_; ///< Used to determine if imaging should be used.
     Frame initial_;   ///< Initial frame (all atoms)
     Darray previous_; ///< Previous coordinates (selected atoms)
     DataSet* avg_x_;  ///< Hold average diffusion in X direction each frame
@@ -42,7 +42,6 @@ class Action_Diffusion : public Action {
     DataSet* diffInter_;   ///< Hold MSD vs time line intercepts.
     DataSet* diffCorrl_;   ///< Hold MSD vs time line correlation.
     int debug_;
-    Darray delta_;         ///< Hold current distances from initial frame for selected atoms
     AtomMask mask_;        ///< Selected atoms
     DataFile* outputx_;
     DataFile* outputy_;
@@ -50,7 +49,6 @@ class Action_Diffusion : public Action {
     DataFile* outputr_;
     DataFile* outputa_;
     DataFile* diffout_;
-    Vec3 boxcenter_; ///< Hold center of box each frame
     DataSetList* masterDSL_;
     std::string dsname_;
     Dimension Xdim_;

@@ -4,6 +4,10 @@
 #include "DistRoutines.h"
 #include "TorsionRoutines.h"
 #include "Constants.h"
+#include "Topology.h"
+#include "CharMask.h"
+#include "ExclusionArray.h"
+#include "Energy/Ene_Angle.h"
 
 const double Energy_Amber::QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
 
@@ -11,11 +15,13 @@ const double Energy_Amber::QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBE
 Energy_Amber::Energy_Amber() : debug_(0) {}
 
 /** Bond energy */
-double Energy_Amber::E_bond(Frame const& fIn, Topology const& tIn, CharMask const& mask)
+double Energy_Amber::E_bond(Frame const& fIn, Topology const& tIn, CharMask const& mask, bool bondsToH)
 {
   // Heavy atom bonds
   double Ebond = CalcBondEnergy(fIn, tIn.Bonds(), tIn.BondParm(), mask);
-  Ebond += CalcBondEnergy(fIn, tIn.BondsH(), tIn.BondParm(), mask);
+  // Bonds to hydrogen
+  if (bondsToH)
+    Ebond += CalcBondEnergy(fIn, tIn.BondsH(), tIn.BondParm(), mask);
   return Ebond;
 }
 
@@ -40,8 +46,10 @@ double Energy_Amber::CalcBondEnergy(Frame const& fIn, BondArray const& Bonds,
       double rdiff = r - bp.Req();
       double ene = bp.Rk() * (rdiff * rdiff);
       Ebond += ene;
+//      mprintf("EBOND %4li %4i -- %4i: k= %12.5f  x0= %12.5f  r= %12.5f  E= %12.5f\n",
+//              b - Bonds.begin(), b->A1()+1, b->A2()+1, bp.Rk(), bp.Req(), r, ene);
 #     ifdef DEBUG_ENERGY
-      mprintf("\tBond %4u %4i -- %4i: k= %12.5f  x0= %12.5f  r= %12.5f  E= %12.5e\n",
+      mprintf("\tBond %4li %4i -- %4i: k= %12.5f  x0= %12.5f  r= %12.5f  E= %12.5e\n",
               b - Bonds.begin(), b->A1()+1, b->A2()+1, bp.Rk(), bp.Req(), r, ene);
 #     endif
     }
@@ -78,9 +86,9 @@ double Energy_Amber::CalcAngleEnergy(Frame const& fIn, AngleArray const& Angles,
         continue;
       }
       AngleParmType const& ap = APA[apidx];
-      double theta = CalcAngle(fIn.XYZ(a->A1()), fIn.XYZ(a->A2()), fIn.XYZ(a->A3()));
-      double tdiff = theta - ap.Teq();
-      double ene = ap.Tk() * (tdiff * tdiff);
+      double ene = Cpptraj::Energy::Ene_Angle<double>(
+                     fIn.XYZ(a->A1()), fIn.XYZ(a->A2()), fIn.XYZ(a->A3()), ap.Teq(), ap.Tk());
+
       Eangle += ene;
 #     ifdef DEBUG_ENERGY
       mprintf("\tAngle %4u %4i -- %4i -- %4i: k= %12.5f  x0= %12.5f  t= %12.5f  E= %12.5e\n",
@@ -198,7 +206,7 @@ double Energy_Amber::Calc_14_Energy(Frame const& fIn, DihedralArray const& Dihed
 // -----------------------------------------------------------------------------
 // Energy_Amber::E_Nonbond()
 double Energy_Amber::E_Nonbond(Frame const& fIn, Topology const& tIn, AtomMask const& mask,
-                               double& EelecOut)
+                               double& EelecOut, ExclusionArray const& Excluded)
 {
   double Evdw = 0.0;
   double Eelec = 0.0;
@@ -214,15 +222,16 @@ double Energy_Amber::E_Nonbond(Frame const& fIn, Topology const& tIn, AtomMask c
     // Set up coord for this atom
     const double* crd1 = fIn.XYZ( atom1 );
     // Set up exclusion list for this atom
-    Atom::excluded_iterator excluded_atom = tIn[atom1].excludedbegin();
+    // TODO refactor inner loop to be more like StructureCheck, more efficient.
+    ExclusionArray::ExListType::const_iterator excluded_idx = Excluded[idx1].begin();
     for (int idx2 = idx1 + 1; idx2 < mask.Nselected(); idx2++)
     {
       int atom2 = mask[idx2];
       // Advance excluded list up to current selected atom
-      while (excluded_atom != tIn[atom1].excludedend() && *excluded_atom < atom2) ++excluded_atom;
+      while (excluded_idx != Excluded[idx1].end() && *excluded_idx < idx2) ++excluded_idx;
       // If atom is excluded, just increment to next excluded atom.
-      if (excluded_atom != tIn[atom1].excludedend() && atom2 == *excluded_atom)
-        ++excluded_atom;
+      if (excluded_idx != Excluded[idx1].end() && idx2 == *excluded_idx)
+        ++excluded_idx;
       else {
         double rij2 = DIST2_NoImage( crd1, fIn.XYZ( atom2 ) );
         double rij = sqrt( rij2 );
@@ -257,7 +266,8 @@ double Energy_Amber::E_Nonbond(Frame const& fIn, Topology const& tIn, AtomMask c
 }
 
 // -----------------------------------------------------------------------------
-double Energy_Amber::E_VDW(Frame const& fIn, Topology const& tIn, AtomMask const& mask)
+double Energy_Amber::E_VDW(Frame const& fIn, Topology const& tIn, AtomMask const& mask,
+                           ExclusionArray const& Excluded)
 {
   double Evdw = 0.0;
   int idx1;
@@ -272,15 +282,16 @@ double Energy_Amber::E_VDW(Frame const& fIn, Topology const& tIn, AtomMask const
     // Set up coord for this atom
     const double* crd1 = fIn.XYZ( atom1 );
     // Set up exclusion list for this atom
-    Atom::excluded_iterator excluded_atom = tIn[atom1].excludedbegin();
+    // TODO refactor inner loop to be more like StructureCheck
+    ExclusionArray::ExListType::const_iterator excluded_idx = Excluded[idx1].begin();
     for (int idx2 = idx1 + 1; idx2 < mask.Nselected(); idx2++)
     {
       int atom2 = mask[idx2];
       // Advance excluded list up to current selected atom
-      while (excluded_atom != tIn[atom1].excludedend() && *excluded_atom < atom2) ++excluded_atom;
+      while (excluded_idx != Excluded[idx1].end() && *excluded_idx < idx2) ++excluded_idx;
       // If atom is excluded, just increment to next excluded atom.
-      if (excluded_atom != tIn[atom1].excludedend() && atom2 == *excluded_atom)
-        ++excluded_atom;
+      if (excluded_idx != Excluded[idx1].end() && idx2 == *excluded_idx)
+        ++excluded_idx;
       else {
         double rij2 = DIST2_NoImage( crd1, fIn.XYZ( atom2 ) );
         // VDW
@@ -306,7 +317,8 @@ double Energy_Amber::E_VDW(Frame const& fIn, Topology const& tIn, AtomMask const
 }
 
 // -----------------------------------------------------------------------------
-double Energy_Amber::E_Elec(Frame const& fIn, Topology const& tIn, AtomMask const& mask)
+double Energy_Amber::E_Elec(Frame const& fIn, Topology const& tIn, AtomMask const& mask,
+                            ExclusionArray const& Excluded)
 {
   double Eelec = 0.0;
   int idx1;
@@ -321,15 +333,16 @@ double Energy_Amber::E_Elec(Frame const& fIn, Topology const& tIn, AtomMask cons
     // Set up coord for this atom
     const double* crd1 = fIn.XYZ( atom1 );
     // Set up exclusion list for this atom
-    Atom::excluded_iterator excluded_atom = tIn[atom1].excludedbegin();
+    // TODO refactor inner loop to be like StructureCheck
+    ExclusionArray::ExListType::const_iterator excluded_idx = Excluded[idx1].begin();
     for (int idx2 = idx1 + 1; idx2 < mask.Nselected(); idx2++)
     {
       int atom2 = mask[idx2];
       // Advance excluded list up to current selected atom
-      while (excluded_atom != tIn[atom1].excludedend() && *excluded_atom < atom2) ++excluded_atom;
+      while (excluded_idx != Excluded[idx1].end() && *excluded_idx < idx2) ++excluded_idx;
       // If atom is excluded, just increment to next excluded atom.
-      if (excluded_atom != tIn[atom1].excludedend() && atom2 == *excluded_atom)
-        ++excluded_atom;
+      if (excluded_idx != Excluded[idx1].end() && idx2 == *excluded_idx)
+        ++excluded_idx;
       else {
         double rij2 = DIST2_NoImage( crd1, fIn.XYZ( atom2 ) );
         double rij = sqrt( rij2 );
@@ -352,14 +365,13 @@ double Energy_Amber::E_Elec(Frame const& fIn, Topology const& tIn, AtomMask cons
 }
 // -----------------------------------------------------------------------------
 double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask const& mask,
+                                 ExclusionArray const& Excluded,
                                  int n_points)
 {
   // Direct sum
-  double Edirect = E_Elec(fIn, tIn, mask);
+  double Edirect = E_Elec(fIn, tIn, mask, Excluded);
   // Sum over images.
   double Eimage = 0.0;
-  Matrix_3x3 ucell, recip;
-  fIn.BoxCrd().ToRecip(ucell, recip);
   // Cache npoints values, excluding this cell (0,0,0)
   std::vector<Vec3> Cells;
   int Ncells = (2*n_points)+1;
@@ -377,14 +389,14 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
     // Inner loop over atoms (j)
     for (AtomMask::const_iterator atom2 = mask.begin(); atom2 != mask.end(); ++atom2)
     {
-      Vec3 frac2 = recip * Vec3(fIn.XYZ( *atom2 )); // atom j in fractional coords
+      Vec3 frac2 = fIn.BoxCrd().FracCell() * Vec3(fIn.XYZ( *atom2 )); // atom j in fractional coords
       double qiqj = QFAC * tIn[*atom1].Charge() * tIn[*atom2].Charge();
       // Loop over images of atom j
       for (std::vector<Vec3>::const_iterator ixyz = Cells.begin(); ixyz != Cells.end(); ++ixyz)
       {
 //        mprintf("DEBUG: Atom %4i to %4i Image %3i %3i %3i", *atom1+1, *atom2+1, ix, iy, iz);
         // atom j image back in Cartesian space minus atom i in Cartesian space.
-        Vec3 dxyz = ucell.TransposeMult(frac2 + *ixyz) - T1;
+        Vec3 dxyz = fIn.BoxCrd().UnitCell().TransposeMult(frac2 + *ixyz) - T1;
         double rij2 = dxyz.Magnitude2();
         double rij = sqrt(rij2);
 //        mprintf(" Distance= %g\n", rij);

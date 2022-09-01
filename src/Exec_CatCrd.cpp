@@ -5,7 +5,7 @@
 void Exec_CatCrd::Help() const
 {
   mprintf("\t<set name0> <set name1> [<set nameX> ...] name <name>\n"
-          "  Combine 2 or more COORDS data sets into a single one.\n");
+          "  Concatenate 2 or more COORDS data sets into a single one.\n");
 }
 
 // Exec_CatCrd::Execute()
@@ -83,7 +83,8 @@ Exec::RetType Exec_CatCrd::Execute(CpptrajState& State, ArgList& argIn)
   {
     mprintf("\t'%s'\n", (*in)->legend());
     Frame frameIn = (*in)->AllocateFrame();
-    for (unsigned int frm = 0; frm != (*in)->Size(); frm++) {
+    unsigned int nFrames = (*in)->Size();
+    for (unsigned int frm = 0; frm != nFrames; frm++) {
       (*in)->GetFrame(frm, frameIn);
       coordsOut->AddFrame( frameIn );
     }

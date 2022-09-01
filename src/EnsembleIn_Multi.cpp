@@ -1,7 +1,9 @@
 #include "EnsembleIn_Multi.h"
+#include "FrameArray.h"
 #include "CpptrajStdio.h"
 #include "DataFile.h" // TODO remove
 #include "StringRoutines.h" // integerToString TODO remove
+#include "ArgList.h"
 
 // EnsembleIn_Multi::SetupEnsembleRead()
 int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn, Topology *tparmIn)
@@ -20,6 +22,19 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   double remlog_nstlim    = argIn.getKeyDouble("nstlim", 1.0);
   double remlog_ntwx      = argIn.getKeyDouble("ntwx",   1.0);
   bool no_sort = argIn.hasKey("nosort");
+  bool by_crdidx = argIn.hasKey("bycrdidx");
+  if (no_sort && by_crdidx) {
+    mprinterr("Error: Should only specify either 'nosort' or 'bycrdidx', not both.\n");
+    return 1;
+  }
+  if (no_sort && !remlog_name.empty()) {
+    mprinterr("Error: Should only specify either 'nosort' or 'remlog', not both.\n");
+    return 1;
+  }
+  if (by_crdidx && !remlog_name.empty()) {
+    mprinterr("Error: Should only specify either 'bycrdidx' or 'remlog', not both.\n");
+    return 1;
+  }
   // CRDIDXARG: Parse out 'crdidx <indices list>' now so it is not processed
   //            by SetupTrajIO.
   ArgList crdidxarg;
@@ -61,8 +76,20 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   // Unless nosort was specified, figure out target type
   if (no_sort)
     targetType_ = ReplicaInfo::NONE;
-  else {
+  else if (by_crdidx) {
+    if (!cInfo_.HasCrdIdx()) {
+      mprinterr("Error: Trajectories do not contain crdidx.\n"
+                "Error: To sort these trajectories by crdidx, must use 'remlog'.\n");
+      return 1;
+    }
+    targetType_ = ReplicaInfo::CRDIDX;
+  } else {
     if ( !remlog_name.empty() ) {
+      if (cInfo_.HasCrdIdx()) {
+        mprintf("Warning: Trajectories contain crdidx.\n"
+                "Warning: It is recommended to use 'bycrdidx' to sort by coordinate index\n"
+                "Warning:  instead of 'remlog'.\n");
+      }
       // Sort according to remlog data.
       DataFile remlogFile;
       DataSetList tempDSL;
@@ -108,7 +135,7 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
     }
   }
 # ifdef MPI
-  // This array will let each thread know who has what frame.
+  // This array will let each process know who has what frame.
   frameidx_.resize( REMDtraj_.size() );
 # endif
   // Get a list of all temperatures/indices.
@@ -218,10 +245,15 @@ int EnsembleIn_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
     else if (targetType_ == ReplicaInfo::INDICES)
       fidx = IndicesMap_.FindIndex( f_ensemble[member].RemdIndices() );
     else if (targetType_ == ReplicaInfo::CRDIDX) {
-      int currentRemExchange = (int)((double)currentFrame * remdFrameFactor_) + remdFrameOffset_;
-      //mprintf("DEBUG:\tTrajFrame#=%i  RemdExch#=%i\n", currentFrame+1, currentRemExchange+1);
-      fidx = remlogData_.RepFrame(currentRemExchange, repIdx++).CoordsIdx() - remlogData_.Offset();
-      //mprintf("DEBUG:\tFrame %i\tPosition %u is assigned index %i\n", currentFrame, member, fidx);
+      if (remlogData_.Size() < 1) {
+        fidx = f_ensemble[member].CrdIdx();
+      } else {
+        // Get crdidx from remlog
+        int currentRemExchange = (int)((double)currentFrame * remdFrameFactor_) + remdFrameOffset_;
+        //mprintf("DEBUG:\tTrajFrame#=%i  RemdExch#=%i\n", currentFrame+1, currentRemExchange+1);
+        fidx = remlogData_.RepFrame(currentRemExchange, repIdx++).CoordsIdx() - remlogData_.Offset();
+        //mprintf("DEBUG:\tFrame %i\tPosition %u is assigned index %i\n", currentFrame, member, fidx);
+      }
     }
 #   ifndef MPI
     else // NONE
@@ -282,7 +314,7 @@ int EnsembleIn_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
 int EnsembleIn_Multi::BeginEnsemble() {
   if (debug_ > 0) mprintf("\tENSEMBLE: OPENING %zu REMD TRAJECTORIES\n", REMDtraj_.size());
 # ifdef MPI
-  // Open the trajectory this thread will be dealing with.
+  // Open the trajectory this process will be dealing with.
   if (REMDtraj_[Member()]->openTrajin()) {
     rprinterr("Error: Trajin_Multi::BeginTraj: Could not open replica %s\n",
               REMDtraj_.f_name(Member()));
@@ -319,7 +351,7 @@ void EnsembleIn_Multi::EndEnsemble() {
 }
 
 void EnsembleIn_Multi::EnsembleInfo(int showExtended) const {
-  mprintf("Trajectory ensemble (%u total), lowest replica '%s'", REMDtraj_.size(),
+  mprintf("Trajectory ensemble (%zu total), lowest replica '%s'", REMDtraj_.size(),
           Traj().Filename().base());
   if (showExtended == 1) Traj().Counter().PrintFrameInfo();
   mprintf("\n");
@@ -328,11 +360,20 @@ void EnsembleIn_Multi::EnsembleInfo(int showExtended) const {
     mprintf("\tProcessing ensemble using replica indices\n");
   else if ( targetType_ == ReplicaInfo::TEMP )
     mprintf("\tProcessing ensemble using replica temperatures\n");
-  else if ( targetType_ == ReplicaInfo::CRDIDX )
+  else if ( SortingByRemlog() )
     mprintf("\tProcessing ensemble using remlog data, sorting by coordinate index.\n");
+  else if ( targetType_ == ReplicaInfo::CRDIDX )
+    mprintf("\tProcessing ensemble using coordinate indices.\n");
   else // NONE 
     mprintf("\tNot sorting ensemble.\n");
   if (debug_ > 0) PrintReplicaInfo();
+}
+
+/** CRDIDXARG:
+  * \return true if sorting crdidx by remlog
+  */
+bool EnsembleIn_Multi::SortingByRemlog() const {
+  return (remlogData_.Size() > 0 && targetType_ == ReplicaInfo::CRDIDX);
 }
 
 /** CRDIDXARG:

@@ -23,16 +23,21 @@
 #include "Traj_GmxXtc.h"
 #include "Traj_CharmmRestart.h"
 #include "Traj_XYZ.h"
+#include "Traj_GmxTng.h"
+#include "Traj_GmxDump.h"
+#include "Traj_DTR.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------ 
 // NOTE: Must be in same order as TrajFormatType
-/** Static array containing traj allocators, optionally read/write help functions. */
+/** Static array containing traj allocators, optionally read/write help functions.
+  * MUST BE IN SYNC WITH TrajFormatType.
+  */
 const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
 # ifdef BINTRAJ
-  { "Amber NetCDF",       Traj_AmberNetcdf::ReadHelp, Traj_AmberNetcdf::WriteHelp, Traj_AmberNetcdf::Alloc    },
+  { "Amber NetCDF",       Traj_AmberNetcdf::ReadHelp, Traj_AmberNetcdf::WriteHelp, Traj_AmberNetcdf::Alloc    },       // 0 = AMBERNETCDF
   { "Amber NC Restart",   Traj_AmberRestartNC::ReadHelp, Traj_AmberRestartNC::WriteHelp, Traj_AmberRestartNC::Alloc },
 # else
-  { "Amber NetCDF",       0, 0, 0                          },
+  { "Amber NetCDF",       0, 0, 0                          }, // 0 = AMBERNETCDF
   { "Amber NC Restart",   0, 0, 0                          },
 # endif
 # if defined (ENABLE_SINGLE_ENSEMBLE) && defined (BINTRAJ)
@@ -40,7 +45,7 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
 # else
   { "Amber NC Ensemble",  0, 0, 0                          },
 # endif
-  { "PDB",                0, Traj_PDBfile::WriteHelp, Traj_PDBfile::Alloc        },
+  { "PDB",                Traj_PDBfile::ReadHelp, Traj_PDBfile::WriteHelp, Traj_PDBfile::Alloc    },
   { "Mol2",               0, Traj_Mol2File::WriteHelp, Traj_Mol2File::Alloc       },
   { "CIF",                0, 0, Traj_CIF::Alloc            },
   { "Charmm DCD",         Traj_CharmmDcd::ReadHelp, Traj_CharmmDcd::WriteHelp, Traj_CharmmDcd::Alloc      },
@@ -50,17 +55,28 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
 # else
   { "Gromacs XTC", 0, Traj_GmxXtc::WriteHelp, Traj_GmxXtc::Alloc },
 # endif
+# ifdef HAS_TNGFILE
+  { "Gromacs TNG", 0, 0, Traj_GmxTng::Alloc },
+# else
+  { "Gromacs TNG", 0, 0, 0                  },
+# endif
   { "BINPOS",             0, 0, Traj_Binpos::Alloc         },
   { "Amber Restart",      Traj_AmberRestart::ReadHelp, Traj_AmberRestart::WriteHelp, Traj_AmberRestart::Alloc   },
   { "GRO file",           0, 0, Traj_Gro::Alloc            },
   { "Tinker file",        0, 0, Traj_Tinker::Alloc         },
-  { "Charmm COR",         0, 0, Traj_CharmmCor::Alloc      },
+  { "Charmm COOR",        0, Traj_CharmmCor::WriteHelp, Traj_CharmmCor::Alloc      },
   { "Charmm Restart",     Traj_CharmmRestart::ReadHelp, Traj_CharmmRestart::WriteHelp, Traj_CharmmRestart::Alloc },
   { "Amber Trajectory",   0, Traj_AmberCoord::WriteHelp, Traj_AmberCoord::Alloc     },
   { "SQM Input",          0, Traj_SQM::WriteHelp, Traj_SQM::Alloc            },
   { "SDF",                0, 0, Traj_SDF::Alloc            },
   { "XYZ",                0, Traj_XYZ::WriteHelp, Traj_XYZ::Alloc            },
   { "LMOD conflib",       0, 0, Traj_Conflib::Alloc        },
+  { "Gromacs dump",       0, Traj_GmxDump::WriteHelp, Traj_GmxDump::Alloc    },
+# ifdef ENABLE_DTR
+  { "Desmond DTR",        0, 0, Traj_DTR::Alloc },
+# else
+  { "Desmond DTR",        0, 0, 0 },
+# endif
   { "Unknown trajectory", 0, 0, 0                          }
 };
 
@@ -80,6 +96,7 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
   { CHARMMDCD,      "charmm",    ".dcd"     },
   { GMXTRX,         "trr",       ".trr"     },
   { GMXXTC,         "xtc",       ".xtc"     },
+  { GMXTNG,         "tng",       ".tng"     },
   { BINPOS,         "binpos",    ".binpos"  },
   { AMBERRESTART,   "restart",   ".rst7"    },
   { AMBERRESTART,   "restrt",    ".rst7"    },
@@ -93,6 +110,7 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
   { SQM,            "sqm",       ".sqm"     },
   { SDF,            "sdf",       ".sdf"     },
   { XYZ,            "xyz",       ".xyz"     },
+  { DTR,            "dtr",       ".dtr"     },
   { UNKNOWN_TRAJ,   0,           0          }
 };
 
@@ -116,9 +134,11 @@ const FileTypes::KeyToken TrajectoryFile::TF_WriteKeyArray[] = {
   { AMBERRESTART,   "restrt",    ".rst7"    },
   { AMBERRESTART,   "rest",      ".rst7"    },
   { AMBERRESTART,   "rest",      ".rst"     },
+  { CHARMMCOR,      "cor",       ".cor"     },
   { AMBERTRAJ,      "crd",       ".crd"     },
   { SQM,            "sqm",       ".sqm"     },
   { XYZ,            "xyz",       ".xyz"     },
+  { GMXDUMP,        "gmxdump",   ".gmxdump" },
   { UNKNOWN_TRAJ,   0,           0          }
 };
 

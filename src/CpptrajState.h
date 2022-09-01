@@ -21,6 +21,10 @@ class CpptrajState {
     void SetNoProgress()     { showProgress_ = false; }
     void SetQuietBlocks(bool b)    { quietBlocks_ = b;         }
     void SetActionSilence(bool b)  { actionList_.SetSilent(b); }
+    /// \return Keywords recognized by ChangeDefaultRng
+    static const char* RngKeywords();
+    /// Change the default RNG according to given keyword.
+    int ChangeDefaultRng(std::string const&) const;
 #   ifdef MPI
     void SetForceParaEnsemble(bool b) { forceParallelEnsemble_ = b; }
 #   endif
@@ -68,6 +72,7 @@ class CpptrajState {
   private:
     int SetTrajMode(TrajModeType, std::string const&, Topology*, ArgList&);
     int SetTrajMode(TrajModeType);
+    int AddReference(DataSet_Coords_REF*, Topology*, DataSet_Coords*, ArgList&, std::string const&, std::string const&, std::string const&);
     /// Types of lists
     enum ListType {
       L_ACTION = 0, L_TRAJIN, L_REF, L_TRAJOUT, L_PARM, L_ANALYSIS,
@@ -119,7 +124,7 @@ class CpptrajState {
     Timer run_time_;      ///< Total run time.
     Timer write_time_;    ///< Run data file write time.
 #   ifdef MPI
-    bool forceParallelEnsemble_; ///< If true run parallel ensemble even with 1 thread/member
+    bool forceParallelEnsemble_; ///< If true run parallel ensemble even with 1 proc/member
     Timer sync_time_;     ///< DataSet/Action total sync time.
     Timer master_time_;   ///< Total frame processing time across all ranks.
 #   endif

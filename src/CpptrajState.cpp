@@ -3,7 +3,9 @@
 #include "Action_CreateCrd.h" // in case default COORDS need to be created
 #include "DataSet_Coords_REF.h" // AddReference
 #include "DataSet_Topology.h" // AddTopology
+#include "FrameArray.h" // RunEnsemble
 #include "ProgressBar.h"
+#include "Random.h"
 #ifdef MPI
 # include "Parallel.h"
 # include "DataSet_Coords_TRJ.h"
@@ -28,6 +30,38 @@ CpptrajState::CpptrajState() :
   , forceParallelEnsemble_(false)
 # endif
 {}
+
+/** \return Keywords recognized by ChangeDefaultRng() */
+const char* CpptrajState::RngKeywords() {
+# ifdef C11_SUPPORT
+  return "{marsaglia|stdlib|mt|pcg32|xo128}";
+# else
+  return "{marsaglia|stdlib|pcg32|xo128}";
+# endif
+}
+
+/** Change default RNG. */
+int CpptrajState::ChangeDefaultRng(std::string const& setarg) const {
+  if (!setarg.empty()) {
+    if (setarg == "marsaglia") Random_Number::SetDefaultRng( Random_Number::MARSAGLIA );
+    else if (setarg == "stdlib") Random_Number::SetDefaultRng( Random_Number::STDLIB );
+    else if (setarg == "mt") {
+#     ifdef C11_SUPPORT
+      Random_Number::SetDefaultRng( Random_Number::MERSENNE_TWISTER );
+#     else
+      mprinterr("Error: Mersenne twister RNG requires C++11 support.\n");
+      return 1;
+#     endif
+    } else if (setarg == "pcg32") Random_Number::SetDefaultRng( Random_Number::PCG32 );
+    else if (setarg == "xo128") Random_Number::SetDefaultRng( Random_Number::XOSHIRO128PP );
+    else {
+      mprinterr("Error: Unrecognized RNG type: %s\n", setarg.c_str());
+      return 1;
+    }
+    mprintf("\tDefault RNG set to '%s'\n", Random_Number::CurrentDefaultRngStr());
+  }
+  return 0;
+}
 
 /** This version of SetTrajMode() may be called from AddToActionQueue() to set
   * NORMAL as the default mode without setting up a trajectory. May also be used
@@ -127,15 +161,15 @@ int CpptrajState::AddOutputTrajectory( ArgList& argIn ) {
   Topology* top = DSL_.GetTopology( argIn );
   int err = 1;
   if (mode_ == NORMAL)
-    err = trajoutList_.AddTrajout( fname, argIn, top );
+    err = trajoutList_.AddTrajout( fname, argIn, DSL_, top );
   else if (mode_ == ENSEMBLE)
-    err = ensembleOut_.AddEnsembleOut( fname, argIn, top, trajinList_.EnsembleSize() );
+    err = ensembleOut_.AddEnsembleOut( fname, argIn, DSL_, top, trajinList_.EnsembleSize() );
   return err;
 }
 
 // CpptrajState::AddOutputTrajectory()
 int CpptrajState::AddOutputTrajectory( std::string const& fname ) {
-  // FIXME Should this use the last Topology instead?
+  // TODO Should this use the last Topology instead?
   ArgList tmpArg(fname);
   return AddOutputTrajectory( tmpArg );
 }
@@ -345,14 +379,17 @@ int CpptrajState::RemoveDataSet( ArgList& argIn ) {
     mprinterr("Error: No data set(s) specified for removal.\n");
     return 1;
   }
-  DataSetList tempDSL = DSL_.GetMultipleSets( removeArg );
-  if (!tempDSL.empty()) {
-    for (DataSetList::const_iterator ds = tempDSL.begin();
-                                     ds != tempDSL.end(); ++ds)
-    {
-      mprintf("\tRemoving \"%s\"\n", (*ds)->legend());
-      RemoveDataSet( *ds );
+  while (!removeArg.empty()) {
+    DataSetList tempDSL = DSL_.GetMultipleSets( removeArg );
+    if (!tempDSL.empty()) {
+      for (DataSetList::const_iterator ds = tempDSL.begin();
+                                       ds != tempDSL.end(); ++ds)
+      {
+        mprintf("\tRemoving \"%s\"\n", (*ds)->legend());
+        RemoveDataSet( *ds );
+      }
     }
+    removeArg = argIn.GetStringNext();
   }
   return 0;
 }
@@ -592,7 +629,7 @@ int CpptrajState::RunEnsemble() {
     // Set current parm from current ensemble.
     Topology* currentTop = (*ens)->Traj().Parm();
     CoordinateInfo const& currentCoordInfo = (*ens)->EnsembleCoordInfo();
-    currentTop->SetBoxFromTraj( currentCoordInfo.TrajBox() ); // FIXME necessary?
+    currentTop->SetBoxFromTraj( currentCoordInfo.TrajBox() );
     int topFrames = trajinList_.TopFrames( currentTop->Pindex() );
     for (int member = 0; member < ensembleSize; ++member)
       EnsembleParm[member].Set( currentTop, currentCoordInfo, topFrames );
@@ -614,6 +651,10 @@ int CpptrajState::RunEnsemble() {
         // Silence action output for all beyond first member.
         if (member > 0)
           SetWorldSilent( true );
+#       ifndef MPI
+        // All DataSets that will be set up will be part of this ensemble 
+        DSL_.SetEnsembleNum( member );
+#       endif
         if (ActionEnsemble[member]->SetupActions( EnsembleParm[member], exitOnError_ )) {
 #         ifdef MPI
           rprintf("Warning: Ensemble member %i: Could not set up actions for %s: skipping.\n",
@@ -660,6 +701,10 @@ int CpptrajState::RunEnsemble() {
           if ( currentFrame.Frm().CheckCoordsInvalid() )
             rprintf("Warning: Ensemble member %i frame %i may be corrupt.\n",
                     member, (*ens)->Traj().Counter().PreviousFrameNumber()+1);
+#         ifndef MPI
+          // All DataSets that will be set up will be part of this ensemble 
+          DSL_.SetEnsembleNum( member );
+#         endif
 #         ifdef TIMER
           actions_time.Start();
 #         endif
@@ -728,12 +773,21 @@ int CpptrajState::RunEnsemble() {
   post_time_.Start();
   // ========== A C T I O N  O U T P U T  P H A S E ==========
   mprintf("\nENSEMBLE ACTION OUTPUT:\n");
-  for (int member = 0; member < ensembleSize; ++member)
+  for (int member = 0; member < ensembleSize; ++member) {
+#   ifndef MPI
+    // All DataSets that will be set up will be part of this ensemble 
+    DSL_.SetEnsembleNum( member );
+#   endif
     ActionEnsemble[member]->PrintActions();
+  }
   post_time_.Stop();
   // Clean up ensemble action lists
   for (int member = 1; member < ensembleSize; member++)
     delete ActionEnsemble[member];
+# ifndef MPI
+  // Reset ensemble number
+  DSL_.SetEnsembleNum( -1 );
+# endif
 
   return 0;
 }
@@ -823,7 +877,7 @@ int CpptrajState::RunParaEnsemble() {
   DSL_.SetNewSetsNeedSync( true );
 
   // ----- SETUP PHASE ---------------------------
-  NAV.FirstParm()->SetBoxFromTraj( NAV.EnsCoordInfo().TrajBox() ); // FIXME necessary?
+  NAV.FirstParm()->SetBoxFromTraj( NAV.EnsCoordInfo().TrajBox() );
   ActionSetup currentParm( NAV.FirstParm(), NAV.EnsCoordInfo(), NAV.IDX().MaxFrames() );
   err = actionList_.SetupActions( currentParm, exitOnError_ );
   if (Parallel::World().CheckError( err )) {
@@ -961,7 +1015,6 @@ int CpptrajState::RunParallel() {
   }
 
   // Put all trajectories into a DataSet_Coords_TRJ for random access.
-  // FIXME error check above goes here instead?
   DataSet_Coords_TRJ input_traj;
   for ( TrajinList::trajin_it traj = trajinList_.trajin_begin();
                               traj != trajinList_.trajin_end(); ++traj)
@@ -988,7 +1041,7 @@ int CpptrajState::RunParallel() {
   // ----- SETUP PHASE ---------------------------
   CoordinateInfo const& currentCoordInfo = input_traj.CoordsInfo();
   Topology* top = input_traj.TopPtr();
-  top->SetBoxFromTraj( currentCoordInfo.TrajBox() ); // FIXME necessary?
+  top->SetBoxFromTraj( currentCoordInfo.TrajBox() );
   int topFrames = trajinList_.TopFrames( top->Pindex() );
   ActionSetup currentParm( top, currentCoordInfo, topFrames );
   err = actionList_.SetupActions( currentParm, exitOnError_ );
@@ -1141,7 +1194,7 @@ int CpptrajState::RunSingleTrajParallel() {
   // ----- SETUP PHASE ---------------------------
   CoordinateInfo const& currentCoordInfo = trajin->TrajCoordInfo();
   Topology* top = trajin->Traj().Parm();
-  top->SetBoxFromTraj( currentCoordInfo.TrajBox() ); // FIXME necessary?
+  top->SetBoxFromTraj( currentCoordInfo.TrajBox() );
   int topFrames = trajinList_.TopFrames( top->Pindex() );
   ActionSetup currentParm( top, currentCoordInfo, topFrames );
   int err = actionList_.SetupActions( currentParm, exitOnError_ );
@@ -1247,7 +1300,7 @@ int CpptrajState::RunNormal() {
     }
     // Set current parm from current traj.
     Topology* top = (*traj)->Traj().Parm();
-    top->SetBoxFromTraj( (*traj)->TrajCoordInfo().TrajBox() ); // FIXME necessary?
+    top->SetBoxFromTraj( (*traj)->TrajCoordInfo().TrajBox() );
     ActionSetup currentSetup( top, (*traj)->TrajCoordInfo(),
                              trajinList_.TopFrames( top->Pindex() ) );
     // Check if parm has changed
@@ -1384,6 +1437,33 @@ int CpptrajState::RunAnalyses() {
 }
 
 // CpptrajState::AddReference()
+int CpptrajState::AddReference(DataSet_Coords_REF* ref, Topology* refParm,
+                               DataSet_Coords* CRD, ArgList& argIn,
+                               std::string const& fname, std::string const& tag,
+                               std::string const& maskexpr)
+{
+  if (refParm != 0) {
+    if (ref->LoadRefFromFile(fname, tag, *refParm, argIn, refDebug_)) return 1;
+  } else { // CRD != 0
+    int fnum;
+    if (argIn.hasKey("lastframe"))
+      fnum = (int)CRD->Size()-1;
+    else
+      fnum = argIn.getNextInteger(1) - 1;
+    mprintf("\tSetting up reference from COORDS set '%s', frame %i\n",
+            CRD->legend(), fnum+1);
+    if (ref->SetRefFromCoords(CRD, tag, fnum)) return 1; // TODO deprecate - all coords can be ref and vice versa
+  }
+  // If a mask expression was specified, strip to match the expression.
+  if (!maskexpr.empty()) {
+    if (ref->StripRef( maskexpr )) return 1;
+  }
+  // Add DataSet to main DataSetList.
+  if (DSL_.AddSet( ref )) return 1;
+  return 0;
+}
+
+// CpptrajState::AddReference()
 int CpptrajState::AddReference( std::string const& fname ) {
   return AddReference( fname, ArgList() );
 }
@@ -1404,11 +1484,15 @@ int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) 
   Topology* refParm = 0;
   DataSet_Coords* CRD = 0;
   if (argIn.hasKey("crdset")) {
-    CRD = (DataSet_Coords*)DSL_.FindCoordsSet( fname );
-    if (CRD == 0) {
-      mprinterr("COORDS set with name %s not found.\n", fname.c_str());
+    DataSet* dset = DSL_.FindSetOfGroup( fname, DataSet::COORDINATES );
+    if (dset == 0) {
+      mprinterr("Error: COORDS set with name %s not found.\n", fname.c_str());
       return 1;
+    } else if (dset->Type() == DataSet::REF_FRAME) {
+      mprintf("Warning: '%s' is already a reference.\n", fname.c_str());
+      return 0;
     }
+    CRD = static_cast<DataSet_Coords*>( dset );
   } else {
     // Get topology file.
     refParm = DSL_.GetTopology( argIn );
@@ -1420,29 +1504,16 @@ int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) 
   std::string tag = argIn.GetStringKey("name");
   // Determine if there is a mask expression for stripping reference. // TODO: Remove?
   std::string maskexpr = argIn.GetMaskNext();
-  // Check for tag. FIXME: need to do after SetupTrajRead?
+  // Check for tag.
   if (tag.empty()) tag = argIn.getNextTag();
   // Set up reference DataSet from file or COORDS set.
   DataSet_Coords_REF* ref = new DataSet_Coords_REF();
   if (ref==0) return 1;
-  if (refParm != 0) {
-    if (ref->LoadRefFromFile(fname, tag, *refParm, argIn, refDebug_)) return 1;
-  } else { // CRD != 0
-    int fnum;
-    if (argIn.hasKey("lastframe"))
-      fnum = (int)CRD->Size()-1;
-    else
-      fnum = argIn.getNextInteger(1) - 1;
-    mprintf("\tSetting up reference from COORDS set '%s', frame %i\n",
-            CRD->legend(), fnum+1);
-    if (ref->SetRefFromCoords(CRD, tag, fnum)) return 1;
+  // Add to main DataSetList. If successful DataSetList is responsible for free.
+  if (AddReference(ref, refParm, CRD, argIn, fname, tag, maskexpr)) {
+    delete ref;
+    return 1;
   }
-  // If a mask expression was specified, strip to match the expression.
-  if (!maskexpr.empty()) {
-    if (ref->StripRef( maskexpr )) return 1;
-  }
-  // Add DataSet to main DataSetList.
-  if (DSL_.AddSet( ref )) return 1; 
   return 0;
 }
 
@@ -1454,7 +1525,7 @@ int CpptrajState::AddTopology( std::string const& fnameIn, ArgList const& args )
   if (fnameIn.empty()) return 1;
   File::NameArray fnames = File::ExpandToFilenames( fnameIn );
   if (fnames.empty()) {
-    mprinterr("Error: '%s' corresponds to no files.\n");
+    mprinterr("Error: '%s' corresponds to no files.\n", fnameIn.c_str());
     return 1;
   }
   ArgList argIn = args;

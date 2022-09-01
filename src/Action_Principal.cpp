@@ -1,6 +1,7 @@
 #include "Action_Principal.h"
 #include "CpptrajStdio.h"
-#include "Matrix_3x3.h"
+#include "DataSet_Mat3x3.h"
+#include "DataSet_Vector.h"
 
 // CONSTRUCTOR
 Action_Principal::Action_Principal() :
@@ -33,7 +34,7 @@ Action::RetType Action_Principal::Init(ArgList& actionArgs, ActionInit& init, in
     return Action::ERR;
   }
   // Masks
-  mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   // Set up data
   if (!dsname.empty()) {
      vecData_ = (DataSet_Mat3x3*)init.DSL().AddSet(DataSet::MAT3X3, MetaData(dsname, "evec"));
@@ -77,8 +78,6 @@ Action::RetType Action_Principal::Setup(ActionSetup& setup) {
     mprintf("Warning: No atoms selected for %s [%s].\n",setup.Top().c_str(), mask_.MaskString());
     return Action::SKIP;
   }
-  if (doRotation_)
-    Action::CheckImageRotationWarning(setup, "principal alignment");
   return Action::OK;
 }
 
@@ -111,6 +110,7 @@ Action::RetType Action_Principal::DoAction(int frameNum, ActionFrame& frm) {
   // inverse rotation.
   if (doRotation_) {
     frm.ModifyFrm().Rotate( Inertia );
+    frm.ModifyFrm().ModifyBox().RotateUcell( Inertia );
     return Action::MODIFY_COORDS;
   }
   return Action::OK;

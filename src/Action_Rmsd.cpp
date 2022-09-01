@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
 #include "DataSet_Mesh.h"
+#include "DataSet_Vector.h"
 
 // CONSTRUCTOR
 Action_Rmsd::Action_Rmsd() :
@@ -88,12 +89,12 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
   }
   // Get the RMS mask string for target
   std::string tMaskExpr = actionArgs.GetMaskNext();
-  tgtMask_.SetMaskString(tMaskExpr);
+  if (tgtMask_.SetMaskString(tMaskExpr)) return Action::ERR;
   // Get the RMS mask string for reference
   std::string rMaskExpr = actionArgs.GetMaskNext();
   if (rMaskExpr.empty())
     rMaskExpr = tMaskExpr;
-  REF_.SetRefMask( rMaskExpr );
+  if (REF_.SetRefMask( rMaskExpr )) return Action::ERR;
 
   // Set up the RMSD data set.
   std::string dsname = actionArgs.GetStringNext();
@@ -123,6 +124,10 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
       return Action::ERR;
     }
     tvecs_ = (DataSet_Vector*)init.DSL().AddSet(DataSet::VECTOR, md);
+    //if (tvecType_ == COMBINED)
+    //  tvecs_ = (DataSet_Vector*)init.DSL().AddSet(DataSet::VEC_XYZ, md);
+    //else // SEPARATE
+    //  tvecs_ = (DataSet_Vector*)init.DSL().AddSet(DataSet::VEC_OXYZ, md);
     if (tvecs_ == 0) return Action::ERR;
     if (vecsOut != 0) vecsOut->AddDataSet( tvecs_ );
   }
@@ -248,8 +253,8 @@ int Action_Rmsd::perResSetup(Topology const& currentParm, Topology const& refPar
       }
       if (perresout_ != 0) perresout_->AddDataSet( p.data_ );
       // Setup mask strings. Note that masks are based off user residue nums
-      p.tgtResMask_.SetMaskString(":" + integerToString(tgtRes) + perresmask_);
-      p.refResMask_.SetMaskString(":" + integerToString(refRes) + perresmask_);
+      if (p.tgtResMask_.SetMaskString(":" + integerToString(tgtRes) + perresmask_)) return 2;
+      if (p.refResMask_.SetMaskString(":" + integerToString(refRes) + perresmask_)) return 2;
       ResidueRMS_.push_back( p );
       PerRes = ResidueRMS_.end() - 1;
     }
@@ -349,10 +354,6 @@ Action::RetType Action_Rmsd::Setup(ActionSetup& setup) {
     else if (err == 2) return Action::ERR;
   }
 
-  // Warn if PBC and rotating
-  if (fit_ && mode_ == ROT_AND_TRANS)
-    Action::CheckImageRotationWarning(setup, "the RMS-fit");
-
   return Action::OK;
 }
 
@@ -373,10 +374,11 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
     if (tvecType_ == COMBINED)
       tvecs_->AddVxyz( tgtTrans_ + REF_.RefTrans() );
     else if (tvecType_ == SEPARATE)
-      tvecs_->AddVxyz( tgtTrans_, REF_.RefTrans() );
+      tvecs_->AddVxyzo( tgtTrans_, REF_.RefTrans() );
     switch (mode_) {
       case ROT_AND_TRANS:
         frm.ModifyFrm().Trans_Rot_Trans(tgtTrans_, rot_, REF_.RefTrans());
+        frm.ModifyFrm().ModifyBox().RotateUcell( rot_ );
         err = Action::MODIFY_COORDS;
         break;
       case TRANS_ONLY:
