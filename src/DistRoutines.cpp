@@ -52,7 +52,7 @@ Vec3 MinImagedVec(Vec3 const& a1, Vec3 const& a2,
 Vec3 MinImagedVec(Vec3 const& a1, Vec3 const& a2, Box const& box) {
   Vec3 minVec(0.0);
   // If box lengths are zero no imaging possible
-  if (box[0]==0.0 || box[1]==0.0 || box[2]==0.0) return minVec;
+  if (box.Param(Box::X)==0.0 || box.Param(Box::Y)==0.0 || box.Param(Box::Z)==0.0) return minVec;
   minVec[0] = a1[0] - a2[0];
   minVec[1] = a1[1] - a2[1];
   minVec[2] = a1[2] - a2[2];
@@ -61,15 +61,15 @@ Vec3 MinImagedVec(Vec3 const& a1, Vec3 const& a2, Box const& box) {
   if (minVec[1] < 0) minVec[1] = -minVec[1];
   if (minVec[2] < 0) minVec[2] = -minVec[2];
   // Get rid of multiples of box lengths 
-  while (minVec[0] > box[0]) minVec[0] = minVec[0] - box[0];
-  while (minVec[1] > box[1]) minVec[1] = minVec[1] - box[1];
-  while (minVec[2] > box[2]) minVec[2] = minVec[2] - box[2];
+  while (minVec[0] > box.Param(Box::X)) minVec[0] = minVec[0] - box.Param(Box::X);
+  while (minVec[1] > box.Param(Box::Y)) minVec[1] = minVec[1] - box.Param(Box::Y);
+  while (minVec[2] > box.Param(Box::Z)) minVec[2] = minVec[2] - box.Param(Box::Z);
   // Find shortest distance in periodic reference
-  double D = box[0] - minVec[0];
+  double D = box.Param(Box::X) - minVec[0];
   if (D < minVec[0]) minVec[0] = D;
-         D = box[1] - minVec[1];
+         D = box.Param(Box::Y) - minVec[1];
   if (D < minVec[1]) minVec[1] = D;  
-         D = box[2] - minVec[2];
+         D = box.Param(Box::Z) - minVec[2];
   if (D < minVec[2]) minVec[2] = D;
 
   return minVec;
