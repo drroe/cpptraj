@@ -8,8 +8,11 @@ include Cluster/clusterfiles
 
 CLUSTER_SOURCEFILES=$(CLUSTER_SOURCES:%.cpp=Cluster/%.cpp)
 
+include Potential/potentialfiles
+POTENTIAL_SOURCEFILES=$(POTENTIAL_SOURCES:%.cpp=Potential/%.cpp)
+
 # All object files
-OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(CLUSTER_SOURCEFILES:.cpp=.o)
+OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(CLUSTER_SOURCEFILES:.cpp=.o) $(POTENTIAL_SOURCEFILES:.cpp=.o)
 
 # General rules
 .cpp.o:
@@ -25,6 +28,7 @@ DEL_FILE = /bin/rm -f
 # For debugging
 showsources:
 	@echo $(CLUSTER_SOURCEFILES)
+	@echo $(POTENTIAL_SOURCEFILES)
 
 showobjects:
 	@echo $(OBJECTS)
@@ -135,7 +139,7 @@ findDepend: FindDepend.cpp FindDepend.o
 	$(CXX) -o findDepend FindDepend.o
 
 depend: findDepend
-	./findDepend $(SOURCES) $(CSOURCES) $(CLUSTER_SOURCEFILES) > cpptrajdepend
+	./findDepend $(SOURCES) $(CSOURCES) $(CLUSTER_SOURCEFILES) $(POTENTIAL_SOURCEFILES) > cpptrajdepend
 
 dependclean:
 	$(DEL_FILE) FindDepend.o findDepend
@@ -171,6 +175,7 @@ uninstall: uninstall_lib uninstall_inc
 	cd xdrfile && $(MAKE) uninstall
 	cd cuda_kernels && $(MAKE) uninstall
 	cd Cluster && $(MAKE) uninstall
+	cd Potential && $(MAKE) uninstall
 
 # Header dependencies
 include cpptrajdepend
