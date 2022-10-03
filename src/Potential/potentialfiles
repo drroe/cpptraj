@@ -1,4 +1,4 @@
-# Files related to potential function code 
+# Files for Potential subdirectory.
 POTENTIAL_SOURCES= \
   Constraints.cpp \
   EnergyArray.cpp \
@@ -6,11 +6,10 @@ POTENTIAL_SOURCES= \
   Minimize_SteepestDescent.cpp \
   OMM_helpers.cpp \
   PotentialFunction.cpp \
-  PotentialTerm.cpp \
   PotentialTerm_Angle.cpp \
   PotentialTerm_Bond.cpp \
+  PotentialTerm.cpp \
   PotentialTerm_Dihedral.cpp \
   PotentialTerm_LJ_Coulomb.cpp \
   PotentialTerm_OpenMM.cpp \
   PotentialTerm_Replicate.cpp
-
