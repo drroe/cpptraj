@@ -77,6 +77,12 @@ class Topology {
     void AddOccupancy(float o)  { occupancy_.push_back( o );    }
     void AddBfactor(float b)    { bfactor_.push_back( b );      }
     void AddPdbSerialNum(int i) { pdbSerialNum_.push_back( i ); }
+    /// Set list of missing residues and residues missing heteroatoms
+    void SetMissingResInfo(std::vector<Residue> const&, std::vector<Residue> const&);
+    /// \return list of completely missing residues
+    std::vector<Residue> const& MissingRes() const { return missingRes_; }
+    /// \return list of residues missing heteroatoms
+    std::vector<Residue> const& MissingHet() const { return missingHet_; }
     // ----- Residue-specific routines -----------
     typedef std::vector<Residue>::const_iterator res_iterator;
     inline res_iterator ResStart() const { return residues_.begin(); }
@@ -176,6 +182,8 @@ class Topology {
     std::string TruncAtomNameNum(int) const;
     /// Format: <res name>:<res num> 
     std::string TruncResNameNum(int) const;
+    /// Format: <res name>_<onum>[_<id>]
+    std::string TruncResNameOnumId(int) const;
     /// \return index of atom with given name in specified residue.
     int FindAtomInResidue(int, NameType const&) const;
     /// Mark all molecules matching given mask expression as solvent.
@@ -225,6 +233,10 @@ class Topology {
     Topology* ModifyByMap(std::vector<int> const& m) const {
       return ModifyByMap(m, true);
     }
+    /// Split selected atoms in a residue into a new residue, populate the atom map
+    int SplitResidue(AtomMask const&, NameType const&, std::vector<int>&);
+    /// Split selected atoms in a residue into a new residue
+    int SplitResidue(AtomMask const&, NameType const&);
     /// Append topology to this one.
     int AppendTop( Topology const& );
     /// Replicate all or part of the Topology
@@ -307,6 +319,8 @@ class Topology {
     std::vector<float> occupancy_;   ///< Atom occupancy
     std::vector<float> bfactor_;     ///< Atom B-factor
     std::vector<int> pdbSerialNum_;  ///< Atom PDB original serial number
+    std::vector<Residue> missingRes_; ///< List of residues missing from PDB
+    std::vector<Residue> missingHet_; ///< List of residues missing heteroatoms in PDB
 
     Box parmBox_;
     Frame refCoords_;       ///< Internal reference coords for distance-based masks

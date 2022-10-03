@@ -99,11 +99,13 @@ void Cpptraj::Cluster::Metric_RMS::CalculateCentroid(Centroid* centIn,  Cframes 
     } else {
       if (!nofit_) {
         frm1_.RMSD_CenteredRef( cent->Cframe(), Rot, Trans, useMass_ );
+        //Rot.Print("CalculateCentroid"); // DEBUG
         frm1_.Rotate( Rot );
       }
       cent->Cframe() += frm1_;
     }
   }
+  //mprintf("DEBUG: Metric_RMS::CalculateCentroid divide by %zu\n", cframesIn.size()); 
   cent->Cframe().Divide( (double)cframesIn.size() );
   //mprintf("\t\tFirst 3 centroid coords (of %i): %f %f %f\n", cent->Cframe().Natom(), 
   //        cent->cent->Cframe()[0], cent->Cframe()[1],cent->Cframe()[2]);

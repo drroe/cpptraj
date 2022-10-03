@@ -49,6 +49,7 @@ UsageFull() {
   echo "    -no<lib>           : Disable library."
   echo "    --buildlibs        : Attempt to build enabled libraries if they are not present."
   echo "    --nobuildlibs      : Do not asking about building enabled libraries."
+  echo "    -makeblas          : Have cpptraj build its own LAPACK/BLAS."
   echo "    Libraries: netcdf pnetcdf zlib bzlib blas lapack arpack fftw3 readline sanderlib xdrfile tng openmm"
   echo "    Note: pnetcdf is needed for writing NetCDF trajectories with MPI."
   echo "  LINKING OPTIONS"
@@ -116,7 +117,7 @@ C11_SUPPORT='yes'         # Support C++11 code
 SHARED_SUFFIX=''          # Suffix for shared libraries
 DBFLAG=''                 # Flag for turning on compiler debug symbols
 DIRECTIVES=''             # Common compiler directives
-INCLUDE=''                # Library header include line
+CPPTRAJ_INC=''            # Library header include line
 SFX=''                    # Binary suffix
 EXE=''                    # Binary executable suffix
 REBUILDOPT=''             # Can be set to --rebuild and passed to get_library.sh
@@ -324,7 +325,7 @@ LIB_FLAG[$LXDRFILE]='-lxdrfile'
 LIB_STTC[$LXDRFILE]='libxdrfile.a'
 LIB_D_ON[$LXDRFILE]=''
 LIB_DOFF[$LXDRFILE]='-DNO_XDRFILE'
-LIB_TYPE[$LXDRFILE]='ld'
+LIB_TYPE[$LXDRFILE]='cpp'
 
 LIB_STAT[$LSANDER]='amberopt'
 LIB_CKEY[$LSANDER]='sanderlib'
@@ -367,7 +368,7 @@ LIB_FLAG[$LTNGFILE]='-ltng_io'
 LIB_STTC[$LTNGFILE]='libtng_io.a'
 LIB_D_ON[$LTNGFILE]='-DHAS_TNGFILE'
 LIB_DOFF[$LTNGFILE]=''
-LIB_TYPE[$LTNGFILE]='ld'
+LIB_TYPE[$LTNGFILE]='cpp'
 
 LIB_STAT[$LOPENMM]='off'
 LIB_CKEY[$LOPENMM]='openmm'
@@ -435,6 +436,17 @@ CheckLibraryKeys() {
       LIB_STAT[$i]='direct'
       LIB_FLAG[$i]=$2
       echo "  ${LIB_CKEY[$i]} location directly specified: $2"
+      return 0
+    fi
+    LKEY="-make"${LIB_CKEY[$i]}
+    if [ "$1" = "$LKEY" ] ; then
+      # For now this only works for certain libraries.
+      if [ "$1" != '-makeblas' ] ; then
+        return 1
+      fi
+      echo "  Will attempt to download and build ${LIB_CKEY[$i]}"
+      LIB_STAT[$i]='enabled'
+      LIB_MAKE[$i]='yes'
       return 0
     fi
   done
@@ -525,6 +537,10 @@ TestProgram() {
     ./testp > prog.out
     if [ $? -ne 0 ] ; then
       echo ""
+      if [ $silent -eq 1 ] ; then
+        #echo "DEBUG silent fail: $COMPILELINE"
+        return 1
+      fi
       Err "Run of test program failed, compiled with: $COMPILELINE"
     fi
     rm prog.out
@@ -779,8 +795,15 @@ int main() {
   printf("Testing\n"); return 0;
 }
 EOF
-  DetermineFlink silent "  Checking LAPACK/BLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
-  if [ $? -ne 0 ] ; then
+  check_lblas=0
+  if [ "${LIB_MAKE[$LBLAS]}" != 'yes' ] ; then
+    DetermineFlink silent "  Checking LAPACK/BLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
+    check_lblas=$?
+    rebuild_math=$REBUILDOPT
+  else
+    rebuild_math='--rebuild'
+  fi
+  if [ $check_lblas -ne 0 -o "${LIB_MAKE[$LBLAS]}" = 'yes' ] ; then
     if [ "${LIB_STAT[$LBLAS]}" = 'enabled' ] ; then
       if [ "$BLAS_TYPE" = 'openblas' ] ; then
         MATH_SRCDIR=$OPENBLAS_SRCDIR
@@ -813,8 +836,8 @@ EOF
         # Check if lib present but needs to be rebuilt
         CheckRebuild "LAPACK/BLAS" "${LIB_FLAG[$LBLAS]}"
         # See if user would like to get blas
-        PREFIX=$CPPTRAJHOME CC="$CC" CFLAGS="$CFLAGS" FC="$FC" LIBNAME="$MATH_LIBNAME" \
-            SRCDIR=$MATH_SRCDIR SRCTAR=$MATH_SRCTAR URL=$MATH_URL ./get_library.sh $REBUILDOPT $MATH_OPTS
+        PREFIX=$CPPTRAJHOME CC="$CC" CFLAGS="$CFLAGS" FC="$FC" FFLAGS="$F77FLAGS" FFLAGS_NOOPT="$F77FLAGS_NOOPT" LIBNAME="$MATH_LIBNAME" \
+            SRCDIR=$MATH_SRCDIR SRCTAR=$MATH_SRCTAR URL=$MATH_URL ./get_library.sh $rebuild_math $MATH_OPTS
         if [ $? -ne 0 ] ; then
           ErrMsg "Building LAPACK/BLAS failed."
           exit 1
@@ -880,6 +903,9 @@ EOF
     if [ $? -ne 0 ] ; then
       if [ "${LIB_STAT[$LFFTW3]}" = 'optional' ] ; then
         WrnMsg "FFTW test failed. CPPTRAJ will use the built-in PubFFT routines."
+        if [ $BUILD_LIBS -eq 1 ] ; then
+          echo "To force CPPTRAJ to build its own FFTW, reconfigure and specify '-fftw3'."
+        fi
         LIB_STAT[$LFFTW3]='off'
       elif [ "${LIB_STAT[$LFFTW3]}" = 'enabled' ] ; then
         # See if there is already a version of FFTW in CPPTRAJHOME
@@ -970,15 +996,35 @@ int main() {
   return 0;
 }
 EOF
-  if [ "${LIB_STAT[$LSANDER]}" = 'amberopt' ] ; then
-    TestProgram silent "  Checking for sanderlib" "$CXX" "$CXXFLAGS ${LIB_INCL[$LSANDER]}" testp.cpp "${LIB_FLAG[$LSANDER]}"
-    if [ $? -eq 1 ] ; then
-      WrnMsg "SANDER test failed. CPPTRAJ will be built without the SANDER API."
-      LIB_STAT[$LSANDER]='off'
+  # Check if we can use RPATH syntax. ${LIB_FLAG[$LSANDER]} should
+  # always be the complete path to the library.
+  lsanderdir=`dirname ${LIB_FLAG[$LSANDER]}`
+  for rpath_type in gnu sgi none ; do
+    if [ "$rpath_type" = 'gnu' ] ; then
+      rpath_line="-L$lsanderdir -lsander -Wl,-rpath,$lsanderdir"
+    elif [ "$rpath_type" = 'sgi' ] ; then
+      rpath_line="-L$lsanderdir -lsander -rpath $lsanderdir"
+    else
+      # RPATH does not work.
+      # Try no RPATH.
+      TestProgram silent "  Checking libsander, no RPATH" "$CXX" "$CXXFLAGS ${LIB_INCL[$LSANDER]}" testp.cpp "${LIB_FLAG[$LSANDER]}"
+      if [ $? -ne 0 ] ; then
+        if [ "${LIB_STAT[$LSANDER]}" = 'amberopt' ] ; then
+          WrnMsg "SANDER test failed. CPPTRAJ will be built without the SANDER API."
+          LIB_STAT[$LSANDER]='off'
+          break
+        else
+          echo "SANDER test failed."
+          exit 1
+        fi
+      fi
     fi
-  else
-    TestProgram "  Checking sanderlib" "$CXX" "$CXXFLAGS ${LIB_INCL[$LSANDER]}" testp.cpp "${LIB_FLAG[$LSANDER]}"
-  fi
+    TestProgram silent "  Checking $rpath_type RPATH type for libsander" "$CXX" "$CXXFLAGS ${LIB_INCL[$LSANDER]}" testp.cpp "$rpath_line"
+    if [ $? -eq 0 ] ; then
+      LIB_FLAG[$LSANDER]="$rpath_line"
+      break
+    fi
+  done # End loop over RPATH types
 }
 
 TestCuda() {
@@ -1124,7 +1170,7 @@ SetupFinalFlags() {
   # Set up include and linking flags
   ldf=''
   CPPTRAJ_LIB=''
-  INCLUDE=''
+  CPPTRAJ_INC=''
   nincl=0
   for ((i=0; i < $NLIB; i++)) ; do
     if [ "${LIB_STAT[$i]}" == 'off' ] ; then
@@ -1152,7 +1198,7 @@ SetupFinalFlags() {
           #echo "DEBUG: $idir new inclusion"
           include_array[$nincl]=$idir
           ((nincl++))
-          INCLUDE="$INCLUDE $idir"
+          CPPTRAJ_INC="$CPPTRAJ_INC $idir"
         fi
       fi
       # Link flags
@@ -1319,7 +1365,7 @@ SetupLibraries() {
           else
             lflag="-L$lhdir ${LIB_FLAG[$i]}"
           fi
-          # Library-specific INCLUDE fixes when home specified.
+          # Library-specific CPPTRAJ_INC fixes when home specified.
           if [ $i -eq $LREADLINE ] ; then
             linc="$linc/readline"
           fi
@@ -1600,7 +1646,8 @@ EOF
   # Set compiler flags
   CXXFLAGS="$DBFLAG $warnflag $ompflag $optflags $noinlineflag $picflag $commonflags $CXXFLAGS"
   CFLAGS="$DBFLAG $warnflag $ompflag $optflags $picflag $commonflags $CFLAGS"
-  F77FLAGS="$DBFLAG $fwarnflag $ompflag $foptflags $picflag $commonflags $FFLAGS"
+  F77FLAGS_NOOPT="$DBFLAG $fwarnflag $ompflag -O0 $picflag $commonflags $F77FLAGS"
+  F77FLAGS="$DBFLAG $fwarnflag $ompflag $foptflags $picflag $commonflags $F77FLAGS"
   FFLAGS="$DBFLAG $fwarnflag $ompflag $foptflags $picflag $freefmtflag $commonflags $FFLAGS"
   LDFLAGS="$LDFLAGS $ompflag $staticflag $staticlink"
   # DEBUG
@@ -1859,7 +1906,7 @@ SetupMKL() {
 #  9.X                    .....................................................................
 # 10.X                    ...........................................................................
 # 11.X                                ...........................................................................
-CUDA_SM_LIST='sm_20 sm_21 sm_30 sm_32 sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86'
+CUDA_SM_LIST='sm_20 sm_21 sm_30 sm_32 sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87'
 
 # SetSupportedSM <major v> <minor v>
 # Set Shader models supported by current cuda version
@@ -1888,11 +1935,20 @@ SetSupportedSM() {
   elif [ $1 -eq 8 ] ; then
     CUDA_SM_LIST='sm_20 sm_21 sm_30 sm_32 sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62'
   elif [ $1 -eq 9 ] ; then
-    CUDA_SM_LIST='sm_30 sm_32 sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72'
+    CUDA_SM_LIST='sm_30 sm_32 sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70'
   elif [ $1 -eq 10 ] ; then
     CUDA_SM_LIST='sm_30 sm_32 sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75'
-  else # >= 11
-    CUDA_SM_LIST='sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86'
+  elif [ $1 -eq 11 ] ; then
+    if [ $2 -lt 1 ] ; then
+      CUDA_SM_LIST='sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80'
+    elif [ $2 -gt 4 ] ; then
+      CUDA_SM_LIST='sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87'
+    else
+      CUDA_SM_LIST='sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86'
+    fi
+  else
+    echo "Automatic support for CUDA $1.$2 is currently unsupported. Set SHADER_MODEL manually."
+    exit 1
   fi
   echo "  Supported shader models: $CUDA_SM_LIST"
 }
@@ -1901,7 +1957,12 @@ SetSupportedSM() {
 # Set CUDA_ARCH variable with compute_XX value for given SM
 SetCudaArch() {
   smversion=${1#sm_}
-  CUDA_ARCH="compute_$smversion"
+  # compute_21 is not a thing
+  if [ "$smversion" = '21' ] ; then
+    CUDA_ARCH="compute_20"
+  else
+    CUDA_ARCH="compute_$smversion"
+  fi
   #echo "$1 $CUDA_ARCH"
 }
 
@@ -2214,65 +2275,6 @@ EOF
 }
 
 #-------------------------------------------------------------------------------
-# BuildRules <config file> {cxx|cc|f77} ...
-# Write build rules for config files.
-BuildRules() {
-  if [ -z "$1" ] ; then
-    Err "BuildRules(): No output file."
-  fi
-  configfile=$1
-  shift
-  while [ ! -z "$1" ] ; do
-    rule=''
-    case "$1" in
-      cxx )
-        echo "CXX=$CXX" >> $configfile
-        echo "CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)" >> $configfile
-        rule='.cpp.o:'
-        cmd='CXX'
-        line='$(CXX) $(DIRECTIVES) $(INCLUDE) $(CXXFLAGS)'
-        ;;
-      cc )
-        echo "CC=$CC" >> $configfile
-        echo "CFLAGS=$CFLAGS \$(DBGFLAGS)" >> $configfile
-        rule='.c.o:'
-        cmd='CC'
-        line='$(CC) $(DIRECTIVES) $(INCLUDE) $(CFLAGS)'
-        ;;
-      f77 )
-        echo "FC=$FC" >> $configfile
-        echo "F77FLAGS=$F77FLAGS \$(DBGFLAGS)" >> $configfile
-        rule='.f.o:'
-        cmd='FC'
-        line='$(FC) $(DIRECTIVES) $(INCLUDE) $(F77FLAGS)'
-        ;;
-      f90 )
-        echo "FC=$FC" >> $configfile
-        echo "FFLAGS=$FFLAGS \$(DBGFLAGS)" >> $configfile
-        # No rule needed for pub_fft.F90
-        ;;
-      nvcc )
-        echo "NVCC=$NVCC" >> $configfile
-        echo "NVCCFLAGS=$NVCCFLAGS" >> $configfile
-        rule='%%.o : %%.cu'
-        cmd='NVCC'
-        line='$(NVCC) $(DBGFLAGS) $(NVCCFLAGS)'
-        ;;
-    esac
-      if [ ! -z "$rule" ] ; then
-        printf "\n$rule\n" >> $configfile
-        if [ $COMPILE_VERBOSE -eq 0 ] ; then
-          printf "\t@echo $cmd \$<\n" >> $configfile
-          printf "\t@$line -c -o \$@ \$<\n\n" >> $configfile
-        else
-          printf "\n\t$line -c -o \$@ \$<\n\n" >> $configfile
-        fi
-      fi
-    shift
-  done
-}
-
-#-------------------------------------------------------------------------------
 # Use cmake to configure build.
 SetupCmake() {
   CMAKE=`which cmake`
@@ -2289,11 +2291,8 @@ SetupCmake() {
     exit 1
   fi
   # Ensure cmake build system exists
-  if [ ! -f "$WORKDIR/cmake/AmberBuildSystemInit.cmake" ] ; then
+  if [ ! -f "$WORKDIR/cmake-cpptraj/BuildSystemInit.cmake" ] ; then
     ErrMsg "Error: cmake build system is not present."
-    ErrMsg "       If this is a GIT repostitory, you may need to initialize the"
-    ErrMsg "       cmake submodule:"
-    ErrMsg " $ git submodule update --init --recursive"
     exit 1
   fi
   # Set up cmake options
@@ -2529,6 +2528,17 @@ fi
 # Basic checks and directives
 BasicChecks
 
+# Create directories if necessary 
+if [ ! -e "$CPPTRAJBIN" ] ; then
+  mkdir "$CPPTRAJBIN"
+fi
+if [ ! -e "$CPPTRAJLIB" ] ; then
+  mkdir "$CPPTRAJLIB"
+fi
+if [ ! -e "$CPPTRAJDAT" ] ; then
+  mkdir "$CPPTRAJDAT"
+fi
+
 # Set up compilers and compiler options
 SetupCompilers
 
@@ -2658,7 +2668,7 @@ fi
 #echo FFLAGS $FFLAGS
 #echo LDFLAGS $LDFLAGS
 #echo CPPTRAJ_LIB $CPPTRAJ_LIB
-#echo INCLUDE $INCLUDE
+#echo CPPTRAJ_INC $CPPTRAJ_INC
 #echo REQUIRES_FLINK $REQUIRES_FLINK FLINK $FLINK
 echo ""
 
@@ -2680,6 +2690,7 @@ INSTALL_TARGETS=$INSTALL_TARGETS" install_cpptraj"
 # Can we build libcpptraj? TODO serial/OpenMP only?
 if [ $USE_SHARED -eq 1 ] ; then
   LIBCPPTRAJ_TARGET='$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)'
+  INSTALL_TARGETS=$INSTALL_TARGETS" libcpptraj"
 else
   LIBCPPTRAJ_TARGET='nolibcpptraj'
 fi
@@ -2743,7 +2754,8 @@ fi
 cat >> config.h <<EOF
 SHARED_SUFFIX=$SHARED_SUFFIX
 DIRECTIVES=$DIRECTIVES
-INCLUDE=$INCLUDE
+LFS=$LFS
+CPPTRAJ_INC=$CPPTRAJ_INC
 
 LIBCPPTRAJ_TARGET=$LIBCPPTRAJ_TARGET
 
@@ -2766,33 +2778,31 @@ SFX=$SFX
 EXE=$EXE
 
 EOF
-#if [ "$FFT_TARGET" = 'pub_fft.o' ] ; then
-  BuildRules config.h cc cxx f90
-#else
-#  BuildRules config.h cc cxx
-#fi
+# Add '@' symbol to Makefile rules for non-verbose compile
+if [ $COMPILE_VERBOSE -eq 0 ] ; then
+  echo "VB=@" >> config.h
+else
+  echo "VB=" >> config.h
+fi
+# Add compilers and flags
+cat >> config.h <<EOF
 
-# ----- Create config for external libraries -----
-external_config='external.config.h'
-cat > $external_config <<EOF
-# CPPTRAJ config for external libraries.
-# configured using: $CONFIGURECMD
+CXX=$CXX
+CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)
+CC=$CC
+CFLAGS=$CFLAGS \$(DBGFLAGS)
+FC=$FC
+F77FLAGS=$F77FLAGS \$(DBGFLAGS)
+FFLAGS=$FFLAGS \$(DBGFLAGS)
+NVCC=$NVCC
+NVCCFLAGS=$NVCCFLAGS
+
 EOF
-BuildRules $external_config nvcc cc f77
-if [ "${LIB_STAT[$LZIP]}" != 'off' ] ; then
-  echo "ZLIB_FLAG=${LIB_FLAG[$LZIP]}" >> $external_config
-  echo "ZLIB_INCL=${LIB_INCL[$LZIP]}" >> $external_config
-fi
 
-# ----- Create directories if necessary ----------
-if [ ! -e "$CPPTRAJBIN" ] ; then
-  mkdir "$CPPTRAJBIN"
-fi
-if [ ! -e "$CPPTRAJLIB" ] ; then
-  mkdir "$CPPTRAJLIB"
-fi
-if [ ! -e "$CPPTRAJDAT" ] ; then
-  mkdir "$CPPTRAJDAT"
+# Zlib needed by tng
+if [ "${LIB_STAT[$LZIP]}" != 'off' ] ; then
+  echo "ZLIB_FLAG=${LIB_FLAG[$LZIP]}" >> config.h
+  echo "ZLIB_INCL=${LIB_INCL[$LZIP]}" >> config.h
 fi
 
 # ----- Create a resource file. ------------------

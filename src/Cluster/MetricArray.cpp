@@ -17,12 +17,14 @@
 #include "../OnlineVarT.h" // for metric stats average
 #include "../ProgressBar.h"
 #include "../StringRoutines.h"
+#include "../QuaternionRMSD.h" // for printing qrmsd citation
 // Metric classes
 #include "Metric_RMS.h"
 #include "Metric_DME.h"
 #include "Metric_Scalar.h"
 #include "Metric_SRMSD.h"
 #include "Metric_Torsion.h"
+#include "Metric_QuatRMSD.h"
 
 /** CONSTRUCTOR */
 Cpptraj::Cluster::MetricArray::MetricArray() :
@@ -138,6 +140,7 @@ int Cpptraj::Cluster::MetricArray::setupPairwiseCache(ArgList& analyzeArgs,
     }
   }*/
 
+  pw_mismatch_fatal_ = !analyzeArgs.hasKey("pwrecalc");
   cache_ = 0;
   if (load_pair ||
       (!save_pair && !pairdistname.empty()))
@@ -170,7 +173,7 @@ int Cpptraj::Cluster::MetricArray::setupPairwiseCache(ArgList& analyzeArgs,
         return 1;
       }
       cache_ = (DataSet_PairwiseCache*)ds;
-      if (cache_ != 0 && save_pair) {
+      if (cache_ != 0 && save_pair && pw_mismatch_fatal_) {
         mprintf("Warning: 'savepairdist' specified but pairwise cache loaded from file.\n"
                 "Warning: Disabling 'savepairdist'.\n");
         save_pair = false;
@@ -245,11 +248,15 @@ int Cpptraj::Cluster::MetricArray::setupPairwiseCache(ArgList& analyzeArgs,
     if (cache_ == 0) {
       mprintf("Warning: Not caching distances; ignoring 'savepairdist'\n");
     } else {
-      if (pairdistname.empty())
+      if (pairdistname.empty()) {
+        // Use default name and type
         pairdistname = DEFAULT_PAIRDIST_NAME_;
-      if (pairdisttype == DataFile::UNKNOWN_DATA)
         pairdisttype = DEFAULT_PAIRDIST_TYPE_;
-      // TODO enable saving for other set types?
+      } else {
+        // pairwise distance name specified. See if the extension is recognized. 
+        if (pairdisttype == DataFile::UNKNOWN_DATA)
+          pairdisttype = DataFile::WriteFormatFromFname( pairdistname, DEFAULT_PAIRDIST_TYPE_ );
+      }
       if (cache_->Type() == DataSet::PMATRIX_MEM) {
         DataFile* pwd_file = DFL.AddDataFile( pairdistname, pairdisttype, ArgList() );
         if (pwd_file == 0) return 1;
@@ -260,7 +267,6 @@ int Cpptraj::Cluster::MetricArray::setupPairwiseCache(ArgList& analyzeArgs,
       }
     }
   }
-  pw_mismatch_fatal_ = !analyzeArgs.hasKey("pwrecalc");
 
   return 0;
 }
@@ -273,7 +279,8 @@ Cpptraj::Cluster::Metric const*
   {
     if ( (*it)->MetricType() == Metric::RMS ||
          (*it)->MetricType() == Metric::DME ||
-         (*it)->MetricType() == Metric::SRMSD )
+         (*it)->MetricType() == Metric::SRMSD ||
+         (*it)->MetricType() == Metric::QRMSD )
       return *it;
   }
   return 0;
@@ -287,6 +294,7 @@ Cpptraj::Cluster::Metric* Cpptraj::Cluster::MetricArray::AllocateMetric(Metric::
     case Metric::RMS       : met = new Metric_RMS(); break;
     case Metric::DME       : met = new Metric_DME(); break;
     case Metric::SRMSD     : met = new Metric_SRMSD(); break;
+    case Metric::QRMSD     : met = new Metric_QuatRMSD(); break;
     case Metric::SCALAR    : met = new Metric_Scalar(); break;
     case Metric::TORSION   : met = new Metric_Torsion(); break;
     default: mprinterr("Error: Unhandled Metric in AllocateMetric.\n");
@@ -296,7 +304,7 @@ Cpptraj::Cluster::Metric* Cpptraj::Cluster::MetricArray::AllocateMetric(Metric::
 
 /** Recognized metric args. */
 const char* Cpptraj::Cluster::MetricArray::MetricArgs_ =
-  "[{dme|rms|srmsd} [mass] [nofit] [<mask>]] [{euclid|manhattan}] [wgt <list>]";
+  "[{dme|rms|srmsd|qrmsd} [mass] [nofit] [<mask>]] [{euclid|manhattan}] [wgt <list>]";
 
 /** Initialize with given sets and arguments. */
 int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& setsToCluster, ArgList& analyzeArgs)
@@ -307,6 +315,7 @@ int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& setsToClus
   int usedme = (int)analyzeArgs.hasKey("dme");
   int userms = (int)analyzeArgs.hasKey("rms");
   int usesrms = (int)analyzeArgs.hasKey("srmsd");
+  int useqrms = (int)analyzeArgs.hasKey("qrmsd");
   bool useMass = analyzeArgs.hasKey("mass");
   bool nofit   = analyzeArgs.hasKey("nofit");
   std::string maskExpr = analyzeArgs.GetMaskNext();
@@ -325,15 +334,18 @@ int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& setsToClus
   std::string wgtArgStr = analyzeArgs.GetStringKey("wgt");
 
   // Check args
-  if (usedme + userms + usesrms > 1) {
-    mprinterr("Error: Specify either 'dme', 'rms', or 'srmsd'.\n");
+  if (usedme + userms + usesrms + useqrms > 1) {
+    mprinterr("Error: Specify either 'dme', 'rms', 'srmsd', or 'qrmsd'.\n");
     return 1;
   }
   Metric::Type coordsMetricType;
   if      (usedme)  coordsMetricType = Metric::DME;
   else if (userms)  coordsMetricType = Metric::RMS;
   else if (usesrms) coordsMetricType = Metric::SRMSD;
-  else coordsMetricType = Metric::RMS; // default
+  else if (useqrms) {
+    coordsMetricType = Metric::QRMSD;
+    PrintQrmsdCitation();
+  } else coordsMetricType = Metric::RMS; // default
 
   // For each input set, set up the appropriate metric
   for (DataSetList::const_iterator ds = setsToCluster.begin(); ds != setsToCluster.end(); ++ds)
@@ -369,6 +381,8 @@ int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& setsToClus
         err = ((Metric_DME*)met)->Init((DataSet_Coords*)*ds, AtomMask(maskExpr)); break;
       case Metric::SRMSD :
         err = ((Metric_SRMSD*)met)->Init((DataSet_Coords*)*ds, AtomMask(maskExpr), nofit, useMass, debug_); break;
+      case Metric::QRMSD :
+        err = ((Metric_QuatRMSD*)met)->Init((DataSet_Coords*)*ds, AtomMask(maskExpr), useMass); break;
       case Metric::SCALAR :
         err = ((Metric_Scalar*)met)->Init((DataSet_1D*)*ds); break;
       case Metric::TORSION :
@@ -717,10 +731,12 @@ int Cpptraj::Cluster::MetricArray::CacheDistances(Cframes const& framesToCache, 
     // The frames to cache must match cached frames.
     if (!cache_->CachedFramesMatch( framesToCache )) {
       if (pw_mismatch_fatal_) {
-        mprinterr("Error: Frames to cache do not match those in existing cache.\n");
+        mprinterr("Error: Frames to cluster do not match those in existing cache.\n"
+                  "Error: To force recalculation specify 'pwrecalc' (and\n"
+                  "Error:  'savepairdist' if the old matrix should be overwritten).\n");
         return 1;
       } else {
-        mprintf("Warning: Frames to cache do not match those in existing cache.\n"
+        mprintf("Warning: Frames to cluster do not match those in existing cache.\n"
                 "Warning: Re-calculating pairwise cache.\n");
         do_cache = true;
       }

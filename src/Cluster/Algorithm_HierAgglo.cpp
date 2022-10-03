@@ -1,4 +1,5 @@
 #include <limits> // double max
+#include <list>
 #include "Algorithm_HierAgglo.h"
 #include "MetricArray.h"
 #include "Node.h"
@@ -68,9 +69,9 @@ void Cpptraj::Cluster::Algorithm_HierAgglo::Results(CpptrajFile& outfile) const 
 /** Print clustering timing. */
 void Cpptraj::Cluster::Algorithm_HierAgglo::Timing(double total) const {
 # ifdef TIMER
-  time_findMin_.WriteTiming(2, "Find min distance", total);
-  time_mergeFrames_.WriteTiming(2, "Merge cluster frames", total);
-  time_calcLinkage_.WriteTiming(2, "Calculate new linkage", total);
+  time_findMin_.WriteTiming(2,     "Find min distance     :", total);
+  time_mergeFrames_.WriteTiming(2, "Merge cluster frames  :", total);
+  time_calcLinkage_.WriteTiming(2, "Calculate new linkage :", total);
 # endif
 }
 
@@ -131,6 +132,11 @@ int Cpptraj::Cluster::Algorithm_HierAgglo::DoClustering(List& clusters,
       ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), dval );
     }
   }
+  // DEBUG print closest indices
+  if (debug_ > 0) {
+    if (debug_ > 1) ClusterDistances_.PrintElementsSquare();
+    ClusterDistances_.PrintClosest();
+  }
   //InitializeClusterDistances();
   // DEBUG - print initial clusters
   if (debug_ > 1)
@@ -148,6 +154,11 @@ int Cpptraj::Cluster::Algorithm_HierAgglo::DoClustering(List& clusters,
     }
     if (clusters.Nclusters() == 1) clusteringComplete = true; // Sanity check
     cluster_progress.Update( iterations++ );
+    // DEBUG print closest indices
+    if (debug_ > 0) {
+      if (debug_ > 1) ClusterDistances_.PrintElementsSquare();
+      ClusterDistances_.PrintClosest();
+    }
   }
   mprintf("\tCompleted after %i iterations, %u clusters.\n",iterations,
           clusters.Nclusters());
@@ -346,7 +357,7 @@ void Cpptraj::Cluster::Algorithm_HierAgglo::calcAvgDist(List::cluster_it& C1_it,
 double Cpptraj::Cluster::Algorithm_HierAgglo::ClusterDistance(Node const& C1, Node const& C2,
                                                               MetricArray& pmatrix,
                                                               bool includeSieved,
-                                                              Cframes const& sievedOut)
+                                                          std::vector<bool> const& frameIsPresent)
 const
 {
   double dval = -1.0;
@@ -376,10 +387,10 @@ const
     // No sieved frames included.
     for (Node::frame_iterator f1 = C1.beginframe(); f1 != C1.endframe(); ++f1)
     {
-      if (!sievedOut.HasFrame(*f1)) {
+      if (frameIsPresent[*f1]) {
         for (Node::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2)
         {
-          if (!sievedOut.HasFrame(*f2)) {
+          if (frameIsPresent[*f2]) {
             double Dist = pmatrix.Frame_Distance(*f1, *f2);
             //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
             switch (linkage_) {

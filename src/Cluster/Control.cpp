@@ -1,5 +1,8 @@
+#include <list>
 #include "Control.h"
+#include "DBI.h"
 #include "Output.h"
+#include "PseudoF.h"
 #include "../ArgList.h"
 #include "../BufferedLine.h" // For loading info file
 #include "../CpptrajStdio.h"
@@ -26,7 +29,7 @@ Cpptraj::Cluster::Control::Control() :
   sieve_(1),
   sieveSeed_(-1),
   sieveRestore_(NO_RESTORE),
-  restoreEpsilon_(0.0),
+  restoreEpsilon_(0),
   includeSieveInCalc_(false),
   includeSieveCdist_(false),
   bestRep_(BestReps::NO_REPS),
@@ -43,7 +46,13 @@ Cpptraj::Cluster::Control::Control() :
   draw_tol_(0),
   draw_maxit_(0),
   debug_(0),
-  metricContribFile_(0)
+  metricContribFile_(0),
+  DBITotal_(0),
+  pseudoF_(0),
+  SSRSST_(0),
+  dbi_set_(0),
+  psf_set_(0),
+  ssrsst_set_(0)
 {}
 
 /** DESTRUCTOR */
@@ -206,10 +215,10 @@ const char* Cpptraj::Cluster::Control::OutputArgs2_ =
   "[summarysplit <splitfile>] [splitframe <comma-separated frame list>]";
 
 const char* Cpptraj::Cluster::Control::OutputArgs3_ =
-  "[clustersvtime <file> [cvtwindow <#>]] [sil <prefix>] [metricstats <file>]";
+  "[clustersvtime <file> [cvtwindow <#>]] [sil <prefix> [silidx {idx|frm}]]";
 
 const char* Cpptraj::Cluster::Control::OutputArgs4_ =
-  "[cpopvtime <file> [{normpop|normframe}]] [lifetime]";
+  "[metricstats <file>] [cpopvtime <file> [{normpop|normframe}]] [lifetime]";
 
 const char* Cpptraj::Cluster::Control::GraphArgs_ =
   "[{drawgraph|drawgraph3d} [draw_tol <tolerance>] [draw_maxit <iterations]]";
@@ -310,7 +319,8 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
     mprintf("Warning: 'includesieved_cdist' may be very slow.\n");
 
   // Determine how frames to cluster will be chosen
-  if (frameSelect_ == UNSPECIFIED) {
+  bool allow_frameSelect_from_cache = analyzeArgs.hasKey("useframesincache");
+  if (allow_frameSelect_from_cache && frameSelect_ == UNSPECIFIED) {
     // If no other frame selection option like sieve provided and an already
     // set up cache is present, use the cached frames.
     if (sieve_ == 1 && metrics_.HasCache() && metrics_.Cache().Size() > 0)
@@ -347,7 +357,7 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
           sieveRestore_ = CLOSEST_CENTROID;
       }
     }
-    // Determine sieve restore epsilon
+    // Determine sieve restore epsilon if needed
     if (sieveRestore_ == EPSILON_FRAME ||
         sieveRestore_ == EPSILON_CENTROID)
     {
@@ -358,11 +368,18 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
         // Using a density-based algorithm with epsilon-based restore;
         // use restore epsilon from algorithm.
         restoreEpsilon_ = algorithm_->Epsilon();
+      } else
+        mprintf("Warning: Using sievetoframe/sievetocentroid with a non-density-based cluster algorithm.\n"
+                "Warning:   Restore epsilon 'repsilon' should be chosen with care.\n");
+      double rEps = analyzeArgs.getKeyDouble("repsilon", -1.0);
+      if (rEps > 0)
+        restoreEpsilon_ = rEps;
+      else if (restoreEpsilon_ <= 0) {
+        mprinterr("Error: For this cluster algorithm, sievetoframe/sievetocentroid requires 'repsilon' > 0 (%f).\n",
+                  restoreEpsilon_);
+        return 1;
       }
     }
-    double rEps = analyzeArgs.getKeyDouble("repsilon", -1.0);
-    if (rEps > 0)
-      restoreEpsilon_ = rEps;
   }
 
   // Best rep options
@@ -411,6 +428,20 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
 
   // Cluster silhouette output
   sil_file_ = analyzeArgs.GetStringKey("sil");
+  silIdxType_ = Silhouette::IDX_NOT_SPECIFIED;
+  if (!sil_file_.empty()) {
+    std::string silIdxArg = analyzeArgs.GetStringKey("silidx");
+    if (!silIdxArg.empty()) {
+      if (silIdxArg == "idx")
+        silIdxType_ = Silhouette::IDX_SORTED;
+      else if (silIdxArg == "frm")
+        silIdxType_ = Silhouette::IDX_FRAME;
+      else {
+        mprinterr("Error: Unrecognized keyword for 'silidx': %s\n", silIdxArg.c_str());
+        return 1;
+      }
+    }
+  }
 
   // Cluster pop v time output
   cpopvtimefile_ = DFL.AddDataFile(analyzeArgs.GetStringKey("cpopvtime"), analyzeArgs);
@@ -482,6 +513,14 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
     clustersvtimefile->AddDataSet( clustersVtime_ );
   }
 
+  // DBI and pSF data sets
+  dbi_set_ = DSL.AddSet(DataSet::DOUBLE, MetaData(dsname_, "DBI"));
+  if (dbi_set_ == 0) return 1;
+  psf_set_ = DSL.AddSet(DataSet::DOUBLE, MetaData(dsname_, "PSF"));
+  if (psf_set_ == 0) return 1;
+  ssrsst_set_ = DSL.AddSet(DataSet::DOUBLE, MetaData(dsname_, "SSRSST"));
+  if (ssrsst_set_ == 0) return 1;
+
   return 0;
 }
 
@@ -489,7 +528,8 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
 void Cpptraj::Cluster::Control::Help() {
   mprintf("\t[<name>] [<Algorithm>] [<Metric>] [<Pairwise>] [<Sieve>] [<BestRep>]\n"
           "\t[<Output>] [<Coord. Output>] [<Graph>]\n"
-          "\t[readinfo {infofile <info file> | cnvtset <dataset>}]\n");
+          "\t[readinfo {infofile <info file> | cnvtset <dataset>}]\n"
+          "\t[useframesincache]\n");
   mprintf("  Algorithm Args: [%s]\n", AlgorithmArgs_);
   Algorithm_HierAgglo::Help();
   Algorithm_DBscan::Help();
@@ -595,6 +635,13 @@ void Cpptraj::Cluster::Control::Info() const {
       else
         mprintf("\tSilhouette calculation will use non-sieved frames ONLY.\n");
     }
+    switch (silIdxType_) {
+      case Silhouette::IDX_FRAME:
+        mprintf("\tFrame silhouette indices will be frame #s.\n"); break;
+      case Silhouette::IDX_SORTED: // fallthrough
+      case Silhouette::IDX_NOT_SPECIFIED:
+        mprintf("\tFrame silhouette indices will be sorted indices.\n"); break;
+    }
   }
 
   if (cnumvtime_ != 0) {
@@ -663,22 +710,31 @@ int Cpptraj::Cluster::Control::Run() {
 
   // Figure out which frames to cluster
   frameSieve_.Clear();
-  int frameSelectErr = 1;
-  switch ( frameSelect_ ) {
-    case UNSPECIFIED:
-      frameSelectErr = frameSieve_.SetFramesToCluster(sieve_, metrics_.Ntotal(), sieveSeed_);
-      break;
-    case FROM_CACHE :
-      mprintf("\tClustering frames present in pairwise cache '%s'\n", metrics_.Cache().legend());
-      frameSelectErr = frameSieve_.SetupFromCache( metrics_.Cache(), metrics_.Ntotal() );
-      break;
-    default :
-      mprinterr("Internal Error: Cluster::Control::Run(): Unhandled frame selection type.\n");
+  if (frameSelect_ == FROM_CACHE) {
+    // Attempt to get the frames to cluster from the cache
+    mprintf("\tClustering frames present in pairwise cache '%s'\n", metrics_.Cache().legend());
+    int frameSelectErr = frameSieve_.SetupFromCache( metrics_.Cache(), metrics_.Ntotal() );
+    if (frameSelectErr == 1) {// TODO enum type?
+      mprinterr("Error: Cluster frame selection from cache failed.\n");
+      return 1;
+    } else if (frameSelectErr == 2) {
+      mprintf("Warning: # frames in cache (%zu) != # frames to cluster (%u).\n",
+              metrics_.Cache().Nrows(), metrics_.Ntotal());
+      mprintf("Warning: Not using frame numbers in cache.\n");
+      frameSelect_ = UNSPECIFIED;
+    }
   }
-  if (frameSelectErr != 0) {
-    mprinterr("Error: Cluster frame selection failed.\n");
-    return 1;
-  } 
+
+  if (frameSelect_ == UNSPECIFIED) {
+    if (frameSieve_.SetFramesToCluster(sieve_, metrics_.Ntotal(), sieveSeed_)) {
+      mprinterr("Error: Cluster frame selection failed.\n");
+      return 1;
+    }
+  } else if (frameSieve_.FramesToCluster().empty()) {
+    // Sanity check
+    mprinterr("Internal Error: Cluster::Control::Run(): Unhandled frame selection type.\n");
+  }
+
   if (verbose_ >= 0) {
     if (frameSieve_.FramesToCluster().size() < metrics_.Ntotal())
       mprintf("\tClustering %zu of %u points.\n", frameSieve_.FramesToCluster().size(),
@@ -755,7 +811,9 @@ int Cpptraj::Cluster::Control::Run() {
       mprinterr("Error: Initializing best representative frames search failed.\n");
       return 1;
     }
-    if (findBestReps.FindBestRepFrames(clusters_, metrics_, frameSieve_.SievedOut())) {
+    if (bestRep_ == BestReps::CUMULATIVE_NOSIEVE)
+      frameSieve_.GenerateFrameIsPresentArray();
+    if (findBestReps.FindBestRepFrames(clusters_, metrics_, frameSieve_.FrameIsPresent())) {
       mprinterr("Error: Finding best representative frames for clusters failed.\n");
       return 1;
     }
@@ -768,7 +826,17 @@ int Cpptraj::Cluster::Control::Run() {
       clusters_.PrintClusters();
     }
 
+    // Clustering metrics. Centroids should be up to date.
+    DBITotal_ = ComputeDBI(clusters_, averageDist_, metrics_);
+    dbi_set_->Add(0, &DBITotal_);
+    if (clusters_.Nclusters() > 1) {
+      pseudoF_ = ComputePseudoF(clusters_, SSRSST_, metrics_, debug_);
+      psf_set_->Add(0, &pseudoF_);
+      ssrsst_set_->Add(0, &SSRSST_);
+    }
+
     // TODO assign reference names
+    timer_post_.Stop();
   }
   timer_run_.Stop();
   return 0;
@@ -787,27 +855,44 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
   }
 
   // Info
+
   if (!suppressInfo_) {
     CpptrajFile outfile;
     if (outfile.OpenWrite( clusterinfo_ )) return 1;
     timer_output_info_.Start();
     Output::PrintClustersToFile(outfile, clusters_, *algorithm_, metrics_, 
-                                frameSieve_.SieveValue(), frameSieve_.FramesToCluster());
+                                frameSieve_.SieveValue(), frameSieve_.FramesToCluster(),
+                                DBITotal_, averageDist_, pseudoF_, SSRSST_);
     timer_output_info_.Stop();
     outfile.CloseFile();
   }
 
+  // Generate the frameIsPresent array if sieved frames should not be included.
+  // TODO should this array always be generated?
+  if (!includeSieveInCalc_ || !includeSieveCdist_)
+    frameSieve_.GenerateFrameIsPresentArray();
+
   // Silhouette
   if (!sil_file_.empty()) {
+    Silhouette silCalc( debug_ );
+    if (silCalc.Init( silIdxType_ )) {
+      mprinterr("Error: Silhouette calc. init. failed.\n");
+      return 1;
+    }
     if (frameSieve_.SieveValue() != 1 && !includeSieveInCalc_)
       mprintf("Warning: Silhouettes do not include sieved frames.\n");
-    clusters_.CalcSilhouette(metrics_, frameSieve_.SievedOut(), includeSieveInCalc_);
+    if (silCalc.CalcSilhouette(clusters_, metrics_, frameSieve_.FrameIsPresent(),
+                               includeSieveInCalc_))
+    {
+      mprinterr("Error: Silhouette calculation failed.\n");
+      return 1;
+    }
     CpptrajFile Ffile, Cfile;
     if (Ffile.OpenWrite(sil_file_ + ".frame.dat")) return 1;
-    Output::PrintSilhouetteFrames(Ffile, clusters_);
+    silCalc.PrintSilhouetteFrames(Ffile, clusters_);
     Ffile.CloseFile();
     if (Cfile.OpenWrite(sil_file_ + ".cluster.dat")) return 1;
-    Output::PrintSilhouettes(Cfile, clusters_);
+    silCalc.PrintAvgSilhouettes(Cfile, clusters_);
     Cfile.CloseFile();
   }
 
@@ -820,7 +905,7 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
       return 1;
     }
     Output::Summary(outfile, clusters_, *algorithm_, metrics_, includeSieveInCalc_,
-                    includeSieveCdist_, frameSieve_.SievedOut());
+                    includeSieveCdist_, frameSieve_.FrameIsPresent());
     timer_output_summary_.Stop();
   }
 
@@ -838,8 +923,9 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
       return 1;
     }
     // TODO just pass in metrics_
+    // NOTE if needed, the FrameIsPresent array should already have been generated at the end of Run
     Output::Summary_Part(outfile, metrics_.Ntotal(), splitFrames_, clusters_,
-                         findBestReps, metrics_, frameSieve_.SievedOut());
+                         findBestReps, metrics_, frameSieve_.FrameIsPresent());
   }
 
   // Cluster number vs time

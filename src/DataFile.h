@@ -32,6 +32,10 @@ class DataFile {
     static DataFormatType WriteFormatFromArg(ArgList& a, DataFormatType def) {
       return (DataFormatType)FileTypes::GetFormatFromArg(DF_WriteKeyArray,a,def);
     }
+    /// \return Write format type from file name extension
+    static DataFormatType WriteFormatFromFname(FileName const& f, DataFormatType def) {
+      return (DataFormatType)FileTypes::GetTypeFromExtension(DF_WriteKeyArray,f.Ext(),def);
+    }
     /// \return string corresponding to format.
     static const char* FormatString(DataFormatType t) {
       return FileTypes::FormatDescription(DF_AllocArray, t);
@@ -85,7 +89,7 @@ class DataFile {
     /// \return DataFile format type.
     DataFormatType Type()          const { return dfType_;   }
 #   ifdef MPI
-    void SetThreadCanWrite(bool b)       { threadCanWrite_ = b; }
+    void SetProcessCanWrite(bool b)       { processCanWrite_ = b; }
 #   endif
   private:
     static DataIO* DetectFormat(FileName const&, DataFormatType&);
@@ -101,7 +105,7 @@ class DataFile {
     bool sortSets_;            ///< True: Sort sets before write.
     bool ensExt_;              ///< If true append ensemble member number to file
 #   ifdef MPI
-    bool threadCanWrite_;      ///< True if thread is writing to this file.
+    bool processCanWrite_;     ///< True if process is writing to this file.
 #   endif
     int default_width_;        ///< Default width of data sets added to this file.
     int default_precision_;    ///< Default precision of data sets added to this file.

@@ -3,7 +3,6 @@
 #include "CpptrajStdio.h"
 #include "PDBfile.h"
 #include "StringRoutines.h" // integerToString
-#include "ArgList.h"
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -21,6 +20,14 @@ DataFileList::DataFileList() :
 
 // DESTRUCTOR
 DataFileList::~DataFileList() { Clear(); }
+
+// ----- TypeArgPair class -----------------------
+DataFileList::TypeArgPair::TypeArgPair(DataFile::DataFormatType t, ArgList const& a) :
+  type_(t),
+  args_(a)
+{}
+
+// -----------------------------------------------
 
 // DataFileList::Clear()
 void DataFileList::Clear() {
@@ -109,6 +116,36 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList const& defau
   return df;
 }
 
+/** This version can have default args specific to file types passed in. */
+DataFile* DataFileList::AddDataFile(FileName const& nameIn, TypeArgArray const& argArray,
+                                    ArgList& argIn)
+{
+  DataFile* df = AddDataFile( nameIn );
+  if (df == 0) return 0;
+  if (!argArray.empty()) {
+    ArgList default_args;
+    for (TypeArgArray::const_iterator it = argArray.begin(); it != argArray.end(); ++it)
+    {
+      if (it->Ftype() == df->Type()) {
+        ArgList specific_args = it->Fargs();
+        df->ProcessArgs( specific_args );
+        specific_args.CheckForMoreArgs();
+        break;
+      } else if (it->Ftype() == DataFile::UNKNOWN_DATA) // Use UNKNOWN as wildcard
+        default_args = it->Fargs();
+     }
+     // If nothing specific for this file, check for default args
+     if (!default_args.empty()) {
+       df->ProcessArgs( default_args );
+       default_args.CheckForMoreArgs();
+     }
+  }
+  // Process user args if specified
+  if (!argIn.empty())
+    df->ProcessArgs( argIn );
+  return df;
+}
+
 /** Create new DataFile, or return existing DataFile. */
 DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
                                     DataFile::DataFormatType typeIn)
@@ -160,11 +197,13 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
   return Current;
 }
 
+/** Add data file, detect type automatically. */
 DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn) {
   return AddDataFile( nameIn, argIn, DataFile::UNKNOWN_DATA );
 }
 
 // DataFileList::AddDataFile()
+/** Add data file, no arguments */
 DataFile* DataFileList::AddDataFile(FileName const& nameIn) {
   ArgList empty;
   return AddDataFile( nameIn, empty, DataFile::UNKNOWN_DATA );
@@ -269,7 +308,7 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
     int err = 0;
     if (openShared) {
       //rprintf("DEBUG: Opening '%s' shared.\n", name.full());
-      // File is being shared by different threads
+      // File is being shared by different processes 
       Current->SetupWrite( name, debug_ );
       // true here means open for shared write
       err = Current->ParallelOpenFile(commIn, true);
@@ -344,11 +383,11 @@ void DataFileList::WriteAllDF() {
 // DataFileList::WriteAllDF()
 /** Call write for all DataFiles in list for which writeFile is true. Once
   * a file has been written set writeFile to false; it can be reset to
-  * true if new DataSets are added to it. All threads are allowed to try
+  * true if new DataSets are added to it. All processes are allowed to try
   * writing files. FIXME this is a hack until a better way of determining
-  * write threads is found.
+  * write processes is found.
   */
-void DataFileList::AllThreads_WriteAllDF() {
+void DataFileList::AllProcesses_WriteAllDF() {
   if (fileList_.empty()) return;
 # ifdef TIMER
   Timer datafile_time;
@@ -356,7 +395,7 @@ void DataFileList::AllThreads_WriteAllDF() {
 # endif
   for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df) {
     if ( (*df)->DFLwrite() ) {
-      (*df)->SetThreadCanWrite( true );
+      (*df)->SetProcessCanWrite( true );
       (*df)->WriteDataOut();
       (*df)->SetDFLwrite( false );
     }

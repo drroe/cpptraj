@@ -7,6 +7,7 @@
 #include "MetricArray.h"
 #include "Node.h" // Node::CnormType
 #include "Sieve.h"
+#include "Silhouette.h" // Silhouette::IdxType
 #include "../Timer.h"
 class DataSet_Coords;
 class DataSet_PairwiseCache;
@@ -88,6 +89,7 @@ class Control {
     std::string clusterinfo_;         ///< Cluster info file name.
     std::string summaryfile_;         ///< Cluster summary file name.
     std::string sil_file_;            ///< File prefix for writing silhouette data
+    Silhouette::IdxType silIdxType_;  ///< Control how sil. frame indices are written
 
     DataSet* cnumvtime_;              ///< Cluster number vs time data set.
     bool grace_color_;                ///< If true change cluster number to grace color
@@ -110,6 +112,15 @@ class Control {
     int debug_;                       ///< Cluster debug level
 
     CpptrajFile* metricContribFile_;  ///< If not null, determine how much each metric contributes to total distance
+
+    // Various metrics of clustering "goodness"
+    double DBITotal_;                 ///< Davies-Bouldin index (DBI)
+    std::vector<double> averageDist_; ///< Average distance of each cluster to each other cluster (DBI)
+    double pseudoF_;                  ///< Pseudo-F (pSF)
+    double SSRSST_;                   ///< Sum of squares regression over total sum of squares.
+    DataSet* dbi_set_;                ///< DataSet to store DBI.
+    DataSet* psf_set_;                ///< DataSet to store pseudo-F.
+    DataSet* ssrsst_set_;             ///< DataSet to store SSR/SST.
 
     // Timers
     Timer timer_setup_;          ///< Run - metric, frames to cluster setup 

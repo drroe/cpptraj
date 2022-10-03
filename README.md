@@ -46,7 +46,7 @@ CPPTRAJ see the following publication:
 Disclaimer and Copyright
 ========================
 
-CPPTRAJ is Copyright (c) 2010-2021 Daniel R. Roe.
+CPPTRAJ is Copyright (c) 2010-2022 Daniel R. Roe.
 The terms for using, copying, modifying, and distributing CPPTRAJ are
 specified in the file LICENSE.
 
@@ -66,6 +66,8 @@ You can generate the documentation yourself with the command `make docs`. A
 limited developers guide is available [here](https://jenkins.jasonswails.com/job/amber-github/job/cpptraj/job/master/lastSuccessfulBuild/artifact/doc/CpptrajDevelopmentGuide.pdf)
 and limited HTML-formatted documentation is available
 [here](https://amber-md.github.io/cpptraj/).
+
+Some examples are available in the `examples` subdirectory.
 
 Installation & Testing
 ======================
@@ -90,19 +92,22 @@ CPPTRAJ also makes use of the following libraries that are bundled with CPPTRAJ.
 * XDR for reading GROMACS XTC trajectories.
 * TNG for reading GROMACS TNG trajectories.
 
+C++11 support is required to enable particle mesh Ewald (PME) calculation support via helPME.
 CPPTRAJ also uses the PCG32 and Xoshiro 128++ pseudo-random number generators.
 
 `./configure gnu` should be adequate to set up compilation for most systems.
 For systems without BLAS/LAPACK, FFTW, and/or NetCDF libraries installed,
-the `-amberlib` flag can be specified to use the ones already compiled in
-an AmberTools installation (`$AMBERHOME` must be set), e.g.
-`./configure -amberlib gnu`. If enabled libraries are not present, CPPTRAJ's
-configure can attempt to download and install them into $CPPTRAJHOME. By default
-CPPTRAJ will ask if these should be installed; the '--buildlibs' option can
-be used to try to automatically install any missing enabled library. To prevent
-CPPTRAJ from asking about building external libraries, use the '--nobuildlibs'
-option.
-C++11 support is required to enable particle mesh Ewald (PME) calculation support.
+CPPTRAJ's configure can attempt to download and install any enabled library
+into $CPPTRAJHOME. By default CPPTRAJ will ask if these should be installed;
+the '--buildlibs' option can be specified to try to automatically install any
+missing enabled library. For example, `./configure -fftw3 --buildlibs gnu`
+will tell CPPTRAJ to build missing libraries including FFTW (if it is not
+available). To prevent CPPTRAJ from asking about building external libraries,
+use the '--nobuildlibs' option.
+
+If Amber is installed and `$AMBERHOME` is properly set, the `-amberlib` flag
+can be specified to use the libraries already compiled in an AmberTools
+installation, e.g. `./configure -amberlib gnu`.  
 
 For multicore systems, the `-openmp` flag can
 be specified to enable OpenMP parallelization, e.g. `./configure -openmp gnu`.
@@ -202,6 +207,9 @@ Fixes and improvements to nucleic acid dihedral angle definitions (DihedralSearc
 * David S. Cerutti (Rutgers University, Piscataway, NJ, USA)
 Original code for the 'xtalsymm' Action.
 
+* Johannes Kraml, Franz Waibl & Klaus R. Liedl (Department of General, Inorganic, and Theoretical Chemistry, University of Innsbruck)
+Improvements and enhancements for GIST.
+
 #### Various Contributions
 * David A. Case (Rutgers University, Piscataway, NJ, USA)
 * Hai Nguyen (Rutgers University, Piscataway, NJ, USA)
@@ -241,3 +249,5 @@ External code/libraries bundled with CPPTRAJ
 * Support for reading DTR trajectories uses the VMD DTR plugin.
 
 * CPPTRAJ uses code for the [permuted congruent pseudo-random number generator](https://www.pcg-random.org/index.html) PCG32 by Melissa O'Neill and the [Xoshiro 128++ pseudo-random number generator](http://prng.di.unimi.it) by David Blackman and Sebastino Vigna.
+
+* The code for quaternion RMSD calculation was adapted from code in [qcprot.c](https://theobald.brandeis.edu/qcp/qcprot.c) originally written by Douglas L. Theobald and Pu Lio (Brandeis University).

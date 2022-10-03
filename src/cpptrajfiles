@@ -44,6 +44,7 @@ COMMON_SOURCES= \
         Action_Image.cpp \
         Action_InfraredSpectrum.cpp \
         Action_Jcoupling.cpp \
+        Action_Keep.cpp \
         Action_LESsplit.cpp \
         Action_LIE.cpp \
         Action_LipidOrder.cpp \
@@ -148,6 +149,7 @@ COMMON_SOURCES= \
         ByteRoutines.cpp \
         CharMask.cpp \
         CharmmParamFile.cpp \
+        Chirality.cpp \
         CIFfile.cpp \
         ClusterMap.cpp \
         Cmd.cpp \
@@ -246,6 +248,7 @@ COMMON_SOURCES= \
         Exec_ClusterMap.cpp \
         Exec_CombineCoords.cpp \
         Exec_Commands.cpp \
+        Exec_CompareClusters.cpp \
         Exec_CompareTop.cpp \
         Exec_CrdAction.cpp \
         Exec_CrdOut.cpp \
@@ -259,6 +262,7 @@ COMMON_SOURCES= \
         Exec_GenerateAmberRst.cpp \
         Exec_Graft.cpp \
         Exec_Help.cpp \
+        Exec_HmassRepartition.cpp \
         Exec_LoadCrd.cpp \
         Exec_LoadTraj.cpp \
         Exec_ParallelAnalysis.cpp \
@@ -304,7 +308,9 @@ COMMON_SOURCES= \
         ForLoop_mask.cpp \
         ForLoop_overSets.cpp \
         Frame.cpp \
+        GistEntropyUtils.cpp \
         GIST_PME.cpp \
+        Gpu.cpp \
         GridAction.cpp \
         GridBin.cpp \
         HistBin.cpp \
@@ -315,6 +321,7 @@ COMMON_SOURCES= \
         Image_List_Unit.cpp \
         InputTrajCommon.cpp \
         KDE.cpp \
+        LeapInterface.cpp \
         MapAtom.cpp \
         MaskArray.cpp \
         MaskToken.cpp \
@@ -343,6 +350,8 @@ COMMON_SOURCES= \
         ProgressBar.cpp \
         ProgressTimer.cpp \
         PubFFT.cpp \
+        qcprot.cpp \
+        QuaternionRMSD.cpp \
         Pucker_PuckerMask.cpp \
         Pucker_PuckerSearch.cpp \
         Pucker_PuckerToken.cpp \
@@ -412,7 +421,7 @@ COMMON_SOURCES= \
         vmdplugin/dtrplugin.cpp \
         xoshiro128plusplus.cpp
 
-CSOURCES= molsurf.c 
+CSOURCES= molsurf.c
 
 # The files below are used by cpptraj and libcpptraj but must be compiled
 # differently for libcpptraj.
@@ -427,7 +436,7 @@ SOURCES=$(COMMON_SOURCES) \
 # These objects are used by libcpptraj. The specified objects are special
 # versions used only by libcpptraj. They MUST have the '.LIBCPPTRAJ.o'
 # extension.
-LIBCPPTRAJ_OBJECTS=$(COMMON_SOURCES:.cpp=.o) $(CSOURCES:.c=.o) \
+LIBCPPTRAJ_OBJECTS=$(COMMON_SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(CLUSTER_SOURCEFILES:.cpp=.o) \
         Action_Esander.LIBCPPTRAJ.o \
         Command.LIBCPPTRAJ.o \
         Cpptraj.LIBCPPTRAJ.o \
