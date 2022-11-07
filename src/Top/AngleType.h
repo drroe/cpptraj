@@ -34,6 +34,7 @@ class AngleType : public NbodyTerm {
   private:
     int at_[3];
 };
+/// Array of angles
 typedef std::vector<AngleType> AngleArray;
 }
 }

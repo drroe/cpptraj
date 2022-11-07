@@ -32,6 +32,7 @@ class BondType : public NbodyTerm {
   private:
     int at_[2];
 };
+/// Array of bonds
 typedef std::vector<BondType> BondArray;
 }
 }
