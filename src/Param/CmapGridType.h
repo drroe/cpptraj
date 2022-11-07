@@ -7,7 +7,7 @@ namespace Param {
 class CmapGridType {
   public:
     CmapGridType() : resolution_(0) {}
-    CmapGridType(unsigned int r) : resolution_(r), grid_((size_t)r*(size_t)r, 0.0) {}
+    CmapGridType(unsigned int r) : resolution_(r), grid_(r*r, 0.0) {}
     int Resolution()                  const { return resolution_;       }
     std::vector<double> const& Grid() const { return grid_;             }
     int Size()                        const { return (int)grid_.size(); }
