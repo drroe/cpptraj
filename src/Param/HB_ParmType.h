@@ -1,5 +1,6 @@
 #ifndef INC_PARAM_HBPARMTYPE_H
 #define INC_PARAM_HBPARMTYPE_H
+#include <vector>
 namespace Cpptraj {
 namespace Param {
 /// Hold LJ 10-12 hbond params
@@ -19,6 +20,7 @@ class HB_ParmType {
     double bsol_;
     double hbcut_;
 };
+typedef std::vector<HB_ParmType> HB_ParmArray;
 }
 }
 #endif

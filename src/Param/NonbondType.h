@@ -1,6 +1,7 @@
 #ifndef INC_PARAM_NONBONDTYPE_H
 #define INC_PARAM_NONBONDTYPE_H
 #include <cmath> // pow, fabs
+#include <vector>
 namespace Cpptraj {
 namespace Param {
 /// Hold Lennard-Jones 6-12 interaction A and B parameters
