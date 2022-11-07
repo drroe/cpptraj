@@ -8,7 +8,7 @@ namespace Top {
 class BondType : public NbodyTerm {
   public:
     /// CONSTRUCTOR
-    BondType() { at_[0]= -1; at_[1] = -1; }
+    BondType() { at_[0] = -1; at_[1] = -1; }
     /// CONSTRUCTOR - 2 atom indices
     BondType(int a1, int a2) { at_[0] = a1; at_[1] = a2; }
     /// CONSTRUCTOR - 2 atom indices, parameter index
