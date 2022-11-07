@@ -13,7 +13,7 @@ class DihedralType : public NbodyTerm {
   public:
     enum Dtype { NORMAL=0, IMPROPER, END, BOTH };
     /// Set skip 1-4 (end) and improper status
-    inline void SetFromType(Dtype t) {
+    void SetFromType(Dtype t) {
       switch (t) {
         case NORMAL   : skip14_ = false; improper_ = false; break;
         case IMPROPER : skip14_ = false; improper_ = true; break;

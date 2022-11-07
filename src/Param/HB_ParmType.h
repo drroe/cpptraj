@@ -9,9 +9,9 @@ class HB_ParmType {
     HB_ParmType() : asol_(0), bsol_(0), hbcut_(0) {}
     HB_ParmType(double a, double b, double c) :
                            asol_(a), bsol_(b), hbcut_(c) {}
-    inline double Asol()  const { return asol_;  }
-    inline double Bsol()  const { return bsol_;  }
-    inline double HBcut() const { return hbcut_; }
+    double Asol()  const { return asol_;  }
+    double Bsol()  const { return bsol_;  }
+    double HBcut() const { return hbcut_; }
     void SetAsol(double a)  { asol_ = a;  }
     void SetBsol(double b)  { bsol_ = b;  }
     void SetHBcut(double h) { hbcut_ = h; }
