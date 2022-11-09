@@ -9,6 +9,7 @@
 #include "Param/NonbondParmType.h"
 #include "Param/LES_AtomType.h"
 #include "Param/LES_ParmType.h"
+#include "Param/CapParmType.h"
 #include "Top/BondType.h"
 #include "Top/AngleType.h"
 #include "Top/DihedralType.h"
@@ -46,6 +47,7 @@ int main (int argc, char** argv) {
   NonbondParmType NBparam;
   LES_AtomType lat;
   LES_ParmType lesparm;
+  CapParmType capparm;
 
   BondType bond;
   AngleType angle;
