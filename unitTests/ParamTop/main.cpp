@@ -7,6 +7,7 @@
 #include "Param/LJparmType.h"
 #include "Param/CmapGridType.h"
 #include "Param/NonbondParmType.h"
+#include "Param/LES_AtomType.h"
 #include "Top/BondType.h"
 #include "Top/AngleType.h"
 #include "Top/DihedralType.h"
@@ -42,6 +43,7 @@ int main (int argc, char** argv) {
   LJparmType LJ;
   CmapGridType cmgrid;
   NonbondParmType NBparam;
+  LES_AtomType lat;
 
   BondType bond;
   AngleType angle;
