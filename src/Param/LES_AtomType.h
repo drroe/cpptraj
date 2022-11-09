@@ -16,7 +16,7 @@ class LES_AtomType {
     LES_AtomType(int t, int c, int i) : type_(t), cnum_(c), id_(i) {}
     /// \return LES type for the atom
     int Type() const { return type_; }
-    /// \return LES copy # for the atom
+    /// \return LES copy # for the atom. 0 == atom exists for all copies.
     int Copy() const { return cnum_; }
     /// \return LES region ID for the atom
     int ID()   const { return id_;   }
