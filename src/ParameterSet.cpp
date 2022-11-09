@@ -2,7 +2,7 @@
 #include "CpptrajFile.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
-#include "UpdateParameters.h"
+#include "Param/UpdateParameters.h"
 
 size_t ParameterSet::DataSize() const {
   return (atomTypes_.DataSize() +
@@ -30,19 +30,19 @@ void ParameterSet::Debug(const char* fnameIn) const {
   if (!bondParm_.empty()) {
     Out.Printf("Bond parameters:\n");
     Out.Printf("\t%6s %6s : %12s %12s\n", "Type1", "Type2", "Rk", "Req");
-    for (ParmHolder<BondParmType>::const_iterator bp = bondParm_.begin(); bp != bondParm_.end(); ++bp)
+    for (ParmHolder<HookesLawType>::const_iterator bp = bondParm_.begin(); bp != bondParm_.end(); ++bp)
       Out.Printf("\t%6s %6s : %12.4f %12.4f\n", *(bp->first[0]), *(bp->first[1]), bp->second.Rk(), bp->second.Req());
   }
   if (!angleParm_.empty()) {
     Out.Printf("Angle parameters:\n");
     Out.Printf("\t%6s %6s %6s : %12s %12s\n", "Type1", "Type2", "Type3", "Tk", "Teq");
-    for (ParmHolder<AngleParmType>::const_iterator bp = angleParm_.begin(); bp != angleParm_.end(); ++bp)
-      Out.Printf("\t%6s %6s %6s : %12.4f %12.4f\n", *(bp->first[0]), *(bp->first[1]), *(bp->first[2]), bp->second.Tk(), bp->second.Teq());
+    for (ParmHolder<HookesLawType>::const_iterator bp = angleParm_.begin(); bp != angleParm_.end(); ++bp)
+      Out.Printf("\t%6s %6s %6s : %12.4f %12.4f\n", *(bp->first[0]), *(bp->first[1]), *(bp->first[2]), bp->second.Rk(), bp->second.Req());
   }
   if (!ubParm_.empty()) {
     Out.Printf("UB parameters:\n");
     Out.Printf("\t%6s %6s : %12s %12s\n", "Type1", "Type2", "Uk", "Ueq");
-    for (ParmHolder<BondParmType>::const_iterator bp = ubParm_.begin(); bp != ubParm_.end(); ++bp)
+    for (ParmHolder<HookesLawType>::const_iterator bp = ubParm_.begin(); bp != ubParm_.end(); ++bp)
       Out.Printf("\t%s %s : %f %f\n", *(bp->first[0]), *(bp->first[1]), bp->second.Rk(), bp->second.Req());
   }
   if (!dihParm_.empty()) {
@@ -72,15 +72,15 @@ int ParameterSet::UpdateParamSet(ParameterSet const& set1, UpdateCount& uc, int 
   }
 
   // Bond parameters
-  uc.nBondsUpdated_ = UpdateParameters< ParmHolder<BondParmType> >(set0.BP(), set1.BP(), "bond");
+  uc.nBondsUpdated_ = UpdateParameters< ParmHolder<HookesLawType> >(set0.BP(), set1.BP(), "bond");
   // Angle parameters
-  uc.nAnglesUpdated_ = UpdateParameters< ParmHolder<AngleParmType> >(set0.AP(), set1.AP(), "angle");
+  uc.nAnglesUpdated_ = UpdateParameters< ParmHolder<HookesLawType> >(set0.AP(), set1.AP(), "angle");
   // Dihedral/improper parameters
   uc.nDihedralsUpdated_ = UpdateParameters< DihedralParmHolder >(set0.DP(), set1.DP(), "dihedral");
   // Improper parameters
   uc.nImpropersUpdated_ = UpdateParameters< ParmHolder<DihedralParmType> >(set0.IP(), set1.IP(), "improper");
   // Urey-Bradley parameters
-  uc.nUreyBradleyUpdated_ = UpdateParameters< ParmHolder<BondParmType> >(set0.UB(), set1.UB(), "Urey-Bradley");
+  uc.nUreyBradleyUpdated_ = UpdateParameters< ParmHolder<HookesLawType> >(set0.UB(), set1.UB(), "Urey-Bradley");
   // Atom types
   uc.nAtomTypeUpdated_ = UpdateParameters< ParmHolder<AtomType> >(set0.AT(), set1.AT(), "atom type");
   // LJ Pairs
