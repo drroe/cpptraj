@@ -1,6 +1,8 @@
 #ifndef INC_ATOMTYPE_H
 #define INC_ATOMTYPE_H
-#include "ParameterTypes.h"
+#include "LJparmType.h"
+namespace Cpptraj {
+namespace Param {
 /// Hold parameters for a unique atom type
 class AtomType {
   public:
@@ -29,4 +31,6 @@ class AtomType {
     double mass_;   ///< Mass in amu
     int oidx_; ///< Original atom type index. TODO deprecate
 };
+}
+}
 #endif
