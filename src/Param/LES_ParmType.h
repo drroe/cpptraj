@@ -1,5 +1,7 @@
 #ifndef INC_PARAM_LES_PARMTYPE_H
 #define INC_PARAM_LES_PARMTYPE_H
+#include <vector>
+#include "LES_AtomType.h"
 namespace Cpptraj {
 namespace Param {
 /// Hold LES parameters

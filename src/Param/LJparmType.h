@@ -1,10 +1,12 @@
 #ifndef INC_PARAM_LJPARMTYPE_H
 #define INC_PARAM_LJPARMTYPE_H
 #include "../FPcompare.h"
+#include "NonbondType.h"
 #include <vector>
 #include <cmath> // sqrt
 namespace Cpptraj {
 namespace Param {
+using namespace FPcompare;
 /// Hold Lennard-Jones radius and well-depth
 class LJparmType {
   public:

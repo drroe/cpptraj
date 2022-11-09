@@ -1,5 +1,8 @@
 #ifndef INC_PARAM_NONBONDPARMTYPE_H
 #define INC_PARAM_NONBONDPARMTYPE_H
+#include <vector>
+#include "NonbondType.h"
+#include "HB_ParmType.h"
 namespace Cpptraj {
 namespace Param {
 /// Hold nonbonded interaction parameters

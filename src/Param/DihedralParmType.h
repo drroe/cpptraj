@@ -4,6 +4,7 @@
 #include "../FPcompare.h"
 namespace Cpptraj {
 namespace Param {
+using namespace FPcompare;
 /// Hold dihedral parameters (Fourier series)
 class DihedralParmType {
   public:
