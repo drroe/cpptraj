@@ -5,13 +5,21 @@
 #include "Atom.h"
 #include "Residue.h"
 #include "Molecule.h"
-#include "ParameterTypes.h"
 #include "ParameterSet.h"
 #include "Frame.h"
 #include "FileName.h"
 #include "Range.h"
+#include "Param/CapParmType.h"
+#include "Param/CmapGridType.h"
+#include "Param/LES_ParmType.h"
+#include "Param/NonbondParmType.h"
+#include "Top/BondType.h"
+#include "Top/AngleType.h"
+#include "Top/DihedralType.h"
+#include "Top/CmapType.h"
 class AtomMask;
 class CharMask;
+using namespace Cpptraj::Top;
 /// Hold information for all atoms
 class Topology {
   public:
@@ -102,26 +110,26 @@ class Topology {
     size_t Nbonds()                            const { return bonds_.size()+bondsh_.size(); }
     BondArray         const& Bonds()        const { return bonds_;        }
     BondArray         const& BondsH()       const { return bondsh_;       }
-    BondParmArray     const& BondParm()     const { return bondparm_;     }
-    BondParmType& SetBondParm(int i)              { return bondparm_[i];  }
-    void AddBondParm(BondParmType const& b)       { bondparm_.push_back( b ); }
+    HookesLawArray     const& BondParm()     const { return bondparm_;     }
+    HookesLawType& SetBondParm(int i)              { return bondparm_[i];  }
+    void AddBondParm(HookesLawType const& b)       { bondparm_.push_back( b ); }
     void AddBond(int i, int j)                    { AddBond(i, j, -1); }
     void AddBond(int, int, int);
     void AddBond(BondType const&, bool);
-    void AddBond(int, int, BondParmType const&);
+    void AddBond(int, int, HookesLawType const&);
     int RemoveBond(int, int);
-    void AssignBondParams(ParmHolder<BondParmType> const&);
+    void AssignBondParams(ParmHolder<HookesLawType> const&);
     // ----- Angle-specific routines -------------
     size_t Nangles()                           const { return angles_.size()+anglesh_.size(); }
     AngleArray        const& Angles()       const { return angles_;       }
     AngleArray        const& AnglesH()      const { return anglesh_;      }
-    AngleParmArray    const& AngleParm()    const { return angleparm_;    }
-    AngleParmType& SetAngleParm(int i)            { return angleparm_[i]; }
+    HookesLawArray    const& AngleParm()    const { return angleparm_;    }
+    HookesLawType& SetAngleParm(int i)            { return angleparm_[i]; }
     void AddAngle(int i, int j, int k)            { AddAngle(i, j, k, -1); }
     void AddAngle(int, int, int, int);
     void AddAngle(AngleType const&, bool);
-    void AddAngle(int, int, int, AngleParmType const&); 
-    void AssignAngleParams(ParmHolder<AngleParmType> const&);
+    void AddAngle(int, int, int, HookesLawType const&); 
+    void AssignAngleParams(ParmHolder<HookesLawType> const&);
     // ----- Dihedral-specific routines ----------
     size_t Ndihedrals()                        const { return dihedrals_.size()+dihedralsh_.size(); }
     DihedralArray     const& Dihedrals()    const { return dihedrals_;       }
@@ -165,7 +173,7 @@ class Topology {
     void AddCharmmImproper(DihedralType const&, DihedralParmType const&);
     void AddCharmmImproper(DihedralType const&, int);
     void AddCharmmImproper(DihedralType const& i) { AddCharmmImproper(i, -1); }
-    void AssignUBParams(ParmHolder<BondParmType> const&);
+    void AssignUBParams(ParmHolder<HookesLawType> const&);
     // ----- Misc routines -----------------------
     /// Format: <res name>_<res num>@<atom name>
     std::string TruncResAtomName(int) const;
@@ -265,19 +273,19 @@ class Topology {
     BondArray StripBondArray(BondArray const&, std::vector<int> const&) const;
     AngleArray StripAngleArray(AngleArray const&, std::vector<int> const&) const;
     DihedralArray StripDihedralArray(DihedralArray const&, std::vector<int> const&) const;
-    void StripBondParmArray(BondArray&, std::vector<int>&, BondParmArray&) const;
-    void StripBondParmArray(BondArray&, std::vector<int>&, BondParmArray&,
-                            BondParmArray const&) const;
-    void StripAngleParmArray(AngleArray&, std::vector<int>&, AngleParmArray&) const;
+    void StripBondParmArray(BondArray&, std::vector<int>&, HookesLawArray&) const;
+    void StripBondParmArray(BondArray&, std::vector<int>&, HookesLawArray&,
+                            HookesLawArrayArray const&) const;
+    void StripAngleParmArray(AngleArray&, std::vector<int>&, HookesLawArray) const;
     void StripDihedralParmArray(DihedralArray&, std::vector<int>&, DihedralParmArray&) const;
     void StripDihedralParmArray(DihedralArray&, std::vector<int>&, DihedralParmArray&,
                                 DihedralParmArray const&) const;
-    inline void AddBondArray(BondArray const&, BondParmArray const&, int);
-    inline void AddAngleArray(AngleArray const&, AngleParmArray const&, int);
+    inline void AddBondArray(BondArray const&, HookesLawArray const&, int);
+    inline void AddAngleArray(AngleArray const&, HookesLawArray const&, int);
     inline void AddDihArray(DihedralArray const&, DihedralParmArray const&, int);
 
-    void AssignBondParm(ParmHolder<BondParmType> const&, ParmHolder<int>&, BondArray&, BondParmArray&, const char*);
-    void AssignAngleParm(ParmHolder<AngleParmType> const&, ParmHolder<int>&, AngleArray&);
+    void AssignBondParm(ParmHolder<HookesLawType> const&, ParmHolder<int>&, BondArray&, HookesLawArray&, const char*);
+    void AssignAngleParm(ParmHolder<HookesLawType> const&, ParmHolder<int>&, AngleArray&);
     void AssignImproperParm(ParmHolder<DihedralParmType> const&, ParmHolder<int>&, DihedralArray&);
     void AssignDihedralParm(DihedralParmHolder const&, DihedralArray&);
 
@@ -292,10 +300,10 @@ class Topology {
 
     BondArray bonds_;
     BondArray bondsh_;
-    BondParmArray bondparm_;
+    HookesLawArray bondparm_;
     AngleArray angles_;
     AngleArray anglesh_;
-    AngleParmArray angleparm_;
+    HookesLawArray angleparm_;
     DihedralArray dihedrals_;
     DihedralArray dihedralsh_;
     DihedralParmArray dihedralparm_;

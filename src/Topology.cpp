@@ -5,10 +5,10 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString 
 #include "Constants.h" // RADDEG, SMALL
-#include "AtomType.h"
 #include "AtomMask.h"
 #include "CharMask.h"
-#include "UpdateParameters.h"
+#include "Param/AtomType.h"
+#include "Param/UpdateParameters.h"
 
 const NonbondType Topology::LJ_EMPTY = NonbondType();
 
