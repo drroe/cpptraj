@@ -16,6 +16,7 @@ class CmapGridType {
     int resolution_;           ///< Number of steps along each phi/psi CMAP axis
     std::vector<double> grid_; ///< CMAP grid (size is resolution_*resolution_), column major order
 };
+typedef std::vector<CmapGridType> CmapGridArray;
 }
 }
 #endif
