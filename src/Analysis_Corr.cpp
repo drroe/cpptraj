@@ -11,7 +11,8 @@ Analysis_Corr::Analysis_Corr() :
   Coeff_(0),
   lagmax_(0),
   usefft_(true),
-  calc_covar_(true)
+  calc_covar_(true),
+  cosphi_(false)
 {}
 
 void Analysis_Corr::Help() const {
@@ -29,6 +30,7 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
   lagmax_ = analyzeArgs.getKeyInt("lagmax",-1);
   usefft_ = !analyzeArgs.hasKey("direct");
   calc_covar_ = !analyzeArgs.hasKey("nocovar");
+  cosphi_ = analyzeArgs.hasKey("cosphi");
   DataFile* outfile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   if (outfile == 0) {
     mprinterr("Error: Corr: No output filename specified ('out' <filename>).\n");
@@ -65,6 +67,16 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     mprinterr("Error: Vector cross correlation requires 2 vector data sets.\n");
     return Analysis::ERR;
   }
+  if (cosphi_) {
+    if (D1_ != D2_) {
+      mprinterr("Error: 'cosphi' only works for autocorrelation (1 set).\n");
+      return Analysis::ERR;
+    }
+    if (!D1_->Meta().IsTorsionArray()) {
+      mprinterr("Error: 'cosphi' only works for periodic data.\n");
+      return Analysis::ERR;
+    }
+  }
 
   // Setup output datasets
   Ct_ = setup.DSL().AddSet( DataSet::DOUBLE, dataset_name, "Corr" );
@@ -95,15 +107,39 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
   if (lagmax_!=-1) 
     mprintf(", max lag %i",lagmax_);
   mprintf("\n\tOutput to %s\n",outfile->DataFilename().base());
-  if (usefft_)
+  if (cosphi_)
+    mprintf("\tUsing cosine version of dihedral autocorrelation function.\n");
+  else if (usefft_)
     mprintf("\tUsing FFT to calculate %s.\n", calctype);
   else
     mprintf("\tUsing direct method to calculate %s.\n", calctype);
+
   mprintf("\tCorrelation function data set: %s\n", Ct_->Meta().PrintName().c_str());
   if (Coeff_ != 0)
     mprintf("\tCorrelation coefficient data set: %s\n", Coeff_->Meta().PrintName().c_str());
 
   return Analysis::OK;
+}
+
+/** Calculate dihedral cosine autocorrelation of form:
+  *  C(t) = <cos[phi(T) - phi(T+t)>T
+  */
+int Analysis_Corr::cosine_dihedral_autocorr(DataSet_1D const& setIn) {
+  double norm = 1;
+  for (unsigned int lag = 0; lag < (unsigned int)lagmax_; ++lag) {
+    double ct = 0;
+    unsigned int jmax = setIn.Size() - lag;
+    for (unsigned int j = 0; j < jmax; ++j) {
+      ct += cos( (setIn.Dval(j) - setIn.Dval(j+lag)) * Constants::DEGRAD );
+    }
+    if (lag == 0) {
+      if (jmax != 0)
+        norm = (double)jmax;
+    }
+    ct /= norm;
+    Ct_->Add( lag, &ct );
+  }
+  return 0;
 }
 
 // Analysis_Corr::Analyze()
@@ -122,7 +158,9 @@ Analysis::RetType Analysis_Corr::Analyze() {
   mprintf("    CORR: %zu elements, max lag %i\n",Nelements,lagmax_);
 
   Analysis::RetType err = Analysis::OK;
-  if (D1_->Group() == DataSet::VECTOR_1D) {
+  if (cosphi_)
+    cosine_dihedral_autocorr( static_cast<DataSet_1D const&>( *D1_ ) );
+  else if (D1_->Group() == DataSet::VECTOR_1D) {
     DataSet_Vector const& set1 = static_cast<DataSet_Vector const&>( *D1_ );
     DataSet_Vector const& set2 = static_cast<DataSet_Vector const&>( *D2_ );
     set1.CalcVectorCorr(set2, *((DataSet_1D*)Ct_), lagmax_);
