@@ -120,6 +120,9 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
   } else if (argIn.hasKey("shift")) {       // Shift data in set(s) that match criteria by offset
     err = ShiftData(State, argIn);
   // ---------------------------------------------
+  } else if (argIn.hasKey("wrap")) {        // Wrap periodic data to maintain deltas
+    err = WrapPeriodicData(State, argIn);
+  // ---------------------------------------------
   } else {                                  // Default: change mode/type for one or more sets.
     err = ChangeModeType(State, argIn);
   }
@@ -1114,6 +1117,53 @@ Exec::RetType Exec_DataSetCmd::ShiftData(CpptrajState& State, ArgList& argIn) {
     } // END loop over sets
     ds_arg = argIn.GetStringNext();
   } // END loop over data set args
+
+  return CpptrajState::OK;
+}
+
+/** Wrap periodic data so that each consecutive value has the smallest
+  * delta to the previous value.
+  */
+Exec::RetType Exec_DataSetCmd::WrapPeriodicData(CpptrajState& State, ArgList& argIn) {
+  std::vector<DataSet*> setsToWrap;
+
+  std::string setname = argIn.GetStringNext();
+  while (!setname.empty()) {
+    DataSetList dsl = State.DSL().GetMultipleSets( setname );
+    for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
+    {
+      if (!(*ds)->Meta().IsTorsionArray() || (*ds)->Group() != DataSet::SCALAR_1D) {
+        mprintf("Warning: '%s' is not a periodic data set, skipping.\n", (*ds)->legend());
+        continue;
+      }
+      setsToWrap.push_back( *ds );
+    }
+    setname = argIn.GetStringNext();
+  }
+
+  for (std::vector<DataSet*>::const_iterator it = setsToWrap.begin();
+                                             it != setsToWrap.end(); ++it)
+  {
+    if ( (*it)->Size() > 1) {
+      DataSet_1D& set = static_cast<DataSet_1D&>( *(*it) );
+      double lastDval = set.Dval(0);
+      for (unsigned int idx = 1; idx != set.Size(); idx++) {
+        double dval = set.Dval(idx);
+        double d01 = dval - lastDval;
+        double delta;
+        if (d01 > 180.0) {
+          delta = d01 - 360;
+        } else if (d01 < -180.0) {
+          delta = d01 + 360;
+        } else
+          delta = d01;
+        mprintf("DEBUG: idx=%4u lastDval=%12.4f dval=%12.4f d01=%12.4f delta=%12.4f new=%12.4f\n",
+                idx, lastDval, dval, d01, delta, lastDval + delta);
+        set.SetY( idx, lastDval + delta );
+        lastDval = lastDval + delta;
+      }
+    }
+  }
 
   return CpptrajState::OK;
 }
