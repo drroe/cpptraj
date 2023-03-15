@@ -331,6 +331,7 @@ COMMON_SOURCES= \
         MaskToken.cpp \
         Matrix_3x3.cpp \
         MdOpts.cpp \
+        MeadInterface.cpp \
         MetaData.cpp \
         Minimize_SteepestDescent.cpp \
         Mol.cpp \

@@ -37,14 +37,18 @@ all: cpptraj$(SFX)$(EXE)
 # Install all targets
 install: $(INSTALL_TARGETS)
 
+# MEAD ---------------------------------
+MEAD_TARGET=../mead/libmead.a
+MEAD_LIB=../mead/libmead.a
+
 # Cpptraj ------------------------------
 install_cpptraj: cpptraj$(SFX)$(EXE)
 	$(VB)echo Install cpptraj$(SFX)$(EXE) to $(CPPTRAJBIN)
 	$(VB)mv cpptraj$(SFX)$(EXE) $(CPPTRAJBIN)
 
-cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(TNGFILE_TARGET)
+cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(TNGFILE_TARGET) $(MEAD_TARGET)
 	$(VB)echo Link cpptraj$(SFX)$(EXE)
-	$(VB)$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(CUDA_TARGET) $(FFT_TARGET) $(READLINE_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
+	$(VB)$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(CUDA_TARGET) $(FFT_TARGET) $(READLINE_LIB) $(MEAD_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 # libcpptraj ---------------------------
 # Rule to make libcpptraj-specific objects
@@ -99,6 +103,9 @@ pub_fft.o:  pub_fft.F90
 
 readline/libreadline.a:
 	cd readline && $(MAKE) all
+
+../mead/libmead.a:
+	cd ../mead && $(MAKE) all
 
 xdrfile/libxdrfile.a:
 	cd xdrfile && $(MAKE) all
