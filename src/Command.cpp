@@ -39,6 +39,7 @@
 #include "Exec_Show.h"
 #include "Exec_Random.h"
 #include "Exec_CompareClusters.h"
+#include "Exec_MEAD.h"
 // ----- SYSTEM ----------------------------------------------------------------
 #include "Exec_System.h"
 // ----- COORDS ----------------------------------------------------------------
@@ -229,6 +230,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_GenerateAmberRst(),Cmd::EXE, 1, "rst" );
   Command::AddCmd( new Exec_Help(),            Cmd::EXE, 1, "help" );
   Command::AddCmd( new Exec_ListAll(),         Cmd::EXE, 1, "list" );
+  Command::AddCmd( new Exec_MEAD(),            Cmd::EXE, 1, "mead" );
   Command::AddCmd( new Exec_NoExitOnError(),   Cmd::EXE, 1, "noexitonerror" );
   Command::AddCmd( new Exec_NoProgress(),      Cmd::EXE, 1, "noprogress" );
   Command::AddCmd( new Exec_ParallelAnalysis(),Cmd::EXE, 1, "parallelanalysis" );
