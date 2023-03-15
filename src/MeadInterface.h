@@ -14,6 +14,8 @@ class MeadInterface {
     ~MeadInterface();
     /// Add a grid to the FDM object
     int AddGrid(int, float, Vec3 const&);
+    /// Print info to stdout
+    void Print() const;
   private:
     FinDiffMethod* fdm_;
 };

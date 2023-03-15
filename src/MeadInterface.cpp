@@ -4,6 +4,8 @@
 // MEAD includes
 #include "../mead/FinDiffMethod.h"
 #include "../mead/MEADexcept.h"
+// FOR DEBUG
+#include <iostream>
 
 using namespace Cpptraj;
 
@@ -33,4 +35,8 @@ int MeadInterface::AddGrid(int ngrd, float spc, Vec3 const& cntr)
     return 1;
   }
   return 0;
+}
+
+void MeadInterface::Print() const {
+  std::cout << *fdm_;
 }

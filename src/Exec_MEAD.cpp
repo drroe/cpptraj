@@ -32,5 +32,7 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
     ogmstr = argIn.GetStringKey("ogm");
   }
 
+  MEAD.Print();
+
   return CpptrajState::OK;    
 }
