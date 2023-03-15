@@ -1,5 +1,5 @@
 # Makefile for MEAD bundled with cpptraj.
-include ../../config.h
+include ../config.h
 DEL_FILE      = /bin/rm -f
 AR            = ar cqs
 TARGET        = libmead.a
@@ -24,7 +24,7 @@ clean:
 	$(DEL_FILE) *.o $(TARGET)
 
 # Dependencies
-depend: ../findDepend
-	../findDepend $(SOURCES) > meaddepend
+depend: ../src/findDepend
+	../src/findDepend $(SOURCES) > meaddepend
 
 include meaddepend
