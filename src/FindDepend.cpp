@@ -119,7 +119,7 @@ void GetDependencies(string const& filenameIn) {
     ext = filename.substr(found);
 
   //printf("FILE: %s  EXT: %s\n", filename.c_str(), ext.c_str());
-  if (ext == ".cpp" || ext == ".c" || ext == ".cu") {
+  if (ext == ".cpp" || ext == ".c" || ext == ".cu" || ext == ".cc") {
     type = SOURCE;
     // Each source file should only be accessed once
     Smap::iterator it = Sources.find( filename );
