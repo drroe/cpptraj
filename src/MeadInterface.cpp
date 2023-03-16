@@ -53,6 +53,30 @@ int MeadInterface::SetupAtoms(Topology const& topIn, Frame const& frameIn) {
   if (atomset_ != 0) delete atomset_;
   atomset_ = new AtomSet();
 
+  for (int aidx = 0; aidx < topIn.Natom(); aidx++)
+  {
+    MEAD::Atom at;
+
+    Atom const& thisAtom = topIn[aidx];
+    at.atname.assign( thisAtom.Name().Truncated() );
+    int rnum = thisAtom.ResNum();
+    Residue const& thisRes = topIn.Res(rnum);
+    at.resname.assign( thisRes.Name().Truncated() );
+    at.resnum = thisRes.OriginalResNum();
+    if (thisRes.HasChainID())
+      at.chainid.assign( 1, thisRes.ChainId() );
+    const double* xyz = frameIn.XYZ(aidx);
+    at.coord.x = xyz[0];
+    at.coord.y = xyz[1];
+    at.coord.z = xyz[2];
+    at.charge = thisAtom.Charge();
+    // TODO radii modes
+    at.rad = thisAtom.GBRadius();
+    //at.rad = thisAtom.ParseRadius();
+    //at.rad = topIn.GetVDWradius(aidx);
+    atomset_->insert( at );
+  }
+
   return 0;
 }
 
