@@ -2,7 +2,7 @@
 #include "MEAD/CubeLatSpec.h"
 #include "MEAD/SolvAccVol.h"
 #include <iostream>
-
+using namespace MEAD;
 // First some utilities for implementation of ElectrolyteByAtoms --------
 
 struct IShell { // A simplified version of class Shell

@@ -34,6 +34,7 @@ using std::ios;
 #include "MEAD/AtomChargeSet.h"
 #include "MEAD/ElstatPot.h"
 #include "MEAD/globals.h"
+using namespace MEAD;
 
 typedef AtomSet::const_iterator ascitr;
 

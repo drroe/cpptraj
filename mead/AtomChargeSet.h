@@ -39,7 +39,7 @@ class OnePointCharge;
 class ManyPointCharge;
 
 inline PointCharge
-convert_to_PointCharge (const std::pair<const AtomID,Atom>& p)
+convert_to_PointCharge (const std::pair<const AtomID,MEAD::Atom>& p)
 {
   return PointCharge(p.second.coord, p.second.charge);
 }

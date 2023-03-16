@@ -39,7 +39,7 @@ friend class ShellConeIterator;
 public:
 
   Shell (const Coord& c, float inner_r, float probe_r );
-  Shell (const Atom& a, float probe_r );
+  Shell (const MEAD::Atom& a, float probe_r );
 
   Shell ();
   Shell (const Shell& );

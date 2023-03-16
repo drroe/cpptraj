@@ -39,6 +39,7 @@ $Id: AtomChargeSet.cc,v 2.16 2007/05/28 01:26:41 bashford Exp $
 #include <math.h>
 #include <algorithm>
 
+using namespace MEAD;
 
 AtomChargeSet::AtomChargeSet()
  : ChargeDist_lett(), AtomSet()

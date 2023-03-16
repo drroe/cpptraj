@@ -31,7 +31,7 @@ $Id: Atom.h,v 2.14 2004/12/06 17:57:55 bashford Exp $
 #include <string>
 using std::string;
 #include "MEAD/Coord.h"
-
+namespace MEAD {
 //!wrap!
 struct Atom {
   Coord coord;
@@ -110,7 +110,7 @@ inline bool operator>(const Atom& a, const Atom& b)
 };
 
 #endif // SWIGPP_LITERAL_INCLUDE
-
+}
 #endif
 
 // Atom.h ends here

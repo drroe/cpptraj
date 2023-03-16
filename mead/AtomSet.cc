@@ -30,6 +30,8 @@ $Id: AtomSet.cc,v 1.30 2008/11/06 20:38:50 bashford Exp $
 #include "MEAD/globals.h"
 #include <fstream>
 
+using namespace MEAD;
+
 typedef std::list<Atom>::iterator alitr;
 typedef std::list<Atom>::const_iterator calitr;
 

@@ -16,7 +16,7 @@ public:
   AtomID ();
   AtomID (int residue_number, const string& atom_name, const string& chainid = "");
   AtomID (const AtomID&);
-  AtomID (const Atom&);
+  AtomID (const MEAD::Atom&);
   ~AtomID () {}
   //!nowrap!
   AtomID& operator= (const AtomID&);
@@ -86,7 +86,7 @@ string * AtomID_chainid_get(AtomID *self){_AtomID_chainid_readonly = self->get_c
 inline AtomID::AtomID (const AtomID& a)
   : resnum(a.resnum), atname(a.atname), chainid(a.chainid) {}
 
-inline AtomID::AtomID (const Atom& a)
+inline AtomID::AtomID (const MEAD::Atom& a)
   : resnum(a.resnum), atname(a.atname), chainid(a.chainid) {}
 
 inline bool AtomID::operator== (const AtomID& a) const

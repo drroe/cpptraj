@@ -29,6 +29,7 @@ $Id: Shell.cc,v 1.7 2004/12/06 17:58:37 bashford Exp $
 #include <string>
 #include "MEAD/Shell.h"
 
+using namespace MEAD;
 
 Shell::Shell (const Coord& a, float inner_r, float probe_r)
 {

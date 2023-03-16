@@ -30,7 +30,7 @@ $Id: Atom.cc,v 1.10 2004/12/06 17:57:52 bashford Exp $
 
 #include "MEAD/Atom.h"
 #include <iostream>
-
+using namespace MEAD;
 Atom nil_atom;
 
 Atom::Atom ()

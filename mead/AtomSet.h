@@ -49,10 +49,10 @@ using std::ostringstream;
 class DeltaAtomSet;
 
 // Needed for swig typemap
-typedef std::list<Atom> list_Atom;
+typedef std::list<MEAD::Atom> list_Atom;
 
 //!wrap!
-class AtomSet: public map<AtomID, Atom > {
+class AtomSet: public map<AtomID, MEAD::Atom > {
 public:
   AtomSet();
   AtomSet (const string& name);
@@ -76,13 +76,13 @@ public:
   // some deviations from STL container functionality:
 
   // associative lookup, but don't create if missing
-  const Atom& operator[] (const AtomID&) const;
+  const MEAD::Atom& operator[] (const AtomID&) const;
   //!nowrap!-
-  Atom& operator[] (const AtomID&);
+  MEAD::Atom& operator[] (const AtomID&);
 
   //!nowrap!+
   bool contains(const AtomID&) const; // Existence of element (not STL-like)
-  pair<iterator,bool> insert (const Atom&); // easier-to-use insert
+  pair<iterator,bool> insert (const MEAD::Atom&); // easier-to-use insert
   //!nowrap!-
 private:
   string name;
@@ -152,7 +152,7 @@ string * AtomSet_name_get(AtomSet *self){_AtomSet_name_readonly = self->get_name
 #endif // SWIGPP_LITERAL_INCLUDE
 
 // associative lookup, but don't create if missing
-inline const Atom& AtomSet::operator[] (const AtomID& k) const
+inline const MEAD::Atom& AtomSet::operator[] (const AtomID& k) const
 {
   const_iterator i = find(k);
   if (i == end()) {
@@ -163,7 +163,7 @@ inline const Atom& AtomSet::operator[] (const AtomID& k) const
   return i->second;
 }
 
-inline Atom& AtomSet::operator[] (const AtomID& k)
+inline MEAD::Atom& AtomSet::operator[] (const AtomID& k)
 {
   iterator i = find(k);
   if (i == end())
@@ -178,12 +178,12 @@ inline bool AtomSet::contains(const AtomID& k) const
 }
 
 // easier to use insert (not quite STL-like)
-inline pair<AtomSet::iterator,bool> AtomSet::insert (const Atom& a){
+inline pair<AtomSet::iterator,bool> AtomSet::insert (const MEAD::Atom& a){
   AtomID k(a);
   if (contains(k)) {
     ::error("AtomSet::insert: attempt to insert a duplicate atom\n");
   }
-  return map<AtomID,Atom>::insert(value_type(k, a));
+  return map<AtomID,MEAD::Atom>::insert(value_type(k, a));
 }
 
 // Describes a change in an AtomSet, typically involving just a few
@@ -200,7 +200,7 @@ inline pair<AtomSet::iterator,bool> AtomSet::insert (const Atom& a){
 class DeltaAtomSet {
 public:
   DeltaAtomSet(const AtomSet& from, const AtomSet& to);
-  DeltaAtomSet(const list<Atom>& from, const list<Atom>& to);
+  DeltaAtomSet(const list<MEAD::Atom>& from, const list<MEAD::Atom>& to);
   //  int differs();
   int coords_differ();
   //  int rads_differ();
@@ -215,7 +215,7 @@ inline DeltaAtomSet::DeltaAtomSet(const AtomSet& f, const AtomSet& t)
 {}
 
 inline
-DeltaAtomSet::DeltaAtomSet (const list<Atom>& f, const list<Atom>& t)
+DeltaAtomSet::DeltaAtomSet (const list<MEAD::Atom>& f, const list<MEAD::Atom>& t)
  : from(f), to(t)
 {}
 
