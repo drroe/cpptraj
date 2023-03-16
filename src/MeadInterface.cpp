@@ -1,9 +1,11 @@
 #include "MeadInterface.h"
 #include "Vec3.h"
 #include "CpptrajStdio.h"
+#include "Topology.h"
 // MEAD includes
 #include "../mead/FinDiffMethod.h"
 #include "../mead/MEADexcept.h"
+#include "../mead/AtomSet.h"
 // FOR DEBUG
 #include <iostream>
 
@@ -11,7 +13,8 @@ using namespace Cpptraj;
 
 /** CONSTRUCTOR */
 MeadInterface::MeadInterface() :
-  fdm_(0)
+  fdm_(0),
+  atomset_(0)
 {
   fdm_ = new FinDiffMethod();
 }
@@ -19,6 +22,7 @@ MeadInterface::MeadInterface() :
 /** DESTRUCTOR */
 MeadInterface::~MeadInterface() {
   if (fdm_ != 0) delete fdm_;
+  if (atomset_ != 0) delete atomset_;
 }
 
 /** Add a grid to the finite difference method object. */
@@ -34,6 +38,21 @@ int MeadInterface::AddGrid(int ngrd, float spc, Vec3 const& cntr)
               e.get_error3().c_str());
     return 1;
   }
+  return 0;
+}
+
+/** Setup an AtomSet from Frame and Topology. */
+int MeadInterface::SetupAtoms(Topology const& topIn, Frame const& frameIn) {
+  // Sanity checking
+  if (topIn.Natom() != frameIn.Natom()) {
+    mprinterr("Internal Error: MeadInterface::SetupAtoms(): Top '%s' has %i atoms, frame has %i atoms.\n",
+              topIn.c_str(), topIn.Natom(), frameIn.Natom());
+    return 1;
+  }
+
+  if (atomset_ != 0) delete atomset_;
+  atomset_ = new AtomSet();
+
   return 0;
 }
 
