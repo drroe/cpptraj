@@ -143,9 +143,9 @@ const
       }
     }
 
-    delete prho;
-    delete peps;
-    delete pely;
+    //delete prho; // FIXME these deletes cause segfaults within MEAD
+    //delete peps;
+    //delete pely;
   }
   catch (MEADexcept& e) {
     return ERR("Potential()", e);

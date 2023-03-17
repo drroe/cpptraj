@@ -153,6 +153,7 @@ dependclean:
 clean:
 	$(DEL_FILE) $(OBJECTS) $(FFT_TARGET) cpptraj$(SFX) *.LIBCPPTRAJ.o libcpptraj$(SHARED_SUFFIX)
 	cd readline && $(MAKE) clean
+	cd ../mead && $(MAKE) clean
 	cd xdrfile && $(MAKE) clean
 	cd arpack && $(MAKE) clean
 	cd cuda_kernels && $(MAKE) clean
@@ -177,6 +178,7 @@ uninstall: uninstall_lib uninstall_inc
 	$(DEL_FILE) $(CPPTRAJBIN)/cpptraj$(SFX)$(EXE)
 	$(DEL_FILE) $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)
 	cd readline && $(MAKE) uninstall
+	cd ../mead && $(MAKE) uninstall
 	cd xdrfile && $(MAKE) uninstall
 	cd cuda_kernels && $(MAKE) uninstall
 	cd Cluster && $(MAKE) uninstall
