@@ -6,8 +6,12 @@
 // Exec_MEAD::Help()
 void Exec_MEAD::Help() const
 {
-  mprintf("\t[ogm <ngridpoints>,<gridspacing>] ...\n"
-          "\t[crdset <COORDS set>] [radmode {gb|parse|vdw}]\n");
+  mprintf("\t[ogm <ngridpoints>,<gridspacing> ...]\n"
+          "\t[crdset <COORDS set>] [radmode {gb|parse|vdw}]\n"
+          "\t{ potential [epsin <epsilon in>] [epsext <epsilon out>]\n"
+          "\t            [fpt <X>,<Y>,<Z> ...]\n"
+          "\t}\n"
+         );
 }
 
 /** MEAD potential. */
@@ -20,6 +24,37 @@ int Exec_MEAD::Potential(Cpptraj::MeadInterface& MEAD, ArgList& argIn) const {
   if (!MEAD.HasAtoms()) {
     mprinterr("Error: No MEAD atoms allocated.\n");
     return 1;
+  }
+
+  double epsin = argIn.getKeyDouble("epsin", 1);
+  double epsext = argIn.getKeyDouble("epsext", 80);
+
+  std::vector<Vec3> fieldPoints;
+  std::string fptstr = argIn.GetStringKey("fpt");
+  while (!fptstr.empty()) {
+    ArgList fptarg(fptstr, ",");
+    if (fptarg.Nargs() != 3) {
+      mprinterr("Error: Malformed fpt arg '%s', expected <X>,<Y>,<Z>\n", fptstr.c_str());
+      return 1;
+    }
+    for (int ii = 0; ii != 3; ii++) {
+      if (!validDouble(fptarg[ii])) {
+        mprinterr("Error: '%s' is not a valid double.\n", fptarg[ii].c_str());
+        return 1;
+      }
+    }
+    fieldPoints.push_back( Vec3( convertToDouble(fptarg[0]),
+                                 convertToDouble(fptarg[1]),
+                                 convertToDouble(fptarg[2]) ) );
+    fptstr = argIn.GetStringKey("fpt");
+  }
+  if (fieldPoints.empty()) {
+    mprintf("Warning: No field points specified.\n");
+  } else {
+    if (MEAD.Potential(epsin, epsext, fieldPoints)) {
+      mprinterr("Error: Could not process MEAD field points.\n");
+      return 1;
+    }
   }
 
   return 0;

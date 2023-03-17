@@ -12,6 +12,7 @@
 #include "../mead/DielByAtoms.h"
 #include "../mead/ElectrolyteEnvironment.h"
 #include "../mead/ElectrolyteByAtoms.h"
+#include "../mead/FinDiffElstatPot.h"
 // FOR DEBUG
 #include <iostream>
 
@@ -100,14 +101,55 @@ void MeadInterface::Print() const {
 }
 
 /** Run potential calc. */
-int MeadInterface::Potential(double epsin, double epsout) const {
+int MeadInterface::Potential(double epsin, double epsext, std::vector<Vec3> const& fieldPoints)
+const
+{
   try {
+    PhysCond::set_epsext(epsext);
     ChargeDist_lett* prho = new AtomChargeSet( *atomset_ );
     DielectricEnvironment_lett* peps = new TwoValueDielectricByAtoms( *atomset_, epsin );
     ElectrolyteEnvironment_lett* pely = new ElectrolyteByAtoms( *atomset_ );
+    //AtomChargeSet* prho = new AtomChargeSet( *atomset_ );
+    //TwoValueDielectricByAtoms* peps = new TwoValueDielectricByAtoms( *atomset_, epsin );
+    //ElectrolyteByAtoms* pely = new ElectrolyteByAtoms( *atomset_ );
+
+    FinDiffElstatPot phi( *fdm_, peps, prho, pely );
+    /*
+    if (initfield.length()) {
+    string ffn = initfield;
+    ffn += ".fld"; 
+    const char *ffnc = ffn.c_str();
+    // open it just as an existence test
+    ifstream initfield_file_existence(ffnc);
+    if (initfield_file_existence.good()) {
+      initfield_file_existence.close();
+      phi.solve_using_coarse_init(initfield);
+    }
+    }
+    else
+    */
+    phi.solve();
+    /*if (outfield.length() != 0)
+    phi.write_coarse_field(outfield);*/
+    if (!fieldPoints.empty()) {
+      for (std::vector<Vec3>::const_iterator fpt = fieldPoints.begin(); 
+                                             fpt != fieldPoints.end(); ++fpt)
+      {
+        Coord cxyz;
+        cxyz.x = (*fpt)[0];
+        cxyz.y = (*fpt)[1];
+        cxyz.z = (*fpt)[2];
+        std::cout << phi.value(cxyz) << "\n"; // DEBUG
+      }
+    }
+
+    delete prho;
+    delete peps;
+    delete pely;
   }
   catch (MEADexcept& e) {
     return ERR("Potential()", e);
   }
+
   return 0;
 }

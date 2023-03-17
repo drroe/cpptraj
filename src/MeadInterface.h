@@ -1,5 +1,6 @@
 #ifndef INC_MEADINTERFACE_H
 #define INC_MEADINTERFACE_H
+#include <vector>
 // Fwd declares
 class Vec3;
 class Topology;
@@ -32,7 +33,7 @@ class MeadInterface {
     bool HasAtoms() const { return atomset_ != 0; }
 
     /// Run potential calc
-    int Potential(double, double) const;
+    int Potential(double, double, std::vector<Vec3> const&) const;
   private:
     static int ERR(const char*, MEADexcept&);
 
