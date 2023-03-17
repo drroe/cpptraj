@@ -6,7 +6,8 @@
 // Exec_MEAD::Help()
 void Exec_MEAD::Help() const
 {
-  mprintf("\t[ogm <ngridpoints>,<gridspacing>] ...\n");
+  mprintf("\t[ogm <ngridpoints>,<gridspacing>] ...\n"
+          "\t[crdset <COORDS set>\n");
 }
 
 // Exec_MEAD::Execute()
@@ -30,6 +31,28 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
       return CpptrajState::ERR;
     }
     ogmstr = argIn.GetStringKey("ogm");
+  }
+
+  std::string setname = argIn.GetStringKey("crdset");
+  if (setname.empty()) {
+    mprinterr("Error: No COORDS set specified.\n");
+    return CpptrajState::ERR;
+  }
+  DataSet_Coords* CRD = (DataSet_Coords*)State.DSL().FindSetOfGroup( setname, DataSet::COORDINATES );
+  if (CRD == 0) {
+    mprinterr("Error: crdout: No COORDS set with name %s found.\n", setname.c_str());
+    return CpptrajState::ERR;
+  }
+  // TODO multiple frames
+  if (CRD->Size() < 1) {
+    mprinterr("Error: Set '%s' has no frames.\n", CRD->legend());
+    return CpptrajState::ERR;
+  }
+  Frame frameIn = CRD->AllocateFrame();
+  CRD->GetFrame(0, frameIn);
+  if (MEAD.SetupAtoms( CRD->Top(), frameIn )) {
+    mprinterr("Error: Setting up frame/topology failed.\n");
+    return CpptrajState::ERR; 
   }
 
   MEAD.Print();
