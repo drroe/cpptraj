@@ -7,6 +7,7 @@ class Frame;
 // MEAD fwd declares
 class FinDiffMethod;
 class AtomSet;
+class MEADexcept;
 namespace Cpptraj {
 /// Class to interface with libmead.a
 class MeadInterface {
@@ -28,8 +29,13 @@ class MeadInterface {
     /// \return True if finite difference method is allocated.
     bool HasFDM() const { return fdm_ != 0; }
     /// \return True if atom set is allocated
-    bool HasAtoms() const { return atomset_ != 0; } 
+    bool HasAtoms() const { return atomset_ != 0; }
+
+    /// Run potential calc
+    int Potential(double, double) const;
   private:
+    static int ERR(const char*, MEADexcept&);
+
     FinDiffMethod* fdm_;
     AtomSet* atomset_;
 };

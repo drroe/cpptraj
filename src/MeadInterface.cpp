@@ -6,6 +6,12 @@
 #include "../mead/FinDiffMethod.h"
 #include "../mead/MEADexcept.h"
 #include "../mead/AtomSet.h"
+#include "../mead/ChargeDist.h"
+#include "../mead/AtomChargeSet.h"
+#include "../mead/DielectricEnvironment.h"
+#include "../mead/DielByAtoms.h"
+#include "../mead/ElectrolyteEnvironment.h"
+#include "../mead/ElectrolyteByAtoms.h"
 // FOR DEBUG
 #include <iostream>
 
@@ -23,6 +29,15 @@ MeadInterface::~MeadInterface() {
   if (atomset_ != 0) delete atomset_;
 }
 
+/** Print MEAD error message. */
+int MeadInterface::ERR(const char* fxn, MEADexcept& e) {
+  mprinterr("Error: MEAD error in '%s': '%s' '%s' '%s'\n", fxn,
+              e.get_error1().c_str(),
+              e.get_error2().c_str(),
+              e.get_error3().c_str());
+  return 1;
+}
+
 /** Add a grid to the finite difference method object. */
 int MeadInterface::AddGrid(int ngrd, float spc, Vec3 const& cntr)
 {
@@ -33,11 +48,7 @@ int MeadInterface::AddGrid(int ngrd, float spc, Vec3 const& cntr)
     fdm_->add_level( ngrd, spc, Coord(cntr[0], cntr[1], cntr[2]) );
   }
   catch (MEADexcept& e) {
-    mprinterr("Error: MEAD error in AddGrid(): '%s' '%s' '%s'\n",
-              e.get_error1().c_str(),
-              e.get_error2().c_str(),
-              e.get_error3().c_str());
-    return 1;
+    return ERR("AddGrid()", e);
   }
   return 0;
 }
@@ -83,6 +94,20 @@ int MeadInterface::SetupAtoms(Topology const& topIn, Frame const& frameIn, Radii
   return 0;
 }
 
+/** Print debug info. */
 void MeadInterface::Print() const {
   std::cout << *fdm_;
+}
+
+/** Run potential calc. */
+int MeadInterface::Potential(double epsin, double epsout) const {
+  try {
+    ChargeDist_lett* prho = new AtomChargeSet( *atomset_ );
+    DielectricEnvironment_lett* peps = new TwoValueDielectricByAtoms( *atomset_, epsin );
+    ElectrolyteEnvironment_lett* pely = new ElectrolyteByAtoms( *atomset_ );
+  }
+  catch (MEADexcept& e) {
+    return ERR("Potential()", e);
+  }
+  return 0;
 }
