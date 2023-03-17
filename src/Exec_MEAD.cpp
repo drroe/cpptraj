@@ -7,7 +7,22 @@
 void Exec_MEAD::Help() const
 {
   mprintf("\t[ogm <ngridpoints>,<gridspacing>] ...\n"
-          "\t[crdset <COORDS set>\n");
+          "\t[crdset <COORDS set>] [radmode {gb|parse|vdw}]\n");
+}
+
+/** MEAD potential. */
+int Exec_MEAD::Potential(Cpptraj::MeadInterface& MEAD, ArgList& argIn) const {
+  // Sanity checks
+  if (!MEAD.HasFDM()) {
+    mprinterr("Error: No MEAD grid allocated.\n");
+    return 1;
+  }
+  if (!MEAD.HasAtoms()) {
+    mprinterr("Error: No MEAD atoms allocated.\n");
+    return 1;
+  }
+
+  return 0;
 }
 
 // Exec_MEAD::Execute()
@@ -33,6 +48,23 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
     ogmstr = argIn.GetStringKey("ogm");
   }
 
+  Cpptraj::MeadInterface::Radii_Mode radiiMode;
+  std::string radmode = argIn.GetStringKey("radii");
+  if (radmode == "gb")
+    radiiMode = Cpptraj::MeadInterface::GB;
+  else if (radmode == "parse")
+    radiiMode = Cpptraj::MeadInterface::PARSE;
+  else if (radmode == "vdw")
+    radiiMode = Cpptraj::MeadInterface::VDW;
+  else
+    radiiMode = Cpptraj::MeadInterface::GB;
+
+  switch (radiiMode) {
+    case Cpptraj::MeadInterface::GB : mprintf("\tUsing GB radii.\n"); break;
+    case Cpptraj::MeadInterface::PARSE : mprintf("\tUsing PARSE radii.\n"); break;
+    case Cpptraj::MeadInterface::VDW : mprintf("\tUsing VDW radii.\n"); break;
+  }
+
   std::string setname = argIn.GetStringKey("crdset");
   if (setname.empty()) {
     mprinterr("Error: No COORDS set specified.\n");
@@ -50,12 +82,21 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
   }
   Frame frameIn = CRD->AllocateFrame();
   CRD->GetFrame(0, frameIn);
-  if (MEAD.SetupAtoms( CRD->Top(), frameIn )) {
+  if (MEAD.SetupAtoms( CRD->Top(), frameIn, radiiMode )) {
     mprinterr("Error: Setting up frame/topology failed.\n");
     return CpptrajState::ERR; 
   }
 
   MEAD.Print();
 
+  int err = 0;
+  if (argIn.hasKey("potential")) {
+    err = Potential( MEAD, argIn );
+  } else {
+    mprinterr("Error: No MEAD calculation keywords given.\n");
+    err = 1;
+  }
+
+  if (err != 0) return CpptrajState::ERR;
   return CpptrajState::OK;    
 }

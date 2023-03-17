@@ -15,9 +15,7 @@ using namespace Cpptraj;
 MeadInterface::MeadInterface() :
   fdm_(0),
   atomset_(0)
-{
-  fdm_ = new FinDiffMethod();
-}
+{ }
 
 /** DESTRUCTOR */
 MeadInterface::~MeadInterface() {
@@ -28,6 +26,9 @@ MeadInterface::~MeadInterface() {
 /** Add a grid to the finite difference method object. */
 int MeadInterface::AddGrid(int ngrd, float spc, Vec3 const& cntr)
 {
+  if (fdm_ == 0)
+    fdm_ = new FinDiffMethod();
+
   try { 
     fdm_->add_level( ngrd, spc, Coord(cntr[0], cntr[1], cntr[2]) );
   }
@@ -42,7 +43,8 @@ int MeadInterface::AddGrid(int ngrd, float spc, Vec3 const& cntr)
 }
 
 /** Setup an AtomSet from Frame and Topology. */
-int MeadInterface::SetupAtoms(Topology const& topIn, Frame const& frameIn) {
+int MeadInterface::SetupAtoms(Topology const& topIn, Frame const& frameIn, Radii_Mode radiiMode)
+{
   // Sanity checking
   if (topIn.Natom() != frameIn.Natom()) {
     mprinterr("Internal Error: MeadInterface::SetupAtoms(): Top '%s' has %i atoms, frame has %i atoms.\n",
@@ -70,10 +72,11 @@ int MeadInterface::SetupAtoms(Topology const& topIn, Frame const& frameIn) {
     at.coord.y = xyz[1];
     at.coord.z = xyz[2];
     at.charge = thisAtom.Charge();
-    // TODO radii modes
-    at.rad = thisAtom.GBRadius();
-    //at.rad = thisAtom.ParseRadius();
-    //at.rad = topIn.GetVDWradius(aidx);
+    switch (radiiMode) {
+      case MeadInterface::GB : at.rad = thisAtom.GBRadius(); break;
+      case MeadInterface::PARSE : at.rad = thisAtom.ParseRadius(); break;
+      case MeadInterface::VDW   : at.rad = topIn.GetVDWradius(aidx); break;
+    }
     atomset_->insert( at );
   }
 
