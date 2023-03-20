@@ -25,11 +25,13 @@ class DataSet_Vector_Scalar : public DataSet {
     Vec3 const& Vec(unsigned int i) const { return vecs_[i]; }
     double Val(unsigned int i)      const { return vals_[i]; }
     const double* ValPtr()          const { return &vals_[0]; }
+    double LastVal()                const { return vals_.back(); }
 
     void Resize(size_t s)           { vecs_.resize( s ); vals_.resize( s ); }
-  
+    void reset()                    { vecs_.clear(); vals_.clear(); }
     Vec3& ModifyVec(unsigned int i) { return vecs_[i]; }
-    double* ValPtr()                { return &vals_[0]; } 
+    double* ValPtr()                { return &vals_[0]; }
+    void AddElement(Vec3 const& v, double s) { vecs_.push_back(v); vals_.push_back(s); }
   private:
     typedef std::vector<Vec3> Varray;
 

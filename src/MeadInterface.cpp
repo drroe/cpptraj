@@ -2,6 +2,7 @@
 #include "Vec3.h"
 #include "CpptrajStdio.h"
 #include "Topology.h"
+#include "DataSet_Vector_Scalar.h"
 // MEAD includes
 #include "../mead/FinDiffMethod.h"
 #include "../mead/MEADexcept.h"
@@ -100,10 +101,17 @@ void MeadInterface::Print() const {
   std::cout << *fdm_;
 }
 
-/** Run potential calc. */
-int MeadInterface::Potential(double epsin, double epsext, std::vector<Vec3> const& fieldPoints)
+/** Run potential calc.
+  * \param values Output potential values at each coordinate in fieldPoints.
+  * \param epsin Internal dielectric.
+  * \param epsext External dielectric.
+  * \param fieldPoints Coordinates to evaluate the potential at.
+  */
+int MeadInterface::Potential(DataSet_Vector_Scalar& values, double epsin, double epsext, std::vector<Vec3> const& fieldPoints)
 const
 {
+  values.reset();
+  values.Allocate( DataSet::SizeArray(1, fieldPoints.size()) );
   try {
     PhysCond::set_epsext(epsext);
     ChargeDist_lett* prho = new AtomChargeSet( *atomset_ );
@@ -139,7 +147,9 @@ const
         cxyz.x = (*fpt)[0];
         cxyz.y = (*fpt)[1];
         cxyz.z = (*fpt)[2];
-        std::cout << phi.value(cxyz) << "\n"; // DEBUG
+        //std::cout << phi.value(cxyz) << "\n"; // DEBUG
+        values.AddElement(*fpt, phi.value(cxyz) );
+        mprintf("DEBUG: %g\n", values.LastVal());
       }
     }
 

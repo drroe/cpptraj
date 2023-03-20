@@ -1,6 +1,8 @@
 #ifndef INC_EXEC_MEAD_H
 #define INC_EXEC_MEAD_H
 #include "Exec.h"
+// Fwd declares
+class DataSet_Vector_Scalar;
 namespace Cpptraj {
 class MeadInterface;
 }
@@ -12,6 +14,6 @@ class Exec_MEAD : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_MEAD(); }
     RetType Execute(CpptrajState&, ArgList&);
   private:
-    int Potential(Cpptraj::MeadInterface&, ArgList&) const;
+    int Potential(Cpptraj::MeadInterface&, ArgList&, DataSet_Vector_Scalar&) const;
 };
 #endif

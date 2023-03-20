@@ -8,6 +8,7 @@ void Exec_MEAD::Help() const
 {
   mprintf("\t[ogm <ngridpoints>,<gridspacing> ...]\n"
           "\t[crdset <COORDS set>] [radmode {gb|parse|vdw}]\n"
+          "\t[name <output set name>] [out <file>]\n"
           "\t{ potential [epsin <epsilon in>] [epsext <epsilon out>]\n"
           "\t            [fpt <X>,<Y>,<Z> ...]\n"
           "\t}\n"
@@ -15,7 +16,7 @@ void Exec_MEAD::Help() const
 }
 
 /** MEAD potential. */
-int Exec_MEAD::Potential(Cpptraj::MeadInterface& MEAD, ArgList& argIn) const {
+int Exec_MEAD::Potential(Cpptraj::MeadInterface& MEAD, ArgList& argIn, DataSet_Vector_Scalar& outset) const {
   // Sanity checks
   if (!MEAD.HasFDM()) {
     mprinterr("Error: No MEAD grid allocated.\n");
@@ -51,7 +52,7 @@ int Exec_MEAD::Potential(Cpptraj::MeadInterface& MEAD, ArgList& argIn) const {
   if (fieldPoints.empty()) {
     mprintf("Warning: No field points specified.\n");
   } else {
-    if (MEAD.Potential(epsin, epsext, fieldPoints)) {
+    if (MEAD.Potential(outset, epsin, epsext, fieldPoints)) {
       mprinterr("Error: Could not process MEAD field points.\n");
       return 1;
     }
@@ -100,6 +101,8 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
     case Cpptraj::MeadInterface::VDW : mprintf("\tUsing VDW radii.\n"); break;
   }
 
+  std::string outSetName = argIn.GetStringKey("name");
+
   std::string setname = argIn.GetStringKey("crdset");
   if (setname.empty()) {
     mprinterr("Error: No COORDS set specified.\n");
@@ -122,11 +125,23 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR; 
   }
 
+  DataFile* outfile = State.DFL().AddDataFile( argIn.GetStringKey("out"), argIn );
+
   MEAD.Print();
 
   int err = 0;
   if (argIn.hasKey("potential")) {
-    err = Potential( MEAD, argIn );
+    // Allocate output set
+    if (outSetName.empty())
+      outSetName = State.DSL().GenerateDefaultName("POTENTIAL");
+    DataSet_Vector_Scalar* outset = (DataSet_Vector_Scalar*)State.DSL().AddSet( DataSet::VECTOR_SCALAR, outSetName );
+    if (outset == 0) {
+      mprinterr("Error: Could not allocate output set '%s'\n", outSetName.c_str());
+      return CpptrajState::ERR;
+    }
+    if (outfile != 0)
+      outfile->AddDataSet( (DataSet*)outset );
+    err = Potential( MEAD, argIn, *outset );
   } else {
     mprinterr("Error: No MEAD calculation keywords given.\n");
     err = 1;
