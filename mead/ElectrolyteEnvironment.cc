@@ -155,7 +155,7 @@ ElyCubeRep::ElyCubeRep(const CubeLatSpec& cls)
 }
 ElyCubeRep::~ElyCubeRep()
 {
-  delete isgarr;
+  delete[] isgarr;
 }
 
 // ElectrolyteEnvironment.cc ends here
