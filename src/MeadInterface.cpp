@@ -90,9 +90,14 @@ int MeadInterface::SetupAtoms(Topology const& topIn, Frame const& frameIn, Radii
       case MeadInterface::PARSE : at.rad = thisAtom.ParseRadius(); break;
       case MeadInterface::VDW   : at.rad = topIn.GetVDWradius(aidx); break;
     }
-    atomset_->insert( at );
+    try {
+      atomset_->insert( at );
+    }
+    catch (MEADexcept& e) {
+      return ERR("SetupAtoms()", e);
+    }
   }
-
+  
   return 0;
 }
 
