@@ -70,6 +70,7 @@ class Traj_PDBfile: public TrajectoryIO {
     bool pdbres_;       ///< If true convert Amber res names to PDBV3 style.
     bool pdbatom_;      ///< If true convert Amber atom names to PDBV3 style.
     bool write_cryst1_; ///< If false write CRYST1 for first frame only.
+    bool write_elt_;    ///< If true, write element characters
     bool include_ep_;   ///< If true include extra points.
     bool prependExt_;
     bool firstframe_;   ///< Set to false after first call to writeFrame

@@ -23,6 +23,7 @@ Traj_PDBfile::Traj_PDBfile() :
   pdbres_(false),
   pdbatom_(false),
   write_cryst1_(false),
+  write_elt_(true),
   include_ep_(false),
   prependExt_(false),
   firstframe_(false),
@@ -243,6 +244,7 @@ void Traj_PDBfile::WriteHelp() {
           "\tchainid <c>     : Write character 'c' in chain ID column.\n"
           "\tsg <group>      : Space group for CRYST1 record, only if box coordinates written.\n"
           "\tinclude_ep      : Include extra points.\n"
+          "\tnoelt           : Do not write the element characters.\n"
           "\tconect          : Write CONECT records using bond information (if 'pdbres', only for HETATM).\n"
           "\tconectmode <m>  : Write CONECT records for <m>='all' (all bonds), 'het' (HETATM only), 'none' (no CONECT).\n"
           "\tkeepext         : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n"
@@ -319,6 +321,10 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   if (!temp.empty()) chainchar_ = temp[0];
   if (argIn.hasKey("usecol21"))
     file_.SetUseCol21( true );
+  if (argIn.hasKey("noelt"))
+    write_elt_ = false;
+  else
+    write_elt_ = true;
   // Check for data sets
   temp = argIn.GetStringKey("bfacdata");
   if (!temp.empty()) {
@@ -880,6 +886,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       resnum = pdbTop_->Res(res).OriginalResNum();
     else // TOPOLOGY
       resnum = res+1;
+    const char* eltname = "\0";
     if (include_ep_ || atom.Element() != Atom::EXTRAPT) {
       PDBfile::PDB_RECTYPE rectype;
       if ( resIsHet_[res] )
@@ -914,12 +921,14 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
         else if (pdbTop_->Res(res).Name() == "ILE" && atomName == "CD")
                  atomName = "CD1";
       }
+      if (write_elt_)
+        eltname = atom.ElementName();
       // TODO determine formal charges?
       file_.WriteCoord(rectype, anum, atomName, altLoc, resNames_[res],
                        chainID_[res], resnum,
                        resicode,
                        Xptr[0], Xptr[1], Xptr[2], Occ, Bfac,
-                       atom.ElementName(), 0, dumpq_);
+                       eltname, 0, dumpq_);
       if (adpdata_ != 0 && adpidx < adpdata_->Size()) {
         // Does this internal atom number match current X value?
         DataSet_Tensor const& ADP = static_cast<DataSet_Tensor const&>( *adpdata_ );
@@ -929,7 +938,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
           DataSet_Tensor::Ttype const& UM = ADP.Tensor(adpidx);
           file_.WriteANISOU( anum, atomName, resNames_[res], chainID_[res],
                              resnum,
-                             UM.Ptr(), atom.ElementName(), 0 );
+                             UM.Ptr(), eltname, 0 );
           adpidx++;
         }
       }
@@ -942,7 +951,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       // FIXME: Should anum not be incremented until after? 
       file_.WriteRecordHeader(PDBfile::TER, anum, "", ' ', resNames_[res],
                               chainID_[res], resnum,
-                              resicode, atom.ElementName());
+                              resicode, eltname);
       anum += ter_num_;
       ++terIdx;
     }
@@ -982,6 +991,8 @@ void Traj_PDBfile::Info() {
         case VDW: mprintf("vdW radii"); break;
       }
     }
+    if (!write_elt_)
+      mprintf(", not writing element characters");
     if (occdata_ != 0)
       mprintf(", occupancy data from '%s'", occdata_->legend());
     else if (dumpq_)
