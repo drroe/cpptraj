@@ -58,7 +58,7 @@ public:
   AtomSet (const string& name);
   AtomSet (const list_Atom& lat);
   AtomSet (const AtomSet& a);
-  ~AtomSet () {}
+  virtual ~AtomSet () {}
   //!nowrap!+
   AtomSet& operator=(const AtomSet& a);
   void build_from_vectors (vector<string> rnames, vector<string> anames,
