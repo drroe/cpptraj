@@ -106,6 +106,21 @@ void MeadInterface::Print() const {
   std::cout << *fdm_;
 }
 
+/** Set verbosity of underlying MEAD library. */
+void MeadInterface::MeadVerbosity(int i) const {
+  blab1pt = &cnull;
+  blab2pt = &cnull;
+  blab3pt = &cnull;
+  if (i >= 1)
+    blab1pt = &std::cout;
+  if (i >= 2)
+    blab2pt = &std::cout;
+  if (i >= 3)
+    blab3pt = &std::cout;
+  if (i != 0)
+    mprintf("Info: MEAD verbosity set to %i\n", i);
+}
+
 /** Run potential calc.
   * \param values Output potential values at each coordinate in fieldPoints.
   * \param epsin Internal dielectric.

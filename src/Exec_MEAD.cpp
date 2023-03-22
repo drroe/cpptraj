@@ -9,6 +9,7 @@ void Exec_MEAD::Help() const
   mprintf("\t[ogm <ngridpoints>,<gridspacing> ...]\n"
           "\t[crdset <COORDS set>] [radmode {gb|parse|vdw}]\n"
           "\t[name <output set name>] [out <file>]\n"
+          "\t[verbose <#>]\n"
           "\t{ potential [epsin <epsilon in>] [epsext <epsilon out>]\n"
           "\t            [fpt <X>,<Y>,<Z> ...]\n"
           "\t}\n"
@@ -65,6 +66,8 @@ int Exec_MEAD::Potential(Cpptraj::MeadInterface& MEAD, ArgList& argIn, DataSet_V
 Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
 {
   Cpptraj::MeadInterface MEAD;
+  int verbose = argIn.getKeyInt("verbose", 0);
+  MEAD.MeadVerbosity( verbose );
 
   std::string ogmstr = argIn.GetStringKey("ogm");
   while (!ogmstr.empty()) {

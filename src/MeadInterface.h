@@ -27,6 +27,8 @@ class MeadInterface {
     int SetupAtoms(Topology const&, Frame const&, Radii_Mode);
     /// Print info to stdout
     void Print() const;
+    /// Set MEAD verbosity level
+    void MeadVerbosity(int) const;
 
     /// \return True if finite difference method is allocated.
     bool HasFDM() const { return fdm_ != 0; }
