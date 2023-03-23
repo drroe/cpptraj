@@ -4,7 +4,7 @@
 
 TESTNAME='MEAD tests'
 
-CleanFiles cpptraj.in potential.dat test.sphere.pqr
+CleanFiles cpptraj.in potential.dat test.sphere.pqr solvate.dat
 
 INPUT='-i cpptraj.in'
 
@@ -35,8 +35,18 @@ mead \
   ogm 41,1.0 \
   ogm 41,0.25 \
   crdset SPHERE \
+  out solvate.dat \
+  name EPS1 \
   verbose 2 \
   solvate epsin 1
+mead \
+  ogm 41,1.0 \
+  ogm 41,0.25 \
+  crdset SPHERE \
+  out solvate.dat \
+  name EPS4 \
+  verbose 0 \
+  solvate epsin 4
 EOF
 RunCpptraj "$UNITNAME"
 
