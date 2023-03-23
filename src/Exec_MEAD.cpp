@@ -11,7 +11,11 @@ void Exec_MEAD::Help() const
           "\t[name <output set name>] [out <file>]\n"
           "\t[verbose <#>]\n"
           "\t{ potential [epsin <epsilon in>] [epsext <epsilon out>]\n"
-          "\t            [fpt <X>,<Y>,<Z> ...]\n"
+          "\t            [fpt <X>,<Y>,<Z> ...] |\n"
+          "\t  solvate [epsin <epsilon in>] [epssol <solvent epsilon>]\n"
+          "\t          [epsvac <vacuum epsilon>] [solrad <probe radius>]\n"
+          "\t          [sterln <ion layer thickness>] [ionicstr <ionic strength>]\n"
+          "\t          [temp <temperature>]\n"
           "\t}\n"
          );
 }
