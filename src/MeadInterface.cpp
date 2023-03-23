@@ -225,14 +225,28 @@ const
 
     ChargeDist rho(new AtomChargeSet(*atomset_));
 
+    // Solvent
     DielectricEnvironment eps(new TwoValueDielectricByAtoms(*atomset_, epsIn));
-
     ElectrolyteEnvironment ely(new ElectrolyteByAtoms(*atomset_));
-
     ElstatPot phi(*fdm_, eps, rho, ely);
     phi.solve();
     float prod_sol = phi * rho;
     mprintf("DEBUG: prod_sol= %f\n", prod_sol);
+
+    // Vacuum
+    PhysCond::set_epsext(epsVac);
+    PhysCond::set_ionicstr(0.0);
+    ElectrolyteEnvironment elyvac;  // No electrolyte is the default
+    DielectricEnvironment vac_eps(new TwoValueDielectricByAtoms(*atomset_, epsIn));
+    ElstatPot vac_phi(*fdm_, vac_eps, rho, elyvac);
+    vac_phi.solve();
+    float prod_vac = vac_phi * rho;
+    mprintf("DEBUG: prod_vac= %f\n", prod_vac);
+
+    // Total
+    float solvation_energy = (prod_sol - prod_vac) / 2 * PhysCond::get_econv();
+    mprintf("DEBUG: SOLVATION ENERGY = %f\n", solvation_energy);
+    Esolv = solvation_energy;
   }
   catch (MEADexcept& e) {
     return ERR("Solvate()", e);
