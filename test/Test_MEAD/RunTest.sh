@@ -4,7 +4,7 @@
 
 TESTNAME='MEAD tests'
 
-CleanFiles cpptraj.in potential.dat
+CleanFiles cpptraj.in potential.dat test.sphere.pqr
 
 INPUT='-i cpptraj.in'
 
@@ -30,6 +30,7 @@ UNITNAME='MEAD solvate test'
 cat > cpptraj.in <<EOF
 parm sphere.pqr pqr
 loadcrd sphere.pqr name SPHERE
+crdout SPHERE test.sphere.pqr pdb dumpq
 mead \
   ogm 41,1.0 \
   ogm 41,0.25 \
