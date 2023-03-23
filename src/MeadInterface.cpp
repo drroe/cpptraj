@@ -236,8 +236,8 @@ const
     // Vacuum
     PhysCond::set_epsext(epsVac);
     PhysCond::set_ionicstr(0.0);
-    ElectrolyteEnvironment elyvac;  // No electrolyte is the default
     DielectricEnvironment vac_eps(new TwoValueDielectricByAtoms(*atomset_, epsIn));
+    ElectrolyteEnvironment elyvac;  // No electrolyte is the default
     ElstatPot vac_phi(*fdm_, vac_eps, rho, elyvac);
     vac_phi.solve();
     float prod_vac = vac_phi * rho;
