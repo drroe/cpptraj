@@ -4,7 +4,7 @@
 
 TESTNAME='MEAD tests'
 
-CleanFiles cpptraj.in potential.dat test.sphere.pqr solvate.dat
+CleanFiles cpptraj.in potential.dat test.sphere.pqr solvate.dat bounds.dat MyGrid.dx
 
 INPUT='-i cpptraj.in'
 
@@ -30,6 +30,7 @@ UNITNAME='MEAD solvate test'
 cat > cpptraj.in <<EOF
 parm sphere.pqr pqr
 loadcrd sphere.pqr name SPHERE
+crdaction SPHERE bounds out bounds.dat name MyGrid dx 1.0 offset 5
 crdout SPHERE test.sphere.pqr pdb dumpq
 mead \
   ogm 41,1.0 \
@@ -38,7 +39,8 @@ mead \
   out solvate.dat \
   name EPS1 \
   verbose 2 \
-  solvate epsin 1
+  solvate epsin 1 rxngrid MyGrid
+writedata MyGrid.dx MyGrid
 mead \
   ogm 41,1.0 \
   ogm 41,0.25 \
@@ -50,5 +52,6 @@ mead \
 EOF
 RunCpptraj "$UNITNAME"
 DoTest solvate.dat.save solvate.dat
+DoTest MyGrid.dx.save MyGrid.dx
 
 EndTest
