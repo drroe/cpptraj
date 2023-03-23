@@ -12,7 +12,7 @@ INPUT='-i cpptraj.in'
 # 0.00249097
 # 0.0203602
 cat > cpptraj.in <<EOF
-parm tz2.pqr
+parm tz2.pqr pqr
 loadcrd tz2.pqr name TZ2
 mead \
   ogm 31,1.0 \
