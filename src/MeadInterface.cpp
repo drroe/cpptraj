@@ -210,18 +210,33 @@ int MeadInterface::Solvate(double& Esolv,
 const
 {
   Esolv = 0;
-  PhysCond::set_epsext(epsSol);
-  PhysCond::set_solrad(solRad);
-  PhysCond::set_sterln(sterln);
-  PhysCond::set_ionicstr(ionicStr);
-  PhysCond::set_T(temperature);
 
-  mprintf("DEBUG: Interior dielectric: %g\n", epsIn);
-  mprintf("DEBUG: Physical conditions:\n");
-  PhysCond::print();
-  mprintf("DEBUG: Vacuum dielectric: %g\n", epsVac);
+  try {
+    PhysCond::set_epsext(epsSol);
+    PhysCond::set_solrad(solRad);
+    PhysCond::set_sterln(sterln);
+    PhysCond::set_ionicstr(ionicStr);
+    PhysCond::set_T(temperature);
 
-  ChargeDist rho(new AtomChargeSet(*atomset_));
+    mprintf("DEBUG: Interior dielectric: %g\n", epsIn);
+    mprintf("DEBUG: Physical conditions:\n");
+    PhysCond::print();
+    mprintf("DEBUG: Vacuum dielectric: %g\n", epsVac);
+
+    ChargeDist rho(new AtomChargeSet(*atomset_));
+
+    DielectricEnvironment eps(new TwoValueDielectricByAtoms(*atomset_, epsIn));
+
+    ElectrolyteEnvironment ely(new ElectrolyteByAtoms(*atomset_));
+
+    ElstatPot phi(*fdm_, eps, rho, ely);
+    phi.solve();
+    float prod_sol = phi * rho;
+    mprintf("DEBUG: prod_sol= %f\n", prod_sol);
+  }
+  catch (MEADexcept& e) {
+    return ERR("Solvate()", e);
+  }
 
   return 0;
 }
