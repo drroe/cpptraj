@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "Topology.h"
 #include "DataSet_Vector_Scalar.h"
+#include "DataSet_3D.h"
 // MEAD includes
 #include "../mead/FinDiffMethod.h"
 #include "../mead/MEADexcept.h"
@@ -203,10 +204,11 @@ const
   *               to salt so kappa in PB eq is zero.
   * \param ionicStr Ionic strength (mol/L)
   * \param temperature Temperature in Kelvin
+  * \param rxnField If not null, calculate reaction field for given grid at all grid points.
   */
 int MeadInterface::Solvate(double& Esolv,
                            double epsIn, double epsSol, double epsVac, double solRad, double sterln, double ionicStr,
-                           double temperature)
+                           double temperature, DataSet_3D* rxnField)
 const
 {
   Esolv = 0;
@@ -247,6 +249,25 @@ const
     float solvation_energy = (prod_sol - prod_vac) / 2 * PhysCond::get_econv();
     mprintf("DEBUG: SOLVATION ENERGY = %f\n", solvation_energy);
     Esolv = solvation_energy;
+
+    // Reaction field
+    if (rxnField != 0) {
+      for (unsigned int ix = 0; ix < rxnField->NX(); ix++) {
+        for (unsigned int iy = 0; iy < rxnField->NY(); iy++) {
+          for (unsigned int iz = 0; iz < rxnField->NZ(); iz++) {
+            // Get xyz coord
+            Vec3 vxyz = rxnField->Bin().Center(ix, iy, iz);
+            Coord cxyz;
+            cxyz.x = vxyz[0];
+            cxyz.y = vxyz[1];
+            cxyz.z = vxyz[2];
+            double val = (double)(phi.value(cxyz) - vac_phi.value(cxyz));
+            long int idx = rxnField->CalcIndex(ix, iy, iz);
+            rxnField->UpdateVoxel(idx, val);
+          }
+        }
+      }
+    }
   }
   catch (MEADexcept& e) {
     return ERR("Solvate()", e);

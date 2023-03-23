@@ -6,6 +6,7 @@ class Vec3;
 class Topology;
 class Frame;
 class DataSet_Vector_Scalar;
+class DataSet_3D;
 // MEAD fwd declares
 class FinDiffMethod;
 class AtomSet;
@@ -38,7 +39,7 @@ class MeadInterface {
     /// Run potential calc
     int Potential(DataSet_Vector_Scalar&, double, double, std::vector<Vec3> const&) const;
     /// Run solvate calc
-    int Solvate(double&, double, double, double, double, double, double, double) const;
+    int Solvate(double&, double, double, double, double, double, double, double, DataSet_3D*) const;
   private:
     static int ERR(const char*, MEADexcept&);
 
