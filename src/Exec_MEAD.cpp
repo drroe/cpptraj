@@ -15,7 +15,7 @@ void Exec_MEAD::Help() const
           "\t  solvate [epsin <epsilon in>] [epssol <solvent epsilon>]\n"
           "\t          [epsvac <vacuum epsilon>] [solrad <probe radius>]\n"
           "\t          [sterln <ion layer thickness>] [ionicstr <ionic strength>]\n"
-          "\t          [temp <temperature>]\n"
+          "\t          [temp <temperature>] [rxngrid <input grid>]\n"
           "\t}\n"
          );
 }
