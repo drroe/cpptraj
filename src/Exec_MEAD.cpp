@@ -182,6 +182,8 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
       mprinterr("Error: Could not allocate output set '%s' for solvate\n", outSetName.c_str());
       return CpptrajState::ERR;
     }
+    if (outfile != 0)
+      outfile->AddDataSet( outset );
     err = Solvate( MEAD, argIn, outset );
   } else {
     mprinterr("Error: No MEAD calculation keywords given.\n");
