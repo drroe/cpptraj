@@ -49,5 +49,6 @@ mead \
   solvate epsin 4
 EOF
 RunCpptraj "$UNITNAME"
+DoTest solvate.dat.save solvate.dat
 
 EndTest
