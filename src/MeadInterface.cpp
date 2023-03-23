@@ -68,6 +68,8 @@ int MeadInterface::SetupAtoms(Topology const& topIn, Frame const& frameIn, Radii
   if (atomset_ != 0) delete atomset_;
   atomset_ = new AtomSet();
 
+  bool has_radii = false;
+
   for (int aidx = 0; aidx < topIn.Natom(); aidx++)
   {
     MEAD::Atom at;
@@ -90,12 +92,18 @@ int MeadInterface::SetupAtoms(Topology const& topIn, Frame const& frameIn, Radii
       case MeadInterface::PARSE : at.rad = thisAtom.ParseRadius(); break;
       case MeadInterface::VDW   : at.rad = topIn.GetVDWradius(aidx); break;
     }
+    if (at.rad > 0)
+      has_radii = true;
     try {
       atomset_->insert( at );
     }
     catch (MEADexcept& e) {
       return ERR("SetupAtoms()", e);
     }
+  }
+  if (!has_radii) {
+    mprinterr("Error: No radii set for topology '%s'\n", topIn.c_str());
+    return 1;
   }
   
   return 0;
