@@ -37,6 +37,8 @@ class MeadInterface {
 
     /// Run potential calc
     int Potential(DataSet_Vector_Scalar&, double, double, std::vector<Vec3> const&) const;
+    /// Run solvate calc
+    int Solvate(double&, double, double, double, double, double, double, double) const;
   private:
     static int ERR(const char*, MEADexcept&);
 

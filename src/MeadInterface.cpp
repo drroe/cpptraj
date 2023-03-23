@@ -191,3 +191,37 @@ const
 
   return 0;
 }
+
+/** Solvate calculation. 
+  * \param Output Born solvation energy in kcal/mol
+  * \param epsIn Dielectric constant of molecular interior.
+  * \param epsSol Dielectric constant of solvent.
+  * \param epsVac Dielectric constant of vacuum.
+  * \param solRad Solvent probe radius used in rolling ball procedure to determine contact surface,
+  *               boundary between epsin and epsext.
+  * \param sterln Ion exclusion layer thickness added to atomic radii to determine region inaccessible
+  *               to salt so kappa in PB eq is zero.
+  * \param ionicStr Ionic strength (mol/L)
+  * \param temperature Temperature in Kelvin
+  */
+int MeadInterface::Solvate(double& Esolv,
+                           double epsIn, double epsSol, double epsVac, double solRad, double sterln, double ionicStr,
+                           double temperature)
+const
+{
+  Esolv = 0;
+  PhysCond::set_epsext(epsSol);
+  PhysCond::set_solrad(solRad);
+  PhysCond::set_sterln(sterln);
+  PhysCond::set_ionicstr(ionicStr);
+  PhysCond::set_T(temperature);
+
+  mprintf("DEBUG: Interior dielectric: %g\n", epsIn);
+  mprintf("DEBUG: Physical conditions:\n");
+  PhysCond::print();
+  mprintf("DEBUG: Vacuum dielectric: %g\n", epsVac);
+
+  ChargeDist rho(new AtomChargeSet(*atomset_));
+
+  return 0;
+}
