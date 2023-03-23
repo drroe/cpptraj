@@ -33,6 +33,7 @@ loadcrd sphere.pqr name SPHERE
 mead \
   ogm 41,1.0 \
   ogm 41,0.25 \
+  crdset SPHERE \
   verbose 2 \
   solvate epsin 1
 EOF
