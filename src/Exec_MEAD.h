@@ -14,6 +14,8 @@ class Exec_MEAD : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_MEAD(); }
     RetType Execute(CpptrajState&, ArgList&);
   private:
+    static int CheckMead(Cpptraj::MeadInterface const&);
+    int Solvate(Cpptraj::MeadInterface&, ArgList&, DataSet*) const;
     int Potential(Cpptraj::MeadInterface&, ArgList&, DataSet_Vector_Scalar&) const;
 };
 #endif

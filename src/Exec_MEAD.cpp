@@ -16,8 +16,8 @@ void Exec_MEAD::Help() const
          );
 }
 
-/** MEAD potential. */
-int Exec_MEAD::Potential(Cpptraj::MeadInterface& MEAD, ArgList& argIn, DataSet_Vector_Scalar& outset) const {
+/** Check MEAD is properly set up. */
+int Exec_MEAD::CheckMead(Cpptraj::MeadInterface const& MEAD) {
   // Sanity checks
   if (!MEAD.HasFDM()) {
     mprinterr("Error: No MEAD grid allocated.\n");
@@ -27,6 +27,34 @@ int Exec_MEAD::Potential(Cpptraj::MeadInterface& MEAD, ArgList& argIn, DataSet_V
     mprinterr("Error: No MEAD atoms allocated.\n");
     return 1;
   }
+  return 0;
+}
+
+/** MEAD solvate. */
+int Exec_MEAD::Solvate(Cpptraj::MeadInterface& MEAD, ArgList& argIn, DataSet* outset)
+const
+{
+  if (CheckMead( MEAD )) return 1;
+
+  double epsin = argIn.getKeyDouble("epsin", 1);
+  double epssol = argIn.getKeyDouble("epssol", 80);
+  double epsvac = argIn.getKeyDouble("epsvac", 1);
+  double solrad = argIn.getKeyDouble("solrad", 1.4);
+  double sterln = argIn.getKeyDouble("sterln", 2.0);
+  double ionicstr = argIn.getKeyDouble("ionicstr", 0.0);
+  double temperature = argIn.getKeyDouble("temp", 300.0);
+
+  double Esolv = 0;
+  int err = MEAD.Solvate(Esolv, epsin, epssol, epsvac, solrad, sterln, ionicstr, temperature);
+
+  if (err != 0) return 1;
+  outset->Add(0, &Esolv);
+  return 0;
+}
+
+/** MEAD potential. */
+int Exec_MEAD::Potential(Cpptraj::MeadInterface& MEAD, ArgList& argIn, DataSet_Vector_Scalar& outset) const {
+  if (CheckMead( MEAD )) return 1;
 
   double epsin = argIn.getKeyDouble("epsin", 1);
   double epsext = argIn.getKeyDouble("epsext", 80);
@@ -139,12 +167,22 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
       outSetName = State.DSL().GenerateDefaultName("POTENTIAL");
     DataSet_Vector_Scalar* outset = (DataSet_Vector_Scalar*)State.DSL().AddSet( DataSet::VECTOR_SCALAR, outSetName );
     if (outset == 0) {
-      mprinterr("Error: Could not allocate output set '%s'\n", outSetName.c_str());
+      mprinterr("Error: Could not allocate output set '%s' for potential\n", outSetName.c_str());
       return CpptrajState::ERR;
     }
     if (outfile != 0)
       outfile->AddDataSet( (DataSet*)outset );
     err = Potential( MEAD, argIn, *outset );
+  } else if (argIn.hasKey("solvate")) {
+    // Allocate output set
+    if (outSetName.empty())
+      outSetName = State.DSL().GenerateDefaultName("SOLVATE");
+    DataSet* outset = State.DSL().AddSet( DataSet::DOUBLE, outSetName );
+    if (outset == 0) {
+      mprinterr("Error: Could not allocate output set '%s' for solvate\n", outSetName.c_str());
+      return CpptrajState::ERR;
+    }
+    err = Solvate( MEAD, argIn, outset );
   } else {
     mprinterr("Error: No MEAD calculation keywords given.\n");
     err = 1;
