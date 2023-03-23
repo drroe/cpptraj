@@ -264,6 +264,7 @@ const
             double val = (double)(phi.value(cxyz) - vac_phi.value(cxyz));
             long int idx = rxnField->CalcIndex(ix, iy, iz);
             mprintf("DEBUG: rxnField %i %f %f %f = %f\n", idx, vxyz[0], vxyz[1], vxyz[2], val);
+            mprintf("DBG: (%f, %f, %f)\n", vxyz[0], vxyz[1], vxyz[2]);
             rxnField->UpdateVoxel(idx, val);
           }
         }
