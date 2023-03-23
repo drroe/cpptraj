@@ -3,6 +3,7 @@
 #include "Exec.h"
 // Fwd declares
 class DataSet_Vector_Scalar;
+class DataSet_3D;
 namespace Cpptraj {
 class MeadInterface;
 }
@@ -15,7 +16,7 @@ class Exec_MEAD : public Exec {
     RetType Execute(CpptrajState&, ArgList&);
   private:
     static int CheckMead(Cpptraj::MeadInterface const&);
-    int Solvate(Cpptraj::MeadInterface&, ArgList&, DataSet*) const;
+    int Solvate(Cpptraj::MeadInterface&, ArgList&, DataSet*, DataSet_3D*) const;
     int Potential(Cpptraj::MeadInterface&, ArgList&, DataSet_Vector_Scalar&) const;
 };
 #endif

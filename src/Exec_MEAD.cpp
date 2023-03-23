@@ -35,7 +35,7 @@ int Exec_MEAD::CheckMead(Cpptraj::MeadInterface const& MEAD) {
 }
 
 /** MEAD solvate. */
-int Exec_MEAD::Solvate(Cpptraj::MeadInterface& MEAD, ArgList& argIn, DataSet* outset)
+int Exec_MEAD::Solvate(Cpptraj::MeadInterface& MEAD, ArgList& argIn, DataSet* outset, DataSet_3D* rgrid)
 const
 {
   if (CheckMead( MEAD )) return 1;
@@ -49,7 +49,7 @@ const
   double temperature = argIn.getKeyDouble("temp", 300.0);
 
   double Esolv = 0;
-  int err = MEAD.Solvate(Esolv, epsin, epssol, epsvac, solrad, sterln, ionicstr, temperature);
+  int err = MEAD.Solvate(Esolv, epsin, epssol, epsvac, solrad, sterln, ionicstr, temperature, rgrid);
 
   if (err != 0) return 1;
   outset->Add(0, &Esolv);
@@ -178,7 +178,7 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
       outfile->AddDataSet( (DataSet*)outset );
     err = Potential( MEAD, argIn, *outset );
   } else if (argIn.hasKey("solvate")) {
-    // Allocate output set
+    // Allocate output set(s)
     if (outSetName.empty())
       outSetName = State.DSL().GenerateDefaultName("SOLVATE");
     DataSet* outset = State.DSL().AddSet( DataSet::DOUBLE, outSetName );
@@ -188,7 +188,17 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
     }
     if (outfile != 0)
       outfile->AddDataSet( outset );
-    err = Solvate( MEAD, argIn, outset );
+    std::string rxngrid = argIn.GetStringKey("rxngrid");
+    DataSet_3D* rgrid = 0;
+    if (!rxngrid.empty()) {
+      DataSet* ds = State.DSL().FindSetOfGroup( rxngrid, DataSet::GRID_3D );
+      if (ds == 0) {
+        mprinterr("Error: No grid set with name '%s' found.\n", rxngrid.c_str());
+        return CpptrajState::ERR;
+      }
+      rgrid = (DataSet_3D*)ds;
+    }
+    err = Solvate( MEAD, argIn, outset, rgrid );
   } else {
     mprinterr("Error: No MEAD calculation keywords given.\n");
     err = 1;
