@@ -256,7 +256,8 @@ const
         for (unsigned int iy = 0; iy < rxnField->NY(); iy++) {
           for (unsigned int iz = 0; iz < rxnField->NZ(); iz++) {
             // Get xyz coord
-            Vec3 vxyz = rxnField->Bin().Center(ix, iy, iz);
+            //Vec3 vxyz = rxnField->Bin().Center(ix, iy, iz);
+            Vec3 vxyz = rxnField->Bin().Corner(ix, iy, iz);
             Coord cxyz;
             cxyz.x = vxyz[0];
             cxyz.y = vxyz[1];
