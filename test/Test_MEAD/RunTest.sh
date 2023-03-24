@@ -8,11 +8,12 @@ CleanFiles cpptraj.in potential.dat test.sphere.pqr solvate.dat bounds.dat MyGri
 
 INPUT='-i cpptraj.in'
 
-UNITNAME='MEAD potential test'
-# The MEAD potential output for these coords is:
-# 0.00249097
-# 0.0203602
-cat > cpptraj.in <<EOF
+Potential() {
+  UNITNAME='MEAD potential test'
+  # The MEAD potential output for these coords is:
+  # 0.00249097
+  # 0.0203602
+  cat > cpptraj.in <<EOF
 parm tz2.pqr pqr
 loadcrd tz2.pqr name TZ2
 mead \
@@ -23,11 +24,13 @@ mead \
   potential epsin 1 epsext 80 \
     fpt 0.0,0.0,0.0 fpt 2.0,0.0,0.0
 EOF
-RunCpptraj "$UNITNAME"
-DoTest potential.dat.save potential.dat
+  RunCpptraj "$UNITNAME"
+  DoTest potential.dat.save potential.dat
+}
 
-UNITNAME='MEAD solvate test'
-cat > cpptraj.in <<EOF
+Solvate() {
+  UNITNAME='MEAD solvate test'
+  cat > cpptraj.in <<EOF
 parm sphere.pqr pqr
 loadcrd sphere.pqr name SPHERE
 crdaction SPHERE bounds out bounds.dat name MyGrid dx 1.0 offset 5
@@ -50,8 +53,12 @@ mead \
   verbose 0 \
   solvate epsin 4
 EOF
-RunCpptraj "$UNITNAME"
-DoTest solvate.dat.save solvate.dat
-DoTest MyGrid.dx.save MyGrid.dx
+  RunCpptraj "$UNITNAME"
+  DoTest solvate.dat.save solvate.dat
+  DoTest MyGrid.dx.save MyGrid.dx
+}
+
+Potential
+Solvate
 
 EndTest
