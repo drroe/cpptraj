@@ -94,4 +94,11 @@ int TitrationData::LoadTitrationData(std::string const& sitesFileName,
   }
   return 0;
 }
-    
+
+/** \return Array of site names at given residue index. */
+TitrationData::Sarray TitrationData::ResSiteNames(int ridx) const {
+  ResNameMap::const_iterator it = ResToSitename_.find( ridx );
+  if (it == ResToSitename_.end())
+    return Sarray();
+  return it->second;
+}

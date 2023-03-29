@@ -4,6 +4,7 @@
 #include "Topology.h"
 #include "DataSet_Vector_Scalar.h"
 #include "DataSet_3D.h"
+#include "Structure/TitrationData.h"
 // MEAD includes
 #include "../mead/FinDiffMethod.h"
 #include "../mead/MEADexcept.h"
@@ -128,6 +129,38 @@ void MeadInterface::MeadVerbosity(int i) const {
     blab3pt = &std::cout;
   if (i != 0)
     mprintf("Info: MEAD verbosity set to %i\n", i);
+}
+
+
+/** Run multiflex calc. */
+int MeadInterface::MultiFlex(double epsIn, double epsSol, 
+                             Topology const& topIn, Frame const& frameIn,
+                             Structure::TitrationData const& titrationData)
+const
+{
+  using namespace Cpptraj::Structure;
+  try {
+    PhysCond::set_epsext(epsSol);
+    // NOTE: In this context, *atomset_ is equivalent to atlist in multiflex.cc:FD2DielEMaker
+    DielectricEnvironment_lett* eps = new TwoValueDielectricByAtoms( *atomset_, epsIn );
+    ElectrolyteEnvironment_lett* ely = new ElectrolyteByAtoms( *atomset_ );
+
+    // Loop over titratable sites
+    for (int ridx = 0; ridx != topIn.Nres(); ridx++) {
+      TitrationData::Sarray siteNames = titrationData.ResSiteNames( ridx );
+      if (!siteNames.empty()) {
+        mprintf("DEBUG: Residue %s site names:", topIn.TruncResNameNum(ridx).c_str());
+        for (TitrationData::Sarray::const_iterator it = siteNames.begin();
+                                                   it != siteNames.end(); ++it)
+          mprintf(" %s", it->c_str());
+        mprintf("\n");
+      }
+    }
+  }
+  catch (MEADexcept& e) {
+    return ERR("MultiFlex()", e);
+  }
+  return 0;\
 }
 
 /** Run potential calc.

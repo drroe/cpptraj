@@ -12,6 +12,9 @@ class FinDiffMethod;
 class AtomSet;
 class MEADexcept;
 namespace Cpptraj {
+namespace Structure {
+class TitrationData;
+}
 /// Class to interface with libmead.a
 class MeadInterface {
   public:
@@ -40,6 +43,8 @@ class MeadInterface {
     int Potential(DataSet_Vector_Scalar&, double, double, std::vector<Vec3> const&) const;
     /// Run solvate calc
     int Solvate(double&, double, double, double, double, double, double, double, DataSet_3D*) const;
+    /// Run multiflex calc
+    int MultiFlex(double, double, Topology const&, Frame const&, Structure::TitrationData const&) const;
   private:
     static int ERR(const char*, MEADexcept&);
 

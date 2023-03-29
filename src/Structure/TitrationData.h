@@ -10,11 +10,15 @@ class TitratableSite;
 /// Hold information for all titratable sites
 class TitrationData {
   public:
+    typedef std::vector<std::string> Sarray;
+
     TitrationData();
     /// Load titration data from files
     int LoadTitrationData(std::string const&, std::string const&);
+
+    /// \return Array of site names for given residue number
+    Sarray ResSiteNames(int) const;
   private:
-    typedef std::vector<std::string> Sarray;
     typedef std::pair<int,Sarray> ResNamePair;
     typedef std::map<int,Sarray> ResNameMap;
     typedef std::pair<std::string,TitratableSite> NameSitePair;

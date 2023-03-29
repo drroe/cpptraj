@@ -97,13 +97,15 @@ int Exec_MEAD::Potential(Cpptraj::MeadInterface& MEAD, ArgList& argIn, DataSet_V
 }
 
 /** Run multiflex. */
-int Exec_MEAD::MultiFlex(Cpptraj::MeadInterface& MEAD, ArgList& argIn)
+int Exec_MEAD::MultiFlex(Cpptraj::MeadInterface& MEAD, ArgList& argIn, Topology const& topIn, Frame const& frameIn)
 const
 {
   using namespace Cpptraj::Structure;
 
   std::string sitesFileName = argIn.GetStringKey("sites");
   std::string sitesDirName = argIn.GetStringKey("sitesdir");
+  double epsin = argIn.getKeyDouble("epsin", 1);
+  double epssol = argIn.getKeyDouble("epssol", 80);
 
   mprintf("\tSites file : %s\n", sitesFileName.c_str());
   mprintf("\tSites dir  : %s\n", sitesDirName.c_str());
@@ -119,6 +121,11 @@ const
     mprinterr("Error: Could not load titration data.\n");
     return 1;
   }
+
+  if (MEAD.MultiFlex(epsin, epssol, topIn, frameIn, titrationData)) {
+    mprinterr("Error: Multiflex failed.\n");
+    return 1;
+  } 
 
   return 0;
 }
@@ -229,7 +236,7 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
     }
     err = Solvate( MEAD, argIn, outset, rgrid );
   } else if (argIn.hasKey("multiflex")) {
-    err = MultiFlex( MEAD, argIn );
+    err = MultiFlex( MEAD, argIn, CRD->Top(), frameIn );
   } else {
     mprinterr("Error: No MEAD calculation keywords given.\n");
     err = 1;
