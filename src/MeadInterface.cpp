@@ -5,6 +5,7 @@
 #include "DataSet_Vector_Scalar.h"
 #include "DataSet_3D.h"
 #include "Structure/TitrationData.h"
+#include "Structure/TitratableSite.h"
 // MEAD includes
 #include "../mead/FinDiffMethod.h"
 #include "../mead/MEADexcept.h"
@@ -57,6 +58,28 @@ int MeadInterface::AddGrid(int ngrd, float spc, Vec3 const& cntr)
   return 0;
 }
 
+void MeadInterface::set_at_from_top(MEAD::Atom& at, Topology const& topIn, Frame const& frameIn, int aidx, Radii_Mode radiiMode)
+{
+    Atom const& thisAtom = topIn[aidx];
+    at.atname.assign( thisAtom.Name().Truncated() );
+    int rnum = thisAtom.ResNum();
+    Residue const& thisRes = topIn.Res(rnum);
+    at.resname.assign( thisRes.Name().Truncated() );
+    at.resnum = thisRes.OriginalResNum();
+    if (thisRes.HasChainID())
+      at.chainid.assign( 1, thisRes.ChainId() );
+    const double* xyz = frameIn.XYZ(aidx);
+    at.coord.x = xyz[0];
+    at.coord.y = xyz[1];
+    at.coord.z = xyz[2];
+    at.charge = thisAtom.Charge();
+    switch (radiiMode) {
+      case MeadInterface::GB : at.rad = thisAtom.GBRadius(); break;
+      case MeadInterface::PARSE : at.rad = thisAtom.ParseRadius(); break;
+      case MeadInterface::VDW   : at.rad = topIn.GetVDWradius(aidx); break;
+    }
+}
+
 /** Setup an AtomSet from Frame and Topology. */
 int MeadInterface::SetupAtoms(Topology const& topIn, Frame const& frameIn, Radii_Mode radiiMode)
 {
@@ -76,7 +99,7 @@ int MeadInterface::SetupAtoms(Topology const& topIn, Frame const& frameIn, Radii
   {
     MEAD::Atom at;
 
-    Atom const& thisAtom = topIn[aidx];
+    /*Atom const& thisAtom = topIn[aidx];
     at.atname.assign( thisAtom.Name().Truncated() );
     int rnum = thisAtom.ResNum();
     Residue const& thisRes = topIn.Res(rnum);
@@ -93,7 +116,8 @@ int MeadInterface::SetupAtoms(Topology const& topIn, Frame const& frameIn, Radii
       case MeadInterface::GB : at.rad = thisAtom.GBRadius(); break;
       case MeadInterface::PARSE : at.rad = thisAtom.ParseRadius(); break;
       case MeadInterface::VDW   : at.rad = topIn.GetVDWradius(aidx); break;
-    }
+    }*/
+    set_at_from_top(at, topIn, frameIn, aidx, radiiMode);
     if (at.rad > 0)
       has_radii = true;
     try {
@@ -135,10 +159,15 @@ void MeadInterface::MeadVerbosity(int i) const {
 /** Run multiflex calc. */
 int MeadInterface::MultiFlex(double epsIn, double epsSol, 
                              Topology const& topIn, Frame const& frameIn,
-                             Structure::TitrationData const& titrationData)
+                             Structure::TitrationData const& titrationData,
+                             Radii_Mode radiiMode)
 const
 {
   using namespace Cpptraj::Structure;
+  // Calculate the geometric center
+  Vec3 geom_center = frameIn.VGeometricCenter(0, frameIn.Natom());
+  geom_center.Print("Geometric center"); // DEBUG
+
   try {
     PhysCond::set_epsext(epsSol);
     // NOTE: In this context, *atomset_ is equivalent to atlist in multiflex.cc:FD2DielEMaker
@@ -154,6 +183,37 @@ const
                                                    it != siteNames.end(); ++it)
           mprintf(" %s", it->c_str());
         mprintf("\n");
+        // Loop over the sites for this residue
+        for (TitrationData::Sarray::const_iterator it = siteNames.begin();
+                                                   it != siteNames.end(); ++it)
+        {
+          TitratableSite const& site = titrationData.GetSite( *it );
+          AtomSet state1Atoms;
+          AtomSet state2Atoms;
+          Vec3 siteOfInterest;
+          for (TitratableSite::const_iterator jt = site.begin(); jt != site.end(); ++jt)
+          {
+            // Get the atom index in the topology
+            int aidx = topIn.FindAtomInResidue(ridx, jt->first);
+            if (aidx < 0) {
+              mprinterr("Error: Atom '%s' not found in residue %s\n",
+                        *(jt->first), topIn.TruncResNameNum(ridx).c_str());
+              return 1;
+            }
+            // Is this the site of interest?
+            if (topIn[aidx].Name() == site.SiteOfInterest()) {
+              siteOfInterest = Vec3(frameIn.XYZ(aidx));
+              siteOfInterest.Print("SITE OF INTEREST");
+            }
+            MEAD::Atom at;
+            set_at_from_top(at, topIn, frameIn, aidx, radiiMode);
+            at.charge = jt->second.first;
+            state1Atoms.insert( at );
+            at.charge = jt->second.second;
+            state2Atoms.insert( at );
+            mprintf("DEBUG: Atom %s idx %i charge1= %f charge2= %f\n", *(jt->first), aidx+1, jt->second.first, jt->second.second);
+          }
+        }
       }
     }
   }

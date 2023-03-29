@@ -102,3 +102,12 @@ TitrationData::Sarray TitrationData::ResSiteNames(int ridx) const {
     return Sarray();
   return it->second;
 }
+
+/** \return Site corresponding to site name. */
+TitratableSite const& TitrationData::GetSite(std::string const& sname) const {
+  NameSiteMap::const_iterator it = NameToSite_.find( sname );
+  if (it == NameToSite_.end()) {
+    mprinterr("Internal Error: Titratable site data '%s' not present.\n", sname.c_str());
+  }
+  return it->second;
+}

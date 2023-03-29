@@ -11,6 +11,9 @@ class DataSet_3D;
 class FinDiffMethod;
 class AtomSet;
 class MEADexcept;
+namespace MEAD {
+class Atom;
+}
 namespace Cpptraj {
 namespace Structure {
 class TitrationData;
@@ -44,9 +47,11 @@ class MeadInterface {
     /// Run solvate calc
     int Solvate(double&, double, double, double, double, double, double, double, DataSet_3D*) const;
     /// Run multiflex calc
-    int MultiFlex(double, double, Topology const&, Frame const&, Structure::TitrationData const&) const;
+    int MultiFlex(double, double, Topology const&, Frame const&, Structure::TitrationData const&, Radii_Mode) const;
   private:
     static int ERR(const char*, MEADexcept&);
+
+    static inline void set_at_from_top(MEAD::Atom&, Topology const&, Frame const&, int, Radii_Mode);
 
     FinDiffMethod* fdm_;
     AtomSet* atomset_;

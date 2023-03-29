@@ -18,6 +18,8 @@ class TitrationData {
 
     /// \return Array of site names for given residue number
     Sarray ResSiteNames(int) const;
+    /// \return Titratable site corresponding to name
+    TitratableSite const& GetSite(std::string const&) const;
   private:
     typedef std::pair<int,Sarray> ResNamePair;
     typedef std::map<int,Sarray> ResNameMap;

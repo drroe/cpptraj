@@ -7,6 +7,9 @@ namespace Cpptraj {
 namespace Structure {
 /// Hold information for titratable atoms in a residue
 class TitratableSite {
+    typedef std::pair<double, double> ChargePair;
+    /// Map atom name to state charges
+    typedef std::map<NameType, ChargePair> MapType;
   public:
     TitratableSite();
     /// Clear all data
@@ -15,11 +18,14 @@ class TitratableSite {
     int LoadSiteData(std::string const&);
     /// Print data to stdout
     void Print() const;
+
+    typedef MapType::const_iterator const_iterator;
+    const_iterator begin() const { return nameToCharges_.begin(); }
+    const_iterator end()   const { return nameToCharges_.end(); }
+
+    NameType const& SiteOfInterest() const { return siteOfInterest_; }
   private:
-    typedef std::pair<double, double> ChargePair;
     typedef std::pair<NameType, ChargePair> PairType;
-    /// Map atom name to state charges
-    typedef std::map<NameType, ChargePair> MapType;
 
     std::string resName_;     ///< Site residue name
     double pKa_;              ///< Site pka

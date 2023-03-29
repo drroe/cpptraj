@@ -97,10 +97,12 @@ int Exec_MEAD::Potential(Cpptraj::MeadInterface& MEAD, ArgList& argIn, DataSet_V
 }
 
 /** Run multiflex. */
-int Exec_MEAD::MultiFlex(Cpptraj::MeadInterface& MEAD, ArgList& argIn, Topology const& topIn, Frame const& frameIn)
+int Exec_MEAD::MultiFlex(Cpptraj::MeadInterface& MEAD, ArgList& argIn, Topology const& topIn, Frame const& frameIn, int iradiimode)
 const
 {
   using namespace Cpptraj::Structure;
+
+  Cpptraj::MeadInterface::Radii_Mode radiiMode = (Cpptraj::MeadInterface::Radii_Mode)iradiimode;
 
   std::string sitesFileName = argIn.GetStringKey("sites");
   std::string sitesDirName = argIn.GetStringKey("sitesdir");
@@ -122,7 +124,7 @@ const
     return 1;
   }
 
-  if (MEAD.MultiFlex(epsin, epssol, topIn, frameIn, titrationData)) {
+  if (MEAD.MultiFlex(epsin, epssol, topIn, frameIn, titrationData, radiiMode)) {
     mprinterr("Error: Multiflex failed.\n");
     return 1;
   } 
@@ -236,7 +238,7 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
     }
     err = Solvate( MEAD, argIn, outset, rgrid );
   } else if (argIn.hasKey("multiflex")) {
-    err = MultiFlex( MEAD, argIn, CRD->Top(), frameIn );
+    err = MultiFlex( MEAD, argIn, CRD->Top(), frameIn, (int)radiiMode );
   } else {
     mprinterr("Error: No MEAD calculation keywords given.\n");
     err = 1;
