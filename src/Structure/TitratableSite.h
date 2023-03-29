@@ -9,6 +9,10 @@ namespace Structure {
 class TitratableSite {
   public:
     TitratableSite();
+    /// Clear all data
+    void Clear();
+    /// Load site data from file
+    int LoadSiteData(std::string const&);
   private:
     typedef std::pair<double, double> ChargePair;
     typedef std::pair<NameType, ChargePair> PairType;
