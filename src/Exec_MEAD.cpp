@@ -2,6 +2,8 @@
 #include "CpptrajStdio.h"
 #include "MeadInterface.h"
 #include "StringRoutines.h"
+#include "Structure/TitrationData.h"
+#include "Structure/TitratableSite.h"
 
 // Exec_MEAD::Help()
 void Exec_MEAD::Help() const
@@ -89,6 +91,33 @@ int Exec_MEAD::Potential(Cpptraj::MeadInterface& MEAD, ArgList& argIn, DataSet_V
       mprinterr("Error: Could not process MEAD field points.\n");
       return 1;
     }
+  }
+
+  return 0;
+}
+
+/** Run multiflex. */
+int Exec_MEAD::MultiFlex(Cpptraj::MeadInterface& MEAD, ArgList& argIn)
+const
+{
+  using namespace Cpptraj::Structure;
+
+  std::string sitesFileName = argIn.GetStringKey("sites");
+  std::string sitesDirName = argIn.GetStringKey("sitesdir");
+
+  mprintf("\tSites file : %s\n", sitesFileName.c_str());
+  mprintf("\tSites dir  : %s\n", sitesDirName.c_str());
+
+  if (sitesFileName.empty()) {
+    mprinterr("Error: No sites file provided.\n");
+    return 1;
+  }
+
+  TitrationData titrationData;
+
+  if (titrationData.LoadTitrationData( sitesFileName, sitesDirName )) {
+    mprinterr("Error: Could not load titration data.\n");
+    return 1;
   }
 
   return 0;
@@ -199,6 +228,8 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
       rgrid = (DataSet_3D*)ds;
     }
     err = Solvate( MEAD, argIn, outset, rgrid );
+  } else if (argIn.hasKey("multiflex")) {
+    err = MultiFlex( MEAD, argIn );
   } else {
     mprinterr("Error: No MEAD calculation keywords given.\n");
     err = 1;

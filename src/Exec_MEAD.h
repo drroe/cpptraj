@@ -18,5 +18,6 @@ class Exec_MEAD : public Exec {
     static int CheckMead(Cpptraj::MeadInterface const&);
     int Solvate(Cpptraj::MeadInterface&, ArgList&, DataSet*, DataSet_3D*) const;
     int Potential(Cpptraj::MeadInterface&, ArgList&, DataSet_Vector_Scalar&) const;
+    int MultiFlex(Cpptraj::MeadInterface&, ArgList&) const;
 };
 #endif
