@@ -3,24 +3,27 @@
 #include "../CpptrajStdio.h"
 #include "../BufferedLine.h"
 #include <cstdlib> // atof
+#include <cmath> // fabs
 
 using namespace Cpptraj::Structure;
 
 /** CONSTRUCTOR */
 TitratableSite::TitratableSite() :
-  pKa_(0)
+  pKa_(0),
+  refStateIdx_(-1)
 {}
 
 /** Clear all data. */
 void TitratableSite::Clear() {
   pKa_ = 0;
+  refStateIdx_ = -1;
   resName_.clear();
   nameToCharges_.clear();
 }
 
 /** Print all info to stdout. */
 void TitratableSite::Print() const {
-  mprintf("\t\tResname '%s' pKa %g\n", resName_.c_str(), pKa_);
+  mprintf("\t\tResname '%s', pKa %g, reference state %i\n", resName_.c_str(), pKa_, refStateIdx_+1);
   for (MapType::const_iterator it = nameToCharges_.begin(); it != nameToCharges_.end(); ++it)
     mprintf("\t\t %6s %12.4f %12.4f\n", it->first.Truncated().c_str(), it->second.first, it->second.second);
 }
@@ -45,6 +48,9 @@ int TitratableSite::LoadSiteData(std::string const& fname)
     return 1;
   }
   pKa_ = atof( ptr ); // TODO check only 1 token?
+
+  double state1_tot = 0;
+  double state2_tot = 0;
   ptr = infile.Line();
   while (ptr != 0) {
     // Expected format: <resname> <atomname> <Qstate1> <Qstate2>
@@ -61,6 +67,9 @@ int TitratableSite::LoadSiteData(std::string const& fname)
     double q1 = atof( infile.NextToken() );
     double q2 = atof( infile.NextToken() );
 
+    state1_tot += q1;
+    state2_tot += q2;
+
     MapType::iterator it = nameToCharges_.lower_bound( aname );
     if (it == nameToCharges_.end() || it->first != aname ) {
       nameToCharges_.insert( it, PairType( aname, ChargePair(q1, q2) ) );
@@ -71,5 +80,16 @@ int TitratableSite::LoadSiteData(std::string const& fname)
     ptr = infile.Line();
   }
   infile.CloseFile();
+
+  // Find which state is nearest to neutral for a reference state
+  mprintf("\tDEBUG: Total charge of state 1 is %g, total charge of state 2 is %g\n",
+          state1_tot, state2_tot);
+  if (fabs(state1_tot) < fabs(state2_tot)) {
+    refStateIdx_ = 0;
+  } else {
+    refStateIdx_ = 1;
+  }
+  mprintf("\tState %i is the reference state.\n", refStateIdx_ + 1);
+
   return 0;
 }

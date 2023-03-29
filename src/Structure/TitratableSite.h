@@ -24,6 +24,7 @@ class TitratableSite {
     std::string resName_; ///< Site residue name
     double pKa_; ///< Site pka
     MapType nameToCharges_; ///< Map atom names to state charge pairs
+    int refStateIdx_; ///< Reference state index
 };
 }
 }
