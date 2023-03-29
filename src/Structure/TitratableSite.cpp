@@ -1,5 +1,4 @@
 #include "TitratableSite.h"
-#include "../NameType.h"
 #include "../CpptrajStdio.h"
 #include "../BufferedLine.h"
 #include <cstdlib> // atof
@@ -19,11 +18,13 @@ void TitratableSite::Clear() {
   refStateIdx_ = -1;
   resName_.clear();
   nameToCharges_.clear();
+  siteOfInterest_ = NameType();
 }
 
 /** Print all info to stdout. */
 void TitratableSite::Print() const {
-  mprintf("\t\tResname '%s', pKa %g, reference state %i\n", resName_.c_str(), pKa_, refStateIdx_+1);
+  mprintf("\t\tResname '%s', pKa %g, reference state %i, site of interest '%s'\n",
+          resName_.c_str(), pKa_, refStateIdx_+1, *siteOfInterest_);
   for (MapType::const_iterator it = nameToCharges_.begin(); it != nameToCharges_.end(); ++it)
     mprintf("\t\t %6s %12.4f %12.4f\n", it->first.Truncated().c_str(), it->second.first, it->second.second);
 }
@@ -49,6 +50,7 @@ int TitratableSite::LoadSiteData(std::string const& fname)
   }
   pKa_ = atof( ptr ); // TODO check only 1 token?
 
+  bool isFirstAtom = true;
   double state1_tot = 0;
   double state2_tot = 0;
   ptr = infile.Line();
@@ -66,6 +68,11 @@ int TitratableSite::LoadSiteData(std::string const& fname)
     NameType aname( infile.NextToken() );
     double q1 = atof( infile.NextToken() );
     double q2 = atof( infile.NextToken() );
+
+    if (isFirstAtom) {
+      siteOfInterest_ = aname;
+      isFirstAtom = false;
+    }
 
     state1_tot += q1;
     state2_tot += q2;

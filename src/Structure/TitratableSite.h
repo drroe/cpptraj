@@ -2,7 +2,7 @@
 #define INC_TITRATABLESITE_H
 #include <map>
 #include <string>
-class NameType;
+#include "../NameType.h"
 namespace Cpptraj {
 namespace Structure {
 /// Hold information for titratable atoms in a residue
@@ -21,10 +21,11 @@ class TitratableSite {
     /// Map atom name to state charges
     typedef std::map<NameType, ChargePair> MapType;
 
-    std::string resName_; ///< Site residue name
-    double pKa_; ///< Site pka
-    MapType nameToCharges_; ///< Map atom names to state charge pairs
-    int refStateIdx_; ///< Reference state index
+    std::string resName_;     ///< Site residue name
+    double pKa_;              ///< Site pka
+    MapType nameToCharges_;   ///< Map atom names to state charge pairs
+    int refStateIdx_;         ///< Reference state index
+    NameType siteOfInterest_; ///< Name of the site of interest; typically first atom in site file
 };
 }
 }
