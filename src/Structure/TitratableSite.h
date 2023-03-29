@@ -13,6 +13,8 @@ class TitratableSite {
     void Clear();
     /// Load site data from file
     int LoadSiteData(std::string const&);
+    /// Print data to stdout
+    void Print() const;
   private:
     typedef std::pair<double, double> ChargePair;
     typedef std::pair<NameType, ChargePair> PairType;

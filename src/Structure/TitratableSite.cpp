@@ -18,6 +18,13 @@ void TitratableSite::Clear() {
   nameToCharges_.clear();
 }
 
+/** Print all info to stdout. */
+void TitratableSite::Print() const {
+  mprintf("\t\tResname '%s' pKa %g\n", resName_.c_str(), pKa_);
+  for (MapType::const_iterator it = nameToCharges_.begin(); it != nameToCharges_.end(); ++it)
+    mprintf("\t\t %6s %12.4f %12.4f\n", it->first.Truncated().c_str(), it->second.first, it->second.second);
+}
+
 /** Load site titration data from a file. */
 int TitratableSite::LoadSiteData(std::string const& fname)
 {

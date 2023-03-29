@@ -3,6 +3,7 @@
 #include "../NameType.h"
 #include "../CpptrajStdio.h"
 #include "../BufferedLine.h"
+#include <cstdlib> // atoi
 
 using namespace Cpptraj::Structure;
 
@@ -55,6 +56,23 @@ int TitrationData::LoadTitrationData(std::string const& sitesFileName,
       it->second.push_back( sname );
     }
     // See if there is data for this site yet.
+    NameSiteMap::iterator ns = NameToSite_.lower_bound( sname );
+    if (ns == NameToSite_.end() || ns->first != sname) {
+      // Load site data
+      std::string stFileName;
+      if (sitesDirName.empty())
+        stFileName = sname + ".st";
+      else
+        stFileName = sitesDirName + "/" + sname + ".st";
+      mprintf("DEBUG: Loading data for site '%s' from '%s'\n", sname.c_str(), stFileName.c_str());
+      ns = NameToSite_.insert( ns, NameSitePair(sname, TitratableSite()) );
+      if (ns->second.LoadSiteData( stFileName )) {
+        mprinterr("Error: Failed to load titratable site data from '%s'\n", stFileName.c_str());
+        return 1;
+      }
+    } else {
+      mprintf("DEBUG: Site '%s' already has data.\n", sname.c_str());
+    }
     // Next line
     ptr = sitesFile.Line();
   }
@@ -67,6 +85,12 @@ int TitrationData::LoadTitrationData(std::string const& sitesFileName,
     for (Sarray::const_iterator nm = it->second.begin(); nm != it->second.end(); ++nm)
       mprintf(" %s", nm->c_str());
     mprintf("\n");
+  }
+  mprintf("DEBUG: Titration site data:\n");
+  for (NameSiteMap::const_iterator ns = NameToSite_.begin(); ns != NameToSite_.end(); ++ns)
+  {
+    mprintf("\tSite: %s\n", ns->first.c_str());
+    ns->second.Print();
   }
   return 0;
 }
