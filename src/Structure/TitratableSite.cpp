@@ -1,7 +1,7 @@
 #include "TitratableSite.h"
 #include "../NameType.h"
 
-using namespace Cpptraj;
+using namespace Cpptraj::Structure;
 
 /** CONSTRUCTOR */
 TitratableSite::TitratableSite() :

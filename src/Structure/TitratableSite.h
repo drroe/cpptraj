@@ -4,6 +4,7 @@
 #include <string>
 class NameType;
 namespace Cpptraj {
+namespace Structure {
 /// Hold information for titratable atoms in a residue
 class TitratableSite {
   public:
@@ -18,5 +19,6 @@ class TitratableSite {
     double pKa_; ///< Site pka
     MapType nameToCharges_; ///< Map atom names to state charge pairs
 };
+}
 }
 #endif
