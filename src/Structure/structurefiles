@@ -8,4 +8,6 @@ STRUCTURE_SOURCES= \
   SugarBuilder.cpp \
   Sugar.cpp \
   SugarLinkAtoms.cpp \
-  SugarToken.cpp
+  SugarToken.cpp \
+  TitratableSite.cpp \
+  TitrationData.cpp
