@@ -466,7 +466,10 @@ void PDBfile::pdb_OccupancyAndBfactor(float& occ, float& bfac) {
   * Could fail if reading a PDB with values > 99.99 in B-factor column.
   */
 void PDBfile::pdb_ChargeAndRadius(float& charge, float& radius) {
+  if (relaxReadFormat_)
   sscanf(linebuffer_+30, "%*f %*f %*f %f %f", &charge, &radius);
+  else
+  sscanf(linebuffer_+54, "%f %f", &charge, &radius);
 }
 
 /** Set box[0-5] with A B C ALPHA BETA GAMMA from CRYST1 record. */
