@@ -12,7 +12,9 @@ Parm_PDB::Parm_PDB() :
   LinkMode_(UNSPECIFIED),
   keepAltLoc_(' '),
   readAsPQR_(false),
-  readBox_(false) {}
+  readBox_(false),
+  relaxReadFormat_(false)
+{}
 
 // Parm_PDB::ReadHelp()
 void Parm_PDB::ReadHelp() {
@@ -23,6 +25,7 @@ void Parm_PDB::ReadHelp() {
           "\tlink              : Read LINK records if present.\n"
           "\tnolink            : Do not read LINK records if present (default).\n"
           "\tkeepaltloc <char> : If specified, alternate location ID to keep.\n"
+          "\trelaxfmt          : Relax read format for X, Y, Z, Occ., and B-factor (for e.g. MEAD PQR).\n"
          );
 }
 
@@ -41,6 +44,7 @@ int Parm_PDB::processReadArgs(ArgList& argIn) {
   std::string keepAltChar = argIn.GetStringKey("keepaltloc");
   if (!keepAltChar.empty())
     keepAltLoc_ = keepAltChar[0];
+  relaxReadFormat_ = argIn.hasKey("relaxfmt");
   return 0;
 }
 
@@ -48,6 +52,10 @@ int Parm_PDB::processReadArgs(ArgList& argIn) {
 int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   typedef std::vector<PDBfile::Link> Larray;
   PDBfile infile;
+  if (relaxReadFormat_) {
+    mprintf("\tRelaxing read format for X, Y, Z, Occ., and B-factor columns.\n");
+    infile.SetRelaxReadFormat( true );
+  }
   double XYZ[6]; // Hold XYZ/box coords.
   float occupancy, bfactor; // Read in occ/bfac
   BondArray bonds;              // Hold bonds
@@ -178,11 +186,12 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
     }
   } // END loop over PDB records
 
-  if (infile.CoordOverflow()) {
+  if (infile.CoordOverflow() && !relaxReadFormat_) {
     mprintf("Warning: Coordinate overflow detected in ATOM/HETATM records.\n"
             "Warning: This usually indicates that any or all of the X, Y, Z,\n"
             "Warning: occupany, and B-factor columns are wider than expected.\n"
-            "Warning: This PDB will probably not be read correctly.\n");
+            "Warning: This PDB will probably not be read correctly unless\n"
+            "Warning: the 'relaxfmt' option is used.\n");
   }
 
   if (hasMissingResidues) {

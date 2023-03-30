@@ -175,7 +175,8 @@ PDBfile::PDBfile() :
   recType_(UNKNOWN),
   lineLengthWarning_(false),
   coordOverflow_(false),
-  useCol21_(false)
+  useCol21_(false),
+  relaxReadFormat_(false)
 {}
 
 // PDBfile::IsPDBkeyword()
@@ -421,6 +422,9 @@ Residue PDBfile::pdb_Residue() {
 // PDBfile::pdb_XYZ()
 // NOTE: Should check for null Xout
 void PDBfile::pdb_XYZ(double *Xout) {
+  if (relaxReadFormat_) {
+    sscanf(linebuffer_+30, "%lf %lf %lf", Xout, Xout+1, Xout+2);
+  } else {
   // X coord (30-38)
   char savechar = linebuffer_[38];
   linebuffer_[38] = '\0';
@@ -436,10 +440,14 @@ void PDBfile::pdb_XYZ(double *Xout) {
   linebuffer_[54] = '\0';
   Xout[2] = atof( linebuffer_+46 );
   linebuffer_[54] = savechar;
+  }
 }
 
 // PDBfile::pdb_OccupancyAndBfactor()
 void PDBfile::pdb_OccupancyAndBfactor(float& occ, float& bfac) {
+  if (relaxReadFormat_) {
+    sscanf(linebuffer_+30, "%*f %*f %*f %f %f", &occ, &bfac);
+  } else {
   // Occupancy (54-60)
   char savechar = linebuffer_[60];
   linebuffer_[60] = '\0';
@@ -450,6 +458,7 @@ void PDBfile::pdb_OccupancyAndBfactor(float& occ, float& bfac) {
   linebuffer_[66] = '\0';
   bfac = atof(linebuffer_ + 60);
   linebuffer_[66] = savechar;
+  }
 }
   
 /** Read charge and radius from PQR file (where occupancy and B-factor would be
@@ -457,7 +466,7 @@ void PDBfile::pdb_OccupancyAndBfactor(float& occ, float& bfac) {
   * Could fail if reading a PDB with values > 99.99 in B-factor column.
   */
 void PDBfile::pdb_ChargeAndRadius(float& charge, float& radius) {
-  sscanf(linebuffer_+54, "%f %f", &charge, &radius);
+  sscanf(linebuffer_+30, "%*f %*f %*f %f %f", &charge, &radius);
 }
 
 /** Set box[0-5] with A B C ALPHA BETA GAMMA from CRYST1 record. */

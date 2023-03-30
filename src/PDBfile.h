@@ -46,6 +46,8 @@ class PDBfile : public CpptrajFile {
     Link pdb_Link();
     /// \return current record type.
     PDB_RECTYPE RecType()         const { return recType_; }
+    /// Set whether read format should be relaxed for x, y, z, occupancy, and B-factor
+    void SetRelaxReadFormat(bool r) { relaxReadFormat_ = r; }
     // -------------------------------------------
     /// Set whether column 21 can be used for 4-letter residue names.
     void SetUseCol21(bool b) { useCol21_ = b; }
@@ -101,8 +103,9 @@ class PDBfile : public CpptrajFile {
     int anum_;               ///< Atom number for writing.
     PDB_RECTYPE recType_;    ///< Current record type.
     bool lineLengthWarning_; ///< True if any read line is shorter than 80 char
-    bool coordOverflow_;     ///< True if coords on write exceed field width
+    bool coordOverflow_;     ///< True if coords on write exceed field width or char in col 67 during read
     bool useCol21_;          ///< If true, use column 21 for 4-char res name
+    bool relaxReadFormat_;   ///< If true, use whitespace-delimited criterion for reading coord columns
     /// Recognized PDB record types; corresponds to PDB_RECTYPE
     static const char* PDB_RECNAME_[];
 };
