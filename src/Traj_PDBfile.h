@@ -78,6 +78,7 @@ class Traj_PDBfile: public TrajectoryIO {
     bool occscale_;                ///< If specified scale occupancy data
     bool bfacbyres_;               ///< If true do bfactor data by residue
     bool occbyres_;                ///< If true do occupancy data by residue
+    bool relaxReadFormat_;         ///< If true relax X Y Z Occ. B-factor read format
     std::string space_group_;
     Darray Bfactors_;              ///< Hold data for B-factor column.
     Darray Occupancy_;             ///< Hold data for occupancy column.

@@ -31,6 +31,7 @@ Traj_PDBfile::Traj_PDBfile() :
   occscale_(false),
   bfacbyres_(false),
   occbyres_(false),
+  relaxReadFormat_(false),
   pdbTop_(0),
   chainchar_(' '),
   keepAltLoc_(' '),
@@ -69,7 +70,8 @@ int Traj_PDBfile::openTrajin() {
 
 // void Traj_PDBfile::ReadHelp()
 void Traj_PDBfile::ReadHelp() {
-  mprintf("\tkeepaltloc <char> : If specified, alternate location ID to keep.\n");
+  mprintf("\tkeepaltloc <char> : If specified, alternate location ID to keep.\n"
+          "\trelaxfmt          : Relax read format for X, Y, Z, Occ., and B-factor (for e.g. MEAD PQR).\n");
 }
 
 // Traj_PDBfile::processReadArgs()
@@ -77,6 +79,7 @@ int Traj_PDBfile::processReadArgs(ArgList& argIn) {
   std::string keepAltChar = argIn.GetStringKey("keepaltloc");
   if (!keepAltChar.empty())
     keepAltLoc_ = keepAltChar[0];
+  file_.SetRelaxReadFormat( argIn.hasKey("relaxfmt") );
   return 0;
 }
 
