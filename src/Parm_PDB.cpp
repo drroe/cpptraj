@@ -178,6 +178,13 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
     }
   } // END loop over PDB records
 
+  if (infile.CoordOverflow()) {
+    mprintf("Warning: Coordinate overflow detected in ATOM/HETATM records.\n"
+            "Warning: This usually indicates that any or all of the X, Y, Z,\n"
+            "Warning: occupany, and B-factor columns are wider than expected.\n"
+            "Warning: This PDB will probably not be read correctly.\n");
+  }
+
   if (hasMissingResidues) {
     mprintf("\t%zu missing residues.\n", missingResidues.size());
     if (debug_ > 0) {

@@ -264,10 +264,15 @@ PDBfile::PDB_RECTYPE PDBfile::NextRecord() {
   recType_ = UNKNOWN;
   // Try to ID the current record.
   if (strncmp(linebuffer_,"ATOM  ",6)==0 ||
-      strncmp(linebuffer_,"HETATM",6)==0   )
+      strncmp(linebuffer_,"HETATM",6)==0   ) {
     // Just return ATOM for ATOM/HETATM when reading.
     recType_ = ATOM;
-  else if (strncmp(linebuffer_,"CONECT",6)==0)
+    // Check if there is a character in space 67 (buffer 66), which
+    // normally should be blank. This likely indicates a non-conforming
+    // format (like MEAD pqr).
+    if (linebuffer_[66] != ' ')
+      coordOverflow_ = true;
+  } else if (strncmp(linebuffer_,"CONECT",6)==0)
     recType_ = CONECT;
   else if (strncmp(linebuffer_,"LINK  ",6)==0)
     recType_ = LINK;
