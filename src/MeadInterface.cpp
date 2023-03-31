@@ -263,31 +263,32 @@ const
           // State1
           double macself1 = 0;
           double macback1 = 0;
-          AtomChargeSet gen1(state1Atoms);
-          if (gen1.has_charges()) {
+          AtomChargeSet charge_state1(state1Atoms);
+          if (charge_state1.has_charges()) {
             // TODO check for different atoms/coords
-            ChargeDist rho1(new AtomChargeSet(gen1));
+            ChargeDist rho1(new AtomChargeSet(charge_state1));
             ElstatPot phi1(*fdm_, eps, rho1, ely);
             phi1.solve();
-            OutPotat* potat_out1 = new OutPotat(*atomset_, phi1);
-            macself1 = (*potat_out1) * gen1;
-            delete potat_out1;
+            OutPotat* state1_pot = new OutPotat(*atomset_, phi1);
+            macself1 = (*state1_pot) * charge_state1;
+            delete state1_pot;
           }
           mprintf("macself1= %g\n", macself1);
           // State2
           double macself2 = 0;
           double macback2 = 0;
-          AtomChargeSet gen2(state2Atoms);
-          if (gen2.has_charges()) {
+          AtomChargeSet charge_state2(state2Atoms);
+          if (charge_state2.has_charges()) {
             // TODO check for different atoms/coords
-            ChargeDist rho2(new AtomChargeSet(gen2));
+            ChargeDist rho2(new AtomChargeSet(charge_state2));
             ElstatPot phi2(*fdm_, eps, rho2, ely);
             phi2.solve();
-            OutPotat* potat_out2 = new OutPotat(*atomset_, phi2);
-            macself2 = (*potat_out2) * gen2;
-            delete potat_out2;
+            OutPotat* state2_pot = new OutPotat(*atomset_, phi2);
+            macself2 = (*state2_pot) * charge_state2;
+            delete state2_pot;
           }
           mprintf("macself2= %g\n", macself2);
+          mprintf("macself1-macself2 = %g\n", macself1 - macself2);
         }
       }
     }
