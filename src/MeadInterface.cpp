@@ -17,10 +17,21 @@
 #include "../mead/ElectrolyteEnvironment.h"
 #include "../mead/ElectrolyteByAtoms.h"
 #include "../mead/FinDiffElstatPot.h"
+#include "../mead/Potat.h"
 // FOR DEBUG
 #include <iostream>
 
 using namespace Cpptraj;
+
+/** Corresponds to enum GridCenter_Mode */
+const char* MeadInterface::GridCenter_ModeStr_[] = {
+  "ON_ORIGIN", "ON_CENT_OF_INTR", "ON_GEOM_CENT"
+};
+
+/** \return Char string corresponding to GridCenter_Mode */
+const char* MeadInterface::GridCenter_ModeStr(GridCenter_Mode gc) {
+  return GridCenter_ModeStr_[gc];
+}
 
 /** CONSTRUCTOR */
 MeadInterface::MeadInterface() :
@@ -43,7 +54,7 @@ int MeadInterface::ERR(const char* fxn, MEADexcept& e) {
   return 1;
 }
 
-/** Add a grid to the finite difference method object. */
+/** Add a grid to the finite difference method object with explicit centering. */
 int MeadInterface::AddGrid(int ngrd, float spc, Vec3 const& cntr)
 {
   if (fdm_ == 0)
@@ -53,11 +64,33 @@ int MeadInterface::AddGrid(int ngrd, float spc, Vec3 const& cntr)
     fdm_->add_level( ngrd, spc, Coord(cntr[0], cntr[1], cntr[2]) );
   }
   catch (MEADexcept& e) {
-    return ERR("AddGrid()", e);
+    return ERR("AddGrid(coord)", e);
   }
   return 0;
 }
 
+/** Add a grid to the finite difference method object with centering string. */
+int MeadInterface::AddGrid(int ngrd, float spc, GridCenter_Mode ctrmode)
+{
+  if (fdm_ == 0)
+    fdm_ = new FinDiffMethod();
+
+  CenteringStyle censtl;
+  switch (ctrmode) {
+    case C_ON_ORIGIN       : censtl = ON_ORIGIN; break;
+    case C_ON_CENT_OF_INTR : censtl = ON_CENT_OF_INTR; break;
+    case C_ON_GEOM_CENT    : censtl = ON_GEOM_CENT; break;
+  }
+  try {
+    fdm_->add_level( ngrd, spc, censtl );
+  }
+  catch (MEADexcept& e) {
+    return ERR("AddGrid(style)", e);
+  }
+  return 0;
+}
+
+/** Set MEAD Atom from Topology Atom. */
 void MeadInterface::set_at_from_top(MEAD::Atom& at, Topology const& topIn, Frame const& frameIn, int aidx, Radii_Mode radiiMode)
 {
     Atom const& thisAtom = topIn[aidx];
@@ -157,7 +190,8 @@ void MeadInterface::MeadVerbosity(int i) const {
 
 
 /** Run multiflex calc. */
-int MeadInterface::MultiFlex(double epsIn, double epsSol, 
+int MeadInterface::MultiFlex(double epsIn, double epsSol,
+                             double solRad, double sterln, double ionicStr,
                              Topology const& topIn, Frame const& frameIn,
                              Structure::TitrationData const& titrationData,
                              Radii_Mode radiiMode)
@@ -165,11 +199,17 @@ const
 {
   using namespace Cpptraj::Structure;
   // Calculate the geometric center
-  Vec3 geom_center = frameIn.VGeometricCenter(0, frameIn.Natom());
-  geom_center.Print("Geometric center"); // DEBUG
+  Vec3 vgeom_center = frameIn.VGeometricCenter(0, frameIn.Natom());
+  vgeom_center.Print("Geometric center"); // DEBUG
+  Coord geom_center(vgeom_center[0], vgeom_center[1], vgeom_center[2]);
 
   try {
     PhysCond::set_epsext(epsSol);
+    PhysCond::set_solrad(solRad);
+    PhysCond::set_sterln(sterln);
+    PhysCond::set_ionicstr(ionicStr);
+
+    PhysCond::print();
     // NOTE: In this context, *atomset_ is equivalent to atlist in multiflex.cc:FD2DielEMaker
     DielectricEnvironment_lett* eps = new TwoValueDielectricByAtoms( *atomset_, epsIn );
     ElectrolyteEnvironment_lett* ely = new ElectrolyteByAtoms( *atomset_ );
@@ -190,7 +230,8 @@ const
           TitratableSite const& site = titrationData.GetSite( *it );
           AtomSet state1Atoms;
           AtomSet state2Atoms;
-          Vec3 siteOfInterest;
+          Coord siteOfInterest;
+          // Set up atoms for each state for the site of interest
           for (TitratableSite::const_iterator jt = site.begin(); jt != site.end(); ++jt)
           {
             // Get the atom index in the topology
@@ -202,8 +243,12 @@ const
             }
             // Is this the site of interest?
             if (topIn[aidx].Name() == site.SiteOfInterest()) {
-              siteOfInterest = Vec3(frameIn.XYZ(aidx));
-              siteOfInterest.Print("SITE OF INTEREST");
+              //siteOfInterest = Vec3(frameIn.XYZ(aidx));
+              const double* xyz = frameIn.XYZ(aidx);
+              mprintf("SITE OF INTEREST: %f %f %f\n", xyz[0], xyz[1], xyz[2]);
+              siteOfInterest.x = xyz[0];
+              siteOfInterest.y = xyz[1];
+              siteOfInterest.z = xyz[2];
             }
             MEAD::Atom at;
             set_at_from_top(at, topIn, frameIn, aidx, radiiMode);
@@ -213,6 +258,36 @@ const
             state2Atoms.insert( at );
             mprintf("DEBUG: Atom %s idx %i charge1= %f charge2= %f\n", *(jt->first), aidx+1, jt->second.first, jt->second.second);
           }
+          // Refocus the grid
+          fdm_->resolve( geom_center, siteOfInterest );
+          // State1
+          double macself1 = 0;
+          double macback1 = 0;
+          AtomChargeSet gen1(state1Atoms);
+          if (gen1.has_charges()) {
+            // TODO check for different atoms/coords
+            ChargeDist rho1(new AtomChargeSet(gen1));
+            ElstatPot phi1(*fdm_, eps, rho1, ely);
+            phi1.solve();
+            OutPotat* potat_out1 = new OutPotat(*atomset_, phi1);
+            macself1 = (*potat_out1) * gen1;
+            delete potat_out1;
+          }
+          mprintf("macself1= %g\n", macself1);
+          // State2
+          double macself2 = 0;
+          double macback2 = 0;
+          AtomChargeSet gen2(state2Atoms);
+          if (gen2.has_charges()) {
+            // TODO check for different atoms/coords
+            ChargeDist rho2(new AtomChargeSet(gen2));
+            ElstatPot phi2(*fdm_, eps, rho2, ely);
+            phi2.solve();
+            OutPotat* potat_out2 = new OutPotat(*atomset_, phi2);
+            macself2 = (*potat_out2) * gen2;
+            delete potat_out2;
+          }
+          mprintf("macself2= %g\n", macself2);
         }
       }
     }

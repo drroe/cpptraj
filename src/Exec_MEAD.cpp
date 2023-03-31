@@ -108,6 +108,9 @@ const
   std::string sitesDirName = argIn.GetStringKey("sitesdir");
   double epsin = argIn.getKeyDouble("epsin", 1);
   double epssol = argIn.getKeyDouble("epssol", 80);
+  double solrad = argIn.getKeyDouble("solrad", 1.4);
+  double sterln = argIn.getKeyDouble("sterln", 2.0);
+  double ionicstr = argIn.getKeyDouble("ionicstr", 0.0);
 
   mprintf("\tSites file : %s\n", sitesFileName.c_str());
   mprintf("\tSites dir  : %s\n", sitesDirName.c_str());
@@ -124,7 +127,7 @@ const
     return 1;
   }
 
-  if (MEAD.MultiFlex(epsin, epssol, topIn, frameIn, titrationData, radiiMode)) {
+  if (MEAD.MultiFlex(epsin, epssol, solrad, sterln, ionicstr, topIn, frameIn, titrationData, radiiMode)) {
     mprinterr("Error: Multiflex failed.\n");
     return 1;
   } 
@@ -135,13 +138,14 @@ const
 // Exec_MEAD::Execute()
 Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
 {
-  Cpptraj::MeadInterface MEAD;
+  using namespace Cpptraj;
+  MeadInterface MEAD;
   int verbose = argIn.getKeyInt("verbose", 0);
   MEAD.MeadVerbosity( verbose );
 
   std::string ogmstr = argIn.GetStringKey("ogm");
   while (!ogmstr.empty()) {
-    // Format: N,spacing TODO centering
+    // Format: N,spacing[,centering]
     ArgList ogmarg( ogmstr, "," );
     if (ogmarg.Nargs() < 2) {
       mprinterr("Error: Malformed ogm key; expected <N>,<spacing>\n");
@@ -149,29 +153,55 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
     }
     int ngridpts = convertToInteger( ogmarg[0] );
     double spacing = convertToDouble( ogmarg[1] );
-    mprintf("\tAdding grid of %i points, spacing %g\n", ngridpts, spacing);
-    if (MEAD.AddGrid(ngridpts, spacing, Vec3(0,0,0))) {
-      mprinterr("Error: Adding MEAD grid.\n");
+    if ( ogmarg.Nargs() == 2) {
+      // No centering, default to origin
+      mprintf("\tAdding grid of %i points, spacing %g, center on origin.\n", ngridpts, spacing);
+      if (MEAD.AddGrid(ngridpts, spacing, Vec3(0,0,0))) {
+        mprinterr("Error: Adding MEAD grid.\n");
+        return CpptrajState::ERR;
+      }
+    } else if ( ogmarg.Nargs() == 3) {
+      MeadInterface::GridCenter_Mode gc;
+      // Center using string
+      if (ogmarg[2] == "o")
+        gc = MeadInterface::C_ON_ORIGIN;
+      else if (ogmarg[2] == "i")
+        gc = MeadInterface::C_ON_CENT_OF_INTR;
+      else if (ogmarg[2] == "g")
+        gc = MeadInterface::C_ON_GEOM_CENT;
+      else {
+        mprinterr("Error: Expected grid centering argument to be 'o', 'i', or 'g', got '%s'\n",
+                  ogmarg[2].c_str());
+        return CpptrajState::ERR;
+      }
+      mprintf("\tAdding grid of %i points, spacing %g, center on %s\n", ngridpts, spacing,
+              MeadInterface::GridCenter_ModeStr(gc));
+      if (MEAD.AddGrid(ngridpts, spacing, gc)) {
+        mprinterr("Error: Adding MEAD grid.\n");
+        return CpptrajState::ERR;
+      }
+    } else {
+      mprinterr("Error: Invalid centering argument for grid.\n");
       return CpptrajState::ERR;
     }
     ogmstr = argIn.GetStringKey("ogm");
   }
 
-  Cpptraj::MeadInterface::Radii_Mode radiiMode;
+  MeadInterface::Radii_Mode radiiMode;
   std::string radmode = argIn.GetStringKey("radii");
   if (radmode == "gb")
-    radiiMode = Cpptraj::MeadInterface::GB;
+    radiiMode = MeadInterface::GB;
   else if (radmode == "parse")
-    radiiMode = Cpptraj::MeadInterface::PARSE;
+    radiiMode = MeadInterface::PARSE;
   else if (radmode == "vdw")
-    radiiMode = Cpptraj::MeadInterface::VDW;
+    radiiMode = MeadInterface::VDW;
   else
-    radiiMode = Cpptraj::MeadInterface::GB;
+    radiiMode = MeadInterface::GB;
 
   switch (radiiMode) {
-    case Cpptraj::MeadInterface::GB : mprintf("\tUsing GB radii.\n"); break;
-    case Cpptraj::MeadInterface::PARSE : mprintf("\tUsing PARSE radii.\n"); break;
-    case Cpptraj::MeadInterface::VDW : mprintf("\tUsing VDW radii.\n"); break;
+    case MeadInterface::GB : mprintf("\tUsing GB radii.\n"); break;
+    case MeadInterface::PARSE : mprintf("\tUsing PARSE radii.\n"); break;
+    case MeadInterface::VDW : mprintf("\tUsing VDW radii.\n"); break;
   }
 
   std::string outSetName = argIn.GetStringKey("name");
