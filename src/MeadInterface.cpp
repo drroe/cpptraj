@@ -188,6 +188,17 @@ void MeadInterface::MeadVerbosity(int i) const {
     mprintf("Info: MEAD verbosity set to %i\n", i);
 }
 
+void MeadInterface::printAtomPotentials(Topology const& topIn, Frame const& frameIn, OutPotat* outpotat) {
+  double sum = 0;
+  for (int aidx = 0; aidx != topIn.Natom(); ++aidx) {
+    MEAD::Atom at;
+    set_at_from_top(at, topIn, frameIn, aidx, GB); // what a kludge, should be easier to access potat values
+    double potential_at_atom = (double) (*outpotat)[at];
+    mprintf("\t  Potential at atom %6s is %f charge %f\n", *(topIn[aidx].Name()), potential_at_atom, topIn[aidx].Charge());
+    sum += potential_at_atom * topIn[aidx].Charge();
+  }
+  mprintf("\tProduct of potentials with charges: %g\n", sum);
+}
 
 /** Run multiflex calc. */
 int MeadInterface::MultiFlex(double epsIn, double epsSol,
@@ -227,6 +238,10 @@ const
         for (TitrationData::Sarray::const_iterator it = siteNames.begin();
                                                    it != siteNames.end(); ++it)
         {
+          // ref_atp will have all atoms in the atom set with charges zeroed for atoms
+          // in the site of interest.
+          AtomChargeSet ref_atp( *atomset_ );
+          // Set up sites
           TitratableSite const& site = titrationData.GetSite( *it );
           AtomSet state1Atoms;
           AtomSet state2Atoms;
@@ -241,6 +256,8 @@ const
                         *(jt->first), topIn.TruncResNameNum(ridx).c_str());
               return 1;
             }
+            // Zero charge for this atom in ref_atp TODO should be original resnum?
+            ref_atp[AtomID(ridx+1, topIn[aidx].Name().Truncated())].charge = 0;
             // Is this the site of interest?
             if (topIn[aidx].Name() == site.SiteOfInterest()) {
               //siteOfInterest = Vec3(frameIn.XYZ(aidx));
@@ -260,24 +277,36 @@ const
           }
           // Refocus the grid
           fdm_->resolve( geom_center, siteOfInterest );
+          // Set up charges for each state and point to the reference state
+          AtomChargeSet charge_state1(state1Atoms);
+          AtomChargeSet charge_state2(state2Atoms);
+          AtomChargeSet* refstatep = 0;
+          if (site.RefStateIdx() == 0)
+            refstatep = &charge_state1;
+          else
+            refstatep = &charge_state2;
+          // mackbackX is the interaction with background charges (ref_atp)
+          // EXCEPT those of site X
           // State1
           double macself1 = 0;
           double macback1 = 0;
-          AtomChargeSet charge_state1(state1Atoms);
           if (charge_state1.has_charges()) {
             // TODO check for different atoms/coords
             ChargeDist rho1(new AtomChargeSet(charge_state1));
             ElstatPot phi1(*fdm_, eps, rho1, ely);
             phi1.solve();
             OutPotat* state1_pot = new OutPotat(*atomset_, phi1);
+            // DEBUG Print potential at atoms
+            printAtomPotentials( topIn, frameIn, state1_pot );
             macself1 = (*state1_pot) * charge_state1;
+            macback1 = (*state1_pot) * (ref_atp) - (*state1_pot) * (*refstatep);
+            mprintf("DEBUG: MACBACK1 = %f - %f\n", (*state1_pot) * (ref_atp), (*state1_pot) * (*refstatep));
             delete state1_pot;
           }
-          mprintf("macself1= %g\n", macself1);
+          mprintf("macself1= %g  macback1= %g\n", macself1, macback1);
           // State2
           double macself2 = 0;
           double macback2 = 0;
-          AtomChargeSet charge_state2(state2Atoms);
           if (charge_state2.has_charges()) {
             // TODO check for different atoms/coords
             ChargeDist rho2(new AtomChargeSet(charge_state2));
@@ -285,10 +314,12 @@ const
             phi2.solve();
             OutPotat* state2_pot = new OutPotat(*atomset_, phi2);
             macself2 = (*state2_pot) * charge_state2;
+            macback2 = (*state2_pot) * (ref_atp) - (*state2_pot) * (*refstatep);
             delete state2_pot;
           }
-          mprintf("macself2= %g\n", macself2);
+          mprintf("macself2= %g  macback2= %g\n", macself2, macback2);
           mprintf("macself1-macself2 = %g\n", macself1 - macself2);
+          mprintf("macback1-deprotback = %g\n", macback1 - macback2);
         }
       }
     }

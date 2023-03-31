@@ -24,6 +24,7 @@ class TitratableSite {
     const_iterator end()   const { return nameToCharges_.end(); }
 
     NameType const& SiteOfInterest() const { return siteOfInterest_; }
+    int RefStateIdx() const { return refStateIdx_; }
   private:
     typedef std::pair<NameType, ChargePair> PairType;
 
