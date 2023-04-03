@@ -70,6 +70,7 @@ float Potat::operator*(const AtomChargeSet& acs) {
     }
     else {
       prod += i->second * b->second.charge;
+      printf("DEBUG:\t  Potential at res %6i atom %6s is %f charge %f\n", i->first.get_resnum(), i->first.get_atname().c_str(), i->second, b->second.charge);
     }
   }
   return prod;

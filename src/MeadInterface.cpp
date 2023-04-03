@@ -188,14 +188,17 @@ void MeadInterface::MeadVerbosity(int i) const {
     mprintf("Info: MEAD verbosity set to %i\n", i);
 }
 
-void MeadInterface::printAtomPotentials(Topology const& topIn, Frame const& frameIn, OutPotat* outpotat) {
+void MeadInterface::printAtomPotentials(Topology const& topIn, Frame const& frameIn, OutPotat* outpotat, AtomChargeSet* acs) {
   double sum = 0;
   for (int aidx = 0; aidx != topIn.Natom(); ++aidx) {
     MEAD::Atom at;
     set_at_from_top(at, topIn, frameIn, aidx, GB); // what a kludge, should be easier to access potat values
     double potential_at_atom = (double) (*outpotat)[at];
-    mprintf("\t  Potential at atom %6s is %f charge %f\n", *(topIn[aidx].Name()), potential_at_atom, topIn[aidx].Charge());
-    sum += potential_at_atom * topIn[aidx].Charge();
+    MEAD::Atom const& at_from_acs = (*acs)[at];
+    //mprintf("\t  Potential at atom %6s is %f charge %f\n", *(topIn[aidx].Name()), potential_at_atom, topIn[aidx].Charge());
+    mprintf("\t  Potential at atom %6s is %f charge %f\n", *(topIn[aidx].Name()), at_from_acs.charge);
+    //sum += potential_at_atom * topIn[aidx].Charge();
+    sum += potential_at_atom * at_from_acs.charge;
   }
   mprintf("\tProduct of potentials with charges: %g\n", sum);
 }
@@ -238,8 +241,8 @@ const
         for (TitrationData::Sarray::const_iterator it = siteNames.begin();
                                                    it != siteNames.end(); ++it)
         {
-          // ref_atp will have all atoms in the atom set with charges zeroed for atoms
-          // in the site of interest.
+          // ref_atp will have all atoms in the atom set with charges set to reference
+          // state charges for atoms in the site of interest.
           AtomChargeSet ref_atp( *atomset_ );
           // Set up sites
           TitratableSite const& site = titrationData.GetSite( *it );
@@ -257,7 +260,11 @@ const
               return 1;
             }
             // Zero charge for this atom in ref_atp TODO should be original resnum?
-            ref_atp[AtomID(ridx+1, topIn[aidx].Name().Truncated())].charge = 0;
+            MEAD::Atom& mod_at = ref_atp[AtomID(ridx+1, topIn[aidx].Name().Truncated())];
+            if (site.RefStateIdx() == 0)
+              mod_at.charge = jt->second.first;
+            else
+              mod_at.charge = jt->second.second;
             // Is this the site of interest?
             if (topIn[aidx].Name() == site.SiteOfInterest()) {
               //siteOfInterest = Vec3(frameIn.XYZ(aidx));
@@ -297,8 +304,9 @@ const
             phi1.solve();
             OutPotat* state1_pot = new OutPotat(*atomset_, phi1);
             // DEBUG Print potential at atoms
-            printAtomPotentials( topIn, frameIn, state1_pot );
+            //printAtomPotentials( topIn, frameIn, state1_pot, &ref_atp );
             macself1 = (*state1_pot) * charge_state1;
+            mprintf("DEBUG: MACSELF1 = %f\n", macself1);
             macback1 = (*state1_pot) * (ref_atp) - (*state1_pot) * (*refstatep);
             mprintf("DEBUG: MACBACK1 = %f - %f\n", (*state1_pot) * (ref_atp), (*state1_pot) * (*refstatep));
             delete state1_pot;

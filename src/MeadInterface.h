@@ -15,6 +15,7 @@ namespace MEAD {
 class Atom;
 }
 class OutPotat;
+class AtomChargeSet;
 namespace Cpptraj {
 namespace Structure {
 class TitrationData;
@@ -63,7 +64,7 @@ class MeadInterface {
 
     static inline void set_at_from_top(MEAD::Atom&, Topology const&, Frame const&, int, Radii_Mode);
 
-    static inline void printAtomPotentials(Topology const&, Frame const&, OutPotat*);
+    static inline void printAtomPotentials(Topology const&, Frame const&, OutPotat*, AtomChargeSet*);
 
     FinDiffMethod* fdm_;
     AtomSet* atomset_;
