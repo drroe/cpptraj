@@ -230,7 +230,7 @@ const
 
     // Loop over titratable sites
     for (int ridx = 0; ridx != topIn.Nres(); ridx++) {
-      TitrationData::Sarray siteNames = titrationData.ResSiteNames( ridx );
+      TitrationData::Sarray siteNames = titrationData.ResSiteNames( topIn.Res(ridx).OriginalResNum() );
       if (!siteNames.empty()) {
         mprintf("DEBUG: Residue %s site names:", topIn.TruncResNameNum(ridx).c_str());
         for (TitrationData::Sarray::const_iterator it = siteNames.begin();
@@ -260,7 +260,7 @@ const
               return 1;
             }
             // Zero charge for this atom in ref_atp TODO should be original resnum?
-            MEAD::Atom& mod_at = ref_atp[AtomID(ridx+1, topIn[aidx].Name().Truncated())];
+            MEAD::Atom& mod_at = ref_atp[AtomID(topIn.Res(ridx).OriginalResNum(), topIn[aidx].Name().Truncated())];
             if (site.RefStateIdx() == 0)
               mod_at.charge = jt->second.first;
             else
@@ -322,7 +322,9 @@ const
             phi2.solve();
             OutPotat* state2_pot = new OutPotat(*atomset_, phi2);
             macself2 = (*state2_pot) * charge_state2;
+            mprintf("DEBUG: MACSELF2 = %f\n", macself2);
             macback2 = (*state2_pot) * (ref_atp) - (*state2_pot) * (*refstatep);
+            mprintf("DEBUG: MACBACK2 = %f - %f\n", (*state2_pot) * (ref_atp), (*state2_pot) * (*refstatep));
             delete state2_pot;
           }
           mprintf("macself2= %g  macback2= %g\n", macself2, macback2);

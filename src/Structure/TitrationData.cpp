@@ -36,20 +36,20 @@ int TitrationData::LoadTitrationData(std::string const& sitesFileName,
       mprinterr("Error: Expected 2 tokens, got %i\n", ntokens);
       return 1;
     }
-    int rnum = atoi( sitesFile.NextToken() ) - 1;
+    // Expect residue number to start from 1
+    int rnum = atoi( sitesFile.NextToken() );
     std::string sname( sitesFile.NextToken() );
-    mprintf("DEBUG: Res#=%i  siteName=%s\n", rnum + 1, sname.c_str());
+    mprintf("DEBUG: Res#=%i  siteName=%s\n", rnum, sname.c_str());
     ResNameMap::iterator it = ResToSitename_.lower_bound( rnum );
     if (it == ResToSitename_.end() || it->first != rnum) {
-      // rnum - 1
       it = ResToSitename_.insert( it, ResNamePair(rnum, Sarray(1,sname)) );
     } else {
       // A residue number may have more than one site
-      mprintf("DEBUG: Residue number %i already has an entry.\n", rnum + 1);
+      mprintf("DEBUG: Residue number %i already has an entry.\n", rnum);
       // Ensure this is not a duplicate
       for (Sarray::const_iterator nm = it->second.begin(); nm != it->second.end(); ++nm) {
         if (*nm == sname) {
-          mprinterr("Error: Residue number %i already has entry '%s'\n", rnum+1, sname.c_str());
+          mprinterr("Error: Residue number %i already has entry '%s'\n", rnum, sname.c_str());
           return 1;
         }
       }
