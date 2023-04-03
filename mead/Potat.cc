@@ -55,6 +55,7 @@ void Potat::zero()
 }
 
 float Potat::operator*(const AtomChargeSet& acs) {
+  printf("DEBUG:\nDEBUG: Enter Potat::operator*\n");
   if (!defined) {
     ::error("ERROR Potat, AtomChargeSet multiplication invoked for\n",
 	    "a Potat with undefined potential values\n");
