@@ -36,12 +36,14 @@ const char* MeadInterface::GridCenter_ModeStr(GridCenter_Mode gc) {
 /** CONSTRUCTOR */
 MeadInterface::MeadInterface() :
   fdm_(0),
+  mgm_(0),
   atomset_(0)
 { }
 
 /** DESTRUCTOR */
 MeadInterface::~MeadInterface() {
   if (fdm_ != 0) delete fdm_;
+  if (mgm_ != 0) delete mgm_;
   if (atomset_ != 0) delete atomset_;
 }
 
@@ -57,11 +59,14 @@ int MeadInterface::ERR(const char* fxn, MEADexcept& e) {
 /** Add a grid to the finite difference method object with explicit centering. */
 int MeadInterface::AddGrid(int ngrd, float spc, Vec3 const& cntr)
 {
-  if (fdm_ == 0)
+  if (fdm_ == 0) {
     fdm_ = new FinDiffMethod();
+    mgm_ = new FinDiffMethod();
+  }
 
   try { 
     fdm_->add_level( ngrd, spc, Coord(cntr[0], cntr[1], cntr[2]) );
+    mgm_->add_level( ngrd, spc, Coord(cntr[0], cntr[1], cntr[2]) );
   }
   catch (MEADexcept& e) {
     return ERR("AddGrid(coord)", e);
@@ -72,8 +77,10 @@ int MeadInterface::AddGrid(int ngrd, float spc, Vec3 const& cntr)
 /** Add a grid to the finite difference method object with centering string. */
 int MeadInterface::AddGrid(int ngrd, float spc, GridCenter_Mode ctrmode)
 {
-  if (fdm_ == 0)
+  if (fdm_ == 0) {
     fdm_ = new FinDiffMethod();
+    mgm_ = new FinDiffMethod();
+  }
 
   CenteringStyle censtl;
   switch (ctrmode) {
@@ -83,6 +90,7 @@ int MeadInterface::AddGrid(int ngrd, float spc, GridCenter_Mode ctrmode)
   }
   try {
     fdm_->add_level( ngrd, spc, censtl );
+    mgm_->add_level( ngrd, spc, censtl );
   }
   catch (MEADexcept& e) {
     return ERR("AddGrid(style)", e);
@@ -171,6 +179,7 @@ int MeadInterface::SetupAtoms(Topology const& topIn, Frame const& frameIn, Radii
 /** Print debug info. */
 void MeadInterface::Print() const {
   std::cout << *fdm_;
+  std::cout << *mgm_;
 }
 
 /** Set verbosity of underlying MEAD library. */
@@ -422,6 +431,24 @@ const
             macback2 = (*state2_pot) * (ref_atp) - (*state2_pot) * (*refstatep);
             mprintf("DEBUG: MACBACK2 = %f - %f\n", (*state2_pot) * (ref_atp), (*state2_pot) * (*refstatep));
             delete state2_pot;
+          }
+          // Refocus the model grid
+          mgm_->resolve( geom_center, siteOfInterest );
+          // Model dielectric environment
+          DielectricEnvironment_lett* model_eps = new TwoValueDielectricByAtoms( model_compound, epsIn );
+          ElectrolyteEnvironment_lett* model_ely = new ElectrolyteByAtoms( model_compound );
+          // Model state 1
+          double modself1 = 0;
+          double modback1 = 0;
+          if (charge_state1.has_charges()) {
+            ChargeDist rho1(new AtomChargeSet(charge_state1));
+            ElstatPot phi1(*mgm_, model_eps, rho1, model_ely);
+            phi1.solve();
+            OutPotat* mod1_pot = new OutPotat(model_compound, phi1);
+            modself1 = (*mod1_pot) * charge_state1;
+            mprintf("DEBUG: MODSELF1 = %f\n", modself1);
+
+            delete mod1_pot;
           }
           mprintf("macself2= %g  macback2= %g\n", macself2, macback2);
           mprintf("macself1-macself2 = %g\n", macself1 - macself2);
