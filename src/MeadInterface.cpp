@@ -188,6 +188,7 @@ void MeadInterface::MeadVerbosity(int i) const {
     mprintf("Info: MEAD verbosity set to %i\n", i);
 }
 
+/** For debugging - print atom potential and atom charge set. */
 void MeadInterface::printAtomPotentials(Topology const& topIn, Frame const& frameIn, OutPotat* outpotat, AtomChargeSet* acs) {
   double sum = 0;
   for (int aidx = 0; aidx != topIn.Natom(); ++aidx) {
@@ -201,6 +202,53 @@ void MeadInterface::printAtomPotentials(Topology const& topIn, Frame const& fram
     sum += potential_at_atom * at_from_acs.charge;
   }
   mprintf("\tProduct of potentials with charges: %g\n", sum);
+}
+
+/** \return residue index of atom bonded to given atom in different residue or -1. */
+static inline int other_res_index(Topology const& topIn, Atom const& thisAtom)
+{
+  int idx = -1;
+  for (Atom::bond_iterator bat = thisAtom.bondbegin(); bat != thisAtom.bondend(); ++bat)
+  {
+    if (topIn[*bat].ResNum() != thisAtom.ResNum()) {
+      idx = topIn[*bat].ResNum();
+      break;
+    }
+  }
+  return idx;
+}
+
+/** Create model compound within protein.
+  * The model compound contains all atoms of the residue containing the site
+  * of interest, along with the peptide C=O of the previous residue and
+  * the N-H and CA of the following residue (Bashford & Karplus, 1990).
+  */
+int MeadInterface::createModelCompound(int ridx, Topology const& topIn, Frame const& frameIn)
+{
+  Residue const& thisRes = topIn.Res(ridx);
+  // TODO make these options
+  static NameType Nname("N");
+  static NameType Cname("C");
+
+  // Get index of the previous residue
+  int Nidx = topIn.FindAtomInResidue(ridx, Nname);
+  if (Nidx < 0) {
+    mprinterr("Error: N atom '%s' not found in residue %s.\n", *Nname, topIn.TruncResNameNum(ridx).c_str());
+    return 1;
+  }
+  int prevRidx = other_res_index(topIn, topIn[Nidx]);
+  mprintf("Previous residue index = %i\n", prevRidx + 1 );
+
+  // Get index of next residue
+  int Cidx = topIn.FindAtomInResidue(ridx, Cname);
+  if (Cidx < 0) {
+    mprinterr("Error: C atom '%s' not found in residue %s.\n", *Cname, topIn.TruncResNameNum(ridx).c_str());
+    return 1;
+  }
+  int nextRidx = other_res_index(topIn, topIn[Cidx]);
+  mprintf("Next residue index = %i\n", nextRidx + 1);
+
+  return 0;
 }
 
 /** Run multiflex calc. */
@@ -237,6 +285,11 @@ const
                                                    it != siteNames.end(); ++it)
           mprintf(" %s", it->c_str());
         mprintf("\n");
+        // Create model compound
+        if (createModelCompound(ridx, topIn, frameIn)) {
+          mprinterr("Error: Creating model compound failed.\n");
+          return 1;
+        }
         // Loop over the sites for this residue
         for (TitrationData::Sarray::const_iterator it = siteNames.begin();
                                                    it != siteNames.end(); ++it)
@@ -249,7 +302,7 @@ const
           AtomSet state1Atoms;
           AtomSet state2Atoms;
           Coord siteOfInterest;
-          // Set up atoms for each state for the site of interest
+          // Set up atoms of this site for each protonation state
           for (TitratableSite::const_iterator jt = site.begin(); jt != site.end(); ++jt)
           {
             // Get the atom index in the topology
@@ -259,13 +312,13 @@ const
                         *(jt->first), topIn.TruncResNameNum(ridx).c_str());
               return 1;
             }
-            // Zero charge for this atom in ref_atp TODO should be original resnum?
+            // Set reference state charge for this atom in ref_atp TODO chainID for AtomID?
             MEAD::Atom& mod_at = ref_atp[AtomID(topIn.Res(ridx).OriginalResNum(), topIn[aidx].Name().Truncated())];
             if (site.RefStateIdx() == 0)
               mod_at.charge = jt->second.first;
             else
               mod_at.charge = jt->second.second;
-            // Is this the site of interest?
+            // Is this the site of interest? Record the coordinates if so.
             if (topIn[aidx].Name() == site.SiteOfInterest()) {
               //siteOfInterest = Vec3(frameIn.XYZ(aidx));
               const double* xyz = frameIn.XYZ(aidx);
@@ -281,7 +334,7 @@ const
             at.charge = jt->second.second;
             state2Atoms.insert( at );
             mprintf("DEBUG: Atom %s idx %i charge1= %f charge2= %f\n", *(jt->first), aidx+1, jt->second.first, jt->second.second);
-          }
+          } // END loop over site atoms
           // Refocus the grid
           fdm_->resolve( geom_center, siteOfInterest );
           // Set up charges for each state and point to the reference state
@@ -330,9 +383,9 @@ const
           mprintf("macself2= %g  macback2= %g\n", macself2, macback2);
           mprintf("macself1-macself2 = %g\n", macself1 - macself2);
           mprintf("macback1-deprotback = %g\n", macback1 - macback2);
-        }
-      }
-    }
+        } // END loop over sites for this residue
+      } // END if residue has sites
+    } // END loop over residues
   }
   catch (MEADexcept& e) {
     return ERR("MultiFlex()", e);
