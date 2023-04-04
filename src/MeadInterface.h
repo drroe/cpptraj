@@ -66,7 +66,7 @@ class MeadInterface {
 
     static inline void printAtomPotentials(Topology const&, Frame const&, OutPotat*, AtomChargeSet*);
 
-    static int createModelCompound(int, Topology const&, Frame const&);
+    static int createModelCompound(AtomChargeSet&, int, Topology const&, Frame const&, Radii_Mode);
 
     FinDiffMethod* fdm_;
     AtomSet* atomset_;

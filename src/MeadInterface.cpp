@@ -218,36 +218,78 @@ static inline int other_res_index(Topology const& topIn, Atom const& thisAtom)
   return idx;
 }
 
+/** Error for atom not found in residue. */
+static inline int err_atNotFound(const char* at, NameType const& aname, Topology const& topIn, int ridx) {
+  mprinterr("Error: %s atom '%s' not found in residue %s.\n", at, *aname, topIn.TruncResNameNum(ridx).c_str());
+  return 1;
+}
+
 /** Create model compound within protein.
   * The model compound contains all atoms of the residue containing the site
   * of interest, along with the peptide C=O of the previous residue and
   * the N-H and CA of the following residue (Bashford & Karplus, 1990).
   */
-int MeadInterface::createModelCompound(int ridx, Topology const& topIn, Frame const& frameIn)
+int MeadInterface::createModelCompound(AtomChargeSet& compound, int ridx, Topology const& topIn, Frame const& frameIn, Radii_Mode radiiMode)
 {
   Residue const& thisRes = topIn.Res(ridx);
   // TODO make these options
   static NameType Nname("N");
   static NameType Cname("C");
+  static NameType Oname("O");
+  static NameType Hname("H");
+  static NameType CAname("CA");
 
   // Get index of the previous residue
   int Nidx = topIn.FindAtomInResidue(ridx, Nname);
-  if (Nidx < 0) {
-    mprinterr("Error: N atom '%s' not found in residue %s.\n", *Nname, topIn.TruncResNameNum(ridx).c_str());
-    return 1;
-  }
+  if (Nidx < 0) return err_atNotFound("N", Nname, topIn, ridx);
   int prevRidx = other_res_index(topIn, topIn[Nidx]);
   mprintf("Previous residue index = %i\n", prevRidx + 1 );
 
   // Get index of next residue
   int Cidx = topIn.FindAtomInResidue(ridx, Cname);
-  if (Cidx < 0) {
-    mprinterr("Error: C atom '%s' not found in residue %s.\n", *Cname, topIn.TruncResNameNum(ridx).c_str());
-    return 1;
-  }
+  if (Cidx < 0) return err_atNotFound("C", Cname, topIn, ridx);
   int nextRidx = other_res_index(topIn, topIn[Cidx]);
   mprintf("Next residue index = %i\n", nextRidx + 1);
 
+  // Insert C and O from previous residue
+  if (prevRidx > -1) {
+    // Get the C and O atoms of the previous residue
+    int p_Cidx = topIn.FindAtomInResidue(prevRidx, Cname);
+    if (p_Cidx < 0) return err_atNotFound("C", Cname, topIn, prevRidx);
+    int p_Oidx = topIn.FindAtomInResidue(prevRidx, Oname);
+    if (p_Oidx < 0) return err_atNotFound("O", Oname, topIn, prevRidx);
+
+    MEAD::Atom at;
+    set_at_from_top(at, topIn, frameIn, p_Cidx, radiiMode);
+    compound.insert( at );
+    set_at_from_top(at, topIn, frameIn, p_Oidx, radiiMode);
+    compound.insert( at );
+  }
+
+  // Insert atoms from this residue
+  for (int aidx = thisRes.FirstAtom(); aidx != thisRes.LastAtom(); aidx++) {
+    MEAD::Atom at;
+    set_at_from_top(at, topIn, frameIn, aidx, radiiMode);
+    compound.insert( at );
+  }
+
+  // Insert N, H, and CA from next residue
+  if (nextRidx > -1) {
+    int n_Nidx = topIn.FindAtomInResidue(nextRidx, Nname);
+    if (n_Nidx < 0) return err_atNotFound("N", Nname, topIn, nextRidx);
+    int n_Hidx = topIn.FindAtomInResidue(nextRidx, Hname);
+    if (n_Hidx < 0) return err_atNotFound("H", Hname, topIn, nextRidx);
+    int n_CAidx = topIn.FindAtomInResidue(nextRidx, CAname);
+    if (n_CAidx < 0) return err_atNotFound("CA", CAname, topIn, nextRidx);
+
+    MEAD::Atom at;
+    set_at_from_top(at, topIn, frameIn, n_Nidx, radiiMode);
+    compound.insert( at );
+    set_at_from_top(at, topIn, frameIn, n_Hidx, radiiMode);
+    compound.insert( at );
+    set_at_from_top(at, topIn, frameIn, n_CAidx, radiiMode);
+    compound.insert( at );
+  }
   return 0;
 }
 
@@ -286,7 +328,8 @@ const
           mprintf(" %s", it->c_str());
         mprintf("\n");
         // Create model compound
-        if (createModelCompound(ridx, topIn, frameIn)) {
+        AtomChargeSet model_compound;
+        if (createModelCompound(model_compound, ridx, topIn, frameIn, radiiMode)) {
           mprinterr("Error: Creating model compound failed.\n");
           return 1;
         }
