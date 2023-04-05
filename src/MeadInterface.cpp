@@ -196,6 +196,31 @@ void MeadInterface::MeadVerbosity(int i) const {
   if (i != 0)
     mprintf("Info: MEAD verbosity set to %i\n", i);
 }
+// -----------------------------------------------------------------------------
+/** Class for holding calculation info for a titratable site. */
+class MeadInterface::TitrationCalc {
+  public:
+    /// CONSTRUCTOR
+    TitrationCalc(Cpptraj::Structure::TitratableSite const* sd, AtomSet const& state1Atoms, AtomSet const& state2Atoms,
+                  int ridxIn, const double* xyz) :
+      siteData_(sd), charge_state1_(state1Atoms), charge_state2_(state2Atoms), ridx_(ridxIn)
+    {
+      siteOfInterest_.x = xyz[0];
+      siteOfInterest_.y = xyz[1];
+      siteOfInterest_.z = xyz[2];
+      if (siteData_->RefStateIdx() == 0)
+        refstatep_ = &charge_state1_;
+      else
+        refstatep_ = &charge_state2_;
+    }
+  private:
+    Cpptraj::Structure::TitratableSite const* siteData_; ///< Pointer to associated TitratableSite data
+    AtomChargeSet charge_state1_;   ///< Hold charges in state 1
+    AtomChargeSet charge_state2_;   ///< Hold charges in state 2
+    AtomChargeSet* refstatep_;      ///< Pointer to the reference (closest to neutral) charge set
+    int ridx_;                      ///< Residue index in associated Topology
+    Coord siteOfInterest_;          ///< Coordinates of the site of interest, used to focus grid
+};
 
 /** For debugging - print atom potential and atom charge set. */
 void MeadInterface::printAtomPotentials(Topology const& topIn, Frame const& frameIn, OutPotat* outpotat, AtomChargeSet* acs) {
@@ -311,6 +336,72 @@ int MeadInterface::createModelCompounds(AtomChargeSet& model_compound, AtomCharg
   return 0;
 }
 
+/** Set up sites to be calculated. */
+int MeadInterface::setup_titration_calcs(std::vector<TitrationCalc>& Sites,
+                                         Topology const& topIn, Frame const& frameIn,
+                                         Cpptraj::Structure::TitrationData const& titrationData, Radii_Mode radiiMode)
+{
+  using namespace Cpptraj::Structure;
+  Sites.clear();
+  // Loop over titratable sites
+  for (int ridx = 0; ridx != topIn.Nres(); ridx++) {
+    TitrationData::Sarray siteNames = titrationData.ResSiteNames( topIn.Res(ridx).OriginalResNum() );
+    if (!siteNames.empty()) {
+      mprintf("DEBUG: Residue %s site names:", topIn.TruncResNameNum(ridx).c_str());
+      for (TitrationData::Sarray::const_iterator it = siteNames.begin();
+                                                 it != siteNames.end(); ++it)
+        mprintf(" %s", it->c_str());
+      mprintf("\n");
+      // Loop over the sites for this residue
+      for (TitrationData::Sarray::const_iterator it = siteNames.begin();
+                                                 it != siteNames.end(); ++it)
+      {
+        TitratableSite const& site = titrationData.GetSite( *it );
+        AtomSet state1Atoms;
+        AtomSet state2Atoms;
+        const double* siteOfInterest_xyz = 0;
+        // Set up atoms of this site for each protonation state
+        for (TitratableSite::const_iterator jt = site.begin(); jt != site.end(); ++jt)
+        {
+          // Get the atom index in the topology
+          int aidx = topIn.FindAtomInResidue(ridx, jt->first);
+          if (aidx < 0) {
+            mprinterr("Error: Atom '%s' not found in residue %s\n",
+                      *(jt->first), topIn.TruncResNameNum(ridx).c_str());
+            return 1;
+          }
+          // Is this the site of interest? Record the coordinates if so.
+          if (topIn[aidx].Name() == site.SiteOfInterest()) {
+            //siteOfInterest = Vec3(frameIn.XYZ(aidx));
+            siteOfInterest_xyz = frameIn.XYZ(aidx);
+            mprintf("SITE OF INTEREST: %f %f %f\n", siteOfInterest_xyz[0], siteOfInterest_xyz[1], siteOfInterest_xyz[2]);
+            //siteOfInterest.x = xyz[0];
+            //siteOfInterest.y = xyz[1];
+            //siteOfInterest.z = xyz[2];
+          }
+          MEAD::Atom at;
+          set_at_from_top(at, topIn, frameIn, aidx, radiiMode);
+          at.charge = jt->second.first;
+          state1Atoms.insert( at );
+          at.charge = jt->second.second;
+          state2Atoms.insert( at );
+          mprintf("DEBUG: Atom %s idx %i charge1= %f charge2= %f\n", *(jt->first), aidx+1, jt->second.first, jt->second.second);
+        } // END loop over site atoms
+        if (siteOfInterest_xyz == 0) {
+          mprinterr("Error: Atom of interest %s not found in residue %s\n",
+                    *(site.SiteOfInterest()), topIn.TruncResNameNum(ridx).c_str());
+          return 1;
+        }
+        Sites.push_back( TitrationCalc(&site, state1Atoms, state2Atoms, ridx, siteOfInterest_xyz) );
+      } // END loop over sites in res
+    } // END res has sites
+  } // END loop over residues
+  mprintf("Set up %zu sites for calculation.\n");
+  return 0;
+}
+
+
+
 /** Run multiflex calc. */
 int MeadInterface::MultiFlex(double epsIn, double epsSol,
                              double solRad, double sterln, double ionicStr,
@@ -332,6 +423,12 @@ const
     PhysCond::set_ionicstr(ionicStr);
 
     PhysCond::print();
+    // Set up sites to calc
+    std::vector<TitrationCalc> Sites;
+    if (setup_titration_calcs(Sites, topIn, frameIn, titrationData, radiiMode)) {
+      mprinterr("Error: Could not set up sites to titrate.\n");
+      return 1;
+    }
     // NOTE: In this context, *atomset_ is equivalent to atlist in multiflex.cc:FD2DielEMaker
     DielectricEnvironment_lett* eps = new TwoValueDielectricByAtoms( *atomset_, epsIn );
     ElectrolyteEnvironment_lett* ely = new ElectrolyteByAtoms( *atomset_ );

@@ -58,6 +58,8 @@ class MeadInterface {
     /// Run multiflex calc
     int MultiFlex(double, double, double, double, double, Topology const&, Frame const&, Structure::TitrationData const&, Radii_Mode) const;
   private:
+    class TitrationCalc;
+
     static const char* GridCenter_ModeStr_[];
 
     static int ERR(const char*, MEADexcept&);
@@ -67,6 +69,9 @@ class MeadInterface {
     static inline void printAtomPotentials(Topology const&, Frame const&, OutPotat*, AtomChargeSet*);
 
     static int createModelCompounds(AtomChargeSet&, AtomChargeSet&, int, Topology const&, Frame const&, Radii_Mode);
+
+    static int setup_titration_calcs(std::vector<TitrationCalc>&, Topology const&, Frame const&,
+                                     Structure::TitrationData const&, Radii_Mode);
 
     FinDiffMethod* fdm_;
     FinDiffMethod* mgm_; ///< Hold grid for model (MULTIFLEX only) TODO wrap in class?
