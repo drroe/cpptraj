@@ -70,7 +70,8 @@ class MeadInterface {
 
     static int createModelCompounds(AtomChargeSet&, AtomChargeSet&, int, Topology const&, Frame const&, Radii_Mode);
 
-    static int setup_titration_calcs(std::vector<TitrationCalc>&, Topology const&, Frame const&,
+    static int setup_titration_calcs(std::vector<TitrationCalc>&, AtomChargeSet&,
+                                     Topology const&, Frame const&,
                                      Structure::TitrationData const&, Radii_Mode);
 
     FinDiffMethod* fdm_;

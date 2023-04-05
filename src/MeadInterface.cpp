@@ -213,6 +213,13 @@ class MeadInterface::TitrationCalc {
       else
         refstatep_ = &charge_state2_;
     }
+
+    AtomChargeSet const& ChargeState1() const { return charge_state1_; }
+    AtomChargeSet const& ChargeState2() const { return charge_state2_; }
+    AtomChargeSet const* RefStatePtr()  const { return refstatep_; }
+    Coord const& SiteOfInterest()       const { return siteOfInterest_; }
+    int Ridx()                          const { return ridx_; }
+    Cpptraj::Structure::TitratableSite const& SiteData() const { return *siteData_; }
   private:
     Cpptraj::Structure::TitratableSite const* siteData_; ///< Pointer to associated TitratableSite data
     AtomChargeSet charge_state1_;   ///< Hold charges in state 1
@@ -338,6 +345,7 @@ int MeadInterface::createModelCompounds(AtomChargeSet& model_compound, AtomCharg
 
 /** Set up sites to be calculated. */
 int MeadInterface::setup_titration_calcs(std::vector<TitrationCalc>& Sites,
+                                         AtomChargeSet& ref_atp,
                                          Topology const& topIn, Frame const& frameIn,
                                          Cpptraj::Structure::TitrationData const& titrationData, Radii_Mode radiiMode)
 {
@@ -370,6 +378,14 @@ int MeadInterface::setup_titration_calcs(std::vector<TitrationCalc>& Sites,
                       *(jt->first), topIn.TruncResNameNum(ridx).c_str());
             return 1;
           }
+
+          // Set reference state charge for this atom in ref_atp TODO chainID for AtomID?
+          MEAD::Atom& mod_at = ref_atp[AtomID(topIn.Res(ridx).OriginalResNum(), topIn[aidx].Name().Truncated())];
+          if (site.RefStateIdx() == 0)
+            mod_at.charge = jt->second.first;
+          else
+            mod_at.charge = jt->second.second;
+
           // Is this the site of interest? Record the coordinates if so.
           if (topIn[aidx].Name() == site.SiteOfInterest()) {
             //siteOfInterest = Vec3(frameIn.XYZ(aidx));
@@ -423,18 +439,117 @@ const
     PhysCond::set_ionicstr(ionicStr);
 
     PhysCond::print();
+    // Create reference atom set with charges set to reference state charges
+    // for atoms in sites of interest.
+    AtomChargeSet ref_atp( *atomset_ );
     // Set up sites to calc
     std::vector<TitrationCalc> Sites;
-    if (setup_titration_calcs(Sites, topIn, frameIn, titrationData, radiiMode)) {
+    if (setup_titration_calcs(Sites, ref_atp, topIn, frameIn, titrationData, radiiMode)) {
       mprinterr("Error: Could not set up sites to titrate.\n");
       return 1;
     }
     // NOTE: In this context, *atomset_ is equivalent to atlist in multiflex.cc:FD2DielEMaker
     DielectricEnvironment_lett* eps = new TwoValueDielectricByAtoms( *atomset_, epsIn );
     ElectrolyteEnvironment_lett* ely = new ElectrolyteByAtoms( *atomset_ );
-    // Create reference atom set with charges set to reference state charges
-    // for atoms in sites of interest.
-    AtomChargeSet ref_atp( *atomset_ );
+
+    // Loop over titration sites
+    for (std::vector<TitrationCalc>::const_iterator tSite = Sites.begin();
+                                                    tSite != Sites.end(); ++tSite)
+    {
+      // Create model compound TODO reuse
+      AtomChargeSet model_compound, model_back_chrg;
+      if (createModelCompounds(model_compound, model_back_chrg, tSite->Ridx(), topIn, frameIn, radiiMode)) {
+        mprinterr("Error: Creating model compound failed.\n");
+        return 1;
+      }
+      // ----- Refocus the grid --------------
+      fdm_->resolve( geom_center, tSite->SiteOfInterest() );
+      // Set up charges for each state and point to the reference state
+      AtomChargeSet const& charge_state1 = tSite->ChargeState1();
+      AtomChargeSet const& charge_state2 = tSite->ChargeState2();
+      AtomChargeSet const* refstatep = tSite->RefStatePtr();
+      // mackbackX is the interaction with background charges (ref_atp)
+      // EXCEPT those of site X (refstatep)
+      // State1
+      double macself1 = 0;
+      double macback1 = 0;
+      if (charge_state1.has_charges()) {
+        // TODO check for different atoms/coords
+        ChargeDist rho1(new AtomChargeSet(charge_state1));
+        ElstatPot phi1(*fdm_, eps, rho1, ely);
+        phi1.solve();
+        OutPotat* state1_pot = new OutPotat(*atomset_, phi1);
+        // DEBUG Print potential at atoms
+        //printAtomPotentials( topIn, frameIn, state1_pot, &ref_atp );
+        macself1 = (*state1_pot) * charge_state1;
+        mprintf("DEBUG: MACSELF1 = %f\n", macself1);
+        macback1 = (*state1_pot) * (ref_atp) - (*state1_pot) * (*refstatep);
+        mprintf("DEBUG: MACBACK1 = %f - %f\n", (*state1_pot) * (ref_atp), (*state1_pot) * (*refstatep));
+        delete state1_pot;
+      }
+      //mprintf("macself1= %g  macback1= %g\n", macself1, macback1);
+      // State2
+      double macself2 = 0;
+      double macback2 = 0;
+      if (charge_state2.has_charges()) {
+        // TODO check for different atoms/coords
+        ChargeDist rho2(new AtomChargeSet(charge_state2));
+        ElstatPot phi2(*fdm_, eps, rho2, ely);
+        phi2.solve();
+        OutPotat* state2_pot = new OutPotat(*atomset_, phi2);
+        macself2 = (*state2_pot) * charge_state2;
+        mprintf("DEBUG: MACSELF2 = %f\n", macself2);
+        macback2 = (*state2_pot) * (ref_atp) - (*state2_pot) * (*refstatep);
+        mprintf("DEBUG: MACBACK2 = %f - %f\n", (*state2_pot) * (ref_atp), (*state2_pot) * (*refstatep));
+        delete state2_pot;
+      }
+      //mprintf("macself2= %g  macback2= %g\n", macself2, macback2);
+      // ----- Refocus the model grid --------
+      mgm_->resolve( geom_center, tSite->SiteOfInterest() );
+      // Model dielectric environment
+      DielectricEnvironment_lett* model_eps = new TwoValueDielectricByAtoms( model_compound, epsIn );
+      ElectrolyteEnvironment_lett* model_ely = new ElectrolyteByAtoms( model_compound );
+      // Model state 1
+      double modself1 = 0;
+      double modback1 = 0;
+      if (charge_state1.has_charges()) {
+        ChargeDist rho1(new AtomChargeSet(charge_state1));
+        ElstatPot phi1(*mgm_, model_eps, rho1, model_ely);
+        phi1.solve();
+        OutPotat* mod1_pot = new OutPotat(model_compound, phi1);
+        modself1 = (*mod1_pot) * charge_state1;
+        mprintf("DEBUG: MODSELF1 = %f\n", modself1);
+        modback1 = (*mod1_pot) * model_back_chrg;
+        mprintf("DEBUG: MODBACK1 = %f\n", modback1);
+        delete mod1_pot;
+      }
+      // Model state 2
+      double modself2 = 0;
+      double modback2 = 0;
+      if (charge_state2.has_charges()) {
+        ChargeDist rho2(new AtomChargeSet(charge_state2));
+        ElstatPot phi2(*mgm_, model_eps, rho2, model_ely);
+        phi2.solve();
+        OutPotat* mod2_pot = new OutPotat(model_compound, phi2);
+        modself2 = (*mod2_pot) * charge_state2;
+        mprintf("DEBUG: MODSELF2 = %f\n", modself2);
+        modback2 = (*mod2_pot) * model_back_chrg;
+        mprintf("DEBUG: MODBACK2 = %f\n", modback2);
+      }
+      // TODO use Constants instead of PhysCond
+      double delta_pK_self = -(macself1-macself2-modself1+modself2)/2.0 / PhysCond::get_ln10kT();
+      double delta_pK_back = -(macback1-macback2-modback1+modback2)     / PhysCond::get_ln10kT();
+      mprintf("macself1-macself2 = %g\n", macself1 - macself2);
+      mprintf("macback1-deprotback = %g\n", macback1 - macback2);
+      mprintf("modself1-modself2 = %g\n", modself1 - modself2);
+      mprintf("modback1-modback2 = %g\n", modback1 - modback2);
+      mprintf("delta self = %g or %g pK units\n", delta_pK_self * PhysCond::get_ln10kT(), delta_pK_self);
+      mprintf("delta back = %g or %g pK units\n", delta_pK_back * PhysCond::get_ln10kT(), delta_pK_back);
+      double pKint = tSite->SiteData().pKa() + (delta_pK_self + delta_pK_back);
+      mprintf("DEBUG: pKint = %f\n", pKint);
+    } // END loop over sites
+
+/*
     // Loop over residues 
     for (int ridx = 0; ridx != topIn.Nres(); ridx++) {
       TitrationData::Sarray siteNames = titrationData.ResSiteNames( topIn.Res(ridx).OriginalResNum() );
@@ -462,21 +577,21 @@ const
               mod_at.charge = jt->second.second;
             // TODO record site of interest coords here?
             // Is this the site of interest? Record the coordinates if so.
-            /*if (topIn[aidx].Name() == site.SiteOfInterest()) {
-              //siteOfInterest = Vec3(frameIn.XYZ(aidx));
-              const double* xyz = frameIn.XYZ(aidx);
-              mprintf("SITE OF INTEREST: %f %f %f\n", xyz[0], xyz[1], xyz[2]);
-              siteOfInterest.x = xyz[0];
-              siteOfInterest.y = xyz[1];
-              siteOfInterest.z = xyz[2];
-            }
-            MEAD::Atom at;
-            set_at_from_top(at, topIn, frameIn, aidx, radiiMode);
-            at.charge = jt->second.first;
-            state1Atoms.insert( at );
-            at.charge = jt->second.second;
-            state2Atoms.insert( at );
-            mprintf("DEBUG: Atom %s idx %i charge1= %f charge2= %f\n", *(jt->first), aidx+1, jt->second.first, jt->second.second);*/
+            //if (topIn[aidx].Name() == site.SiteOfInterest()) {
+            //  //siteOfInterest = Vec3(frameIn.XYZ(aidx));
+            //  const double* xyz = frameIn.XYZ(aidx);
+            //  mprintf("SITE OF INTEREST: %f %f %f\n", xyz[0], xyz[1], xyz[2]);
+            //  siteOfInterest.x = xyz[0];
+            //  siteOfInterest.y = xyz[1];
+            //  siteOfInterest.z = xyz[2];
+            //}
+            //MEAD::Atom at;
+            //set_at_from_top(at, topIn, frameIn, aidx, radiiMode);
+            //at.charge = jt->second.first;
+            //state1Atoms.insert( at );
+            //at.charge = jt->second.second;
+            //state2Atoms.insert( at );
+            //mprintf("DEBUG: Atom %s idx %i charge1= %f charge2= %f\n", *(jt->first), aidx+1, jt->second.first, jt->second.second);
           } // END loop over site atoms
         } // END loop over sites
       } // END sitenames not empty
@@ -520,11 +635,11 @@ const
               return 1;
             }
             // Set reference state charge for this atom in ref_atp TODO chainID for AtomID?
-            /*MEAD::Atom& mod_at = ref_atp[AtomID(topIn.Res(ridx).OriginalResNum(), topIn[aidx].Name().Truncated())];
-            if (site.RefStateIdx() == 0)
-              mod_at.charge = jt->second.first;
-            else
-              mod_at.charge = jt->second.second;*/
+            //MEAD::Atom& mod_at = ref_atp[AtomID(topIn.Res(ridx).OriginalResNum(), topIn[aidx].Name().Truncated())];
+            //if (site.RefStateIdx() == 0)
+            //  mod_at.charge = jt->second.first;
+            //else
+            //  mod_at.charge = jt->second.second;
             // Is this the site of interest? Record the coordinates if so.
             if (topIn[aidx].Name() == site.SiteOfInterest()) {
               //siteOfInterest = Vec3(frameIn.XYZ(aidx));
@@ -634,11 +749,12 @@ const
         } // END loop over sites for this residue
       } // END if residue has sites
     } // END loop over residues
+*/
   }
   catch (MEADexcept& e) {
     return ERR("MultiFlex()", e);
   }
-  return 0;\
+  return 0;
 }
 
 /** Run potential calc.
