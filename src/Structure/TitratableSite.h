@@ -25,6 +25,7 @@ class TitratableSite {
 
     NameType const& SiteOfInterest() const { return siteOfInterest_; }
     int RefStateIdx() const { return refStateIdx_; }
+    double pKa() const { return pKa_; }
   private:
     typedef std::pair<NameType, ChargePair> PairType;
 

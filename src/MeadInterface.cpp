@@ -425,7 +425,7 @@ const
             mprintf("DEBUG: MACBACK1 = %f - %f\n", (*state1_pot) * (ref_atp), (*state1_pot) * (*refstatep));
             delete state1_pot;
           }
-          mprintf("macself1= %g  macback1= %g\n", macself1, macback1);
+          //mprintf("macself1= %g  macback1= %g\n", macself1, macback1);
           // State2
           double macself2 = 0;
           double macback2 = 0;
@@ -441,6 +441,7 @@ const
             mprintf("DEBUG: MACBACK2 = %f - %f\n", (*state2_pot) * (ref_atp), (*state2_pot) * (*refstatep));
             delete state2_pot;
           }
+          //mprintf("macself2= %g  macback2= %g\n", macself2, macback2);
           // ----- Refocus the model grid --------
           mgm_->resolve( geom_center, siteOfInterest );
           // Model dielectric environment
@@ -473,9 +474,17 @@ const
             modback2 = (*mod2_pot) * model_back_chrg;
             mprintf("DEBUG: MODBACK2 = %f\n", modback2);
           }
-          mprintf("macself2= %g  macback2= %g\n", macself2, macback2);
+          // TODO use Constants instead of PhysCond
+          double delta_pK_self = -(macself1-macself2-modself1+modself2)/2.0 / PhysCond::get_ln10kT();
+          double delta_pK_back = -(macback1-macback2-modback1+modback2)     / PhysCond::get_ln10kT();
           mprintf("macself1-macself2 = %g\n", macself1 - macself2);
           mprintf("macback1-deprotback = %g\n", macback1 - macback2);
+          mprintf("modself1-modself2 = %g\n", modself1 - modself2);
+          mprintf("modback1-modback2 = %g\n", modback1 - modback2);
+          mprintf("delta self = %g or %g pK units\n", delta_pK_self * PhysCond::get_ln10kT(), delta_pK_self);
+          mprintf("delta back = %g or %g pK units\n", delta_pK_back * PhysCond::get_ln10kT(), delta_pK_back);
+          double pKint = site.pKa() + (delta_pK_self + delta_pK_back);
+          mprintf("DEBUG: pKint = %f\n", pKint);
         } // END loop over sites for this residue
       } // END if residue has sites
     } // END loop over residues
