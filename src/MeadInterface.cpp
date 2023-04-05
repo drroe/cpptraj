@@ -335,6 +335,55 @@ const
     // NOTE: In this context, *atomset_ is equivalent to atlist in multiflex.cc:FD2DielEMaker
     DielectricEnvironment_lett* eps = new TwoValueDielectricByAtoms( *atomset_, epsIn );
     ElectrolyteEnvironment_lett* ely = new ElectrolyteByAtoms( *atomset_ );
+    // Create reference atom set with charges set to reference state charges
+    // for atoms in sites of interest.
+    AtomChargeSet ref_atp( *atomset_ );
+    // Loop over residues 
+    for (int ridx = 0; ridx != topIn.Nres(); ridx++) {
+      TitrationData::Sarray siteNames = titrationData.ResSiteNames( topIn.Res(ridx).OriginalResNum() );
+      if (!siteNames.empty()) {
+        // Loop over the sites for this residue
+        for (TitrationData::Sarray::const_iterator it = siteNames.begin();
+                                                   it != siteNames.end(); ++it)
+        {
+          TitratableSite const& site = titrationData.GetSite( *it );
+          // Set up atoms of this site for each protonation state
+          for (TitratableSite::const_iterator jt = site.begin(); jt != site.end(); ++jt)
+          {
+            // Get the atom index in the topology
+            int aidx = topIn.FindAtomInResidue(ridx, jt->first);
+            if (aidx < 0) {
+              mprinterr("Error: Atom '%s' not found in residue %s\n",
+                        *(jt->first), topIn.TruncResNameNum(ridx).c_str());
+              return 1;
+            }
+            // Set reference state charge for this atom in ref_atp TODO chainID for AtomID?
+            MEAD::Atom& mod_at = ref_atp[AtomID(topIn.Res(ridx).OriginalResNum(), topIn[aidx].Name().Truncated())];
+            if (site.RefStateIdx() == 0)
+              mod_at.charge = jt->second.first;
+            else
+              mod_at.charge = jt->second.second;
+            // TODO record site of interest coords here?
+            // Is this the site of interest? Record the coordinates if so.
+            /*if (topIn[aidx].Name() == site.SiteOfInterest()) {
+              //siteOfInterest = Vec3(frameIn.XYZ(aidx));
+              const double* xyz = frameIn.XYZ(aidx);
+              mprintf("SITE OF INTEREST: %f %f %f\n", xyz[0], xyz[1], xyz[2]);
+              siteOfInterest.x = xyz[0];
+              siteOfInterest.y = xyz[1];
+              siteOfInterest.z = xyz[2];
+            }
+            MEAD::Atom at;
+            set_at_from_top(at, topIn, frameIn, aidx, radiiMode);
+            at.charge = jt->second.first;
+            state1Atoms.insert( at );
+            at.charge = jt->second.second;
+            state2Atoms.insert( at );
+            mprintf("DEBUG: Atom %s idx %i charge1= %f charge2= %f\n", *(jt->first), aidx+1, jt->second.first, jt->second.second);*/
+          } // END loop over site atoms
+        } // END loop over sites
+      } // END sitenames not empty
+    } // END loop over residues
 
     // Loop over titratable sites
     for (int ridx = 0; ridx != topIn.Nres(); ridx++) {
@@ -357,7 +406,7 @@ const
         {
           // ref_atp will have all atoms in the atom set with charges set to reference
           // state charges for atoms in the site of interest.
-          AtomChargeSet ref_atp( *atomset_ );
+          //AtomChargeSet ref_atp( *atomset_ );
           // Set up sites
           TitratableSite const& site = titrationData.GetSite( *it );
           AtomSet state1Atoms;
@@ -374,11 +423,11 @@ const
               return 1;
             }
             // Set reference state charge for this atom in ref_atp TODO chainID for AtomID?
-            MEAD::Atom& mod_at = ref_atp[AtomID(topIn.Res(ridx).OriginalResNum(), topIn[aidx].Name().Truncated())];
+            /*MEAD::Atom& mod_at = ref_atp[AtomID(topIn.Res(ridx).OriginalResNum(), topIn[aidx].Name().Truncated())];
             if (site.RefStateIdx() == 0)
               mod_at.charge = jt->second.first;
             else
-              mod_at.charge = jt->second.second;
+              mod_at.charge = jt->second.second;*/
             // Is this the site of interest? Record the coordinates if so.
             if (topIn[aidx].Name() == site.SiteOfInterest()) {
               //siteOfInterest = Vec3(frameIn.XYZ(aidx));
