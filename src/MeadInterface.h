@@ -66,7 +66,7 @@ class MeadInterface {
 
     static inline void printAtomPotentials(Topology const&, Frame const&, OutPotat*, AtomChargeSet*);
 
-    static int createModelCompound(AtomChargeSet&, int, Topology const&, Frame const&, Radii_Mode);
+    static int createModelCompounds(AtomChargeSet&, AtomChargeSet&, int, Topology const&, Frame const&, Radii_Mode);
 
     FinDiffMethod* fdm_;
     FinDiffMethod* mgm_; ///< Hold grid for model (MULTIFLEX only) TODO wrap in class?

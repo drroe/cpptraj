@@ -233,12 +233,14 @@ static inline int err_atNotFound(const char* at, NameType const& aname, Topology
   return 1;
 }
 
-/** Create model compound within protein.
+/** Create model compounds within protein.
   * The model compound contains all atoms of the residue containing the site
   * of interest, along with the peptide C=O of the previous residue and
   * the N-H and CA of the following residue (Bashford & Karplus, 1990).
+  * The background term uses the neutral state charges, with charges being
+  * zero for the titrating residue.
   */
-int MeadInterface::createModelCompound(AtomChargeSet& compound, int ridx, Topology const& topIn, Frame const& frameIn, Radii_Mode radiiMode)
+int MeadInterface::createModelCompounds(AtomChargeSet& model_compound, AtomChargeSet& model_back, int ridx, Topology const& topIn, Frame const& frameIn, Radii_Mode radiiMode)
 {
   Residue const& thisRes = topIn.Res(ridx);
   // TODO make these options
@@ -270,16 +272,20 @@ int MeadInterface::createModelCompound(AtomChargeSet& compound, int ridx, Topolo
 
     MEAD::Atom at;
     set_at_from_top(at, topIn, frameIn, p_Cidx, radiiMode);
-    compound.insert( at );
+    model_compound.insert( at );
+    model_back.insert( at ); // FIXME needs to be neutral charges?
     set_at_from_top(at, topIn, frameIn, p_Oidx, radiiMode);
-    compound.insert( at );
+    model_compound.insert( at );
+    model_back.insert( at ); // FIXME needs to be neutral charges?
   }
 
   // Insert atoms from this residue
   for (int aidx = thisRes.FirstAtom(); aidx != thisRes.LastAtom(); aidx++) {
     MEAD::Atom at;
     set_at_from_top(at, topIn, frameIn, aidx, radiiMode);
-    compound.insert( at );
+    model_compound.insert( at );
+    at.charge = 0;
+    model_back.insert( at );
   }
 
   // Insert N, H, and CA from next residue
@@ -293,11 +299,14 @@ int MeadInterface::createModelCompound(AtomChargeSet& compound, int ridx, Topolo
 
     MEAD::Atom at;
     set_at_from_top(at, topIn, frameIn, n_Nidx, radiiMode);
-    compound.insert( at );
+    model_compound.insert( at );
+    model_back.insert( at ); // FIXME needs to be neutral charges?
     set_at_from_top(at, topIn, frameIn, n_Hidx, radiiMode);
-    compound.insert( at );
+    model_compound.insert( at );
+    model_back.insert( at ); // FIXME needs to be neutral charges?
     set_at_from_top(at, topIn, frameIn, n_CAidx, radiiMode);
-    compound.insert( at );
+    model_compound.insert( at );
+    model_back.insert( at ); // FIXME needs to be neutral charges?
   }
   return 0;
 }
@@ -337,8 +346,8 @@ const
           mprintf(" %s", it->c_str());
         mprintf("\n");
         // Create model compound
-        AtomChargeSet model_compound;
-        if (createModelCompound(model_compound, ridx, topIn, frameIn, radiiMode)) {
+        AtomChargeSet model_compound, model_back_chrg;
+        if (createModelCompounds(model_compound, model_back_chrg, ridx, topIn, frameIn, radiiMode)) {
           mprinterr("Error: Creating model compound failed.\n");
           return 1;
         }
@@ -387,7 +396,7 @@ const
             state2Atoms.insert( at );
             mprintf("DEBUG: Atom %s idx %i charge1= %f charge2= %f\n", *(jt->first), aidx+1, jt->second.first, jt->second.second);
           } // END loop over site atoms
-          // Refocus the grid
+          // ----- Refocus the grid --------------
           fdm_->resolve( geom_center, siteOfInterest );
           // Set up charges for each state and point to the reference state
           AtomChargeSet charge_state1(state1Atoms);
@@ -398,7 +407,7 @@ const
           else
             refstatep = &charge_state2;
           // mackbackX is the interaction with background charges (ref_atp)
-          // EXCEPT those of site X
+          // EXCEPT those of site X (refstatep)
           // State1
           double macself1 = 0;
           double macback1 = 0;
@@ -432,7 +441,7 @@ const
             mprintf("DEBUG: MACBACK2 = %f - %f\n", (*state2_pot) * (ref_atp), (*state2_pot) * (*refstatep));
             delete state2_pot;
           }
-          // Refocus the model grid
+          // ----- Refocus the model grid --------
           mgm_->resolve( geom_center, siteOfInterest );
           // Model dielectric environment
           DielectricEnvironment_lett* model_eps = new TwoValueDielectricByAtoms( model_compound, epsIn );
@@ -447,7 +456,8 @@ const
             OutPotat* mod1_pot = new OutPotat(model_compound, phi1);
             modself1 = (*mod1_pot) * charge_state1;
             mprintf("DEBUG: MODSELF1 = %f\n", modself1);
-
+            modback1 = (*mod1_pot) * model_back_chrg;
+            mprintf("DEBUG: MODBACK1 = %f\n", modback1);
             delete mod1_pot;
           }
           mprintf("macself2= %g  macback2= %g\n", macself2, macback2);
