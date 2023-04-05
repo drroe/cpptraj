@@ -460,6 +460,19 @@ const
             mprintf("DEBUG: MODBACK1 = %f\n", modback1);
             delete mod1_pot;
           }
+          // Model state 2
+          double modself2 = 0;
+          double modback2 = 0;
+          if (charge_state2.has_charges()) {
+            ChargeDist rho2(new AtomChargeSet(charge_state2));
+            ElstatPot phi2(*mgm_, model_eps, rho2, model_ely);
+            phi2.solve();
+            OutPotat* mod2_pot = new OutPotat(model_compound, phi2);
+            modself2 = (*mod2_pot) * charge_state2;
+            mprintf("DEBUG: MODSELF2 = %f\n", modself2);
+            modback2 = (*mod2_pot) * model_back_chrg;
+            mprintf("DEBUG: MODBACK2 = %f\n", modback2);
+          }
           mprintf("macself2= %g  macback2= %g\n", macself2, macback2);
           mprintf("macself1-macself2 = %g\n", macself1 - macself2);
           mprintf("macback1-deprotback = %g\n", macback1 - macback2);
