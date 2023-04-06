@@ -27,6 +27,7 @@ int MultiFlexResults::Allocate(DataSetList& dsl, std::string const& dsname) {
   }
   ssi_matrix_ = dsl.AddSet( DataSet::MATRIX_DBL, MetaData(dsname, "ssi") );
   if (ssi_matrix_ == 0) return ds_alloc_err("site-site interaction matrix");
+  ssi_matrix_->SetupFormat().SetFormatType( TextFormat::SCIENTIFIC );
   pkInt_ = dsl.AddSet( DataSet::DOUBLE, MetaData(dsname, "pkint") );
   if (pkInt_ == 0) return ds_alloc_err("intrinsic pKa array");
   delta_pK_self_ = dsl.AddSet( DataSet::DOUBLE, MetaData(dsname, "dpkself") );
@@ -39,7 +40,7 @@ int MultiFlexResults::Allocate(DataSetList& dsl, std::string const& dsname) {
   return 0;
 }
 
-void MultiFlexResults::Add1DsetsToFile(DataFile* outfile)
+void MultiFlexResults::AddSetsToFile(DataFile* outfile, DataFile* ssiout)
 const
 {
   if (outfile != 0) {
@@ -47,6 +48,9 @@ const
     outfile->AddDataSet( delta_pK_self_ );
     outfile->AddDataSet( delta_pK_back_ );
     outfile->AddDataSet( siteNames_ );
+  }
+  if (ssiout != 0) {
+    ssiout->AddDataSet(ssi_matrix_);
   }
 }
 

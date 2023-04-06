@@ -274,7 +274,8 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
       outSetName = State.DSL().GenerateDefaultName("MULTIFLEX");
     MultiFlexResults results;
     if (results.Allocate(State.DSL(), outSetName)) return CpptrajState::ERR;
-    results.Add1DsetsToFile( outfile );
+    DataFile* ssiout = State.DFL().AddDataFile( argIn.GetStringKey("ssiout"), argIn );
+    results.AddSetsToFile( outfile, ssiout );
     err = MultiFlex( MEAD, argIn, CRD->Top(), frameIn, (int)radiiMode, results );
   } else {
     mprinterr("Error: No MEAD calculation keywords given.\n");
