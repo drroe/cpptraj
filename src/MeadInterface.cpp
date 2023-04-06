@@ -288,7 +288,8 @@ static inline float acs_charge(AtomChargeSet const& ref_atp, Topology const& top
   * of interest, along with the peptide C=O of the previous residue and
   * the N-H and CA of the following residue (Bashford & Karplus, 1990).
   * The background term uses the neutral state charges in ref_atp, with
-  * charges being zero for atoms in the titrating residue.
+  * charges being for atoms in the titrating residue being zeroed after
+  * this routine.
   */
 int MeadInterface::createModelCompounds(AtomChargeSet& model_compound, AtomChargeSet& model_back, AtomChargeSet const& ref_atp, int ridx, Topology const& topIn, Frame const& frameIn, Radii_Mode radiiMode)
 {
@@ -341,7 +342,7 @@ int MeadInterface::createModelCompounds(AtomChargeSet& model_compound, AtomCharg
     MEAD::Atom at;
     set_at_from_top(at, topIn, frameIn, aidx, radiiMode);
     model_compound.insert( at );
-    at.charge = 0;
+    at.charge = acs_charge(ref_atp, topIn, aidx, ridx);
     model_back.insert( at );
   }
 
@@ -565,6 +566,11 @@ const
       // Model dielectric environment
       DielectricEnvironment_lett* model_eps = new TwoValueDielectricByAtoms( model_compound, epsIn );
       ElectrolyteEnvironment_lett* model_ely = new ElectrolyteByAtoms( model_compound );
+      // Any atoms that are "titrating" in *this* site should be zero in
+      // the background set.  This requires adjustment...
+      for (AtomSet::iterator b = model_back_chrg.begin(); b!=model_back_chrg.end() ; ++b) {
+        if (refstatep->contains(b->first)) (b->second).charge = 0;
+      }
       // Model state 1
       double modself1 = 0;
       double modback1 = 0;
