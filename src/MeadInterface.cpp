@@ -208,23 +208,24 @@ class MeadInterface::TitrationCalc {
       siteOfInterest_.x = xyz[0];
       siteOfInterest_.y = xyz[1];
       siteOfInterest_.z = xyz[2];
-      if (siteData_->RefStateIdx() == 0)
-        refstatep_ = &charge_state1_;
-      else
-        refstatep_ = &charge_state2_;
+
     }
 
     AtomChargeSet const& ChargeState1() const { return charge_state1_; }
     AtomChargeSet const& ChargeState2() const { return charge_state2_; }
-    AtomChargeSet const* RefStatePtr()  const { return refstatep_; }
     Coord const& SiteOfInterest()       const { return siteOfInterest_; }
     int Ridx()                          const { return ridx_; }
     Cpptraj::Structure::TitratableSite const& SiteData() const { return *siteData_; }
+    AtomChargeSet const* RefStatePtr()  const { 
+      if (siteData_->RefStateIdx() == 0)
+        return &charge_state1_;
+      else
+        return &charge_state2_;
+    }
   private:
     Cpptraj::Structure::TitratableSite const* siteData_; ///< Pointer to associated TitratableSite data
     AtomChargeSet charge_state1_;   ///< Hold charges in state 1
     AtomChargeSet charge_state2_;   ///< Hold charges in state 2
-    AtomChargeSet* refstatep_;      ///< Pointer to the reference (closest to neutral) charge set
     int ridx_;                      ///< Residue index in associated Topology
     Coord siteOfInterest_;          ///< Coordinates of the site of interest, used to focus grid
 };
