@@ -468,6 +468,8 @@ const
       mprinterr("Error: Could not set up sites to titrate.\n");
       return 1;
     }
+    // Allocate results
+    results.AllocateSets( Sites.size() );
     // Set up site-site interaction matrix.
     SiteSiteInteractionMatrix.resize( Sites.size() );
     Dmatrix::iterator ssi_row_it = SiteSiteInteractionMatrix.begin();
@@ -617,6 +619,9 @@ const
   catch (MEADexcept& e) {
     return ERR("MultiFlex()", e);
   }
+
+  // Add upper-triangle matrix to results
+  results.AddSiteSiteMatrix( SiteSiteInteractionMatrix );
 
   // Write pKint
   if (!Sites.empty()) {

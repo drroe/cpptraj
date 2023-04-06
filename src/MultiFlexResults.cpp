@@ -2,6 +2,7 @@
 #include "DataSetList.h"
 #include "StringRoutines.h"
 #include "CpptrajStdio.h"
+#include "DataSet_2D.h"
 
 using namespace Cpptraj;
 // MultiFlexResults class
@@ -37,6 +38,20 @@ int MultiFlexResults::Allocate(DataSetList& dsl, std::string const& dsname) {
   return 0;
 }
 
+void MultiFlexResults::AllocateSets(unsigned int sizeIn)
+const
+{
+  DataSet::SizeArray dsize(1, sizeIn);
+  pkInt_->Allocate( dsize );
+  delta_pK_self_->Allocate( dsize );
+  delta_pK_back_->Allocate( dsize );
+  siteNames_->Allocate( dsize );
+
+  // Allocate matrix
+  DataSet_2D& mat = static_cast<DataSet_2D&>( *ssi_matrix_ );
+  mat.AllocateTriangle( sizeIn );
+}
+
 void MultiFlexResults::AddSiteResult(int idx,
                                      std::string const& sitenameIn,
                                      int originalResNumIn,
@@ -52,3 +67,14 @@ const
   delta_pK_back_->Add(idx, &delta_pK_back_in);
 } 
 
+void MultiFlexResults::AddSiteSiteMatrix(std::vector< std::vector<double> > const& ssi)
+const
+{
+  DataSet_2D& mat = static_cast<DataSet_2D&>( *ssi_matrix_ );
+
+  for (unsigned int i = 0; i < ssi.size(); i++) {
+    for (unsigned int j = i + 1; j < ssi.size(); j++) {
+      mat.SetElement(i, j, ssi[i][j]);
+    }
+  }
+}
