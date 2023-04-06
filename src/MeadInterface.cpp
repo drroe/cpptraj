@@ -647,6 +647,10 @@ const
       results.SummFile()->Printf(" %12s %13g %13g %13g %13g\n", SN[idx].c_str(), site->SiteData().pKa(),
                                  DS.Dval(idx), DB.Dval(idx), PK.Dval(idx));
     }
+    // Write site-site interaction file
+    for (unsigned int ii = 0; ii < Sites.size(); ii++)
+      for (unsigned int jj = 0; jj < Sites.size(); jj++)
+        results.Gfile()->Printf("%u %u   %e\n", ii+1, jj+1, SiteSiteInteractionMatrix[ii][jj]);
     
   }
   
