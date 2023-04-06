@@ -4,6 +4,8 @@
 #include "Topology.h"
 #include "DataSet_Vector_Scalar.h"
 #include "DataSet_3D.h"
+#include "DataSet_1D.h"
+#include "DataSet_string.h"
 #include "MultiFlexResults.h"
 #include "Structure/TitrationData.h"
 #include "Structure/TitratableSite.h"
@@ -623,15 +625,25 @@ const
   // Add upper-triangle matrix to results
   results.AddSiteSiteMatrix( SiteSiteInteractionMatrix );
 
-  // Write pKint
   if (!Sites.empty()) {
+    // Write pKint
     static const char pkchar[] = {'A', 'C'};
-    for (std::vector<TitrationCalc>::const_iterator site = Sites.begin(); site != Sites.end(); ++site)
+    DataSet_1D const& PK = static_cast<DataSet_1D const&>( *(results.PkIntSet()) );
+    DataSet_string const& SN = static_cast<DataSet_string const&>( *(results.SiteNamesSet()) );
+    int idx = 0;
+    for (std::vector<TitrationCalc>::const_iterator site = Sites.begin(); site != Sites.end(); ++site, ++idx)
     {
-      results.PkIntFile()->Printf("%e %c %s-%i\n", site->PkInt(), pkchar[site->SiteData().RefStateIdx()],
-              site->SiteData().SiteName().c_str(), topIn.Res(site->Ridx()).OriginalResNum());
+      results.PkIntFile()->Printf("%e %c %s\n", PK.Dval(idx), pkchar[site->SiteData().RefStateIdx()],
+                                  SN[idx].c_str());
+              //site->SiteData().SiteName().c_str(), topIn.Res(site->Ridx()).OriginalResNum());
     }
+    // Write summ file
+    results.SummFile()->Printf("   site name           pKmod      delta self    delta back      pkint\n");
+    //for (std::vector<TitrationCalc>::const_iterator site = Sites.begin(); site != Sites.end(); ++site)
+    //{
+    
   }
+  
   return 0;
 }
 // -----------------------------------------------------------------------------

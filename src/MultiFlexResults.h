@@ -26,6 +26,13 @@ class MultiFlexResults {
     void AddSiteSiteMatrix(std::vector< std::vector<double> > const&) const;
 
     CpptrajFile* PkIntFile() const { return pkintfile_; }
+    CpptrajFile* SummFile() const { return summfile_; }
+    CpptrajFile* Gfile() const { return gfile_; }
+
+    DataSet* PkIntSet() const { return pkInt_; }
+    DataSet* Delta_pK_SelfSet() const { return delta_pK_self_; }
+    DataSet* Delta_pK_BackSet() const { return delta_pK_back_; }
+    DataSet* SiteNamesSet() const { return siteNames_; }
   private:
     DataSet* ssi_matrix_;    ///< Site-site interaction matrix
     DataSet* pkInt_;         ///< Intrinsic pKa for each site
