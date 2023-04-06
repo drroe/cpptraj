@@ -3,6 +3,7 @@
 #include "StringRoutines.h"
 #include "CpptrajStdio.h"
 #include "DataSet_2D.h"
+#include "DataFile.h"
 
 using namespace Cpptraj;
 // MultiFlexResults class
@@ -36,6 +37,17 @@ int MultiFlexResults::Allocate(DataSetList& dsl, std::string const& dsname) {
   if (siteNames_ == 0) return ds_alloc_err("site names array");
 
   return 0;
+}
+
+void MultiFlexResults::Add1DsetsToFile(DataFile* outfile)
+const
+{
+  if (outfile != 0) {
+    outfile->AddDataSet( pkInt_ );
+    outfile->AddDataSet( delta_pK_self_ );
+    outfile->AddDataSet( delta_pK_back_ );
+    outfile->AddDataSet( siteNames_ );
+  }
 }
 
 void MultiFlexResults::AllocateSets(unsigned int sizeIn)

@@ -4,6 +4,7 @@
 #include <vector>
 class DataSetList;
 class DataSet;
+class DataFile;
 namespace Cpptraj {
 /// Hold results from MultiFlex calc within MeadInterface class
 class MultiFlexResults {
@@ -11,6 +12,8 @@ class MultiFlexResults {
     MultiFlexResults();
     /// Allocate the data sets
     int Allocate(DataSetList&, std::string const&);
+    /// Put 1d sets into an output file
+    void Add1DsetsToFile(DataFile*) const;
     /// Allocate space in each set
     void AllocateSets(unsigned int) const;
     /// Add site results
