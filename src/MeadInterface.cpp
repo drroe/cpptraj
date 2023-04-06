@@ -628,7 +628,7 @@ const
     static const char pkchar[] = {'A', 'C'};
     for (std::vector<TitrationCalc>::const_iterator site = Sites.begin(); site != Sites.end(); ++site)
     {
-      mprintf("%e %c %s-%i\n", site->PkInt(), pkchar[site->SiteData().RefStateIdx()],
+      results.PkIntFile()->Printf("%e %c %s-%i\n", site->PkInt(), pkchar[site->SiteData().RefStateIdx()],
               site->SiteData().SiteName().c_str(), topIn.Res(site->Ridx()).OriginalResNum());
     }
   }

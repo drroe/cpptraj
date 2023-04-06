@@ -1,5 +1,6 @@
 #include "MultiFlexResults.h"
 #include "DataSetList.h"
+#include "DataFileList.h"
 #include "StringRoutines.h"
 #include "CpptrajStdio.h"
 #include "DataSet_2D.h"
@@ -12,7 +13,10 @@ MultiFlexResults::MultiFlexResults() :
   pkInt_(0),
   delta_pK_self_(0),
   delta_pK_back_(0),
-  siteNames_(0)
+  siteNames_(0),
+  pkintfile_(0),
+  summfile_(0),
+  gfile_(0)
 {}
 
 static inline int ds_alloc_err(const char* desc) {
@@ -37,6 +41,18 @@ int MultiFlexResults::Allocate(DataSetList& dsl, std::string const& dsname) {
   siteNames_ = dsl.AddSet( DataSet::STRING, MetaData(dsname, "sitenames" ) );
   if (siteNames_ == 0) return ds_alloc_err("site names array");
 
+  return 0;
+}
+
+int MultiFlexResults::CreateOutputFiles(DataFileList& dfl, std::string const& pkintname, std::string const& summname, std::string const& gname)
+{
+  pkintfile_ = dfl.AddCpptrajFile(pkintname, "intrinsic pKa values", DataFileList::TEXT, true);
+  summfile_ = dfl.AddCpptrajFile(summname, "intrinsic pKa summary", DataFileList::TEXT, true);
+  gfile_ = dfl.AddCpptrajFile(gname, "site-site interactions", DataFileList::TEXT, true);
+  if (pkintfile_ == 0 || summfile_ == 0 || gfile_ == 0) {
+    mprinterr("Error: Could not create multiflex output files.\n");
+    return 1;
+  }
   return 0;
 }
 
