@@ -68,7 +68,7 @@ class MeadInterface {
 
     static inline void printAtomPotentials(Topology const&, Frame const&, OutPotat*, AtomChargeSet*);
 
-    static int createModelCompounds(AtomChargeSet&, AtomChargeSet&, int, Topology const&, Frame const&, Radii_Mode);
+    static int createModelCompounds(AtomChargeSet&, AtomChargeSet&, AtomChargeSet const&, int, Topology const&, Frame const&, Radii_Mode);
 
     static int setup_titration_calcs(std::vector<TitrationCalc>&, AtomChargeSet&,
                                      Topology const&, Frame const&,

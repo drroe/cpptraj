@@ -266,14 +266,19 @@ static inline int err_atNotFound(const char* at, NameType const& aname, Topology
   return 1;
 }
 
+/** \return charge from atom in AtomChargeSet. */
+static inline float acs_charge(AtomChargeSet const& ref_atp, Topology const& topIn, int aidx, int ridx) {
+  return ref_atp[AtomID(topIn.Res(ridx).OriginalResNum(), topIn[aidx].Name().Truncated())].charge; // TODO chainid?
+}
+
 /** Create model compounds within protein.
   * The model compound contains all atoms of the residue containing the site
   * of interest, along with the peptide C=O of the previous residue and
   * the N-H and CA of the following residue (Bashford & Karplus, 1990).
-  * The background term uses the neutral state charges, with charges being
-  * zero for the titrating residue.
+  * The background term uses the neutral state charges in ref_atp, with
+  * charges being zero for atoms in the titrating residue.
   */
-int MeadInterface::createModelCompounds(AtomChargeSet& model_compound, AtomChargeSet& model_back, int ridx, Topology const& topIn, Frame const& frameIn, Radii_Mode radiiMode)
+int MeadInterface::createModelCompounds(AtomChargeSet& model_compound, AtomChargeSet& model_back, AtomChargeSet const& ref_atp, int ridx, Topology const& topIn, Frame const& frameIn, Radii_Mode radiiMode)
 {
   Residue const& thisRes = topIn.Res(ridx);
   // TODO make these options
@@ -306,10 +311,12 @@ int MeadInterface::createModelCompounds(AtomChargeSet& model_compound, AtomCharg
     MEAD::Atom at;
     set_at_from_top(at, topIn, frameIn, p_Cidx, radiiMode);
     model_compound.insert( at );
-    model_back.insert( at ); // FIXME needs to be neutral charges?
+    at.charge = acs_charge(ref_atp, topIn, p_Cidx, prevRidx);
+    model_back.insert( at );
     set_at_from_top(at, topIn, frameIn, p_Oidx, radiiMode);
     model_compound.insert( at );
-    model_back.insert( at ); // FIXME needs to be neutral charges?
+    at.charge = acs_charge(ref_atp, topIn, p_Oidx, prevRidx);
+    model_back.insert( at );
   }
 
   // Insert atoms from this residue
@@ -333,13 +340,16 @@ int MeadInterface::createModelCompounds(AtomChargeSet& model_compound, AtomCharg
     MEAD::Atom at;
     set_at_from_top(at, topIn, frameIn, n_Nidx, radiiMode);
     model_compound.insert( at );
-    model_back.insert( at ); // FIXME needs to be neutral charges?
+    at.charge = acs_charge(ref_atp, topIn, n_Nidx, nextRidx);
+    model_back.insert( at );
     set_at_from_top(at, topIn, frameIn, n_Hidx, radiiMode);
     model_compound.insert( at );
-    model_back.insert( at ); // FIXME needs to be neutral charges?
+    at.charge = acs_charge(ref_atp, topIn, n_Hidx, nextRidx);
+    model_back.insert( at );
     set_at_from_top(at, topIn, frameIn, n_CAidx, radiiMode);
     model_compound.insert( at );
-    model_back.insert( at ); // FIXME needs to be neutral charges?
+    at.charge = acs_charge(ref_atp, topIn, n_CAidx, nextRidx);
+    model_back.insert( at );
   }
   return 0;
 }
@@ -459,7 +469,7 @@ const
     {
       // Create model compound TODO reuse
       AtomChargeSet model_compound, model_back_chrg;
-      if (createModelCompounds(model_compound, model_back_chrg, tSite->Ridx(), topIn, frameIn, radiiMode)) {
+      if (createModelCompounds(model_compound, model_back_chrg, ref_atp, tSite->Ridx(), topIn, frameIn, radiiMode)) {
         mprinterr("Error: Creating model compound failed.\n");
         return 1;
       }
