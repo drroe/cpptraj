@@ -638,9 +638,15 @@ const
               //site->SiteData().SiteName().c_str(), topIn.Res(site->Ridx()).OriginalResNum());
     }
     // Write summ file
+    DataSet_1D const& DS = static_cast<DataSet_1D const&>( *(results.Delta_pK_SelfSet()) );
+    DataSet_1D const& DB = static_cast<DataSet_1D const&>( *(results.Delta_pK_BackSet()) );
+    idx = 0;
     results.SummFile()->Printf("   site name           pKmod      delta self    delta back      pkint\n");
-    //for (std::vector<TitrationCalc>::const_iterator site = Sites.begin(); site != Sites.end(); ++site)
-    //{
+    for (std::vector<TitrationCalc>::const_iterator site = Sites.begin(); site != Sites.end(); ++site, ++idx)
+    {
+      results.SummFile()->Printf(" %12s %13g %13g %13g %13g\n", SN[idx].c_str(), site->SiteData().pKa(),
+                                 DS.Dval(idx), DB.Dval(idx), PK.Dval(idx));
+    }
     
   }
   
