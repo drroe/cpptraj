@@ -450,6 +450,7 @@ const
     PhysCond::set_ionicstr(ionicStr);
 
     PhysCond::print();
+
     // Create reference atom set with charges set to reference state charges
     // for atoms in sites of interest.
     AtomChargeSet ref_atp( *atomset_ );
@@ -459,6 +460,10 @@ const
       mprinterr("Error: Could not set up sites to titrate.\n");
       return 1;
     }
+    // Arrays use to hold site-site interaction values
+    typedef std::vector<double> Darray;
+    Darray sstemp1(Sites.size(), 0);
+    Darray sstemp2(Sites.size(), 0);
     // NOTE: In this context, *atomset_ is equivalent to atlist in multiflex.cc:FD2DielEMaker
     DielectricEnvironment_lett* eps = new TwoValueDielectricByAtoms( *atomset_, epsIn );
     ElectrolyteEnvironment_lett* ely = new ElectrolyteByAtoms( *atomset_ );
@@ -496,6 +501,9 @@ const
         mprintf("DEBUG: MACSELF1 = %f\n", macself1);
         macback1 = (*state1_pot) * (ref_atp) - (*state1_pot) * (*refstatep);
         mprintf("DEBUG: MACBACK1 = %f - %f\n", (*state1_pot) * (ref_atp), (*state1_pot) * (*refstatep));
+        // Site-site interactions
+        for (unsigned int is = 0; is < Sites.size(); is++)
+          sstemp1[is] = (*state1_pot) * Sites[is].ChargeState1() - (*state1_pot) * Sites[is].ChargeState2();
         delete state1_pot;
       }
       //mprintf("macself1= %g  macback1= %g\n", macself1, macback1);
