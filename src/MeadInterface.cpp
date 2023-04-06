@@ -582,6 +582,25 @@ const
       mprintf("DEBUG: pKint = %f\n", pKint);
     } // END loop over sites
 
+    // Symmetrize the interaction matrix
+    for (unsigned int i = 0; i < Sites.size(); i++) {
+      // Zero the self interaction
+      SiteSiteInteractionMatrix[i][i] = 0;
+      for (unsigned int j = i + 1; j < Sites.size(); j++) {
+        double ave = (SiteSiteInteractionMatrix[i][j] + SiteSiteInteractionMatrix[j][i]) / 2.0;
+        double dev;
+        if (ave == 0) {
+          mprintf("Warning: Average interaction for site %u to site %u is 0\n", i, j);
+          dev = 0;
+        } else {
+          dev = (SiteSiteInteractionMatrix[i][j] - SiteSiteInteractionMatrix[j][i]) / ave;
+          if (dev < 0) dev = -dev;
+        }
+        mprintf("%u %u   %e %e   dev = %e\n", i+1, j+1,
+                SiteSiteInteractionMatrix[i][j], SiteSiteInteractionMatrix[j][i], dev);
+        SiteSiteInteractionMatrix[i][j] = SiteSiteInteractionMatrix[j][i] = ave;
+      }
+    }
   }
   catch (MEADexcept& e) {
     return ERR("MultiFlex()", e);
