@@ -6,6 +6,7 @@ class DataSet_Vector_Scalar;
 class DataSet_3D;
 namespace Cpptraj {
 class MeadInterface;
+class MultiFlexResults;
 }
 /// Provide MEAD functionality 
 class Exec_MEAD : public Exec {
@@ -18,6 +19,6 @@ class Exec_MEAD : public Exec {
     static int CheckMead(Cpptraj::MeadInterface const&);
     int Solvate(Cpptraj::MeadInterface&, ArgList&, DataSet*, DataSet_3D*) const;
     int Potential(Cpptraj::MeadInterface&, ArgList&, DataSet_Vector_Scalar&) const;
-    int MultiFlex(Cpptraj::MeadInterface&, ArgList&, Topology const&, Frame const&, int) const;
+    int MultiFlex(Cpptraj::MeadInterface&, ArgList&, Topology const&, Frame const&, int, Cpptraj::MultiFlexResults const&) const;
 };
 #endif

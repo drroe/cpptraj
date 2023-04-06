@@ -4,6 +4,7 @@
 #include "Topology.h"
 #include "DataSet_Vector_Scalar.h"
 #include "DataSet_3D.h"
+#include "MultiFlexResults.h"
 #include "Structure/TitrationData.h"
 #include "Structure/TitratableSite.h"
 // MEAD includes
@@ -431,10 +432,9 @@ int MeadInterface::setup_titration_calcs(std::vector<TitrationCalc>& Sites,
   return 0;
 }
 
-
-
 /** Run multiflex calc. */
-int MeadInterface::MultiFlex(double epsIn, double epsSol,
+int MeadInterface::MultiFlex(MultiFlexResults const& results,
+                             double epsIn, double epsSol,
                              double solRad, double sterln, double ionicStr,
                              Topology const& topIn, Frame const& frameIn,
                              Structure::TitrationData const& titrationData,
@@ -585,6 +585,13 @@ const
       double pKint = tSite->SiteData().pKa() + (delta_pK_self + delta_pK_back);
       mprintf("DEBUG: pKint = %f\n", pKint);
       modSite->SetPkInt( pKint );
+      // Add site result
+      results.AddSiteResult(tSite - Sites.begin(),
+                            tSite->SiteData().SiteName(),
+                            topIn.Res(tSite->Ridx()).OriginalResNum(),
+                            pKint,
+                            delta_pK_self,
+                            delta_pK_back);
     } // END loop over sites
 
     // Symmetrize the interaction matrix
@@ -622,6 +629,7 @@ const
   }
   return 0;
 }
+// -----------------------------------------------------------------------------
 
 /** Run potential calc.
   * \param values Output potential values at each coordinate in fieldPoints.

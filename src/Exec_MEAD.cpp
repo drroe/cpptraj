@@ -1,6 +1,7 @@
 #include "Exec_MEAD.h"
 #include "CpptrajStdio.h"
 #include "MeadInterface.h"
+#include "MultiFlexResults.h"
 #include "StringRoutines.h"
 #include "Structure/TitrationData.h"
 #include "Structure/TitratableSite.h"
@@ -97,7 +98,7 @@ int Exec_MEAD::Potential(Cpptraj::MeadInterface& MEAD, ArgList& argIn, DataSet_V
 }
 
 /** Run multiflex. */
-int Exec_MEAD::MultiFlex(Cpptraj::MeadInterface& MEAD, ArgList& argIn, Topology const& topIn, Frame const& frameIn, int iradiimode)
+int Exec_MEAD::MultiFlex(Cpptraj::MeadInterface& MEAD, ArgList& argIn, Topology const& topIn, Frame const& frameIn, int iradiimode, Cpptraj::MultiFlexResults const& results)
 const
 {
   using namespace Cpptraj::Structure;
@@ -127,7 +128,7 @@ const
     return 1;
   }
 
-  if (MEAD.MultiFlex(epsin, epssol, solrad, sterln, ionicstr, topIn, frameIn, titrationData, radiiMode)) {
+  if (MEAD.MultiFlex(results, epsin, epssol, solrad, sterln, ionicstr, topIn, frameIn, titrationData, radiiMode)) {
     mprinterr("Error: Multiflex failed.\n");
     return 1;
   } 
@@ -268,7 +269,12 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
     }
     err = Solvate( MEAD, argIn, outset, rgrid );
   } else if (argIn.hasKey("multiflex")) {
-    err = MultiFlex( MEAD, argIn, CRD->Top(), frameIn, (int)radiiMode );
+    /// Allocate output sets
+    if (outSetName.empty())
+      outSetName = State.DSL().GenerateDefaultName("MULTIFLEX");
+    MultiFlexResults results;
+    if (results.Allocate(State.DSL(), outSetName)) return CpptrajState::ERR;
+    err = MultiFlex( MEAD, argIn, CRD->Top(), frameIn, (int)radiiMode, results );
   } else {
     mprinterr("Error: No MEAD calculation keywords given.\n");
     err = 1;

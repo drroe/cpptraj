@@ -1,6 +1,7 @@
 #ifndef INC_MEADINTERFACE_H
 #define INC_MEADINTERFACE_H
 #include <vector>
+#include <string>
 // Fwd declares
 class Vec3;
 class Topology;
@@ -17,6 +18,7 @@ class Atom;
 class OutPotat;
 class AtomChargeSet;
 namespace Cpptraj {
+class MultiFlexResults;
 namespace Structure {
 class TitrationData;
 }
@@ -35,6 +37,7 @@ class MeadInterface {
     MeadInterface();
     /// DESTRUCTOR
     ~MeadInterface();
+
     /// Add a grid to the FDM object with explicit centering
     int AddGrid(int, float, Vec3 const&);
     /// Add a grid to the FDM object with centering type
@@ -56,7 +59,7 @@ class MeadInterface {
     /// Run solvate calc
     int Solvate(double&, double, double, double, double, double, double, double, DataSet_3D*) const;
     /// Run multiflex calc
-    int MultiFlex(double, double, double, double, double, Topology const&, Frame const&, Structure::TitrationData const&, Radii_Mode) const;
+    int MultiFlex(MultiFlexResults const&, double, double, double, double, double, Topology const&, Frame const&, Structure::TitrationData const&, Radii_Mode) const;
   private:
     class TitrationCalc;
 
@@ -78,5 +81,5 @@ class MeadInterface {
     FinDiffMethod* mgm_; ///< Hold grid for model (MULTIFLEX only) TODO wrap in class?
     AtomSet* atomset_;
 };
-}
+} /* END namespace Cpptraj */
 #endif
