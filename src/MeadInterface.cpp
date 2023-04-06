@@ -424,11 +424,11 @@ const
 
     PhysCond::print();
     // Set up sites to calc
-    //std::vector<TitrationCalc> Sites;
-    //if (setup_titration_calcs(Sites, topIn, frameIn, titrationData, radiiMode)) {
-    //  mprinterr("Error: Could not set up sites to titrate.\n");
-    //  return 1;
-   // }
+    std::vector<TitrationCalc> Sites;
+    if (setup_titration_calcs(Sites, topIn, frameIn, titrationData, radiiMode)) {
+      mprinterr("Error: Could not set up sites to titrate.\n");
+      return 1;
+    }
     // NOTE: In this context, *atomset_ is equivalent to atlist in multiflex.cc:FD2DielEMaker
     DielectricEnvironment_lett* eps = new TwoValueDielectricByAtoms( *atomset_, epsIn );
     ElectrolyteEnvironment_lett* ely = new ElectrolyteByAtoms( *atomset_ );
