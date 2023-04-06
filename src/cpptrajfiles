@@ -337,6 +337,7 @@ COMMON_SOURCES= \
         Minimize_SteepestDescent.cpp \
         Mol.cpp \
         Mol2File.cpp \
+        MultiFlexResults.cpp \
         NameType.cpp \
         NC_Routines.cpp \
         NetcdfFile.cpp \
