@@ -267,6 +267,11 @@ static inline int other_res_index(Topology const& topIn, Atom const& thisAtom)
   return idx;
 }
 
+/** Warning for atom not found in residue. */
+static inline void warn_atNotFound(const char* at, NameType const& aname, Topology const& topIn, int ridx) {
+  mprintf("Warning: %s atom '%s' not found in residue %s.\n", at, *aname, topIn.TruncResNameNum(ridx).c_str());
+}
+
 /** Error for atom not found in residue. */
 static inline int err_atNotFound(const char* at, NameType const& aname, Topology const& topIn, int ridx) {
   mprinterr("Error: %s atom '%s' not found in residue %s.\n", at, *aname, topIn.TruncResNameNum(ridx).c_str());
@@ -309,21 +314,26 @@ int MeadInterface::createModelCompounds(AtomChargeSet& model_compound, AtomCharg
 
   // Insert C and O from previous residue
   if (prevRidx > -1) {
+    MEAD::Atom at;
     // Get the C and O atoms of the previous residue
     int p_Cidx = topIn.FindAtomInResidue(prevRidx, Cname);
-    if (p_Cidx < 0) return err_atNotFound("C", Cname, topIn, prevRidx);
+    if (p_Cidx < 0)
+      warn_atNotFound("C", Cname, topIn, prevRidx);
+    else {
+      set_at_from_top(at, topIn, frameIn, p_Cidx, radiiMode);
+      model_compound.insert( at );
+      at.charge = acs_charge(ref_atp, topIn, p_Cidx, prevRidx);
+      model_back.insert( at );
+    }
     int p_Oidx = topIn.FindAtomInResidue(prevRidx, Oname);
-    if (p_Oidx < 0) return err_atNotFound("O", Oname, topIn, prevRidx);
-
-    MEAD::Atom at;
-    set_at_from_top(at, topIn, frameIn, p_Cidx, radiiMode);
-    model_compound.insert( at );
-    at.charge = acs_charge(ref_atp, topIn, p_Cidx, prevRidx);
-    model_back.insert( at );
-    set_at_from_top(at, topIn, frameIn, p_Oidx, radiiMode);
-    model_compound.insert( at );
-    at.charge = acs_charge(ref_atp, topIn, p_Oidx, prevRidx);
-    model_back.insert( at );
+    if (p_Oidx < 0)
+      warn_atNotFound("O", Oname, topIn, prevRidx);
+    else {
+      set_at_from_top(at, topIn, frameIn, p_Oidx, radiiMode);
+      model_compound.insert( at );
+      at.charge = acs_charge(ref_atp, topIn, p_Oidx, prevRidx);
+      model_back.insert( at );
+    }
   }
 
   // Insert atoms from this residue
@@ -337,26 +347,34 @@ int MeadInterface::createModelCompounds(AtomChargeSet& model_compound, AtomCharg
 
   // Insert N, H, and CA from next residue
   if (nextRidx > -1) {
-    int n_Nidx = topIn.FindAtomInResidue(nextRidx, Nname);
-    if (n_Nidx < 0) return err_atNotFound("N", Nname, topIn, nextRidx);
-    int n_Hidx = topIn.FindAtomInResidue(nextRidx, Hname);
-    if (n_Hidx < 0) return err_atNotFound("H", Hname, topIn, nextRidx);
-    int n_CAidx = topIn.FindAtomInResidue(nextRidx, CAname);
-    if (n_CAidx < 0) return err_atNotFound("CA", CAname, topIn, nextRidx);
-
     MEAD::Atom at;
-    set_at_from_top(at, topIn, frameIn, n_Nidx, radiiMode);
-    model_compound.insert( at );
-    at.charge = acs_charge(ref_atp, topIn, n_Nidx, nextRidx);
-    model_back.insert( at );
-    set_at_from_top(at, topIn, frameIn, n_Hidx, radiiMode);
-    model_compound.insert( at );
-    at.charge = acs_charge(ref_atp, topIn, n_Hidx, nextRidx);
-    model_back.insert( at );
-    set_at_from_top(at, topIn, frameIn, n_CAidx, radiiMode);
-    model_compound.insert( at );
-    at.charge = acs_charge(ref_atp, topIn, n_CAidx, nextRidx);
-    model_back.insert( at );
+    int n_Nidx = topIn.FindAtomInResidue(nextRidx, Nname);
+    if (n_Nidx < 0)
+      warn_atNotFound("N", Nname, topIn, nextRidx);
+    else {
+      set_at_from_top(at, topIn, frameIn, n_Nidx, radiiMode);
+      model_compound.insert( at );
+      at.charge = acs_charge(ref_atp, topIn, n_Nidx, nextRidx);
+      model_back.insert( at );
+    }
+    int n_Hidx = topIn.FindAtomInResidue(nextRidx, Hname);
+    if (n_Hidx < 0)
+     warn_atNotFound("H", Hname, topIn, nextRidx);
+    else {
+      set_at_from_top(at, topIn, frameIn, n_Hidx, radiiMode);
+      model_compound.insert( at );
+      at.charge = acs_charge(ref_atp, topIn, n_Hidx, nextRidx);
+      model_back.insert( at );
+    }
+    int n_CAidx = topIn.FindAtomInResidue(nextRidx, CAname);
+    if (n_CAidx < 0)
+      warn_atNotFound("CA", CAname, topIn, nextRidx);
+    else {
+      set_at_from_top(at, topIn, frameIn, n_CAidx, radiiMode);
+      model_compound.insert( at );
+      at.charge = acs_charge(ref_atp, topIn, n_CAidx, nextRidx);
+      model_back.insert( at );
+    }
   }
   return 0;
 }
