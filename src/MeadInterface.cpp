@@ -211,6 +211,8 @@ class MeadInterface::TitrationCalc {
 
     }
 
+    void SetPkInt(double p) { pkInt_ = p; }
+
     AtomChargeSet const& ChargeState1() const { return charge_state1_; }
     AtomChargeSet const& ChargeState2() const { return charge_state2_; }
     Coord const& SiteOfInterest()       const { return siteOfInterest_; }
@@ -222,12 +224,14 @@ class MeadInterface::TitrationCalc {
       else
         return &charge_state2_;
     }
+    double PkInt() const { return pkInt_; }
   private:
     Cpptraj::Structure::TitratableSite const* siteData_; ///< Pointer to associated TitratableSite data
     AtomChargeSet charge_state1_;   ///< Hold charges in state 1
     AtomChargeSet charge_state2_;   ///< Hold charges in state 2
     int ridx_;                      ///< Residue index in associated Topology
     Coord siteOfInterest_;          ///< Coordinates of the site of interest, used to focus grid
+    double pkInt_;                  ///< Calculated intrinsic pKa of the site
 };
 
 /** For debugging - print atom potential and atom charge set. */
@@ -441,6 +445,7 @@ const
   typedef std::vector<double> Darray;
   typedef std::vector<Darray> Dmatrix;
   Dmatrix SiteSiteInteractionMatrix;
+  std::vector<TitrationCalc> Sites;
   // Calculate the geometric center
   Vec3 vgeom_center = frameIn.VGeometricCenter(0, frameIn.Natom());
   vgeom_center.Print("Geometric center"); // DEBUG
@@ -459,7 +464,6 @@ const
     AtomChargeSet ref_atp( *atomset_ );
     // Set up sites to calc. The charge states for each site need to be set
     // up first in order to do the site-site interactions.
-    std::vector<TitrationCalc> Sites;
     if (setup_titration_calcs(Sites, ref_atp, topIn, frameIn, titrationData, radiiMode)) {
       mprinterr("Error: Could not set up sites to titrate.\n");
       return 1;
@@ -472,14 +476,14 @@ const
     ElectrolyteEnvironment_lett* ely = new ElectrolyteByAtoms( *atomset_ );
 
     // Loop over titration sites
+    std::vector<TitrationCalc>::iterator modSite = Sites.begin();
     for (std::vector<TitrationCalc>::const_iterator tSite = Sites.begin();
-                                                    tSite != Sites.end(); ++tSite, ++ssi_row_it)
+                                                    tSite != Sites.end();
+                                                  ++tSite, ++ssi_row_it, ++modSite)
     {
       // Arrays use to hold site-site interaction values
       Darray& ssi_row = *ssi_row_it;
       ssi_row.resize(Sites.size(), 0);
-      //Darray sstemp1(Sites.size(), 0); // TODO deprecate sstemp
-      //Darray sstemp2(Sites.size(), 0);
       // Create model compound TODO reuse
       AtomChargeSet model_compound, model_back_chrg;
       if (createModelCompounds(model_compound, model_back_chrg, ref_atp, tSite->Ridx(), topIn, frameIn, radiiMode)) {
@@ -580,6 +584,7 @@ const
         mprintf("   %g\n", *it);
       double pKint = tSite->SiteData().pKa() + (delta_pK_self + delta_pK_back);
       mprintf("DEBUG: pKint = %f\n", pKint);
+      modSite->SetPkInt( pKint );
     } // END loop over sites
 
     // Symmetrize the interaction matrix
@@ -604,6 +609,16 @@ const
   }
   catch (MEADexcept& e) {
     return ERR("MultiFlex()", e);
+  }
+
+  // Write pKint
+  if (!Sites.empty()) {
+    static const char pkchar[] = {'A', 'C'};
+    for (std::vector<TitrationCalc>::const_iterator site = Sites.begin(); site != Sites.end(); ++site)
+    {
+      mprintf("%e %c %s-%i\n", site->PkInt(), pkchar[site->SiteData().RefStateIdx()],
+              site->SiteData().SiteName().c_str(), topIn.Res(site->Ridx()).OriginalResNum());
+    }
   }
   return 0;
 }
