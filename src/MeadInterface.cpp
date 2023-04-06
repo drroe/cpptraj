@@ -438,6 +438,9 @@ int MeadInterface::MultiFlex(double epsIn, double epsSol,
 const
 {
   using namespace Cpptraj::Structure;
+  typedef std::vector<double> Darray;
+  typedef std::vector<Darray> Dmatrix;
+  Dmatrix SiteSiteInteractionMatrix;
   // Calculate the geometric center
   Vec3 vgeom_center = frameIn.VGeometricCenter(0, frameIn.Natom());
   vgeom_center.Print("Geometric center"); // DEBUG
@@ -460,18 +463,22 @@ const
       mprinterr("Error: Could not set up sites to titrate.\n");
       return 1;
     }
-    // Arrays use to hold site-site interaction values
-    typedef std::vector<double> Darray;
-    Darray sstemp1(Sites.size(), 0);
-    Darray sstemp2(Sites.size(), 0);
+    // Set up site-site interaction matrix.
+    SiteSiteInteractionMatrix.resize( Sites.size() );
+    Dmatrix::iterator ssi_row_it = SiteSiteInteractionMatrix.begin();
     // NOTE: In this context, *atomset_ is equivalent to atlist in multiflex.cc:FD2DielEMaker
     DielectricEnvironment_lett* eps = new TwoValueDielectricByAtoms( *atomset_, epsIn );
     ElectrolyteEnvironment_lett* ely = new ElectrolyteByAtoms( *atomset_ );
 
     // Loop over titration sites
     for (std::vector<TitrationCalc>::const_iterator tSite = Sites.begin();
-                                                    tSite != Sites.end(); ++tSite)
+                                                    tSite != Sites.end(); ++tSite, ++ssi_row_it)
     {
+      // Arrays use to hold site-site interaction values
+      Darray& ssi_row = *ssi_row_it;
+      ssi_row.resize(Sites.size(), 0);
+      //Darray sstemp1(Sites.size(), 0); // TODO deprecate sstemp
+      //Darray sstemp2(Sites.size(), 0);
       // Create model compound TODO reuse
       AtomChargeSet model_compound, model_back_chrg;
       if (createModelCompounds(model_compound, model_back_chrg, ref_atp, tSite->Ridx(), topIn, frameIn, radiiMode)) {
@@ -503,7 +510,7 @@ const
         mprintf("DEBUG: MACBACK1 = %f - %f\n", (*state1_pot) * (ref_atp), (*state1_pot) * (*refstatep));
         // Site-site interactions
         for (unsigned int is = 0; is < Sites.size(); is++)
-          sstemp1[is] = (*state1_pot) * Sites[is].ChargeState1() - (*state1_pot) * Sites[is].ChargeState2();
+          ssi_row[is] = (*state1_pot) * Sites[is].ChargeState1() - (*state1_pot) * Sites[is].ChargeState2();
         delete state1_pot;
       }
       //mprintf("macself1= %g  macback1= %g\n", macself1, macback1);
@@ -520,6 +527,9 @@ const
         mprintf("DEBUG: MACSELF2 = %f\n", macself2);
         macback2 = (*state2_pot) * (ref_atp) - (*state2_pot) * (*refstatep);
         mprintf("DEBUG: MACBACK2 = %f - %f\n", (*state2_pot) * (ref_atp), (*state2_pot) * (*refstatep));
+        // Site-site interactions
+        for (unsigned int is = 0; is < Sites.size(); is++)
+          ssi_row[is] = ssi_row[is] - ((*state2_pot) * Sites[is].ChargeState1() - (*state2_pot) * Sites[is].ChargeState2());
         delete state2_pot;
       }
       //mprintf("macself2= %g  macback2= %g\n", macself2, macback2);
@@ -564,6 +574,9 @@ const
       mprintf("modback1-modback2 = %g\n", modback1 - modback2);
       mprintf("delta self = %g or %g pK units\n", delta_pK_self * PhysCond::get_ln10kT(), delta_pK_self);
       mprintf("delta back = %g or %g pK units\n", delta_pK_back * PhysCond::get_ln10kT(), delta_pK_back);
+      mprintf("Site-site interactions:\n");
+      for (Darray::const_iterator it = ssi_row.begin(); it != ssi_row.end(); ++it)
+        mprintf("   %g\n", *it);
       double pKint = tSite->SiteData().pKa() + (delta_pK_self + delta_pK_back);
       mprintf("DEBUG: pKint = %f\n", pKint);
     } // END loop over sites
