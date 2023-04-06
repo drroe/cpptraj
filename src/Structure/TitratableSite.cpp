@@ -98,5 +98,14 @@ int TitratableSite::LoadSiteData(std::string const& fname)
   }
   mprintf("\tState %i is the reference state.\n", refStateIdx_ + 1);
 
+  double diff = state1_tot - state2_tot;
+  // The cutoff values here are from MEAD SiteInMulti
+  if (diff > 1.01 || diff < 0.99) {
+    mprintf("Warning: If this is a pH titration calculation it is generally expected\n"
+            "Warning:   that state1 is the protonated state, and state 2 is deprotonated,\n"
+            "Warning:   and that the charge_state1 - charge_state2 = 1.\n"
+            "Warning:   But for this site (%s) it is %g\n", resName_.c_str(), diff);
+  }
+
   return 0;
 }
