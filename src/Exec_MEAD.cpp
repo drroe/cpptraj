@@ -107,12 +107,10 @@ int Exec_MEAD::Potential(Cpptraj::MeadInterface& MEAD, Cpptraj::Mead::MeadGrid c
 int Exec_MEAD::MultiFlex(Cpptraj::MeadInterface& MEAD, Cpptraj::Mead::MeadGrid const& ogm,
                          Cpptraj::Mead::MeadGrid const& mgm, 
                          ArgList& argIn, Topology const& topIn, Frame const& frameIn,
-                         int iradiimode, Cpptraj::MultiFlexResults const& results)
+                         Cpptraj::MultiFlexResults const& results)
 const
 {
   using namespace Cpptraj::Structure;
-
-  Cpptraj::MeadInterface::Radii_Mode radiiMode = (Cpptraj::MeadInterface::Radii_Mode)iradiimode;
 
   using namespace Cpptraj::Mead;
   MeadOpts Opts;
@@ -139,7 +137,7 @@ const
     return 1;
   }
 
-  if (MEAD.MultiFlex(results, Opts, ogm, mgm, topIn, frameIn, titrationData, radiiMode)) {
+  if (MEAD.MultiFlex(results, Opts, ogm, mgm, topIn, frameIn, titrationData)) {
     mprinterr("Error: Multiflex failed.\n");
     return 1;
   } 
@@ -319,7 +317,7 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
       mprinterr("Error: Could not create MEAD output files for multiflex.\n");
       return CpptrajState::ERR;
     }
-    err = MultiFlex( MEAD, ogm, mgm, argIn, CRD->Top(), frameIn, (int)radiiMode, results );
+    err = MultiFlex( MEAD, ogm, mgm, argIn, CRD->Top(), frameIn, results );
   } else {
     mprinterr("Error: No MEAD calculation keywords given.\n");
     err = 1;

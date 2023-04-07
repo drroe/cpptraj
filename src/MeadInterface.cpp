@@ -30,7 +30,8 @@ using namespace Cpptraj;
 
 /** CONSTRUCTOR */
 MeadInterface::MeadInterface() :
-  atomset_(0)
+  atomset_(0),
+  rmode_(GB)
 { }
 
 /** DESTRUCTOR */
@@ -48,7 +49,8 @@ int MeadInterface::ERR(const char* fxn, MEADexcept& e) {
 }
 
 /** Set MEAD Atom from Topology Atom. */
-void MeadInterface::set_at_from_top(MEAD::Atom& at, Topology const& topIn, Frame const& frameIn, int aidx, Radii_Mode radiiMode)
+void MeadInterface::set_at_from_top(MEAD::Atom& at, Topology const& topIn, Frame const& frameIn, int aidx)
+const
 {
     Atom const& thisAtom = topIn[aidx];
     at.atname.assign( thisAtom.Name().Truncated() );
@@ -63,7 +65,7 @@ void MeadInterface::set_at_from_top(MEAD::Atom& at, Topology const& topIn, Frame
     at.coord.y = xyz[1];
     at.coord.z = xyz[2];
     at.charge = thisAtom.Charge();
-    switch (radiiMode) {
+    switch (rmode_) {
       case MeadInterface::GB : at.rad = thisAtom.GBRadius(); break;
       case MeadInterface::PARSE : at.rad = thisAtom.ParseRadius(); break;
       case MeadInterface::VDW   : at.rad = topIn.GetVDWradius(aidx); break;
@@ -73,6 +75,7 @@ void MeadInterface::set_at_from_top(MEAD::Atom& at, Topology const& topIn, Frame
 /** Setup an AtomSet from Frame and Topology. */
 int MeadInterface::SetupAtoms(Topology const& topIn, Frame const& frameIn, Radii_Mode radiiMode)
 {
+  rmode_ = radiiMode;
   // Sanity checking
   if (topIn.Natom() != frameIn.Natom()) {
     mprinterr("Internal Error: MeadInterface::SetupAtoms(): Top '%s' has %i atoms, frame has %i atoms.\n",
@@ -88,26 +91,7 @@ int MeadInterface::SetupAtoms(Topology const& topIn, Frame const& frameIn, Radii
   for (int aidx = 0; aidx < topIn.Natom(); aidx++)
   {
     MEAD::Atom at;
-
-    /*Atom const& thisAtom = topIn[aidx];
-    at.atname.assign( thisAtom.Name().Truncated() );
-    int rnum = thisAtom.ResNum();
-    Residue const& thisRes = topIn.Res(rnum);
-    at.resname.assign( thisRes.Name().Truncated() );
-    at.resnum = thisRes.OriginalResNum();
-    if (thisRes.HasChainID())
-      at.chainid.assign( 1, thisRes.ChainId() );
-    const double* xyz = frameIn.XYZ(aidx);
-    at.coord.x = xyz[0];
-    at.coord.y = xyz[1];
-    at.coord.z = xyz[2];
-    at.charge = thisAtom.Charge();
-    switch (radiiMode) {
-      case MeadInterface::GB : at.rad = thisAtom.GBRadius(); break;
-      case MeadInterface::PARSE : at.rad = thisAtom.ParseRadius(); break;
-      case MeadInterface::VDW   : at.rad = topIn.GetVDWradius(aidx); break;
-    }*/
-    set_at_from_top(at, topIn, frameIn, aidx, radiiMode);
+    set_at_from_top(at, topIn, frameIn, aidx);
     if (at.rad > 0)
       has_radii = true;
     try {
@@ -184,11 +168,13 @@ class MeadInterface::TitrationCalc {
 };
 
 /** For debugging - print atom potential and atom charge set. */
-void MeadInterface::printAtomPotentials(Topology const& topIn, Frame const& frameIn, OutPotat* outpotat, AtomChargeSet* acs) {
+void MeadInterface::printAtomPotentials(Topology const& topIn, Frame const& frameIn, OutPotat* outpotat, AtomChargeSet* acs)
+const
+{
   double sum = 0;
   for (int aidx = 0; aidx != topIn.Natom(); ++aidx) {
     MEAD::Atom at;
-    set_at_from_top(at, topIn, frameIn, aidx, GB); // what a kludge, should be easier to access potat values
+    set_at_from_top(at, topIn, frameIn, aidx); // what a kludge, should be easier to access potat values
     double potential_at_atom = (double) (*outpotat)[at];
     MEAD::Atom const& at_from_acs = (*acs)[at];
     //mprintf("\t  Potential at atom %6s is %f charge %f\n", *(topIn[aidx].Name()), potential_at_atom, topIn[aidx].Charge());
@@ -237,7 +223,8 @@ static inline float acs_charge(AtomChargeSet const& ref_atp, Topology const& top
   * charges being for atoms in the titrating residue being zeroed after
   * this routine.
   */
-int MeadInterface::createModelCompounds(AtomChargeSet& model_compound, AtomChargeSet& model_back, AtomChargeSet const& ref_atp, int ridx, Topology const& topIn, Frame const& frameIn, Radii_Mode radiiMode)
+int MeadInterface::createModelCompounds(AtomChargeSet& model_compound, AtomChargeSet& model_back, AtomChargeSet const& ref_atp, int ridx, Topology const& topIn, Frame const& frameIn)
+const
 {
   Residue const& thisRes = topIn.Res(ridx);
   // TODO make these options
@@ -267,7 +254,7 @@ int MeadInterface::createModelCompounds(AtomChargeSet& model_compound, AtomCharg
     if (p_Cidx < 0)
       warn_atNotFound("C", Cname, topIn, prevRidx);
     else {
-      set_at_from_top(at, topIn, frameIn, p_Cidx, radiiMode);
+      set_at_from_top(at, topIn, frameIn, p_Cidx);
       model_compound.insert( at );
       at.charge = acs_charge(ref_atp, topIn, p_Cidx, prevRidx);
       model_back.insert( at );
@@ -276,7 +263,7 @@ int MeadInterface::createModelCompounds(AtomChargeSet& model_compound, AtomCharg
     if (p_Oidx < 0)
       warn_atNotFound("O", Oname, topIn, prevRidx);
     else {
-      set_at_from_top(at, topIn, frameIn, p_Oidx, radiiMode);
+      set_at_from_top(at, topIn, frameIn, p_Oidx);
       model_compound.insert( at );
       at.charge = acs_charge(ref_atp, topIn, p_Oidx, prevRidx);
       model_back.insert( at );
@@ -286,7 +273,7 @@ int MeadInterface::createModelCompounds(AtomChargeSet& model_compound, AtomCharg
   // Insert atoms from this residue
   for (int aidx = thisRes.FirstAtom(); aidx != thisRes.LastAtom(); aidx++) {
     MEAD::Atom at;
-    set_at_from_top(at, topIn, frameIn, aidx, radiiMode);
+    set_at_from_top(at, topIn, frameIn, aidx);
     model_compound.insert( at );
     at.charge = acs_charge(ref_atp, topIn, aidx, ridx);
     model_back.insert( at );
@@ -299,7 +286,7 @@ int MeadInterface::createModelCompounds(AtomChargeSet& model_compound, AtomCharg
     if (n_Nidx < 0)
       warn_atNotFound("N", Nname, topIn, nextRidx);
     else {
-      set_at_from_top(at, topIn, frameIn, n_Nidx, radiiMode);
+      set_at_from_top(at, topIn, frameIn, n_Nidx);
       model_compound.insert( at );
       at.charge = acs_charge(ref_atp, topIn, n_Nidx, nextRidx);
       model_back.insert( at );
@@ -308,7 +295,7 @@ int MeadInterface::createModelCompounds(AtomChargeSet& model_compound, AtomCharg
     if (n_Hidx < 0)
      warn_atNotFound("H", Hname, topIn, nextRidx);
     else {
-      set_at_from_top(at, topIn, frameIn, n_Hidx, radiiMode);
+      set_at_from_top(at, topIn, frameIn, n_Hidx);
       model_compound.insert( at );
       at.charge = acs_charge(ref_atp, topIn, n_Hidx, nextRidx);
       model_back.insert( at );
@@ -317,7 +304,7 @@ int MeadInterface::createModelCompounds(AtomChargeSet& model_compound, AtomCharg
     if (n_CAidx < 0)
       warn_atNotFound("CA", CAname, topIn, nextRidx);
     else {
-      set_at_from_top(at, topIn, frameIn, n_CAidx, radiiMode);
+      set_at_from_top(at, topIn, frameIn, n_CAidx);
       model_compound.insert( at );
       at.charge = acs_charge(ref_atp, topIn, n_CAidx, nextRidx);
       model_back.insert( at );
@@ -330,7 +317,8 @@ int MeadInterface::createModelCompounds(AtomChargeSet& model_compound, AtomCharg
 int MeadInterface::setup_titration_calcs(std::vector<TitrationCalc>& Sites,
                                          AtomChargeSet& ref_atp,
                                          Topology const& topIn, Frame const& frameIn,
-                                         Cpptraj::Structure::TitrationData const& titrationData, Radii_Mode radiiMode)
+                                         Cpptraj::Structure::TitrationData const& titrationData)
+const
 {
   using namespace Cpptraj::Structure;
   Sites.clear();
@@ -379,7 +367,7 @@ int MeadInterface::setup_titration_calcs(std::vector<TitrationCalc>& Sites,
             //siteOfInterest.z = xyz[2];
           }
           MEAD::Atom at;
-          set_at_from_top(at, topIn, frameIn, aidx, radiiMode);
+          set_at_from_top(at, topIn, frameIn, aidx);
           at.charge = jt->second.first;
           state1Atoms.insert( at );
           at.charge = jt->second.second;
@@ -404,8 +392,7 @@ int MeadInterface::MultiFlex(MultiFlexResults const& results,
                              Mead::MeadOpts const& Opts,
                              Mead::MeadGrid const& ogm, Mead::MeadGrid const& mgm,
                              Topology const& topIn, Frame const& frameIn,
-                             Structure::TitrationData const& titrationData,
-                             Radii_Mode radiiMode)
+                             Structure::TitrationData const& titrationData)
 const
 {
   using namespace Cpptraj::Structure;
@@ -431,7 +418,7 @@ const
     AtomChargeSet ref_atp( *atomset_ );
     // Set up sites to calc. The charge states for each site need to be set
     // up first in order to do the site-site interactions.
-    if (setup_titration_calcs(Sites, ref_atp, topIn, frameIn, titrationData, radiiMode)) {
+    if (setup_titration_calcs(Sites, ref_atp, topIn, frameIn, titrationData)) {
       mprinterr("Error: Could not set up sites to titrate.\n");
       return 1;
     }
@@ -455,7 +442,7 @@ const
       ssi_row.resize(Sites.size(), 0);
       // Create model compound TODO reuse
       AtomChargeSet model_compound, model_back_chrg;
-      if (createModelCompounds(model_compound, model_back_chrg, ref_atp, tSite->Ridx(), topIn, frameIn, radiiMode)) {
+      if (createModelCompounds(model_compound, model_back_chrg, ref_atp, tSite->Ridx(), topIn, frameIn)) {
         mprinterr("Error: Creating model compound failed.\n");
         return 1;
       }

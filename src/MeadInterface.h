@@ -52,23 +52,23 @@ class MeadInterface {
     int Solvate(double&, Mead::MeadOpts const&, Mead::MeadGrid const&, DataSet_3D*) const;
     /// Run multiflex calc
     int MultiFlex(MultiFlexResults const&, Mead::MeadOpts const&, Mead::MeadGrid const&, Mead::MeadGrid const&,
-                  Topology const&, Frame const&, Structure::TitrationData const&, Radii_Mode) const;
+                  Topology const&, Frame const&, Structure::TitrationData const&) const;
   private:
     class TitrationCalc;
 
     static int ERR(const char*, MEADexcept&);
 
-    static inline void set_at_from_top(MEAD::Atom&, Topology const&, Frame const&, int, Radii_Mode);
+    inline void set_at_from_top(MEAD::Atom&, Topology const&, Frame const&, int) const;
 
-    static inline void printAtomPotentials(Topology const&, Frame const&, OutPotat*, AtomChargeSet*);
+    void printAtomPotentials(Topology const&, Frame const&, OutPotat*, AtomChargeSet*) const;
 
-    static int createModelCompounds(AtomChargeSet&, AtomChargeSet&, AtomChargeSet const&, int, Topology const&, Frame const&, Radii_Mode);
+    int createModelCompounds(AtomChargeSet&, AtomChargeSet&, AtomChargeSet const&, int, Topology const&, Frame const&) const;
 
-    static int setup_titration_calcs(std::vector<TitrationCalc>&, AtomChargeSet&,
-                                     Topology const&, Frame const&,
-                                     Structure::TitrationData const&, Radii_Mode);
+    int setup_titration_calcs(std::vector<TitrationCalc>&, AtomChargeSet&,
+                              Topology const&, Frame const&, Structure::TitrationData const&) const;
 
     AtomSet* atomset_;
+    Radii_Mode rmode_; ///< Which radii set to use
 };
 } /* END namespace Cpptraj */
 #endif
