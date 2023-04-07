@@ -9,6 +9,7 @@
 #include "MultiFlexResults.h"
 #include "Structure/TitrationData.h"
 #include "Structure/TitratableSite.h"
+#include "Mead/MeadOpts.h"
 // MEAD includes
 #include "../mead/FinDiffMethod.h"
 #include "../mead/MEADexcept.h"
@@ -758,29 +759,28 @@ const
   * \param temperature Temperature in Kelvin
   * \param rxnField If not null, calculate reaction field for given grid at all grid points.
   */
-int MeadInterface::Solvate(double& Esolv,
-                           double epsIn, double epsSol, double epsVac, double solRad, double sterln, double ionicStr,
-                           double temperature, DataSet_3D* rxnField)
+int MeadInterface::Solvate(double& Esolv, Cpptraj::Mead::MeadOpts const& Opts,
+                           DataSet_3D* rxnField)
 const
 {
   Esolv = 0;
 
   try {
-    PhysCond::set_epsext(epsSol);
-    PhysCond::set_solrad(solRad);
-    PhysCond::set_sterln(sterln);
-    PhysCond::set_ionicstr(ionicStr);
-    PhysCond::set_T(temperature);
+    PhysCond::set_epsext(Opts.EpsExt());
+    PhysCond::set_solrad(Opts.SolRad());
+    PhysCond::set_sterln(Opts.SterLn());
+    PhysCond::set_ionicstr(Opts.IonicStr());
+    PhysCond::set_T(Opts.Temperature());
 
-    mprintf("DEBUG: Interior dielectric: %g\n", epsIn);
+    mprintf("DEBUG: Interior dielectric: %g\n", Opts.EpsIn());
     mprintf("DEBUG: Physical conditions:\n");
     PhysCond::print();
-    mprintf("DEBUG: Vacuum dielectric: %g\n", epsVac);
+    mprintf("DEBUG: Vacuum dielectric: %g\n", Opts.EpsVac());
 
     ChargeDist rho(new AtomChargeSet(*atomset_));
 
     // Solvent
-    DielectricEnvironment eps(new TwoValueDielectricByAtoms(*atomset_, epsIn));
+    DielectricEnvironment eps(new TwoValueDielectricByAtoms(*atomset_, Opts.EpsIn()));
     ElectrolyteEnvironment ely(new ElectrolyteByAtoms(*atomset_));
     ElstatPot phi(*fdm_, eps, rho, ely);
     phi.solve();
@@ -788,9 +788,9 @@ const
     mprintf("DEBUG: prod_sol= %f\n", prod_sol);
 
     // Vacuum
-    PhysCond::set_epsext(epsVac);
+    PhysCond::set_epsext(Opts.EpsVac());
     PhysCond::set_ionicstr(0.0);
-    DielectricEnvironment vac_eps(new TwoValueDielectricByAtoms(*atomset_, epsIn));
+    DielectricEnvironment vac_eps(new TwoValueDielectricByAtoms(*atomset_, Opts.EpsIn()));
     ElectrolyteEnvironment elyvac;  // No electrolyte is the default
     ElstatPot vac_phi(*fdm_, vac_eps, rho, elyvac);
     vac_phi.solve();
