@@ -6,10 +6,10 @@
 class DataSet_Vector_Scalar;
 class DataSet_3D;
 namespace Cpptraj {
-class MeadInterface;
-class MultiFlexResults;
 namespace Mead {
 class MeadGrid;
+class MeadInterface;
+class MultiFlexResults;
 }
 }
 /// Provide MEAD functionality 
@@ -20,10 +20,15 @@ class Exec_MEAD : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_MEAD(); }
     RetType Execute(CpptrajState&, ArgList&);
   private:
-    static int CheckMead(Cpptraj::MeadInterface const&);
-    int Solvate(Cpptraj::MeadInterface&, Cpptraj::Mead::MeadGrid const&, ArgList&, DataSet*, DataSet_3D*) const;
-    int Potential(Cpptraj::MeadInterface&, Cpptraj::Mead::MeadGrid const&, ArgList&, DataSet_Vector_Scalar&) const;
-    int MultiFlex(Cpptraj::MeadInterface&, Cpptraj::Mead::MeadGrid const&, Cpptraj::Mead::MeadGrid const&, ArgList&, Topology const&, Frame const&, Cpptraj::MultiFlexResults const&) const;
+    static int CheckMead(Cpptraj::Mead::MeadInterface const&);
+    int Solvate(Cpptraj::Mead::MeadInterface&, Cpptraj::Mead::MeadGrid const&,
+                ArgList&, DataSet*, DataSet_3D*) const;
+    int Potential(Cpptraj::Mead::MeadInterface&, Cpptraj::Mead::MeadGrid const&,
+                  ArgList&, DataSet_Vector_Scalar&) const;
+    int MultiFlex(Cpptraj::Mead::MeadInterface&,
+                  Cpptraj::Mead::MeadGrid const&, Cpptraj::Mead::MeadGrid const&,
+                  ArgList&, Topology const&, Frame const&,
+                  Cpptraj::Mead::MultiFlexResults const&) const;
     static int addGridLevel(Cpptraj::Mead::MeadGrid&, std::string const&);
 };
 #endif

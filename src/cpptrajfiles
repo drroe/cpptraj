@@ -332,12 +332,10 @@ COMMON_SOURCES= \
         MaskToken.cpp \
         Matrix_3x3.cpp \
         MdOpts.cpp \
-        MeadInterface.cpp \
         MetaData.cpp \
         Minimize_SteepestDescent.cpp \
         Mol.cpp \
         Mol2File.cpp \
-        MultiFlexResults.cpp \
         NameType.cpp \
         NC_Routines.cpp \
         NetcdfFile.cpp \

@@ -1,12 +1,14 @@
 #include "Exec_MEAD.h"
 #include "CpptrajStdio.h"
-#include "MeadInterface.h"
-#include "MultiFlexResults.h"
 #include "StringRoutines.h"
 #include "Structure/TitrationData.h"
 #include "Structure/TitratableSite.h"
 #include "Mead/MeadGrid.h"
 #include "Mead/MeadOpts.h"
+#include "Mead/MultiFlexResults.h"
+#include "Mead/MeadInterface.h"
+
+using namespace Cpptraj::Mead;
 
 // Exec_MEAD::Help()
 void Exec_MEAD::Help() const
@@ -26,7 +28,7 @@ void Exec_MEAD::Help() const
 }
 
 /** Check MEAD is properly set up. */
-int Exec_MEAD::CheckMead(Cpptraj::MeadInterface const& MEAD) {
+int Exec_MEAD::CheckMead(MeadInterface const& MEAD) {
   // Sanity checks
   //if (!MEAD.HasFDM()) {
   //  mprinterr("Error: No MEAD grid allocated.\n");
@@ -40,10 +42,9 @@ int Exec_MEAD::CheckMead(Cpptraj::MeadInterface const& MEAD) {
 }
 
 /** MEAD solvate. */
-int Exec_MEAD::Solvate(Cpptraj::MeadInterface& MEAD, Cpptraj::Mead::MeadGrid const& ogm, ArgList& argIn, DataSet* outset, DataSet_3D* rgrid)
+int Exec_MEAD::Solvate(MeadInterface& MEAD, MeadGrid const& ogm, ArgList& argIn, DataSet* outset, DataSet_3D* rgrid)
 const
 {
-  using namespace Cpptraj::Mead;
   //if (CheckMead( MEAD )) return 1; FIXME add check
 
   MeadOpts Opts;
@@ -64,9 +65,8 @@ const
 }
 
 /** MEAD potential. */
-int Exec_MEAD::Potential(Cpptraj::MeadInterface& MEAD, Cpptraj::Mead::MeadGrid const& ogm, ArgList& argIn, DataSet_Vector_Scalar& outset) const {
+int Exec_MEAD::Potential(MeadInterface& MEAD, MeadGrid const& ogm, ArgList& argIn, DataSet_Vector_Scalar& outset) const {
   //if (CheckMead( MEAD )) return 1; FIXME add check
-  using namespace Cpptraj::Mead;
  
   MeadOpts Opts; 
   Opts.SetEpsIn(argIn.getKeyDouble("epsin", 1));
@@ -104,15 +104,13 @@ int Exec_MEAD::Potential(Cpptraj::MeadInterface& MEAD, Cpptraj::Mead::MeadGrid c
 }
 
 /** Run multiflex. */
-int Exec_MEAD::MultiFlex(Cpptraj::MeadInterface& MEAD, Cpptraj::Mead::MeadGrid const& ogm,
-                         Cpptraj::Mead::MeadGrid const& mgm, 
+int Exec_MEAD::MultiFlex(MeadInterface& MEAD, MeadGrid const& ogm, MeadGrid const& mgm, 
                          ArgList& argIn, Topology const& topIn, Frame const& frameIn,
-                         Cpptraj::MultiFlexResults const& results)
+                         MultiFlexResults const& results)
 const
 {
   using namespace Cpptraj::Structure;
 
-  using namespace Cpptraj::Mead;
   MeadOpts Opts;
   std::string sitesFileName = argIn.GetStringKey("sites");
   std::string sitesDirName = argIn.GetStringKey("sitesdir");
@@ -146,8 +144,7 @@ const
 }
 
 /** Add level to a Mead grid. */
-int Exec_MEAD::addGridLevel(Cpptraj::Mead::MeadGrid& ogm, std::string const& ogmstr) {
-  using namespace Cpptraj::Mead;
+int Exec_MEAD::addGridLevel(MeadGrid& ogm, std::string const& ogmstr) {
   // Format: N,spacing[,centering]
   ArgList ogmarg( ogmstr, "," );
   if (ogmarg.Nargs() < 2) {
@@ -198,7 +195,6 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
   int verbose = argIn.getKeyInt("verbose", 0);
   MEAD.MeadVerbosity( verbose );
 
-  using namespace Cpptraj::Mead;
   MeadGrid ogm, mgm;
 
   std::string ogmstr = argIn.GetStringKey("ogm");
