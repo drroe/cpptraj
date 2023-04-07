@@ -26,7 +26,10 @@ class MeadGrid {
   private:
     FinDiffMethod* fdm_;
 
-    struct GridOpt {
+    class GridOpt {
+      public:
+      GridOpt(int n, float s, Center_Mode c) : npoints_(n), spacing_(s), mode_(c) {}
+      GridOpt(int n, float s, Vec3 const& v) : npoints_(n), spacing_(s), mode_(C_SPECIFIED), coord_(v) {}
       int npoints_;      ///< Number of points along an edge of grid
       float spacing_;    ///< Spacing between grid points
       Center_Mode mode_; ///< Grid centering mode
