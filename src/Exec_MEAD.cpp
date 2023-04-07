@@ -195,54 +195,27 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
   MEAD.MeadVerbosity( verbose );
 
   using namespace Cpptraj::Mead;
-  MeadGrid ogm;
+  MeadGrid ogm, mgm;
 
   std::string ogmstr = argIn.GetStringKey("ogm");
   while (!ogmstr.empty()) {
     if (addGridLevel(ogm, ogmstr)) return CpptrajState::ERR;
-/*
-    // Format: N,spacing[,centering]
-    ArgList ogmarg( ogmstr, "," );
-    if (ogmarg.Nargs() < 2) {
-      mprinterr("Error: Malformed ogm key; expected <N>,<spacing>\n");
-      return CpptrajState::ERR;
-    }
-    int ngridpts = convertToInteger( ogmarg[0] );
-    double spacing = convertToDouble( ogmarg[1] );
-    if ( ogmarg.Nargs() == 2) {
-      // No centering, default to origin
-      mprintf("\tAdding grid of %i points, spacing %g, center on origin.\n", ngridpts, spacing);
-      if (MEAD.AddGrid(ngridpts, spacing, Vec3(0,0,0))) {
-        mprinterr("Error: Adding MEAD grid.\n");
-        return CpptrajState::ERR;
-      }
-    } else if ( ogmarg.Nargs() == 3) {
-      MeadInterface::GridCenter_Mode gc;
-      // Center using string
-      if (ogmarg[2] == "o")
-        gc = MeadInterface::C_ON_ORIGIN;
-      else if (ogmarg[2] == "i")
-        gc = MeadInterface::C_ON_CENT_OF_INTR;
-      else if (ogmarg[2] == "g")
-        gc = MeadInterface::C_ON_GEOM_CENT;
-      else {
-        mprinterr("Error: Expected grid centering argument to be 'o', 'i', or 'g', got '%s'\n",
-                  ogmarg[2].c_str());
-        return CpptrajState::ERR;
-      }
-      mprintf("\tAdding grid of %i points, spacing %g, center on %s\n", ngridpts, spacing,
-              MeadInterface::GridCenter_ModeStr(gc));
-      if (MEAD.AddGrid(ngridpts, spacing, gc)) {
-        mprinterr("Error: Adding MEAD grid.\n");
-        return CpptrajState::ERR;
-      }
-    } else {
-      mprinterr("Error: Invalid centering argument for grid.\n");
-      return CpptrajState::ERR;
-    }*/
     ogmstr = argIn.GetStringKey("ogm");
   }
   ogm.Print();
+  if (!ogm.IsSetup()) {
+    mprinterr("Error: No grid set up (ogm).\n");
+    return CpptrajState::ERR;
+  }
+
+  std::string mgmstr = argIn.GetStringKey("mgm");
+  while (!mgmstr.empty()) {
+    if (addGridLevel(mgm, mgmstr)) return CpptrajState::ERR;
+    mgmstr = argIn.GetStringKey("mgm");
+  }
+  if (!mgm.IsSetup())
+    mgm = ogm;
+  mgm.Print();
 
   MeadInterface::Radii_Mode radiiMode;
   std::string radmode = argIn.GetStringKey("radii");
