@@ -20,6 +20,28 @@ MeadGrid::~MeadGrid() {
   if (fdm_ != 0) delete fdm_;
 }
 
+/** COPY CONSTRUCTOR */
+MeadGrid::MeadGrid( MeadGrid const& rhs ) :
+  fdm_(0)
+{
+  fdm_ = new FinDiffMethod();
+  for (std::vector<GridOpt>::const_iterator it = rhs.levelOpts_.begin();
+                                            it != rhs.levelOpts_.end(); ++it)
+    addGrid( *it );
+}
+
+/** ASSIGNMENT OPERATOR */
+MeadGrid& MeadGrid::operator=(MeadGrid const& rhs) {
+  if (this == &rhs) return *this;
+  if (fdm_ != 0) delete fdm_;
+  levelOpts_.clear();
+  fdm_ = new FinDiffMethod();
+  for (std::vector<GridOpt>::const_iterator it = rhs.levelOpts_.begin();
+                                            it != rhs.levelOpts_.end(); ++it)
+    addGrid( *it );
+  return *this;
+}
+
 /** Corresponds to enum Center_Mode */
 const char* MeadGrid::Center_ModeStr_[] = {
   "ON_ORIGIN", "ON_CENT_OF_INTR", "ON_GEOM_CENT", "SPECIFIED"
@@ -28,6 +50,14 @@ const char* MeadGrid::Center_ModeStr_[] = {
 /** \return Char string corresponding to Center_Mode */
 const char* MeadGrid::Center_ModeStr(Center_Mode gc) {
   return Center_ModeStr_[gc];
+}
+
+/** Add a grid to the FDM object. */
+int MeadGrid::addGrid(GridOpt const& go) {
+  if (go.mode_ == C_SPECIFIED)
+    return AddGrid(go.npoints_, go.spacing_, go.coord_);
+  else
+    return AddGrid(go.npoints_, go.spacing_, go.mode_);
 }
 
 /** Add a grid to the finite difference method object with explicit centering. */

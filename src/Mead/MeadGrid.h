@@ -22,6 +22,10 @@ class MeadGrid {
     MeadGrid();
     /// DESTRUCTOR
     ~MeadGrid();
+    /// COPY CONSTRUCTOR
+    MeadGrid(MeadGrid const&);
+    /// ASSIGNMENT
+    MeadGrid& operator=(MeadGrid const&);
     /// Add grid level to the FDM object with explicit centering
     int AddGrid(int, float, Vec3 const&);
     /// Add grid level to the FDM object with centering type
@@ -48,6 +52,9 @@ class MeadGrid {
       Center_Mode mode_; ///< Grid centering mode
       Vec3 coord_;       ///< Coordinates if centering mode is C_SPECIFIED
     };
+
+    int addGrid(GridOpt const&);
+
     std::vector<GridOpt> levelOpts_; ///< Grid options for each level of grid
 };
 }
