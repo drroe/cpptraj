@@ -32,6 +32,8 @@ class MeadGrid {
     int Resolve(Coord const&, Coord const&) const;
     /// \return True if grid has been set up
     bool IsSetup() const { return fdm_ != 0; }
+    /// \return Underlying FinDiffMethod class
+    FinDiffMethod const& FDM() const { return *fdm_; }
   private:
     static const char* Center_ModeStr_[]; ///< Hold strings corresponding to Center_Mode
 

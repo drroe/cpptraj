@@ -59,6 +59,9 @@ int MeadGrid::AddGrid(int ngrd, float spc, Center_Mode ctrmode)
     case C_ON_ORIGIN       : censtl = ON_ORIGIN; break;
     case C_ON_CENT_OF_INTR : censtl = ON_CENT_OF_INTR; break;
     case C_ON_GEOM_CENT    : censtl = ON_GEOM_CENT; break;
+    case C_SPECIFIED:
+      mprinterr("Internal Error: MeadGrid::AddGrid called with C_SPECIFIED and no coords.\n");
+      return 1;
   }
   try {
     fdm_->add_level( ngrd, spc, censtl );
