@@ -5,6 +5,8 @@
 #include "StringRoutines.h"
 #include "Structure/TitrationData.h"
 #include "Structure/TitratableSite.h"
+#include "Mead/MeadGrid.h"
+#include "Mead/MeadOpts.h"
 
 // Exec_MEAD::Help()
 void Exec_MEAD::Help() const
@@ -26,10 +28,10 @@ void Exec_MEAD::Help() const
 /** Check MEAD is properly set up. */
 int Exec_MEAD::CheckMead(Cpptraj::MeadInterface const& MEAD) {
   // Sanity checks
-  if (!MEAD.HasFDM()) {
-    mprinterr("Error: No MEAD grid allocated.\n");
-    return 1;
-  }
+  //if (!MEAD.HasFDM()) {
+  //  mprinterr("Error: No MEAD grid allocated.\n");
+  //  return 1;
+  //}
   if (!MEAD.HasAtoms()) {
     mprinterr("Error: No MEAD atoms allocated.\n");
     return 1;
@@ -38,21 +40,23 @@ int Exec_MEAD::CheckMead(Cpptraj::MeadInterface const& MEAD) {
 }
 
 /** MEAD solvate. */
-int Exec_MEAD::Solvate(Cpptraj::MeadInterface& MEAD, ArgList& argIn, DataSet* outset, DataSet_3D* rgrid)
+int Exec_MEAD::Solvate(Cpptraj::MeadInterface& MEAD, Cpptraj::Mead::MeadGrid const& ogm, ArgList& argIn, DataSet* outset, DataSet_3D* rgrid)
 const
 {
-  if (CheckMead( MEAD )) return 1;
+  using namespace Cpptraj::Mead;
+  //if (CheckMead( MEAD )) return 1; FIXME add check
 
-  double epsin = argIn.getKeyDouble("epsin", 1);
-  double epssol = argIn.getKeyDouble("epssol", 80);
-  double epsvac = argIn.getKeyDouble("epsvac", 1);
-  double solrad = argIn.getKeyDouble("solrad", 1.4);
-  double sterln = argIn.getKeyDouble("sterln", 2.0);
-  double ionicstr = argIn.getKeyDouble("ionicstr", 0.0);
-  double temperature = argIn.getKeyDouble("temp", 300.0);
+  MeadOpts Opts;
+  Opts.SetEpsIn(argIn.getKeyDouble("epsin", 1));
+  Opts.SetEpsExt(argIn.getKeyDouble("epssol", 80));
+  Opts.SetEpsVac(argIn.getKeyDouble("epsvac", 1));
+  Opts.SetSolRad(argIn.getKeyDouble("solrad", 1.4));
+  Opts.SetSterLn(argIn.getKeyDouble("sterln", 2.0));
+  Opts.SetIonicStr(argIn.getKeyDouble("ionicstr", 0.0));
+  Opts.SetTemperature(argIn.getKeyDouble("temp", 300.0));
 
   double Esolv = 0;
-  int err = MEAD.Solvate(Esolv, epsin, epssol, epsvac, solrad, sterln, ionicstr, temperature, rgrid);
+  int err = MEAD.Solvate(Esolv, Opts, ogm, rgrid);
 
   if (err != 0) return 1;
   outset->Add(0, &Esolv);
@@ -60,11 +64,13 @@ const
 }
 
 /** MEAD potential. */
-int Exec_MEAD::Potential(Cpptraj::MeadInterface& MEAD, ArgList& argIn, DataSet_Vector_Scalar& outset) const {
-  if (CheckMead( MEAD )) return 1;
-
-  double epsin = argIn.getKeyDouble("epsin", 1);
-  double epsext = argIn.getKeyDouble("epsext", 80);
+int Exec_MEAD::Potential(Cpptraj::MeadInterface& MEAD, Cpptraj::Mead::MeadGrid const& ogm, ArgList& argIn, DataSet_Vector_Scalar& outset) const {
+  //if (CheckMead( MEAD )) return 1; FIXME add check
+  using namespace Cpptraj::Mead;
+ 
+  MeadOpts Opts; 
+  Opts.SetEpsIn(argIn.getKeyDouble("epsin", 1));
+  Opts.SetEpsExt(argIn.getKeyDouble("epsext", 80));
 
   std::vector<Vec3> fieldPoints;
   std::string fptstr = argIn.GetStringKey("fpt");
@@ -88,7 +94,7 @@ int Exec_MEAD::Potential(Cpptraj::MeadInterface& MEAD, ArgList& argIn, DataSet_V
   if (fieldPoints.empty()) {
     mprintf("Warning: No field points specified.\n");
   } else {
-    if (MEAD.Potential(outset, epsin, epsext, fieldPoints)) {
+    if (MEAD.Potential(outset, Opts, ogm, fieldPoints)) {
       mprinterr("Error: Could not process MEAD field points.\n");
       return 1;
     }
@@ -136,6 +142,50 @@ const
   return 0;
 }
 
+int Exec_MEAD::addGridLevel(Cpptraj::Mead::MeadGrid& ogm, std::string const& ogmstr) {
+  using namespace Cpptraj::Mead;
+  // Format: N,spacing[,centering]
+  ArgList ogmarg( ogmstr, "," );
+  if (ogmarg.Nargs() < 2) {
+    mprinterr("Error: Malformed ogm key; expected <N>,<spacing>\n");
+    return 1;
+  }
+  int ngridpts = convertToInteger( ogmarg[0] );
+  double spacing = convertToDouble( ogmarg[1] );
+  if ( ogmarg.Nargs() == 2) {
+    // No centering, default to origin
+    mprintf("\tAdding grid of %i points, spacing %g, center on origin.\n", ngridpts, spacing);
+    if (ogm.AddGrid(ngridpts, spacing, Vec3(0,0,0))) {
+      mprinterr("Error: Adding MEAD grid.\n");
+      return 1;
+    }
+  } else if ( ogmarg.Nargs() == 3) {
+    MeadGrid::Center_Mode gc;
+    // Center using string
+    if (ogmarg[2] == "o")
+      gc = MeadGrid::C_ON_ORIGIN;
+    else if (ogmarg[2] == "i")
+      gc = MeadGrid::C_ON_CENT_OF_INTR;
+    else if (ogmarg[2] == "g")
+      gc = MeadGrid::C_ON_GEOM_CENT;
+    else {
+      mprinterr("Error: Expected grid centering argument to be 'o', 'i', or 'g', got '%s'\n",
+                ogmarg[2].c_str());
+      return 1;
+    }
+    mprintf("\tAdding grid of %i points, spacing %g, center on %s\n", ngridpts, spacing,
+            MeadGrid::Center_ModeStr(gc));
+    if (ogm.AddGrid(ngridpts, spacing, gc)) {
+      mprinterr("Error: Adding MEAD grid.\n");
+      return 1;
+    }
+  } else {
+    mprinterr("Error: Invalid centering argument for grid.\n");
+    return 1;
+  }
+  return 0;
+}
+
 // Exec_MEAD::Execute()
 Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
 {
@@ -144,8 +194,13 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
   int verbose = argIn.getKeyInt("verbose", 0);
   MEAD.MeadVerbosity( verbose );
 
+  using namespace Cpptraj::Mead;
+  MeadGrid ogm;
+
   std::string ogmstr = argIn.GetStringKey("ogm");
   while (!ogmstr.empty()) {
+    if (addGridLevel(ogm, ogmstr)) return CpptrajState::ERR;
+/*
     // Format: N,spacing[,centering]
     ArgList ogmarg( ogmstr, "," );
     if (ogmarg.Nargs() < 2) {
@@ -184,9 +239,10 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
     } else {
       mprinterr("Error: Invalid centering argument for grid.\n");
       return CpptrajState::ERR;
-    }
+    }*/
     ogmstr = argIn.GetStringKey("ogm");
   }
+  ogm.Print();
 
   MeadInterface::Radii_Mode radiiMode;
   std::string radmode = argIn.GetStringKey("radii");
@@ -245,7 +301,7 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
     }
     if (outfile != 0)
       outfile->AddDataSet( (DataSet*)outset );
-    err = Potential( MEAD, argIn, *outset );
+    err = Potential( MEAD, ogm, argIn, *outset );
   } else if (argIn.hasKey("solvate")) {
     // Allocate output set(s)
     if (outSetName.empty())
@@ -267,7 +323,7 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
       }
       rgrid = (DataSet_3D*)ds;
     }
-    err = Solvate( MEAD, argIn, outset, rgrid );
+    err = Solvate( MEAD, ogm, argIn, outset, rgrid );
   } else if (argIn.hasKey("multiflex")) {
     /// Allocate output sets
     if (outSetName.empty())

@@ -10,6 +10,7 @@
 #include "Structure/TitrationData.h"
 #include "Structure/TitratableSite.h"
 #include "Mead/MeadOpts.h"
+#include "Mead/MeadGrid.h"
 // MEAD includes
 #include "../mead/FinDiffMethod.h"
 #include "../mead/MEADexcept.h"
@@ -182,8 +183,8 @@ int MeadInterface::SetupAtoms(Topology const& topIn, Frame const& frameIn, Radii
 
 /** Print debug info. */
 void MeadInterface::Print() const {
-  std::cout << *fdm_;
-  std::cout << *mgm_;
+  //std::cout << *fdm_;
+  //std::cout << *mgm_;
 }
 
 /** Set verbosity of underlying MEAD library. */
@@ -689,21 +690,22 @@ const
   * \param epsext External dielectric.
   * \param fieldPoints Coordinates to evaluate the potential at.
   */
-int MeadInterface::Potential(DataSet_Vector_Scalar& values, double epsin, double epsext, std::vector<Vec3> const& fieldPoints)
+int MeadInterface::Potential(DataSet_Vector_Scalar& values, Cpptraj::Mead::MeadOpts const& Opts,
+                             Cpptraj::Mead::MeadGrid const& ogm, std::vector<Vec3> const& fieldPoints)
 const
 {
   values.reset();
   values.Allocate( DataSet::SizeArray(1, fieldPoints.size()) );
   try {
-    PhysCond::set_epsext(epsext);
+    PhysCond::set_epsext(Opts.EpsExt());
     ChargeDist_lett* prho = new AtomChargeSet( *atomset_ );
-    DielectricEnvironment_lett* peps = new TwoValueDielectricByAtoms( *atomset_, epsin );
+    DielectricEnvironment_lett* peps = new TwoValueDielectricByAtoms( *atomset_, Opts.EpsIn() );
     ElectrolyteEnvironment_lett* pely = new ElectrolyteByAtoms( *atomset_ );
     //AtomChargeSet* prho = new AtomChargeSet( *atomset_ );
     //TwoValueDielectricByAtoms* peps = new TwoValueDielectricByAtoms( *atomset_, epsin );
     //ElectrolyteByAtoms* pely = new ElectrolyteByAtoms( *atomset_ );
 
-    FinDiffElstatPot phi( *fdm_, peps, prho, pely );
+    FinDiffElstatPot phi( ogm.FDM(), peps, prho, pely );
     /*
     if (initfield.length()) {
     string ffn = initfield;
@@ -760,7 +762,7 @@ const
   * \param rxnField If not null, calculate reaction field for given grid at all grid points.
   */
 int MeadInterface::Solvate(double& Esolv, Cpptraj::Mead::MeadOpts const& Opts,
-                           DataSet_3D* rxnField)
+                           Cpptraj::Mead::MeadGrid const& ogm, DataSet_3D* rxnField)
 const
 {
   Esolv = 0;
@@ -782,7 +784,7 @@ const
     // Solvent
     DielectricEnvironment eps(new TwoValueDielectricByAtoms(*atomset_, Opts.EpsIn()));
     ElectrolyteEnvironment ely(new ElectrolyteByAtoms(*atomset_));
-    ElstatPot phi(*fdm_, eps, rho, ely);
+    ElstatPot phi(ogm.FDM(), eps, rho, ely);
     phi.solve();
     float prod_sol = phi * rho;
     mprintf("DEBUG: prod_sol= %f\n", prod_sol);
@@ -792,7 +794,7 @@ const
     PhysCond::set_ionicstr(0.0);
     DielectricEnvironment vac_eps(new TwoValueDielectricByAtoms(*atomset_, Opts.EpsIn()));
     ElectrolyteEnvironment elyvac;  // No electrolyte is the default
-    ElstatPot vac_phi(*fdm_, vac_eps, rho, elyvac);
+    ElstatPot vac_phi(ogm.FDM(), vac_eps, rho, elyvac);
     vac_phi.solve();
     float prod_vac = vac_phi * rho;
     mprintf("DEBUG: prod_vac= %f\n", prod_vac);

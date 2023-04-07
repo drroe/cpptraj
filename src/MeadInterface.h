@@ -24,6 +24,7 @@ class TitrationData;
 }
 namespace Mead {
 class MeadOpts;
+class MeadGrid;
 }
 /// Class to interface with libmead.a
 class MeadInterface {
@@ -58,9 +59,9 @@ class MeadInterface {
     bool HasAtoms() const { return atomset_ != 0; }
 
     /// Run potential calc
-    int Potential(DataSet_Vector_Scalar&, double, double, std::vector<Vec3> const&) const;
+    int Potential(DataSet_Vector_Scalar&, Mead::MeadOpts const&, Mead::MeadGrid const&, std::vector<Vec3> const&) const;
     /// Run solvate calc
-    int Solvate(double&, Mead::MeadOpts const&, DataSet_3D*) const;
+    int Solvate(double&, Mead::MeadOpts const&, Mead::MeadGrid const&, DataSet_3D*) const;
     /// Run multiflex calc
     int MultiFlex(MultiFlexResults const&, double, double, double, double, double, Topology const&, Frame const&, Structure::TitrationData const&, Radii_Mode) const;
   private:
