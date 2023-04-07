@@ -15,7 +15,7 @@ class MeadGrid {
                        C_ON_GEOM_CENT,     ///< Center on molecule center
                        C_SPECIFIED         ///< Center on specified coordinate
                      };
-    /// \return Character string corresponding to GridCenter_Mode
+    /// \return Character string corresponding to Center_Mode
     static const char* Center_ModeStr(Center_Mode);
 
     MeadGrid();
@@ -23,7 +23,11 @@ class MeadGrid {
     int AddGrid(int, float, Vec3 const&);
     /// Add grid level to the FDM object with centering type
     int AddGrid(int, float, Center_Mode);
+    /// Print to stdout
+    void Print() const;
   private:
+    static const char* Center_ModeStr_[]; ///< Hold strings corresponding to Center_Mode
+
     FinDiffMethod* fdm_;
 
     class GridOpt {

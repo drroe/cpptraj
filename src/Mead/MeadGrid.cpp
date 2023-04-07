@@ -1,8 +1,11 @@
 #include "MeadGrid.h"
 #include "MeadError.h"
+#include "../CpptrajStdio.h"
 // MEAD includes
 #include "../../mead/FinDiffMethod.h"
 #include "../../mead/MEADexcept.h"
+// For debug print
+#include <iostream>
 
 using namespace Cpptraj::Mead;
 /** CONSTRUCTOR */
@@ -10,6 +13,16 @@ MeadGrid::MeadGrid() :
   fdm_(0)
 {
   levelOpts_.reserve(3);
+}
+
+/** Corresponds to enum Center_Mode */
+const char* MeadGrid::Center_ModeStr_[] = {
+  "ON_ORIGIN", "ON_CENT_OF_INTR", "ON_GEOM_CENT", "SPECIFIED"
+};
+
+/** \return Char string corresponding to Center_Mode */
+const char* MeadGrid::Center_ModeStr(Center_Mode gc) {
+  return Center_ModeStr_[gc];
 }
 
 /** Add a grid to the finite difference method object with explicit centering. */
@@ -52,3 +65,10 @@ int MeadGrid::AddGrid(int ngrd, float spc, Center_Mode ctrmode)
   return 0;
 }
 
+/** Print to stdout. */
+void MeadGrid::Print() const {
+  mprintf("Grid Options:\n");
+  if (fdm_ != 0) {
+    std::cout << *fdm_;
+  }
+}
