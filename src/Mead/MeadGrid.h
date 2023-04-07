@@ -4,6 +4,7 @@
 #include "../Vec3.h"
 // MEAD fwd declares
 class FinDiffMethod;
+class Coord;
 namespace Cpptraj {
 namespace Mead {
 /// Wrapper around the MEAD FinDiffMethod (grid) class
@@ -27,6 +28,8 @@ class MeadGrid {
     int AddGrid(int, float, Center_Mode);
     /// Print to stdout
     void Print() const;
+    /// Resolve underlying FDM object on given coords
+    int Resolve(Coord const&, Coord const&) const;
   private:
     static const char* Center_ModeStr_[]; ///< Hold strings corresponding to Center_Mode
 

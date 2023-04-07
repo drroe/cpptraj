@@ -77,3 +77,16 @@ void MeadGrid::Print() const {
     std::cout << *fdm_;
   }
 }
+
+/** Resolve on given coords. */
+int MeadGrid::Resolve(Coord const& geom_center, Coord const& site_of_interest)
+const
+{
+  //try {
+    fdm_->resolve( geom_center, site_of_interest );
+  //}
+  //catch (MEADexcept& e) {
+  //  return ERR("Resolve()");
+  //}
+  return 0;
+}
