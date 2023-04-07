@@ -15,6 +15,11 @@ MeadGrid::MeadGrid() :
   levelOpts_.reserve(3);
 }
 
+/** DESTRUCTOR */
+MeadGrid::~MeadGrid() {
+  if (fdm_ != 0) delete fdm_;
+}
+
 /** Corresponds to enum Center_Mode */
 const char* MeadGrid::Center_ModeStr_[] = {
   "ON_ORIGIN", "ON_CENT_OF_INTR", "ON_GEOM_CENT", "SPECIFIED"

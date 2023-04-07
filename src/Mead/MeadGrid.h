@@ -17,8 +17,10 @@ class MeadGrid {
                      };
     /// \return Character string corresponding to Center_Mode
     static const char* Center_ModeStr(Center_Mode);
-
+    /// CONSTRUCTOR
     MeadGrid();
+    /// DESTRUCTOR
+    ~MeadGrid();
     /// Add grid level to the FDM object with explicit centering
     int AddGrid(int, float, Vec3 const&);
     /// Add grid level to the FDM object with centering type
