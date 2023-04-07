@@ -28,27 +28,13 @@
 
 using namespace Cpptraj;
 
-/** Corresponds to enum GridCenter_Mode */
-const char* MeadInterface::GridCenter_ModeStr_[] = {
-  "ON_ORIGIN", "ON_CENT_OF_INTR", "ON_GEOM_CENT"
-};
-
-/** \return Char string corresponding to GridCenter_Mode */
-const char* MeadInterface::GridCenter_ModeStr(GridCenter_Mode gc) {
-  return GridCenter_ModeStr_[gc];
-}
-
 /** CONSTRUCTOR */
 MeadInterface::MeadInterface() :
-  fdm_(0),
-  mgm_(0),
   atomset_(0)
 { }
 
 /** DESTRUCTOR */
 MeadInterface::~MeadInterface() {
-  if (fdm_ != 0) delete fdm_;
-  if (mgm_ != 0) delete mgm_;
   if (atomset_ != 0) delete atomset_;
 }
 
@@ -59,48 +45,6 @@ int MeadInterface::ERR(const char* fxn, MEADexcept& e) {
               e.get_error2().c_str(),
               e.get_error3().c_str());
   return 1;
-}
-
-/** Add a grid to the finite difference method object with explicit centering. */
-int MeadInterface::AddGrid(int ngrd, float spc, Vec3 const& cntr)
-{
-  if (fdm_ == 0) {
-    fdm_ = new FinDiffMethod();
-    mgm_ = new FinDiffMethod();
-  }
-
-  try { 
-    fdm_->add_level( ngrd, spc, Coord(cntr[0], cntr[1], cntr[2]) );
-    mgm_->add_level( ngrd, spc, Coord(cntr[0], cntr[1], cntr[2]) );
-  }
-  catch (MEADexcept& e) {
-    return ERR("AddGrid(coord)", e);
-  }
-  return 0;
-}
-
-/** Add a grid to the finite difference method object with centering string. */
-int MeadInterface::AddGrid(int ngrd, float spc, GridCenter_Mode ctrmode)
-{
-  if (fdm_ == 0) {
-    fdm_ = new FinDiffMethod();
-    mgm_ = new FinDiffMethod();
-  }
-
-  CenteringStyle censtl;
-  switch (ctrmode) {
-    case C_ON_ORIGIN       : censtl = ON_ORIGIN; break;
-    case C_ON_CENT_OF_INTR : censtl = ON_CENT_OF_INTR; break;
-    case C_ON_GEOM_CENT    : censtl = ON_GEOM_CENT; break;
-  }
-  try {
-    fdm_->add_level( ngrd, spc, censtl );
-    mgm_->add_level( ngrd, spc, censtl );
-  }
-  catch (MEADexcept& e) {
-    return ERR("AddGrid(style)", e);
-  }
-  return 0;
 }
 
 /** Set MEAD Atom from Topology Atom. */
