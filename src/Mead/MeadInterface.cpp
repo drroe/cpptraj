@@ -1,4 +1,4 @@
-#include "MeadError.h"
+#include "MeadInterface.h"
 #include "../CpptrajStdio.h"
 #include "../../mead/MEADexcept.h"
 

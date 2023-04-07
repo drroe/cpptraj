@@ -1,5 +1,5 @@
 #include "MeadGrid.h"
-#include "MeadError.h"
+#include "MeadInterface.h"
 #include "../CpptrajStdio.h"
 // MEAD includes
 #include "../../mead/FinDiffMethod.h"

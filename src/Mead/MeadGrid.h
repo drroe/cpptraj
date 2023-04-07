@@ -30,6 +30,8 @@ class MeadGrid {
     void Print() const;
     /// Resolve underlying FDM object on given coords
     int Resolve(Coord const&, Coord const&) const;
+    /// \return True if grid has been set up
+    bool IsSetup() const { return fdm_ != 0; }
   private:
     static const char* Center_ModeStr_[]; ///< Hold strings corresponding to Center_Mode
 
