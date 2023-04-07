@@ -1,6 +1,5 @@
 # Files for Mead subdirectory.
 MEAD_SOURCES= \
-  MeadAtoms.cpp \
+  MeadError.cpp \
   MeadGrid.cpp \
-  MeadInterface.cpp \
   MeadOpts.cpp
