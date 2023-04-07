@@ -20,7 +20,7 @@ class Exec_MEAD : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_MEAD(); }
     RetType Execute(CpptrajState&, ArgList&);
   private:
-    static int CheckMead(Cpptraj::Mead::MeadInterface const&);
+    static int CheckMead(Cpptraj::Mead::MeadInterface const&, Cpptraj::Mead::MeadGrid const&);
     int Solvate(Cpptraj::Mead::MeadInterface&, Cpptraj::Mead::MeadGrid const&,
                 ArgList&, DataSet*, DataSet_3D*) const;
     int Potential(Cpptraj::Mead::MeadInterface&, Cpptraj::Mead::MeadGrid const&,
@@ -30,5 +30,6 @@ class Exec_MEAD : public Exec {
                   ArgList&, Topology const&, Frame const&,
                   Cpptraj::Mead::MultiFlexResults const&) const;
     static int addGridLevel(Cpptraj::Mead::MeadGrid&, std::string const&);
+    static int setup_grid_from_coords(Cpptraj::Mead::MeadGrid&, Frame const&);
 };
 #endif

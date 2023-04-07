@@ -1,12 +1,14 @@
 #include "Exec_MEAD.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
+#include "DistRoutines.h"
 #include "Structure/TitrationData.h"
 #include "Structure/TitratableSite.h"
 #include "Mead/MeadGrid.h"
 #include "Mead/MeadOpts.h"
 #include "Mead/MultiFlexResults.h"
 #include "Mead/MeadInterface.h"
+#include <cmath> //sqrt
 
 using namespace Cpptraj::Mead;
 
@@ -28,12 +30,12 @@ void Exec_MEAD::Help() const
 }
 
 /** Check MEAD is properly set up. */
-int Exec_MEAD::CheckMead(MeadInterface const& MEAD) {
+int Exec_MEAD::CheckMead(MeadInterface const& MEAD, MeadGrid const& ogm) {
   // Sanity checks
-  //if (!MEAD.HasFDM()) {
-  //  mprinterr("Error: No MEAD grid allocated.\n");
-  //  return 1;
-  //}
+  if (!ogm.IsSetup()) {
+    mprinterr("Error: No MEAD grid set up (ogm).\n");
+    return 1;
+  }
   if (!MEAD.HasAtoms()) {
     mprinterr("Error: No MEAD atoms allocated.\n");
     return 1;
@@ -42,10 +44,11 @@ int Exec_MEAD::CheckMead(MeadInterface const& MEAD) {
 }
 
 /** MEAD solvate. */
-int Exec_MEAD::Solvate(MeadInterface& MEAD, MeadGrid const& ogm, ArgList& argIn, DataSet* outset, DataSet_3D* rgrid)
+int Exec_MEAD::Solvate(MeadInterface& MEAD, MeadGrid const& ogm,
+                       ArgList& argIn, DataSet* outset, DataSet_3D* rgrid)
 const
 {
-  //if (CheckMead( MEAD )) return 1; FIXME add check
+  if (CheckMead( MEAD, ogm )) return 1;
 
   MeadOpts Opts;
   Opts.SetEpsIn(argIn.getKeyDouble("epsin", 1));
@@ -65,8 +68,11 @@ const
 }
 
 /** MEAD potential. */
-int Exec_MEAD::Potential(MeadInterface& MEAD, MeadGrid const& ogm, ArgList& argIn, DataSet_Vector_Scalar& outset) const {
-  //if (CheckMead( MEAD )) return 1; FIXME add check
+int Exec_MEAD::Potential(MeadInterface& MEAD, MeadGrid const& ogm,
+                         ArgList& argIn, DataSet_Vector_Scalar& outset)
+const
+{
+  if (CheckMead( MEAD, ogm )) return 1;
  
   MeadOpts Opts; 
   Opts.SetEpsIn(argIn.getKeyDouble("epsin", 1));
@@ -109,6 +115,7 @@ int Exec_MEAD::MultiFlex(MeadInterface& MEAD, MeadGrid const& ogm, MeadGrid cons
                          MultiFlexResults const& results)
 const
 {
+  if (CheckMead( MEAD, ogm )) return 1;
   using namespace Cpptraj::Structure;
 
   MeadOpts Opts;
@@ -187,6 +194,41 @@ int Exec_MEAD::addGridLevel(MeadGrid& ogm, std::string const& ogmstr) {
   return 0;
 }
 
+/** Set up MEAD grid based on furthest atom-atom distance. */
+int Exec_MEAD::setup_grid_from_coords(MeadGrid& ogm, Frame const& frameIn) {
+  double maxdist2 = 0;
+  int maxat1 = -1;
+  int maxat2 = -1;
+  for (int at1 = 0; at1 < frameIn.Natom(); at1++) {
+    const double* xyz1 = frameIn.XYZ(at1);
+    for (int at2 = at1 + 1; at2 < frameIn.Natom(); at2++) {
+      const double* xyz2 = frameIn.XYZ(at2);
+      double dist2 = DIST2_NoImage(xyz1, xyz2);
+      if (dist2 > maxdist2) {
+        maxdist2 = dist2;
+        maxat1 = at1;
+        maxat2 = at2;
+      }
+    }
+  }
+  double max = sqrt(maxdist2);
+  mprintf("\tMax distance is %g Ang. between atoms %i and %i.\n", max, maxat1+1, maxat2+1);
+  max = int(max + 5);
+  int ival = (int)max;
+  ival = ival % 2;
+  if (ival == 0)
+    max = max + 1;
+
+  mprintf("\tMAX= %g\n", max);
+  ogm.AddGrid(max, 8.0, MeadGrid::C_ON_GEOM_CENT);
+  ogm.AddGrid(max, 2.0, MeadGrid::C_ON_CENT_OF_INTR);
+  ogm.AddGrid(max, 0.5, MeadGrid::C_ON_CENT_OF_INTR);
+
+  return 0;
+}
+ 
+
+
 // Exec_MEAD::Execute()
 Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
 {
@@ -196,27 +238,18 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
   MEAD.MeadVerbosity( verbose );
 
   MeadGrid ogm, mgm;
-
   std::string ogmstr = argIn.GetStringKey("ogm");
   while (!ogmstr.empty()) {
     if (addGridLevel(ogm, ogmstr)) return CpptrajState::ERR;
     ogmstr = argIn.GetStringKey("ogm");
   }
-  ogm.Print();
-  if (!ogm.IsSetup()) {
-    mprinterr("Error: No grid set up (ogm).\n");
-    return CpptrajState::ERR;
-  }
-
+  
   std::string mgmstr = argIn.GetStringKey("mgm");
   while (!mgmstr.empty()) {
     if (addGridLevel(mgm, mgmstr)) return CpptrajState::ERR;
     mgmstr = argIn.GetStringKey("mgm");
   }
-  if (!mgm.IsSetup())
-    mgm = ogm;
-  mgm.Print();
-
+  
   MeadInterface::Radii_Mode radiiMode;
   std::string radmode = argIn.GetStringKey("radii");
   if (radmode == "gb")
@@ -258,6 +291,16 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR; 
   }
 
+  // Set up grid if needed
+  if (!ogm.IsSetup()) {
+    mprintf("\tPerforming automatic grid setup.\n");
+    if (setup_grid_from_coords(ogm, frameIn)) {
+      mprinterr("Error: Automatic grid setup failed.\n");
+      return CpptrajState::ERR;
+    }
+  }
+  ogm.Print();
+
   DataFile* outfile = State.DFL().AddDataFile( argIn.GetStringKey("out"), argIn );
 
   MEAD.Print();
@@ -298,6 +341,9 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
     }
     err = Solvate( MEAD, ogm, argIn, outset, rgrid );
   } else if (argIn.hasKey("multiflex")) {
+    if (!mgm.IsSetup())
+      mgm = ogm;
+     mgm.Print();
     /// Allocate output sets
     if (outSetName.empty())
       outSetName = State.DSL().GenerateDefaultName("MULTIFLEX");
