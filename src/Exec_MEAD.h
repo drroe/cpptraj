@@ -23,7 +23,7 @@ class Exec_MEAD : public Exec {
     static int CheckMead(Cpptraj::MeadInterface const&);
     int Solvate(Cpptraj::MeadInterface&, Cpptraj::Mead::MeadGrid const&, ArgList&, DataSet*, DataSet_3D*) const;
     int Potential(Cpptraj::MeadInterface&, Cpptraj::Mead::MeadGrid const&, ArgList&, DataSet_Vector_Scalar&) const;
-    int MultiFlex(Cpptraj::MeadInterface&, ArgList&, Topology const&, Frame const&, int, Cpptraj::MultiFlexResults const&) const;
+    int MultiFlex(Cpptraj::MeadInterface&, Cpptraj::Mead::MeadGrid const&, Cpptraj::Mead::MeadGrid const&, ArgList&, Topology const&, Frame const&, int, Cpptraj::MultiFlexResults const&) const;
     static int addGridLevel(Cpptraj::Mead::MeadGrid&, std::string const&);
 };
 #endif

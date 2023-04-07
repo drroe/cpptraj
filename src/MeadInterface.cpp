@@ -457,8 +457,8 @@ int MeadInterface::setup_titration_calcs(std::vector<TitrationCalc>& Sites,
 
 /** Run multiflex calc. */
 int MeadInterface::MultiFlex(MultiFlexResults const& results,
-                             double epsIn, double epsSol,
-                             double solRad, double sterln, double ionicStr,
+                             Mead::MeadOpts const& Opts,
+                             Mead::MeadGrid const& ogm, Mead::MeadGrid const& mgm,
                              Topology const& topIn, Frame const& frameIn,
                              Structure::TitrationData const& titrationData,
                              Radii_Mode radiiMode)
@@ -475,10 +475,10 @@ const
   Coord geom_center(vgeom_center[0], vgeom_center[1], vgeom_center[2]);
 
   try {
-    PhysCond::set_epsext(epsSol);
-    PhysCond::set_solrad(solRad);
-    PhysCond::set_sterln(sterln);
-    PhysCond::set_ionicstr(ionicStr);
+    PhysCond::set_epsext(Opts.EpsExt());
+    PhysCond::set_solrad(Opts.SolRad());
+    PhysCond::set_sterln(Opts.SterLn());
+    PhysCond::set_ionicstr(Opts.IonicStr());
 
     PhysCond::print();
 
@@ -497,7 +497,7 @@ const
     SiteSiteInteractionMatrix.resize( Sites.size() );
     Dmatrix::iterator ssi_row_it = SiteSiteInteractionMatrix.begin();
     // NOTE: In this context, *atomset_ is equivalent to atlist in multiflex.cc:FD2DielEMaker
-    DielectricEnvironment_lett* eps = new TwoValueDielectricByAtoms( *atomset_, epsIn );
+    DielectricEnvironment_lett* eps = new TwoValueDielectricByAtoms( *atomset_, Opts.EpsIn() );
     ElectrolyteEnvironment_lett* ely = new ElectrolyteByAtoms( *atomset_ );
 
     // Loop over titration sites
@@ -516,7 +516,7 @@ const
         return 1;
       }
       // ----- Refocus the grid --------------
-      fdm_->resolve( geom_center, tSite->SiteOfInterest() );
+      ogm.Resolve( geom_center, tSite->SiteOfInterest() );
       // Set up charges for each state and point to the reference state
       AtomChargeSet const& charge_state1 = tSite->ChargeState1();
       AtomChargeSet const& charge_state2 = tSite->ChargeState2();
@@ -529,7 +529,7 @@ const
       if (charge_state1.has_charges()) {
         // TODO check for different atoms/coords
         ChargeDist rho1(new AtomChargeSet(charge_state1));
-        ElstatPot phi1(*fdm_, eps, rho1, ely);
+        ElstatPot phi1(ogm.FDM(), eps, rho1, ely);
         phi1.solve();
         OutPotat* state1_pot = new OutPotat(*atomset_, phi1);
         // DEBUG Print potential at atoms
@@ -550,7 +550,7 @@ const
       if (charge_state2.has_charges()) {
         // TODO check for different atoms/coords
         ChargeDist rho2(new AtomChargeSet(charge_state2));
-        ElstatPot phi2(*fdm_, eps, rho2, ely);
+        ElstatPot phi2(ogm.FDM(), eps, rho2, ely);
         phi2.solve();
         OutPotat* state2_pot = new OutPotat(*atomset_, phi2);
         macself2 = (*state2_pot) * charge_state2;
@@ -564,9 +564,9 @@ const
       }
       //mprintf("macself2= %g  macback2= %g\n", macself2, macback2);
       // ----- Refocus the model grid --------
-      mgm_->resolve( geom_center, tSite->SiteOfInterest() );
+      mgm.Resolve( geom_center, tSite->SiteOfInterest() );
       // Model dielectric environment
-      DielectricEnvironment_lett* model_eps = new TwoValueDielectricByAtoms( model_compound, epsIn );
+      DielectricEnvironment_lett* model_eps = new TwoValueDielectricByAtoms( model_compound, Opts.EpsIn() );
       ElectrolyteEnvironment_lett* model_ely = new ElectrolyteByAtoms( model_compound );
       // Any atoms that are "titrating" in *this* site should be zero in
       // the background set.  This requires adjustment...
@@ -578,7 +578,7 @@ const
       double modback1 = 0;
       if (charge_state1.has_charges()) {
         ChargeDist rho1(new AtomChargeSet(charge_state1));
-        ElstatPot phi1(*mgm_, model_eps, rho1, model_ely);
+        ElstatPot phi1(mgm.FDM(), model_eps, rho1, model_ely);
         phi1.solve();
         OutPotat* mod1_pot = new OutPotat(model_compound, phi1);
         modself1 = (*mod1_pot) * charge_state1;
@@ -592,7 +592,7 @@ const
       double modback2 = 0;
       if (charge_state2.has_charges()) {
         ChargeDist rho2(new AtomChargeSet(charge_state2));
-        ElstatPot phi2(*mgm_, model_eps, rho2, model_ely);
+        ElstatPot phi2(mgm.FDM(), model_eps, rho2, model_ely);
         phi2.solve();
         OutPotat* mod2_pot = new OutPotat(model_compound, phi2);
         modself2 = (*mod2_pot) * charge_state2;
