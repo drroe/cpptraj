@@ -1,5 +1,5 @@
-#ifndef INC_MULTIFLEXRESULTS_H
-#define INC_MULTIFLEXRESULTS_H
+#ifndef INC_MEAD_MULTIFLEXRESULTS_H
+#define INC_MEAD_MULTIFLEXRESULTS_H
 #include <string>
 #include <vector>
 class DataSetList;
@@ -8,6 +8,7 @@ class DataFile;
 class DataFileList;
 class CpptrajFile;
 namespace Cpptraj {
+namespace Mead {
 /// Hold results from MultiFlex calc within MeadInterface class
 class MultiFlexResults {
   public:
@@ -43,5 +44,6 @@ class MultiFlexResults {
     CpptrajFile* summfile_;  ///< File to write self and background contributions to the intrinsic pK in MEAD format.
     CpptrajFile* gfile_;     ///< File to write site-site interactions in units of charge squared per length in MEAD format.
 };
+}
 }
 #endif

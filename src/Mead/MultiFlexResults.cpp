@@ -1,12 +1,12 @@
 #include "MultiFlexResults.h"
-#include "DataSetList.h"
-#include "DataFileList.h"
-#include "StringRoutines.h"
-#include "CpptrajStdio.h"
-#include "DataSet_2D.h"
-#include "DataFile.h"
+#include "../DataSetList.h"
+#include "../DataFileList.h"
+#include "../StringRoutines.h"
+#include "../CpptrajStdio.h"
+#include "../DataSet_2D.h"
+#include "../DataFile.h"
 
-using namespace Cpptraj;
+using namespace Cpptraj::Mead;
 // MultiFlexResults class
 MultiFlexResults::MultiFlexResults() :
   ssi_matrix_(0),
