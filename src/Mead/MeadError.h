@@ -1,5 +1,5 @@
-#ifndef INC_MEAD_MEADINTERFACE_H
-#define INC_MEAD_MEADINTERFACE_H
+#ifndef INC_MEAD_MEADERROR_H
+#define INC_MEAD_MEADERROR_H
 // MEAD fwd declares
 class MEADexcept;
 namespace Cpptraj {
