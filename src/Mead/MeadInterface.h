@@ -1,5 +1,5 @@
-#ifndef INC_MEADINTERFACE_H
-#define INC_MEADINTERFACE_H
+#ifndef INC_MEAD_MEADINTERFACE_H
+#define INC_MEAD_MEADINTERFACE_H
 #include <vector>
 #include <string>
 // Fwd declares
@@ -10,21 +10,20 @@ class DataSet_Vector_Scalar;
 class DataSet_3D;
 // MEAD fwd declares
 class AtomSet;
-class MEADexcept;
 namespace MEAD {
 class Atom;
 }
 class OutPotat;
 class AtomChargeSet;
+
 namespace Cpptraj {
-class MultiFlexResults;
 namespace Structure {
 class TitrationData;
 }
 namespace Mead {
 class MeadOpts;
 class MeadGrid;
-}
+class MultiFlexResults;
 /// Class to interface with libmead.a
 class MeadInterface {
   public:
@@ -47,16 +46,14 @@ class MeadInterface {
     bool HasAtoms() const { return atomset_ != 0; }
 
     /// Run potential calc
-    int Potential(DataSet_Vector_Scalar&, Mead::MeadOpts const&, Mead::MeadGrid const&, std::vector<Vec3> const&) const;
+    int Potential(DataSet_Vector_Scalar&, MeadOpts const&, MeadGrid const&, std::vector<Vec3> const&) const;
     /// Run solvate calc
-    int Solvate(double&, Mead::MeadOpts const&, Mead::MeadGrid const&, DataSet_3D*) const;
+    int Solvate(double&, MeadOpts const&, MeadGrid const&, DataSet_3D*) const;
     /// Run multiflex calc
-    int MultiFlex(MultiFlexResults const&, Mead::MeadOpts const&, Mead::MeadGrid const&, Mead::MeadGrid const&,
+    int MultiFlex(MultiFlexResults const&, MeadOpts const&, MeadGrid const&, MeadGrid const&,
                   Topology const&, Frame const&, Structure::TitrationData const&) const;
   private:
     class TitrationCalc;
-
-    static int ERR(const char*, MEADexcept&);
 
     inline void set_at_from_top(MEAD::Atom&, Topology const&, Frame const&, int) const;
 
@@ -70,5 +67,6 @@ class MeadInterface {
     AtomSet* atomset_;
     Radii_Mode rmode_; ///< Which radii set to use
 };
+} /* END namespace Mead */
 } /* END namespace Cpptraj */
 #endif

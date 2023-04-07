@@ -1,32 +1,30 @@
 #include "MeadInterface.h"
-#include "Vec3.h"
-#include "CpptrajStdio.h"
-#include "Topology.h"
-#include "DataSet_Vector_Scalar.h"
-#include "DataSet_3D.h"
-#include "DataSet_1D.h"
-#include "DataSet_string.h"
 #include "MultiFlexResults.h"
-#include "Structure/TitrationData.h"
-#include "Structure/TitratableSite.h"
-#include "Mead/MeadOpts.h"
-#include "Mead/MeadGrid.h"
+#include "MeadOpts.h"
+#include "MeadGrid.h"
+#include "MeadError.h"
+#include "../Vec3.h"
+#include "../CpptrajStdio.h"
+#include "../Topology.h"
+#include "../DataSet_Vector_Scalar.h"
+#include "../DataSet_3D.h"
+#include "../DataSet_1D.h"
+#include "../DataSet_string.h"
+#include "../Structure/TitrationData.h"
+#include "../Structure/TitratableSite.h"
 // MEAD includes
-#include "../mead/FinDiffMethod.h"
-#include "../mead/MEADexcept.h"
-#include "../mead/AtomSet.h"
-#include "../mead/ChargeDist.h"
-#include "../mead/AtomChargeSet.h"
-#include "../mead/DielectricEnvironment.h"
-#include "../mead/DielByAtoms.h"
-#include "../mead/ElectrolyteEnvironment.h"
-#include "../mead/ElectrolyteByAtoms.h"
-#include "../mead/FinDiffElstatPot.h"
-#include "../mead/Potat.h"
-// FOR DEBUG
-#include <iostream>
+#include "../../mead/MEADexcept.h"
+#include "../../mead/AtomSet.h"
+#include "../../mead/ChargeDist.h"
+#include "../../mead/AtomChargeSet.h"
+#include "../../mead/DielectricEnvironment.h"
+#include "../../mead/DielByAtoms.h"
+#include "../../mead/ElectrolyteEnvironment.h"
+#include "../../mead/ElectrolyteByAtoms.h"
+#include "../../mead/FinDiffElstatPot.h"
+#include "../../mead/Potat.h"
 
-using namespace Cpptraj;
+using namespace Cpptraj::Mead;
 
 /** CONSTRUCTOR */
 MeadInterface::MeadInterface() :
@@ -37,15 +35,6 @@ MeadInterface::MeadInterface() :
 /** DESTRUCTOR */
 MeadInterface::~MeadInterface() {
   if (atomset_ != 0) delete atomset_;
-}
-
-/** Print MEAD error message. */
-int MeadInterface::ERR(const char* fxn, MEADexcept& e) {
-  mprinterr("Error: MEAD error in '%s': '%s' '%s' '%s'\n", fxn,
-              e.get_error1().c_str(),
-              e.get_error2().c_str(),
-              e.get_error3().c_str());
-  return 1;
 }
 
 /** Set MEAD Atom from Topology Atom. */
@@ -389,8 +378,8 @@ const
 
 /** Run multiflex calc. */
 int MeadInterface::MultiFlex(MultiFlexResults const& results,
-                             Mead::MeadOpts const& Opts,
-                             Mead::MeadGrid const& ogm, Mead::MeadGrid const& mgm,
+                             MeadOpts const& Opts,
+                             MeadGrid const& ogm, MeadGrid const& mgm,
                              Topology const& topIn, Frame const& frameIn,
                              Structure::TitrationData const& titrationData)
 const
@@ -621,8 +610,8 @@ const
   * \param epsext External dielectric.
   * \param fieldPoints Coordinates to evaluate the potential at.
   */
-int MeadInterface::Potential(DataSet_Vector_Scalar& values, Cpptraj::Mead::MeadOpts const& Opts,
-                             Cpptraj::Mead::MeadGrid const& ogm, std::vector<Vec3> const& fieldPoints)
+int MeadInterface::Potential(DataSet_Vector_Scalar& values, MeadOpts const& Opts,
+                             MeadGrid const& ogm, std::vector<Vec3> const& fieldPoints)
 const
 {
   values.reset();
@@ -692,8 +681,8 @@ const
   * \param temperature Temperature in Kelvin
   * \param rxnField If not null, calculate reaction field for given grid at all grid points.
   */
-int MeadInterface::Solvate(double& Esolv, Cpptraj::Mead::MeadOpts const& Opts,
-                           Cpptraj::Mead::MeadGrid const& ogm, DataSet_3D* rxnField)
+int MeadInterface::Solvate(double& Esolv, MeadOpts const& Opts,
+                           MeadGrid const& ogm, DataSet_3D* rxnField)
 const
 {
   Esolv = 0;

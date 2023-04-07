@@ -2,4 +2,6 @@
 MEAD_SOURCES= \
   MeadError.cpp \
   MeadGrid.cpp \
-  MeadOpts.cpp
+  MeadInterface.cpp \
+  MeadOpts.cpp \
+  MultiFlexResults.cpp
