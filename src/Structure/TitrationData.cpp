@@ -73,6 +73,7 @@ int TitrationData::LoadTitrationData(std::string const& sitesFileName,
     } else {
       mprintf("DEBUG: Site '%s' already has data.\n", sname.c_str());
     }
+    IdxNames_.push_back( IdxNamePair(rnum, sname) );
     // Next line
     ptr = sitesFile.Line();
   }

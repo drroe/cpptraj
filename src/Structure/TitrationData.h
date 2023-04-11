@@ -9,6 +9,7 @@ namespace Structure {
 class TitratableSite;
 /// Hold information for all titratable sites
 class TitrationData {
+    typedef std::pair<int, std::string> IdxNamePair;
   public:
     typedef std::vector<std::string> Sarray;
 
@@ -20,6 +21,15 @@ class TitrationData {
     Sarray ResSiteNames(int) const;
     /// \return Titratable site corresponding to name
     TitratableSite const& GetSite(std::string const&) const;
+
+    typedef std::vector<IdxNamePair> IdxNameArray;
+    typedef IdxNameArray::const_iterator const_iterator;
+    /// \return Array of residue indices and corresponding site names
+    IdxNameArray Sites() const { return IdxNames_; }
+    /// \return begin iterator
+    const_iterator begin() const { return IdxNames_.begin(); }
+    /// \return end iterator
+    const_iterator end() const { return IdxNames_.end(); }
   private:
     typedef std::pair<int,Sarray> ResNamePair;
     typedef std::map<int,Sarray> ResNameMap;
@@ -28,6 +38,7 @@ class TitrationData {
 
     ResNameMap ResToSitename_;  ///< Map residue numbers to site names
     NameSiteMap NameToSite_;    ///< Map site names to titratable site data
+    IdxNameArray IdxNames_;  ///< Hold res #s/site names in original order.
 };
 }
 }
