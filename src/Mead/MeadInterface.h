@@ -19,6 +19,7 @@ class AtomChargeSet;
 namespace Cpptraj {
 namespace Structure {
 class TitrationData;
+class TitratableSite;
 }
 namespace Mead {
 class MeadOpts;
@@ -60,6 +61,9 @@ class MeadInterface {
     void printAtomPotentials(Topology const&, Frame const&, OutPotat*, AtomChargeSet*) const;
 
     int createModelCompounds(AtomChargeSet&, AtomChargeSet&, AtomChargeSet const&, int, Topology const&, Frame const&) const;
+
+    int setup_titration_site_calc(std::vector<TitrationCalc>&, AtomChargeSet&,
+                                   Structure::TitratableSite const&, int) const;
 
     int setup_titration_calcs(std::vector<TitrationCalc>&, AtomChargeSet&,
                               Topology const&, Frame const&, Structure::TitrationData const&) const;

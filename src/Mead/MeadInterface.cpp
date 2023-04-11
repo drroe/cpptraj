@@ -301,6 +301,74 @@ const
   }
   return 0;
 }
+/** Set up a single site to be calculated. */
+int MeadInterface::setup_titration_site_calc(std::vector<TitrationCalc>& Sites,
+                                             AtomChargeSet& ref_atp,
+                                             Structure::TitratableSite const& site,
+                                             int ridx)
+const
+{
+  using namespace Cpptraj::Structure;
+  AtomSet state1Atoms;
+  AtomSet state2Atoms;
+  double siteOfInterest_xyz[3];
+  bool hasSiteOfInterest = false;
+  // Set up atoms of this site for each protonation state
+  for (TitratableSite::const_iterator jt = site.begin(); jt != site.end(); ++jt)
+  {
+    AtomID aid(ridx, jt->first.Truncated());
+    MEAD::Atom src_at = (*atomset_)[aid];
+/*    // Get the atom index in the topology
+    int aidx = topIn.FindAtomInResidue(ridx, jt->first);
+    if (aidx < 0) {
+      mprinterr("Error: Atom '%s' not found in residue %s\n",
+                *(jt->first), topIn.TruncResNameNum(ridx).c_str());
+      return 1;
+    }*/
+
+    // Set reference state charge for this atom in ref_atp TODO chainID for AtomID?
+    //MEAD::Atom& mod_at = ref_atp[AtomID(topIn.Res(ridx).OriginalResNum(), topIn[aidx].Name().Truncated())];
+    MEAD::Atom& mod_at = ref_atp[aid];
+    if (site.RefStateIdx() == 0)
+      mod_at.charge = jt->second.first;
+    else
+      mod_at.charge = jt->second.second;
+
+    // Is this the site of interest? Record the coordinates if so.
+    //if (topIn[aidx].Name() == site.SiteOfInterest())
+    if (site.SiteOfInterest() == jt->first)
+    {
+      //siteOfInterest = Vec3(frameIn.XYZ(aidx));
+      //siteOfInterest_xyz = frameIn.XYZ(aidx);
+      siteOfInterest_xyz[0] = src_at.coord.x;
+      siteOfInterest_xyz[1] = src_at.coord.y;
+      siteOfInterest_xyz[2] = src_at.coord.z;
+      mprintf("SITE OF INTEREST: %f %f %f\n", siteOfInterest_xyz[0], siteOfInterest_xyz[1], siteOfInterest_xyz[2]);
+      hasSiteOfInterest = true;
+      //siteOfInterest.x = xyz[0];
+      //siteOfInterest.y = xyz[1];
+      //siteOfInterest.z = xyz[2];
+    }
+    MEAD::Atom at = src_at;
+    //set_at_from_top(at, topIn, frameIn, aidx);
+    at.charge = jt->second.first;
+    state1Atoms.insert( at );
+    at.charge = jt->second.second;
+    state2Atoms.insert( at );
+    //mprintf("DEBUG: Atom %s idx %i charge1= %f charge2= %f\n", *(jt->first), aidx+1, jt->second.first, jt->second.second);
+    mprintf("DEBUG: Atom %s res %i charge1= %f charge2= %f\n", *(jt->first), ridx, jt->second.first, jt->second.second);
+  } // END loop over site atoms
+  //if (siteOfInterest_xyz == 0) {
+  if (!hasSiteOfInterest) {
+    //mprinterr("Error: Atom of interest %s not found in residue %s\n",
+    //          *(site.SiteOfInterest()), topIn.TruncResNameNum(ridx).c_str());
+    mprinterr("Error: Atom of interest %s not found in residue %i\n",
+              *(site.SiteOfInterest()), ridx);
+    return 1;
+  }
+  Sites.push_back( TitrationCalc(&site, state1Atoms, state2Atoms, ridx, siteOfInterest_xyz) );
+  return 0;
+}
 
 /** Set up sites to be calculated. */
 int MeadInterface::setup_titration_calcs(std::vector<TitrationCalc>& Sites,
