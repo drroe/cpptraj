@@ -63,6 +63,10 @@ class MeadInterface {
     int createModelCompounds(AtomChargeSet&, AtomChargeSet&, AtomChargeSet const&, int, Topology const&, Frame const&) const;
 
     int setup_titration_site_calc(std::vector<TitrationCalc>&, AtomChargeSet&,
+                                  Topology const&, Frame const&,
+                                   Structure::TitratableSite const&, int) const;
+
+    int setup_titration_site_calc(std::vector<TitrationCalc>&, AtomChargeSet&,
                                    Structure::TitratableSite const&, int) const;
 
     int setup_titration_calcs(std::vector<TitrationCalc>&, AtomChargeSet&,
