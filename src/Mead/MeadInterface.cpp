@@ -133,8 +133,6 @@ class MeadInterface::TitrationCalc {
 
     }
 
-    void SetPkInt(double p) { pkInt_ = p; }
-
     AtomChargeSet const& ChargeState1() const { return charge_state1_; }
     AtomChargeSet const& ChargeState2() const { return charge_state2_; }
     Coord const& SiteOfInterest()       const { return siteOfInterest_; }
@@ -146,14 +144,12 @@ class MeadInterface::TitrationCalc {
       else
         return &charge_state2_;
     }
-    double PkInt() const { return pkInt_; }
   private:
     Cpptraj::Structure::TitratableSite const* siteData_; ///< Pointer to associated TitratableSite data
     AtomChargeSet charge_state1_;   ///< Hold charges in state 1
     AtomChargeSet charge_state2_;   ///< Hold charges in state 2
     int ridx_;                      ///< Residue index in associated Topology
     Coord siteOfInterest_;          ///< Coordinates of the site of interest, used to focus grid
-    double pkInt_;                  ///< Calculated intrinsic pKa of the site
 };
 
 /** For debugging - print atom potential and atom charge set. */
@@ -542,7 +538,7 @@ int MeadInterface::MultiFlex(MultiFlexResults const& results,
                              MeadOpts const& Opts,
                              MeadGrid const& ogm, MeadGrid const& mgm,
                              Topology const& topIn, Frame const& frameIn,
-                             Structure::TitrationData const& titrationData)
+                             Structure::TitrationData const& titrationData, int siteIdx)
 const
 {
   using namespace Cpptraj::Structure;
@@ -584,10 +580,9 @@ const
     ElectrolyteEnvironment_lett* ely = new ElectrolyteByAtoms( *atomset_ );
 
     // Loop over titration sites
-    std::vector<TitrationCalc>::iterator modSite = Sites.begin();
     for (std::vector<TitrationCalc>::const_iterator tSite = Sites.begin();
                                                     tSite != Sites.end();
-                                                  ++tSite, ++ssi_row_it, ++modSite)
+                                                  ++tSite, ++ssi_row_it)
     {
       // Arrays use to hold site-site interaction values
       Darray& ssi_row = *ssi_row_it;
@@ -697,7 +692,6 @@ const
         mprintf("   %g\n", *it);
       double pKint = tSite->SiteData().pKa() + (delta_pK_self + delta_pK_back);
       mprintf("DEBUG: pKint = %f\n", pKint);
-      modSite->SetPkInt( pKint );
       // Add site result
       results.AddSiteResult(tSite - Sites.begin(),
                             tSite->SiteData().SiteName(),
