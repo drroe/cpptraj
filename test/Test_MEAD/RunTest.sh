@@ -4,7 +4,8 @@
 
 TESTNAME='MEAD tests'
 
-CleanFiles cpptraj.in potential.dat test.sphere.pqr solvate.dat bounds.dat MyGrid.dx
+CleanFiles cpptraj.in potential.dat test.sphere.pqr solvate.dat bounds.dat MyGrid.dx \
+           tz2.dat tz2.ssi.dat tz2.pkint tz2.summ tz2.g
 
 INPUT='-i cpptraj.in'
 
@@ -58,7 +59,27 @@ EOF
   DoTest MyGrid.dx.save MyGrid.dx
 }
 
+MultiFlex() {
+  UNITNAME='MEAD multiflex test'
+  cat > cpptraj.in <<EOF
+parm tz2.pqr pqr
+loadcrd tz2.pqr name TZ2
+mead multiflex crdset TZ2 \
+     ionicstr 0.15 solrad 1.4 epsin 4 epssol 80 \
+     sites tz2.sites \
+     out tz2.dat ssiout tz2.ssi.dat name TZ2 \
+     pkint tz2.pkint summ tz2.summ gfile tz2.g
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest tz2.pkint.save tz2.pkint
+  DoTest tz2.summ.save tz2.summ
+  DoTest tz2.g.save tz2.g
+  DoTest tz2.dat.save tz2.dat
+  DoTest tz2.ssi.dat.save tz2.ssi.dat
+}
+
 Potential
 Solvate
+MultiFlex
 
 EndTest
