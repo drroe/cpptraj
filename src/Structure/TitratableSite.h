@@ -15,7 +15,7 @@ class TitratableSite {
     /// Clear all data
     void Clear();
     /// Load site data from file
-    int LoadSiteData(std::string const&);
+    int LoadSiteData(std::string const&, std::string const&);
     /// Print data to stdout
     void Print() const;
 
@@ -30,7 +30,8 @@ class TitratableSite {
   private:
     typedef std::pair<NameType, ChargePair> PairType;
 
-    std::string resName_;     ///< Site residue name
+    std::string resName_;     ///< Residue name that site belongs to
+    std::string siteName_;    ///< Internal site name
     double pKa_;              ///< Site pka
     MapType nameToCharges_;   ///< Map atom names to state charge pairs
     int refStateIdx_;         ///< Reference state index

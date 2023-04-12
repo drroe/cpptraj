@@ -17,20 +17,21 @@ void TitratableSite::Clear() {
   pKa_ = 0;
   refStateIdx_ = -1;
   resName_.clear();
+  siteName_.clear();
   nameToCharges_.clear();
   siteOfInterest_ = NameType();
 }
 
 /** Print all info to stdout. */
 void TitratableSite::Print() const {
-  mprintf("\t\tResname '%s', pKa %g, reference state %i, site of interest '%s'\n",
-          resName_.c_str(), pKa_, refStateIdx_+1, *siteOfInterest_);
+  mprintf("\t\tSite name '%s', Resname '%s', pKa %g, reference state %i, site of interest '%s'\n",
+          siteName_.c_str(), resName_.c_str(), pKa_, refStateIdx_+1, *siteOfInterest_);
   for (MapType::const_iterator it = nameToCharges_.begin(); it != nameToCharges_.end(); ++it)
     mprintf("\t\t %6s %12.4f %12.4f\n", it->first.Truncated().c_str(), it->second.first, it->second.second);
 }
 
 /** Load site titration data from a file. */
-int TitratableSite::LoadSiteData(std::string const& fname)
+int TitratableSite::LoadSiteData(std::string const& fname, std::string const& siteNameIn)
 {
   if (fname.empty()) {
     mprinterr("Internal Error: TitratableSite::LoadSiteData(): No file name given.\n");
@@ -38,6 +39,7 @@ int TitratableSite::LoadSiteData(std::string const& fname)
   }
   // Clear existing data
   Clear();
+  siteName_ = siteNameIn;
   BufferedLine infile;
   if (infile.OpenFileRead( fname )) {
     mprinterr("Error: Could not open titratable site file '%s'\n", fname.c_str());
