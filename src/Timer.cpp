@@ -16,10 +16,15 @@
 
 Timer::Timer() : start_sec_(0), start_ns_(0), total_(0.0) {}
 
+Timer::Timer(std::string const& nameIn) :
+  start_sec_(0), start_ns_(0), total_(0.0), name_(nameIn) {}
+
 void Timer::Reset() {
   start_sec_ = 0;
   start_ns_ = 0;
   total_ = 0.0;
+  for (std::vector<Timer>::iterator it = subtimers_.begin(); it != subtimers_.end(); ++it)
+    it->Reset();
 }
 
 #ifdef _MSC_VER 
@@ -117,4 +122,29 @@ void Timer::WriteTiming(int indents, const char* header, double FracTotal) const
   if (FracTotal > 0.0)
     ptr += sprintf(ptr, " (%6.2f%%)", (total_ / FracTotal) * 100.0);
   mprintf("TIME:%s\n", buffer);
+}
+
+void Timer::WriteTiming(int indents, double above_total) const
+{
+  // Write this timer
+  char buffer[128];
+  char* ptr = buffer;
+  for (int i = 0; i < indents; i++)
+    ptr += sprintf(ptr, "\t");
+  ptr += sprintf(ptr, "%s %.4f s", name_.c_str(), total_);
+  if (above_total > 0.0)
+    ptr += sprintf(ptr, " (%6.2f%%)", (total_ / above_total) * 100.0);
+  mprintf("TIME:%s\n", buffer);
+  for (std::vector<Timer>::const_iterator it = subtimers_.begin();
+                                          it != subtimers_.end(); ++it)
+    it->WriteTiming(indents+1, total_);
+}
+
+void Timer::WriteTiming() const
+{
+  // Write this timer
+  mprintf("TIME: %s %.4f s", name_.c_str(), total_);
+  for (std::vector<Timer>::const_iterator it = subtimers_.begin();
+                                          it != subtimers_.end(); ++it)
+    it->WriteTiming(1, total_);
 }
