@@ -51,7 +51,7 @@ class MeadInterface {
     /// Run solvate calc
     int Solvate(double&, MeadOpts const&, MeadGrid const&, DataSet_3D*) const;
     /// Run multiflex calc
-    int MultiFlex(MultiFlexResults const&, MeadOpts const&, MeadGrid const&, MeadGrid const&,
+    int MultiFlex(MultiFlexResults&, MeadOpts const&, MeadGrid const&, MeadGrid const&,
                   Topology const&, Frame const&, Structure::TitrationData const&, int) const;
   private:
     class TitrationCalc;

@@ -112,7 +112,7 @@ const
 /** Run multiflex. */
 int Exec_MEAD::MultiFlex(MeadInterface& MEAD, MeadGrid const& ogm, MeadGrid const& mgm, 
                          ArgList& argIn, Topology const& topIn, Frame const& frameIn,
-                         MultiFlexResults const& results)
+                         MultiFlexResults& results)
 const
 {
   if (CheckMead( MEAD, ogm )) return 1;
@@ -121,6 +121,7 @@ const
   MeadOpts Opts;
   std::string sitesFileName = argIn.GetStringKey("sites");
   std::string sitesDirName = argIn.GetStringKey("sitesdir");
+  int siteIdx = argIn.getKeyInt("site", 0) - 1; // User args begin at 1
   Opts.SetEpsIn(argIn.getKeyDouble("epsin", 1));
   Opts.SetEpsExt(argIn.getKeyDouble("epssol", 80));
   Opts.SetSolRad(argIn.getKeyDouble("solrad", 1.4));
@@ -129,6 +130,10 @@ const
 
   mprintf("\tSites file : %s\n", sitesFileName.c_str());
   mprintf("\tSites dir  : %s\n", sitesDirName.c_str());
+  if (siteIdx == -1)
+    mprintf("\tCalculating all sites.\n");
+  else
+    mprintf("\tOnly calculating site %i\n", siteIdx + 1);
 
   if (sitesFileName.empty()) {
     mprinterr("Error: No sites file provided.\n");
@@ -142,7 +147,7 @@ const
     return 1;
   }
 
-  if (MEAD.MultiFlex(results, Opts, ogm, mgm, topIn, frameIn, titrationData)) {
+  if (MEAD.MultiFlex(results, Opts, ogm, mgm, topIn, frameIn, titrationData, siteIdx)) {
     mprinterr("Error: Multiflex failed.\n");
     return 1;
   } 
@@ -348,7 +353,7 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
     if (outSetName.empty())
       outSetName = State.DSL().GenerateDefaultName("MULTIFLEX");
     MultiFlexResults results;
-    if (results.Allocate(State.DSL(), outSetName)) return CpptrajState::ERR;
+    if (results.CreateSets(State.DSL(), outSetName)) return CpptrajState::ERR;
     DataFile* ssiout = State.DFL().AddDataFile( argIn.GetStringKey("ssiout"), argIn );
     results.AddSetsToFile( outfile, ssiout );
     if (results.CreateOutputFiles(State.DFL(),

@@ -28,7 +28,7 @@ class Exec_MEAD : public Exec {
     int MultiFlex(Cpptraj::Mead::MeadInterface&,
                   Cpptraj::Mead::MeadGrid const&, Cpptraj::Mead::MeadGrid const&,
                   ArgList&, Topology const&, Frame const&,
-                  Cpptraj::Mead::MultiFlexResults const&) const;
+                  Cpptraj::Mead::MultiFlexResults&) const;
     static int addGridLevel(Cpptraj::Mead::MeadGrid&, std::string const&);
     static int setup_grid_from_coords(Cpptraj::Mead::MeadGrid&, Frame const&);
 };

@@ -534,7 +534,7 @@ const
 }
 
 /** Run multiflex calc. */
-int MeadInterface::MultiFlex(MultiFlexResults const& results,
+int MeadInterface::MultiFlex(MultiFlexResults& results,
                              MeadOpts const& Opts,
                              MeadGrid const& ogm, MeadGrid const& mgm,
                              Topology const& topIn, Frame const& frameIn,
@@ -574,31 +574,45 @@ const
     results.AllocateSets( Sites.size() );
     // Set up site-site interaction matrix.
     SiteSiteInteractionMatrix.resize( Sites.size() );
-    Dmatrix::iterator ssi_row_it = SiteSiteInteractionMatrix.begin();
+    //Dmatrix::iterator ssi_row_it = SiteSiteInteractionMatrix.begin();
     // NOTE: In this context, *atomset_ is equivalent to atlist in multiflex.cc:FD2DielEMaker
     DielectricEnvironment_lett* eps = new TwoValueDielectricByAtoms( *atomset_, Opts.EpsIn() );
     ElectrolyteEnvironment_lett* ely = new ElectrolyteByAtoms( *atomset_ );
 
     // Loop over titration sites
-    for (std::vector<TitrationCalc>::const_iterator tSite = Sites.begin();
-                                                    tSite != Sites.end();
-                                                  ++tSite, ++ssi_row_it)
+    unsigned int ibeg, iend;
+    if (siteIdx == -1) {
+      // All sites
+      ibeg = 0;
+      iend = Sites.size();
+    } else {
+      // Single site
+      ibeg = siteIdx;
+      iend = ibeg + 1;
+    }
+    for (unsigned int sidx = ibeg; sidx < iend; sidx++)
     {
+      TitrationCalc const& tSite = Sites[sidx];
+      Darray& ssi_row = SiteSiteInteractionMatrix[sidx];
+//    for (std::vector<TitrationCalc>::const_iterator tSite = Sites.begin();
+//                                                    tSite != Sites.end();
+//                                                  ++tSite, ++ssi_row_it)
+//    {
       // Arrays use to hold site-site interaction values
-      Darray& ssi_row = *ssi_row_it;
+      //Darray& ssi_row = *ssi_row_it;
       ssi_row.resize(Sites.size(), 0);
       // Create model compound TODO reuse
       AtomChargeSet model_compound, model_back_chrg;
-      if (createModelCompounds(model_compound, model_back_chrg, ref_atp, tSite->Ridx(), topIn, frameIn)) {
+      if (createModelCompounds(model_compound, model_back_chrg, ref_atp, tSite.Ridx(), topIn, frameIn)) {
         mprinterr("Error: Creating model compound failed.\n");
         return 1;
       }
       // ----- Refocus the grid --------------
-      ogm.Resolve( geom_center, tSite->SiteOfInterest() );
+      ogm.Resolve( geom_center, tSite.SiteOfInterest() );
       // Set up charges for each state and point to the reference state
-      AtomChargeSet const& charge_state1 = tSite->ChargeState1();
-      AtomChargeSet const& charge_state2 = tSite->ChargeState2();
-      AtomChargeSet const* refstatep = tSite->RefStatePtr();
+      AtomChargeSet const& charge_state1 = tSite.ChargeState1();
+      AtomChargeSet const& charge_state2 = tSite.ChargeState2();
+      AtomChargeSet const* refstatep = tSite.RefStatePtr();
       // mackbackX is the interaction with background charges (ref_atp)
       // EXCEPT those of site X (refstatep)
       // State1
@@ -642,7 +656,7 @@ const
       }
       //mprintf("macself2= %g  macback2= %g\n", macself2, macback2);
       // ----- Refocus the model grid --------
-      mgm.Resolve( geom_center, tSite->SiteOfInterest() );
+      mgm.Resolve( geom_center, tSite.SiteOfInterest() );
       // Model dielectric environment
       DielectricEnvironment_lett* model_eps = new TwoValueDielectricByAtoms( model_compound, Opts.EpsIn() );
       ElectrolyteEnvironment_lett* model_ely = new ElectrolyteByAtoms( model_compound );
@@ -690,12 +704,12 @@ const
       mprintf("Site-site interactions:\n");
       for (Darray::const_iterator it = ssi_row.begin(); it != ssi_row.end(); ++it)
         mprintf("   %g\n", *it);
-      double pKint = tSite->SiteData().pKa() + (delta_pK_self + delta_pK_back);
+      double pKint = tSite.SiteData().pKa() + (delta_pK_self + delta_pK_back);
       mprintf("DEBUG: pKint = %f\n", pKint);
       // Add site result
-      results.AddSiteResult(tSite - Sites.begin(),
-                            tSite->SiteData().SiteName(),
-                            topIn.Res(tSite->Ridx()).OriginalResNum(),
+      results.AddSiteResult(sidx,
+                            tSite.SiteData().SiteName(),
+                            topIn.Res(tSite.Ridx()).OriginalResNum(),
                             pKint,
                             delta_pK_self,
                             delta_pK_back);
@@ -708,23 +722,27 @@ const
 
   // Symmetrize the interaction matrix
   for (unsigned int i = 0; i < Sites.size(); i++) {
-    // Zero the self interaction
-    SiteSiteInteractionMatrix[i][i] = 0;
-    for (unsigned int j = i + 1; j < Sites.size(); j++) {
-      double ave = (SiteSiteInteractionMatrix[i][j] + SiteSiteInteractionMatrix[j][i]) / 2.0;
-      double dev;
-      if (ave == 0) {
-        mprintf("Warning: Average interaction for site %u to site %u is 0\n", i, j);
-        dev = 0;
-      } else {
-        dev = (SiteSiteInteractionMatrix[i][j] - SiteSiteInteractionMatrix[j][i]) / ave;
-        if (dev < 0) dev = -dev;
-      }
-      mprintf("%u %u   %e %e   dev = %e\n", i+1, j+1,
-              SiteSiteInteractionMatrix[i][j], SiteSiteInteractionMatrix[j][i], dev);
-      SiteSiteInteractionMatrix[i][j] = SiteSiteInteractionMatrix[j][i] = ave;
+    if (!SiteSiteInteractionMatrix[i].empty()) {
+      // Zero the self interaction
+      SiteSiteInteractionMatrix[i][i] = 0;
+      for (unsigned int j = i + 1; j < Sites.size(); j++) {
+        if (!SiteSiteInteractionMatrix[j].empty()) {
+          double ave = (SiteSiteInteractionMatrix[i][j] + SiteSiteInteractionMatrix[j][i]) / 2.0;
+          double dev;
+          if (ave == 0) {
+            mprintf("Warning: Average interaction for site %u to site %u is 0\n", i, j);
+            dev = 0;
+          } else {
+            dev = (SiteSiteInteractionMatrix[i][j] - SiteSiteInteractionMatrix[j][i]) / ave;
+            if (dev < 0) dev = -dev;
+          }
+          mprintf("%u %u   %e %e   dev = %e\n", i+1, j+1,
+                  SiteSiteInteractionMatrix[i][j], SiteSiteInteractionMatrix[j][i], dev);
+          SiteSiteInteractionMatrix[i][j] = SiteSiteInteractionMatrix[j][i] = ave;
+        }
+      } // END loop over j
     }
-  }
+  } // END loop over i
   // Add upper-triangle matrix to results
   results.AddSiteSiteMatrix( SiteSiteInteractionMatrix );
 
@@ -733,26 +751,24 @@ const
     static const char pkchar[] = {'A', 'C'};
     DataSet_1D const& PK = static_cast<DataSet_1D const&>( *(results.PkIntSet()) );
     DataSet_string const& SN = static_cast<DataSet_string const&>( *(results.SiteNamesSet()) );
-    int idx = 0;
-    for (std::vector<TitrationCalc>::const_iterator site = Sites.begin(); site != Sites.end(); ++site, ++idx)
-    {
-      results.PkIntFile()->Printf("%e %c %s\n", PK.Dval(idx), pkchar[site->SiteData().RefStateIdx()],
+    for (unsigned int idx = 0; idx != results.SiteIndices().size(); idx++) {
+      int siteIdx = results.SiteIndices()[idx];
+      results.PkIntFile()->Printf("%e %c %s\n", PK.Dval(idx), pkchar[Sites[siteIdx].SiteData().RefStateIdx()],
                                   SN[idx].c_str());
               //site->SiteData().SiteName().c_str(), topIn.Res(site->Ridx()).OriginalResNum());
     }
     // Write summ file
     DataSet_1D const& DS = static_cast<DataSet_1D const&>( *(results.Delta_pK_SelfSet()) );
     DataSet_1D const& DB = static_cast<DataSet_1D const&>( *(results.Delta_pK_BackSet()) );
-    idx = 0;
     results.SummFile()->Printf("   site name           pKmod      delta self    delta back      pkint\n");
-    for (std::vector<TitrationCalc>::const_iterator site = Sites.begin(); site != Sites.end(); ++site, ++idx)
-    {
-      results.SummFile()->Printf(" %12s %13g %13g %13g %13g\n", SN[idx].c_str(), site->SiteData().pKa(),
+    for (unsigned int idx = 0; idx != results.SiteIndices().size(); idx++) {
+      int siteIdx = results.SiteIndices()[idx];
+      results.SummFile()->Printf(" %12s %13g %13g %13g %13g\n", SN[idx].c_str(), Sites[siteIdx].SiteData().pKa(),
                                  DS.Dval(idx), DB.Dval(idx), PK.Dval(idx));
     }
     // Write site-site interaction file
     for (unsigned int ii = 0; ii < Sites.size(); ii++)
-      for (unsigned int jj = 0; jj < Sites.size(); jj++)
+      for (unsigned int jj = 0; jj < SiteSiteInteractionMatrix[ii].size(); jj++)
         results.Gfile()->Printf("%u %u   %e\n", ii+1, jj+1, SiteSiteInteractionMatrix[ii][jj]);
     
   }

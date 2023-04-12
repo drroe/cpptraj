@@ -13,16 +13,16 @@ namespace Mead {
 class MultiFlexResults {
   public:
     MultiFlexResults();
-    /// Allocate the data sets
-    int Allocate(DataSetList&, std::string const&);
+    /// Create the data sets
+    int CreateSets(DataSetList&, std::string const&);
     /// Create text output files
     int CreateOutputFiles(DataFileList&, std::string const&, std::string const&, std::string const&);
     /// Put 1d sets into an output file
     void AddSetsToFile(DataFile*, DataFile*) const;
     /// Allocate space in each set
-    void AllocateSets(unsigned int) const;
+    void AllocateSets(unsigned int);
     /// Add site results
-    void AddSiteResult(int, std::string const&, int, double, double, double) const;
+    void AddSiteResult(int, std::string const&, int, double, double, double);
     /// Add site-site matrix 
     void AddSiteSiteMatrix(std::vector< std::vector<double> > const&) const;
 
@@ -34,7 +34,10 @@ class MultiFlexResults {
     DataSet* Delta_pK_SelfSet() const { return delta_pK_self_; }
     DataSet* Delta_pK_BackSet() const { return delta_pK_back_; }
     DataSet* SiteNamesSet() const { return siteNames_; }
+
+    std::vector<int> SiteIndices() const { return Idxs_; }
   private:
+    std::vector<int> Idxs_;  ///< Site indices for each result
     DataSet* ssi_matrix_;    ///< Site-site interaction matrix
     DataSet* pkInt_;         ///< Intrinsic pKa for each site
     DataSet* delta_pK_self_; ///< Self contribution to the intrinsic pKa for each site

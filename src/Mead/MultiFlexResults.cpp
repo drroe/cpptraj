@@ -24,7 +24,7 @@ static inline int ds_alloc_err(const char* desc) {
   return 1;
 }
 
-int MultiFlexResults::Allocate(DataSetList& dsl, std::string const& dsname) {
+int MultiFlexResults::CreateSets(DataSetList& dsl, std::string const& dsname) {
   if (ssi_matrix_ != 0) {
     mprinterr("Internal Error: MultiFlexResults::Allocate: Already allocated.\n");
     return 1;
@@ -40,6 +40,7 @@ int MultiFlexResults::Allocate(DataSetList& dsl, std::string const& dsname) {
   if (delta_pK_back_ == 0) return ds_alloc_err("intrinsic pKa background contribution array");
   siteNames_ = dsl.AddSet( DataSet::STRING, MetaData(dsname, "sitenames" ) );
   if (siteNames_ == 0) return ds_alloc_err("site names array");
+  Idxs_.clear();
 
   return 0;
 }
@@ -71,32 +72,33 @@ const
 }
 
 void MultiFlexResults::AllocateSets(unsigned int sizeIn)
-const
 {
   DataSet::SizeArray dsize(1, sizeIn);
   pkInt_->Allocate( dsize );
   delta_pK_self_->Allocate( dsize );
   delta_pK_back_->Allocate( dsize );
   siteNames_->Allocate( dsize );
+  Idxs_.reserve( sizeIn );
 
   // Allocate matrix
   DataSet_2D& mat = static_cast<DataSet_2D&>( *ssi_matrix_ );
   mat.AllocateTriangle( sizeIn );
 }
 
-void MultiFlexResults::AddSiteResult(int idx,
+void MultiFlexResults::AddSiteResult(int siteIdx,
                                      std::string const& sitenameIn,
                                      int originalResNumIn,
                                      double pkInt_in,
                                      double delta_pK_self_in,
                                      double delta_pK_back_in)
-const
 {
+  int idx = Idxs_.size();
   std::string sitename = sitenameIn + "-" + integerToString(originalResNumIn);
   siteNames_->Add(idx, sitename.c_str());
   pkInt_->Add(idx, &pkInt_in);
   delta_pK_self_->Add(idx, &delta_pK_self_in);
   delta_pK_back_->Add(idx, &delta_pK_back_in);
+  Idxs_.push_back( siteIdx );
 } 
 
 void MultiFlexResults::AddSiteSiteMatrix(std::vector< std::vector<double> > const& ssi)
@@ -105,8 +107,12 @@ const
   DataSet_2D& mat = static_cast<DataSet_2D&>( *ssi_matrix_ );
 
   for (unsigned int i = 0; i < ssi.size(); i++) {
-    for (unsigned int j = i + 1; j < ssi.size(); j++) {
-      mat.SetElement(i, j, ssi[i][j]);
+    if (ssi[i].empty()) {
+      for (unsigned int j = i + 1; j < ssi.size(); j++)
+        mat.SetElement(i, j, 0);
+    } else {
+      for (unsigned int j = i + 1; j < ssi[i].size(); j++)
+        mat.SetElement(i, j, ssi[i][j]);
     }
   }
 }
