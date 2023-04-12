@@ -359,7 +359,7 @@ const
   return 0;
 }
 
-/** Set up a single site to be calculated. */
+/** Set up a single site to be calculated using internal atomset_. */
 int MeadInterface::setup_titration_site_calc(std::vector<TitrationCalc>& Sites,
                                              AtomChargeSet& ref_atp,
                                              Structure::TitratableSite const& site,
@@ -425,6 +425,37 @@ const
     return 1;
   }
   Sites.push_back( TitrationCalc(&site, state1Atoms, state2Atoms, ridx, siteOfInterest_xyz) );
+  return 0;
+}
+
+/** Set up sites to be calculated by original site order. */
+int MeadInterface::setup_titration_calcs_by_site(std::vector<TitrationCalc>& Sites,
+                                         AtomChargeSet& ref_atp,
+                                         Topology const& topIn, Frame const& frameIn,
+                                         Cpptraj::Structure::TitrationData const& titrationData)
+const
+{
+  using namespace Cpptraj::Structure;
+  Sites.clear();
+  for (TitrationData::const_iterator it = titrationData.begin(); it != titrationData.end(); ++it)
+  {
+    int oidx = it->first; // TODO this is original resnum, need ridx
+    int ridx = -1;
+    for (int ires = 0; ires < topIn.Nres(); ires++) {
+      if (topIn.Res(ires).OriginalResNum() == oidx) {
+        ridx = ires;
+        break;
+      }
+    }
+    if (ridx < 0) {
+      mprinterr("Error: Residue number %i not found.\n", oidx);
+      return 1;
+    }
+    std::string const& siteName = it->second;
+    TitratableSite const& site = titrationData.GetSite( siteName );
+    if (setup_titration_site_calc(Sites, ref_atp, topIn, frameIn, site, ridx))
+      return 1;
+  }
   return 0;
 }
 
@@ -537,7 +568,9 @@ const
     AtomChargeSet ref_atp( *atomset_ );
     // Set up sites to calc. The charge states for each site need to be set
     // up first in order to do the site-site interactions.
-    if (setup_titration_calcs(Sites, ref_atp, topIn, frameIn, titrationData)) {
+    //if (setup_titration_calcs(Sites, ref_atp, topIn, frameIn, titrationData))
+    if (setup_titration_calcs_by_site(Sites, ref_atp, topIn, frameIn, titrationData))
+    {
       mprinterr("Error: Could not set up sites to titrate.\n");
       return 1;
     }
