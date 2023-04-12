@@ -239,6 +239,7 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
 {
   using namespace Cpptraj;
   MeadInterface MEAD;
+  MEAD.TotalTime().Start();
   int verbose = argIn.getKeyInt("verbose", 0);
   MEAD.MeadVerbosity( verbose );
 
@@ -369,6 +370,9 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: No MEAD calculation keywords given.\n");
     err = 1;
   }
+
+  MEAD.TotalTime().Stop();
+  MEAD.TotalTime().WriteTiming();
 
   if (err != 0) return CpptrajState::ERR;
   return CpptrajState::OK;    

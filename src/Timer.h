@@ -30,6 +30,10 @@ class Timer {
     void WriteTiming(int, double) const;
     /// Write all timers
     void WriteTiming() const;
+    /// \return subtimer at index
+    Timer& operator[](int i) { return subtimers_[i]; }
+    /// \return const subtimer at index
+    Timer const& operator[](int i) const { return subtimers_[i]; }
   private:
     static void GetWallTime(int&, int&);
     int start_sec_;

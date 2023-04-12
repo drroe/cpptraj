@@ -2,6 +2,7 @@
 #define INC_MEAD_MEADINTERFACE_H
 #include <vector>
 #include <string>
+#include "../Timer.h"
 // Fwd declares
 class Vec3;
 class Topology;
@@ -38,6 +39,8 @@ class MeadInterface {
 
     /// Setup AtomSet from top/frame
     int SetupAtoms(Topology const&, Frame const&, Radii_Mode);
+    /// Access the internal timer
+    Timer& TotalTime() { return t_total_; }
     /// Print info to stdout
     void Print() const;
     /// Set MEAD verbosity level
@@ -52,7 +55,7 @@ class MeadInterface {
     int Solvate(double&, MeadOpts const&, MeadGrid const&, DataSet_3D*) const;
     /// Run multiflex calc
     int MultiFlex(MultiFlexResults&, MeadOpts const&, MeadGrid const&, MeadGrid const&,
-                  Topology const&, Frame const&, Structure::TitrationData const&, int) const;
+                  Topology const&, Frame const&, Structure::TitrationData const&, int);
   private:
     class TitrationCalc;
 
@@ -77,6 +80,7 @@ class MeadInterface {
 
     AtomSet* atomset_;
     Radii_Mode rmode_; ///< Which radii set to use
+    Timer t_total_;      ///< Total time
 };
 } /* END namespace Mead */
 } /* END namespace Cpptraj */

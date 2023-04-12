@@ -133,18 +133,20 @@ void Timer::WriteTiming(int indents, double above_total) const
     ptr += sprintf(ptr, "\t");
   ptr += sprintf(ptr, "%s %.4f s", name_.c_str(), total_);
   if (above_total > 0.0)
-    ptr += sprintf(ptr, " (%6.2f%%)", (total_ / above_total) * 100.0);
+    ptr += sprintf(ptr, " (%.2f%%)", (total_ / above_total) * 100.0);
   mprintf("TIME:%s\n", buffer);
   for (std::vector<Timer>::const_iterator it = subtimers_.begin();
                                           it != subtimers_.end(); ++it)
-    it->WriteTiming(indents+1, total_);
+    if (it->Total() > 0)
+      it->WriteTiming(indents+1, total_);
 }
 
 void Timer::WriteTiming() const
 {
   // Write this timer
-  mprintf("TIME: %s %.4f s", name_.c_str(), total_);
+  mprintf("TIME: %s %.4f s\n", name_.c_str(), total_);
   for (std::vector<Timer>::const_iterator it = subtimers_.begin();
                                           it != subtimers_.end(); ++it)
-    it->WriteTiming(1, total_);
+    if (it->Total() > 0)
+      it->WriteTiming(1, total_);
 }
