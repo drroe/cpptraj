@@ -33,6 +33,7 @@ class MultiFlexResults {
     DataSet* PkIntSet() const { return pkInt_; }
     DataSet* Delta_pK_SelfSet() const { return delta_pK_self_; }
     DataSet* Delta_pK_BackSet() const { return delta_pK_back_; }
+    DataSet* SiteSiteMatrixSet() const { return ssi_matrix_; }
     DataSet* SiteNamesSet() const { return siteNames_; }
 
     std::vector<int> SiteIndices() const { return Idxs_; }

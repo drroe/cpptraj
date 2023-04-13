@@ -24,6 +24,7 @@ int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn,
                                 Cpptraj::Mead::MultiFlexResults const& results)
 {
   site_intrinsic_pKas_ = results.PkIntSet();
+  site_site_matrix_ = results.SiteSiteMatrixSet();
 
   return 0;
 }
