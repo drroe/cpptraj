@@ -4,6 +4,7 @@ STRUCTURE_SOURCES= \
   FunctionalGroup.cpp \
   FxnGroupBuilder.cpp \
   HisProt.cpp \
+  Protonator.cpp \
   StructureRoutines.cpp \
   SugarBuilder.cpp \
   Sugar.cpp \
