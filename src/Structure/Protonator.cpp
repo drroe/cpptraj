@@ -1,6 +1,7 @@
 #include "Protonator.h"
 #include "../ArgList.h"
 #include "../CpptrajState.h"
+#include "../CpptrajStdio.h"
 #include "../Mead/MultiFlexResults.h"
 
 using namespace Cpptraj::Structure;
@@ -25,4 +26,9 @@ int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn,
   site_intrinsic_pKas_ = results.PkIntSet();
 
   return 0;
+}
+
+/** Print options */
+void Protonator::PrintOptions() const {
+  if (site_intrinsic_pKas_ != 0) mprintf("\tSite intrinsic pKa set: %s\n", site_intrinsic_pKas_->legend());
 }

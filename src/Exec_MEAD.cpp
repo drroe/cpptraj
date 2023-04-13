@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
 #include "DistRoutines.h"
+#include "Structure/Protonator.h"
 #include "Structure/TitrationData.h"
 #include "Structure/TitratableSite.h"
 #include "Mead/MeadGrid.h"
@@ -150,7 +151,7 @@ const
   if (MEAD.MultiFlex(results, Opts, ogm, mgm, topIn, frameIn, titrationData, siteIdx)) {
     mprinterr("Error: Multiflex failed.\n");
     return 1;
-  } 
+  }
 
   return 0;
 }
@@ -366,6 +367,15 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
       return CpptrajState::ERR;
     }
     err = MultiFlex( MEAD, ogm, mgm, argIn, CRD->Top(), frameIn, results );
+    if (err == 0) {
+      // Protonation
+      Structure::Protonator protonator;
+      if (protonator.SetupProtonator( State, argIn, results )) {
+        mprinterr("Error: Set up protonator failed.\n");
+        return CpptrajState::ERR;
+      }
+      protonator.PrintOptions();
+    }
   } else {
     mprinterr("Error: No MEAD calculation keywords given.\n");
     err = 1;

@@ -13,8 +13,10 @@ namespace Structure {
 class Protonator {
   public:
     Protonator();
-    // Set up from arguments
+    /// Set up from arguments
     int SetupProtonator(CpptrajState&, ArgList&, Cpptraj::Mead::MultiFlexResults const&);
+    /// Print options to stdout
+    void PrintOptions() const;
   private:
     DataSet* site_intrinsic_pKas_; ///< DataSet containing calculated intrinsic pKas for each site.
     DataSet* site_site_matrix_;    ///< DataSet containing site-site interactions in e^2/ang
