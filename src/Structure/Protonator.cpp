@@ -122,6 +122,16 @@ int Protonator::CalcTitrationCurves() const {
     }
   }
   mprintf("DEBUG: %zu pairs.\n", pairs.size());
+  // Count the number of pH values
+  int nph = (int)((stop_pH_ - start_pH_) / pH_increment_) + 1;
+  std::vector<double> pH_values;
+  pH_values.reserve( nph );
+  double pH = start_pH_;
+  while (pH <= stop_pH_) {
+    pH_values.push_back( pH );
+    pH += pH_increment_;
+  }
+  logfile_->Printf("maxsite= %u  #pH vals= %zu  nph= %i\n", maxsite, pH_values.size(), nph);
 
   return 0;
 }
