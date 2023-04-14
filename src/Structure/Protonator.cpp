@@ -5,6 +5,7 @@
 #include "../DataSet_1D.h"
 #include "../DataSet_2D.h"
 #include "../Mead/MultiFlexResults.h"
+#include <cmath> // log
 
 using namespace Cpptraj::Structure;
 /** CONSTRUCTOR */
@@ -65,6 +66,15 @@ int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn,
                                          "MC log file",
                                          DataFileList::TEXT,
                                          true );
+  // Beta is 1/kT times Coulombs constant in units of kcal*Ang/mol*e- squared
+  double temperature = argIn.getKeyDouble("temperature", -1);
+  if (temperature > 0)
+    beta_ = (1 / (Constants::GASK_KCAL * temperature)) * Constants::ELECTOAMBER * Constants::ELECTOAMBER;
+  else
+    // For backwards compat. use value in mcti.f
+    // I'm guessing this is the original math:
+    // (1/(0.001987*300)) * 18.2223 * 18.2223
+    beta_ = 557.04;
 
   return 0;
 }
@@ -80,6 +90,7 @@ void Protonator::PrintOptions() const {
   static const char* MCMODESTR[] = { "full", "reduced", "cluster" };
   mprintf("\tMC mode: %s\n", MCMODESTR[mcmode_]);
   if (logfile_ != 0) mprintf("\tLog output to '%s'\n", logfile_->Filename().full());
+  mprintf("\tValue for converting from charge to kcal/mol: beta= %g\n", beta_);
 }
 
 /** Calculate titration curves using MC */
@@ -95,6 +106,22 @@ int Protonator::CalcTitrationCurves() const {
       grounde += (qunprot.Dval(i) * qunprot.Dval(j) * wint.GetElement(i,j));
   grounde *= 0.5;
   mprintf("DEBUG: grounde = %g\n", grounde);
+
+  // Calculate pairs.
+  // Pairs of strongly interacting sites are allowed to simultaneously
+  // change their protonation states.
+  typedef std::pair<int,int> StatePair;
+  typedef std::vector<StatePair> PairArray;
+  PairArray pairs;
+  double min_g = min_wint_ * log(10.0) / beta_;
+  mprintf("DEBUG: min_g = %g\n", min_g);
+  for (unsigned int i = 0; i < maxsite; i++) {
+    for (unsigned int j = i+1; j < maxsite; j++) {
+      if (wint.GetElement(i,j) > min_g)
+        pairs.push_back( StatePair(i,j) );
+    }
+  }
+  mprintf("DEBUG: %zu pairs.\n", pairs.size());
 
   return 0;
 }

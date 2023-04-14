@@ -29,6 +29,7 @@ class Protonator {
     double pH_increment_;          ///< pH increment
     double min_wint_;              ///< Min inter (pK units) for 2-site transitions
     double fract_toler_;           ///< Tolerance for reduced sites
+    double beta_;                  ///< Value to convert from charge to kcal ((1/kT)*C*C)
     int iseed_;                    ///< RNG seed
     enum MCModeType { MC_FULL = 0, MC_REDUCED, MC_CLUSTER };
     MCModeType mcmode_;            ///< MC mode for computing protonation vs pH
