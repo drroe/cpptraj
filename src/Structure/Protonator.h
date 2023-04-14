@@ -1,9 +1,11 @@
 #ifndef INC_STRUCTURE_PROTONATOR_H
 #define INC_STRUCTURE_PROTONATOR_H
+#include <vector>
 class ArgList;
 class DataSet;
 class CpptrajFile;
 class CpptrajState;
+class Random_Number;
 namespace Cpptraj {
 namespace Mead {
 class MultiFlexResults;
@@ -20,6 +22,9 @@ class Protonator {
     /// Calculate titration curves using MC
     int CalcTitrationCurves() const;
   private:
+    typedef std::vector<int> Iarray;
+    int assign_random_state(Iarray&, Random_Number&) const; // FIXME Random_Number const&
+
     DataSet* site_intrinsic_pKas_; ///< DataSet containing calculated intrinsic pKas for each site.
     DataSet* site_site_matrix_;    ///< DataSet containing site-site interactions in e^2/ang
     DataSet* site_qunprot_;        ///< DataSet containing charge of unprotonated state for each site.

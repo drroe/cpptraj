@@ -4,6 +4,7 @@
 #include "../CpptrajStdio.h"
 #include "../DataSet_1D.h"
 #include "../DataSet_2D.h"
+#include "../Random.h"
 #include "../Mead/MultiFlexResults.h"
 #include <cmath> // log
 
@@ -96,6 +97,28 @@ void Protonator::PrintOptions() const {
   if (logfile_ != 0) mprintf("\tLog output to '%s'\n", logfile_->Filename().full());
   mprintf("\tValue for converting from charge to kcal/mol: beta= %g\n", beta_);
   mprintf("\tRNG seed: %i\n", iseed_);
+}
+
+/** Assign random protonation state to each site.
+  * \return total number of protonated sites.
+  */
+int Protonator::assign_random_state(Iarray& SiteIsProtonated, Random_Number& rng)
+const
+{
+  // FIXME calling set seed here to match mcti init subroutine. Should not always be done.
+  // When fixed, rng can be const&
+  int ntotal = 0;
+  rng.rn_set( iseed_ );
+  for (Iarray::iterator it = SiteIsProtonated.begin(); it != SiteIsProtonated.end(); ++it)
+  {
+    if (rng.rn_gen() > 0.5) {
+      *it = 1;
+      ntotal++;
+    } else {
+      *it = 0;
+    }
+  }
+  return ntotal;
 }
 
 /** Calculate titration curves using MC */
