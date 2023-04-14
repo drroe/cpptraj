@@ -10,7 +10,7 @@ class Random_Number {
     Random_Number();
     ~Random_Number();
     /// Different possible RNGs
-    enum RngType { MARSAGLIA = 0, STDLIB, MERSENNE_TWISTER, PCG32, XOSHIRO128PP };
+    enum RngType { MARSAGLIA = 0, STDLIB, MERSENNE_TWISTER, PCG32, XOSHIRO128PP, DRAND48 };
 
     static void SetDefaultRng(RngType);
 

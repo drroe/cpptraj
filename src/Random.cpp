@@ -7,6 +7,7 @@
 #include "RNG_MersenneTwister.h"
 #include "RNG_PCG32.h"
 #include "RNG_Xoshiro128pp.h"
+#include "RNG_Drand48.h"
 
 /** Starting default type. */
 Random_Number::RngType Random_Number::defaultType_ = Random_Number::MARSAGLIA;
@@ -45,6 +46,7 @@ const char* Random_Number::CurrentDefaultRngStr() {
     case MERSENNE_TWISTER : str = "Mersenne Twister (mt19937)"; break;
     case PCG32            : str = "Permuted Congruential Generator (32 bit)"; break;
     case XOSHIRO128PP     : str = "Xoshiro128++"; break;
+    case DRAND48          : str = "Drand48"; break;
   }
   return str;
 }
@@ -73,6 +75,10 @@ void Random_Number::allocateRng() {
     case XOSHIRO128PP     :
       mprintf("\tRNG: Xoshiro128++\n");
       rng_ = new Cpptraj::RNG_Xoshiro128pp();
+    break;
+    case DRAND48          :
+      mprintf("\tRNG: Drand48\n");
+      rng_ = new Cpptraj::RNG_Drand48();
     break;
   } 
 }
