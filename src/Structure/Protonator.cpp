@@ -121,6 +121,22 @@ const
   return ntotal;
 }
 
+/** Perform monte carlo sampling for a given pH value.
+  * Determine average values of the protonation for each site and
+  * the correlation functions used to compute the energy.
+  */
+int Protonator::perform_MC_at_pH(double pH, Iarray const& SiteIsProtonated,
+                                 DataSet_1D const& pkint,
+                                 DataSet_2D const& wint, DataSet_1D const& qunprot)
+const
+{
+  unsigned int maxsite = pkint.size();
+  // Compute the self energy to protonate each site
+  Darray self;
+  self.reserve( maxsite );
+  for (unsigned int i = 0; i < maxsite; i++)
+    self(i) = const * (pkint(i) - ph)
+
 /** Calculate titration curves using MC */
 int Protonator::CalcTitrationCurves() const {
   // Calculate the ground energy of the system (no protons)

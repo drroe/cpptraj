@@ -23,6 +23,8 @@ class Protonator {
     int CalcTitrationCurves() const;
   private:
     typedef std::vector<int> Iarray;
+    typedef std::vector<double> Darray;
+
     int assign_random_state(Iarray&, Random_Number&) const; // FIXME Random_Number const&
 
     DataSet* site_intrinsic_pKas_; ///< DataSet containing calculated intrinsic pKas for each site.
