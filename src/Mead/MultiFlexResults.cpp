@@ -11,6 +11,7 @@ using namespace Cpptraj::Mead;
 MultiFlexResults::MultiFlexResults() :
   ssi_matrix_(0),
   pkInt_(0),
+  qunprot_(0),
   delta_pK_self_(0),
   delta_pK_back_(0),
   siteNames_(0),
@@ -34,6 +35,8 @@ int MultiFlexResults::CreateSets(DataSetList& dsl, std::string const& dsname) {
   ssi_matrix_->SetupFormat().SetFormatType( TextFormat::SCIENTIFIC );
   pkInt_ = dsl.AddSet( DataSet::DOUBLE, MetaData(dsname, "pkint") );
   if (pkInt_ == 0) return ds_alloc_err("intrinsic pKa array");
+  qunprot_ = dsl.AddSet( DataSet::DOUBLE, MetaData(dsname, "qunprot") );
+  if (qunprot_ == 0) return ds_alloc_err("unprotonated state charge array");
   delta_pK_self_ = dsl.AddSet( DataSet::DOUBLE, MetaData(dsname, "dpkself") );
   if (delta_pK_self_ == 0) return ds_alloc_err("intrinsic pKa self contribution array");
   delta_pK_back_ = dsl.AddSet( DataSet::DOUBLE, MetaData(dsname, "dpkback") );
@@ -62,6 +65,7 @@ const
 {
   if (outfile != 0) {
     outfile->AddDataSet( pkInt_ );
+    outfile->AddDataSet( qunprot_ );
     outfile->AddDataSet( delta_pK_self_ );
     outfile->AddDataSet( delta_pK_back_ );
     outfile->AddDataSet( siteNames_ );
@@ -75,6 +79,7 @@ void MultiFlexResults::AllocateSets(unsigned int sizeIn)
 {
   DataSet::SizeArray dsize(1, sizeIn);
   pkInt_->Allocate( dsize );
+  qunprot_->Allocate( dsize );
   delta_pK_self_->Allocate( dsize );
   delta_pK_back_->Allocate( dsize );
   siteNames_->Allocate( dsize );
@@ -89,6 +94,7 @@ void MultiFlexResults::AddSiteResult(int siteIdx,
                                      std::string const& sitenameIn,
                                      int originalResNumIn,
                                      double pkInt_in,
+                                     int refStateIdx,
                                      double delta_pK_self_in,
                                      double delta_pK_back_in)
 {
@@ -96,6 +102,12 @@ void MultiFlexResults::AddSiteResult(int siteIdx,
   std::string sitename = sitenameIn + "-" + integerToString(originalResNumIn);
   siteNames_->Add(idx, sitename.c_str());
   pkInt_->Add(idx, &pkInt_in);
+  double q0;
+  if (refStateIdx == 0) // Anionic reference state, charge -1
+    q0 = -1;
+  else
+    q0 = 0;
+  qunprot_->Add(idx, &q0);
   delta_pK_self_->Add(idx, &delta_pK_self_in);
   delta_pK_back_->Add(idx, &delta_pK_back_in);
   Idxs_.push_back( siteIdx );

@@ -732,6 +732,7 @@ int MeadInterface::MultiFlex(MultiFlexResults& results,
                             tSite.SiteData().SiteName(),
                             topIn.Res(tSite.Ridx()).OriginalResNum(),
                             pKint,
+                            tSite.SiteData().RefStateIdx(),
                             delta_pK_self,
                             delta_pK_back);
     } // END loop over sites

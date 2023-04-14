@@ -22,7 +22,7 @@ class MultiFlexResults {
     /// Allocate space in each set
     void AllocateSets(unsigned int);
     /// Add site results
-    void AddSiteResult(int, std::string const&, int, double, double, double);
+    void AddSiteResult(int, std::string const&, int, double, int, double, double);
     /// Add site-site matrix 
     void AddSiteSiteMatrix(std::vector< std::vector<double> > const&) const;
 
@@ -31,6 +31,7 @@ class MultiFlexResults {
     CpptrajFile* Gfile() const { return gfile_; }
 
     DataSet* PkIntSet() const { return pkInt_; }
+    DataSet* QunprotSet() const { return qunprot_; }
     DataSet* Delta_pK_SelfSet() const { return delta_pK_self_; }
     DataSet* Delta_pK_BackSet() const { return delta_pK_back_; }
     DataSet* SiteSiteMatrixSet() const { return ssi_matrix_; }
@@ -41,6 +42,7 @@ class MultiFlexResults {
     std::vector<int> Idxs_;  ///< Site indices for each result
     DataSet* ssi_matrix_;    ///< Site-site interaction matrix
     DataSet* pkInt_;         ///< Intrinsic pKa for each site
+    DataSet* qunprot_;       ///< Charge in unprotonated state for eacah site.
     DataSet* delta_pK_self_; ///< Self contribution to the intrinsic pKa for each site
     DataSet* delta_pK_back_; ///< Background contribution to the intrinsic pKa for each site
     DataSet* siteNames_;     ///< Hold name of each site.
