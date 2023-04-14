@@ -161,5 +161,13 @@ int Protonator::CalcTitrationCurves() const {
   }
   logfile_->Printf("maxsite= %u  #pH vals= %zu  nph= %i\n", maxsite, pH_values.size(), nph);
 
+  Iarray SiteIsProtonated(maxsite, 0);
+  Random_Number rng;
+  int nprotonated = assign_random_state(SiteIsProtonated, rng);
+  mprintf("Initial states (%i total):", nprotonated);
+  for (Iarray::const_iterator it = SiteIsProtonated.begin(); it != SiteIsProtonated.end(); ++it)
+    mprintf(" %i", *it);
+  mprintf("\n");
+
   return 0;
 }
