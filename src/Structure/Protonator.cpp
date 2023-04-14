@@ -19,6 +19,8 @@ Protonator::Protonator() :
   pH_increment_(0),
   min_wint_(0),
   fract_toler_(0),
+  beta_(0),
+  iseed_(0),
   mcmode_(MC_FULL),
   logfile_(0)
 {}
@@ -76,6 +78,8 @@ int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn,
     // (1/(0.001987*300)) * 18.2223 * 18.2223
     beta_ = 557.04;
 
+  iseed_ = argIn.getKeyInt("iseed", 0);
+
   return 0;
 }
 
@@ -91,6 +95,7 @@ void Protonator::PrintOptions() const {
   mprintf("\tMC mode: %s\n", MCMODESTR[mcmode_]);
   if (logfile_ != 0) mprintf("\tLog output to '%s'\n", logfile_->Filename().full());
   mprintf("\tValue for converting from charge to kcal/mol: beta= %g\n", beta_);
+  mprintf("\tRNG seed: %i\n", iseed_);
 }
 
 /** Calculate titration curves using MC */
