@@ -34,9 +34,9 @@ CpptrajState::CpptrajState() :
 /** \return Keywords recognized by ChangeDefaultRng() */
 const char* CpptrajState::RngKeywords() {
 # ifdef C11_SUPPORT
-  return "{marsaglia|stdlib|mt|pcg32|xo128}";
+  return "{marsaglia|stdlib|mt|pcg32|xo128|drand48}";
 # else
-  return "{marsaglia|stdlib|pcg32|xo128}";
+  return "{marsaglia|stdlib|pcg32|xo128|drand48}";
 # endif
 }
 
@@ -54,6 +54,7 @@ int CpptrajState::ChangeDefaultRng(std::string const& setarg) const {
 #     endif
     } else if (setarg == "pcg32") Random_Number::SetDefaultRng( Random_Number::PCG32 );
     else if (setarg == "xo128") Random_Number::SetDefaultRng( Random_Number::XOSHIRO128PP );
+    else if  (setarg == "drand48") Random_Number::SetDefaultRng( Random_Number::DRAND48 );
     else {
       mprinterr("Error: Unrecognized RNG type: %s\n", setarg.c_str());
       return 1;
