@@ -375,6 +375,10 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
         return CpptrajState::ERR;
       }
       protonator.PrintOptions();
+      if (protonator.CalcTitrationCurves()) {
+        mprinterr("Error: Calculation of titration curves failed.\n");
+        return CpptrajState::ERR;
+      }
     }
   } else {
     mprinterr("Error: No MEAD calculation keywords given.\n");

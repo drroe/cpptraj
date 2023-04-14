@@ -17,9 +17,12 @@ class Protonator {
     int SetupProtonator(CpptrajState&, ArgList&, Cpptraj::Mead::MultiFlexResults const&);
     /// Print options to stdout
     void PrintOptions() const;
+    /// Calculate titration curves using MC
+    int CalcTitrationCurves() const;
   private:
     DataSet* site_intrinsic_pKas_; ///< DataSet containing calculated intrinsic pKas for each site.
     DataSet* site_site_matrix_;    ///< DataSet containing site-site interactions in e^2/ang
+    DataSet* site_qunprot_;        ///< DataSet containing charge of unprotonated state for each site.
     int n_mc_steps_;               ///< Number of monte carlo steps
     double start_pH_;              ///< Starting pH
     double stop_pH_;               ///< final pH

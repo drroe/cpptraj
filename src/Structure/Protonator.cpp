@@ -2,6 +2,8 @@
 #include "../ArgList.h"
 #include "../CpptrajState.h"
 #include "../CpptrajStdio.h"
+#include "../DataSet_1D.h"
+#include "../DataSet_2D.h"
 #include "../Mead/MultiFlexResults.h"
 
 using namespace Cpptraj::Structure;
@@ -9,6 +11,7 @@ using namespace Cpptraj::Structure;
 Protonator::Protonator() :
   site_intrinsic_pKas_(0),
   site_site_matrix_(0),
+  site_qunprot_(0),
   n_mc_steps_(0),
   start_pH_(0),
   stop_pH_(0),
@@ -33,6 +36,12 @@ int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn,
     mprinterr("Internal Error: Site-site interaction matrix data set is missing.\n");
     return 1;
   }
+  site_qunprot_ = results.QunprotSet();
+  if (site_qunprot_ == 0) {
+    mprinterr("Internal Error: Site unprotonated state charge data set is missing.\n");
+    return 1;
+  }
+  // TODO check that matrix rows/cols and # sites match?
   n_mc_steps_ = argIn.getKeyInt("nmcsteps", 10000);
   start_pH_ = argIn.getKeyDouble("startph", 5.0);
   stop_pH_ = argIn.getKeyDouble("stopph", 10.0);
@@ -71,4 +80,21 @@ void Protonator::PrintOptions() const {
   static const char* MCMODESTR[] = { "full", "reduced", "cluster" };
   mprintf("\tMC mode: %s\n", MCMODESTR[mcmode_]);
   if (logfile_ != 0) mprintf("\tLog output to '%s'\n", logfile_->Filename().full());
+}
+
+/** Calculate titration curves using MC */
+int Protonator::CalcTitrationCurves() const {
+  // Calculate the ground energy of the system (no protons)
+  unsigned int maxsite = site_intrinsic_pKas_->Size();
+  DataSet_1D const& qunprot = static_cast<DataSet_1D const&>( *site_qunprot_ );
+  DataSet_2D const& wint = static_cast<DataSet_2D const&>( *site_site_matrix_ );
+  // TODO can we assume symmetric?
+  double grounde = 0;
+  for (unsigned int i = 0; i < maxsite; i++)
+    for (unsigned int j = 0; j < maxsite; j++)
+      grounde += (qunprot.Dval(i) * qunprot.Dval(j) * wint.GetElement(i,j));
+  grounde *= 0.5;
+  mprintf("DEBUG: grounde = %g\n", grounde);
+
+  return 0;
 }
