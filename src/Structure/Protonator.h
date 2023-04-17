@@ -29,6 +29,8 @@ class Protonator {
 
     int assign_random_state(Iarray&, Random_Number&) const; // FIXME Random_Number const&
 
+    static double mc_deltae(Iarray const&, int, unsigned int, DataSet_2D const&, DataSet_1D const&, Darray const&);
+
     int perform_MC_at_pH(double, Iarray const&, DataSet_1D const&,
                          DataSet_2D const&, DataSet_1D const&,
                          Random_Number const&) const;

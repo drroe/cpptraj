@@ -121,6 +121,23 @@ const
   return ntotal;
 }
 
+/** \return Change in energy upon changes in protonation at site flip. */
+double Protonator::mc_deltae(Iarray const& SiteIsProtonated, int iflip,
+                             unsigned int maxsite,
+                             DataSet_2D const& wint, DataSet_1D const& qunprot,
+                             Darray const& self)
+{
+  int dp = 1 - (2*SiteIsProtonated[iflip]);
+  double deltae = 0;
+
+  for (unsigned int j=0; j < maxsite; j++) {
+    deltae = deltae + ((dp * (qunprot.Dval(j) + SiteIsProtonated[j]))) * wint.GetElement(iflip, j);
+  }
+  deltae = deltae + (dp * self[iflip]);
+
+  return deltae;
+}
+
 /** Perform monte carlo sampling for a given pH value.
   * Determine average values of the protonation for each site and
   * the correlation functions used to compute the energy.
@@ -150,6 +167,7 @@ const
     // Choose site
     int iflip = (int)((double)(maxsite-1) * rng.rn_gen());
     // Choose whether to flip
+  }
 
   return 0;
 }
@@ -211,7 +229,7 @@ int Protonator::CalcTitrationCurves() const {
     // Do the MC trials at this pH
     int err =  perform_MC_at_pH(*ph, SiteIsProtonated,
                                 static_cast<DataSet_1D const&>( *site_intrinsic_pKas_ ),
-                                wint, qunprot);
+                                wint, qunprot, rng);
     if (err != 0) {
       mprinterr("Error: Could not perform MC at pH %g\n", *ph);
       return 1;
