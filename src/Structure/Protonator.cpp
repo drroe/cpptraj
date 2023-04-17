@@ -211,7 +211,8 @@ const
 int Protonator::perform_MC_at_pH(double pH, int& nprotonated, Iarray& SiteIsProtonated,
                                  DataSet_1D const& pkint,
                                  DataSet_2D const& wint, DataSet_1D const& qunprot,
-                                 Random_Number const& rng)
+                                 Random_Number const& rng,
+                                 PairArray const& pairs)
 const
 {
   unsigned int maxsite = pkint.Size();
@@ -245,6 +246,31 @@ const
   mprintf("\n");
   double energy = mc_esum(maxsite, self, SiteIsProtonated, qunprot, wint);
   mprintf("DEBUG: Energy after thermal= %E\n", energy);
+  // Statistics loop: take 1 MC step and calulate averages.
+  Iarray tempProt( SiteIsProtonated.size(), -1 );
+  for (int mct = 0; mct < n_mc_steps_; mct++) {
+    mc_step(energy,
+            maxsite, self,
+            pairs,
+            nprotonated, SiteIsProtonated,
+            wint, qunprot,
+            rng);
+    // Is the overall state different?
+    bool isDifferentState = false;
+    for (unsigned int k = 0; k != SiteIsProtonated.size(); k++) {
+      if (tempProt[k] != SiteIsProtonated[k])
+        isDifferentState = true;
+      tempProt[k] = SiteIsProtonated[k];
+    }
+    // DEBUG: Print if different
+    if (isDifferentState) {
+      mprintf("DEBUG: %i State : ", mct);
+      for (unsigned int k = 0; k != SiteIsProtonated.size(); k++)
+        mprintf("%i", SiteIsProtonated[k]);
+      mprintf(" Energy : %g\n", energy);
+    }
+
+  }
 
   return 0;
 }
@@ -304,7 +330,7 @@ int Protonator::CalcTitrationCurves() const {
     // Do the MC trials at this pH
     int err =  perform_MC_at_pH(*ph, nprotonated, SiteIsProtonated,
                                 static_cast<DataSet_1D const&>( *site_intrinsic_pKas_ ),
-                                wint, qunprot, rng);
+                                wint, qunprot, rng, pairs);
     if (err != 0) {
       mprinterr("Error: Could not perform MC at pH %g\n", *ph);
       return 1;

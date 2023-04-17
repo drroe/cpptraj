@@ -39,7 +39,7 @@ class Protonator {
 
     int perform_MC_at_pH(double, int&, Iarray&, DataSet_1D const&,
                          DataSet_2D const&, DataSet_1D const&,
-                         Random_Number const&) const;
+                         Random_Number const&, PairArray const&) const;
 
     DataSet* site_intrinsic_pKas_; ///< DataSet containing calculated intrinsic pKas for each site.
     DataSet* site_site_matrix_;    ///< DataSet containing site-site interactions in e^2/ang
