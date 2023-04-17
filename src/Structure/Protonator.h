@@ -5,6 +5,8 @@ class ArgList;
 class DataSet;
 class CpptrajFile;
 class CpptrajState;
+class DataSet_1D;
+class DataSet_2D;
 class Random_Number;
 namespace Cpptraj {
 namespace Mead {
@@ -26,6 +28,10 @@ class Protonator {
     typedef std::vector<double> Darray;
 
     int assign_random_state(Iarray&, Random_Number&) const; // FIXME Random_Number const&
+
+    int perform_MC_at_pH(double, Iarray const&, DataSet_1D const&,
+                         DataSet_2D const&, DataSet_1D const&,
+                         Random_Number const&) const;
 
     DataSet* site_intrinsic_pKas_; ///< DataSet containing calculated intrinsic pKas for each site.
     DataSet* site_site_matrix_;    ///< DataSet containing site-site interactions in e^2/ang

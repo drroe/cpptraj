@@ -127,15 +127,33 @@ const
   */
 int Protonator::perform_MC_at_pH(double pH, Iarray const& SiteIsProtonated,
                                  DataSet_1D const& pkint,
-                                 DataSet_2D const& wint, DataSet_1D const& qunprot)
+                                 DataSet_2D const& wint, DataSet_1D const& qunprot,
+                                 Random_Number const& rng)
 const
 {
-  unsigned int maxsite = pkint.size();
-  // Compute the self energy to protonate each site
+  unsigned int maxsite = pkint.Size();
+  // Compute the self energy to protonate each site at this pH
   Darray self;
   self.reserve( maxsite );
-  for (unsigned int i = 0; i < maxsite; i++)
-    self(i) = const * (pkint(i) - ph)
+  double fac = -(log(10.0) / beta_);
+  mprintf("DEBUG: MC self E:");
+  for (unsigned int i = 0; i < maxsite; i++) {
+    self[i] = fac * (pkint.Dval(i) - pH);
+    mprintf(" %E", self[i]);
+  }
+  mprintf("\n");
+  // Thermalization: do n_mc_steps_ of Monte Carlo to approach equilibrium
+  //                 before data is taken.
+  // NOTE: This currently does not allow a 2 site transition.
+  int maxsteps = n_mc_steps_ * maxsite;
+  for (int i = 0; i < maxsteps; i++) {
+    // Choose site
+    int iflip = (int)((double)(maxsite-1) * rng.rn_gen());
+    // Choose whether to flip
+
+  return 0;
+}
+
 
 /** Calculate titration curves using MC */
 int Protonator::CalcTitrationCurves() const {
@@ -178,12 +196,28 @@ int Protonator::CalcTitrationCurves() const {
   logfile_->Printf("maxsite= %u  #pH vals= %zu  nph= %i\n", maxsite, pH_values.size(), nph);
 
   Iarray SiteIsProtonated(maxsite, 0);
-  Random_Number rng;
-  int nprotonated = assign_random_state(SiteIsProtonated, rng);
-  mprintf("Initial states (%i total):", nprotonated);
-  for (Iarray::const_iterator it = SiteIsProtonated.begin(); it != SiteIsProtonated.end(); ++it)
-    mprintf(" %i", *it);
-  mprintf("\n");
+
+  // Loop over pH values
+  for (Darray::const_iterator ph = pH_values.begin(); ph != pH_values.end(); ++ph)
+  {
+    mprintf("DEBUG: pH %g\n", *ph);
+    Random_Number rng; // TODO use 1 overall rng
+    // Assign initial protonation
+    int nprotonated = assign_random_state(SiteIsProtonated, rng);
+    mprintf("Initial states (%i total):", nprotonated);
+    for (Iarray::const_iterator it = SiteIsProtonated.begin(); it != SiteIsProtonated.end(); ++it)
+      mprintf(" %i", *it);
+    mprintf("\n");
+    // Do the MC trials at this pH
+    int err =  perform_MC_at_pH(*ph, SiteIsProtonated,
+                                static_cast<DataSet_1D const&>( *site_intrinsic_pKas_ ),
+                                wint, qunprot);
+    if (err != 0) {
+      mprinterr("Error: Could not perform MC at pH %g\n", *ph);
+      return 1;
+    }
+  } // END loop over pH values
+  
 
   return 0;
 }
