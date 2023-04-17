@@ -138,11 +138,38 @@ double Protonator::mc_deltae(Iarray const& SiteIsProtonated, int iflip,
   return deltae;
 }
 
+/// Flip protonation state, update count
+static inline void flip_prot(int& count, int& site) {
+  if (site == 0) {
+    site = 1;
+    count++;
+  } else {
+    site = 0;
+    count--;
+  }
+}
+
+/// Calculate total energy based on current protonation states
+static double mc_esum(unsigned int maxsite, std::vector<double> const& self,
+                           std::vector<int> const& prot, DataSet_1D const& qunprot,
+                           DataSet_2D const& wint)
+{
+  double esum = 0;
+  for (unsigned int j = 0; j < maxsite; j++) {
+    esum = esum + (prot[j] * self[j]);
+    for (unsigned int i = 0; i < maxsite; i++) {
+      esum = esum + 0.5 * ( ((qunprot.Dval(i) + prot[i]) * (qunprot.Dval(j) + prot[j])) -
+                            (qunprot.Dval(i) * qunprot.Dval(j)) ) * wint.GetElement(i,j);
+    }
+  }
+  return esum;
+}
+
 /** Perform monte carlo sampling for a given pH value.
   * Determine average values of the protonation for each site and
   * the correlation functions used to compute the energy.
   */
-int Protonator::perform_MC_at_pH(double pH, Iarray const& SiteIsProtonated,
+int Protonator::perform_MC_at_pH(double pH, int& nprotonated, Iarray& SiteIsProtonated,
                                  DataSet_1D const& pkint,
                                  DataSet_2D const& wint, DataSet_1D const& qunprot,
                                  Random_Number const& rng)
@@ -164,10 +191,21 @@ const
   // NOTE: This currently does not allow a 2 site transition.
   int maxsteps = n_mc_steps_ * maxsite;
   for (int i = 0; i < maxsteps; i++) {
-    // Choose site
-    int iflip = (int)((double)(maxsite-1) * rng.rn_gen());
+    // Choose site FIXME use rng.rn_num_interval(0, maxsite)
+    int iflip = (int)((double)maxsite * rng.rn_gen()); // FIXME THIS IS FOR TEST ONLY
     // Choose whether to flip
+    double de = mc_deltae(SiteIsProtonated, iflip, maxsite, wint, qunprot, self);
+    if ( de < 0 )
+      flip_prot( nprotonated, SiteIsProtonated[iflip] );
+    else if ( exp(-(beta_*de)) > rng.rn_gen() )
+      flip_prot( nprotonated, SiteIsProtonated[iflip] );
   }
+  mprintf("DEBUG: After thermal:");
+  for (unsigned int i = 0; i < maxsite; i++)
+    mprintf(" %i", SiteIsProtonated[i]);
+  mprintf("\n");
+  double energy = mc_esum(maxsite, self, SiteIsProtonated, qunprot, wint);
+  mprintf("DEBUG: Energy after thermal= %E\n", energy);
 
   return 0;
 }
@@ -227,7 +265,7 @@ int Protonator::CalcTitrationCurves() const {
       mprintf(" %i", *it);
     mprintf("\n");
     // Do the MC trials at this pH
-    int err =  perform_MC_at_pH(*ph, SiteIsProtonated,
+    int err =  perform_MC_at_pH(*ph, nprotonated, SiteIsProtonated,
                                 static_cast<DataSet_1D const&>( *site_intrinsic_pKas_ ),
                                 wint, qunprot, rng);
     if (err != 0) {
