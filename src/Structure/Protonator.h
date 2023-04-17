@@ -1,6 +1,7 @@
 #ifndef INC_STRUCTURE_PROTONATOR_H
 #define INC_STRUCTURE_PROTONATOR_H
 #include <vector>
+#include <utility> // std::pair
 class ArgList;
 class DataSet;
 class CpptrajFile;
@@ -26,10 +27,15 @@ class Protonator {
   private:
     typedef std::vector<int> Iarray;
     typedef std::vector<double> Darray;
+    typedef std::pair<int,int> StatePair;
+    typedef std::vector<StatePair> PairArray;
 
     int assign_random_state(Iarray&, Random_Number&) const; // FIXME Random_Number const&
 
     static double mc_deltae(Iarray const&, int, unsigned int, DataSet_2D const&, DataSet_1D const&, Darray const&);
+
+    void mc_step(double&, unsigned int, Darray const&, PairArray const&, int&, Iarray&,
+                 DataSet_2D const&, DataSet_1D const&, Random_Number const&) const;
 
     int perform_MC_at_pH(double, int&, Iarray&, DataSet_1D const&,
                          DataSet_2D const&, DataSet_1D const&,

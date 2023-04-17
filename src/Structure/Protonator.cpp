@@ -165,6 +165,45 @@ static double mc_esum(unsigned int maxsite, std::vector<double> const& self,
   return esum;
 }
 
+/** Perform a monte carlo step.
+  * Consider pairs of strongly interacting residues as separate "sites"
+  * that can undergo change (i.e. a two-site transition).
+  */
+void Protonator::mc_step(double& energy,
+                        unsigned int maxsite, Darray const& self,
+                        PairArray const& pairs,
+                        int& nprotonated, Iarray& SiteIsProtonated,
+                        DataSet_2D const& wint, DataSet_1D const& qunprot,
+                        Random_Number const& rng)
+const
+{
+  for (unsigned int i = 0; i < maxsite + pairs.size(); i++)
+  {
+    // Choose site
+    // FIXME use rng.rn_num_interval(0, maxsite+npairs)
+    int iflip = (int)((double)(maxsite+pairs.size()) * rng.rn_gen()); // FIXME THIS IS FOR TEST ONLY
+    // 2 site or 1 site
+    if ((unsigned int)iflip >= maxsite) {
+      // 2 site transition
+      iflip -= (int)maxsite;
+    } else {
+      // 1 site transition
+      double de = mc_deltae(SiteIsProtonated, iflip, maxsite, wint, qunprot, self);
+      // Standard Metropolis criterion.
+      // if de < 0 change
+      // if de >= 0 change with probability exp(-beta*de)
+      if ( de < 0 ) {
+        flip_prot( nprotonated, SiteIsProtonated[iflip] );
+        energy = energy + de;
+      } else if ( exp(-(beta_*de)) > rng.rn_gen() ) {
+        flip_prot( nprotonated, SiteIsProtonated[iflip] );
+        energy = energy + de;
+      }
+    }
+  } // END MC loop
+}
+  
+
 /** Perform monte carlo sampling for a given pH value.
   * Determine average values of the protonation for each site and
   * the correlation functions used to compute the energy.
@@ -228,8 +267,6 @@ int Protonator::CalcTitrationCurves() const {
   // Calculate pairs.
   // Pairs of strongly interacting sites are allowed to simultaneously
   // change their protonation states.
-  typedef std::pair<int,int> StatePair;
-  typedef std::vector<StatePair> PairArray;
   PairArray pairs;
   double min_g = min_wint_ * log(10.0) / beta_;
   mprintf("DEBUG: min_g = %g\n", min_g);
