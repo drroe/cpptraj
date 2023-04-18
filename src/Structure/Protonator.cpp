@@ -123,6 +123,8 @@ class Protonator::StateArray {
     double Esum(Darray const&, DataSet_1D const&, DataSet_2D const&) const;
     /// Print state to log file
     void PrintState(CpptrajFile*) const;
+    /// Assign state to string
+    void StateStr(std::string&) const;
 
     /// Assign random protonation state to each site.
     void AssignRandom(Random_Number const& rng);
@@ -214,6 +216,17 @@ void Protonator::StateArray::PrintState(CpptrajFile* logfile) const {
   logfile->Printf("\n");
 }
 
+/** Assign state string. */
+void Protonator::StateArray::StateStr(std::string& stateChar) const {
+  stateChar.resize( prot_.size() );
+  for (unsigned int idx = 0; idx != prot_.size(); idx++) {
+    if (prot_[idx] == 0)
+      stateChar[idx] = '0';
+    else
+      stateChar[idx] = '1';
+  }
+}
+
 // -----------------------------------------------------------------------------
 
 /** \return Change in energy upon changes in protonation at site flip. */
@@ -288,12 +301,12 @@ const
   Darray self;
   self.reserve( maxsite );
   double fac = -(log(10.0) / beta_);
-  mprintf("DEBUG: MC self E:");
+  //mprintf("DEBUG: MC self E:");
   for (unsigned int i = 0; i < maxsite; i++) {
-    self[i] = fac * (pkint.Dval(i) - pH);
-    mprintf(" %E", self[i]);
+    self.push_back( fac * (pkint.Dval(i) - pH) );
+    logfile_->Printf("%26.16E", self[i]);
   }
-  mprintf("\n");
+  logfile_->Printf("\n");
   // Thermalization: do n_mc_steps_ of Monte Carlo to approach equilibrium
   //                 before data is taken.
   // NOTE: This currently does not allow a 2 site transition.
@@ -308,14 +321,17 @@ const
     else if ( exp(-(beta_*de)) > rng.rn_gen() )
       SiteIsProtonated.FlipProt(iflip);
   }
-  mprintf("DEBUG: After thermal:");
-  for (unsigned int i = 0; i < maxsite; i++)
-    mprintf(" %i", SiteIsProtonated[i]);
-  mprintf("\n");
+  //mprintf("DEBUG: After thermal:");
+  //for (unsigned int i = 0; i < maxsite; i++)
+  //  mprintf(" %i", SiteIsProtonated[i]);
+  //mprintf("\n");
+  SiteIsProtonated.PrintState(logfile_);
   double energy = SiteIsProtonated.Esum(self, qunprot, wint);
-  mprintf("DEBUG: Energy after thermal= %E\n", energy);
+  logfile_->Printf("Energy after thermal= %16.8f\n", energy);
   // Statistics loop: take 1 MC step and calulate averages.
   StateArray tempProt;
+  std::string stateChar;
+  stateChar.resize( maxsite );
   for (int mct = 0; mct < n_mc_steps_; mct++) {
     mc_step(energy,
             maxsite, self,
@@ -327,17 +343,14 @@ const
     bool isDifferentState = tempProt.AssignFromState( SiteIsProtonated );
     // DEBUG: Print if different
     if (isDifferentState) {
-      mprintf("DEBUG: %i State : ", mct);
-      for (unsigned int k = 0; k != maxsite; k++)
-        mprintf("%i", SiteIsProtonated[k]);
-      mprintf(" Energy : %g\n", energy);
+      SiteIsProtonated.StateStr( stateChar );
+      logfile_->Printf("%12i State : %s Energy : %g\n", mct, stateChar.c_str(), energy);
     }
 
   }
 
   return 0;
 }
-
 
 /** Calculate titration curves using MC */
 int Protonator::CalcTitrationCurves() const {
