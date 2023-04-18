@@ -35,6 +35,9 @@ class Protonator {
 
     static double mc_deltae(StateArray const&, int, unsigned int, DataSet_2D const&, DataSet_1D const&, Darray const&);
 
+    void mc_pair_flip(double&, unsigned int, Darray const&, StatePair const&, StateArray&,
+                      DataSet_2D const&, DataSet_1D const&, Random_Number const&) const;
+
     void mc_step(double&, unsigned int, Darray const&, PairArray const&, StateArray&,
                  DataSet_2D const&, DataSet_1D const&, Random_Number const&) const;
 

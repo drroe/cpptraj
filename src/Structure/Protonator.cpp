@@ -309,6 +309,67 @@ double Protonator::mc_deltae(StateArray const& SiteIsProtonated, int iflip,
   return deltae;
 }
 
+/** Attempt a simultaneous change in the protonation state of 2
+  * sites, and accept the change based on the standard
+  * Metropolis criteria.
+  */
+void Protonator::mc_pair_flip(double& energy,
+                              unsigned int maxsite, Darray const& self,
+                              StatePair const& pairIn,
+                              StateArray& SiteIsProtonated,
+                              DataSet_2D const& wint, DataSet_1D const& qunprot,
+                              Random_Number const& rng)
+const
+{
+  unsigned int pair[2];
+  pair[0] = pairIn.first;
+  pair[1] = pairIn.second;
+  // New potential protonation states of sites
+  int newprot[2];
+  // Change in protonation state of sites in pair
+  int dp[2];
+  for (int i = 0; i != 2; i++) {
+    // FIXME use rng.rn_num_interval(0, 1)
+    newprot[i] = (int)(2*rng.rn_gen());
+    if (newprot[i] > 1) { // FIXME will not be necessary with above interval
+      mprinterr("Error: bad pair flip.\n");
+      return;
+    }
+    // -1 deprotonated, 1 protonated, 0 no change
+    dp[i] = newprot[i] - SiteIsProtonated[ pair[i] ];
+  }
+
+  if (dp[0] == 0 && dp[1] == 0) return;
+
+  double de = dp[0]*self[ pair[0] ] + dp[1]*self[ pair[1] ];
+
+  // Change in self energy
+  for (unsigned int i = 0; i < maxsite; i++) {
+    if (i != pair[0] && i != pair[1]) {
+      de = de + dp[0] * (qunprot.Dval(i) + SiteIsProtonated[i]) * wint.GetElement(i, pair[0]) +
+                dp[1] * (qunprot.Dval(i) + SiteIsProtonated[i]) * wint.GetElement(i, pair[1]);
+    }
+  }
+
+  // Change in interaction energy
+  de = de + wint.GetElement(pair[0], pair[1]) * (
+                 (qunprot.Dval(pair[0]) + newprot[0])*
+                 (qunprot.Dval(pair[1]) + newprot[1]) -
+                 (qunprot.Dval(pair[0]) + SiteIsProtonated[pair[0]])*
+                 (qunprot.Dval(pair[1]) + SiteIsProtonated[pair[1]]) );
+
+  // Check for flip
+  if (de < 0) {
+    if (dp[0] != 0) SiteIsProtonated.FlipProt(pair[0]);
+    if (dp[1] != 0) SiteIsProtonated.FlipProt(pair[1]);
+    energy = energy + de;
+  } else if ( exp(-(beta_*de)) > rng.rn_gen() ) {
+    if (dp[0] != 0) SiteIsProtonated.FlipProt(pair[0]);
+    if (dp[1] != 0) SiteIsProtonated.FlipProt(pair[1]);
+    energy = energy + de;
+  }
+}
+
 /** Perform a monte carlo step.
   * Consider pairs of strongly interacting residues as separate "sites"
   * that can undergo change (i.e. a two-site transition).
@@ -330,6 +391,8 @@ const
     if ((unsigned int)iflip >= maxsite) {
       // 2 site transition
       iflip -= (int)maxsite;
+      mc_pair_flip(energy, maxsite, self, pairs[iflip], SiteIsProtonated,
+                   wint, qunprot, rng);
     } else {
       // 1 site transition
       double de = mc_deltae(SiteIsProtonated, iflip, maxsite, wint, qunprot, self);
