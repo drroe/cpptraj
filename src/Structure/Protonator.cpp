@@ -4,6 +4,7 @@
 #include "../CpptrajStdio.h"
 #include "../DataSet_1D.h"
 #include "../DataSet_2D.h"
+#include "../DataSet_string.h"
 #include "../Random.h"
 #include "../Mead/MultiFlexResults.h"
 #include <cmath> // log
@@ -14,6 +15,7 @@ Protonator::Protonator() :
   site_intrinsic_pKas_(0),
   site_site_matrix_(0),
   site_qunprot_(0),
+  site_names_(0),
   n_mc_steps_(0),
   start_pH_(0),
   stop_pH_(0),
@@ -43,6 +45,11 @@ int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn,
   site_qunprot_ = results.QunprotSet();
   if (site_qunprot_ == 0) {
     mprinterr("Internal Error: Site unprotonated state charge data set is missing.\n");
+    return 1;
+  }
+  site_names_ = results.SiteNamesSet();
+  if (site_names_ == 0) {
+    mprinterr("Internal Error: Site name data set is missing.\n");
     return 1;
   }
   // TODO check that matrix rows/cols and # sites match?
@@ -88,6 +95,8 @@ int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn,
 void Protonator::PrintOptions() const {
   if (site_intrinsic_pKas_ != 0) mprintf("\tSite intrinsic pKa set: %s\n", site_intrinsic_pKas_->legend());
   if (site_site_matrix_ != 0) mprintf("\tSite-site interaction matrix set: %s\n", site_site_matrix_->legend());
+  if (site_qunprot_ != 0) mprintf("\tSite unprotonated charge set: %s\n", site_qunprot_->legend());
+  if (site_names_ != 0) mprintf("\tSite names set: %s\n", site_names_->legend());
   mprintf("\tCalculating titration curves from pH %g to %g in increments of %g\n",
           start_pH_, stop_pH_, pH_increment_);
   mprintf("\tCutoff for site-site interactions in pH units is %g\n", min_wint_);
@@ -99,30 +108,116 @@ void Protonator::PrintOptions() const {
   mprintf("\tRNG seed: %i\n", iseed_);
 }
 
+// -----------------------------------------------------------------------------
+/** Class used to track/manipulate protonation state at each site. */
+class Protonator::StateArray {
+  public:
+    StateArray() : nprotonated_(0) {}
+    /// CONSTRUCTOR - Number of sites
+    StateArray(unsigned int nsites) : prot_(nsites, 0), nprotonated_(0) {}
+    /// \return Total # of sites that are protonated
+    int Nprotonated() const { return nprotonated_; }
+    /// \return Protonation state at site (1 = protonated, 0 = unprotonated)
+    int operator[](int idx) const { return prot_[idx]; }
+    /// \return Total energy based on current protonation states
+    double Esum(Darray const&, DataSet_1D const&, DataSet_2D const&) const;
+    /// Print state to log file
+    void PrintState(CpptrajFile*) const;
+
+    /// Assign random protonation state to each site.
+    void AssignRandom(Random_Number const& rng);
+    /// Flip protonation state at site
+    void FlipProt(int);
+    /// Assign incoming state to this state, return true if different
+    bool AssignFromState(StateArray const&);
+
+  private:
+    typedef std::vector<int> Iarray;
+    Iarray prot_;     ///< Hold protonation state for each site
+    int nprotonated_; ///< Total # of sites that are protonated
+};
+
 /** Assign random protonation state to each site.
-  * \return total number of protonated sites.
   */
-int Protonator::assign_random_state(Iarray& SiteIsProtonated, Random_Number& rng)
-const
+void Protonator::StateArray::AssignRandom(Random_Number const& rng)
 {
-  // FIXME calling set seed here to match mcti init subroutine. Should not always be done.
-  // When fixed, rng can be const&
-  int ntotal = 0;
-  rng.rn_set( iseed_ );
-  for (Iarray::iterator it = SiteIsProtonated.begin(); it != SiteIsProtonated.end(); ++it)
+  nprotonated_ = 0;
+  for (Iarray::iterator it = prot_.begin(); it != prot_.end(); ++it)
   {
     if (rng.rn_gen() > 0.5) {
       *it = 1;
-      ntotal++;
+      nprotonated_++;
     } else {
       *it = 0;
     }
   }
-  return ntotal;
 }
 
+/** Flip protonation state at site, update count. */
+void Protonator::StateArray::FlipProt(int site) {
+  if (prot_[site] == 0) {
+    prot_[site] = 1;
+    nprotonated_++;
+  } else {
+    prot_[site] = 0;
+    nprotonated_--;
+  }
+}
+
+/// Calculate total energy based on current protonation states
+double Protonator::StateArray::Esum(Darray const& self, DataSet_1D const& qunprot,
+                                    DataSet_2D const& wint)
+const
+{
+  unsigned int maxsite = self.size();
+  // TODO check sizes?
+  double esum = 0;
+  for (unsigned int j = 0; j < maxsite; j++) {
+    esum = esum + (prot_[j] * self[j]);
+    for (unsigned int i = 0; i < maxsite; i++) {
+      esum = esum + 0.5 * ( ((qunprot.Dval(i) + prot_[i]) * (qunprot.Dval(j) + prot_[j])) -
+                            (qunprot.Dval(i) * qunprot.Dval(j)) ) * wint.GetElement(i,j);
+    }
+  }
+  return esum;
+}
+
+/** Assign protonation state to this state array.
+  * \return true if this state was different than incoming state.
+  */
+bool Protonator::StateArray::AssignFromState(StateArray const& rhs) {
+  bool isDifferent = false;
+  if (prot_.empty()) {
+    isDifferent = true;
+    prot_ = rhs.prot_;
+    nprotonated_ = rhs.nprotonated_;
+  } else {
+    if (prot_.size() != rhs.prot_.size()) { // sanity check
+      mprinterr("Internal Error:  Protonator::StateArray::AssignFromState: Sizes do not match.\n");
+      return true;
+    }
+    for (unsigned int idx = 0; idx != rhs.prot_.size(); idx++) {
+      if (prot_[idx] != rhs.prot_[idx])
+        isDifferent = true;
+      prot_[idx] = rhs.prot_[idx];
+    }
+  }
+  return isDifferent;
+}
+
+/** Print state to log file */
+void Protonator::StateArray::PrintState(CpptrajFile* logfile) const {
+  static const char* fmt = "%12i";
+  logfile->Printf(fmt, nprotonated_);
+  for (Iarray::const_iterator it = prot_.begin(); it != prot_.end(); ++it)
+    logfile->Printf(fmt, *it);
+  logfile->Printf("\n");
+}
+
+// -----------------------------------------------------------------------------
+
 /** \return Change in energy upon changes in protonation at site flip. */
-double Protonator::mc_deltae(Iarray const& SiteIsProtonated, int iflip,
+double Protonator::mc_deltae(StateArray const& SiteIsProtonated, int iflip,
                              unsigned int maxsite,
                              DataSet_2D const& wint, DataSet_1D const& qunprot,
                              Darray const& self)
@@ -138,33 +233,6 @@ double Protonator::mc_deltae(Iarray const& SiteIsProtonated, int iflip,
   return deltae;
 }
 
-/// Flip protonation state, update count
-static inline void flip_prot(int& count, int& site) {
-  if (site == 0) {
-    site = 1;
-    count++;
-  } else {
-    site = 0;
-    count--;
-  }
-}
-
-/// Calculate total energy based on current protonation states
-static double mc_esum(unsigned int maxsite, std::vector<double> const& self,
-                           std::vector<int> const& prot, DataSet_1D const& qunprot,
-                           DataSet_2D const& wint)
-{
-  double esum = 0;
-  for (unsigned int j = 0; j < maxsite; j++) {
-    esum = esum + (prot[j] * self[j]);
-    for (unsigned int i = 0; i < maxsite; i++) {
-      esum = esum + 0.5 * ( ((qunprot.Dval(i) + prot[i]) * (qunprot.Dval(j) + prot[j])) -
-                            (qunprot.Dval(i) * qunprot.Dval(j)) ) * wint.GetElement(i,j);
-    }
-  }
-  return esum;
-}
-
 /** Perform a monte carlo step.
   * Consider pairs of strongly interacting residues as separate "sites"
   * that can undergo change (i.e. a two-site transition).
@@ -172,7 +240,7 @@ static double mc_esum(unsigned int maxsite, std::vector<double> const& self,
 void Protonator::mc_step(double& energy,
                         unsigned int maxsite, Darray const& self,
                         PairArray const& pairs,
-                        int& nprotonated, Iarray& SiteIsProtonated,
+                        StateArray& SiteIsProtonated,
                         DataSet_2D const& wint, DataSet_1D const& qunprot,
                         Random_Number const& rng)
 const
@@ -193,10 +261,10 @@ const
       // if de < 0 change
       // if de >= 0 change with probability exp(-beta*de)
       if ( de < 0 ) {
-        flip_prot( nprotonated, SiteIsProtonated[iflip] );
+        SiteIsProtonated.FlipProt(iflip);
         energy = energy + de;
       } else if ( exp(-(beta_*de)) > rng.rn_gen() ) {
-        flip_prot( nprotonated, SiteIsProtonated[iflip] );
+        SiteIsProtonated.FlipProt(iflip);
         energy = energy + de;
       }
     }
@@ -208,7 +276,7 @@ const
   * Determine average values of the protonation for each site and
   * the correlation functions used to compute the energy.
   */
-int Protonator::perform_MC_at_pH(double pH, int& nprotonated, Iarray& SiteIsProtonated,
+int Protonator::perform_MC_at_pH(double pH, StateArray& SiteIsProtonated,
                                  DataSet_1D const& pkint,
                                  DataSet_2D const& wint, DataSet_1D const& qunprot,
                                  Random_Number const& rng,
@@ -236,36 +304,31 @@ const
     // Choose whether to flip
     double de = mc_deltae(SiteIsProtonated, iflip, maxsite, wint, qunprot, self);
     if ( de < 0 )
-      flip_prot( nprotonated, SiteIsProtonated[iflip] );
+      SiteIsProtonated.FlipProt(iflip);
     else if ( exp(-(beta_*de)) > rng.rn_gen() )
-      flip_prot( nprotonated, SiteIsProtonated[iflip] );
+      SiteIsProtonated.FlipProt(iflip);
   }
   mprintf("DEBUG: After thermal:");
   for (unsigned int i = 0; i < maxsite; i++)
     mprintf(" %i", SiteIsProtonated[i]);
   mprintf("\n");
-  double energy = mc_esum(maxsite, self, SiteIsProtonated, qunprot, wint);
+  double energy = SiteIsProtonated.Esum(self, qunprot, wint);
   mprintf("DEBUG: Energy after thermal= %E\n", energy);
   // Statistics loop: take 1 MC step and calulate averages.
-  Iarray tempProt( SiteIsProtonated.size(), -1 );
+  StateArray tempProt;
   for (int mct = 0; mct < n_mc_steps_; mct++) {
     mc_step(energy,
             maxsite, self,
             pairs,
-            nprotonated, SiteIsProtonated,
+            SiteIsProtonated,
             wint, qunprot,
             rng);
     // Is the overall state different?
-    bool isDifferentState = false;
-    for (unsigned int k = 0; k != SiteIsProtonated.size(); k++) {
-      if (tempProt[k] != SiteIsProtonated[k])
-        isDifferentState = true;
-      tempProt[k] = SiteIsProtonated[k];
-    }
+    bool isDifferentState = tempProt.AssignFromState( SiteIsProtonated );
     // DEBUG: Print if different
     if (isDifferentState) {
       mprintf("DEBUG: %i State : ", mct);
-      for (unsigned int k = 0; k != SiteIsProtonated.size(); k++)
+      for (unsigned int k = 0; k != maxsite; k++)
         mprintf("%i", SiteIsProtonated[k]);
       mprintf(" Energy : %g\n", energy);
     }
@@ -282,6 +345,7 @@ int Protonator::CalcTitrationCurves() const {
   DataSet_1D const& pkint = static_cast<DataSet_1D const&>( *site_intrinsic_pKas_ );
   DataSet_1D const& qunprot = static_cast<DataSet_1D const&>( *site_qunprot_ );
   DataSet_2D const& wint = static_cast<DataSet_2D const&>( *site_site_matrix_ );
+  DataSet_string const& siteNames = static_cast<DataSet_string const&>( *site_names_ );
   unsigned int maxsite = pkint.Size();
   // TODO can we assume symmetric?
   double grounde = 0;
@@ -321,24 +385,27 @@ int Protonator::CalcTitrationCurves() const {
       siteType = 'A';
     else
       siteType = 'C';
-    logfile_->Printf("%10.5f %c %s\n", pkint.Dval(i), siteType, "TEMP");
+    logfile_->Printf("%10.5f %c %s\n", pkint.Dval(i), siteType, siteNames[i].c_str());
   }
 
-  Iarray SiteIsProtonated(maxsite, 0);
+  StateArray SiteIsProtonated(maxsite);
 
   // Loop over pH values
   for (Darray::const_iterator ph = pH_values.begin(); ph != pH_values.end(); ++ph)
   {
-    mprintf("DEBUG: pH %g\n", *ph);
     Random_Number rng; // TODO use 1 overall rng
     // Assign initial protonation
-    int nprotonated = assign_random_state(SiteIsProtonated, rng);
-    mprintf("Initial states (%i total):", nprotonated);
-    for (Iarray::const_iterator it = SiteIsProtonated.begin(); it != SiteIsProtonated.end(); ++it)
-      mprintf(" %i", *it);
-    mprintf("\n");
+    // FIXME calling set seed here to match mcti init subroutine. Should not always be done.
+    rng.rn_set( iseed_ );
+    SiteIsProtonated.AssignRandom( rng );
+    logfile_->Printf("pH= %6.2f\n", *ph);
+    SiteIsProtonated.PrintState(logfile_);
+    //mprintf("Initial states (%i total):", SiteIsProtonated.Nprotonated());
+    //for (Iarray::const_iterator it = SiteIsProtonated.begin(); it != SiteIsProtonated.end(); ++it)
+    //  mprintf(" %i", *it);
+    //mprintf("\n");
     // Do the MC trials at this pH
-    int err =  perform_MC_at_pH(*ph, nprotonated, SiteIsProtonated,
+    int err =  perform_MC_at_pH(*ph, SiteIsProtonated,
                                 pkint, wint, qunprot, rng, pairs);
     if (err != 0) {
       mprinterr("Error: Could not perform MC at pH %g\n", *ph);
