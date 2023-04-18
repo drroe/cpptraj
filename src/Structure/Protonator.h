@@ -1,6 +1,7 @@
 #ifndef INC_STRUCTURE_PROTONATOR_H
 #define INC_STRUCTURE_PROTONATOR_H
 #include <vector>
+#include <string>
 #include <utility> // std::pair
 class ArgList;
 class DataSet;
@@ -29,6 +30,8 @@ class Protonator {
     typedef std::vector<double> Darray;
     typedef std::pair<int,int> StatePair;
     typedef std::vector<StatePair> PairArray;
+
+    int read_files(CpptrajState&, std::string const&);
 
     static double mc_deltae(StateArray const&, int, unsigned int, DataSet_2D const&, DataSet_1D const&, Darray const&);
 

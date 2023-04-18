@@ -6,6 +6,7 @@
 #include "../DataSet_2D.h"
 #include "../DataSet_string.h"
 #include "../Random.h"
+#include "../StringRoutines.h"
 #include "../Mead/MultiFlexResults.h"
 #include <cmath> // log
 
@@ -28,26 +29,88 @@ Protonator::Protonator() :
   logfile_(0)
 {}
 
+/** For testing, read data from .pkint and .g files. */
+int Protonator::read_files(CpptrajState& State, std::string const& prefix)
+{
+  CpptrajFile infile;
+  // Pkint - site_intrinsic_pKas_, site_qunprot_, site_names_
+  std::string pkintfile = prefix + ".pkint";
+  if (infile.OpenRead( pkintfile )) {
+    mprinterr("Error: Opening file %s\n", pkintfile.c_str());
+    return 1;
+  }
+  site_intrinsic_pKas_ = State.DSL().AddSet( DataSet::DOUBLE, MetaData(pkintfile, "pkint") );
+  site_qunprot_ = State.DSL().AddSet(DataSet::DOUBLE, MetaData(pkintfile, "qunprot") );
+  site_names_ = State.DSL().AddSet(DataSet::STRING, MetaData(pkintfile, "names" ));
+  const char* line = infile.NextLine();
+  int isite = 0;
+  while (line != 0) {
+    ArgList argline(line, " ");
+    double pkint = convertToDouble(argline[0]);
+    double q;
+    if (argline[1] == "A")
+      q = -1;
+    else
+      q = 0;
+    site_intrinsic_pKas_->Add( isite, &pkint );
+    site_qunprot_->Add( isite, &q );
+    site_names_->Add( isite, argline[2].c_str() );
+    isite++;
+    line = infile.NextLine();
+  }
+  infile.CloseFile();
+  // G - site_site_matrix_
+  std::string gfile = prefix + ".g";
+  if (infile.OpenRead( gfile )) {
+    mprinterr("Error: Opening file %s\n", gfile.c_str());
+    return 1;
+  }
+  site_site_matrix_ = State.DSL().AddSet(DataSet::MATRIX_DBL, gfile);
+  DataSet_2D& mat = static_cast<DataSet_2D&>( *site_site_matrix_ );
+  mat.AllocateTriangle( isite );
+  line = infile.NextLine();
+  while (line != 0) {
+    ArgList argline(line, " ");
+    int ii = convertToInteger(argline[0]);
+    int jj = convertToInteger(argline[1]);
+    if (ii < jj)
+      mat.SetElement(ii-1, jj-1, convertToDouble(argline[2]));
+    line = infile.NextLine();
+  }
+  // DEBUG print matrix
+  for (int ii = 0; ii < isite; ii++)
+    for (int jj = 0; jj < isite; jj++)
+      mprintf("%i %i %g\n", ii+1, jj+1, mat.GetElement(ii, jj));
+
+  return 0;
+}
+
 /** Set up options */
 int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn,
                                 Cpptraj::Mead::MultiFlexResults const& results)
 {
-  site_intrinsic_pKas_ = results.PkIntSet();
+  std::string mcprefix = argIn.GetStringKey("mcprefix");
+  if (!mcprefix.empty()) {
+    mprintf("\tLoading previous MEAD results for MC using prefix '%s'\n", mcprefix.c_str());
+    if (read_files(State, mcprefix)) return 1;
+  } else {
+    site_intrinsic_pKas_ = results.PkIntSet();
+    site_site_matrix_ = results.SiteSiteMatrixSet();
+    site_qunprot_ = results.QunprotSet();
+    site_names_ = results.SiteNamesSet();
+  }
   if (site_intrinsic_pKas_ == 0) {
     mprinterr("Internal Error: Site intrinsic pKa data set is missing.\n");
     return 1;
   }
-  site_site_matrix_ = results.SiteSiteMatrixSet();
   if (site_site_matrix_ == 0) {
     mprinterr("Internal Error: Site-site interaction matrix data set is missing.\n");
     return 1;
   }
-  site_qunprot_ = results.QunprotSet();
   if (site_qunprot_ == 0) {
     mprinterr("Internal Error: Site unprotonated state charge data set is missing.\n");
     return 1;
   }
-  site_names_ = results.SiteNamesSet();
   if (site_names_ == 0) {
     mprinterr("Internal Error: Site name data set is missing.\n");
     return 1;
