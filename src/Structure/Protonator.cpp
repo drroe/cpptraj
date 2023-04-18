@@ -367,9 +367,9 @@ const
   //mprintf("DEBUG: MC self E:");
   for (unsigned int i = 0; i < maxsite; i++) {
     self.push_back( fac * (pkint.Dval(i) - pH) );
-    logfile_->Printf("%26.16E", self[i]);
+    //logfile_->Printf("%26.16E", self[i]);
+    logfile_->Printf("%16.8f\n", self[i]);
   }
-  logfile_->Printf("\n");
   // Thermalization: do n_mc_steps_ of Monte Carlo to approach equilibrium
   //                 before data is taken.
   // NOTE: This currently does not allow a 2 site transition.
@@ -407,9 +407,9 @@ const
     // DEBUG: Print if different
     if (isDifferentState) {
       SiteIsProtonated.StateStr( stateChar );
-      logfile_->Printf("%12i State : %s Energy : %g\n", mct, stateChar.c_str(), energy);
+      logfile_->Printf("%12i State : %s\n", mct+1, stateChar.c_str());
+      logfile_->Printf("Energy : %16.8f\n", energy);
     }
-
   }
 
   return 0;
@@ -474,7 +474,7 @@ int Protonator::CalcTitrationCurves() const {
     // FIXME calling set seed here to match mcti init subroutine. Should not always be done.
     rng.rn_set( iseed_ );
     SiteIsProtonated.AssignRandom( rng );
-    logfile_->Printf("pH= %6.2f\n", *ph);
+    logfile_->Printf("ph= %6.2f\n", *ph);
     SiteIsProtonated.PrintState(logfile_);
     //mprintf("Initial states (%i total):", SiteIsProtonated.Nprotonated());
     //for (Iarray::const_iterator it = SiteIsProtonated.begin(); it != SiteIsProtonated.end(); ++it)
