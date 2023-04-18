@@ -279,30 +279,31 @@ const
 /** Calculate titration curves using MC */
 int Protonator::CalcTitrationCurves() const {
   // Calculate the ground energy of the system (no protons)
-  unsigned int maxsite = site_intrinsic_pKas_->Size();
+  DataSet_1D const& pkint = static_cast<DataSet_1D const&>( *site_intrinsic_pKas_ );
   DataSet_1D const& qunprot = static_cast<DataSet_1D const&>( *site_qunprot_ );
   DataSet_2D const& wint = static_cast<DataSet_2D const&>( *site_site_matrix_ );
+  unsigned int maxsite = pkint.Size();
   // TODO can we assume symmetric?
   double grounde = 0;
   for (unsigned int i = 0; i < maxsite; i++)
     for (unsigned int j = 0; j < maxsite; j++)
       grounde += (qunprot.Dval(i) * qunprot.Dval(j) * wint.GetElement(i,j));
   grounde *= 0.5;
-  mprintf("DEBUG: grounde = %g\n", grounde);
+  logfile_->Printf("grounde = %16.8f\n", grounde);
 
   // Calculate pairs.
   // Pairs of strongly interacting sites are allowed to simultaneously
   // change their protonation states.
   PairArray pairs;
   double min_g = min_wint_ * log(10.0) / beta_;
-  mprintf("DEBUG: min_g = %g\n", min_g);
+  logfile_->Printf("min_g = %16.8f\n", min_g);
   for (unsigned int i = 0; i < maxsite; i++) {
     for (unsigned int j = i+1; j < maxsite; j++) {
       if (wint.GetElement(i,j) > min_g)
         pairs.push_back( StatePair(i,j) );
     }
   }
-  mprintf("DEBUG: %zu pairs.\n", pairs.size());
+  logfile_->Printf("npairs = %6zu\n", pairs.size());
   // Count the number of pH values
   int nph = (int)((stop_pH_ - start_pH_) / pH_increment_) + 1;
   std::vector<double> pH_values;
@@ -312,7 +313,16 @@ int Protonator::CalcTitrationCurves() const {
     pH_values.push_back( pH );
     pH += pH_increment_;
   }
-  logfile_->Printf("maxsite= %u  #pH vals= %zu  nph= %i\n", maxsite, pH_values.size(), nph);
+  mprintf("DEBUG: maxsite= %u  #pH vals= %zu  nph= %i\n", maxsite, pH_values.size(), nph);
+  logfile_->Printf("%6u%6i\n", maxsite, nph);
+  for (unsigned int i = 0; i < maxsite; i++) {
+    char siteType;
+    if (qunprot.Dval(i) < 0)
+      siteType = 'A';
+    else
+      siteType = 'C';
+    logfile_->Printf("%10.5f %c %s\n", pkint.Dval(i), siteType, "TEMP");
+  }
 
   Iarray SiteIsProtonated(maxsite, 0);
 
@@ -329,8 +339,7 @@ int Protonator::CalcTitrationCurves() const {
     mprintf("\n");
     // Do the MC trials at this pH
     int err =  perform_MC_at_pH(*ph, nprotonated, SiteIsProtonated,
-                                static_cast<DataSet_1D const&>( *site_intrinsic_pKas_ ),
-                                wint, qunprot, rng, pairs);
+                                pkint, wint, qunprot, rng, pairs);
     if (err != 0) {
       mprinterr("Error: Could not perform MC at pH %g\n", *ph);
       return 1;
