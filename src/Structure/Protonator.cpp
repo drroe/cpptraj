@@ -409,7 +409,44 @@ const
     }
   } // END MC loop
 }
-  
+// -----------------------------------------------
+class Protonator::MC_Corr {
+  public:
+    MC_Corr() : eave_(0), seave_(0), taumax_(0) {}
+
+    void Init(unsigned int);
+
+    void Update(double energy);
+
+    double eave_;
+    double seave_;
+    int taumax_;
+    Darray se_; // taumax+1
+    Darray eold_; // taumax+1
+};
+
+void Protonator::MC_Corr::Init(unsigned int maxsite) {
+  eave_ = 0;
+  seave_ = 0;
+  int taumax1 = taumax_+1;
+  se_.assign(taumax1, 0);
+  eold_.assign(taumax1, 0);
+}
+
+void Protonator::MC_Corr::Update(double energy) {
+   // Update the correlation functions
+    eave_ = eave_ + energy;
+    seave_ = seave_ + energy;
+    se_[0] = se_[0] + (energy * energy);
+    for (int tau = 1; tau <= taumax_; tau++) {
+      se_[tau] = se_[tau] + (energy * eold_[tau]);
+    }
+    for (int tau = taumax_; tau > 1; tau--) {
+      eold_[tau] = eold_[tau - 1];
+    }
+    eold_[1] = energy;
+}
+// -----------------------------------------------
 
 /** Perform monte carlo sampling for a given pH value.
   * Determine average values of the protonation for each site and
@@ -423,6 +460,9 @@ int Protonator::perform_MC_at_pH(double pH, StateArray& SiteIsProtonated,
 const
 {
   unsigned int maxsite = pkint.Size();
+  // Initialize correlation variables
+  MC_Corr results;
+  results.Init(maxsite);
   // Compute the self energy to protonate each site at this pH
   Darray self;
   self.reserve( maxsite );
@@ -473,6 +513,7 @@ const
       logfile_->Printf("%12i State : %s\n", mct+1, stateChar.c_str());
       logfile_->Printf("Energy : %16.8f\n", energy);
     }
+ 
   }
 
   return 0;

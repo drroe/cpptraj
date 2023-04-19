@@ -27,6 +27,7 @@ class Protonator {
     int CalcTitrationCurves() const;
   private:
     class StateArray;
+    class MC_Corr;
     typedef std::vector<double> Darray;
     typedef std::pair<int,int> StatePair;
     typedef std::vector<StatePair> PairArray;
