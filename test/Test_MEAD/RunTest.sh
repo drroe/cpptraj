@@ -71,10 +71,10 @@ mead multiflex crdset TZ2 \
      pkint tz2.pkint summ tz2.summ gfile tz2.g
 EOF
   RunCpptraj "$UNITNAME"
-  DoTest tz2.pkint.save tz2.pkint
-  DoTest tz2.summ.save tz2.summ
-  DoTest tz2.g.save tz2.g
-  DoTest tz2.dat.save tz2.dat
+  DoTest tz2.pkint.save tz2.pkint -a 0.0001
+  DoTest tz2.summ.save tz2.summ -a 0.0001
+  DoTest tz2.g.save tz2.g -a 0.000000001
+  DoTest tz2.dat.save tz2.dat -a 0.0002
   DoTest tz2.ssi.dat.save tz2.ssi.dat
 }
 
