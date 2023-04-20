@@ -605,22 +605,24 @@ const
   StateArray tempProt;
   std::string stateChar;
   stateChar.resize( maxsite );
-  for (int mct = 0; mct < mcsteps; mct++) {
-    mc_step(energy,
-            maxsite, self,
-            pairs,
-            SiteIsProtonated,
-            wint, qunprot,
-            rng);
-    // Is the overall state different?
-    bool isDifferentState = tempProt.AssignFromState( SiteIsProtonated );
-    // DEBUG: Print if different
-    if (isDifferentState) {
-      SiteIsProtonated.StateStr( stateChar );
-      logfile_->Printf("%12i State : %s\n", mct+1, stateChar.c_str());
-      logfile_->Printf("Energy : %16.8f\n", energy);
+  if (maxsite > 0) {
+    for (int mct = 0; mct < mcsteps; mct++) {
+      mc_step(energy,
+              maxsite, self,
+              pairs,
+              SiteIsProtonated,
+              wint, qunprot,
+              rng);
+      // Is the overall state different?
+      bool isDifferentState = tempProt.AssignFromState( SiteIsProtonated );
+      // DEBUG: Print if different
+      if (isDifferentState) {
+        SiteIsProtonated.StateStr( stateChar );
+        logfile_->Printf("%12i State : %s\n", mct+1, stateChar.c_str());
+        logfile_->Printf("Energy : %16.8f\n", energy);
+      }
+      corr.Update(energy, SiteIsProtonated);
     }
-    corr.Update(energy, SiteIsProtonated);
   }
   corr.Finish(mcsteps, maxsite);
 
@@ -670,7 +672,7 @@ const
       r_maxsite++;
     }
   }
-  logfile_->Printf("DEBUG: N REDUCED SITES: %i\n", r_maxsite);
+  logfile_->Printf("N REDUCED SITES: %6i\n", r_maxsite);
   // Fill interaction matrix
   if (r_maxsite > 0)
     r_Wint.AllocateTriangle( r_maxsite );
