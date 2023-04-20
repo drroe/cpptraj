@@ -52,12 +52,14 @@ class Protonator {
     int reduce_sites(DataSet_double&, DataSet_1D&, DataSet_2D&, Iarray&,
                      DataSet_1D const&, DataSet_1D const&, DataSet_2D const&, Darray const&) const;
 
+    PairArray get_pairs(double, unsigned int, DataSet_2D const&) const;
 
     DataSet* site_intrinsic_pKas_; ///< DataSet containing calculated intrinsic pKas for each site.
     DataSet* site_site_matrix_;    ///< DataSet containing site-site interactions in e^2/ang
     DataSet* site_qunprot_;        ///< DataSet containing charge of unprotonated state for each site.
     DataSet* site_names_;          ///< DataSet containing name of each site.
     int n_mc_steps_;               ///< Number of monte carlo steps
+    int n_reduced_mc_steps_;       ///< Number of monte carlo steps for reduced sites
     double start_pH_;              ///< Starting pH
     double stop_pH_;               ///< final pH
     double pH_increment_;          ///< pH increment

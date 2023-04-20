@@ -20,6 +20,7 @@ Protonator::Protonator() :
   site_qunprot_(0),
   site_names_(0),
   n_mc_steps_(0),
+  n_reduced_mc_steps_(0),
   start_pH_(0),
   stop_pH_(0),
   pH_increment_(0),
@@ -119,6 +120,7 @@ int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn,
   }
   // TODO check that matrix rows/cols and # sites match?
   n_mc_steps_ = argIn.getKeyInt("nmcsteps", 10000);
+  n_reduced_mc_steps_ = argIn.getKeyInt("redsteps", 10000);
   start_pH_ = argIn.getKeyDouble("startph", 5.0);
   stop_pH_ = argIn.getKeyDouble("stopph", 10.0);
   pH_increment_ = argIn.getKeyDouble("phincr", 0.5);
@@ -698,6 +700,18 @@ const
   return 0;
 }
 
+/** Get pairs of strongly interacting sites. */
+Protonator::PairArray Protonator::get_pairs(double min_g, unsigned int maxsite, DataSet_2D const& wint) const {
+  PairArray pairs;
+  for (unsigned int i = 0; i < maxsite; i++) {
+    for (unsigned int j = i+1; j < maxsite; j++) {
+      if (wint.GetElement(i,j) > min_g)
+        pairs.push_back( StatePair(i,j) );
+    }
+  }
+  return pairs;
+}
+
 /** Calculate titration curves using MC */
 int Protonator::CalcTitrationCurves() const {
   // Calculate the ground energy of the system (no protons)
@@ -717,15 +731,9 @@ int Protonator::CalcTitrationCurves() const {
   // Calculate pairs.
   // Pairs of strongly interacting sites are allowed to simultaneously
   // change their protonation states.
-  PairArray pairs;
   double min_g = min_wint_ * log(10.0) / beta_;
   logfile_->Printf("min_g = %16.8f\n", min_g);
-  for (unsigned int i = 0; i < maxsite; i++) {
-    for (unsigned int j = i+1; j < maxsite; j++) {
-      if (wint.GetElement(i,j) > min_g)
-        pairs.push_back( StatePair(i,j) );
-    }
-  }
+  PairArray pairs = get_pairs(min_g, maxsite, wint);
   logfile_->Printf("npairs = %6zu\n", pairs.size());
   // Count the number of pH values
   int nph = (int)((stop_pH_ - start_pH_) / pH_increment_) + 1;
@@ -784,6 +792,18 @@ int Protonator::CalcTitrationCurves() const {
         mprinterr("Error: Site reduction failed.\n");
         return 1;
       }
+      PairArray r_pairs = get_pairs(min_g, maxsite, wint);
+      StateArray r_prot(r_pkint.Size());
+      // FIXME calling set seed here to match mcti init subroutine. Should not always be done.
+      rng.rn_set( iseed_ );
+      r_prot.AssignRandom( rng );
+      err = perform_MC_at_pH(*ph, r_prot, corr, n_reduced_mc_steps_,
+                             r_pkint, r_Wint, r_qunprot, rng, r_pairs);
+      if (err != 0) {
+        mprinterr("Error: Could not perform reduced MC at pH %g\n", *ph);
+        return 1;
+      }
+
     }
   } // END loop over pH values
   
