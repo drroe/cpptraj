@@ -180,6 +180,8 @@ class Protonator::StateArray {
     StateArray(unsigned int nsites) : prot_(nsites, 0), nprotonated_(0) {}
     /// \return Total # of sites that are protonated
     int Nprotonated() const { return nprotonated_; }
+    /// \return Total # of sites
+    unsigned int Nsites() const { return prot_.size(); }
     /// \return Protonation state at site (1 = protonated, 0 = unprotonated)
     int operator[](int idx) const { return prot_[idx]; }
     /// \return Total energy based on current protonation states
@@ -429,11 +431,11 @@ class Protonator::MC_Corr {
     Darray cenergy_; ///< Correlation function for energy [taumax+1]
     Darray se_; // [taumax+1]
     Darray eold_; // [taumax+1]
-    Darray aveprot_; ///< Average total protonation [maxsite]
-    Darray sqave_; // mcti save [maxsite]
-    D2array corr_; // mcti c [maxsite][taumax+1]
-    D2array scorr_; // mcti s [maxsite][taumax+1]
-    I2array iold_;  // [maxsite][taumax+1]
+    Darray aveprot_; ///< Average total protonation [maxsite+1]
+    Darray sqave_; // mcti save [maxsite+1]
+    D2array corr_; // mcti c [maxsite+1][taumax+1]
+    D2array scorr_; // mcti s [maxsite+1][taumax+1]
+    I2array iold_;  // [maxsite+1][taumax+1]
 };
 
 void Protonator::MC_Corr::Init(unsigned int maxsite) {
@@ -441,13 +443,14 @@ void Protonator::MC_Corr::Init(unsigned int maxsite) {
   seave_ = 0;
   int taumax1 = taumax_+1;
   cenergy_.assign(taumax1, 0);
-  se_.assign(taumax1, 0);
-  eold_.assign(taumax1, 0);
-  aveprot_.assign(maxsite, 0);
-  sqave_.assign(maxsite, 0);
-  corr_.assign(maxsite, Darray(taumax1, 0));
-  scorr_.assign(maxsite, Darray(taumax1, 0));
-  iold_.assign(maxsite, Iarray(taumax1, 0));
+  se_.assign(     taumax1, 0);
+  eold_.assign(   taumax1, 0);
+  unsigned int maxsite1 = maxsite  + 1;
+  aveprot_.assign(maxsite1, 0);
+  sqave_.assign(  maxsite1, 0);
+  corr_.assign(   maxsite1, Darray(taumax1, 0));
+  scorr_.assign(  maxsite1, Darray(taumax1, 0));
+  iold_.assign(   maxsite1, Iarray(taumax1, 0));
 }
 
 static inline void update_prot(double& aveprot, double& sqave,
@@ -460,14 +463,15 @@ static inline void update_prot(double& aveprot, double& sqave,
   }
   sqave = sqave + prot;
   scorr[0] = scorr[0] + (prot * prot);
-  for (int tau = 1; tau < taumax; tau++)
+  for (int tau = 1; tau <= taumax; tau++)
     scorr[tau] = scorr[tau] + (prot * iold[tau]);
   for (int tau = taumax; tau > 1; tau--)
     iold[tau] = iold[tau-1];
   iold[1] = prot;
 }
 
-void Protonator::MC_Corr::Update(double energy, StateArray const& SiteIsProtonated) {
+void Protonator::MC_Corr::Update(double energy, StateArray const& SiteIsProtonated)
+{
    // Update the correlation functions
     eave_ = eave_ + energy;
     seave_ = seave_ + energy;
@@ -483,7 +487,10 @@ void Protonator::MC_Corr::Update(double energy, StateArray const& SiteIsProtonat
   update_prot(aveprot_[0], sqave_[0], scorr_[0], iold_[0], SiteIsProtonated.Nprotonated(), taumax_);
   // Update protonation for each site
 
-  //for (unsigned int j =  0
+  for (unsigned int site = 0; site != SiteIsProtonated.Nsites(); site++) {
+    unsigned int idx = site + 1;
+    update_prot(aveprot_[idx], sqave_[idx], scorr_[idx], iold_[idx], SiteIsProtonated[site], taumax_);
+  }
 }
 // -----------------------------------------------
 
