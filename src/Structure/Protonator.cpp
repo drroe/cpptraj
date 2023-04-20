@@ -584,11 +584,14 @@ const
   corr.Finish(n_mc_steps_, maxsite);
 
   // DEBUG
+  for (int tau = 0; tau <= corr.taumax_; tau++)
+    logfile_->Printf("Cenergy %6i%12.5f\n", tau, corr.cenergy_[tau]);
   for (unsigned int j = 0; j <= maxsite; j++) {
     for (int tau = 0; tau <= corr.taumax_; tau++) {
-      //logfile_->Printf("Corr %6i%6i%16.8f\n", j, tau, corr.corr_[j][tau]);
-      logfile_->Printf("aveprot %6i%16.8f\n", j, corr.aveprot_[j]);
-      logfile_->Printf("save %6i%16.8f\n", j, corr.sqave_[j]);
+      logfile_->Printf("Corr %6i%6i%12.5f\n", j, tau, corr.corr_[j][tau]);
+      logfile_->Printf("Scorr %6i%6i%12.5f\n", j, tau, corr.scorr_[j][tau]);
+      logfile_->Printf("aveprot %6i%12.5f\n", j, corr.aveprot_[j]);
+      logfile_->Printf("save %6i%12.5f\n", j, corr.sqave_[j]);
     }
   }
 
