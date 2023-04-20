@@ -626,12 +626,12 @@ const
 
   // DEBUG
   for (int tau = 0; tau <= corr.taumax_; tau++) {
-    logfile_->Printf("Cenergy %6i%12.5E\n", tau, corr.cenergy_[tau]);
-    logfile_->Printf("Senergy %6i%12.5E\n", tau, corr.se_[tau]);
+    //logfile_->Printf("Cenergy %6i%12.5E\n", tau, corr.cenergy_[tau]);
+    logfile_->Printf("Senergy %6i%12.5f\n", tau, corr.se_[tau]);
   }
   for (unsigned int j = 0; j <= maxsite; j++) {
     for (int tau = 0; tau <= corr.taumax_; tau++) {
-      logfile_->Printf("Corr %6i%6i%12.5f\n", j, tau, corr.corr_[j][tau]);
+      //logfile_->Printf("Corr %6i%6i%12.5f\n", j, tau, corr.corr_[j][tau]);
       logfile_->Printf("Scorr %6i%6i%12.5f\n", j, tau, corr.scorr_[j][tau]);
       logfile_->Printf("aveprot %6i%12.5f\n", j, corr.aveprot_[j]);
       logfile_->Printf("save %6i%12.5f\n", j, corr.sqave_[j]);
