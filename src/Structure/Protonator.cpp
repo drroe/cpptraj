@@ -645,9 +645,9 @@ const
 /** Reduce number of sites in MC calculation to only those which have
   * some factional protonation.
   */
-int Protonator::reduce_sites(DataSet_double&     r_pkint, DataSet_1D&     r_qunprot, DataSet_2D&     r_Wint,
+int Protonator::reduce_sites(DataSet_double&   r_pkint, DataSet_1D&       r_qunprot, DataSet_2D&       r_Wint,
                              Iarray& ridx_to_site,
-                             DataSet_1D const& pkint, DataSet_1D const& qunprot, DataSet_2D const& wint,
+                             DataSet_1D const& pkint,   DataSet_1D const& qunprot,   DataSet_2D const& wint,
                              Darray const& aveprot)
 const
 {
