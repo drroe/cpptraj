@@ -42,7 +42,7 @@ class Protonator {
     void mc_step(double&, unsigned int, Darray const&, PairArray const&, StateArray&,
                  DataSet_2D const&, DataSet_1D const&, Random_Number const&) const;
 
-    int perform_MC_at_pH(double, StateArray&, DataSet_1D const&,
+    int perform_MC_at_pH(double, StateArray&, MC_Corr&, DataSet_1D const&,
                          DataSet_2D const&, DataSet_1D const&,
                          Random_Number const&, PairArray const&) const;
 

@@ -410,27 +410,32 @@ const
   } // END MC loop
 }
 // -----------------------------------------------
+/** Class for holding correlation function results from MC. */
 class Protonator::MC_Corr {
   public:
-    MC_Corr() : eave_(0), seave_(0), taumax_(0) {}
+    MC_Corr() : eave_(0), seave_(0), taumax_(100) {}
 
     void Init(unsigned int);
 
     void Update(double energy);
 
-    double eave_;
+    double eave_; ///< Average energy
     double seave_;
-    int taumax_;
+    int taumax_; ///< Time for correlation function
+    Darray cenergy_; ///< Correlation function for energy (taumax+1)
     Darray se_; // taumax+1
     Darray eold_; // taumax+1
+    Darray aveprot_; ///< Average total protonation (maxsite)
 };
 
 void Protonator::MC_Corr::Init(unsigned int maxsite) {
   eave_ = 0;
   seave_ = 0;
   int taumax1 = taumax_+1;
+  cenergy_.assign(taumax1, 0);
   se_.assign(taumax1, 0);
   eold_.assign(taumax1, 0);
+  aveprot_.assign(maxsite, 0);
 }
 
 void Protonator::MC_Corr::Update(double energy) {
@@ -445,6 +450,8 @@ void Protonator::MC_Corr::Update(double energy) {
       eold_[tau] = eold_[tau - 1];
     }
     eold_[1] = energy;
+  // Update protonation
+  //for (unsigned int j =  0
 }
 // -----------------------------------------------
 
@@ -453,6 +460,7 @@ void Protonator::MC_Corr::Update(double energy) {
   * the correlation functions used to compute the energy.
   */
 int Protonator::perform_MC_at_pH(double pH, StateArray& SiteIsProtonated,
+                                 MC_Corr& corr,
                                  DataSet_1D const& pkint,
                                  DataSet_2D const& wint, DataSet_1D const& qunprot,
                                  Random_Number const& rng,
@@ -461,8 +469,7 @@ const
 {
   unsigned int maxsite = pkint.Size();
   // Initialize correlation variables
-  MC_Corr results;
-  results.Init(maxsite);
+  corr.Init(maxsite);
   // Compute the self energy to protonate each site at this pH
   Darray self;
   self.reserve( maxsite );
@@ -585,7 +592,8 @@ int Protonator::CalcTitrationCurves() const {
     //  mprintf(" %i", *it);
     //mprintf("\n");
     // Do the MC trials at this pH
-    int err =  perform_MC_at_pH(*ph, SiteIsProtonated,
+    MC_Corr corr;
+    int err =  perform_MC_at_pH(*ph, SiteIsProtonated, corr,
                                 pkint, wint, qunprot, rng, pairs);
     if (err != 0) {
       mprinterr("Error: Could not perform MC at pH %g\n", *ph);
