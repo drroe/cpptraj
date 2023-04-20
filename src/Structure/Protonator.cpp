@@ -425,6 +425,8 @@ class Protonator::MC_Corr {
 
     void Update(double energy, StateArray const&);
 
+    void Finish(int, unsigned int);
+
     double eave_; ///< Average energy
     double seave_;
     int taumax_; ///< Time for correlation function
@@ -492,6 +494,24 @@ void Protonator::MC_Corr::Update(double energy, StateArray const& SiteIsProtonat
     update_prot(aveprot_[idx], sqave_[idx], scorr_[idx], iold_[idx], SiteIsProtonated[site], taumax_);
   }
 }
+
+void Protonator::MC_Corr::Finish(int mcstepsIn, unsigned int maxsiteIn) {
+  double mcsteps = (double)mcstepsIn;
+  eave_ = eave_ / mcsteps;
+  seave_ = (seave_/mcsteps) * (seave_/mcsteps);
+  for (int tau = 0; tau <= taumax_; tau++)
+    cenergy_[tau] = ((1.0 / (mcsteps - (double)tau)) * se_[tau]) - seave_;
+
+  unsigned int maxsite1 = maxsiteIn+1;
+  for (unsigned int idx = 0; idx < maxsite1; idx++) {
+    aveprot_[idx] = aveprot_[idx] / mcsteps;
+    sqave_[idx]   = (sqave_[idx]/mcsteps) * (sqave_[idx]/mcsteps);
+    for (int tau = 0; tau <= taumax_; tau++) {
+      corr_[idx][tau] = ((1.0 / (mcsteps - (double)tau)) * scorr_[idx][tau]) - sqave_[idx];
+    }
+  }
+}
+
 // -----------------------------------------------
 
 /** Perform monte carlo sampling for a given pH value.
