@@ -5,6 +5,8 @@
 #include "../DataSet_1D.h"
 #include "../DataSet_2D.h"
 #include "../DataSet_string.h"
+#include "../DataSet_double.h"
+#include "../DataSet_MatrixDbl.h"
 #include "../Random.h"
 #include "../StringRoutines.h"
 #include "../Mead/MultiFlexResults.h"
@@ -199,7 +201,6 @@ class Protonator::StateArray {
     bool AssignFromState(StateArray const&);
 
   private:
-    typedef std::vector<int> Iarray;
     Iarray prot_;     ///< Hold protonation state for each site
     int nprotonated_; ///< Total # of sites that are protonated
 };
@@ -639,6 +640,64 @@ const
   return 0;
 }
 
+/** Reduce number of sites in MC calculation to only those which have
+  * some factional protonation.
+  */
+int Protonator::reduce_sites(DataSet_double&     r_pkint, DataSet_1D&     r_qunprot, DataSet_2D&     r_Wint,
+                             Iarray& ridx_to_site,
+                             DataSet_1D const& pkint, DataSet_1D const& qunprot, DataSet_2D const& wint,
+                             Darray const& aveprot)
+const
+{
+  int r_maxsite = 0;
+  int nskipped = 0;
+  for (unsigned int isite = 0; isite != r_pkint.Size(); isite++)
+  {
+    // NOTE: aveprot[1] has site 0
+    unsigned int idx = isite + 1;
+    if (aveprot[idx] > 1 - fract_toler_ ||
+        aveprot[idx] < fract_toler_)
+    {
+      nskipped++;
+    } else {
+      ridx_to_site.push_back( isite );
+      double dval = qunprot.Dval(isite);
+      r_qunprot.Add( r_maxsite, &dval );
+      dval = pkint.Dval(isite);
+      r_pkint.Add( r_maxsite, &dval );
+      r_maxsite++;
+    }
+  }
+  logfile_->Printf("DEBUG: N REDUCED SITES: %i\n", r_maxsite);
+  // Fill interaction matrix
+  if (r_maxsite > 0)
+    r_Wint.AllocateTriangle( r_maxsite );
+  for (int j = 0; j < r_maxsite; j++) {
+    int jsite = ridx_to_site[j];
+    for (int i = j + 1; i < r_maxsite; i++) {
+      int isite = ridx_to_site[i];
+      r_Wint.SetElement(i, j, wint.GetElement(isite, jsite));
+    }
+  }
+  // Adjust r_pkint for fixed charges
+  for (int ir = 0; ir < r_maxsite; ir++) {
+    int isite = ridx_to_site[ir];
+    for (unsigned int jsite = 0; jsite < pkint.Size(); jsite++) {
+      bool site_fixed = true;
+      for (int jr = 0; jr < r_maxsite; jr++) {
+        if ((unsigned int)ridx_to_site[jr] == jsite) site_fixed = false;
+      }
+      if (site_fixed) {
+        r_pkint[ir] = r_pkint[ir]
+                      - (qunprot.Dval(jsite) + aveprot[jsite])
+                      * ( (beta_*wint.GetElement(isite,jsite))/log(10.0) );
+      }
+    }
+  }
+
+  return 0;
+}
+
 /** Calculate titration curves using MC */
 int Protonator::CalcTitrationCurves() const {
   // Calculate the ground energy of the system (no protons)
@@ -711,6 +770,20 @@ int Protonator::CalcTitrationCurves() const {
     if (err != 0) {
       mprinterr("Error: Could not perform MC at pH %g\n", *ph);
       return 1;
+    }
+    if (mcmode_ != MC_FULL) {
+      // Reduced site techniques
+      // Allocate arrays for reduced sites
+      DataSet_double r_pkint;
+      DataSet_double r_qunprot;
+      DataSet_MatrixDbl r_Wint;
+      Iarray ridx_to_site;
+      if (reduce_sites(r_pkint, r_qunprot, r_Wint, ridx_to_site,
+                       pkint, qunprot, wint, corr.aveprot_))
+      {
+        mprinterr("Error: Site reduction failed.\n");
+        return 1;
+      }
     }
   } // END loop over pH values
   

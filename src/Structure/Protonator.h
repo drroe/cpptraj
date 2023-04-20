@@ -9,6 +9,7 @@ class CpptrajFile;
 class CpptrajState;
 class DataSet_1D;
 class DataSet_2D;
+class DataSet_double;
 class Random_Number;
 namespace Cpptraj {
 namespace Mead {
@@ -30,6 +31,7 @@ class Protonator {
     class StateArray;
     class MC_Corr;
     typedef std::vector<double> Darray;
+    typedef std::vector<int> Iarray;
     typedef std::pair<int,int> StatePair;
     typedef std::vector<StatePair> PairArray;
 
@@ -46,6 +48,10 @@ class Protonator {
     int perform_MC_at_pH(double, StateArray&, MC_Corr&, int, DataSet_1D const&,
                          DataSet_2D const&, DataSet_1D const&,
                          Random_Number const&, PairArray const&) const;
+
+    int reduce_sites(DataSet_double&, DataSet_1D&, DataSet_2D&, Iarray&,
+                     DataSet_1D const&, DataSet_1D const&, DataSet_2D const&, Darray const&) const;
+
 
     DataSet* site_intrinsic_pKas_; ///< DataSet containing calculated intrinsic pKas for each site.
     DataSet* site_site_matrix_;    ///< DataSet containing site-site interactions in e^2/ang
