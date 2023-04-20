@@ -8,7 +8,7 @@
 #include "../Random.h"
 #include "../StringRoutines.h"
 #include "../Mead/MultiFlexResults.h"
-#include <cmath> // log
+#include <cmath> // log, fabs, sqrt
 
 using namespace Cpptraj::Structure;
 /** CONSTRUCTOR */
@@ -427,6 +427,8 @@ class Protonator::MC_Corr {
 
     void Finish(int, unsigned int);
 
+    double get_err(Darray const&, int) const;
+
     double eave_; ///< Average energy
     double seave_;
     int taumax_; ///< Time for correlation function
@@ -435,6 +437,7 @@ class Protonator::MC_Corr {
     Darray eold_; // [taumax+1]
     Darray aveprot_; ///< Average total protonation [maxsite+1]
     Darray sqave_; // mcti save [maxsite+1]
+    Darray prot_error_; // [maxsite+1]
     D2array corr_; // mcti c [maxsite+1][taumax+1]
     D2array scorr_; // mcti s [maxsite+1][taumax+1]
     I2array iold_;  // [maxsite+1][taumax+1]
@@ -448,11 +451,12 @@ void Protonator::MC_Corr::Init(unsigned int maxsite) {
   se_.assign(     taumax1, 0);
   eold_.assign(   taumax1, 0);
   unsigned int maxsite1 = maxsite  + 1;
-  aveprot_.assign(maxsite1, 0);
-  sqave_.assign(  maxsite1, 0);
-  corr_.assign(   maxsite1, Darray(taumax1, 0));
-  scorr_.assign(  maxsite1, Darray(taumax1, 0));
-  iold_.assign(   maxsite1, Iarray(taumax1, 0));
+  aveprot_.assign(    maxsite1, 0);
+  sqave_.assign(      maxsite1, 0);
+  prot_error_.assign( maxsite1, 0);
+  corr_.assign(       maxsite1, Darray(taumax1, 0));
+  scorr_.assign(      maxsite1, Darray(taumax1, 0));
+  iold_.assign(       maxsite1, Iarray(taumax1, 0));
 }
 
 static inline void update_prot(double& aveprot, double& sqave,
@@ -495,6 +499,37 @@ void Protonator::MC_Corr::Update(double energy, StateArray const& SiteIsProtonat
   }
 }
 
+/** Compute the standard deviation from given correlation fxn. If the
+  * correlation does not fall to 1/10 the value of c[0] then assign 999
+  * to the error. */
+double Protonator::MC_Corr::get_err(Darray const& cc, int mcstepsIn)
+const
+{
+  int ict = -1;
+  bool flag = false;
+  double error = 0;
+  double ctol = 0.1*cc[0];
+
+  // If cc[0] is already small, the correlation is 0
+  if (fabs(cc[0]) < 0.00001) {
+    ict = 0;
+    flag = true;
+  }
+
+  for (int i = 1; i <= taumax_; i++) {
+    if ( cc[i] < ctol && !flag ) {
+      ict = i;
+      flag = true;
+    }
+  }
+  if (!flag)
+    error = 999;
+  else
+    // mcsteps / ict = num. of statistically independent samples
+    error = sqrt( (cc[0]*ict) / (double)mcstepsIn );
+  return error;
+}
+
 void Protonator::MC_Corr::Finish(int mcstepsIn, unsigned int maxsiteIn) {
   double mcsteps = (double)mcstepsIn;
   eave_ = eave_ / mcsteps;
@@ -509,8 +544,10 @@ void Protonator::MC_Corr::Finish(int mcstepsIn, unsigned int maxsiteIn) {
     for (int tau = 0; tau <= taumax_; tau++) {
       corr_[idx][tau] = ((1.0 / (mcsteps - (double)tau)) * scorr_[idx][tau]) - sqave_[idx];
     }
+    prot_error_[idx] = get_err(corr_[idx], mcstepsIn);
   }
 }
+
 
 // -----------------------------------------------
 
@@ -596,7 +633,8 @@ const
       logfile_->Printf("save %6i%12.5f\n", j, corr.sqave_[j]);
     }
   }
-
+  for (unsigned int j = 0; j <= maxsite; j++)
+    logfile_->Printf("Proterror %6i%12.5f\n", j, corr.prot_error_[j]);
   return 0;
 }
 
