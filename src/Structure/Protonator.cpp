@@ -557,6 +557,7 @@ void Protonator::MC_Corr::Finish(int mcstepsIn, unsigned int maxsiteIn) {
   */
 int Protonator::perform_MC_at_pH(double pH, StateArray& SiteIsProtonated,
                                  MC_Corr& corr,
+                                 int mcsteps,
                                  DataSet_1D const& pkint,
                                  DataSet_2D const& wint, DataSet_1D const& qunprot,
                                  Random_Number const& rng,
@@ -576,10 +577,10 @@ const
     //logfile_->Printf("%26.16E", self[i]);
     logfile_->Printf("%16.8f\n", self[i]);
   }
-  // Thermalization: do n_mc_steps_ of Monte Carlo to approach equilibrium
+  // Thermalization: do mcsteps of Monte Carlo to approach equilibrium
   //                 before data is taken.
   // NOTE: This currently does not allow a 2 site transition.
-  int maxsteps = n_mc_steps_ * maxsite;
+  int maxsteps = mcsteps * maxsite;
   for (int i = 0; i < maxsteps; i++) {
     // Choose site FIXME use rng.rn_num_interval(0, maxsite)
     int iflip = (int)((double)maxsite * rng.rn_gen()); // FIXME THIS IS FOR TEST ONLY
@@ -601,7 +602,7 @@ const
   StateArray tempProt;
   std::string stateChar;
   stateChar.resize( maxsite );
-  for (int mct = 0; mct < n_mc_steps_; mct++) {
+  for (int mct = 0; mct < mcsteps; mct++) {
     mc_step(energy,
             maxsite, self,
             pairs,
@@ -618,7 +619,7 @@ const
     }
     corr.Update(energy, SiteIsProtonated);
   }
-  corr.Finish(n_mc_steps_, maxsite);
+  corr.Finish(mcsteps, maxsite);
 
   // DEBUG
   for (int tau = 0; tau <= corr.taumax_; tau++) {
@@ -705,7 +706,7 @@ int Protonator::CalcTitrationCurves() const {
     //mprintf("\n");
     // Do the MC trials at this pH
     MC_Corr corr;
-    int err =  perform_MC_at_pH(*ph, SiteIsProtonated, corr,
+    int err =  perform_MC_at_pH(*ph, SiteIsProtonated, corr, n_mc_steps_,
                                 pkint, wint, qunprot, rng, pairs);
     if (err != 0) {
       mprinterr("Error: Could not perform MC at pH %g\n", *ph);
