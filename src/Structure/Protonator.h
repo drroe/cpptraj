@@ -16,6 +16,7 @@ class MultiFlexResults;
 }
 namespace Structure {
 /// Class for assigning protonation states to a structure
+/** This class is largely based off of the MCTI program by Paul Beroza. */
 class Protonator {
   public:
     Protonator();
