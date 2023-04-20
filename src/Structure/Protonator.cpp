@@ -579,7 +579,17 @@ const
       logfile_->Printf("%12i State : %s\n", mct+1, stateChar.c_str());
       logfile_->Printf("Energy : %16.8f\n", energy);
     }
- 
+    corr.Update(energy, SiteIsProtonated);
+  }
+  corr.Finish(n_mc_steps_, maxsite);
+
+  // DEBUG
+  for (unsigned int j = 0; j <= maxsite; j++) {
+    for (int tau = 0; tau <= corr.taumax_; tau++) {
+      //logfile_->Printf("Corr %6i%6i%16.8f\n", j, tau, corr.corr_[j][tau]);
+      logfile_->Printf("aveprot %6i%16.8f\n", j, corr.aveprot_[j]);
+      logfile_->Printf("save %6i%16.8f\n", j, corr.sqave_[j]);
+    }
   }
 
   return 0;
