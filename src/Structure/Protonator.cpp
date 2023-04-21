@@ -30,7 +30,8 @@ Protonator::Protonator() :
   iseed_(0),
   mcmode_(MC_FULL),
   logfile_(0),
-  pkoutfile_(0)
+  pkoutfile_(0),
+  pkhalf_(0)
 {}
 
 /** For testing, read data from .pkint and .g files. */
@@ -107,6 +108,10 @@ int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn,
     mprinterr("Internal Error: Site intrinsic pKa data set is missing.\n");
     return 1;
   }
+  if (site_intrinsic_pKas_->Size() < 1) {
+    mprinterr("Internal Error: Site intrinsic pKa data set is empty.\n"); // TODO check others
+    return 1;
+  }
   if (site_site_matrix_ == 0) {
     mprinterr("Internal Error: Site-site interaction matrix data set is missing.\n");
     return 1;
@@ -160,6 +165,26 @@ int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn,
 
   iseed_ = argIn.getKeyInt("iseed", 0);
 
+  // Allocate output sets
+  // Use name of site_intrinsic_pKas_ as data set name
+  MetaData md( site_intrinsic_pKas_->Meta().Name() );
+  md.SetAspect( "pkhalf" );
+  pkhalf_ = State.DSL().AddSet( DataSet::DOUBLE, md );
+  if (pkhalf_ == 0) {
+    mprinterr("Error: Could not allocate pkhalf set.\n");
+    return 1;
+  }
+  pklist_.reserve( site_intrinsic_pKas_->Size() );
+  md.SetAspect("tcurve");
+  for (unsigned int idx = 0; idx != site_intrinsic_pKas_->Size(); idx++) {
+    md.SetIdx(idx+1);
+    pklist_.push_back( State.DSL().AddSet( DataSet::XYMESH, md ) );
+    if (pklist_.back() == 0) {
+      mprinterr("Error: Could not allocate titration curve set.\n");
+      return 1;
+    }
+  }
+
   return 0;
 }
 
@@ -179,6 +204,8 @@ void Protonator::PrintOptions() const {
   if (pkoutfile_ != 0) mprintf("\tPKout file: '%s'\n", pkoutfile_->Filename().full());
   mprintf("\tValue for converting from charge to kcal/mol: beta= %g\n", beta_);
   mprintf("\tRNG seed: %i\n", iseed_);
+  mprintf("\tpkHalf set: %s\n", pkhalf_->legend());
+  mprintf("\tTitration curve sets: %s\n", pklist_.front()->legend());
 }
 
 // -----------------------------------------------------------------------------
@@ -812,7 +839,12 @@ int Protonator::CalcTitrationCurves() const {
   }
   mprintf("DEBUG: maxsite= %u  #pH vals= %zu  nph= %i\n", maxsite, pH_values.size(), nph);
   logfile_->Printf("%6u%6i\n", maxsite, nph);
+  DataSet_double& pkhalf = static_cast<DataSet_double&>( *pkhalf_ );
+  pkhalf.Resize( maxsite );
   for (unsigned int i = 0; i < maxsite; i++) {
+    // Init pkhalf
+    pkhalf[i] = -999; // TODO is -999 a "safe" value?
+    // Print to log
     char siteType;
     if (qunprot.Dval(i) < 0)
       siteType = 'A';
@@ -821,7 +853,6 @@ int Protonator::CalcTitrationCurves() const {
     logfile_->Printf("%10.5f %c %s\n", pkint.Dval(i), siteType, siteNames[i].c_str());
   }
   // Allocate arrays for storing titration data
-  Darray pkhalf(maxsite, -999); // TODO is -999 a "safe" value?
   std::vector<Darray> pklist(maxsite, Darray(nph, 0));
 
   StateArray SiteIsProtonated(maxsite);
