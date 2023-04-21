@@ -72,7 +72,7 @@ class Protonator {
     CpptrajFile* logfile_;         ///< Output log file
     CpptrajFile* pkoutfile_;       ///< Pkout formatted file
     DataSet* pkhalf_;              ///< pkhalf for each site
-    std::vector<DataSet*> pklist_; ///< Hold titration curve for each site
+    std::vector<DataSet*> TitrationCurves_; ///< Hold titration curve for each site
 };
 }
 }

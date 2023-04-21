@@ -6,6 +6,7 @@
 #include "../DataSet_2D.h"
 #include "../DataSet_string.h"
 #include "../DataSet_double.h"
+#include "../DataSet_Mesh.h"
 #include "../DataSet_MatrixDbl.h"
 #include "../Random.h"
 #include "../StringRoutines.h"
@@ -174,12 +175,12 @@ int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn,
     mprinterr("Error: Could not allocate pkhalf set.\n");
     return 1;
   }
-  pklist_.reserve( site_intrinsic_pKas_->Size() );
+  TitrationCurves_.reserve( site_intrinsic_pKas_->Size() );
   md.SetAspect("tcurve");
   for (unsigned int idx = 0; idx != site_intrinsic_pKas_->Size(); idx++) {
     md.SetIdx(idx+1);
-    pklist_.push_back( State.DSL().AddSet( DataSet::XYMESH, md ) );
-    if (pklist_.back() == 0) {
+    TitrationCurves_.push_back( State.DSL().AddSet( DataSet::XYMESH, md ) );
+    if (TitrationCurves_.back() == 0) {
       mprinterr("Error: Could not allocate titration curve set.\n");
       return 1;
     }
@@ -205,7 +206,7 @@ void Protonator::PrintOptions() const {
   mprintf("\tValue for converting from charge to kcal/mol: beta= %g\n", beta_);
   mprintf("\tRNG seed: %i\n", iseed_);
   mprintf("\tpkHalf set: %s\n", pkhalf_->legend());
-  mprintf("\tTitration curve sets: %s\n", pklist_.front()->legend());
+  mprintf("\tTitration curve sets: %s\n", TitrationCurves_.front()->legend());
 }
 
 // -----------------------------------------------------------------------------
@@ -854,6 +855,13 @@ int Protonator::CalcTitrationCurves() const {
   }
   // Allocate arrays for storing titration data
   std::vector<Darray> pklist(maxsite, Darray(nph, 0));
+  DataSet::SizeArray pksize(1, nph);
+  for (std::vector<DataSet*>::const_iterator it = TitrationCurves_.begin(); it != TitrationCurves_.end(); ++it)
+  {
+    (*it)->Allocate( pksize );
+    (*it)->SetLegend( siteNames[it-TitrationCurves_.begin()] );
+    (*it)->ModifyDim(Dimension::X).SetLabel("pH");
+  }
 
   StateArray SiteIsProtonated(maxsite);
 
@@ -934,6 +942,15 @@ int Protonator::CalcTitrationCurves() const {
     }
   } // END loop over pH values
 
+  // Save titration curves, omitting out of range values
+  for (unsigned int isite = 0; isite < maxsite; isite++) {
+    DataSet_Mesh& tcurve = static_cast<DataSet_Mesh&>( *TitrationCurves_[isite] );
+    for (int phidx = 0; phidx < nph; phidx++) {
+      double dval = pklist[isite][phidx];
+      if (dval > 0.05 && dval < 0.95)
+        tcurve.AddXY( pH_values[phidx], dval );
+    }
+  }
   // Write pkout file
   if (pkoutfile_ != 0) {
     // Pk and pkhalf for each site
