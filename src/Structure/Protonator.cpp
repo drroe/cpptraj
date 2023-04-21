@@ -29,7 +29,8 @@ Protonator::Protonator() :
   beta_(0),
   iseed_(0),
   mcmode_(MC_FULL),
-  logfile_(0)
+  logfile_(0),
+  pkoutfile_(0)
 {}
 
 /** For testing, read data from .pkint and .g files. */
@@ -143,6 +144,10 @@ int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn,
                                          "MC log file",
                                          DataFileList::TEXT,
                                          true );
+  pkoutfile_ = State.DFL().AddCpptrajFile( argIn.GetStringKey("pkout"),
+                                           "PKout file",
+                                           DataFileList::TEXT,
+                                           true );
   // Beta is 1/kT times Coulombs constant in units of kcal*Ang/mol*e- squared
   double temperature = argIn.getKeyDouble("temperature", -1);
   if (temperature > 0)
@@ -171,6 +176,7 @@ void Protonator::PrintOptions() const {
   static const char* MCMODESTR[] = { "full", "reduced", "cluster" };
   mprintf("\tMC mode: %s\n", MCMODESTR[mcmode_]);
   if (logfile_ != 0) mprintf("\tLog output to '%s'\n", logfile_->Filename().full());
+  if (pkoutfile_ != 0) mprintf("\tPKout file: '%s'\n", pkoutfile_->Filename().full());
   mprintf("\tValue for converting from charge to kcal/mol: beta= %g\n", beta_);
   mprintf("\tRNG seed: %i\n", iseed_);
 }
@@ -899,7 +905,12 @@ int Protonator::CalcTitrationCurves() const {
       } 
     }
   } // END loop over pH values
-  
+
+  // Write pkout file
+  if (pkoutfile_ != 0) {
+    pkoutfile_->Printf("%7s      %5s          %8s   %5s\n",  "Residue", "pKint", "pK_(1.2)", "     ");
+
+  } // END pkout write 
 
   return 0;
 }

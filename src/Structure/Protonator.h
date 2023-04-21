@@ -70,6 +70,7 @@ class Protonator {
     enum MCModeType { MC_FULL = 0, MC_REDUCED, MC_CLUSTER };
     MCModeType mcmode_;            ///< MC mode for computing protonation vs pH
     CpptrajFile* logfile_;         ///< Output log file
+    CpptrajFile* pkoutfile_;       ///< Pkout formatted file
 };
 }
 }
