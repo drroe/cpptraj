@@ -101,6 +101,12 @@ void Protonator::HelpText() {
 }
 
 /** Set up options */
+int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn) {
+  Cpptraj::Mead::MultiFlexResults results;
+  return SetupProtonator(State, argIn, results);
+}
+
+/** Set up options, optionally getting sets from previous MEAD calc. */
 int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn,
                                 Cpptraj::Mead::MultiFlexResults const& results)
 {

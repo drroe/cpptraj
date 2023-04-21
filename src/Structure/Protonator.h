@@ -24,6 +24,8 @@ class Protonator {
     /// Print help to stdout
     static void HelpText();
     /// Set up from arguments
+    int SetupProtonator(CpptrajState&, ArgList&);
+    /// Set up from arguments or MEAD results
     int SetupProtonator(CpptrajState&, ArgList&, Cpptraj::Mead::MultiFlexResults const&);
     /// Print options to stdout
     void PrintOptions() const;
