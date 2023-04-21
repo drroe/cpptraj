@@ -906,7 +906,7 @@ int Protonator::CalcTitrationCurves() const {
 
       if (mcmode_ == MC_REDUCED) {
         // Reduced monte carlo
-        PairArray r_pairs = get_pairs(min_g, maxsite, wint);
+        PairArray r_pairs = get_pairs(min_g, r_pkint.Size(), r_Wint);
         StateArray r_prot(r_pkint.Size());
         // Assign initial protonation for reduced set of sites
         r_prot.AssignRandom( rng );
