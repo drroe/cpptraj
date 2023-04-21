@@ -50,7 +50,7 @@ class Protonator {
                          Random_Number const&, PairArray const&) const;
 
     int reduce_sites(DataSet_double&, DataSet_1D&, DataSet_2D&, Iarray&,
-                     DataSet_1D const&, DataSet_1D const&, DataSet_2D const&, Darray const&) const;
+                     DataSet_1D const&, DataSet_1D const&, DataSet_2D const&, MC_Corr const&) const;
 
     PairArray get_pairs(double, unsigned int, DataSet_2D const&) const;
 

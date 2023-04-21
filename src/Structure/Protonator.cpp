@@ -430,6 +430,12 @@ class Protonator::MC_Corr {
 
     void Finish(int, unsigned int);
 
+    void PrintDebug(CpptrajFile*) const;
+
+    void PrintSiteStddev(CpptrajFile*) const;
+    /// \return Average protonation for site
+    double SiteAvgProtonation(int idx) const { return aveprot_[idx+1]; }
+  private:
     double get_err(Darray const&, int) const;
 
     double eave_; ///< Average energy
@@ -446,6 +452,7 @@ class Protonator::MC_Corr {
     I2array iold_;  // [maxsite+1][taumax+1]
 };
 
+/** Init MC corr fxns. */
 void Protonator::MC_Corr::Init(unsigned int maxsite) {
   eave_ = 0;
   seave_ = 0;
@@ -462,6 +469,7 @@ void Protonator::MC_Corr::Init(unsigned int maxsite) {
   iold_.assign(       maxsite1, Iarray(taumax1, 0));
 }
 
+/** Used to update protonation corr fxns */
 static inline void update_prot(double& aveprot, double& sqave,
                                std::vector<double>& scorr,
                                std::vector<int>& iold, int prot, int taumax)
@@ -479,6 +487,7 @@ static inline void update_prot(double& aveprot, double& sqave,
   iold[1] = prot;
 }
 
+/** Update corr fxns during MC iterations. */
 void Protonator::MC_Corr::Update(double energy, StateArray const& SiteIsProtonated)
 {
    // Update the correlation functions
@@ -533,6 +542,7 @@ const
   return error;
 }
 
+/** Finish corr fxns after MC iterations. */
 void Protonator::MC_Corr::Finish(int mcstepsIn, unsigned int maxsiteIn) {
   double mcsteps = (double)mcstepsIn;
   eave_ = eave_ / mcsteps;
@@ -551,6 +561,27 @@ void Protonator::MC_Corr::Finish(int mcstepsIn, unsigned int maxsiteIn) {
   }
 }
 
+/** Print debug info to stdout. */
+void Protonator::MC_Corr::PrintDebug(CpptrajFile* logfile) const {
+  for (int tau = 0; tau <= taumax_; tau++) {
+    //logfile->Printf("Cenergy %6i%12.5E\n", tau, cenergy_[tau]);
+    logfile->Printf("Senergy %6i%12.5f\n", tau, se_[tau]);
+  }
+  for (unsigned int j = 0; j < corr_.size(); j++) {
+    for (int tau = 0; tau <= taumax_; tau++) {
+      //logfile->Printf("Corr %6i%6i%12.5f\n", j, tau, corr_[j][tau]);
+      logfile->Printf("Scorr %6i%6i%12.5f\n", j, tau, scorr_[j][tau]);
+      logfile->Printf("aveprot %6i%12.5f\n", j, aveprot_[j]);
+      logfile->Printf("save %6i%12.5f\n", j, sqave_[j]);
+    }
+  }
+}
+
+/** Print std dev to stdout. */
+void Protonator::MC_Corr::PrintSiteStddev(CpptrajFile* logfile) const {
+  for (unsigned int j = 0; j < prot_error_.size(); j++)
+    logfile->Printf("Proterror %6i%12.5f\n", j, prot_error_[j]);
+}
 
 // -----------------------------------------------
 
@@ -627,18 +658,8 @@ const
   corr.Finish(mcsteps, maxsite);
 
   // DEBUG
-  for (int tau = 0; tau <= corr.taumax_; tau++) {
-    //logfile_->Printf("Cenergy %6i%12.5E\n", tau, corr.cenergy_[tau]);
-    logfile_->Printf("Senergy %6i%12.5f\n", tau, corr.se_[tau]);
-  }
-  for (unsigned int j = 0; j <= maxsite; j++) {
-    for (int tau = 0; tau <= corr.taumax_; tau++) {
-      //logfile_->Printf("Corr %6i%6i%12.5f\n", j, tau, corr.corr_[j][tau]);
-      logfile_->Printf("Scorr %6i%6i%12.5f\n", j, tau, corr.scorr_[j][tau]);
-      logfile_->Printf("aveprot %6i%12.5f\n", j, corr.aveprot_[j]);
-      logfile_->Printf("save %6i%12.5f\n", j, corr.sqave_[j]);
-    }
-  }
+  corr.PrintDebug( logfile_ );
+
   //for (unsigned int j = 0; j <= maxsite; j++)
   //  logfile_->Printf("Proterror %6i%12.5f\n", j, corr.prot_error_[j]);
   return 0;
@@ -650,18 +671,17 @@ const
 int Protonator::reduce_sites(DataSet_double&   r_pkint, DataSet_1D&       r_qunprot, DataSet_2D&       r_Wint,
                              Iarray& ridx_to_site,
                              DataSet_1D const& pkint,   DataSet_1D const& qunprot,   DataSet_2D const& wint,
-                             Darray const& aveprot)
+                             MC_Corr const& corr)
 const
 {
   int r_maxsite = 0;
   int nskipped = 0;
   for (unsigned int isite = 0; isite != pkint.Size(); isite++)
   {
-    // NOTE: aveprot[1] has site 0
-    unsigned int idx = isite + 1;
-    logfile_->Printf("REDUCE %6u%16.8f%16.8f\n", idx, aveprot[idx], fract_toler_);
-    if (aveprot[idx] > 1 - fract_toler_ ||
-        aveprot[idx] < fract_toler_)
+    double aveprot = corr.SiteAvgProtonation(isite);
+    logfile_->Printf("REDUCE %6u%16.8f%16.8f\n", isite+1, aveprot, fract_toler_);
+    if (aveprot > 1 - fract_toler_ ||
+        aveprot < fract_toler_)
     {
       nskipped++;
     } else {
@@ -694,7 +714,7 @@ const
       }
       if (site_fixed) {
         r_pkint[ir] = r_pkint[ir]
-                      - (qunprot.Dval(jsite) + aveprot[jsite+1])
+                      - (qunprot.Dval(jsite) + corr.SiteAvgProtonation(jsite))
                       * ( (beta_*wint.GetElement(isite,jsite))/log(10.0) );
       }
     }
@@ -791,8 +811,7 @@ int Protonator::CalcTitrationCurves() const {
       mprinterr("Error: Could not perform MC at pH %g\n", *ph);
       return 1;
     }
-    for (unsigned int j = 0; j <= maxsite; j++)
-      logfile_->Printf("Proterror %6i%12.5f\n", j, corr.prot_error_[j]);
+    corr.PrintSiteStddev( logfile_ );
 
     if (mcmode_ != MC_FULL) {
       // Reduced site techniques
@@ -802,7 +821,7 @@ int Protonator::CalcTitrationCurves() const {
       DataSet_MatrixDbl r_Wint;
       Iarray ridx_to_site;
       if (reduce_sites(r_pkint, r_qunprot, r_Wint, ridx_to_site,
-                       pkint, qunprot, wint, corr.aveprot_))
+                       pkint, qunprot, wint, corr))
       {
         mprinterr("Error: Site reduction failed.\n");
         return 1;
