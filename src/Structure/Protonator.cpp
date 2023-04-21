@@ -414,7 +414,7 @@ const
     }
   } // END MC loop
 }
-// -----------------------------------------------
+// -----------------------------------------------------------------------------
 /** Class for holding correlation function results from MC. */
 class Protonator::MC_Corr {
   public:
@@ -583,7 +583,7 @@ void Protonator::MC_Corr::PrintSiteStddev(CpptrajFile* logfile) const {
     logfile->Printf("Proterror %6i%12.5f\n", j, prot_error_[j]);
 }
 
-// -----------------------------------------------
+// -----------------------------------------------------------------------------
 
 /** Perform monte carlo sampling for a given pH value.
   * Determine average values of the protonation for each site and
@@ -789,7 +789,7 @@ int Protonator::CalcTitrationCurves() const {
 
   StateArray SiteIsProtonated(maxsite);
 
-  Random_Number rng; // TODO use 1 overall rng
+  Random_Number rng; // TODO set seed here only 
   // Loop over pH values
   for (Darray::const_iterator ph = pH_values.begin(); ph != pH_values.end(); ++ph)
   {
@@ -828,15 +828,19 @@ int Protonator::CalcTitrationCurves() const {
       }
       PairArray r_pairs = get_pairs(min_g, maxsite, wint);
       StateArray r_prot(r_pkint.Size());
+      // Assign initial protonation for reduced set of sites
       // FIXME calling set seed here to match mcti init subroutine. Should not always be done.
       rng.rn_set( iseed_ );
       r_prot.AssignRandom( rng );
-      err = perform_MC_at_pH(*ph, r_prot, corr, n_reduced_mc_steps_,
+      // Do MC trials at this pH for reduced set of sites
+      MC_Corr r_corr;
+      err = perform_MC_at_pH(*ph, r_prot, r_corr, n_reduced_mc_steps_,
                              r_pkint, r_Wint, r_qunprot, rng, r_pairs);
       if (err != 0) {
         mprinterr("Error: Could not perform reduced MC at pH %g\n", *ph);
         return 1;
       }
+      
 
     }
   } // END loop over pH values
