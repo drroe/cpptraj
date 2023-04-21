@@ -639,8 +639,8 @@ const
       logfile_->Printf("save %6i%12.5f\n", j, corr.sqave_[j]);
     }
   }
-  for (unsigned int j = 0; j <= maxsite; j++)
-    logfile_->Printf("Proterror %6i%12.5f\n", j, corr.prot_error_[j]);
+  //for (unsigned int j = 0; j <= maxsite; j++)
+  //  logfile_->Printf("Proterror %6i%12.5f\n", j, corr.prot_error_[j]);
   return 0;
 }
 
@@ -655,10 +655,11 @@ const
 {
   int r_maxsite = 0;
   int nskipped = 0;
-  for (unsigned int isite = 0; isite != r_pkint.Size(); isite++)
+  for (unsigned int isite = 0; isite != pkint.Size(); isite++)
   {
     // NOTE: aveprot[1] has site 0
     unsigned int idx = isite + 1;
+    logfile_->Printf("REDUCE %6u%16.8f%16.8f\n", idx, aveprot[idx], fract_toler_);
     if (aveprot[idx] > 1 - fract_toler_ ||
         aveprot[idx] < fract_toler_)
     {
@@ -693,9 +694,18 @@ const
       }
       if (site_fixed) {
         r_pkint[ir] = r_pkint[ir]
-                      - (qunprot.Dval(jsite) + aveprot[jsite])
+                      - (qunprot.Dval(jsite) + aveprot[jsite+1])
                       * ( (beta_*wint.GetElement(isite,jsite))/log(10.0) );
       }
+    }
+  }
+  for (int ir = 0; ir < r_maxsite; ir++) {
+    int isite = ridx_to_site[ir];
+    logfile_->Printf("RSITE %6i%6i%12.5f%12.5f\n", ir+1, isite+1, r_pkint[ir], r_qunprot.Dval(ir));
+  }
+  for (int ir = 0; ir < r_maxsite; ir++) {
+    for (int j = 0; j < r_maxsite; j++) {
+      logfile_->Printf("RWINT %6i%6i%12.5f\n", ir+1, j+1, r_Wint.GetElement(ir, j));
     }
   }
 
@@ -781,6 +791,9 @@ int Protonator::CalcTitrationCurves() const {
       mprinterr("Error: Could not perform MC at pH %g\n", *ph);
       return 1;
     }
+    for (unsigned int j = 0; j <= maxsite; j++)
+      logfile_->Printf("Proterror %6i%12.5f\n", j, corr.prot_error_[j]);
+
     if (mcmode_ != MC_FULL) {
       // Reduced site techniques
       // Allocate arrays for reduced sites
