@@ -908,6 +908,7 @@ int Protonator::CalcTitrationCurves() const {
 
   // Write pkout file
   if (pkoutfile_ != 0) {
+    // Pk and pkhalf for each site
     pkoutfile_->Printf("%7s      %5s          %8s   %5s\n",  "Residue", "pKint", "pK_(1/2)", "     ");
     for (unsigned int isite = 0; isite < maxsite; isite++) {
       if (pkhalf[isite] > -99)
@@ -917,6 +918,15 @@ int Protonator::CalcTitrationCurves() const {
           pkoutfile_->Printf("%-13s%7.3f       %c%8.3f\n", siteNames[isite].c_str(), pkint.Dval(isite), '<', pH_values.front());
         else
           pkoutfile_->Printf("%-13s%7.3f       %c%8.3f\n", siteNames[isite].c_str(), pkint.Dval(isite), '>', pH_values.back());
+      }
+    }
+    // Curve for each site
+    for (unsigned int isite = 0; isite < maxsite; isite++) {
+      pkoutfile_->Printf(" Site %s\n", siteNames[isite].c_str());
+      for (int phidx = 0; phidx < nph; phidx++) {
+        double dval = pklist[isite][phidx];
+        if (dval > 0.05 && dval < 0.95)
+          pkoutfile_->Printf("%10.5f %9.5f       %s\n", pH_values[phidx], dval, siteNames[isite].c_str());
       }
     }
 
