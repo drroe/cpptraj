@@ -826,13 +826,12 @@ int Protonator::CalcTitrationCurves() const {
 
   StateArray SiteIsProtonated(maxsite);
 
-  Random_Number rng; // TODO set seed here only 
+  Random_Number rng;
+  rng.rn_set( iseed_ );
   // Loop over pH values
   for (Darray::const_iterator ph = pH_values.begin(); ph != pH_values.end(); ++ph)
   {
     // Assign initial protonation
-    // FIXME calling set seed here to match mcti init subroutine. Should not always be done.
-    rng.rn_set( iseed_ );
     SiteIsProtonated.AssignRandom( rng );
     logfile_->Printf("ph= %6.2f\n", *ph);
     SiteIsProtonated.PrintState(logfile_);
@@ -869,8 +868,6 @@ int Protonator::CalcTitrationCurves() const {
         PairArray r_pairs = get_pairs(min_g, maxsite, wint);
         StateArray r_prot(r_pkint.Size());
         // Assign initial protonation for reduced set of sites
-        // FIXME calling set seed here to match mcti init subroutine. Should not always be done.
-        rng.rn_set( iseed_ );
         r_prot.AssignRandom( rng );
         // Do MC trials at this pH for reduced set of sites
         MC_Corr r_corr;
