@@ -821,7 +821,7 @@ int Protonator::CalcTitrationCurves() const {
     logfile_->Printf("%10.5f %c %s\n", pkint.Dval(i), siteType, siteNames[i].c_str());
   }
   // Allocate arrays for storing titration data
-  Darray pkhalf(maxsite, 0);
+  Darray pkhalf(maxsite, -999); // TODO is -999 a "safe" value?
   std::vector<Darray> pklist(maxsite, Darray(nph, 0));
 
   StateArray SiteIsProtonated(maxsite);
@@ -908,7 +908,17 @@ int Protonator::CalcTitrationCurves() const {
 
   // Write pkout file
   if (pkoutfile_ != 0) {
-    pkoutfile_->Printf("%7s      %5s          %8s   %5s\n",  "Residue", "pKint", "pK_(1.2)", "     ");
+    pkoutfile_->Printf("%7s      %5s          %8s   %5s\n",  "Residue", "pKint", "pK_(1/2)", "     ");
+    for (unsigned int isite = 0; isite < maxsite; isite++) {
+      if (pkhalf[isite] > -99)
+        pkoutfile_->Printf("%-13s%7.3f       %7.3f\n", siteNames[isite].c_str(), pkint.Dval(isite), pkhalf[isite]);
+      else {
+        if (pklist[isite][0] < 0.5)
+          pkoutfile_->Printf("%-13s%7.3f       %c%8.3f\n", siteNames[isite].c_str(), pkint.Dval(isite), '<', pH_values.front());
+        else
+          pkoutfile_->Printf("%-13s%7.3f       %c%8.3f\n", siteNames[isite].c_str(), pkint.Dval(isite), '>', pH_values.back());
+      }
+    }
 
   } // END pkout write 
 
