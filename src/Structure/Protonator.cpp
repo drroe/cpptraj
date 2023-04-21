@@ -814,6 +814,9 @@ int Protonator::CalcTitrationCurves() const {
       siteType = 'C';
     logfile_->Printf("%10.5f %c %s\n", pkint.Dval(i), siteType, siteNames[i].c_str());
   }
+  // Allocate arrays for storing titration data
+  Darray pkhalf(maxsite, 0);
+  std::vector<Darray> pklist(maxsite, Darray(nph, 0));
 
   StateArray SiteIsProtonated(maxsite);
 
@@ -854,26 +857,46 @@ int Protonator::CalcTitrationCurves() const {
         mprinterr("Error: Site reduction failed.\n");
         return 1;
       }
-      PairArray r_pairs = get_pairs(min_g, maxsite, wint);
-      StateArray r_prot(r_pkint.Size());
-      // Assign initial protonation for reduced set of sites
-      // FIXME calling set seed here to match mcti init subroutine. Should not always be done.
-      rng.rn_set( iseed_ );
-      r_prot.AssignRandom( rng );
-      // Do MC trials at this pH for reduced set of sites
-      MC_Corr r_corr;
-      err = perform_MC_at_pH(*ph, r_prot, r_corr, n_reduced_mc_steps_,
-                             r_pkint, r_Wint, r_qunprot, rng, r_pairs);
-      if (err != 0) {
-        mprinterr("Error: Could not perform reduced MC at pH %g\n", *ph);
+
+      if (mcmode_ == MC_REDUCED) {
+        // Reduced monte carlo
+        PairArray r_pairs = get_pairs(min_g, maxsite, wint);
+        StateArray r_prot(r_pkint.Size());
+        // Assign initial protonation for reduced set of sites
+        // FIXME calling set seed here to match mcti init subroutine. Should not always be done.
+        rng.rn_set( iseed_ );
+        r_prot.AssignRandom( rng );
+        // Do MC trials at this pH for reduced set of sites
+        MC_Corr r_corr;
+        err = perform_MC_at_pH(*ph, r_prot, r_corr, n_reduced_mc_steps_,
+                               r_pkint, r_Wint, r_qunprot, rng, r_pairs);
+        if (err != 0) {
+          mprinterr("Error: Could not perform reduced MC at pH %g\n", *ph);
+          return 1;
+        }
+        // Set avg prot and error from reduced
+        corr.SetFromReduced(r_corr, ridx_to_site);
+        for (unsigned int ir = 0; ir != r_pkint.Size(); ir++) {
+          int isite = ridx_to_site[ir];
+          logfile_->Printf("RRESULT %6i%12.5f%12.5f\n",isite+1, corr.SiteAvgProtonation(isite), corr.SiteStddev(isite));
+        }
+        // Calc pKhalf, save titration data in array
+        long int phidx = ph - pH_values.begin();
+        for (unsigned int isite = 0; isite < maxsite; isite++) {
+          pklist[isite][phidx] = corr.SiteAvgProtonation(isite);
+          if (phidx > 0) {
+            double diff1 = pklist[isite][phidx-1] - 0.5;
+            double diff2 = pklist[isite][phidx  ] - 0.5;
+            if (diff1 > 0 && diff2 <= 0) {
+              pkhalf[isite] = *ph + ((*ph - pH_values[phidx-1]) * (diff2 / (diff1 - diff2)));
+            }
+          }
+        }
+        // END mcmode_ == REDUCED
+      } else {
+        mprinterr("Internal Error; Invalid MC mode.\n");
         return 1;
-      }
-      // Set avg prot and error from reduced
-      corr.SetFromReduced(r_corr, ridx_to_site);
-      for (unsigned int ir = 0; ir != r_pkint.Size(); ir++) {
-        int isite = ridx_to_site[ir];
-        logfile_->Printf("RRESULT %6i%12.5f%12.5f\n",isite+1, corr.SiteAvgProtonation(isite), corr.SiteStddev(isite));
-      }
+      } 
     }
   } // END loop over pH values
   
