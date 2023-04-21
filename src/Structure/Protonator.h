@@ -21,6 +21,8 @@ namespace Structure {
 class Protonator {
   public:
     Protonator();
+    /// Print help to stdout
+    static void HelpText();
     /// Set up from arguments
     int SetupProtonator(CpptrajState&, ArgList&, Cpptraj::Mead::MultiFlexResults const&);
     /// Print options to stdout

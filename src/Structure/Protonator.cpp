@@ -91,14 +91,30 @@ int Protonator::read_files(CpptrajState& State, std::string const& prefix)
   return 0;
 }
 
+void Protonator::HelpText() {
+  mprintf("\t{setname <set name prefix>|mcprefix <file name prefix}\n"
+          "\t[nmcsteps <# MC steps>] [redsteps <# reduced MC steps>]\n"
+          "\t[startph <start pH>] [stopph <stop pH>] [phincr <pH increment>]\n"
+          "\t[minwint <interaction cut>] [fracttol <reduced site tol.>]\n"
+          "\t[mcmode {full|reduced}] [temperature <T>] [iseed <RNG seed>]\n"
+          "\t[mclog <log file>] [pkout <pkout file>]\n");
+}
+
 /** Set up options */
 int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn,
                                 Cpptraj::Mead::MultiFlexResults const& results)
 {
   std::string mcprefix = argIn.GetStringKey("mcprefix");
+  std::string setname = argIn.GetStringKey("setname");
   if (!mcprefix.empty()) {
     mprintf("\tLoading previous MEAD results for MC using prefix '%s'\n", mcprefix.c_str());
     if (read_files(State, mcprefix)) return 1;
+  } else if (!setname.empty()) {
+    // Look for existing sets
+    site_intrinsic_pKas_ = State.DSL().GetDataSet( setname + "[pkint]" );
+    site_site_matrix_ = State.DSL().GetDataSet( setname + "[ssi]" );
+    site_qunprot_ = State.DSL().GetDataSet( setname + "[qunprot]" );
+    site_names_ = State.DSL().GetDataSet( setname + "[sitenames]" );
   } else {
     site_intrinsic_pKas_ = results.PkIntSet();
     site_site_matrix_ = results.SiteSiteMatrixSet();
