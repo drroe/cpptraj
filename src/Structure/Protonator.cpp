@@ -113,6 +113,8 @@ int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn,
   std::string mcprefix = argIn.GetStringKey("mcprefix");
   std::string setname = argIn.GetStringKey("setname");
   if (!mcprefix.empty()) {
+    if (!setname.empty())
+      mprintf("Warning: Both 'mcprefix' and 'setname' specified; defaulting to 'mcprefix'.\n");
     mprintf("\tLoading previous MEAD results for MC using prefix '%s'\n", mcprefix.c_str());
     if (read_files(State, mcprefix)) return 1;
   } else if (!setname.empty()) {
