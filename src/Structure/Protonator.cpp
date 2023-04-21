@@ -692,7 +692,7 @@ const
   corr.Finish(mcsteps, maxsite);
 
   // DEBUG
-  corr.PrintDebug( logfile_ );
+  //corr.PrintDebug( logfile_ );
 
   //for (unsigned int j = 0; j <= maxsite; j++)
   //  logfile_->Printf("Proterror %6i%12.5f\n", j, corr.prot_error_[j]);
@@ -768,6 +768,7 @@ const
 
 /** Get pairs of strongly interacting sites. */
 Protonator::PairArray Protonator::get_pairs(double min_g, unsigned int maxsite, DataSet_2D const& wint) const {
+  logfile_->Printf("min_g = %12.5f\n", min_g);
   PairArray pairs;
   for (unsigned int i = 0; i < maxsite; i++) {
     for (unsigned int j = i+1; j < maxsite; j++) {
@@ -775,6 +776,7 @@ Protonator::PairArray Protonator::get_pairs(double min_g, unsigned int maxsite, 
         pairs.push_back( StatePair(i,j) );
     }
   }
+  logfile_->Printf("npairs = %6zu\n", pairs.size());
   return pairs;
 }
 
@@ -798,9 +800,7 @@ int Protonator::CalcTitrationCurves() const {
   // Pairs of strongly interacting sites are allowed to simultaneously
   // change their protonation states.
   double min_g = min_wint_ * log(10.0) / beta_;
-  logfile_->Printf("min_g = %16.8f\n", min_g);
   PairArray pairs = get_pairs(min_g, maxsite, wint);
-  logfile_->Printf("npairs = %6zu\n", pairs.size());
   // Count the number of pH values
   int nph = (int)((stop_pH_ - start_pH_) / pH_increment_) + 1;
   std::vector<double> pH_values;
