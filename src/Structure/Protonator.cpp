@@ -789,10 +789,10 @@ int Protonator::CalcTitrationCurves() const {
 
   StateArray SiteIsProtonated(maxsite);
 
+  Random_Number rng; // TODO use 1 overall rng
   // Loop over pH values
   for (Darray::const_iterator ph = pH_values.begin(); ph != pH_values.end(); ++ph)
   {
-    Random_Number rng; // TODO use 1 overall rng
     // Assign initial protonation
     // FIXME calling set seed here to match mcti init subroutine. Should not always be done.
     rng.rn_set( iseed_ );
