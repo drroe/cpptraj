@@ -433,8 +433,15 @@ class Protonator::MC_Corr {
     void PrintDebug(CpptrajFile*) const;
 
     void PrintSiteStddev(CpptrajFile*) const;
-    /// \return Average protonation for site
+    /// \return Average protonation for site (mcti aveprot)
     double SiteAvgProtonation(int idx) const { return aveprot_[idx+1]; }
+    /// \return SD of correlation function (mcti prot_error) for site
+    double SiteStddev(int idx) const { return prot_error_[idx+1]; }
+
+    /// Set average protonation for site (mcti aveprot)
+    void SetSiteAvgProtonation(int idx, double d) { aveprot_[idx+1] = d; }
+    /// Set SD of correlation function (mcti prot_error)
+    void SetSiteStddev(int idx, double d) { prot_error_[idx+1] = d; }
   private:
     double get_err(Darray const&, int) const;
 
@@ -840,8 +847,22 @@ int Protonator::CalcTitrationCurves() const {
         mprinterr("Error: Could not perform reduced MC at pH %g\n", *ph);
         return 1;
       }
-      
-
+      // Set avg prot and error from reduced
+      for (unsigned int ir = 0; ir != r_pkint.Size(); ir++) {
+        int isite = ridx_to_site[ir];
+        double error = r_corr.SiteStddev(ir);
+        if (error < 0.00000001) {
+          corr.SetSiteAvgProtonation(isite, r_corr.SiteAvgProtonation(ir));
+          corr.SetSiteStddev(isite, error);
+        } else {
+          double w1 = 1.0 / (corr.SiteStddev(isite)*corr.SiteStddev(isite));
+          double w2 = 1.0 / (error * error);
+          double aveprot = (w1*corr.SiteAvgProtonation(isite) + w2*r_corr.SiteAvgProtonation(ir))/(w1+w2);
+          corr.SetSiteAvgProtonation(isite, aveprot);
+          corr.SetSiteStddev(isite, sqrt(1.0/(w1+w2)));
+        }
+        logfile_->Printf("RRESULT %6i%12.5f%12.5f\n",isite+1, corr.SiteAvgProtonation(isite), corr.SiteStddev(isite));
+      }
     }
   } // END loop over pH values
   
