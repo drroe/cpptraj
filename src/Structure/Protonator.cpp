@@ -419,7 +419,6 @@ const
 class Protonator::MC_Corr {
   public:
     typedef std::vector<Darray> D2array;
-    typedef std::vector<int> Iarray;
     typedef std::vector<Iarray> I2array;
 
     MC_Corr() : eave_(0), seave_(0), taumax_(100) {}
@@ -438,6 +437,8 @@ class Protonator::MC_Corr {
     /// \return SD of correlation function (mcti prot_error) for site
     double SiteStddev(int idx) const { return prot_error_[idx+1]; }
 
+    /// Set avg. protonation (mcti aveprot) and SD of corr. fxn (mcti prot_error) from reduced
+    void SetFromReduced(MC_Corr const&, Iarray const&);
     /// Set average protonation for site (mcti aveprot)
     void SetSiteAvgProtonation(int idx, double d) { aveprot_[idx+1] = d; }
     /// Set SD of correlation function (mcti prot_error)
@@ -588,6 +589,23 @@ void Protonator::MC_Corr::PrintDebug(CpptrajFile* logfile) const {
 void Protonator::MC_Corr::PrintSiteStddev(CpptrajFile* logfile) const {
   for (unsigned int j = 0; j < prot_error_.size(); j++)
     logfile->Printf("Proterror %6i%12.5f\n", j, prot_error_[j]);
+}
+
+/** Set avg prot and error from reduced set */
+void Protonator::MC_Corr::SetFromReduced(MC_Corr const& r_corr, Iarray const& ridx_to_site) {
+  for (unsigned int ir = 0; ir != ridx_to_site.size(); ir++) {
+    int isite = ridx_to_site[ir];
+    double error = r_corr.SiteStddev(ir);
+    if (error < 0.00000001) {
+      aveprot_[isite+1] = r_corr.SiteAvgProtonation(ir);
+      prot_error_[isite+1] = error;
+    } else {
+      double w1 = 1.0 / (SiteStddev(isite)*SiteStddev(isite));
+      double w2 = 1.0 / (error * error);
+      aveprot_[isite+1] = (w1*SiteAvgProtonation(isite) + w2*r_corr.SiteAvgProtonation(ir))/(w1+w2);
+      prot_error_[isite+1] = sqrt(1.0/(w1+w2));
+    }
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -848,9 +866,10 @@ int Protonator::CalcTitrationCurves() const {
         return 1;
       }
       // Set avg prot and error from reduced
+      corr.SetFromReduced(r_corr, ridx_to_site);
       for (unsigned int ir = 0; ir != r_pkint.Size(); ir++) {
         int isite = ridx_to_site[ir];
-        double error = r_corr.SiteStddev(ir);
+/*        double error = r_corr.SiteStddev(ir);
         if (error < 0.00000001) {
           corr.SetSiteAvgProtonation(isite, r_corr.SiteAvgProtonation(ir));
           corr.SetSiteStddev(isite, error);
@@ -860,7 +879,7 @@ int Protonator::CalcTitrationCurves() const {
           double aveprot = (w1*corr.SiteAvgProtonation(isite) + w2*r_corr.SiteAvgProtonation(ir))/(w1+w2);
           corr.SetSiteAvgProtonation(isite, aveprot);
           corr.SetSiteStddev(isite, sqrt(1.0/(w1+w2)));
-        }
+        }*/
         logfile_->Printf("RRESULT %6i%12.5f%12.5f\n",isite+1, corr.SiteAvgProtonation(isite), corr.SiteStddev(isite));
       }
     }
