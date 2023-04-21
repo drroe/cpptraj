@@ -201,6 +201,8 @@ void Protonator::PrintOptions() const {
   mprintf("\tTolerance for reduced sites is %g\n", fract_toler_);
   static const char* MCMODESTR[] = { "full", "reduced", "cluster" };
   mprintf("\tMC mode: %s\n", MCMODESTR[mcmode_]);
+  mprintf("\t# MC steps: %i\n", n_mc_steps_);
+  mprintf("\t# MC steps for reduced set of sites: %i\n", n_reduced_mc_steps_);
   if (logfile_ != 0) mprintf("\tLog output to '%s'\n", logfile_->Filename().full());
   if (pkoutfile_ != 0) mprintf("\tPKout file: '%s'\n", pkoutfile_->Filename().full());
   mprintf("\tValue for converting from charge to kcal/mol: beta= %g\n", beta_);
