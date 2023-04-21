@@ -512,6 +512,12 @@ test.netcdfdata:
 test.compareenergy:
 	@-cd Test_CompareEnergy && ./RunTest.sh $(OPT)
 
+test.mead:
+	@-cd Test_MEAD && ./RunTest.sh $(OPT)
+
+test.mcti:
+	@-cd Test_MCTI && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -673,7 +679,9 @@ COMPLETETESTS=test.general \
               test.prepareforleap \
               test.keep \
               test.netcdfdata \
-              test.compareenergy
+              test.compareenergy \
+              test.mead \
+              test.mcti
 
 test.all:
 	$(MAKE) test.complete summary
