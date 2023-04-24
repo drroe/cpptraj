@@ -26,6 +26,7 @@ Protonator::Protonator() :
   site_names_(0),
   n_mc_steps_(0),
   n_reduced_mc_steps_(0),
+  debug_(0),
   start_pH_(0),
   stop_pH_(0),
   pH_increment_(0),
@@ -88,9 +89,12 @@ int Protonator::read_files(CpptrajState& State, std::string const& prefix)
     line = infile.NextLine();
   }
   // DEBUG print matrix
-  for (int ii = 0; ii < isite; ii++)
-    for (int jj = 0; jj < isite; jj++)
-      mprintf("%i %i %g\n", ii+1, jj+1, mat.GetElement(ii, jj));
+  if (debug_ > 0) {
+    mprintf("DEBUG: Read-in matrix:\n");
+    for (int ii = 0; ii < isite; ii++)
+      for (int jj = 0; jj < isite; jj++)
+        mprintf("%i %i %g\n", ii+1, jj+1, mat.GetElement(ii, jj));
+  }
 
   return 0;
 }
@@ -105,15 +109,16 @@ void Protonator::HelpText() {
 }
 
 /** Set up options */
-int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn) {
+int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn, int debugIn) {
   Cpptraj::Mead::MultiFlexResults results;
-  return SetupProtonator(State, argIn, results);
+  return SetupProtonator(State, argIn, debugIn, results);
 }
 
 /** Set up options, optionally getting sets from previous MEAD calc. */
-int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn,
+int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn, int debugIn,
                                 Cpptraj::Mead::MultiFlexResults const& results)
 {
+  debug_ = debugIn;
   std::string mcprefix = argIn.GetStringKey("mcprefix");
   std::string setname = argIn.GetStringKey("setname");
   if (!mcprefix.empty()) {
@@ -384,7 +389,9 @@ const
   for (unsigned int i = 0; i < maxsite; i++) {
     self.push_back( fac * (pkint.Dval(i) - pH) );
     //logfile_->Printf("%26.16E", self[i]);
+#   ifdef DEBUG_CPPTRAJ_PROTONATOR
     logfile_->Printf("%16.8f\n", self[i]);
+#   endif
   }
   // Thermalization: do mcsteps of Monte Carlo to approach equilibrium
   //                 before data is taken.
@@ -404,9 +411,13 @@ const
   //for (unsigned int i = 0; i < maxsite; i++)
   //  mprintf(" %i", SiteIsProtonated[i]);
   //mprintf("\n");
+# ifdef DEBUG_CPPTRAJ_PROTONATOR
   SiteIsProtonated.PrintState(logfile_);
+# endif
   double energy = SiteIsProtonated.Esum(self, qunprot, wint);
+# ifdef DEBUG_CPPTRAJ_PROTONATOR
   logfile_->Printf("Energy after thermal= %16.8f\n", energy);
+# endif
   // Statistics loop: take 1 MC step and calulate averages.
   StateArray tempProt;
   std::string stateChar;
@@ -419,6 +430,7 @@ const
               SiteIsProtonated,
               wint, qunprot,
               rng);
+#     ifdef DEBUG_CPPTRAJ_PROTONATOR
       // Is the overall state different?
       bool isDifferentState = tempProt.AssignFromState( SiteIsProtonated );
       // DEBUG: Print if different
@@ -427,6 +439,7 @@ const
         logfile_->Printf("%12i State : %s\n", mct+1, stateChar.c_str());
         logfile_->Printf("Energy : %16.8f\n", energy);
       }
+#     endif
       corr.Update(energy, SiteIsProtonated);
     }
   }
@@ -454,7 +467,9 @@ const
   for (unsigned int isite = 0; isite != pkint.Size(); isite++)
   {
     double aveprot = corr.SiteAvgProtonation(isite);
+#   ifdef DEBUG_CPPTRAJ_PROTONATOR
     logfile_->Printf("REDUCE %6u%16.8f%16.8f\n", isite+1, aveprot, fract_toler_);
+#   endif
     if (aveprot > 1 - fract_toler_ ||
         aveprot < fract_toler_)
     {
@@ -494,6 +509,7 @@ const
       }
     }
   }
+# ifdef DEBUG_CPPTRAJ_PROTONATOR
   for (int ir = 0; ir < r_maxsite; ir++) {
     int isite = ridx_to_site[ir];
     logfile_->Printf("RSITE %6i%6i%12.5f%12.5f\n", ir+1, isite+1, r_pkint[ir], r_qunprot.Dval(ir));
@@ -503,13 +519,15 @@ const
       logfile_->Printf("RWINT %6i%6i%12.5f\n", ir+1, j+1, r_Wint.GetElement(ir, j));
     }
   }
-
+# endif
   return 0;
 }
 
 /** Get pairs of strongly interacting sites. */
 Protonator::PairArray Protonator::get_pairs(double min_g, unsigned int maxsite, DataSet_2D const& wint) const {
+# ifdef DEBUG_CPPTRAJ_PROTONATOR
   logfile_->Printf("min_g = %12.5f\n", min_g);
+# endif
   PairArray pairs;
   for (unsigned int i = 0; i < maxsite; i++) {
     for (unsigned int j = i+1; j < maxsite; j++) {
@@ -517,7 +535,9 @@ Protonator::PairArray Protonator::get_pairs(double min_g, unsigned int maxsite, 
         pairs.push_back( StatePair(i,j) );
     }
   }
+# ifdef DEBUG_CPPTRAJ_PROTONATOR
   logfile_->Printf("npairs = %6zu\n", pairs.size());
+# endif
   return pairs;
 }
 
@@ -535,8 +555,9 @@ int Protonator::CalcTitrationCurves() const {
     for (unsigned int j = 0; j < maxsite; j++)
       grounde += (qunprot.Dval(i) * qunprot.Dval(j) * wint.GetElement(i,j));
   grounde *= 0.5;
+# ifdef DEBUG_CPPTRAJ_PROTONATOR
   logfile_->Printf("grounde = %16.8f\n", grounde);
-
+# endif
   // Calculate pairs.
   // Pairs of strongly interacting sites are allowed to simultaneously
   // change their protonation states.
@@ -551,7 +572,8 @@ int Protonator::CalcTitrationCurves() const {
     pH_values.push_back( pH );
     pH += pH_increment_;
   }
-  mprintf("DEBUG: maxsite= %u  #pH vals= %zu  nph= %i\n", maxsite, pH_values.size(), nph);
+  //mprintf("DEBUG: maxsite= %u  #pH vals= %zu  nph= %i\n", maxsite, pH_values.size(), nph);
+  mprintf("\tCalculating titration curves for %u sites, %zu pH values each.\n", maxsite, pH_values.size());
   logfile_->Printf("%6u%6i\n", maxsite, nph);
   DataSet_double& pkhalf = static_cast<DataSet_double&>( *pkhalf_ );
   pkhalf.Resize( maxsite );
@@ -585,8 +607,10 @@ int Protonator::CalcTitrationCurves() const {
   {
     // Assign initial protonation
     SiteIsProtonated.AssignRandom( rng );
+#   ifdef DEBUG_CPPTRAJ_PROTONATOR
     logfile_->Printf("ph= %6.2f\n", *ph);
     SiteIsProtonated.PrintState(logfile_);
+#   endif
     //mprintf("Initial states (%i total):", SiteIsProtonated.Nprotonated());
     //for (Iarray::const_iterator it = SiteIsProtonated.begin(); it != SiteIsProtonated.end(); ++it)
     //  mprintf(" %i", *it);
@@ -599,8 +623,9 @@ int Protonator::CalcTitrationCurves() const {
       mprinterr("Error: Could not perform MC at pH %g\n", *ph);
       return 1;
     }
+#   ifdef DEBUG_CPPTRAJ_PROTONATOR
     corr.PrintSiteStddev( logfile_ );
-
+#   endif
     if (mcmode_ != MC_FULL) {
       // Reduced site techniques
       // Allocate arrays for reduced sites
@@ -631,10 +656,12 @@ int Protonator::CalcTitrationCurves() const {
         }
         // Set avg prot and error from reduced
         corr.SetFromReduced(r_corr, ridx_to_site);
+#       ifdef DEBUG_CPPTRAJ_PROTONATOR
         for (unsigned int ir = 0; ir != r_pkint.Size(); ir++) {
           int isite = ridx_to_site[ir];
           logfile_->Printf("RRESULT %6i%12.5f%12.5f\n",isite+1, corr.SiteAvgProtonation(isite), corr.SiteStddev(isite));
         }
+#       endif
         // Calc pKhalf, save titration data in array
         long int phidx = ph - pH_values.begin();
         for (unsigned int isite = 0; isite < maxsite; isite++) {

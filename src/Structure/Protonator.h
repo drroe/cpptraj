@@ -17,16 +17,19 @@ class MultiFlexResults;
 }
 namespace Structure {
 /// Class for assigning protonation states to a structure
-/** This class is largely based off of the MCTI program by Paul Beroza. */
+/** This class is largely based off of the MCTI program by Paul Beroza.
+  * Compile with -DDEBUG_CPPTRAJ_PROTONATOR for verbose debug info
+  * printout.
+  */
 class Protonator {
   public:
     Protonator();
     /// Print help to stdout
     static void HelpText();
     /// Set up from arguments
-    int SetupProtonator(CpptrajState&, ArgList&);
+    int SetupProtonator(CpptrajState&, ArgList&, int);
     /// Set up from arguments or MEAD results
-    int SetupProtonator(CpptrajState&, ArgList&, Cpptraj::Mead::MultiFlexResults const&);
+    int SetupProtonator(CpptrajState&, ArgList&, int, Cpptraj::Mead::MultiFlexResults const&);
     /// Print options to stdout
     void PrintOptions() const;
     /// Calculate titration curves using MC
@@ -64,6 +67,7 @@ class Protonator {
     DataSet* site_names_;          ///< Input DataSet containing name of each site.
     int n_mc_steps_;               ///< Number of monte carlo steps
     int n_reduced_mc_steps_;       ///< Number of monte carlo steps for reduced sites
+    int debug_;
     double start_pH_;              ///< Starting pH
     double stop_pH_;               ///< final pH
     double pH_increment_;          ///< pH increment

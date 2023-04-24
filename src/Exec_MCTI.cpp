@@ -13,7 +13,7 @@ Exec::RetType Exec_MCTI::Execute(CpptrajState& State, ArgList& argIn)
 {
   using namespace Cpptraj::Structure;
   Protonator protonator;
-  if (protonator.SetupProtonator( State, argIn )) {
+  if (protonator.SetupProtonator( State, argIn, State.Debug() )) {
     mprinterr("Error: Set up protonator failed.\n");
     return CpptrajState::ERR;
   }
