@@ -66,7 +66,7 @@ int SiteData::LoadSiteData(std::string const& sitesFileName,
         stFileName = sitesDirName + "/" + sname + ".st";
       mprintf("DEBUG: Loading data for site '%s' from '%s'\n", sname.c_str(), stFileName.c_str());
       ns = NameToSite_.insert( ns, NameSitePair(sname, TitratableSite()) );
-      if (ns->second.LoadSiteData( stFileName, sname )) {
+      if (ns->second.LoadSiteFile( stFileName, sname )) {
         mprinterr("Error: Failed to load titratable site data from '%s'\n", stFileName.c_str());
         return 1;
       }

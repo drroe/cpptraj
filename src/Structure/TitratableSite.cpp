@@ -31,10 +31,10 @@ void TitratableSite::Print() const {
 }
 
 /** Load site titration data from a file. */
-int TitratableSite::LoadSiteData(std::string const& fname, std::string const& siteNameIn)
+int TitratableSite::LoadSiteFile(std::string const& fname, std::string const& siteNameIn)
 {
   if (fname.empty()) {
-    mprinterr("Internal Error: TitratableSite::LoadSiteData(): No file name given.\n");
+    mprinterr("Internal Error: TitratableSite::LoadSiteFile(): No file name given.\n");
     return 1;
   }
   // Clear existing data

@@ -15,7 +15,7 @@ class TitratableSite {
     /// Clear all data
     void Clear();
     /// Load site data from file
-    int LoadSiteData(std::string const&, std::string const&);
+    int LoadSiteFile(std::string const&, std::string const&);
     /// Print data to stdout
     void Print() const;
 
