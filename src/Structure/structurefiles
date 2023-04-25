@@ -5,10 +5,10 @@ STRUCTURE_SOURCES= \
   FxnGroupBuilder.cpp \
   HisProt.cpp \
   Protonator.cpp \
+  SiteData.cpp \
   StructureRoutines.cpp \
   SugarBuilder.cpp \
   Sugar.cpp \
   SugarLinkAtoms.cpp \
   SugarToken.cpp \
-  TitratableSite.cpp \
-  TitrationData.cpp
+  TitratableSite.cpp

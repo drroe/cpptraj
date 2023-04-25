@@ -8,14 +8,14 @@ namespace Structure {
 // Fwd declares
 class TitratableSite;
 /// Hold information for all titratable sites
-class TitrationData {
+class SiteData {
     typedef std::pair<int, std::string> IdxNamePair;
   public:
     typedef std::vector<std::string> Sarray;
 
-    TitrationData();
+    SiteData();
     /// Load titration data from files
-    int LoadTitrationData(std::string const&, std::string const&);
+    int LoadSiteData(std::string const&, std::string const&);
 
     /// \return Array of site names for given residue number
     Sarray ResSiteNames(int) const;

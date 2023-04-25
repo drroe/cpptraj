@@ -1,4 +1,4 @@
-#include "TitrationData.h"
+#include "SiteData.h"
 #include "TitratableSite.h"
 #include "../NameType.h"
 #include "../CpptrajStdio.h"
@@ -8,14 +8,14 @@
 using namespace Cpptraj::Structure;
 
 /** CONSTRUCTOR */
-TitrationData::TitrationData()
+SiteData::SiteData()
 {}
 
 /** Load titratable sites data.
   * \param sitesFileName File name containing residue numbers and site names.
   * \param sitesDirName Directory name containins site files.
   */
-int TitrationData::LoadTitrationData(std::string const& sitesFileName,
+int SiteData::LoadSiteData(std::string const& sitesFileName,
                                      std::string const& sitesDirName)
 {
   if (sitesFileName.empty()) {
@@ -97,7 +97,7 @@ int TitrationData::LoadTitrationData(std::string const& sitesFileName,
 }
 
 /** \return Array of site names at given residue index. */
-TitrationData::Sarray TitrationData::ResSiteNames(int ridx) const {
+SiteData::Sarray SiteData::ResSiteNames(int ridx) const {
   ResNameMap::const_iterator it = ResToSitename_.find( ridx );
   if (it == ResToSitename_.end())
     return Sarray();
@@ -105,7 +105,7 @@ TitrationData::Sarray TitrationData::ResSiteNames(int ridx) const {
 }
 
 /** \return Site corresponding to site name. */
-TitratableSite const& TitrationData::GetSite(std::string const& sname) const {
+TitratableSite const& SiteData::GetSite(std::string const& sname) const {
   NameSiteMap::const_iterator it = NameToSite_.find( sname );
   if (it == NameToSite_.end()) {
     mprinterr("Internal Error: Titratable site data '%s' not present.\n", sname.c_str());

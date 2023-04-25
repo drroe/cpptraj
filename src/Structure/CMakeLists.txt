@@ -5,11 +5,11 @@ target_sources(cpptraj_common_obj PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}/FxnGroupBuilder.cpp
   ${CMAKE_CURRENT_LIST_DIR}/HisProt.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Protonator.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/SiteData.cpp
   ${CMAKE_CURRENT_LIST_DIR}/StructureRoutines.cpp
   ${CMAKE_CURRENT_LIST_DIR}/SugarBuilder.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Sugar.cpp
   ${CMAKE_CURRENT_LIST_DIR}/SugarLinkAtoms.cpp
   ${CMAKE_CURRENT_LIST_DIR}/SugarToken.cpp
   ${CMAKE_CURRENT_LIST_DIR}/TitratableSite.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/TitrationData.cpp
 )
