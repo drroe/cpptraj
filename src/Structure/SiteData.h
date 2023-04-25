@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 namespace Cpptraj {
+//TODO Move to Mead namespace
 namespace Structure {
 // Fwd declares
 class TitratableSite;
