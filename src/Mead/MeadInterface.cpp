@@ -10,7 +10,7 @@
 #include "../DataSet_3D.h"
 #include "../DataSet_1D.h"
 #include "../DataSet_string.h"
-#include "../Structure/TitrationData.h"
+#include "../Structure/SiteData.h"
 #include "../Structure/TitratableSite.h"
 // MEAD includes
 #include "../../mead/MEADexcept.h"
@@ -439,12 +439,12 @@ const
 int MeadInterface::setup_titration_calcs_by_site(std::vector<TitrationCalc>& Sites,
                                          AtomChargeSet& ref_atp,
                                          Topology const& topIn, Frame const& frameIn,
-                                         Cpptraj::Structure::TitrationData const& titrationData)
+                                         Cpptraj::Structure::SiteData const& titrationData)
 const
 {
   using namespace Cpptraj::Structure;
   Sites.clear();
-  for (TitrationData::const_iterator it = titrationData.begin(); it != titrationData.end(); ++it)
+  for (SiteData::const_iterator it = titrationData.begin(); it != titrationData.end(); ++it)
   {
     int oidx = it->first; // TODO this is original resnum, need ridx
     int ridx = -1;
@@ -470,22 +470,22 @@ const
 int MeadInterface::setup_titration_calcs(std::vector<TitrationCalc>& Sites,
                                          AtomChargeSet& ref_atp,
                                          Topology const& topIn, Frame const& frameIn,
-                                         Cpptraj::Structure::TitrationData const& titrationData)
+                                         Cpptraj::Structure::SiteData const& titrationData)
 const
 {
   using namespace Cpptraj::Structure;
   Sites.clear();
   // Loop over titratable sites
   for (int ridx = 0; ridx != topIn.Nres(); ridx++) {
-    TitrationData::Sarray siteNames = titrationData.ResSiteNames( topIn.Res(ridx).OriginalResNum() );
+    SiteData::Sarray siteNames = titrationData.ResSiteNames( topIn.Res(ridx).OriginalResNum() );
     if (!siteNames.empty()) {
       mprintf("DEBUG: Residue %s site names:", topIn.TruncResNameNum(ridx).c_str());
-      for (TitrationData::Sarray::const_iterator it = siteNames.begin();
+      for (SiteData::Sarray::const_iterator it = siteNames.begin();
                                                  it != siteNames.end(); ++it)
         mprintf(" %s", it->c_str());
       mprintf("\n");
       // Loop over the sites for this residue
-      for (TitrationData::Sarray::const_iterator it = siteNames.begin();
+      for (SiteData::Sarray::const_iterator it = siteNames.begin();
                                                  it != siteNames.end(); ++it)
       {
         TitratableSite const& site = titrationData.GetSite( *it );
@@ -549,7 +549,7 @@ int MeadInterface::MultiFlex(MultiFlexResults& results,
                              MeadOpts const& Opts,
                              MeadGrid const& ogm, MeadGrid const& mgm,
                              Topology const& topIn, Frame const& frameIn,
-                             Structure::TitrationData const& titrationData, int siteIdx)
+                             Structure::SiteData const& titrationData, int siteIdx)
 {
   t_total_[1].Start();
   using namespace Cpptraj::Structure;

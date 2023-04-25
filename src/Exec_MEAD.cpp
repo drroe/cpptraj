@@ -2,7 +2,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
 #include "DistRoutines.h"
-#include "Structure/TitrationData.h"
+#include "Structure/SiteData.h"
 #include "Structure/TitratableSite.h"
 #include "Mead/MeadGrid.h"
 #include "Mead/MeadOpts.h"
@@ -140,9 +140,9 @@ const
     return 1;
   }
 
-  TitrationData titrationData;
+  SiteData titrationData;
 
-  if (titrationData.LoadTitrationData( sitesFileName, sitesDirName )) {
+  if (titrationData.LoadSiteData( sitesFileName, sitesDirName )) {
     mprinterr("Error: Could not load titration data.\n");
     return 1;
   }

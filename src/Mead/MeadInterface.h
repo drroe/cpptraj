@@ -19,7 +19,7 @@ class AtomChargeSet;
 
 namespace Cpptraj {
 namespace Structure {
-class TitrationData;
+class SiteData;
 class TitratableSite;
 }
 namespace Mead {
@@ -55,7 +55,7 @@ class MeadInterface {
     int Solvate(double&, MeadOpts const&, MeadGrid const&, DataSet_3D*) const;
     /// Run multiflex calc
     int MultiFlex(MultiFlexResults&, MeadOpts const&, MeadGrid const&, MeadGrid const&,
-                  Topology const&, Frame const&, Structure::TitrationData const&, int);
+                  Topology const&, Frame const&, Structure::SiteData const&, int);
   private:
     class TitrationCalc;
 
@@ -73,10 +73,10 @@ class MeadInterface {
                                    Structure::TitratableSite const&, int) const;
 
     int setup_titration_calcs_by_site(std::vector<TitrationCalc>&, AtomChargeSet&,
-                              Topology const&, Frame const&, Structure::TitrationData const&) const;
+                              Topology const&, Frame const&, Structure::SiteData const&) const;
 
     int setup_titration_calcs(std::vector<TitrationCalc>&, AtomChargeSet&,
-                              Topology const&, Frame const&, Structure::TitrationData const&) const;
+                              Topology const&, Frame const&, Structure::SiteData const&) const;
 
     AtomSet* atomset_;
     Radii_Mode rmode_; ///< Which radii set to use
