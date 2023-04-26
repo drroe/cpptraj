@@ -3,13 +3,26 @@
 #include "../NameType.h"
 #include "../CpptrajStdio.h"
 #include "../BufferedLine.h"
-#include <cstdlib> // atoi
+#include <cstdlib> // atoi, getenv
 
 using namespace Cpptraj::Structure;
 
 /** CONSTRUCTOR */
 SiteData::SiteData()
 {}
+
+std::string SiteData::defaultSiteDir() const {
+  const char* env = getenv("CPPTRAJHOME");
+  if (env != 0)
+    return (std::string(env) + std::string("/dat"));
+  return std::string("");
+}
+  
+
+/** Load all sites in a given directory. */
+int SiteData::LoadSiteDirectory(std::string const& sitesDirName)
+{
+  if (sitesDirName.empty()
 
 /** Load titratable sites data.
   * \param sitesFileName File name containing residue numbers and site names.

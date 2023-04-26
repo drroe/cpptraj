@@ -15,7 +15,7 @@ class SiteData {
     typedef std::vector<std::string> Sarray;
 
     SiteData();
-    /// Load titration data from files
+    /// Load titration data from a MEAD-style site file.
     int LoadSiteData(std::string const&, std::string const&);
 
     /// \return Array of site names for given residue number
