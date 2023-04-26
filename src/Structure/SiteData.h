@@ -11,25 +11,23 @@ class TitratableSite;
 /// Hold information for all titratable sites
 class SiteData {
     typedef std::pair<int, std::string> IdxNamePair;
+    typedef std::vector<IdxNamePair> IdxNameArray;
   public:
-    typedef std::vector<std::string> Sarray;
-
+    /// CONSTRUCTOR
     SiteData();
-    /// Load titration data from a MEAD-style site file.
+    /// Load titration data and sites from a MEAD-style site file.
     int LoadSiteData(std::string const&, std::string const&);
-    /// Load all titration data from specified directory.
+    /// Load titration data from specified directory.
     int LoadSiteDirectory(std::string const&);
 
     /// \return Titratable site corresponding to name
     TitratableSite const& GetSite(std::string const&) const;
 
-    typedef std::vector<IdxNamePair> IdxNameArray;
+    /// Iterator over defined sites
     typedef IdxNameArray::const_iterator const_iterator;
-    /// \return Array of residue indices and corresponding site names
-    IdxNameArray Sites() const { return IdxNames_; }
-    /// \return begin iterator
+    /// \return Iterator to beginning of defined sites
     const_iterator begin() const { return IdxNames_.begin(); }
-    /// \return end iterator
+    /// \return Iterator to end of defined sites
     const_iterator end() const { return IdxNames_.end(); }
   private:
     typedef std::pair<std::string,TitratableSite> NameSitePair;
