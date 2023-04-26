@@ -205,6 +205,34 @@ int SiteData::SetupSitesFromTop(Topology const& topIn) {
     ResSitesMap::const_iterator it = resnameToSites_.find( thisRes.Name().Truncated() );
     if (it != resnameToSites_.end()) {
       mprintf("DEBUG: %zu sites found for residue %s\n", it->second.size(), *(thisRes.Name()));
+      // Check if this residue is terminal. TODO use residue IsTerminal?
+      std::vector<int> bondedResIdxs;
+      bondedResIdxs.reserve(4);
+      for (int ii = thisRes.FirstAtom(); ii != thisRes.LastAtom(); ii++) {
+        for (Atom::bond_iterator bat = topIn[ii].bondbegin(); bat != topIn[ii].bondend(); ++bat) {
+          if (topIn[*bat].ResNum() != ires)
+            bondedResIdxs.push_back( topIn[*bat].ResNum() );
+        }
+      }
+      mprintf("\tResidue '%s' is bonded to residues", topIn.TruncResNameNum(ires).c_str());
+      for (std::vector<int>::const_iterator bri = bondedResIdxs.begin(); bri != bondedResIdxs.end(); ++bri)
+        mprintf(" %s", topIn.TruncResNameNum(*bri).c_str());
+      mprintf("\n");
+      // FIXME this is very protein-specific
+      enum TerminalType { T_NONE = 0, T_N, T_C };
+      TerminalType termType;
+      if (bondedResIdxs.size() > 1)
+        termType = T_NONE;
+      else {
+        if (bondedResIdxs[0] > ires)
+          termType = T_N;
+        else
+          termType = T_C;
+      }
+      if (termType == T_N)
+        mprintf("\tN-TERMINAL.\n");
+      else if (termType == T_C)
+        mprintf("\tC-TERMINAL.\n");
       // Loop over potential sites
       for (Sarray::const_iterator jt = it->second.begin(); jt != it->second.end(); ++jt) {
         mprintf("\tSite '%s'\n", jt->c_str());
