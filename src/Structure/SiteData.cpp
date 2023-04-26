@@ -44,8 +44,8 @@ int SiteData::LoadSiteDirectory(std::string const& sitesDirNameIn)
   * \param sitesFileName File name containing residue numbers and site names.
   * \param sitesDirName Directory name containins site files.
   */
-int SiteData::LoadSiteData(std::string const& sitesFileName,
-                                     std::string const& sitesDirName)
+int SiteData::LoadMeadSiteData(std::string const& sitesFileName,
+                               std::string const& sitesDirName)
 {
   if (sitesFileName.empty()) {
     mprinterr("Internal Error: sitesFileName is empty.\n");

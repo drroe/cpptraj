@@ -16,7 +16,7 @@ class SiteData {
     /// CONSTRUCTOR
     SiteData();
     /// Load titration data and sites from a MEAD-style site file.
-    int LoadSiteData(std::string const&, std::string const&);
+    int LoadMeadSiteData(std::string const&, std::string const&);
     /// Load titration data from specified directory.
     int LoadSiteDirectory(std::string const&);
 

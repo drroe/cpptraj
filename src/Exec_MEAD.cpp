@@ -142,7 +142,7 @@ const
 
   SiteData titrationData;
 
-  if (titrationData.LoadSiteData( sitesFileName, sitesDirName )) {
+  if (titrationData.LoadMeadSiteData( sitesFileName, sitesDirName )) {
     mprinterr("Error: Could not load titration data.\n");
     return 1;
   }
