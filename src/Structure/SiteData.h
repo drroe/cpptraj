@@ -42,6 +42,8 @@ class SiteData {
 
     static std::string defaultSiteDir();
 
+    void PrintTitrationSiteData() const;
+
     NameSiteMap NameToSite_;    ///< Map site names to titratable site data
     IdxNameArray IdxNames_;  ///< Hold res #s/site names in original order.
     ResSitesMap resnameToSites_; ///< Map residue name to site names

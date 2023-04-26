@@ -18,7 +18,16 @@ std::string SiteData::defaultSiteDir() {
     return (std::string(env) + std::string("/dat/TitratableSites"));
   return std::string(".");
 }
-  
+
+/** Print titration site data to stdout. */
+void SiteData::PrintTitrationSiteData() const {
+   mprintf("DEBUG: Titration site data:\n");
+  for (NameSiteMap::const_iterator ns = NameToSite_.begin(); ns != NameToSite_.end(); ++ns)
+  {
+    mprintf("\tSite: %s\n", ns->first.c_str());
+    ns->second.Print();
+  }
+}
 
 /** Load all sites in a given directory. */
 int SiteData::LoadSiteDirectory(std::string const& sitesDirNameIn)
@@ -97,6 +106,7 @@ int SiteData::LoadSiteDirectory(std::string const& sitesDirNameIn)
       mprintf(" %s", jt->c_str());
     mprintf("\n");
   }
+  PrintTitrationSiteData();
   return 0;
 }
 
@@ -179,12 +189,8 @@ int SiteData::LoadMeadSiteData(std::string const& sitesFileName,
       mprintf(" %s", nm->c_str());
     mprintf("\n");
   }*/
-  mprintf("DEBUG: Titration site data:\n");
-  for (NameSiteMap::const_iterator ns = NameToSite_.begin(); ns != NameToSite_.end(); ++ns)
-  {
-    mprintf("\tSite: %s\n", ns->first.c_str());
-    ns->second.Print();
-  }
+  PrintTitrationSiteData();
+
   return 0;
 }
 
