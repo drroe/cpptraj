@@ -141,8 +141,8 @@ int BufferedLine::TokenizeLine(const char* separator) {
     tokens_.push_back(linechar);
   tokenidx_ = 0; 
   /*mprintf("DBG: Tokenize: Line=[%s]\n", bufferPosition_);
-  mprintf("\t%i Tokens:\n", ntokens);
-  for (unsigned int t = 0; t < ntokens; ++t)
+  mprintf("\t%i Tokens:\n", (int)(tokens_.size() / 2));
+  for (unsigned int t = 0; t < tokens_.size(); ++t)
     mprintf("\t\t%u %c\n",t, *tokens_[t]);*/
   return (int)(tokens_.size() / 2);
 }
