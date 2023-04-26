@@ -3,6 +3,7 @@
 #include "../NameType.h"
 #include "../CpptrajStdio.h"
 #include "../BufferedLine.h"
+#include "../ArgList.h"
 #include <cstdlib> // atoi, getenv
 
 using namespace Cpptraj::Structure;
@@ -28,13 +29,30 @@ int SiteData::LoadSiteDirectory(std::string const& sitesDirNameIn)
   else
     sitesDirName = sitesDirNameIn;
 
-  std::string resToSiteFile = sitesDirName + "ResToSite.dat";
+  std::string resToSiteFile = sitesDirName + "/ResToSite.dat";
+  mprintf("Loading site titration data from '%s'\n", resToSiteFile.c_str());
 
-  CpptrajFile infile;
-  if (infile.OpenRead( resToSiteFile )) {
-    mprinterr("Error: Could not open titratable site file '%s'\n", resToSiteFile.c_str());
+  BufferedLine infile;
+  if (infile.OpenFileRead( resToSiteFile )) {
+    mprinterr("Error: Could not open titratable site data file '%s'\n", resToSiteFile.c_str());
     return 1;
   }
+  const char* ptr = infile.Line();
+  while (ptr != 0) {
+    if (*ptr != '#') {
+      // Expected format: <resname list> <Filename list>
+      int ntokens = infile.TokenizeLine(" ");
+      if (ntokens != 2) {
+        mprinterr("Error: Malformed line in titratable site data file '%s': %s\n", resToSiteFile.c_str(), ptr);
+        mprinterr("Error: Expected 2 tokens, got %i\n", ntokens);
+        return 1;
+      }
+      ArgList resList( infile.NextToken(), "," );
+      ArgList fileList( infile.NextToken(), "," );
+      mprintf("DEBUG: %i res %i files\n", resList.Nargs(), fileList.Nargs());
+    } // END line is not comment
+    ptr = infile.Line();
+  } // END loop over file lines
 
   return 0;
 }

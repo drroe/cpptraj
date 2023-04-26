@@ -147,7 +147,6 @@ const
       mprinterr("Error: Could not load titration sites data from directory.\n");
       return 1;
     }
-    return 0; // FIXME
   } else {
     if (titrationData.LoadMeadSiteData( sitesFileName, sitesDirName )) {
       mprinterr("Error: Could not load MEAD titration sites data.\n");
