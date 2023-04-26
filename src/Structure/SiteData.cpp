@@ -50,10 +50,30 @@ int SiteData::LoadSiteDirectory(std::string const& sitesDirNameIn)
       ArgList resList( infile.NextToken(), "," );
       ArgList fileList( infile.NextToken(), "," );
       mprintf("DEBUG: %i res %i files\n", resList.Nargs(), fileList.Nargs());
+      // Loop over res names
+      for (ArgList::const_iterator it = resList.begin(); it != resList.end(); ++it) {
+        // Check if residue is already defined
+        ResSitesMap::iterator rs = resnameToSites_.lower_bound( *it );
+        if (rs == resnameToSites_.end() || rs->first != *it) {
+          // Define residue
+          resnameToSites_.insert( rs, ResSitesPair(*it, fileList.List()) );
+        } else {
+          mprinterr("Error: Residue '%s' already has an entry.\n", it->c_str());
+        }
+      }
+      // Load site data
     } // END line is not comment
     ptr = infile.Line();
   } // END loop over file lines
 
+  mprintf("DEBUG: Titration data:\n");
+  for (ResSitesMap::const_iterator it = resnameToSites_.begin(); it != resnameToSites_.end(); ++it)
+  {
+    mprintf("\t%s :", it->first.c_str());
+    for (Sarray::const_iterator jt = it->second.begin(); jt != it->second.end(); ++jt)
+      mprintf(" %s", jt->c_str());
+    mprintf("\n");
+  }
   return 0;
 }
 

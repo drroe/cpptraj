@@ -36,10 +36,15 @@ class SiteData {
     typedef std::pair<std::string,TitratableSite> NameSitePair;
     typedef std::map<std::string,TitratableSite> NameSiteMap;
 
+    typedef std::vector<std::string> Sarray;
+    typedef std::pair<std::string, Sarray> ResSitesPair;
+    typedef std::map<std::string, Sarray> ResSitesMap;
+
     static std::string defaultSiteDir();
 
     NameSiteMap NameToSite_;    ///< Map site names to titratable site data
     IdxNameArray IdxNames_;  ///< Hold res #s/site names in original order.
+    ResSitesMap resnameToSites_; ///< Map residue name to site names
 };
 }
 }
