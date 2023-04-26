@@ -135,15 +135,27 @@ const
   else
     mprintf("\tOnly calculating site %i\n", siteIdx + 1);
 
-  if (sitesFileName.empty()) {
-    mprinterr("Error: No sites file provided.\n");
-    return 1;
-  }
+  //if (sitesFileName.empty()) {
+  //  mprinterr("Error: No sites file provided.\n");
+  //  return 1;
+  //}
 
   SiteData titrationData;
 
-  if (titrationData.LoadMeadSiteData( sitesFileName, sitesDirName )) {
-    mprinterr("Error: Could not load titration data.\n");
+  if (sitesFileName.empty()) {
+    if (titrationData.LoadSiteDirectory( sitesDirName )) {
+      mprinterr("Error: Could not load titration sites data from directory.\n");
+      return 1;
+    }
+    return 0; // FIXME
+  } else {
+    if (titrationData.LoadMeadSiteData( sitesFileName, sitesDirName )) {
+      mprinterr("Error: Could not load MEAD titration sites data.\n");
+      return 1;
+    }
+  }
+  if (titrationData.NoSites()) {
+    mprinterr("Error: No sites to calculate titration for.\n");
     return 1;
   }
 

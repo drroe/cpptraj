@@ -29,6 +29,9 @@ class SiteData {
     const_iterator begin() const { return IdxNames_.begin(); }
     /// \return Iterator to end of defined sites
     const_iterator end() const { return IdxNames_.end(); }
+
+    /// \return true if No sites
+    bool NoSites() const { return IdxNames_.empty(); }
   private:
     typedef std::pair<std::string,TitratableSite> NameSitePair;
     typedef std::map<std::string,TitratableSite> NameSiteMap;
