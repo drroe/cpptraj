@@ -69,9 +69,6 @@ class MeadInterface {
                                   Topology const&, Frame const&,
                                    Structure::TitratableSite const&, int) const;
 
-    int setup_titration_site_calc(std::vector<TitrationCalc>&, AtomChargeSet&,
-                                   Structure::TitratableSite const&, int) const;
-
     int setup_titration_calcs_by_site(std::vector<TitrationCalc>&, AtomChargeSet&,
                               Topology const&, Frame const&, Structure::SiteData const&) const;
 
