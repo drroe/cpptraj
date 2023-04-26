@@ -71,7 +71,13 @@ int SiteData::LoadSiteDirectory(std::string const& sitesDirNameIn)
           {
             // Develop the site name
             FileName fname( *file );
-            siteNames.push_back( fname.Base() );
+            size_t found = fname.Base().find_last_of(".");
+            std::string sname;
+            if (found == std::string::npos)
+              sname = fname.Base();
+            else
+              sname = fname.Base().substr(0, found);
+            siteNames.push_back( sname );
             // Check if site is present
             NameSiteMap::iterator ns = NameToSite_.lower_bound( siteNames.back() );
             if (ns == NameToSite_.end() || ns->first != siteNames.back()) {
