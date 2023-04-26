@@ -20,8 +20,6 @@ class SiteData {
     /// Load all titration data from specified directory.
     int LoadSiteDirectory(std::string const&);
 
-    /// \return Array of site names for given residue number
-    Sarray ResSiteNames(int) const;
     /// \return Titratable site corresponding to name
     TitratableSite const& GetSite(std::string const&) const;
 
@@ -34,14 +32,11 @@ class SiteData {
     /// \return end iterator
     const_iterator end() const { return IdxNames_.end(); }
   private:
-    typedef std::pair<int,Sarray> ResNamePair;
-    typedef std::map<int,Sarray> ResNameMap;
     typedef std::pair<std::string,TitratableSite> NameSitePair;
     typedef std::map<std::string,TitratableSite> NameSiteMap;
 
     static std::string defaultSiteDir();
 
-    ResNameMap ResToSitename_;  ///< Map residue numbers to site names
     NameSiteMap NameToSite_;    ///< Map site names to titratable site data
     IdxNameArray IdxNames_;  ///< Hold res #s/site names in original order.
 };

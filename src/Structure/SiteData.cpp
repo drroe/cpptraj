@@ -69,7 +69,7 @@ int SiteData::LoadSiteData(std::string const& sitesFileName,
     int rnum = atoi( sitesFile.NextToken() );
     std::string sname( sitesFile.NextToken() );
     mprintf("DEBUG: Res#=%i  siteName=%s\n", rnum, sname.c_str());
-    ResNameMap::iterator it = ResToSitename_.lower_bound( rnum );
+    /*ResNameMap::iterator it = ResToSitename_.lower_bound( rnum );
     if (it == ResToSitename_.end() || it->first != rnum) {
       it = ResToSitename_.insert( it, ResNamePair(rnum, Sarray(1,sname)) );
     } else {
@@ -83,7 +83,7 @@ int SiteData::LoadSiteData(std::string const& sitesFileName,
         }
       }
       it->second.push_back( sname );
-    }
+    }*/
     // See if there is data for this site yet.
     NameSiteMap::iterator ns = NameToSite_.lower_bound( sname );
     if (ns == NameToSite_.end() || ns->first != sname) {
@@ -109,13 +109,15 @@ int SiteData::LoadSiteData(std::string const& sitesFileName,
   sitesFile.CloseFile();
 
   mprintf("DEBUG: Titratable sites:\n");
-  for (ResNameMap::const_iterator it = ResToSitename_.begin(); it != ResToSitename_.end(); ++it)
+  for (IdxNameArray::const_iterator it = IdxNames_.begin(); it != IdxNames_.end(); ++it)
+    mprintf("\t%6i %s\n", it->first, it->second.c_str());
+/*  for (ResNameMap::const_iterator it = ResToSitename_.begin(); it != ResToSitename_.end(); ++it)
   {
     mprintf("\t%8i :", it->first + 1);
     for (Sarray::const_iterator nm = it->second.begin(); nm != it->second.end(); ++nm)
       mprintf(" %s", nm->c_str());
     mprintf("\n");
-  }
+  }*/
   mprintf("DEBUG: Titration site data:\n");
   for (NameSiteMap::const_iterator ns = NameToSite_.begin(); ns != NameToSite_.end(); ++ns)
   {
@@ -123,14 +125,6 @@ int SiteData::LoadSiteData(std::string const& sitesFileName,
     ns->second.Print();
   }
   return 0;
-}
-
-/** \return Array of site names at given residue index. */
-SiteData::Sarray SiteData::ResSiteNames(int ridx) const {
-  ResNameMap::const_iterator it = ResToSitename_.find( ridx );
-  if (it == ResToSitename_.end())
-    return Sarray();
-  return it->second;
 }
 
 /** \return Site corresponding to site name. */
