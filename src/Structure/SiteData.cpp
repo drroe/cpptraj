@@ -210,7 +210,7 @@ int SiteData::SetupSitesFromTop(Topology const& topIn) {
     // See if there are sites for this res name
     ResSitesMap::const_iterator it = resnameToSites_.find( thisRes.Name().Truncated() );
     if (it != resnameToSites_.end()) {
-      mprintf("DEBUG: %zu sites found for residue %s\n", it->second.size(), *(thisRes.Name()));
+      mprintf("DEBUG: %zu potential sites found for residue %s\n", it->second.size(), *(thisRes.Name()));
       // Check if this residue is terminal. TODO use residue IsTerminal?
       std::vector<int> bondedResIdxs;
       bondedResIdxs.reserve(4);
@@ -241,7 +241,20 @@ int SiteData::SetupSitesFromTop(Topology const& topIn) {
         mprintf("\tC-TERMINAL.\n");
       // Loop over potential sites
       for (Sarray::const_iterator jt = it->second.begin(); jt != it->second.end(); ++jt) {
+        std::string const& sname = *jt;
         mprintf("\tSite '%s'\n", jt->c_str());
+        // FIXME not very general
+        TerminalType siteTermType;
+        // Site name must start with or end with NT
+        if ( (sname[0] == 'N' && sname[1] == 'T') ||
+             (sname[sname.size()-2] == 'N' && sname[sname.size()-1] == 'T') )
+          siteTermType = T_N;
+        else if ( sname[0] == 'C' && sname[1] == 'T' )
+          siteTermType = T_C;
+        else
+          siteTermType = T_NONE;
+        if (termType != siteTermType) continue;
+            
         TitratableSite const& site = GetSite( *jt );
         bool siteIsPresent = true;
         // All atoms of the site must be present
