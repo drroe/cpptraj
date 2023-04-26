@@ -4,6 +4,7 @@
 #include "../CpptrajStdio.h"
 #include "../BufferedLine.h"
 #include "../ArgList.h"
+#include "../Topology.h"
 #include <cstdlib> // atoi, getenv
 
 using namespace Cpptraj::Structure;
@@ -191,6 +192,39 @@ int SiteData::LoadMeadSiteData(std::string const& sitesFileName,
   }*/
   PrintTitrationSiteData();
 
+  return 0;
+}
+
+/** Set up sites array from input topology. */
+int SiteData::SetupSitesFromTop(Topology const& topIn) {
+  IdxNames_.clear();
+  for (int ires = 0; ires != topIn.Nres(); ires++)
+  {
+    Residue const& thisRes = topIn.Res(ires);
+    // See if there are sites for this res name
+    ResSitesMap::const_iterator it = resnameToSites_.find( thisRes.Name().Truncated() );
+    if (it != resnameToSites_.end()) {
+      mprintf("DEBUG: %zu sites found for residue %s\n", it->second.size(), *(thisRes.Name()));
+      // Loop over potential sites
+      for (Sarray::const_iterator jt = it->second.begin(); jt != it->second.end(); ++jt) {
+        mprintf("\tSite '%s'\n", jt->c_str());
+        TitratableSite const& site = GetSite( *jt );
+        bool siteIsPresent = true;
+        // All atoms of the site must be present
+        for (TitratableSite::const_iterator at = site.begin(); at != site.end(); ++at) {
+          // Get the atom index in the topology
+          int aidx = topIn.FindAtomInResidue(ires, at->first);
+          if (aidx < 0) {
+            siteIsPresent = false;
+            break;
+          }
+        } // END loop over site atoms
+        if (siteIsPresent) {
+          site.Print(); // DEBUG
+        }
+      } // END loop over potential sites
+    }
+  }
   return 0;
 }
 

@@ -147,6 +147,10 @@ const
       mprinterr("Error: Could not load titration sites data from directory.\n");
       return 1;
     }
+    if (titrationData.SetupSitesFromTop( topIn )) {
+      mprinterr("Error: Could not set up titratable sites from topology '%s'\n", topIn.c_str());
+      return 1;
+    }
   } else {
     if (titrationData.LoadMeadSiteData( sitesFileName, sitesDirName )) {
       mprinterr("Error: Could not load MEAD titration sites data.\n");

@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <map>
+class Topology;
 namespace Cpptraj {
 //TODO Move to Mead namespace
 namespace Structure {
@@ -19,6 +20,8 @@ class SiteData {
     int LoadMeadSiteData(std::string const&, std::string const&);
     /// Load titration data from specified directory.
     int LoadSiteDirectory(std::string const&);
+    /// Set up sites from Topology
+    int SetupSitesFromTop(Topology const&);
 
     /// \return Titratable site corresponding to name
     TitratableSite const& GetSite(std::string const&) const;
@@ -45,7 +48,7 @@ class SiteData {
     void PrintTitrationSiteData() const;
 
     NameSiteMap NameToSite_;    ///< Map site names to titratable site data
-    IdxNameArray IdxNames_;  ///< Hold res #s/site names in original order.
+    IdxNameArray IdxNames_;  ///< Hold res #s/site names in original order. FIXME should also incorporate chain ID
     ResSitesMap resnameToSites_; ///< Map residue name to site names
 };
 }
