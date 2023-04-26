@@ -55,8 +55,31 @@ int SiteData::LoadSiteDirectory(std::string const& sitesDirNameIn)
         // Check if residue is already defined
         ResSitesMap::iterator rs = resnameToSites_.lower_bound( *it );
         if (rs == resnameToSites_.end() || rs->first != *it) {
+          // Load site data
+          Sarray siteNames;
+          for (ArgList::const_iterator file = fileList.begin(); file != fileList.end(); ++file)
+          {
+            // Develop the site name
+            FileName fname( *file );
+            siteNames.push_back( fname.Base() );
+            // Check if site is present
+            NameSiteMap::iterator ns = NameToSite_.lower_bound( siteNames.back() );
+            if (ns == NameToSite_.end() || ns->first != siteNames.back()) {
+              // Load site data
+              std::string stFileName = sitesDirName + "/" + *file;
+              mprintf("DEBUG: Loading data for site '%s' from '%s'\n", siteNames.back().c_str(), stFileName.c_str());
+              ns = NameToSite_.insert( ns, NameSitePair(siteNames.back(), TitratableSite()) );
+              if (ns->second.LoadSiteFile( stFileName, siteNames.back() )) {
+                mprinterr("Error: Failed to load titratable site data from '%s'\n", stFileName.c_str());
+                return 1;
+              }
+            } else {
+              mprintf("DEBUG: Site '%s' already has data.\n", siteNames.back().c_str());
+            }
+
+          } // END loop over site files for res
           // Define residue
-          resnameToSites_.insert( rs, ResSitesPair(*it, fileList.List()) );
+          resnameToSites_.insert( rs, ResSitesPair(*it, siteNames) );
         } else {
           mprinterr("Error: Residue '%s' already has an entry.\n", it->c_str());
         }
