@@ -255,7 +255,7 @@ int SiteData::SetupSitesFromTop(Topology const& topIn) {
           siteTermType = T_NONE;
         if (termType != siteTermType) continue;
             
-        TitratableSite const& site = GetSite( *jt );
+        TitratableSite const& site = GetSite( sname );
         bool siteIsPresent = true;
         // All atoms of the site must be present
         for (TitratableSite::const_iterator at = site.begin(); at != site.end(); ++at) {
@@ -268,6 +268,7 @@ int SiteData::SetupSitesFromTop(Topology const& topIn) {
         } // END loop over site atoms
         if (siteIsPresent) {
           site.Print(); // DEBUG
+          IdxNames_.push_back( IdxNamePair(thisRes.OriginalResNum(), sname) );
         }
       } // END loop over potential sites
     }
