@@ -75,9 +75,6 @@ class MeadInterface {
     int setup_titration_calcs_by_site(std::vector<TitrationCalc>&, AtomChargeSet&,
                               Topology const&, Frame const&, Structure::SiteData const&) const;
 
-    int setup_titration_calcs(std::vector<TitrationCalc>&, AtomChargeSet&,
-                              Topology const&, Frame const&, Structure::SiteData const&) const;
-
     AtomSet* atomset_;
     Radii_Mode rmode_; ///< Which radii set to use
     Timer t_total_;      ///< Total time
