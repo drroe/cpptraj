@@ -58,7 +58,7 @@ int TitratableSite::LoadSiteFile(std::string const& fname, std::string const& si
   ptr = infile.Line();
   while (ptr != 0) {
     // Expected format: <resname> <atomname> <Qstate1> <Qstate2>
-    int ntokens = infile.TokenizeLine(" ");
+    int ntokens = infile.TokenizeLine(" \t");
     if (ntokens != 4) {
       mprinterr("Error: Malformed line in '%s' : %s\n", fname.c_str(), ptr);
       mprinterr("Error: Expected 4 tokens, got %i\n", ntokens);
