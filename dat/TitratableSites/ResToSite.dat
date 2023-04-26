@@ -1,3 +1,5 @@
 #<resname list> <Filename list>
 ALA NTala.st,CTala.st
 GLU GLU.st,NTglu.st,gluNT.st,CTglu.st
+LYS LYS.st,CTlys.st,lysNT.st,NTlys.st
+SER CTser.st,NTser.st
