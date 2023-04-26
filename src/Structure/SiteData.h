@@ -17,6 +17,8 @@ class SiteData {
     SiteData();
     /// Load titration data from a MEAD-style site file.
     int LoadSiteData(std::string const&, std::string const&);
+    /// Load all titration data from specified directory.
+    int LoadSiteDirectory(std::string const&);
 
     /// \return Array of site names for given residue number
     Sarray ResSiteNames(int) const;
@@ -36,6 +38,8 @@ class SiteData {
     typedef std::map<int,Sarray> ResNameMap;
     typedef std::pair<std::string,TitratableSite> NameSitePair;
     typedef std::map<std::string,TitratableSite> NameSiteMap;
+
+    static std::string defaultSiteDir();
 
     ResNameMap ResToSitename_;  ///< Map residue numbers to site names
     NameSiteMap NameToSite_;    ///< Map site names to titratable site data

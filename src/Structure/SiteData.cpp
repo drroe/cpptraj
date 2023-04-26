@@ -11,18 +11,34 @@ using namespace Cpptraj::Structure;
 SiteData::SiteData()
 {}
 
-std::string SiteData::defaultSiteDir() const {
+std::string SiteData::defaultSiteDir() {
   const char* env = getenv("CPPTRAJHOME");
   if (env != 0)
-    return (std::string(env) + std::string("/dat"));
-  return std::string("");
+    return (std::string(env) + std::string("/dat/TitratableSites"));
+  return std::string(".");
 }
   
 
 /** Load all sites in a given directory. */
-int SiteData::LoadSiteDirectory(std::string const& sitesDirName)
+int SiteData::LoadSiteDirectory(std::string const& sitesDirNameIn)
 {
-  if (sitesDirName.empty()
+  std::string sitesDirName;
+  if (sitesDirNameIn.empty())
+    sitesDirName = defaultSiteDir();
+  else
+    sitesDirName = sitesDirNameIn;
+
+  std::string resToSiteFile = sitesDirName + "ResToSite.dat";
+
+  CpptrajFile infile;
+  if (infile.OpenRead( resToSiteFile )) {
+    mprinterr("Error: Could not open titratable site file '%s'\n", resToSiteFile.c_str());
+    return 1;
+  }
+
+  return 0;
+}
+
 
 /** Load titratable sites data.
   * \param sitesFileName File name containing residue numbers and site names.
