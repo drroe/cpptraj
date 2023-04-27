@@ -234,14 +234,16 @@ const
   int Nidx = topIn.FindAtomInResidue(ridx, Nname);
   if (Nidx < 0) return err_atNotFound("N", Nname, topIn, ridx);
   int prevRidx = other_res_index(topIn, topIn[Nidx]);
+# ifdef DEBUG_CPPTRAJ_MEAD
   mprintf("Previous residue index = %i\n", prevRidx + 1 );
-
+# endif
   // Get index of next residue
   int Cidx = topIn.FindAtomInResidue(ridx, Cname);
   if (Cidx < 0) return err_atNotFound("C", Cname, topIn, ridx);
   int nextRidx = other_res_index(topIn, topIn[Cidx]);
+# ifdef DEBUG_CPPTRAJ_MEAD
   mprintf("Next residue index = %i\n", nextRidx + 1);
-
+# endif
   // Insert C and O from previous residue
   if (prevRidx > -1) {
     MEAD::Atom at;
@@ -462,6 +464,7 @@ int MeadInterface::MultiFlex(MultiFlexResults& results,
     for (unsigned int sidx = ibeg; sidx < iend; sidx++)
     {
       TitrationCalc const& tSite = Sites[sidx];
+      mprintf("Site %s\n", tSite.SiteData().SiteName().c_str());
       Darray& ssi_row = SiteSiteInteractionMatrix[sidx];
 //    for (std::vector<TitrationCalc>::const_iterator tSite = Sites.begin();
 //                                                    tSite != Sites.end();
@@ -497,9 +500,13 @@ int MeadInterface::MultiFlex(MultiFlexResults& results,
         // DEBUG Print potential at atoms
         //printAtomPotentials( topIn, frameIn, state1_pot, &ref_atp );
         macself1 = (*state1_pot) * charge_state1;
+#       ifdef DEBUG_CPPTRAJ_MEAD
         mprintf("DEBUG: MACSELF1 = %f\n", macself1);
+#       endif
         macback1 = (*state1_pot) * (ref_atp) - (*state1_pot) * (*refstatep);
+#       ifdef DEBUG_CPPTRAJ_MEAD
         mprintf("DEBUG: MACBACK1 = %f - %f\n", (*state1_pot) * (ref_atp), (*state1_pot) * (*refstatep));
+#       endif
         // Site-site interactions
         for (unsigned int is = 0; is < Sites.size(); is++)
           ssi_row[is] = (*state1_pot) * Sites[is].ChargeState1() - (*state1_pot) * Sites[is].ChargeState2();
@@ -518,9 +525,13 @@ int MeadInterface::MultiFlex(MultiFlexResults& results,
         phi2.solve();
         OutPotat* state2_pot = new OutPotat(*atomset_, phi2);
         macself2 = (*state2_pot) * charge_state2;
+#       ifdef DEBUG_CPPTRAJ_MEAD
         mprintf("DEBUG: MACSELF2 = %f\n", macself2);
+#       endif
         macback2 = (*state2_pot) * (ref_atp) - (*state2_pot) * (*refstatep);
+#       ifdef DEBUG_CPPTRAJ_MEAD
         mprintf("DEBUG: MACBACK2 = %f - %f\n", (*state2_pot) * (ref_atp), (*state2_pot) * (*refstatep));
+#       endif
         // Site-site interactions
         for (unsigned int is = 0; is < Sites.size(); is++)
           ssi_row[is] = ssi_row[is] - ((*state2_pot) * Sites[is].ChargeState1() - (*state2_pot) * Sites[is].ChargeState2());
@@ -548,9 +559,13 @@ int MeadInterface::MultiFlex(MultiFlexResults& results,
         phi1.solve();
         OutPotat* mod1_pot = new OutPotat(model_compound, phi1);
         modself1 = (*mod1_pot) * charge_state1;
+#       ifdef DEBUG_CPPTRAJ_MEAD
         mprintf("DEBUG: MODSELF1 = %f\n", modself1);
+#       endif
         modback1 = (*mod1_pot) * model_back_chrg;
+#       ifdef DEBUG_CPPTRAJ_MEAD
         mprintf("DEBUG: MODBACK1 = %f\n", modback1);
+#       endif
         delete mod1_pot;
       }
       t_total_[1][3].Stop();
@@ -564,9 +579,13 @@ int MeadInterface::MultiFlex(MultiFlexResults& results,
         phi2.solve();
         OutPotat* mod2_pot = new OutPotat(model_compound, phi2);
         modself2 = (*mod2_pot) * charge_state2;
+#       ifdef DEBUG_CPPTRAJ_MEAD
         mprintf("DEBUG: MODSELF2 = %f\n", modself2);
+#       endif
         modback2 = (*mod2_pot) * model_back_chrg;
+#       ifdef DEBUG_CPPTRAJ_MEAD
         mprintf("DEBUG: MODBACK2 = %f\n", modback2);
+#       endif
       }
       t_total_[1][4].Stop();
       // TODO use Constants instead of PhysCond
@@ -582,7 +601,9 @@ int MeadInterface::MultiFlex(MultiFlexResults& results,
       for (Darray::const_iterator it = ssi_row.begin(); it != ssi_row.end(); ++it)
         mprintf("   %g\n", *it);
       double pKint = tSite.SiteData().pKa() + (delta_pK_self + delta_pK_back);
+#     ifdef DEBUG_CPPTRAJ_MEAD
       mprintf("DEBUG: pKint = %f\n", pKint);
+#     endif
       // Add site result
       results.AddSiteResult(sidx,
                             tSite.SiteData().SiteName(),
@@ -614,8 +635,10 @@ int MeadInterface::MultiFlex(MultiFlexResults& results,
             dev = (SiteSiteInteractionMatrix[i][j] - SiteSiteInteractionMatrix[j][i]) / ave;
             if (dev < 0) dev = -dev;
           }
+#         ifdef DEBUG_CPPTRAJ_MEAD
           mprintf("%u %u   %e %e   dev = %e\n", i+1, j+1,
                   SiteSiteInteractionMatrix[i][j], SiteSiteInteractionMatrix[j][i], dev);
+#         endif
           SiteSiteInteractionMatrix[i][j] = SiteSiteInteractionMatrix[j][i] = ave;
         }
       } // END loop over j
