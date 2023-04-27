@@ -16,6 +16,8 @@
 
 using namespace Cpptraj::Mead;
 
+MeadCalc_Potential::MeadCalc_Potential() {}
+
 /** Run potential calc.
   * \param values Output potential values at each coordinate in fieldPoints.
   * \param epsin Internal dielectric.
