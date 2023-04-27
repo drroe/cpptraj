@@ -464,7 +464,9 @@ int MeadInterface::MultiFlex(MultiFlexResults& results,
     for (unsigned int sidx = ibeg; sidx < iend; sidx++)
     {
       TitrationCalc const& tSite = Sites[sidx];
+#     ifdef DEBUG_CPPTRAJ_MEAD
       mprintf("Site %s\n", tSite.SiteInfo().SiteName().c_str());
+#     endif
       Darray& ssi_row = SiteSiteInteractionMatrix[sidx];
 //    for (std::vector<TitrationCalc>::const_iterator tSite = Sites.begin();
 //                                                    tSite != Sites.end();
@@ -591,6 +593,7 @@ int MeadInterface::MultiFlex(MultiFlexResults& results,
       // TODO use Constants instead of PhysCond
       double delta_pK_self = -(macself1-macself2-modself1+modself2)/2.0 / PhysCond::get_ln10kT();
       double delta_pK_back = -(macback1-macback2-modback1+modback2)     / PhysCond::get_ln10kT();
+#     ifdef DEBUG_CPPTRAJ_MEAD
       mprintf("macself1-macself2 = %g\n", macself1 - macself2);
       mprintf("macback1-deprotback = %g\n", macback1 - macback2);
       mprintf("modself1-modself2 = %g\n", modself1 - modself2);
@@ -600,6 +603,7 @@ int MeadInterface::MultiFlex(MultiFlexResults& results,
       mprintf("Site-site interactions:\n");
       for (Darray::const_iterator it = ssi_row.begin(); it != ssi_row.end(); ++it)
         mprintf("   %g\n", *it);
+#     endif
       double pKint = tSite.SiteInfo().pKa() + (delta_pK_self + delta_pK_back);
 #     ifdef DEBUG_CPPTRAJ_MEAD
       mprintf("DEBUG: pKint = %f\n", pKint);
