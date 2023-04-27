@@ -191,7 +191,7 @@ int SiteData::SetupSitesFromTop(Topology const& topIn) {
     // See if there are sites for this res name
     ResSitesMap::const_iterator it = resnameToSites_.find( thisRes.Name().Truncated() );
     if (it != resnameToSites_.end()) {
-      mprintf("DEBUG: %zu potential sites found for residue %s\n", it->second.size(), *(thisRes.Name()));
+      if (debug_ > 0) mprintf("DEBUG: %zu potential sites found for residue %s\n", it->second.size(), *(thisRes.Name()));
       // Check if this residue is terminal. TODO use residue IsTerminal?
       std::vector<int> bondedResIdxs;
       bondedResIdxs.reserve(4);
@@ -201,10 +201,12 @@ int SiteData::SetupSitesFromTop(Topology const& topIn) {
             bondedResIdxs.push_back( topIn[*bat].ResNum() );
         }
       }
-      mprintf("\tResidue '%s' is bonded to residues", topIn.TruncResNameNum(ires).c_str());
-      for (std::vector<int>::const_iterator bri = bondedResIdxs.begin(); bri != bondedResIdxs.end(); ++bri)
-        mprintf(" %s", topIn.TruncResNameNum(*bri).c_str());
-      mprintf("\n");
+      if (debug_ > 0) {
+        mprintf("\tResidue '%s' is bonded to residues", topIn.TruncResNameNum(ires).c_str());
+        for (std::vector<int>::const_iterator bri = bondedResIdxs.begin(); bri != bondedResIdxs.end(); ++bri)
+          mprintf(" %s", topIn.TruncResNameNum(*bri).c_str());
+        mprintf("\n");
+      }
       // FIXME this is very protein-specific
       enum TerminalType { T_NONE = 0, T_N, T_C };
       TerminalType termType;
@@ -216,14 +218,15 @@ int SiteData::SetupSitesFromTop(Topology const& topIn) {
         else
           termType = T_C;
       }
-      if (termType == T_N)
-        mprintf("\tN-TERMINAL.\n");
-      else if (termType == T_C)
-        mprintf("\tC-TERMINAL.\n");
+      if (debug_ > 0) {
+        if (termType == T_N)
+          mprintf("\tN-TERMINAL.\n");
+        else if (termType == T_C)
+          mprintf("\tC-TERMINAL.\n");
+      }
       // Loop over potential sites
       for (Sarray::const_iterator jt = it->second.begin(); jt != it->second.end(); ++jt) {
         std::string const& sname = *jt;
-        mprintf("\tSite '%s'\n", jt->c_str());
         // FIXME not very general
         TerminalType siteTermType;
         // Site name must start with or end with NT
@@ -248,7 +251,8 @@ int SiteData::SetupSitesFromTop(Topology const& topIn) {
           }
         } // END loop over site atoms
         if (siteIsPresent) {
-          site.Print(); // DEBUG
+          if (debug_ > 0) site.Print(); // DEBUG
+          mprintf("\tFound Site '%s' in residue '%s'\n", jt->c_str(), topIn.TruncResNameNum(ires).c_str());
           IdxNames_.push_back( IdxNamePair(thisRes.OriginalResNum(), sname) );
         }
       } // END loop over potential sites
