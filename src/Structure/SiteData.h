@@ -16,6 +16,8 @@ class SiteData {
   public:
     /// CONSTRUCTOR
     SiteData();
+    /// Set debug level
+    void SetDebug(int d) { debug_ = d; }
     /// Load titration data and sites from a MEAD-style site file.
     int LoadMeadSiteData(std::string const&, std::string const&);
     /// Load titration data from specified directory.
@@ -50,6 +52,7 @@ class SiteData {
     NameSiteMap NameToSite_;    ///< Map site names to titratable site data
     IdxNameArray IdxNames_;  ///< Hold res #s/site names in original order. FIXME should also incorporate chain ID
     ResSitesMap resnameToSites_; ///< Map residue name to site names
+    int debug_;
 };
 }
 }

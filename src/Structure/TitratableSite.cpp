@@ -91,14 +91,14 @@ int TitratableSite::LoadSiteFile(std::string const& fname, std::string const& si
   infile.CloseFile();
 
   // Find which state is nearest to neutral for a reference state
-  mprintf("\tDEBUG: Total charge of state 1 is %g, total charge of state 2 is %g\n",
-          state1_tot, state2_tot);
+  //mprintf("\tDEBUG: Total charge of state 1 is %g, total charge of state 2 is %g\n",
+  //        state1_tot, state2_tot);
   if (fabs(state1_tot) < fabs(state2_tot)) {
     refStateIdx_ = 0;
   } else {
     refStateIdx_ = 1;
   }
-  mprintf("\tState %i is the reference state.\n", refStateIdx_ + 1);
+  //mprintf("\tDEBUG: State %i is the reference state.\n", refStateIdx_ + 1);
 
   double diff = state1_tot - state2_tot;
   // The cutoff values here are from MEAD SiteInMulti

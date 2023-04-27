@@ -10,7 +10,8 @@
 using namespace Cpptraj::Structure;
 
 /** CONSTRUCTOR */
-SiteData::SiteData()
+SiteData::SiteData() :
+  debug_(0)
 {}
 
 std::string SiteData::defaultSiteDir() {
@@ -40,7 +41,7 @@ int SiteData::LoadSiteDirectory(std::string const& sitesDirNameIn)
     sitesDirName = sitesDirNameIn;
 
   std::string resToSiteFile = sitesDirName + "/ResToSite.dat";
-  mprintf("Loading site titration data from '%s'\n", resToSiteFile.c_str());
+  mprintf("\tLoading site titration data from '%s'\n", resToSiteFile.c_str());
 
   BufferedLine infile;
   if (infile.OpenFileRead( resToSiteFile )) {
@@ -59,7 +60,7 @@ int SiteData::LoadSiteDirectory(std::string const& sitesDirNameIn)
       }
       ArgList resList( infile.NextToken(), "," );
       ArgList fileList( infile.NextToken(), "," );
-      mprintf("DEBUG: %i res %i files\n", resList.Nargs(), fileList.Nargs());
+//      mprintf("DEBUG: %i res %i files\n", resList.Nargs(), fileList.Nargs());
       // Loop over res names
       for (ArgList::const_iterator it = resList.begin(); it != resList.end(); ++it) {
         // Check if residue is already defined
@@ -83,7 +84,7 @@ int SiteData::LoadSiteDirectory(std::string const& sitesDirNameIn)
             if (ns == NameToSite_.end() || ns->first != siteNames.back()) {
               // Load site data
               std::string stFileName = sitesDirName + "/" + *file;
-              mprintf("DEBUG: Loading data for site '%s' from '%s'\n", siteNames.back().c_str(), stFileName.c_str());
+              if (debug_ > 1) mprintf("DEBUG: Loading data for site '%s' from '%s'\n", siteNames.back().c_str(), stFileName.c_str());
               ns = NameToSite_.insert( ns, NameSitePair(siteNames.back(), TitratableSite()) );
               if (ns->second.LoadSiteFile( stFileName, siteNames.back() )) {
                 mprinterr("Error: Failed to load titratable site data from '%s'\n", stFileName.c_str());
@@ -105,7 +106,7 @@ int SiteData::LoadSiteDirectory(std::string const& sitesDirNameIn)
     ptr = infile.Line();
   } // END loop over file lines
 
-  mprintf("DEBUG: Titration data:\n");
+  mprintf("\tTitration data:\n");
   for (ResSitesMap::const_iterator it = resnameToSites_.begin(); it != resnameToSites_.end(); ++it)
   {
     mprintf("\t%s :", it->first.c_str());
@@ -113,7 +114,7 @@ int SiteData::LoadSiteDirectory(std::string const& sitesDirNameIn)
       mprintf(" %s", jt->c_str());
     mprintf("\n");
   }
-  PrintTitrationSiteData();
+  if (debug_ > 0) PrintTitrationSiteData();
   return 0;
 }
 
@@ -129,6 +130,7 @@ int SiteData::LoadMeadSiteData(std::string const& sitesFileName,
     mprinterr("Internal Error: sitesFileName is empty.\n");
     return 1;
   }
+  mprintf("\tLoading titratable sites from MEAD sites file '%s'\n", sitesFileName.c_str());
   BufferedLine sitesFile;
   if (sitesFile.OpenFileRead(sitesFileName)) {
     mprinterr("Error: Could not open sites file '%s'\n", sitesFileName.c_str());
@@ -146,22 +148,7 @@ int SiteData::LoadMeadSiteData(std::string const& sitesFileName,
     // Expect residue number to start from 1
     int rnum = atoi( sitesFile.NextToken() );
     std::string sname( sitesFile.NextToken() );
-    mprintf("DEBUG: Res#=%i  siteName=%s\n", rnum, sname.c_str());
-    /*ResNameMap::iterator it = ResToSitename_.lower_bound( rnum );
-    if (it == ResToSitename_.end() || it->first != rnum) {
-      it = ResToSitename_.insert( it, ResNamePair(rnum, Sarray(1,sname)) );
-    } else {
-      // A residue number may have more than one site
-      mprintf("DEBUG: Residue number %i already has an entry.\n", rnum);
-      // Ensure this is not a duplicate
-      for (Sarray::const_iterator nm = it->second.begin(); nm != it->second.end(); ++nm) {
-        if (*nm == sname) {
-          mprinterr("Error: Residue number %i already has entry '%s'\n", rnum, sname.c_str());
-          return 1;
-        }
-      }
-      it->second.push_back( sname );
-    }*/
+//    mprintf("DEBUG: Res#=%i  siteName=%s\n", rnum, sname.c_str());
     // See if there is data for this site yet.
     NameSiteMap::iterator ns = NameToSite_.lower_bound( sname );
     if (ns == NameToSite_.end() || ns->first != sname) {
@@ -171,32 +158,26 @@ int SiteData::LoadMeadSiteData(std::string const& sitesFileName,
         stFileName = sname + ".st";
       else
         stFileName = sitesDirName + "/" + sname + ".st";
-      mprintf("DEBUG: Loading data for site '%s' from '%s'\n", sname.c_str(), stFileName.c_str());
+//      mprintf("DEBUG: Loading data for site '%s' from '%s'\n", sname.c_str(), stFileName.c_str());
       ns = NameToSite_.insert( ns, NameSitePair(sname, TitratableSite()) );
       if (ns->second.LoadSiteFile( stFileName, sname )) {
         mprinterr("Error: Failed to load titratable site data from '%s'\n", stFileName.c_str());
         return 1;
       }
-    } else {
-      mprintf("DEBUG: Site '%s' already has data.\n", sname.c_str());
-    }
+    }// else {
+     // mprintf("DEBUG: Site '%s' already has data.\n", sname.c_str());
+    //}
     IdxNames_.push_back( IdxNamePair(rnum, sname) );
     // Next line
     ptr = sitesFile.Line();
   }
   sitesFile.CloseFile();
 
-  mprintf("DEBUG: Titratable sites:\n");
+  mprintf("\tTitratable sites:\n");
   for (IdxNameArray::const_iterator it = IdxNames_.begin(); it != IdxNames_.end(); ++it)
-    mprintf("\t%6i %s\n", it->first, it->second.c_str());
-/*  for (ResNameMap::const_iterator it = ResToSitename_.begin(); it != ResToSitename_.end(); ++it)
-  {
-    mprintf("\t%8i :", it->first + 1);
-    for (Sarray::const_iterator nm = it->second.begin(); nm != it->second.end(); ++nm)
-      mprintf(" %s", nm->c_str());
-    mprintf("\n");
-  }*/
-  PrintTitrationSiteData();
+    mprintf("\t  %6i %s\n", it->first, it->second.c_str());
+
+  if (debug_ > 0) PrintTitrationSiteData();
 
   return 0;
 }
