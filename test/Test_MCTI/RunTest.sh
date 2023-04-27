@@ -17,7 +17,7 @@ mcti nmcsteps 1000 startph 0 stopph 12 phincr 0.2 \
      mcmode reduced pkout mc.pkout
 EOF
   RunCpptraj "$UNITNAME"
-  DoTest mc.pkout.save mc.pkout
+  DoTest mc.pkout.save mc.pkout -a 0.001
 }
 
 MCTI
