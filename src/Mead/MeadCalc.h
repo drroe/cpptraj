@@ -34,9 +34,12 @@ class MeadCalc {
     /// \return True if atom set is allocated
     bool HasAtoms() const { return atomset_ != 0; }
   protected:
-    AtomSet const& InternalAtomset() const { return *atomset_; }
-  private:
     void set_at_from_top(MEAD::Atom&, Topology const&, Frame const&, int) const;
+
+    AtomSet const& InternalAtomset() const { return *atomset_; }
+
+    Timer& Time() { return t_total_; }
+  private:
 
     AtomSet* atomset_;
     Radii_Mode rmode_; ///< Which radii set to use
