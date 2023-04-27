@@ -148,7 +148,7 @@ class MeadInterface::TitrationCalc {
     AtomChargeSet const& ChargeState2() const { return charge_state2_; }
     Coord const& SiteOfInterest()       const { return siteOfInterest_; }
     int Ridx()                          const { return ridx_; }
-    Cpptraj::Structure::TitratableSite const& SiteData() const { return *siteData_; }
+    Cpptraj::Structure::TitratableSite const& SiteInfo() const { return *siteData_; }
     AtomChargeSet const* RefStatePtr()  const { 
       if (siteData_->RefStateIdx() == 0)
         return &charge_state1_;
@@ -464,7 +464,7 @@ int MeadInterface::MultiFlex(MultiFlexResults& results,
     for (unsigned int sidx = ibeg; sidx < iend; sidx++)
     {
       TitrationCalc const& tSite = Sites[sidx];
-      mprintf("Site %s\n", tSite.SiteData().SiteName().c_str());
+      mprintf("Site %s\n", tSite.SiteInfo().SiteName().c_str());
       Darray& ssi_row = SiteSiteInteractionMatrix[sidx];
 //    for (std::vector<TitrationCalc>::const_iterator tSite = Sites.begin();
 //                                                    tSite != Sites.end();
@@ -600,16 +600,16 @@ int MeadInterface::MultiFlex(MultiFlexResults& results,
       mprintf("Site-site interactions:\n");
       for (Darray::const_iterator it = ssi_row.begin(); it != ssi_row.end(); ++it)
         mprintf("   %g\n", *it);
-      double pKint = tSite.SiteData().pKa() + (delta_pK_self + delta_pK_back);
+      double pKint = tSite.SiteInfo().pKa() + (delta_pK_self + delta_pK_back);
 #     ifdef DEBUG_CPPTRAJ_MEAD
       mprintf("DEBUG: pKint = %f\n", pKint);
 #     endif
       // Add site result
       results.AddSiteResult(sidx,
-                            tSite.SiteData().SiteName(),
+                            tSite.SiteInfo().SiteName(),
                             topIn.Res(tSite.Ridx()).OriginalResNum(),
                             pKint,
-                            tSite.SiteData().RefStateIdx(),
+                            tSite.SiteInfo().RefStateIdx(),
                             delta_pK_self,
                             delta_pK_back);
     } // END loop over sites
@@ -654,9 +654,9 @@ int MeadInterface::MultiFlex(MultiFlexResults& results,
     DataSet_string const& SN = static_cast<DataSet_string const&>( *(results.SiteNamesSet()) );
     for (unsigned int idx = 0; idx != results.SiteIndices().size(); idx++) {
       int siteIdx = results.SiteIndices()[idx];
-      results.PkIntFile()->Printf("%e %c %s\n", PK.Dval(idx), pkchar[Sites[siteIdx].SiteData().RefStateIdx()],
+      results.PkIntFile()->Printf("%e %c %s\n", PK.Dval(idx), pkchar[Sites[siteIdx].SiteInfo().RefStateIdx()],
                                   SN[idx].c_str());
-              //site->SiteData().SiteName().c_str(), topIn.Res(site->Ridx()).OriginalResNum());
+              //site->SiteInfo().SiteName().c_str(), topIn.Res(site->Ridx()).OriginalResNum());
     }
     // Write summ file
     DataSet_1D const& DS = static_cast<DataSet_1D const&>( *(results.Delta_pK_SelfSet()) );
@@ -664,7 +664,7 @@ int MeadInterface::MultiFlex(MultiFlexResults& results,
     results.SummFile()->Printf("   site name           pKmod      delta self    delta back      pkint\n");
     for (unsigned int idx = 0; idx != results.SiteIndices().size(); idx++) {
       int siteIdx = results.SiteIndices()[idx];
-      results.SummFile()->Printf(" %12s %13g %13g %13g %13g\n", SN[idx].c_str(), Sites[siteIdx].SiteData().pKa(),
+      results.SummFile()->Printf(" %12s %13g %13g %13g %13g\n", SN[idx].c_str(), Sites[siteIdx].SiteInfo().pKa(),
                                  DS.Dval(idx), DB.Dval(idx), PK.Dval(idx));
     }
     // Write site-site interaction file
