@@ -1,7 +1,10 @@
 # Files for Mead subdirectory.
 MEAD_SOURCES= \
+  MeadCalc.cpp \
+  MeadCalc_Multiflex.cpp \
+  MeadCalc_Potential.cpp \
+  MeadCalc_Solvate.cpp \
   MeadError.cpp \
   MeadGrid.cpp \
-  MeadInterface.cpp \
   MeadOpts.cpp \
   MultiFlexResults.cpp
