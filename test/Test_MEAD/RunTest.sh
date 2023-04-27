@@ -5,7 +5,8 @@
 TESTNAME='MEAD tests'
 
 CleanFiles cpptraj.in potential.dat test.sphere.pqr solvate.dat bounds.dat MyGrid.dx \
-           tz2.dat tz2.ssi.dat tz2.pkint tz2.summ tz2.g
+           tz2.dat tz2.ssi.dat tz2.pkint tz2.summ tz2.g \
+           search.dat search.ssi.dat search.pkint search.summ search.g
 
 INPUT='-i cpptraj.in'
 
@@ -78,8 +79,27 @@ EOF
   DoTest tz2.ssi.dat.save tz2.ssi.dat
 }
 
+MultiFlexSearch() {
+  UNITNAME='MEAD multiflex test, search for sites'
+  cat > cpptraj.in <<EOF
+parm tz2.pqr pqr
+loadcrd tz2.pqr name TZ2
+mead multiflex crdset TZ2 \
+     ionicstr 0.15 solrad 1.4 epsin 4 epssol 80 \
+     out search.dat ssiout search.ssi.dat name TZ2 \
+     pkint search.pkint summ search.summ gfile search.g
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest tz2.pkint.save search.pkint -a 0.0001
+  DoTest tz2.summ.save search.summ -a 0.0001
+  DoTest tz2.g.save search.g -a 0.000000001
+  DoTest tz2.dat.save search.dat -a 0.0002
+  DoTest tz2.ssi.dat.save search.ssi.dat
+}
+
 Potential
 Solvate
 MultiFlex
+MultiFlexSearch
 
 EndTest
