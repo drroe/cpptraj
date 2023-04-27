@@ -7,10 +7,22 @@
 #include "Mead/MeadGrid.h"
 #include "Mead/MeadOpts.h"
 #include "Mead/MultiFlexResults.h"
-#include "Mead/MeadInterface.h"
+#include "Mead/MeadCalc.h"
+#include "Mead/MeadCalc_Solvate.h"
+#include "Mead/MeadCalc_Potential.h"
+#include "Mead/MeadCalc_Multiflex.h"
 #include <cmath> //sqrt
 
 using namespace Cpptraj::Mead;
+
+Exec_MEAD::Exec_MEAD() :
+  Exec(GENERAL),
+  MEAD_(0)
+{}
+
+Exec_MEAD::~Exec_MEAD() {
+  if (MEAD_ != 0) delete MEAD_;
+}
 
 // Exec_MEAD::Help()
 void Exec_MEAD::Help() const
@@ -30,13 +42,13 @@ void Exec_MEAD::Help() const
 }
 
 /** Check MEAD is properly set up. */
-int Exec_MEAD::CheckMead(MeadInterface const& MEAD, MeadGrid const& ogm) {
+int Exec_MEAD::CheckMead(MeadGrid const& ogm) const {
   // Sanity checks
   if (!ogm.IsSetup()) {
     mprinterr("Error: No MEAD grid set up (ogm).\n");
     return 1;
   }
-  if (!MEAD.HasAtoms()) {
+  if (MEAD_ == 0 || !MEAD_->HasAtoms()) {
     mprinterr("Error: No MEAD atoms allocated.\n");
     return 1;
   }
@@ -44,11 +56,33 @@ int Exec_MEAD::CheckMead(MeadInterface const& MEAD, MeadGrid const& ogm) {
 }
 
 /** MEAD solvate. */
-int Exec_MEAD::Solvate(MeadInterface& MEAD, MeadGrid const& ogm,
-                       ArgList& argIn, DataSet* outset, DataSet_3D* rgrid)
+int Exec_MEAD::Solvate(CpptrajState& State, ArgList& argIn, MeadGrid const& ogm,
+                       std::string const& dsname, DataFile* outfile)
 const
 {
-  if (CheckMead( MEAD, ogm )) return 1;
+  // Allocate output set(s)
+  std::string outSetName = dsname;
+  if (outSetName.empty())
+    outSetName = State.DSL().GenerateDefaultName("SOLVATE");
+  DataSet* outset = State.DSL().AddSet( DataSet::DOUBLE, outSetName );
+  if (outset == 0) {
+    mprinterr("Error: Could not allocate output set '%s' for solvate\n", outSetName.c_str());
+    return 1;
+  }
+  if (outfile != 0)
+    outfile->AddDataSet( outset );
+  std::string rxngrid = argIn.GetStringKey("rxngrid");
+  DataSet_3D* rgrid = 0;
+  if (!rxngrid.empty()) {
+    DataSet* ds = State.DSL().FindSetOfGroup( rxngrid, DataSet::GRID_3D );
+    if (ds == 0) {
+      mprinterr("Error: No grid set with name '%s' found.\n", rxngrid.c_str());
+      return 1;
+    }
+    rgrid = (DataSet_3D*)ds;
+  }
+
+  if (CheckMead( ogm )) return 1;
 
   MeadOpts Opts;
   Opts.SetEpsIn(argIn.getKeyDouble("epsin", 1));
@@ -60,7 +94,7 @@ const
   Opts.SetTemperature(argIn.getKeyDouble("temp", 300.0));
 
   double Esolv = 0;
-  int err = MEAD.Solvate(Esolv, Opts, ogm, rgrid);
+  int err = ((MeadCalc_Solvate*)MEAD_)->Solvate(Esolv, Opts, ogm, rgrid);
 
   if (err != 0) return 1;
   outset->Add(0, &Esolv);
@@ -68,11 +102,23 @@ const
 }
 
 /** MEAD potential. */
-int Exec_MEAD::Potential(MeadInterface& MEAD, MeadGrid const& ogm,
-                         ArgList& argIn, DataSet_Vector_Scalar& outset)
+int Exec_MEAD::Potential(CpptrajState& State, ArgList& argIn,
+                         MeadGrid const& ogm,
+                         std::string const& dsname, DataFile* outfile)
 const
 {
-  if (CheckMead( MEAD, ogm )) return 1;
+  // Allocate output set
+  std::string outSetName = dsname;
+  if (outSetName.empty())
+    outSetName = State.DSL().GenerateDefaultName("POTENTIAL");
+  DataSet_Vector_Scalar* outset = (DataSet_Vector_Scalar*)State.DSL().AddSet( DataSet::VECTOR_SCALAR, outSetName );
+  if (outset == 0) {
+    mprinterr("Error: Could not allocate output set '%s' for potential\n", outSetName.c_str());
+    return 1;
+  }
+  if (outfile != 0)
+      outfile->AddDataSet( (DataSet*)outset );
+  if (CheckMead( ogm )) return 1;
  
   MeadOpts Opts; 
   Opts.SetEpsIn(argIn.getKeyDouble("epsin", 1));
@@ -100,7 +146,7 @@ const
   if (fieldPoints.empty()) {
     mprintf("Warning: No field points specified.\n");
   } else {
-    if (MEAD.Potential(outset, Opts, ogm, fieldPoints)) {
+    if ( ((MeadCalc_Potential*)MEAD_)->Potential(*outset, Opts, ogm, fieldPoints)) {
       mprinterr("Error: Could not process MEAD field points.\n");
       return 1;
     }
@@ -110,12 +156,31 @@ const
 }
 
 /** Run multiflex. */
-int Exec_MEAD::MultiFlex(MeadInterface& MEAD, MeadGrid const& ogm, MeadGrid const& mgm, 
-                         ArgList& argIn, Topology const& topIn, Frame const& frameIn,
-                         MultiFlexResults& results)
+int Exec_MEAD::MultiFlex(CpptrajState& State, ArgList& argIn, 
+                         MeadGrid const& ogm, MeadGrid const& mgm, 
+                         Topology const& topIn, Frame const& frameIn,
+                         std::string const& dsname, DataFile* outfile
+                         )
 const
 {
-  if (CheckMead( MEAD, ogm )) return 1;
+  // Allocate output sets
+  std::string outSetName = dsname;
+  if (outSetName.empty())
+    outSetName = State.DSL().GenerateDefaultName("MULTIFLEX");
+  MultiFlexResults results;
+  if (results.CreateSets(State.DSL(), outSetName)) return 1;
+  DataFile* ssiout = State.DFL().AddDataFile( argIn.GetStringKey("ssiout"), argIn );
+  results.AddSetsToFile( outfile, ssiout );
+  if (results.CreateOutputFiles(State.DFL(),
+                                argIn.GetStringKey("pkint"),
+                                argIn.GetStringKey("summ"),
+                                argIn.GetStringKey("gfile")))
+  {
+    mprinterr("Error: Could not create MEAD output files for multiflex.\n");
+    return 1;
+  }
+
+  if (CheckMead( ogm )) return 1;
   using namespace Cpptraj::Structure;
 
   MeadOpts Opts;
@@ -162,7 +227,7 @@ const
     return 1;
   }
 
-  if (MEAD.MultiFlex(results, Opts, ogm, mgm, topIn, frameIn, titrationData, siteIdx)) {
+  if (((MeadCalc_Multiflex*)MEAD_)->MultiFlex(results, Opts, ogm, mgm, topIn, frameIn, titrationData, siteIdx)) {
     mprinterr("Error: Multiflex failed.\n");
     return 1;
   }
@@ -253,10 +318,26 @@ int Exec_MEAD::setup_grid_from_coords(MeadGrid& ogm, Frame const& frameIn) {
 Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
 {
   using namespace Cpptraj;
-  MeadInterface MEAD;
-  MEAD.TotalTime().Start();
+  if (MEAD_ != 0) delete MEAD_;
+  enum McalcType { POTENTIAL = 0, SOLVATE, MULTIFLEX };
+  McalcType calcType;
+  if (argIn.hasKey("potential")) {
+    calcType = POTENTIAL;
+    MEAD_ = new MeadCalc_Potential();
+  } else if (argIn.hasKey("solvate")) {
+    calcType = SOLVATE;
+    MEAD_ = new MeadCalc_Solvate();
+  } else if (argIn.hasKey("multiflex")) {
+    calcType = MULTIFLEX;
+    MEAD_ = new MeadCalc_Multiflex();
+  } else {
+    mprinterr("Error: No valid MEAD keyword specified (potential, solvate, multiflex).\n");
+    return CpptrajState::ERR;
+  }
+
+  MEAD_->TotalTime().Start();
   int verbose = argIn.getKeyInt("verbose", 0);
-  MEAD.MeadVerbosity( verbose );
+  MEAD_->MeadVerbosity( verbose );
 
   MeadGrid ogm, mgm;
   std::string ogmstr = argIn.GetStringKey("ogm");
@@ -271,21 +352,21 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
     mgmstr = argIn.GetStringKey("mgm");
   }
   
-  MeadInterface::Radii_Mode radiiMode;
+  MeadCalc::Radii_Mode radiiMode;
   std::string radmode = argIn.GetStringKey("radii");
   if (radmode == "gb")
-    radiiMode = MeadInterface::GB;
+    radiiMode = MeadCalc::GB;
   else if (radmode == "parse")
-    radiiMode = MeadInterface::PARSE;
+    radiiMode = MeadCalc::PARSE;
   else if (radmode == "vdw")
-    radiiMode = MeadInterface::VDW;
+    radiiMode = MeadCalc::VDW;
   else
-    radiiMode = MeadInterface::GB;
+    radiiMode = MeadCalc::GB;
 
   switch (radiiMode) {
-    case MeadInterface::GB : mprintf("\tUsing GB radii.\n"); break;
-    case MeadInterface::PARSE : mprintf("\tUsing PARSE radii.\n"); break;
-    case MeadInterface::VDW : mprintf("\tUsing VDW radii.\n"); break;
+    case MeadCalc::GB : mprintf("\tUsing GB radii.\n"); break;
+    case MeadCalc::PARSE : mprintf("\tUsing PARSE radii.\n"); break;
+    case MeadCalc::VDW : mprintf("\tUsing VDW radii.\n"); break;
   }
 
   std::string outSetName = argIn.GetStringKey("name");
@@ -307,7 +388,7 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
   }
   Frame frameIn = CRD->AllocateFrame();
   CRD->GetFrame(0, frameIn);
-  if (MEAD.SetupAtoms( CRD->Top(), frameIn, radiiMode )) {
+  if (MEAD_->SetupAtoms( CRD->Top(), frameIn, radiiMode )) {
     mprinterr("Error: Setting up frame/topology failed.\n");
     return CpptrajState::ERR; 
   }
@@ -324,70 +405,25 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
 
   DataFile* outfile = State.DFL().AddDataFile( argIn.GetStringKey("out"), argIn );
 
-  MEAD.Print();
+  MEAD_->Print();
 
   int err = 0;
-  if (argIn.hasKey("potential")) {
-    // Allocate output set
-    if (outSetName.empty())
-      outSetName = State.DSL().GenerateDefaultName("POTENTIAL");
-    DataSet_Vector_Scalar* outset = (DataSet_Vector_Scalar*)State.DSL().AddSet( DataSet::VECTOR_SCALAR, outSetName );
-    if (outset == 0) {
-      mprinterr("Error: Could not allocate output set '%s' for potential\n", outSetName.c_str());
-      return CpptrajState::ERR;
-    }
-    if (outfile != 0)
-      outfile->AddDataSet( (DataSet*)outset );
-    err = Potential( MEAD, ogm, argIn, *outset );
-  } else if (argIn.hasKey("solvate")) {
-    // Allocate output set(s)
-    if (outSetName.empty())
-      outSetName = State.DSL().GenerateDefaultName("SOLVATE");
-    DataSet* outset = State.DSL().AddSet( DataSet::DOUBLE, outSetName );
-    if (outset == 0) {
-      mprinterr("Error: Could not allocate output set '%s' for solvate\n", outSetName.c_str());
-      return CpptrajState::ERR;
-    }
-    if (outfile != 0)
-      outfile->AddDataSet( outset );
-    std::string rxngrid = argIn.GetStringKey("rxngrid");
-    DataSet_3D* rgrid = 0;
-    if (!rxngrid.empty()) {
-      DataSet* ds = State.DSL().FindSetOfGroup( rxngrid, DataSet::GRID_3D );
-      if (ds == 0) {
-        mprinterr("Error: No grid set with name '%s' found.\n", rxngrid.c_str());
-        return CpptrajState::ERR;
-      }
-      rgrid = (DataSet_3D*)ds;
-    }
-    err = Solvate( MEAD, ogm, argIn, outset, rgrid );
-  } else if (argIn.hasKey("multiflex")) {
+  if (calcType == POTENTIAL) {
+    err = Potential( State, argIn, ogm, outSetName, outfile );
+  } else if (calcType == SOLVATE) {
+    err = Solvate( State, argIn, ogm, outSetName, outfile );
+  } else if (calcType == MULTIFLEX) {
     if (!mgm.IsSetup())
       mgm = ogm;
-     mgm.Print();
-    /// Allocate output sets
-    if (outSetName.empty())
-      outSetName = State.DSL().GenerateDefaultName("MULTIFLEX");
-    MultiFlexResults results;
-    if (results.CreateSets(State.DSL(), outSetName)) return CpptrajState::ERR;
-    DataFile* ssiout = State.DFL().AddDataFile( argIn.GetStringKey("ssiout"), argIn );
-    results.AddSetsToFile( outfile, ssiout );
-    if (results.CreateOutputFiles(State.DFL(),
-                                  argIn.GetStringKey("pkint"),
-                                  argIn.GetStringKey("summ"),
-                                  argIn.GetStringKey("gfile")))
-    {
-      mprinterr("Error: Could not create MEAD output files for multiflex.\n");
-      return CpptrajState::ERR;
-    }
-    err = MultiFlex( MEAD, ogm, mgm, argIn, CRD->Top(), frameIn, results );
+    mgm.Print();
+    err = MultiFlex( State, argIn, ogm, mgm, CRD->Top(), frameIn, outSetName, outfile );
   } else {
     mprinterr("Error: No MEAD calculation keywords given.\n");
     err = 1;
   }
 
-  MEAD.TotalTime().Stop();
-  MEAD.TotalTime().WriteTiming();
+  MEAD_->TotalTime().Stop();
+  MEAD_->TotalTime().WriteTiming();
 
   if (err != 0) return CpptrajState::ERR;
   return CpptrajState::OK;    
