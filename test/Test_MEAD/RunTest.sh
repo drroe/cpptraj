@@ -10,6 +10,9 @@ CleanFiles cpptraj.in potential.dat test.sphere.pqr solvate.dat bounds.dat MyGri
 
 INPUT='-i cpptraj.in'
 
+# This can be adjusted to increase the output from the underlying mead library
+MEADVERBOSE=0
+
 Potential() {
   UNITNAME='MEAD potential test'
   # The MEAD potential output for these coords is:
@@ -22,7 +25,7 @@ mead \
   ogm 31,1.0 \
   crdset TZ2 \
   out potential.dat \
-  verbose 2 \
+  verbose $MEADVERBOSE \
   potential epsin 1 epsext 80 \
     fpt 0.0,0.0,0.0 fpt 2.0,0.0,0.0
 EOF
@@ -43,7 +46,7 @@ mead \
   crdset SPHERE \
   out solvate.dat \
   name EPS1 \
-  verbose 2 \
+  verbose $MEADVERBOSE \
   solvate epsin 1 rxngrid MyGrid
 writedata MyGrid.dx MyGrid
 mead \
@@ -52,7 +55,7 @@ mead \
   crdset SPHERE \
   out solvate.dat \
   name EPS4 \
-  verbose 0 \
+  verbose $MEADVERBOSE \
   solvate epsin 4
 EOF
   RunCpptraj "$UNITNAME"
