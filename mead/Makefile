@@ -10,7 +10,7 @@ OBJECTS=$(SOURCES:.cc=.o)
 
 .cc.o:
 	$(VB)echo [MEAD] CXX $<
-	$(VB)$(CXX) -DUSE_EXCEPTIONS -I. $(CXXFLAGS) -c -o $@ $<
+	$(VB)$(CXX) $(DIRECTIVES) -DUSE_EXCEPTIONS -I. $(CXXFLAGS) -c -o $@ $<
 
 all: $(TARGET)
 

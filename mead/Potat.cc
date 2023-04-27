@@ -55,7 +55,9 @@ void Potat::zero()
 }
 
 float Potat::operator*(const AtomChargeSet& acs) {
+# ifdef DEBUG_CPPTRAJ_MEAD
   printf("DEBUG:\nDEBUG: Enter Potat::operator*\n");
+# endif
   if (!defined) {
     ::error("ERROR Potat, AtomChargeSet multiplication invoked for\n",
 	    "a Potat with undefined potential values\n");
@@ -71,7 +73,9 @@ float Potat::operator*(const AtomChargeSet& acs) {
     }
     else {
       prod += i->second * b->second.charge;
+#     ifdef DEBUG_CPPTRAJ_MEAD
       printf("DEBUG:\t  Potential at res %6i atom %6s is %f charge %f\n", i->first.get_resnum(), i->first.get_atname().c_str(), i->second, b->second.charge);
+#     endif
     }
   }
   return prod;
