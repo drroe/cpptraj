@@ -701,7 +701,7 @@ const
         cxyz.z = (*fpt)[2];
         //std::cout << phi.value(cxyz) << "\n"; // DEBUG
         values.AddElement(*fpt, phi.value(cxyz) );
-        mprintf("DEBUG: %g\n", values.LastVal());
+        //mprintf("DEBUG: %g\n", values.LastVal());
       }
     }
 
@@ -742,10 +742,10 @@ const
     PhysCond::set_ionicstr(Opts.IonicStr());
     PhysCond::set_T(Opts.Temperature());
 
-    mprintf("DEBUG: Interior dielectric: %g\n", Opts.EpsIn());
-    mprintf("DEBUG: Physical conditions:\n");
+    //mprintf("DEBUG: Interior dielectric: %g\n", Opts.EpsIn());
+    //mprintf("DEBUG: Physical conditions:\n");
     PhysCond::print();
-    mprintf("DEBUG: Vacuum dielectric: %g\n", Opts.EpsVac());
+    //mprintf("DEBUG: Vacuum dielectric: %g\n", Opts.EpsVac());
 
     ChargeDist rho(new AtomChargeSet(*atomset_));
 
@@ -755,7 +755,7 @@ const
     ElstatPot phi(ogm.FDM(), eps, rho, ely);
     phi.solve();
     float prod_sol = phi * rho;
-    mprintf("DEBUG: prod_sol= %f\n", prod_sol);
+    //mprintf("DEBUG: prod_sol= %f\n", prod_sol);
 
     // Vacuum
     PhysCond::set_epsext(Opts.EpsVac());
@@ -765,11 +765,11 @@ const
     ElstatPot vac_phi(ogm.FDM(), vac_eps, rho, elyvac);
     vac_phi.solve();
     float prod_vac = vac_phi * rho;
-    mprintf("DEBUG: prod_vac= %f\n", prod_vac);
+    //mprintf("DEBUG: prod_vac= %f\n", prod_vac);
 
     // Total
     float solvation_energy = (prod_sol - prod_vac) / 2 * PhysCond::get_econv();
-    mprintf("DEBUG: SOLVATION ENERGY = %f\n", solvation_energy);
+    //mprintf("DEBUG: SOLVATION ENERGY = %f\n", solvation_energy);
     Esolv = solvation_energy;
 
     // Reaction field
@@ -786,8 +786,8 @@ const
             cxyz.z = vxyz[2];
             double val = (double)(phi.value(cxyz) - vac_phi.value(cxyz));
             long int idx = rxnField->CalcIndex(ix, iy, iz);
-            mprintf("DEBUG: rxnField %i %f %f %f = %f\n", idx, vxyz[0], vxyz[1], vxyz[2], val);
-            mprintf("DBG: (%f, %f, %f)\n", vxyz[0], vxyz[1], vxyz[2]);
+            //mprintf("DEBUG: rxnField %i %f %f %f = %f\n", idx, vxyz[0], vxyz[1], vxyz[2], val);
+            //mprintf("DBG: (%f, %f, %f)\n", vxyz[0], vxyz[1], vxyz[2]);
             rxnField->UpdateVoxel(idx, val);
           }
         }
