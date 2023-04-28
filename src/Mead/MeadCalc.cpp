@@ -21,17 +21,8 @@ using namespace Cpptraj::Mead;
 /** CONSTRUCTOR */
 MeadCalc::MeadCalc() :
   atomset_(0),
-  rmode_(GB),
-  t_total_("Mead Total")
-{
-  t_total_.AddSubTimer(Timer("SetupAtoms"));  // 0
-/*  t_total_.AddSubTimer(Timer("MultiFlex "));  // 1
-  t_total_[1].AddSubTimer(Timer("Setup sites")); // 1,0
-  t_total_[1].AddSubTimer(Timer("MAC1       ")); // 1,1
-  t_total_[1].AddSubTimer(Timer("MAC2       ")); // 1,2
-  t_total_[1].AddSubTimer(Timer("MOD1       ")); // 1,3
-  t_total_[1].AddSubTimer(Timer("MOD2       ")); // 1,4*/
-}
+  rmode_(GB)
+{ }
 
 /** DESTRUCTOR */
 MeadCalc::~MeadCalc() {
@@ -67,7 +58,6 @@ const
 /** Setup an AtomSet from Frame and Topology. */
 int MeadCalc::SetupAtoms(Topology const& topIn, Frame const& frameIn, Radii_Mode radiiMode)
 {
-  t_total_[0].Start();
   rmode_ = radiiMode;
   // Sanity checking
   if (topIn.Natom() != frameIn.Natom()) {
@@ -98,7 +88,6 @@ int MeadCalc::SetupAtoms(Topology const& topIn, Frame const& frameIn, Radii_Mode
     mprinterr("Error: No radii set for topology '%s'\n", topIn.c_str());
     return 1;
   }
-  t_total_[0].Stop();
   
   return 0;
 }

@@ -1,6 +1,5 @@
 #ifndef INC_MEAD_MEADCALC_H
 #define INC_MEAD_MEADCALC_H
-#include "../Timer.h"
 // Fwd declares
 class Topology;
 class Frame;
@@ -24,8 +23,6 @@ class MeadCalc {
 
     /// Setup AtomSet from top/frame
     int SetupAtoms(Topology const&, Frame const&, Radii_Mode);
-    /// Access the internal timer
-    Timer& TotalTime() { return t_total_; }
     /// Print info to stdout
     void Print() const;
     /// Set MEAD verbosity level
@@ -36,13 +33,11 @@ class MeadCalc {
   protected:
     AtomSet const& InternalAtomset() const { return *atomset_; }
 
-    Timer& Time() { return t_total_; }
   private:
     inline void set_at_from_top(MEAD::Atom&, Topology const&, Frame const&, int) const;
 
     AtomSet* atomset_;
     Radii_Mode rmode_; ///< Which radii set to use
-    Timer t_total_;      ///< Total time
 };
 } /* END namespace Mead */
 } /* END namespace Cpptraj */

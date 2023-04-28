@@ -24,15 +24,14 @@
 using namespace Cpptraj::Mead;
 
 /** CONSTRUCTOR */
-MeadCalc_Multiflex::MeadCalc_Multiflex()
+MeadCalc_Multiflex::MeadCalc_Multiflex() :
+  t_total_("Multiflex Total")
 {
-  //Time().AddSubTimer(Timer("SetupAtoms"));  // 0
-  Time().AddSubTimer(Timer("MultiFlex "));  // 1
-  Time()[1].AddSubTimer(Timer("Setup sites")); // 1,0
-  Time()[1].AddSubTimer(Timer("MAC1       ")); // 1,1
-  Time()[1].AddSubTimer(Timer("MAC2       ")); // 1,2
-  Time()[1].AddSubTimer(Timer("MOD1       ")); // 1,3
-  Time()[1].AddSubTimer(Timer("MOD2       ")); // 1,4
+  t_total_.AddSubTimer(Timer("Setup sites")); // 0
+  t_total_.AddSubTimer(Timer("MAC1       ")); // 1
+  t_total_.AddSubTimer(Timer("MAC2       ")); // 2
+  t_total_.AddSubTimer(Timer("MOD1       ")); // 3
+  t_total_.AddSubTimer(Timer("MOD2       ")); // 4
 }
 
 // -----------------------------------------------------------------------------
@@ -296,7 +295,7 @@ int MeadCalc_Multiflex::MultiFlex(MultiFlexResults& results,
                              Topology const& topIn, Frame const& frameIn,
                              Structure::SiteData const& titrationData, int siteIdx)
 {
-  Time()[1].Start();
+  t_total_.Start();
   using namespace Cpptraj::Structure;
   typedef std::vector<double> Darray;
   typedef std::vector<Darray> Dmatrix;
@@ -320,13 +319,13 @@ int MeadCalc_Multiflex::MultiFlex(MultiFlexResults& results,
     AtomChargeSet ref_atp( InternalAtomset() );
     // Set up sites to calc. The charge states for each site need to be set
     // up first in order to do the site-site interactions.
-    Time()[1][0].Start();
+    t_total_[0].Start();
     if (setup_titration_calcs_by_site(Sites, ref_atp, topIn, frameIn, titrationData))
     {
       mprinterr("Error: Could not set up sites to titrate.\n");
       return 1;
     }
-    Time()[1][0].Stop();
+    t_total_[0].Stop();
     // Allocate results
     results.AllocateSets( Sites.size() );
     // Set up site-site interaction matrix.
@@ -378,7 +377,7 @@ int MeadCalc_Multiflex::MultiFlex(MultiFlexResults& results,
       // State1
       double macself1 = 0;
       double macback1 = 0;
-      Time()[1][1].Start();
+      t_total_.Start();
       if (charge_state1.has_charges()) {
         // TODO check for different atoms/coords
         ChargeDist rho1(new AtomChargeSet(charge_state1));
@@ -400,12 +399,12 @@ int MeadCalc_Multiflex::MultiFlex(MultiFlexResults& results,
           ssi_row[is] = (*state1_pot) * Sites[is].ChargeState1() - (*state1_pot) * Sites[is].ChargeState2();
         delete state1_pot;
       }
-      Time()[1][1].Stop();
+      t_total_.Stop();
       //mprintf("macself1= %g  macback1= %g\n", macself1, macback1);
       // State2
       double macself2 = 0;
       double macback2 = 0;
-      Time()[1][2].Start();
+      t_total_[2].Start();
       if (charge_state2.has_charges()) {
         // TODO check for different atoms/coords
         ChargeDist rho2(new AtomChargeSet(charge_state2));
@@ -425,7 +424,7 @@ int MeadCalc_Multiflex::MultiFlex(MultiFlexResults& results,
           ssi_row[is] = ssi_row[is] - ((*state2_pot) * Sites[is].ChargeState1() - (*state2_pot) * Sites[is].ChargeState2());
         delete state2_pot;
       }
-      Time()[1][2].Stop();
+      t_total_[2].Stop();
       //mprintf("macself2= %g  macback2= %g\n", macself2, macback2);
       // ----- Refocus the model grid --------
       mgm.Resolve( geom_center, tSite.SiteOfInterest() );
@@ -440,7 +439,7 @@ int MeadCalc_Multiflex::MultiFlex(MultiFlexResults& results,
       // Model state 1
       double modself1 = 0;
       double modback1 = 0;
-      Time()[1][3].Start();
+      t_total_[3].Start();
       if (charge_state1.has_charges()) {
         ChargeDist rho1(new AtomChargeSet(charge_state1));
         ElstatPot phi1(mgm.FDM(), model_eps, rho1, model_ely);
@@ -456,11 +455,11 @@ int MeadCalc_Multiflex::MultiFlex(MultiFlexResults& results,
 #       endif
         delete mod1_pot;
       }
-      Time()[1][3].Stop();
+      t_total_[3].Stop();
       // Model state 2
       double modself2 = 0;
       double modback2 = 0;
-      Time()[1][4].Start();
+      t_total_[4].Start();
       if (charge_state2.has_charges()) {
         ChargeDist rho2(new AtomChargeSet(charge_state2));
         ElstatPot phi2(mgm.FDM(), model_eps, rho2, model_ely);
@@ -475,7 +474,7 @@ int MeadCalc_Multiflex::MultiFlex(MultiFlexResults& results,
         mprintf("DEBUG: MODBACK2 = %f\n", modback2);
 #       endif
       }
-      Time()[1][4].Stop();
+      t_total_[4].Stop();
       // TODO use Constants instead of PhysCond
       double delta_pK_self = -(macself1-macself2-modself1+modself2)/2.0 / PhysCond::get_ln10kT();
       double delta_pK_back = -(macback1-macback2-modback1+modback2)     / PhysCond::get_ln10kT();
@@ -562,7 +561,7 @@ int MeadCalc_Multiflex::MultiFlex(MultiFlexResults& results,
         results.Gfile()->Printf("%u %u   %e\n", ii+1, jj+1, SiteSiteInteractionMatrix[ii][jj]);
     
   }
-  Time()[1].Stop();
+  t_total_.Stop();
   
   return 0;
 }

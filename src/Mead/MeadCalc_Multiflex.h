@@ -1,6 +1,7 @@
 #ifndef INC_MEAD_MEADCALC_MULTIFLEX_H
 #define INC_MEAD_MEADCALC_MULTIFLEX_H
 #include "MeadCalc.h"
+#include "../Timer.h"
 // Fwd declares
 // MEAD fwd declares
 class OutPotat;
@@ -26,6 +27,9 @@ class MeadCalc_Multiflex : public MeadCalc {
     /// Run multiflex calc
     int MultiFlex(MultiFlexResults&, MeadOpts const&, MeadGrid const&, MeadGrid const&,
                   Topology const&, Frame const&, Structure::SiteData const&, int);
+
+    /// Access timer
+    Timer const& TotalTime() const { return t_total_; }
   private:
     class TitrationCalc;
 
@@ -40,6 +44,7 @@ class MeadCalc_Multiflex : public MeadCalc {
     int setup_titration_calcs_by_site(std::vector<TitrationCalc>&, AtomChargeSet&,
                               Topology const&, Frame const&, Structure::SiteData const&) const;
 
+  Timer t_total_; ///< Total time
 };
 } /* END namespace Mead */
 } /* END namespace Cpptraj */

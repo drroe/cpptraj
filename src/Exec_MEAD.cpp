@@ -231,6 +231,7 @@ const
     mprinterr("Error: Multiflex failed.\n");
     return 1;
   }
+  ((MeadCalc_Multiflex*)MEAD_)->TotalTime().WriteTiming();
 
   return 0;
 }
@@ -335,7 +336,6 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
-  MEAD_->TotalTime().Start();
   int verbose = argIn.getKeyInt("verbose", 0);
   MEAD_->MeadVerbosity( verbose );
 
@@ -421,9 +421,6 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: No MEAD calculation keywords given.\n");
     err = 1;
   }
-
-  MEAD_->TotalTime().Stop();
-  MEAD_->TotalTime().WriteTiming();
 
   if (err != 0) return CpptrajState::ERR;
   return CpptrajState::OK;    
