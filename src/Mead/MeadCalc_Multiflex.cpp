@@ -153,7 +153,6 @@ const
 # endif
   // Insert C and O from previous residue
   if (prevRidx > -1) {
-    MEAD::Atom at;
     // Get the C and O atoms of the previous residue
     int p_Cidx = topIn.FindAtomInResidue(prevRidx, Cname);
     if (p_Cidx < 0)
