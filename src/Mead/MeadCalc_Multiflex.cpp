@@ -159,65 +159,63 @@ const
       warn_atNotFound("C", Cname, topIn, prevRidx);
     else {
       AtomID c_id(prevRidx, "C");
-      MEAD::Atom c_at = InternalAtomset()[c_id];
       //set_at_from_top(at, topIn, frameIn, p_Cidx);
-      model_compound.insert( c_at );
+      model_compound.insert( InternalAtomset()[c_id] );
       //c_at.charge = acs_charge(ref_atp, topIn, p_Cidx, prevRidx);
-      c_at = ref_atp[c_id];
-      model_back.insert( c_at );
+      model_back.insert( ref_atp[c_id] );
     }
     int p_Oidx = topIn.FindAtomInResidue(prevRidx, Oname);
     if (p_Oidx < 0)
       warn_atNotFound("O", Oname, topIn, prevRidx);
     else {
       AtomID o_id(prevRidx, "O"); 
-      MEAD::Atom o_at = InternalAtomset()[o_id];
       //set_at_from_top(at, topIn, frameIn, p_Oidx);
-      model_compound.insert( o_at );
+      model_compound.insert( InternalAtomset()[o_id] );
       //at.charge = acs_charge(ref_atp, topIn, p_Oidx, prevRidx);
-      o_at = ref_atp[o_id];
-      model_back.insert( o_at );
+      model_back.insert( ref_atp[o_id] );
     }
   }
 
   // Insert atoms from this residue
   for (int aidx = thisRes.FirstAtom(); aidx != thisRes.LastAtom(); aidx++) {
-    MEAD::Atom at;
-    set_at_from_top(at, topIn, frameIn, aidx);
-    model_compound.insert( at );
-    at.charge = acs_charge(ref_atp, topIn, aidx, ridx);
-    model_back.insert( at );
+    AtomID atid(ridx, topIn[aidx].Name().Truncated());
+    //set_at_from_top(at, topIn, frameIn, aidx);
+    model_compound.insert( InternalAtomset()[atid] );
+    //at.charge = acs_charge(ref_atp, topIn, aidx, ridx);
+    model_back.insert( ref_atp[atid] );
   }
 
   // Insert N, H, and CA from next residue
   if (nextRidx > -1) {
-    MEAD::Atom at;
     int n_Nidx = topIn.FindAtomInResidue(nextRidx, Nname);
     if (n_Nidx < 0)
       warn_atNotFound("N", Nname, topIn, nextRidx);
     else {
-      set_at_from_top(at, topIn, frameIn, n_Nidx);
-      model_compound.insert( at );
-      at.charge = acs_charge(ref_atp, topIn, n_Nidx, nextRidx);
-      model_back.insert( at );
+      AtomID n_id(nextRidx, "N");
+      //set_at_from_top(at, topIn, frameIn, n_Nidx);
+      model_compound.insert( InternalAtomset()[n_id] );
+      //at.charge = acs_charge(ref_atp, topIn, n_Nidx, nextRidx);
+      model_back.insert( ref_atp[n_id] );
     }
     int n_Hidx = topIn.FindAtomInResidue(nextRidx, Hname);
     if (n_Hidx < 0)
      warn_atNotFound("H", Hname, topIn, nextRidx);
     else {
-      set_at_from_top(at, topIn, frameIn, n_Hidx);
-      model_compound.insert( at );
-      at.charge = acs_charge(ref_atp, topIn, n_Hidx, nextRidx);
-      model_back.insert( at );
+      AtomID h_id(nextRidx, "H");
+      //set_at_from_top(at, topIn, frameIn, n_Hidx);
+      model_compound.insert( InternalAtomset()[h_id] );
+      //at.charge = acs_charge(ref_atp, topIn, n_Hidx, nextRidx);
+      model_back.insert( ref_atp[h_id] );
     }
     int n_CAidx = topIn.FindAtomInResidue(nextRidx, CAname);
     if (n_CAidx < 0)
       warn_atNotFound("CA", CAname, topIn, nextRidx);
     else {
-      set_at_from_top(at, topIn, frameIn, n_CAidx);
-      model_compound.insert( at );
-      at.charge = acs_charge(ref_atp, topIn, n_CAidx, nextRidx);
-      model_back.insert( at );
+      AtomID ca_id(nextRidx, "CA");
+      //set_at_from_top(at, topIn, frameIn, n_CAidx);
+      model_compound.insert( InternalAtomset()[ca_id] );
+      //at.charge = acs_charge(ref_atp, topIn, n_CAidx, nextRidx);
+      model_back.insert( ref_atp[ca_id] );
     }
   }
   return 0;
