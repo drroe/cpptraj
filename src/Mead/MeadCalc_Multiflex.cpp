@@ -227,9 +227,10 @@ const
                 *(jt->first), topIn.TruncResNameNum(ridx).c_str());
       return 1;
     }
-
-    // Set reference state charge for this atom in ref_atp TODO chainID for AtomID?
-    MEAD::Atom& mod_at = ref_atp[AtomID(ridx, topIn[aidx].Name().Truncated())];
+    // Set up MEAD AtomID
+    AtomID atid(ridx, topIn[aidx].Name().Truncated());
+    // Set reference state charge for this atom in ref_atp
+    MEAD::Atom& mod_at = ref_atp[atid];
     if (site.RefStateIdx() == 0)
       mod_at.charge = jt->second.first;
     else
@@ -246,8 +247,7 @@ const
       //siteOfInterest.y = xyz[1];
       //siteOfInterest.z = xyz[2];
     }
-    MEAD::Atom at;
-    set_at_from_top(at, topIn, frameIn, aidx);
+    MEAD::Atom at = InternalAtomset()[atid];
     at.charge = jt->second.first;
     state1Atoms.insert( at );
     at.charge = jt->second.second;
