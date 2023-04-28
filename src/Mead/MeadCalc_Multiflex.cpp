@@ -113,11 +113,6 @@ static inline int err_atNotFound(const char* at, NameType const& aname, Topology
   return 1;
 }
 
-/** \return charge from atom in AtomChargeSet. */ //TODO do not rely on Topology
-static inline float acs_charge(AtomChargeSet const& ref_atp, Topology const& topIn, int aidx, int ridx) {
-  return ref_atp[AtomID(ridx, topIn[aidx].Name().Truncated())].charge;
-}
-
 /** Create model compounds within protein.
   * The model compound contains all atoms of the residue containing the site
   * of interest, along with the peptide C=O of the previous residue and
@@ -159,9 +154,7 @@ const
       warn_atNotFound("C", Cname, topIn, prevRidx);
     else {
       AtomID c_id(prevRidx, "C");
-      //set_at_from_top(at, topIn, frameIn, p_Cidx);
       model_compound.insert( InternalAtomset()[c_id] );
-      //c_at.charge = acs_charge(ref_atp, topIn, p_Cidx, prevRidx);
       model_back.insert( ref_atp[c_id] );
     }
     int p_Oidx = topIn.FindAtomInResidue(prevRidx, Oname);
@@ -169,9 +162,7 @@ const
       warn_atNotFound("O", Oname, topIn, prevRidx);
     else {
       AtomID o_id(prevRidx, "O"); 
-      //set_at_from_top(at, topIn, frameIn, p_Oidx);
       model_compound.insert( InternalAtomset()[o_id] );
-      //at.charge = acs_charge(ref_atp, topIn, p_Oidx, prevRidx);
       model_back.insert( ref_atp[o_id] );
     }
   }
@@ -179,9 +170,7 @@ const
   // Insert atoms from this residue
   for (int aidx = thisRes.FirstAtom(); aidx != thisRes.LastAtom(); aidx++) {
     AtomID atid(ridx, topIn[aidx].Name().Truncated());
-    //set_at_from_top(at, topIn, frameIn, aidx);
     model_compound.insert( InternalAtomset()[atid] );
-    //at.charge = acs_charge(ref_atp, topIn, aidx, ridx);
     model_back.insert( ref_atp[atid] );
   }
 
@@ -192,9 +181,7 @@ const
       warn_atNotFound("N", Nname, topIn, nextRidx);
     else {
       AtomID n_id(nextRidx, "N");
-      //set_at_from_top(at, topIn, frameIn, n_Nidx);
       model_compound.insert( InternalAtomset()[n_id] );
-      //at.charge = acs_charge(ref_atp, topIn, n_Nidx, nextRidx);
       model_back.insert( ref_atp[n_id] );
     }
     int n_Hidx = topIn.FindAtomInResidue(nextRidx, Hname);
@@ -202,9 +189,7 @@ const
      warn_atNotFound("H", Hname, topIn, nextRidx);
     else {
       AtomID h_id(nextRidx, "H");
-      //set_at_from_top(at, topIn, frameIn, n_Hidx);
       model_compound.insert( InternalAtomset()[h_id] );
-      //at.charge = acs_charge(ref_atp, topIn, n_Hidx, nextRidx);
       model_back.insert( ref_atp[h_id] );
     }
     int n_CAidx = topIn.FindAtomInResidue(nextRidx, CAname);
@@ -212,9 +197,7 @@ const
       warn_atNotFound("CA", CAname, topIn, nextRidx);
     else {
       AtomID ca_id(nextRidx, "CA");
-      //set_at_from_top(at, topIn, frameIn, n_CAidx);
       model_compound.insert( InternalAtomset()[ca_id] );
-      //at.charge = acs_charge(ref_atp, topIn, n_CAidx, nextRidx);
       model_back.insert( ref_atp[ca_id] );
     }
   }
