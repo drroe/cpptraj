@@ -70,6 +70,7 @@ class MeadCalc_Multiflex::TitrationCalc {
 };
 
 /** For debugging - print atom potential and atom charge set. */
+/*
 void MeadCalc_Multiflex::printAtomPotentials(Topology const& topIn, Frame const& frameIn, OutPotat* outpotat, AtomChargeSet* acs)
 const
 {
@@ -85,7 +86,7 @@ const
     sum += potential_at_atom * at_from_acs.charge;
   }
   mprintf("\tProduct of potentials with charges: %g\n", sum);
-}
+}*/
 
 /** \return residue index of atom bonded to given atom in different residue or -1. */
 static inline int other_res_index(Topology const& topIn, Atom const& thisAtom)

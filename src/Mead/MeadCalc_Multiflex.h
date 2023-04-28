@@ -29,7 +29,7 @@ class MeadCalc_Multiflex : public MeadCalc {
   private:
     class TitrationCalc;
 
-    void printAtomPotentials(Topology const&, Frame const&, OutPotat*, AtomChargeSet*) const;
+    //void printAtomPotentials(Topology const&, Frame const&, OutPotat*, AtomChargeSet*) const;
 
     int createModelCompounds(AtomChargeSet&, AtomChargeSet&, AtomChargeSet const&, int, Topology const&, Frame const&) const;
 
