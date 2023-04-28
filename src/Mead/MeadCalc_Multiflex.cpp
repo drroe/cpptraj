@@ -171,10 +171,13 @@ const
     if (p_Oidx < 0)
       warn_atNotFound("O", Oname, topIn, prevRidx);
     else {
-      set_at_from_top(at, topIn, frameIn, p_Oidx);
-      model_compound.insert( at );
-      at.charge = acs_charge(ref_atp, topIn, p_Oidx, prevRidx);
-      model_back.insert( at );
+      AtomID o_id(prevRidx, "O"); 
+      MEAD::Atom o_at = InternalAtomset()[o_id];
+      //set_at_from_top(at, topIn, frameIn, p_Oidx);
+      model_compound.insert( o_at );
+      //at.charge = acs_charge(ref_atp, topIn, p_Oidx, prevRidx);
+      o_at = ref_atp[o_id];
+      model_back.insert( o_at );
     }
   }
 
