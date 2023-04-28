@@ -122,9 +122,11 @@ int SiteData::LoadSiteDirectory(std::string const& sitesDirNameIn)
 /** Load titratable sites data.
   * \param sitesFileName File name containing residue numbers and site names.
   * \param sitesDirName Directory name containins site files.
+  * \param topIn Topology for converting res #s in MEAD file to internal res #s.
   */
 int SiteData::LoadMeadSiteData(std::string const& sitesFileName,
-                               std::string const& sitesDirName)
+                               std::string const& sitesDirName,
+                               Topology const& topIn)
 {
   if (sitesFileName.empty()) {
     mprinterr("Internal Error: sitesFileName is empty.\n");
@@ -145,10 +147,23 @@ int SiteData::LoadMeadSiteData(std::string const& sitesFileName,
       mprinterr("Error: Expected 2 tokens, got %i\n", ntokens);
       return 1;
     }
-    // Expect residue number to start from 1
+    // Expect residue number to start from 1 FIXME take chain ID into account 
     int rnum = atoi( sitesFile.NextToken() );
     std::string sname( sitesFile.NextToken() );
-//    mprintf("DEBUG: Res#=%i  siteName=%s\n", rnum, sname.c_str());
+    // Convert from original residue # to internal residue index
+    int ridx = -1;
+    for (int ires = 0; ires < topIn.Nres(); ires++) {
+      if (topIn.Res(ires).OriginalResNum() == rnum) {
+        ridx = ires;
+        break;
+      }
+    }
+    if (ridx < 0 ) {
+      mprinterr("Error: Residue number %i not found in topology '%s'.\n", rnum, topIn.c_str());
+      return 1;
+    }
+
+    mprintf("DEBUG: Res#=%i  ResIndex=%i  siteName=%s\n", rnum, ridx, sname.c_str());
     // See if there is data for this site yet.
     NameSiteMap::iterator ns = NameToSite_.lower_bound( sname );
     if (ns == NameToSite_.end() || ns->first != sname) {
@@ -167,7 +182,7 @@ int SiteData::LoadMeadSiteData(std::string const& sitesFileName,
     }// else {
      // mprintf("DEBUG: Site '%s' already has data.\n", sname.c_str());
     //}
-    IdxNames_.push_back( IdxNamePair(rnum, sname) );
+    IdxNames_.push_back( IdxNamePair(ridx, sname) );
     // Next line
     ptr = sitesFile.Line();
   }
@@ -253,7 +268,7 @@ int SiteData::SetupSitesFromTop(Topology const& topIn) {
         if (siteIsPresent) {
           if (debug_ > 0) site.Print(); // DEBUG
           mprintf("\tFound Site '%s' in residue '%s'\n", jt->c_str(), topIn.TruncResNameNum(ires).c_str());
-          IdxNames_.push_back( IdxNamePair(thisRes.OriginalResNum(), sname) );
+          IdxNames_.push_back( IdxNamePair(ires, sname) );
         }
       } // END loop over potential sites
     }

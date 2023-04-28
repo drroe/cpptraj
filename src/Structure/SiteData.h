@@ -19,7 +19,7 @@ class SiteData {
     /// Set debug level
     void SetDebug(int d) { debug_ = d; }
     /// Load titration data and sites from a MEAD-style site file.
-    int LoadMeadSiteData(std::string const&, std::string const&);
+    int LoadMeadSiteData(std::string const&, std::string const&, Topology const&);
     /// Load titration data from specified directory.
     int LoadSiteDirectory(std::string const&);
     /// Set up sites from Topology

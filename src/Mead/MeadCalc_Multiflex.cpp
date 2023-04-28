@@ -112,9 +112,9 @@ static inline int err_atNotFound(const char* at, NameType const& aname, Topology
   return 1;
 }
 
-/** \return charge from atom in AtomChargeSet. */
+/** \return charge from atom in AtomChargeSet. */ //TODO do not rely on Topology
 static inline float acs_charge(AtomChargeSet const& ref_atp, Topology const& topIn, int aidx, int ridx) {
-  return ref_atp[AtomID(topIn.Res(ridx).OriginalResNum(), topIn[aidx].Name().Truncated())].charge; // TODO chainid?
+  return ref_atp[AtomID(ridx, topIn[aidx].Name().Truncated())].charge;
 }
 
 /** Create model compounds within protein.
@@ -242,7 +242,7 @@ const
     }
 
     // Set reference state charge for this atom in ref_atp TODO chainID for AtomID?
-    MEAD::Atom& mod_at = ref_atp[AtomID(topIn.Res(ridx).OriginalResNum(), topIn[aidx].Name().Truncated())];
+    MEAD::Atom& mod_at = ref_atp[AtomID(ridx, topIn[aidx].Name().Truncated())];
     if (site.RefStateIdx() == 0)
       mod_at.charge = jt->second.first;
     else
@@ -289,16 +289,9 @@ const
   Sites.clear();
   for (SiteData::const_iterator it = titrationData.begin(); it != titrationData.end(); ++it)
   {
-    int oidx = it->first; // TODO this is original resnum, need ridx
-    int ridx = -1;
-    for (int ires = 0; ires < topIn.Nres(); ires++) {
-      if (topIn.Res(ires).OriginalResNum() == oidx) {
-        ridx = ires;
-        break;
-      }
-    }
-    if (ridx < 0) {
-      mprinterr("Error: Residue number %i not found.\n", oidx);
+    int ridx = it->first;
+    if (ridx < 0 ) {
+      mprinterr("Error: Residue number %i not found.\n", ridx);
       return 1;
     }
     std::string const& siteName = it->second;
@@ -566,7 +559,6 @@ int MeadCalc_Multiflex::MultiFlex(MultiFlexResults& results,
       int siteIdx = results.SiteIndices()[idx];
       results.PkIntFile()->Printf("%e %c %s\n", PK.Dval(idx), pkchar[Sites[siteIdx].SiteInfo().RefStateIdx()],
                                   SN[idx].c_str());
-              //site->SiteInfo().SiteName().c_str(), topIn.Res(site->Ridx()).OriginalResNum());
     }
     // Write summ file
     DataSet_1D const& DS = static_cast<DataSet_1D const&>( *(results.Delta_pK_SelfSet()) );

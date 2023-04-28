@@ -47,9 +47,11 @@ const
     int rnum = thisAtom.ResNum();
     Residue const& thisRes = topIn.Res(rnum);
     at.resname.assign( thisRes.Name().Truncated() );
-    at.resnum = thisRes.OriginalResNum();
-    if (thisRes.HasChainID())
-      at.chainid.assign( 1, thisRes.ChainId() );
+    at.resnum = rnum;
+    // NOTE: Not using chain ID here. Since we are using the residue index
+    //       (and not original res#) this is enough to distinguish all residues.
+    //if (thisRes.HasChainID())
+    //  at.chainid.assign( 1, thisRes.ChainId() );
     const double* xyz = frameIn.XYZ(aidx);
     at.coord.x = xyz[0];
     at.coord.y = xyz[1];

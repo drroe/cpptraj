@@ -217,7 +217,7 @@ const
       return 1;
     }
   } else {
-    if (titrationData.LoadMeadSiteData( sitesFileName, sitesDirName )) {
+    if (titrationData.LoadMeadSiteData( sitesFileName, sitesDirName, topIn )) {
       mprinterr("Error: Could not load MEAD titration sites data.\n");
       return 1;
     }
