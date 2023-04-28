@@ -159,10 +159,13 @@ const
     if (p_Cidx < 0)
       warn_atNotFound("C", Cname, topIn, prevRidx);
     else {
-      set_at_from_top(at, topIn, frameIn, p_Cidx);
-      model_compound.insert( at );
-      at.charge = acs_charge(ref_atp, topIn, p_Cidx, prevRidx);
-      model_back.insert( at );
+      AtomID c_id(prevRidx, "C");
+      MEAD::Atom c_at = InternalAtomset()[c_id];
+      //set_at_from_top(at, topIn, frameIn, p_Cidx);
+      model_compound.insert( c_at );
+      //c_at.charge = acs_charge(ref_atp, topIn, p_Cidx, prevRidx);
+      c_at = ref_atp[c_id];
+      model_back.insert( c_at );
     }
     int p_Oidx = topIn.FindAtomInResidue(prevRidx, Oname);
     if (p_Oidx < 0)
