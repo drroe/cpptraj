@@ -120,7 +120,7 @@ static inline int err_atNotFound(const char* at, NameType const& aname, Topology
   * charges being for atoms in the titrating residue being zeroed after
   * this routine.
   */
-int MeadCalc_Multiflex::createModelCompounds(AtomChargeSet& model_compound, AtomChargeSet& model_back, AtomChargeSet const& ref_atp, int ridx, Topology const& topIn, Frame const& frameIn)
+int MeadCalc_Multiflex::createModelCompounds(AtomChargeSet& model_compound, AtomChargeSet& model_back, AtomChargeSet const& ref_atp, int ridx, Topology const& topIn)
 const
 {
   Residue const& thisRes = topIn.Res(ridx);
@@ -362,7 +362,7 @@ int MeadCalc_Multiflex::MultiFlex(MultiFlexResults& results,
       ssi_row.resize(Sites.size(), 0);
       // Create model compound TODO reuse
       AtomChargeSet model_compound, model_back_chrg;
-      if (createModelCompounds(model_compound, model_back_chrg, ref_atp, tSite.Ridx(), topIn, frameIn)) {
+      if (createModelCompounds(model_compound, model_back_chrg, ref_atp, tSite.Ridx(), topIn)) {
         mprinterr("Error: Creating model compound failed.\n");
         return 1;
       }

@@ -35,7 +35,7 @@ class MeadCalc_Multiflex : public MeadCalc {
 
     //void printAtomPotentials(Topology const&, Frame const&, OutPotat*, AtomChargeSet*) const;
 
-    int createModelCompounds(AtomChargeSet&, AtomChargeSet&, AtomChargeSet const&, int, Topology const&, Frame const&) const;
+    int createModelCompounds(AtomChargeSet&, AtomChargeSet&, AtomChargeSet const&, int, Topology const&) const;
 
     int setup_titration_site_calc(std::vector<TitrationCalc>&, AtomChargeSet&,
                                   Topology const&, Frame const&,
