@@ -30,27 +30,29 @@ class Exec_PrepareForLeap : public Exec {
     /// Try to determine where TER cards should be placed based on bonds
     int FindTerByBonds(Topology&, CharMask const&) const;
 
-
-    
     /// Remove specified atoms
     int ModifyCoords(Topology&, Frame&, bool, std::string const&, std::string const&,
                      std::string const&, Iarray const&) const;
     /// Remove hydrogen atoms
     int RemoveHydrogens(Topology&, Frame&) const;
 
-    
     /// Run leap to generate topology, perform any modifications
     int RunLeap(std::string const&, std::string const&) const;
     /// Print a warning for residues that will need modification after leap
     static void LeapFxnGroupWarning(Topology const&, int);
+
+    /// Do the protonation state calculation
+    int ProtonationStateCalc( Topology const& ) const;
 
     // -----------------------
     typedef std::set<NameType> SetType;
     SetType pdb_res_names_; ///< PDB residue names recognized by Amber FFs
 
     std::string leapunitname_;
-    bool errorsAreFatal_;   ///< If false, try to skip errors.
-    int debug_;             ///< Debug level
+    bool errorsAreFatal_;        ///< If false, try to skip errors.
+    bool doProtonationState_;    ///< If true, try to assign protonation states to titratable groups.
+    int debug_;                  ///< Debug level
+    double target_pH_;           ///< Target pH if assigning protonation states (doProtonationState_).
     std::string solventResName_; ///< Solvent residue name
 };
 #endif

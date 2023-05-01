@@ -18,7 +18,9 @@ using namespace Cpptraj::Structure;
 /** CONSTRUCTOR */
 Exec_PrepareForLeap::Exec_PrepareForLeap() : Exec(COORDS),
   errorsAreFatal_(true),
-  debug_(0)
+  doProtonationState_(false),
+  debug_(0),
+  target_pH_(0)
 {
   SetHidden(false);
 }
@@ -616,6 +618,14 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
     parm.WriteTopology(leaptop, topname, parm.CurrentFormat(), debug_);
   }
 
+  // Do protonation state calculation if needed
+  if (doProtonationState_) {
+    if ( ProtonationStateCalc( leaptop ) ) {
+      mprinterr("Error: Protonation state calculation failed.\n");
+      return 1;
+    }
+  }
+    
   return 0;
 }
 
@@ -632,6 +642,13 @@ void Exec_PrepareForLeap::LeapFxnGroupWarning(Topology const& topIn, int rnum) {
     mprintf("Warning: Residue '%s'; after LEaP, will need to adjust the charge on the carbon bonded to link oxygen by +0.008.\n",
             topIn.TruncResNameNum(rnum).c_str());
   }
+}
+
+/** Perform protonation state calc. for titratable residues. */
+int Exec_PrepareForLeap::ProtonationStateCalc( Topology const& leaptop ) const {
+  mprintf("\tPerforming protonation state calculation for '%s'\n", leaptop.c_str());
+
+  return 0;
 }
 
 // Exec_PrepareForLeap::Help()
@@ -677,6 +694,9 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
           "#           J. Comp. Chem. (2022), V. 43, I. 13, pp 930-935.\n" );
   debug_ = State.Debug();
   errorsAreFatal_ = !argIn.hasKey("skiperrors");
+  doProtonationState_ = argIn.hasKey("doprot");
+  if (doProtonationState_)
+    target_pH_ = argIn.getKeyDouble("targetph", 7.0);
   // Get input coords
   std::string crdset = argIn.GetStringKey("crdset");
   if (crdset.empty()) {
