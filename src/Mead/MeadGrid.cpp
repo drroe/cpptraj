@@ -1,11 +1,14 @@
 #include "MeadGrid.h"
 #include "MeadError.h"
 #include "../CpptrajStdio.h"
+#include "../Frame.h"
+#include "../DistRoutines.h"
 // MEAD includes
 #include "../../mead/FinDiffMethod.h"
 #include "../../mead/MEADexcept.h"
 // For debug print
 #include <iostream>
+#include <cmath>
 
 using namespace Cpptraj::Mead;
 /** CONSTRUCTOR */
@@ -84,7 +87,7 @@ int MeadGrid::AddGrid(int ngrd, float spc, Center_Mode ctrmode)
     fdm_ = new FinDiffMethod();
   }
 
-  CenteringStyle censtl;
+  CenteringStyle censtl = ON_ORIGIN;
   switch (ctrmode) {
     case C_ON_ORIGIN       : censtl = ON_ORIGIN; break;
     case C_ON_CENT_OF_INTR : censtl = ON_CENT_OF_INTR; break;
@@ -121,5 +124,38 @@ const
   //catch (MEADexcept& e) {
   //  return ERR("Resolve()");
   //}
+  return 0;
+}
+
+/** Set up MEAD grid based on furthest atom-atom distance. */
+int MeadGrid::SetupGridFromCoords(Frame const& frameIn) {
+  double maxdist2 = 0;
+  int maxat1 = -1;
+  int maxat2 = -1;
+  for (int at1 = 0; at1 < frameIn.Natom(); at1++) {
+    const double* xyz1 = frameIn.XYZ(at1);
+    for (int at2 = at1 + 1; at2 < frameIn.Natom(); at2++) {
+      const double* xyz2 = frameIn.XYZ(at2);
+      double dist2 = DIST2_NoImage(xyz1, xyz2);
+      if (dist2 > maxdist2) {
+        maxdist2 = dist2;
+        maxat1 = at1;
+        maxat2 = at2;
+      }
+    }
+  }
+  double max = sqrt(maxdist2);
+  mprintf("\tMax distance is %g Ang. between atoms %i and %i.\n", max, maxat1+1, maxat2+1);
+  max = int(max + 5);
+  int ival = (int)max;
+  ival = ival % 2;
+  if (ival == 0)
+    max = max + 1;
+
+  mprintf("\tMAX= %g\n", max);
+  AddGrid(max, 8.0, MeadGrid::C_ON_GEOM_CENT);
+  AddGrid(max, 2.0, MeadGrid::C_ON_CENT_OF_INTR);
+  AddGrid(max, 0.5, MeadGrid::C_ON_CENT_OF_INTR);
+
   return 0;
 }

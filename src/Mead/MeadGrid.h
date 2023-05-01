@@ -2,6 +2,7 @@
 #define INC_MEAD_MEADGRID_H
 #include <vector>
 #include "../Vec3.h"
+class Frame;
 // MEAD fwd declares
 class FinDiffMethod;
 class Coord;
@@ -38,6 +39,8 @@ class MeadGrid {
     bool IsSetup() const { return fdm_ != 0; }
     /// \return Underlying FinDiffMethod class
     FinDiffMethod const& FDM() const { return *fdm_; }
+    /// Set up grid based on furthest atom to atom distance.
+    int SetupGridFromCoords(Frame const& frameIn);
   private:
     static const char* Center_ModeStr_[]; ///< Hold strings corresponding to Center_Mode
 
@@ -45,7 +48,7 @@ class MeadGrid {
 
     class GridOpt {
       public:
-      GridOpt(int n, float s, Center_Mode c) : npoints_(n), spacing_(s), mode_(c) {}
+      GridOpt(int n, float s, Center_Mode c) : npoints_(n), spacing_(s), mode_(c), coord_(0.0) {}
       GridOpt(int n, float s, Vec3 const& v) : npoints_(n), spacing_(s), mode_(C_SPECIFIED), coord_(v) {}
       int npoints_;      ///< Number of points along an edge of grid
       float spacing_;    ///< Spacing between grid points

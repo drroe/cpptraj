@@ -28,7 +28,6 @@ class Exec_MEAD : public Exec {
                   Topology const&, Frame const&,
                   std::string const&, DataFile*) const;
     static int addGridLevel(Cpptraj::Mead::MeadGrid&, std::string const&);
-    static int setup_grid_from_coords(Cpptraj::Mead::MeadGrid&, Frame const&);
 
     Cpptraj::Mead::MeadCalc* MEAD_;
 };

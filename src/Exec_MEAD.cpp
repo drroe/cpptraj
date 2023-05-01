@@ -1,7 +1,6 @@
 #include "Exec_MEAD.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
-#include "DistRoutines.h"
 #include "Structure/SiteData.h"
 #include "Structure/TitratableSite.h"
 #include "Mead/MeadGrid.h"
@@ -11,7 +10,6 @@
 #include "Mead/MeadCalc_Solvate.h"
 #include "Mead/MeadCalc_Potential.h"
 #include "Mead/MeadCalc_Multiflex.h"
-#include <cmath> //sqrt
 
 using namespace Cpptraj::Mead;
 
@@ -280,41 +278,6 @@ int Exec_MEAD::addGridLevel(MeadGrid& ogm, std::string const& ogmstr) {
   return 0;
 }
 
-/** Set up MEAD grid based on furthest atom-atom distance. */
-int Exec_MEAD::setup_grid_from_coords(MeadGrid& ogm, Frame const& frameIn) {
-  double maxdist2 = 0;
-  int maxat1 = -1;
-  int maxat2 = -1;
-  for (int at1 = 0; at1 < frameIn.Natom(); at1++) {
-    const double* xyz1 = frameIn.XYZ(at1);
-    for (int at2 = at1 + 1; at2 < frameIn.Natom(); at2++) {
-      const double* xyz2 = frameIn.XYZ(at2);
-      double dist2 = DIST2_NoImage(xyz1, xyz2);
-      if (dist2 > maxdist2) {
-        maxdist2 = dist2;
-        maxat1 = at1;
-        maxat2 = at2;
-      }
-    }
-  }
-  double max = sqrt(maxdist2);
-  mprintf("\tMax distance is %g Ang. between atoms %i and %i.\n", max, maxat1+1, maxat2+1);
-  max = int(max + 5);
-  int ival = (int)max;
-  ival = ival % 2;
-  if (ival == 0)
-    max = max + 1;
-
-  mprintf("\tMAX= %g\n", max);
-  ogm.AddGrid(max, 8.0, MeadGrid::C_ON_GEOM_CENT);
-  ogm.AddGrid(max, 2.0, MeadGrid::C_ON_CENT_OF_INTR);
-  ogm.AddGrid(max, 0.5, MeadGrid::C_ON_CENT_OF_INTR);
-
-  return 0;
-}
- 
-
-
 // Exec_MEAD::Execute()
 Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
 {
@@ -396,7 +359,7 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
   // Set up grid if needed
   if (!ogm.IsSetup()) {
     mprintf("\tPerforming automatic grid setup.\n");
-    if (setup_grid_from_coords(ogm, frameIn)) {
+    if (ogm.SetupGridFromCoords(frameIn)) {
       mprinterr("Error: Automatic grid setup failed.\n");
       return CpptrajState::ERR;
     }
