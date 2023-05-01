@@ -377,7 +377,7 @@ int MeadCalc_Multiflex::MultiFlex(MultiFlexResults& results,
       // State1
       double macself1 = 0;
       double macback1 = 0;
-      t_total_.Start();
+      t_total_[1].Start();
       if (charge_state1.has_charges()) {
         // TODO check for different atoms/coords
         ChargeDist rho1(new AtomChargeSet(charge_state1));
@@ -399,7 +399,7 @@ int MeadCalc_Multiflex::MultiFlex(MultiFlexResults& results,
           ssi_row[is] = (*state1_pot) * Sites[is].ChargeState1() - (*state1_pot) * Sites[is].ChargeState2();
         delete state1_pot;
       }
-      t_total_.Stop();
+      t_total_[1].Stop();
       //mprintf("macself1= %g  macback1= %g\n", macself1, macback1);
       // State2
       double macself2 = 0;
