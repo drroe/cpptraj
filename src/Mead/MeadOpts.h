@@ -6,6 +6,8 @@ namespace Mead {
 class MeadOpts {
   public:
     MeadOpts();
+    /// Set MEAD verbosity level
+    static void MeadVerbosity(int);
 
     void SetEpsIn(double e)       { epsin_ = e; }
     void SetEpsExt(double e)      { epsext_ = e; }

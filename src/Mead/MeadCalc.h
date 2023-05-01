@@ -23,10 +23,6 @@ class MeadCalc {
 
     /// Setup AtomSet from top/frame
     int SetupAtoms(Topology const&, Frame const&, Radii_Mode);
-    /// Print info to stdout
-    void Print() const;
-    /// Set MEAD verbosity level
-    void MeadVerbosity(int) const;
 
     /// \return True if atom set is allocated
     bool HasAtoms() const { return atomset_ != 0; }

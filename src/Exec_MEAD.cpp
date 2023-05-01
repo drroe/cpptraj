@@ -337,7 +337,7 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   int verbose = argIn.getKeyInt("verbose", 0);
-  MEAD_->MeadVerbosity( verbose );
+  MeadOpts::MeadVerbosity( verbose );
 
   MeadGrid ogm, mgm;
   std::string ogmstr = argIn.GetStringKey("ogm");
@@ -404,8 +404,6 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
   ogm.Print();
 
   DataFile* outfile = State.DFL().AddDataFile( argIn.GetStringKey("out"), argIn );
-
-  MEAD_->Print();
 
   int err = 0;
   if (calcType == POTENTIAL) {

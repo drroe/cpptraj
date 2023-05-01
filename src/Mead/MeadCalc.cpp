@@ -6,16 +6,7 @@
 // MEAD includes
 #include "../../mead/MEADexcept.h"
 #include "../../mead/AtomSet.h"
-/*
-#inc lude "../../mead/ChargeDist.h"
-#inc lude "../../mead/AtomChargeSet.h"
-#inc lude "../../mead/DielectricEnvironment.h"
-#inc lude "../../mead/DielByAtoms.h"
-#inc lude "../../mead/ElectrolyteEnvironment.h"
-#inc lude "../../mead/ElectrolyteByAtoms.h"
-#inc lude "../../mead/FinDiffElstatPot.h"
-#inc lude "../../mead/Potat.h"
-*/
+
 using namespace Cpptraj::Mead;
 
 /** CONSTRUCTOR */
@@ -91,25 +82,3 @@ int MeadCalc::SetupAtoms(Topology const& topIn, Frame const& frameIn, Radii_Mode
   
   return 0;
 }
-
-/** Print debug info. */
-void MeadCalc::Print() const {
-  //std::cout << *fdm_;
-  //std::cout << *mgm_;
-}
-
-/** Set verbosity of underlying MEAD library. */
-void MeadCalc::MeadVerbosity(int i) const {
-  blab1pt = &cnull;
-  blab2pt = &cnull;
-  blab3pt = &cnull;
-  if (i >= 1)
-    blab1pt = &std::cout;
-  if (i >= 2)
-    blab2pt = &std::cout;
-  if (i >= 3)
-    blab3pt = &std::cout;
-  if (i != 0)
-    mprintf("Info: MEAD verbosity set to %i\n", i);
-}
-
