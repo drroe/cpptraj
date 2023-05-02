@@ -39,6 +39,8 @@ class MeadGrid {
     bool IsSetup() const { return fdm_ != 0; }
     /// \return Underlying FinDiffMethod class
     FinDiffMethod const& FDM() const { return *fdm_; }
+    /// Set up grid based on furthest atom to atom distance and specified # grid points.
+    int SetupGridFromCoords(Frame const& frameIn, int);
     /// Set up grid based on furthest atom to atom distance.
     int SetupGridFromCoords(Frame const& frameIn);
   private:

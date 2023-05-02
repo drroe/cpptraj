@@ -128,7 +128,13 @@ const
 }
 
 /** Set up MEAD grid based on furthest atom-atom distance. */
-int MeadGrid::SetupGridFromCoords(Frame const& frameIn) {
+int MeadGrid::SetupGridFromCoords(Frame const& frameIn, int maxGridIn) {
+  int MAXGRID;
+  if (maxGridIn < 1)
+    MAXGRID = 41;
+  else
+    MAXGRID = maxGridIn;
+
   double maxdist2 = 0;
   int maxat1 = -1;
   int maxat2 = -1;
@@ -153,9 +159,43 @@ int MeadGrid::SetupGridFromCoords(Frame const& frameIn) {
     max = max + 1;
 
   mprintf("\tMAX= %g\n", max);
-  AddGrid(max, 8.0, MeadGrid::C_ON_GEOM_CENT);
-  AddGrid(max, 2.0, MeadGrid::C_ON_CENT_OF_INTR);
-  AddGrid(max, 0.5, MeadGrid::C_ON_CENT_OF_INTR);
 
+  if (max <= MAXGRID) {
+    AddGrid(max, 8.0, MeadGrid::C_ON_GEOM_CENT);
+    AddGrid(max, 2.0, MeadGrid::C_ON_CENT_OF_INTR);
+    AddGrid(max, 0.5, MeadGrid::C_ON_CENT_OF_INTR);
+  } else if (max > MAXGRID && max <= MAXGRID*4 ) {
+    // For larger compounds use  grid with MAXGRID  grid points.
+    AddGrid(MAXGRID, 8.0, MeadGrid::C_ON_GEOM_CENT);
+    AddGrid(MAXGRID, 2.0, MeadGrid::C_ON_CENT_OF_INTR);
+    AddGrid(MAXGRID, 0.5, MeadGrid::C_ON_CENT_OF_INTR);
+  } else if (max > MAXGRID*4 && max <= MAXGRID*16 ) {
+    // For even larger ones, add one more level of focusing.
+    AddGrid(MAXGRID, 32.0, MeadGrid::C_ON_GEOM_CENT);
+    AddGrid(MAXGRID,  8.0, MeadGrid::C_ON_CENT_OF_INTR);
+    AddGrid(MAXGRID,  2.0, MeadGrid::C_ON_CENT_OF_INTR);
+    AddGrid(MAXGRID,  0.5, MeadGrid::C_ON_CENT_OF_INTR);
+  } else if (max > MAXGRID*16 && max <= MAXGRID*64 ) {
+    // For even larger ones, add yet one more level of focusing.
+    AddGrid(MAXGRID, 128.0, MeadGrid::C_ON_GEOM_CENT);
+    AddGrid(MAXGRID,  32.0, MeadGrid::C_ON_CENT_OF_INTR);
+    AddGrid(MAXGRID,   8.0, MeadGrid::C_ON_CENT_OF_INTR);
+    AddGrid(MAXGRID,   2.0, MeadGrid::C_ON_CENT_OF_INTR);
+    AddGrid(MAXGRID,   0.5, MeadGrid::C_ON_CENT_OF_INTR);
+  } else {
+    // For gargantuan ones, re-scale grids, but it is pretty bad.
+    mprintf("\tWarning: Grid is extremely large, calculations may not be as accurate.\n");
+    double fac = (double)(max) / (double)(MAXGRID);
+    AddGrid(MAXGRID, 2.0       * fac, MeadGrid::C_ON_GEOM_CENT);
+    AddGrid(MAXGRID, 0.5       * fac, MeadGrid::C_ON_CENT_OF_INTR);
+    AddGrid(MAXGRID, 0.125     * fac, MeadGrid::C_ON_CENT_OF_INTR);
+    AddGrid(MAXGRID, 0.03125   * fac, MeadGrid::C_ON_CENT_OF_INTR);
+    AddGrid(MAXGRID, 0.0078125 * fac, MeadGrid::C_ON_CENT_OF_INTR);
+  }
   return 0;
+}
+
+/** Set up MEAD grid based on furthest atom-atom distance. */
+int MeadGrid::SetupGridFromCoords(Frame const& frameIn) {
+  return SetupGridFromCoords(frameIn, -1);
 }
