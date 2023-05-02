@@ -325,11 +325,11 @@ int MeadCalc_Multiflex::SetupCalc(CpptrajState& State, ArgList& argIn,
   }
   // Process calculation options
   opts_ = new MeadOpts();
-  opts_->SetEpsIn(argIn.getKeyDouble("epsin", 1));
+  opts_->SetEpsIn(argIn.getKeyDouble("epsin", 4));
   opts_->SetEpsExt(argIn.getKeyDouble("epssol", 80));
   opts_->SetSolRad(argIn.getKeyDouble("solrad", 1.4));
   opts_->SetSterLn(argIn.getKeyDouble("sterln", 2.0));
-  opts_->SetIonicStr(argIn.getKeyDouble("ionicstr", 0.0));
+  opts_->SetIonicStr(argIn.getKeyDouble("ionicstr", 0.15));
 
   return 0;
 }
