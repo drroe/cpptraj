@@ -3,6 +3,9 @@
 #include "MeadCalc.h"
 #include "../Timer.h"
 // Fwd declares
+class CpptrajState;
+class ArgList;
+class DataFile;
 // MEAD fwd declares
 class OutPotat;
 class AtomChargeSet;
@@ -23,9 +26,14 @@ class MeadCalc_Multiflex : public MeadCalc {
 
     /// CONSTRUCTOR
     MeadCalc_Multiflex();
+    /// DESTRUCTOR
+    ~MeadCalc_Multiflex();
+
+    /// Set up multiflex calc
+    int SetupCalc(CpptrajState&, ArgList&, std::string const&, DataFile*);
 
     /// Run multiflex calc
-    int MultiFlex(MultiFlexResults&, MeadOpts const&, MeadGrid const&, MeadGrid const&,
+    int MultiFlex(MeadOpts const&, MeadGrid const&, MeadGrid const&,
                   Topology const&, Frame const&, Structure::SiteData const&, int);
 
     /// Access timer
@@ -45,6 +53,7 @@ class MeadCalc_Multiflex : public MeadCalc {
                               Topology const&, Frame const&, Structure::SiteData const&) const;
 
   Timer t_total_; ///< Total time
+  MultiFlexResults* results_; ///< Hold results
 };
 } /* END namespace Mead */
 } /* END namespace Cpptraj */

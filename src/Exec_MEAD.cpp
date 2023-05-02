@@ -162,7 +162,9 @@ int Exec_MEAD::MultiFlex(CpptrajState& State, ArgList& argIn,
 const
 {
   // Allocate output sets
-  std::string outSetName = dsname;
+  if (((MeadCalc_Multiflex*)MEAD_)->SetupCalc(State, argIn, dsname, outfile))
+    return 1;
+/*  std::string outSetName = dsname;
   if (outSetName.empty())
     outSetName = State.DSL().GenerateDefaultName("MULTIFLEX");
   MultiFlexResults results;
@@ -176,7 +178,7 @@ const
   {
     mprinterr("Error: Could not create MEAD output files for multiflex.\n");
     return 1;
-  }
+  }*/
 
   if (CheckMead( ogm )) return 1;
   using namespace Cpptraj::Structure;
@@ -225,7 +227,7 @@ const
     return 1;
   }
 
-  if (((MeadCalc_Multiflex*)MEAD_)->MultiFlex(results, Opts, ogm, mgm, topIn, frameIn, titrationData, siteIdx)) {
+  if (((MeadCalc_Multiflex*)MEAD_)->MultiFlex(Opts, ogm, mgm, topIn, frameIn, titrationData, siteIdx)) {
     mprinterr("Error: Multiflex failed.\n");
     return 1;
   }

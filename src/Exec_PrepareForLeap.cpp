@@ -8,6 +8,8 @@
 #include "Structure/Disulfide.h"
 #include "Structure/HisProt.h"
 #include "Structure/ResStatArray.h"
+#include "Structure/SiteData.h"
+#include "Structure/TitratableSite.h"
 #include "Structure/SugarBuilder.h"
 #include "Structure/Sugar.h"
 #include "Trajin_Single.h" // For reading in leap file for prot. calc
@@ -674,6 +676,21 @@ int Exec_PrepareForLeap::ProtonationStateCalc( Topology const& leaptop, Frame co
   }
   ogm.Print();
   mgm = ogm;
+  // Set up titration data
+  SiteData titrationData;
+  if (titrationData.LoadSiteDirectory( "" )) {
+    mprinterr("Error: Could not load titration sites data from CPPTRAJ dat directory.\n");
+    return 1;
+  }
+  if (titrationData.SetupSitesFromTop( leaptop )) {
+    mprinterr("Error: Could not set up titratable sites from topology '%s'\n", leaptop.c_str());
+    return 1;
+  }
+  if (titrationData.NoSites()) {
+    mprintf("Warning: No sites to calculate titration for.\n");
+    return 0;
+  }
+
 
   return 0;
 }

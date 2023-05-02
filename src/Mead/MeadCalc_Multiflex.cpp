@@ -5,6 +5,7 @@
 #include "MeadError.h"
 #include "../Topology.h"
 #include "../CpptrajStdio.h"
+#include "../CpptrajState.h"
 #include "../DataSet_1D.h"
 #include "../DataSet_string.h"
 #include "../Structure/SiteData.h"
@@ -25,13 +26,19 @@ using namespace Cpptraj::Mead;
 
 /** CONSTRUCTOR */
 MeadCalc_Multiflex::MeadCalc_Multiflex() :
-  t_total_("Multiflex Total")
+  t_total_("Multiflex Total"),
+  results_(0)
 {
   t_total_.AddSubTimer(Timer("Setup sites")); // 0
   t_total_.AddSubTimer(Timer("MAC1       ")); // 1
   t_total_.AddSubTimer(Timer("MAC2       ")); // 2
   t_total_.AddSubTimer(Timer("MOD1       ")); // 3
   t_total_.AddSubTimer(Timer("MOD2       ")); // 4
+}
+
+/** DESTRUCTOR */
+MeadCalc_Multiflex::~MeadCalc_Multiflex() {
+  if (results_ != 0) delete results_;
 }
 
 // -----------------------------------------------------------------------------
@@ -67,6 +74,7 @@ class MeadCalc_Multiflex::TitrationCalc {
     int ridx_;                      ///< Residue index in associated Topology
     Coord siteOfInterest_;          ///< Coordinates of the site of interest, used to focus grid
 };
+// -----------------------------------------------------------------------------
 
 /** For debugging - print atom potential and atom charge set. */
 /*
@@ -288,8 +296,36 @@ const
   return 0;
 }
 
+/** Set up multiflex calc. */
+int MeadCalc_Multiflex::SetupCalc(CpptrajState& State, ArgList& argIn,
+                                  std::string const& dsname, DataFile* outfile)
+{
+  // Allocate output sets
+  std::string outSetName = dsname;
+  if (outSetName.empty())
+    outSetName = State.DSL().GenerateDefaultName("MULTIFLEX");
+  if (results_ != 0) {
+    mprinterr("Internal Error: Multiflex calculation is already set up.\n");
+    return 1;
+  }
+  results_ = new MultiFlexResults();
+  if (results_->CreateSets(State.DSL(), outSetName)) return 1;
+  DataFile* ssiout = State.DFL().AddDataFile( argIn.GetStringKey("ssiout"), argIn );
+  results_->AddSetsToFile( outfile, ssiout );
+  if (results_->CreateOutputFiles(State.DFL(),
+                                argIn.GetStringKey("pkint"),
+                                argIn.GetStringKey("summ"),
+                                argIn.GetStringKey("gfile")))
+  {
+    mprinterr("Error: Could not create MEAD output files for multiflex.\n");
+    return 1;
+  }
+
+  return 0;
+}
+
 /** Run multiflex calc. */
-int MeadCalc_Multiflex::MultiFlex(MultiFlexResults& results,
+int MeadCalc_Multiflex::MultiFlex(
                              MeadOpts const& Opts,
                              MeadGrid const& ogm, MeadGrid const& mgm,
                              Topology const& topIn, Frame const& frameIn,
@@ -327,7 +363,7 @@ int MeadCalc_Multiflex::MultiFlex(MultiFlexResults& results,
     }
     t_total_[0].Stop();
     // Allocate results
-    results.AllocateSets( Sites.size() );
+    results_->AllocateSets( Sites.size() );
     // Set up site-site interaction matrix.
     SiteSiteInteractionMatrix.resize( Sites.size() );
     //Dmatrix::iterator ssi_row_it = SiteSiteInteractionMatrix.begin();
@@ -494,7 +530,7 @@ int MeadCalc_Multiflex::MultiFlex(MultiFlexResults& results,
       mprintf("DEBUG: pKint = %f\n", pKint);
 #     endif
       // Add site result
-      results.AddSiteResult(sidx,
+      results_->AddSiteResult(sidx,
                             tSite.SiteInfo().SiteName(),
                             topIn.Res(tSite.Ridx()).OriginalResNum(),
                             pKint,
@@ -534,35 +570,34 @@ int MeadCalc_Multiflex::MultiFlex(MultiFlexResults& results,
     }
   } // END loop over i
   // Add upper-triangle matrix to results
-  results.AddSiteSiteMatrix( SiteSiteInteractionMatrix );
+  results_->AddSiteSiteMatrix( SiteSiteInteractionMatrix );
 
   if (!Sites.empty()) {
     // Write pKint
     static const char pkchar[] = {'A', 'C'};
-    DataSet_1D const& PK = static_cast<DataSet_1D const&>( *(results.PkIntSet()) );
-    DataSet_string const& SN = static_cast<DataSet_string const&>( *(results.SiteNamesSet()) );
-    for (unsigned int idx = 0; idx != results.SiteIndices().size(); idx++) {
-      int siteIdx = results.SiteIndices()[idx];
-      results.PkIntFile()->Printf("%e %c %s\n", PK.Dval(idx), pkchar[Sites[siteIdx].SiteInfo().RefStateIdx()],
+    DataSet_1D const& PK = static_cast<DataSet_1D const&>( *(results_->PkIntSet()) );
+    DataSet_string const& SN = static_cast<DataSet_string const&>( *(results_->SiteNamesSet()) );
+    for (unsigned int idx = 0; idx != results_->SiteIndices().size(); idx++) {
+      int siteIdx = results_->SiteIndices()[idx];
+      results_->PkIntFile()->Printf("%e %c %s\n", PK.Dval(idx), pkchar[Sites[siteIdx].SiteInfo().RefStateIdx()],
                                   SN[idx].c_str());
     }
     // Write summ file
-    DataSet_1D const& DS = static_cast<DataSet_1D const&>( *(results.Delta_pK_SelfSet()) );
-    DataSet_1D const& DB = static_cast<DataSet_1D const&>( *(results.Delta_pK_BackSet()) );
-    results.SummFile()->Printf("   site name           pKmod      delta self    delta back      pkint\n");
-    for (unsigned int idx = 0; idx != results.SiteIndices().size(); idx++) {
-      int siteIdx = results.SiteIndices()[idx];
-      results.SummFile()->Printf(" %12s %13g %13g %13g %13g\n", SN[idx].c_str(), Sites[siteIdx].SiteInfo().pKa(),
+    DataSet_1D const& DS = static_cast<DataSet_1D const&>( *(results_->Delta_pK_SelfSet()) );
+    DataSet_1D const& DB = static_cast<DataSet_1D const&>( *(results_->Delta_pK_BackSet()) );
+    results_->SummFile()->Printf("   site name           pKmod      delta self    delta back      pkint\n");
+    for (unsigned int idx = 0; idx != results_->SiteIndices().size(); idx++) {
+      int siteIdx = results_->SiteIndices()[idx];
+      results_->SummFile()->Printf(" %12s %13g %13g %13g %13g\n", SN[idx].c_str(), Sites[siteIdx].SiteInfo().pKa(),
                                  DS.Dval(idx), DB.Dval(idx), PK.Dval(idx));
     }
     // Write site-site interaction file
     for (unsigned int ii = 0; ii < Sites.size(); ii++)
       for (unsigned int jj = 0; jj < SiteSiteInteractionMatrix[ii].size(); jj++)
-        results.Gfile()->Printf("%u %u   %e\n", ii+1, jj+1, SiteSiteInteractionMatrix[ii][jj]);
+        results_->Gfile()->Printf("%u %u   %e\n", ii+1, jj+1, SiteSiteInteractionMatrix[ii][jj]);
     
   }
   t_total_.Stop();
   
   return 0;
 }
-
