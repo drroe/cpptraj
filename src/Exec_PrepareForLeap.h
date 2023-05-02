@@ -5,11 +5,15 @@ namespace Cpptraj {
 namespace Structure {
 class SugarBuilder;
 }
+namespace Mead {
+class MeadCalc_Multiflex;
+}
 }
 /// Do common tasks to prepare a structure to be loaded into tleap 
 class Exec_PrepareForLeap : public Exec {
   public:
     Exec_PrepareForLeap();
+    ~Exec_PrepareForLeap();
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_PrepareForLeap(); }
     RetType Execute(CpptrajState&, ArgList&);
@@ -54,5 +58,6 @@ class Exec_PrepareForLeap : public Exec {
     int debug_;                  ///< Debug level
     double target_pH_;           ///< Target pH if assigning protonation states (doProtonationState_).
     std::string solventResName_; ///< Solvent residue name
+    Cpptraj::Mead::MeadCalc_Multiflex* multiflex_; ///< For doing the protonation state calc.
 };
 #endif

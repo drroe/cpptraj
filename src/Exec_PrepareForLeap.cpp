@@ -15,6 +15,7 @@
 #include "Trajin_Single.h" // For reading in leap file for prot. calc
 #include "Trajout_Single.h"
 #include "Mead/MeadGrid.h"
+#include "Mead/MeadCalc_Multiflex.h"
 #include <stack> // FindTerByBonds
 
 using namespace Cpptraj::Structure;
@@ -24,9 +25,15 @@ Exec_PrepareForLeap::Exec_PrepareForLeap() : Exec(COORDS),
   errorsAreFatal_(true),
   doProtonationState_(false),
   debug_(0),
-  target_pH_(0)
+  target_pH_(0),
+  multiflex_(0)
 {
   SetHidden(false);
+}
+
+/** DESTRUCTOR */
+Exec_PrepareForLeap::~Exec_PrepareForLeap() {
+  if (multiflex_ != 0) delete multiflex_;
 }
 
 /** If file not present, use a default set of residue names. */
@@ -1079,6 +1086,16 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     }
   } else {
     mprintf("\tNot searching for disulfides.\n");
+  }
+
+  // Allocate multiflex if needed
+  if (doProtonationState_) {
+    if (multiflex_ != 0) delete multiflex_;
+    multiflex_ = new Cpptraj::Mead::MeadCalc_Multiflex();
+    if (multiflex_->SetupCalc(State, argIn, "", 0)) { // TODO data set name and data file?
+      mprinterr("Error: Could not set up multiflex for protonation state calc.\n");
+      return CpptrajState::ERR;
+    }
   }
 
   // Prepare sugars
