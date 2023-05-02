@@ -344,6 +344,10 @@ int MeadCalc_Multiflex::MultiFlex(
     mprinterr("Internal Error: Multiflex::MultiFlex() called before Multiflex::SetupCalc().\n");
     return 1;
   }
+  if (!HasAtoms()) {
+    mprinterr("Internal Error: Multiflex::MultiFlex() called with no atom set.\n");
+    return 1;
+  }
   t_total_.Start();
   using namespace Cpptraj::Structure;
   typedef std::vector<double> Darray;

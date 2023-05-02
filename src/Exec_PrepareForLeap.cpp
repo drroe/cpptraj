@@ -675,6 +675,11 @@ void Exec_PrepareForLeap::LeapFxnGroupWarning(Topology const& topIn, int rnum) {
 int Exec_PrepareForLeap::ProtonationStateCalc( Topology const& leaptop, Frame const& leapcrd ) const {
   using namespace Cpptraj::Mead;
   mprintf("\tPerforming protonation state calculation for '%s'\n", leaptop.c_str());
+  // Set up atoms TODO choose radii set?
+  if (multiflex_->SetupAtoms(leaptop, leapcrd, MeadCalc::GB)) {
+    mprinterr("Error: Could not set up atoms for protonation state calculation.\n");
+    return 1;
+  }
   // Set up grids
   MeadGrid ogm, mgm;
   if (ogm.SetupGridFromCoords(leapcrd)) {
@@ -697,7 +702,11 @@ int Exec_PrepareForLeap::ProtonationStateCalc( Topology const& leaptop, Frame co
     mprintf("Warning: No sites to calculate titration for.\n");
     return 0;
   }
-
+  
+  if (multiflex_->MultiFlex(ogm, mgm, leaptop, leapcrd, titrationData, -1)) {
+    mprinterr("Error: Multiflex failed for titratable site calculation.\n");
+    return 1;
+  }
 
   return 0;
 }
