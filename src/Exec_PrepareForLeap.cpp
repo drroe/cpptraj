@@ -12,6 +12,7 @@
 #include "Structure/Sugar.h"
 #include "Trajin_Single.h" // For reading in leap file for prot. calc
 #include "Trajout_Single.h"
+#include "Mead/MeadGrid.h"
 #include <stack> // FindTerByBonds
 
 using namespace Cpptraj::Structure;
@@ -663,7 +664,16 @@ void Exec_PrepareForLeap::LeapFxnGroupWarning(Topology const& topIn, int rnum) {
 
 /** Perform protonation state calc. for titratable residues. */
 int Exec_PrepareForLeap::ProtonationStateCalc( Topology const& leaptop, Frame const& leapcrd ) const {
+  using namespace Cpptraj::Mead;
   mprintf("\tPerforming protonation state calculation for '%s'\n", leaptop.c_str());
+  // Set up grids
+  MeadGrid ogm, mgm;
+  if (ogm.SetupGridFromCoords(leapcrd)) {
+    mprinterr("Error: Could not set up grid for protonation state calculation.\n");
+    return 1;
+  }
+  ogm.Print();
+  mgm = ogm;
 
   return 0;
 }
