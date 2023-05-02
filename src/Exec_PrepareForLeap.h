@@ -42,7 +42,7 @@ class Exec_PrepareForLeap : public Exec {
     static void LeapFxnGroupWarning(Topology const&, int);
 
     /// Do the protonation state calculation
-    int ProtonationStateCalc( Topology const& ) const;
+    int ProtonationStateCalc( Topology const&, Frame const& ) const;
 
     // -----------------------
     typedef std::set<NameType> SetType;

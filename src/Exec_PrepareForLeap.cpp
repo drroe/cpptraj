@@ -10,6 +10,7 @@
 #include "Structure/ResStatArray.h"
 #include "Structure/SugarBuilder.h"
 #include "Structure/Sugar.h"
+#include "Trajin_Single.h" // For reading in leap file for prot. calc
 #include "Trajout_Single.h"
 #include <stack> // FindTerByBonds
 
@@ -620,7 +621,23 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
 
   // Do protonation state calculation if needed
   if (doProtonationState_) {
-    if ( ProtonationStateCalc( leaptop ) ) {
+    // Need the coordinates
+    Trajin_Single leaptraj;
+    ArgList leaptrajargs;
+    if (leaptraj.SetupTrajRead(rstname, leaptrajargs, &leaptop)) {
+      mprinterr("Error: Could not set up coordinates file written by LEaP.\n");
+      return 1;
+    }
+    Frame leapcrd;
+    leapcrd.SetupFrameV( leaptop.Atoms(), leaptraj.TrajCoordInfo() );
+    if (leaptraj.BeginTraj()) {
+      mprinterr("Error: Could not open coordinates file written by LEaP.\n");
+      return 1;
+    }
+    leaptraj.ReadTrajFrame( 0, leapcrd );
+    leaptraj.EndTraj();
+    
+    if ( ProtonationStateCalc( leaptop, leapcrd ) ) {
       mprinterr("Error: Protonation state calculation failed.\n");
       return 1;
     }
@@ -645,7 +662,7 @@ void Exec_PrepareForLeap::LeapFxnGroupWarning(Topology const& topIn, int rnum) {
 }
 
 /** Perform protonation state calc. for titratable residues. */
-int Exec_PrepareForLeap::ProtonationStateCalc( Topology const& leaptop ) const {
+int Exec_PrepareForLeap::ProtonationStateCalc( Topology const& leaptop, Frame const& leapcrd ) const {
   mprintf("\tPerforming protonation state calculation for '%s'\n", leaptop.c_str());
 
   return 0;
