@@ -33,7 +33,7 @@ class MeadCalc_Multiflex : public MeadCalc {
     int SetupCalc(CpptrajState&, ArgList&, std::string const&, DataFile*);
 
     /// Run multiflex calc
-    int MultiFlex(MeadOpts const&, MeadGrid const&, MeadGrid const&,
+    int MultiFlex(MeadGrid const&, MeadGrid const&,
                   Topology const&, Frame const&, Structure::SiteData const&, int);
 
     /// Access timer
@@ -54,6 +54,7 @@ class MeadCalc_Multiflex : public MeadCalc {
 
   Timer t_total_; ///< Total time
   MultiFlexResults* results_; ///< Hold results
+  MeadOpts* opts_;            ///< Hold calculation options
 };
 } /* END namespace Mead */
 } /* END namespace Cpptraj */

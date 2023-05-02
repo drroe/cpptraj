@@ -5,7 +5,6 @@
 #include "Structure/TitratableSite.h"
 #include "Mead/MeadGrid.h"
 #include "Mead/MeadOpts.h"
-#include "Mead/MultiFlexResults.h"
 #include "Mead/MeadCalc.h"
 #include "Mead/MeadCalc_Solvate.h"
 #include "Mead/MeadCalc_Potential.h"
@@ -183,15 +182,15 @@ const
   if (CheckMead( ogm )) return 1;
   using namespace Cpptraj::Structure;
 
-  MeadOpts Opts;
   std::string sitesFileName = argIn.GetStringKey("sites");
   std::string sitesDirName = argIn.GetStringKey("sitesdir");
   int siteIdx = argIn.getKeyInt("site", 0) - 1; // User args begin at 1
+  /*MeadOpts Opts;
   Opts.SetEpsIn(argIn.getKeyDouble("epsin", 1));
   Opts.SetEpsExt(argIn.getKeyDouble("epssol", 80));
   Opts.SetSolRad(argIn.getKeyDouble("solrad", 1.4));
   Opts.SetSterLn(argIn.getKeyDouble("sterln", 2.0));
-  Opts.SetIonicStr(argIn.getKeyDouble("ionicstr", 0.0));
+  Opts.SetIonicStr(argIn.getKeyDouble("ionicstr", 0.0));*/
 
   mprintf("\tSites file : %s\n", sitesFileName.c_str());
   mprintf("\tSites dir  : %s\n", sitesDirName.c_str());
@@ -227,7 +226,7 @@ const
     return 1;
   }
 
-  if (((MeadCalc_Multiflex*)MEAD_)->MultiFlex(Opts, ogm, mgm, topIn, frameIn, titrationData, siteIdx)) {
+  if (((MeadCalc_Multiflex*)MEAD_)->MultiFlex(ogm, mgm, topIn, frameIn, titrationData, siteIdx)) {
     mprinterr("Error: Multiflex failed.\n");
     return 1;
   }

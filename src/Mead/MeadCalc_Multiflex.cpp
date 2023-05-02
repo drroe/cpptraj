@@ -27,7 +27,8 @@ using namespace Cpptraj::Mead;
 /** CONSTRUCTOR */
 MeadCalc_Multiflex::MeadCalc_Multiflex() :
   t_total_("Multiflex Total"),
-  results_(0)
+  results_(0),
+  opts_(0)
 {
   t_total_.AddSubTimer(Timer("Setup sites")); // 0
   t_total_.AddSubTimer(Timer("MAC1       ")); // 1
@@ -39,6 +40,7 @@ MeadCalc_Multiflex::MeadCalc_Multiflex() :
 /** DESTRUCTOR */
 MeadCalc_Multiflex::~MeadCalc_Multiflex() {
   if (results_ != 0) delete results_;
+  if (opts_ != 0) delete opts_;
 }
 
 // -----------------------------------------------------------------------------
@@ -300,14 +302,15 @@ const
 int MeadCalc_Multiflex::SetupCalc(CpptrajState& State, ArgList& argIn,
                                   std::string const& dsname, DataFile* outfile)
 {
+  if (results_ != 0 || opts_ != 0) {
+    mprinterr("Internal Error: Multiflex calculation is already set up.\n");
+    return 1;
+  }
   // Allocate output sets
   std::string outSetName = dsname;
   if (outSetName.empty())
     outSetName = State.DSL().GenerateDefaultName("MULTIFLEX");
-  if (results_ != 0) {
-    mprinterr("Internal Error: Multiflex calculation is already set up.\n");
-    return 1;
-  }
+
   results_ = new MultiFlexResults();
   if (results_->CreateSets(State.DSL(), outSetName)) return 1;
   DataFile* ssiout = State.DFL().AddDataFile( argIn.GetStringKey("ssiout"), argIn );
@@ -320,17 +323,27 @@ int MeadCalc_Multiflex::SetupCalc(CpptrajState& State, ArgList& argIn,
     mprinterr("Error: Could not create MEAD output files for multiflex.\n");
     return 1;
   }
+  // Process calculation options
+  opts_ = new MeadOpts();
+  opts_->SetEpsIn(argIn.getKeyDouble("epsin", 1));
+  opts_->SetEpsExt(argIn.getKeyDouble("epssol", 80));
+  opts_->SetSolRad(argIn.getKeyDouble("solrad", 1.4));
+  opts_->SetSterLn(argIn.getKeyDouble("sterln", 2.0));
+  opts_->SetIonicStr(argIn.getKeyDouble("ionicstr", 0.0));
 
   return 0;
 }
 
 /** Run multiflex calc. */
 int MeadCalc_Multiflex::MultiFlex(
-                             MeadOpts const& Opts,
                              MeadGrid const& ogm, MeadGrid const& mgm,
                              Topology const& topIn, Frame const& frameIn,
                              Structure::SiteData const& titrationData, int siteIdx)
 {
+  if (opts_ == 0 || results_ == 0) {
+    mprinterr("Internal Error: Multiflex::MultiFlex() called before Multiflex::SetupCalc().\n");
+    return 1;
+  }
   t_total_.Start();
   using namespace Cpptraj::Structure;
   typedef std::vector<double> Darray;
@@ -343,10 +356,10 @@ int MeadCalc_Multiflex::MultiFlex(
   Coord geom_center(vgeom_center[0], vgeom_center[1], vgeom_center[2]);
 
   try {
-    PhysCond::set_epsext(Opts.EpsExt());
-    PhysCond::set_solrad(Opts.SolRad());
-    PhysCond::set_sterln(Opts.SterLn());
-    PhysCond::set_ionicstr(Opts.IonicStr());
+    PhysCond::set_epsext(opts_->EpsExt());
+    PhysCond::set_solrad(opts_->SolRad());
+    PhysCond::set_sterln(opts_->SterLn());
+    PhysCond::set_ionicstr(opts_->IonicStr());
 
     PhysCond::print();
 
@@ -368,7 +381,7 @@ int MeadCalc_Multiflex::MultiFlex(
     SiteSiteInteractionMatrix.resize( Sites.size() );
     //Dmatrix::iterator ssi_row_it = SiteSiteInteractionMatrix.begin();
     // NOTE: In this context, *atomset_ is equivalent to atlist in multiflex.cc:FD2DielEMaker
-    DielectricEnvironment_lett* eps = new TwoValueDielectricByAtoms( InternalAtomset(), Opts.EpsIn() );
+    DielectricEnvironment_lett* eps = new TwoValueDielectricByAtoms( InternalAtomset(), opts_->EpsIn() );
     ElectrolyteEnvironment_lett* ely = new ElectrolyteByAtoms( InternalAtomset() );
 
     // Loop over titration sites
@@ -465,7 +478,7 @@ int MeadCalc_Multiflex::MultiFlex(
       // ----- Refocus the model grid --------
       mgm.Resolve( geom_center, tSite.SiteOfInterest() );
       // Model dielectric environment
-      DielectricEnvironment_lett* model_eps = new TwoValueDielectricByAtoms( model_compound, Opts.EpsIn() );
+      DielectricEnvironment_lett* model_eps = new TwoValueDielectricByAtoms( model_compound, opts_->EpsIn() );
       ElectrolyteEnvironment_lett* model_ely = new ElectrolyteByAtoms( model_compound );
       // Any atoms that are "titrating" in *this* site should be zero in
       // the background set.  This requires adjustment...
