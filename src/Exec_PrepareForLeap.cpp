@@ -2,6 +2,7 @@
 #include "CharMask.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords_CRD.h"
+#include "DataSet_1D.h"
 #include "LeapInterface.h"
 #include "ParmFile.h"
 #include "StringRoutines.h"
@@ -719,6 +720,15 @@ int Exec_PrepareForLeap::ProtonationStateCalc(CpptrajState& State, Topology cons
   if (protonator.CalcTitrationCurves()) {
     mprinterr("Error: Calculation of titration curves failed.\n");
     return CpptrajState::ERR;
+  }
+  mprintf("\tCalculated pK half values for each site:\n");
+  DataSet const* ds = protonator.PkHalf();
+  DataSet_1D const& pkhalf = static_cast<DataSet_1D const&>( *ds );
+  unsigned int idx = 0;
+  for (SiteData::const_iterator it = titrationData.begin(); it != titrationData.end(); ++it, ++idx) {
+    double pk = pkhalf.Dval( idx );
+    TitratableSite const& site = titrationData.GetSite( it->second );
+    mprintf("\tSite %s Res %i pkhalf= %g\n", site.SiteName().c_str(), it->first + 1, pk);
   }
 
   return 0;

@@ -34,6 +34,8 @@ class Protonator {
     void PrintOptions() const;
     /// Calculate titration curves using MC
     int CalcTitrationCurves() const;
+    /// \return DataSet containing pkhalf values
+    DataSet const* PkHalf() const { return pkhalf_; }
   private:
     class StateArray;
     class MC_Corr;
