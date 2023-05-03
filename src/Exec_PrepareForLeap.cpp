@@ -535,6 +535,30 @@ int Exec_PrepareForLeap::RunLeap(CpptrajState& State,
   ParmFile parm;
   if (parm.ReadTopology(leaptop, topname, debug_)) return 1;
 
+  // Do protonation state calculation if needed
+  if (doProtonationState_) {
+    // Need the coordinates
+    Trajin_Single leaptraj;
+    ArgList leaptrajargs;
+    if (leaptraj.SetupTrajRead(rstname, leaptrajargs, &leaptop)) {
+      mprinterr("Error: Could not set up coordinates file written by LEaP.\n");
+      return 1;
+    }
+    Frame leapcrd;
+    leapcrd.SetupFrameV( leaptop.Atoms(), leaptraj.TrajCoordInfo() );
+    if (leaptraj.BeginTraj()) {
+      mprinterr("Error: Could not open coordinates file written by LEaP.\n");
+      return 1;
+    }
+    leaptraj.ReadTrajFrame( 0, leapcrd );
+    leaptraj.EndTraj();
+    
+    if ( ProtonationStateCalc( State, leaptop, leapcrd ) ) {
+      mprinterr("Error: Protonation state calculation failed.\n");
+      return 1;
+    }
+  }
+
   bool top_is_modified = false;
   // Go through each residue. Find ones that need to be adjusted.
   // NOTE: If deoxy carbons are ever handled, need to add H1 hydrogen and
@@ -632,29 +656,6 @@ int Exec_PrepareForLeap::RunLeap(CpptrajState& State,
     parm.WriteTopology(leaptop, topname, parm.CurrentFormat(), debug_);
   }
 
-  // Do protonation state calculation if needed
-  if (doProtonationState_) {
-    // Need the coordinates
-    Trajin_Single leaptraj;
-    ArgList leaptrajargs;
-    if (leaptraj.SetupTrajRead(rstname, leaptrajargs, &leaptop)) {
-      mprinterr("Error: Could not set up coordinates file written by LEaP.\n");
-      return 1;
-    }
-    Frame leapcrd;
-    leapcrd.SetupFrameV( leaptop.Atoms(), leaptraj.TrajCoordInfo() );
-    if (leaptraj.BeginTraj()) {
-      mprinterr("Error: Could not open coordinates file written by LEaP.\n");
-      return 1;
-    }
-    leaptraj.ReadTrajFrame( 0, leapcrd );
-    leaptraj.EndTraj();
-    
-    if ( ProtonationStateCalc( State, leaptop, leapcrd ) ) {
-      mprinterr("Error: Protonation state calculation failed.\n");
-      return 1;
-    }
-  }
     
   return 0;
 }
