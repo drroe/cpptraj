@@ -159,16 +159,16 @@ int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn, int debugIn
     return 1;
   }
   // TODO check that matrix rows/cols and # sites match?
-  n_mc_steps_ = argIn.getKeyInt("nmcsteps", 10000);
+  n_mc_steps_ = argIn.getKeyInt("nmcsteps", 1000); // H++ default, was 10000
   n_reduced_mc_steps_ = argIn.getKeyInt("redsteps", 10000);
-  start_pH_ = argIn.getKeyDouble("startph", 5.0);
-  stop_pH_ = argIn.getKeyDouble("stopph", 10.0);
-  pH_increment_ = argIn.getKeyDouble("phincr", 0.5);
+  start_pH_ = argIn.getKeyDouble("startph", 0.0); // H++ default, was 5
+  stop_pH_ = argIn.getKeyDouble("stopph", 12.0); // H++ default, was 10
+  pH_increment_ = argIn.getKeyDouble("phincr", 0.2); // H++ default, was 0.5
   min_wint_ = argIn.getKeyDouble("minwint", 2.0);
   fract_toler_ = argIn.getKeyDouble("fracttol", 0.000001);
   std::string mcstr = argIn.GetStringKey("mcmode");
   if (mcstr.empty())
-    mcmode_ = MC_REDUCED;
+    mcmode_ = MC_REDUCED; // H++ default
   else {
     if (mcstr == "full" || mcstr == "0") //  0 for backwards compat.
       mcmode_ = MC_FULL;
