@@ -715,7 +715,16 @@ int Protonator::CalcTitrationCurves() const {
       }
     }
 
-  } // END pkout write 
+  } // END pkout write
 
+  // Change out of range pkhalf values
+  for (unsigned int isite = 0; isite < maxsite; isite++) {
+    if (pkhalf[isite] < -99) {
+      if (pklist[isite][0] < 0.5)
+        pkhalf[isite] = pH_values.front(); // TODO minus offset?
+      else
+        pkhalf[isite] = pH_values.back(); // TODO plus offset?
+    }
+  }
   return 0;
 }
