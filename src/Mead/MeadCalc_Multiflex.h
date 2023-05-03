@@ -38,6 +38,8 @@ class MeadCalc_Multiflex : public MeadCalc {
 
     /// Access timer
     Timer const& TotalTime() const { return t_total_; }
+    /// Access results
+    MultiFlexResults const& Results() const;
   private:
     class TitrationCalc;
 

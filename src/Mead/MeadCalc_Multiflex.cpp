@@ -618,3 +618,8 @@ int MeadCalc_Multiflex::MultiFlex(
   
   return 0;
 }
+
+/** \return multiflex results. */
+MultiFlexResults const& MeadCalc_Multiflex::Results() const {
+  return *results_;
+}
