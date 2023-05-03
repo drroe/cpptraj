@@ -12,6 +12,7 @@
 #include "Structure/TitratableSite.h"
 #include "Structure/SugarBuilder.h"
 #include "Structure/Sugar.h"
+#include "Structure/Protonator.h"
 #include "Trajin_Single.h" // For reading in leap file for prot. calc
 #include "Trajout_Single.h"
 #include "Mead/MeadGrid.h"
@@ -500,7 +501,8 @@ static inline int getLinkCarbonIdx(Topology const& leaptop, int at, int rnum)
 }
 
 /** Run leap to generate topology. Modify the topology if needed. */
-int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
+int Exec_PrepareForLeap::RunLeap(CpptrajState& State,
+                                 std::string const& ff_file,
                                  std::string const& leapfilename) const
 {
   if (leapfilename.empty()) {
@@ -647,7 +649,7 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
     leaptraj.ReadTrajFrame( 0, leapcrd );
     leaptraj.EndTraj();
     
-    if ( ProtonationStateCalc( leaptop, leapcrd ) ) {
+    if ( ProtonationStateCalc( State, leaptop, leapcrd ) ) {
       mprinterr("Error: Protonation state calculation failed.\n");
       return 1;
     }
@@ -672,7 +674,7 @@ void Exec_PrepareForLeap::LeapFxnGroupWarning(Topology const& topIn, int rnum) {
 }
 
 /** Perform protonation state calc. for titratable residues. */
-int Exec_PrepareForLeap::ProtonationStateCalc( Topology const& leaptop, Frame const& leapcrd ) const {
+int Exec_PrepareForLeap::ProtonationStateCalc(CpptrajState& State, Topology const& leaptop, Frame const& leapcrd ) const {
   using namespace Cpptraj::Mead;
   mprintf("\tPerforming protonation state calculation for '%s'\n", leaptop.c_str());
   // Set up atoms TODO choose radii set?
@@ -706,6 +708,17 @@ int Exec_PrepareForLeap::ProtonationStateCalc( Topology const& leaptop, Frame co
   if (multiflex_->MultiFlex(ogm, mgm, leaptop, leapcrd, titrationData, -1)) {
     mprinterr("Error: Multiflex failed for titratable site calculation.\n");
     return 1;
+  }
+  Protonator protonator;
+  ArgList protargs("pkout " + leapunitname_ + ".pkout");
+  if (protonator.SetupProtonator( State, protargs, debug_, multiflex_->Results() )) {
+    mprinterr("Error: Could not set up MC protonator for titratable site calc.\n");
+    return 1;
+  }
+  protonator.PrintOptions();
+  if (protonator.CalcTitrationCurves()) {
+    mprinterr("Error: Calculation of titration curves failed.\n");
+    return CpptrajState::ERR;
   }
 
   return 0;
@@ -1247,7 +1260,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
   // Run leap if needed
   if (!leapffname.empty()) {
-    if (RunLeap( leapffname, leapfilename )) {
+    if (RunLeap( State, leapffname, leapfilename )) {
       mprinterr("Error: Running leap failed.\n");
       return CpptrajState::ERR;
     }

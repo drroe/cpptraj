@@ -41,12 +41,12 @@ class Exec_PrepareForLeap : public Exec {
     int RemoveHydrogens(Topology&, Frame&) const;
 
     /// Run leap to generate topology, perform any modifications
-    int RunLeap(std::string const&, std::string const&) const;
+    int RunLeap(CpptrajState&, std::string const&, std::string const&) const;
     /// Print a warning for residues that will need modification after leap
     static void LeapFxnGroupWarning(Topology const&, int);
 
     /// Do the protonation state calculation
-    int ProtonationStateCalc( Topology const&, Frame const& ) const;
+    int ProtonationStateCalc(CpptrajState&, Topology const&, Frame const& ) const;
 
     // -----------------------
     typedef std::set<NameType> SetType;
