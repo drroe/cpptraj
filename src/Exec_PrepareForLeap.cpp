@@ -727,9 +727,14 @@ int Exec_PrepareForLeap::ProtonationStateCalc(CpptrajState& State, Topology cons
   DataSet_1D const& pkhalf = static_cast<DataSet_1D const&>( *ds );
   unsigned int idx = 0;
   for (SiteData::const_iterator it = titrationData.begin(); it != titrationData.end(); ++it, ++idx) {
-    double pk = pkhalf.Dval( idx );
+    double pka = pkhalf.Dval( idx );
     TitratableSite const& site = titrationData.GetSite( it->second );
-    mprintf("\tSite %s Res %i pkhalf= %g\n", site.SiteName().c_str(), it->first + 1, pk);
+    const char* pstate;
+    if (target_pH_ < pka)
+      pstate = "Protonated";
+    else
+      pstate = "Deprotonated";
+    mprintf("\tSite %8s Res %8i pkhalf= %6.2f %s\n", site.SiteName().c_str(), it->first + 1, pka, pstate);
   }
 
   return 0;
