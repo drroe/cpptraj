@@ -6,6 +6,40 @@
 
 using namespace Cpptraj::Structure;
 
+/** Change histidine residues names to doubly-protonated. */
+int Cpptraj::Structure::ChangeHisToDoubleProt( Topology& topIn,
+                                               NameType const& HisName,
+                                               NameType const& HieName,
+                                               NameType const& HidName,
+                                               NameType const& HipName )
+{
+  typedef std::vector<int> Iarray;
+  mprintf("\tChanging all histidine residue names (%s, %s, %s) to doubly-protonated form (%s)\n",
+          HisName.Truncated().c_str(),
+          HieName.Truncated().c_str(),
+          HidName.Truncated().c_str(),
+          HipName.Truncated().c_str());
+  std::string hisMaskStr = ":" + HisName.Truncated() + "," + HieName.Truncated() + "," + HidName.Truncated();
+  AtomMask mask;
+  if (mask.SetMaskString( hisMaskStr )) {
+    mprinterr("Error: Invalid His mask string: %s\n", hisMaskStr.c_str());
+    return 1;
+  }
+  if ( topIn.SetupIntegerMask( mask )) return 1;
+  mask.MaskInfo();
+  Iarray resIdxs = topIn.ResnumsSelectedBy( mask );
+  mprintf("\tChanging %zu residue names.\n", resIdxs.size());
+  // Loop over selected histidine residues
+  for (Iarray::const_iterator rnum = resIdxs.begin();
+                              rnum != resIdxs.end(); ++rnum)
+  {
+    if (StructureDebugLevel() > 1)
+      mprintf("DEBUG: %s (%i) (%c)\n", topIn.TruncResNameOnumId(*rnum).c_str(), topIn.Res(*rnum).OriginalResNum(), topIn.Res(*rnum).ChainId());
+    ChangeResName( topIn.SetRes(*rnum), HipName );
+  }
+  return 0;
+}
+
 /** Try to determine histidine protonation from existing hydrogens.
   * Change residue names as appropriate.
   * \param topIn Input topology.
