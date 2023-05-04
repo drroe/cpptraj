@@ -985,14 +985,20 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
+  // If determining protonation state, change all histidines to doubly-protonated form
+  std::string hisname = argIn.GetStringKey("hisname", "HIS");
+  std::string hipname = argIn.GetStringKey("hipname", "HIP");
+  std::string hiename = argIn.GetStringKey("hiename", "HIE");
+  std::string hidname = argIn.GetStringKey("hidname", "HID");
+  if (doProtonationState_) {
+    if (ChangeHisToDoubleProt(topIn, hisname, hiename, hidname, hipname)) {
+      mprinterr("Error: Changing histidine residue names to doubly-protonated form failed.\n");
+      return CpptrajState::ERR;
+    }
   // Do histidine detection before H atoms are removed
-  if (!argIn.hasKey("nohisdetect")) {
+  } else if (!argIn.hasKey("nohisdetect")) {
     std::string nd1name = argIn.GetStringKey("nd1", "ND1");
     std::string ne2name = argIn.GetStringKey("ne2", "NE2");
-    std::string hisname = argIn.GetStringKey("hisname", "HIS");
-    std::string hiename = argIn.GetStringKey("hiename", "HIE");
-    std::string hidname = argIn.GetStringKey("hidname", "HID");
-    std::string hipname = argIn.GetStringKey("hipname", "HIP");
     mprintf("\tHistidine protonation detection:\n");
     mprintf("\t\tND1 atom name                   : %s\n", nd1name.c_str());
     mprintf("\t\tNE2 atom name                   : %s\n", ne2name.c_str());
