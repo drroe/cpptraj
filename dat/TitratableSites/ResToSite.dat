@@ -10,9 +10,7 @@ GLU CTglu.st,GLU.st,NTglu.st,gluNT.st
 GLY CTgly.st,NTgly.st
 HDP CThdp.st,HDP.st,NThdp.st,hdpNT.st
 HEM PROPA.st,propaNT.st
-HID CThid.st,NThid.st
-HIE CThie.st,NThie.st
-HIP CThip.st,HID.st,HIE.st,HIP.st,HISdel.st,HISeps.st,NThip.st,hidNT.st,hieNT.st,hipNT.st
+HIP CThip.st,HIP.st,NThip.st,hipNT.st
 ILE CTile.st,NTile.st
 LEU CTleu.st,NTleu.st
 LYR LYR.st,lyrNT.st
