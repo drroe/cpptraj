@@ -1,0 +1,19 @@
+# This file contains information on how to name residues
+# based on calculated intrinsic pKas.
+# <default state> indicates which name corresponds to the
+# default state (i.e. the expected residue name before being
+# changed). This will be 1 (deprotonated) for acidic residues
+# and 0 (protonated) for everything else.
+# <remove atom list> is an optional comma-separated list of atoms
+# to remove from the residue.
+# <protonated name> <deprotonated name> <default state> [<remove atom list>]
+GLH GLU 1
+ASH ASP 1
+HIP HIE 0 HD1
+HIE HIE 0 HD1
+HDP HID 0 HE2
+HID HID 0 HE2
+CYS CYM 0 HG
+ARG ARN 0 HH22,2HH2
+LYS LYN 0 HZ1,1HZ
+TYR TYN 0 HH
