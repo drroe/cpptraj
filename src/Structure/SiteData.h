@@ -11,9 +11,15 @@ namespace Structure {
 class TitratableSite;
 /// Hold information for all titratable sites
 class SiteData {
-    typedef std::pair<int, std::string> IdxNamePair;
-    typedef std::vector<IdxNamePair> IdxNameArray;
+    class Tsite;
+    //typedef std::pair<int, std::string> IdxNamePair;
+    typedef std::vector<Tsite> IdxNameArray;
   public:
+    /// Different site types
+    enum SiteType { T_NONE = 0, ///< No specific type
+                    T_N,        ///< Protein N-terminal
+                    T_C };      ///< Protein C-terminal
+
     /// CONSTRUCTOR
     SiteData();
     /// Set debug level
@@ -46,12 +52,33 @@ class SiteData {
     typedef std::vector<std::string> Sarray;
     typedef std::pair<std::string, Sarray> ResSitesPair;
     typedef std::map<std::string, Sarray> ResSitesMap;
-
+    ///< Use to hold topology-related info for a site
+    class Tsite {
+      public:
+        //Tsite() : ridx_(-1), stype_(T_NONE) {}
+        Tsite(int r, std::string const& n) : ridx_(r), sname_(n) {
+          // Site name start with or end with NT, N-terminal
+          if ( (sname_[0] == 'N' && sname_[1] == 'T') ||
+               (sname_[sname_.size()-2] == 'N' && sname_[sname_.size()-1] == 'T') )
+            stype_ = T_N;
+          else if ( sname_[0] == 'C' && sname_[1] == 'T' )
+            stype_ = T_C;
+          else
+            stype_ = T_NONE;
+        }
+        int Ridx() const { return ridx_; }
+        std::string const& Sname() const { return sname_; }
+        SiteType Stype() const { return stype_; }
+      private:
+        int ridx_;          ///< Internal residue index that site corresponds to.
+        std::string sname_; ///< Site name (in NameToSite_)
+        SiteType stype_;    ///< Site type
+    };
 
     void PrintTitrationSiteData() const;
 
-    NameSiteMap NameToSite_;    ///< Map site names to titratable site data
-    IdxNameArray IdxNames_;  ///< Hold res #s/site names in original order. FIXME should also incorporate chain ID
+    NameSiteMap NameToSite_;     ///< Map site names to titratable site data
+    IdxNameArray IdxNames_;      ///< Hold res #s/site names in order.
     ResSitesMap resnameToSites_; ///< Map residue name to site names
     int debug_;
 };

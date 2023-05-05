@@ -182,7 +182,7 @@ int SiteData::LoadMeadSiteData(std::string const& sitesFileName,
     }// else {
      // mprintf("DEBUG: Site '%s' already has data.\n", sname.c_str());
     //}
-    IdxNames_.push_back( IdxNamePair(ridx, sname) );
+    IdxNames_.push_back( Tsite(ridx, sname) );
     // Next line
     ptr = sitesFile.Line();
   }
@@ -190,7 +190,7 @@ int SiteData::LoadMeadSiteData(std::string const& sitesFileName,
 
   mprintf("\tTitratable sites:\n");
   for (IdxNameArray::const_iterator it = IdxNames_.begin(); it != IdxNames_.end(); ++it)
-    mprintf("\t  %6i %s\n", it->first+1, it->second.c_str());
+    mprintf("\t  %6i %s\n", it->Ridx()+1, it->Sname().c_str());
 
   if (debug_ > 0) PrintTitrationSiteData();
 
@@ -223,8 +223,7 @@ int SiteData::SetupSitesFromTop(Topology const& topIn) {
         mprintf("\n");
       }
       // FIXME this is very protein-specific
-      enum TerminalType { T_NONE = 0, T_N, T_C };
-      TerminalType termType;
+      SiteType termType;
       if (bondedResIdxs.size() > 1)
         termType = T_NONE;
       else {
@@ -243,7 +242,8 @@ int SiteData::SetupSitesFromTop(Topology const& topIn) {
       for (Sarray::const_iterator jt = it->second.begin(); jt != it->second.end(); ++jt) {
         std::string const& sname = *jt;
         // FIXME not very general
-        TerminalType siteTermType;
+        Tsite thisSite(ires, sname);
+/*        TerminalType siteTermType;
         // Site name must start with or end with NT
         if ( (sname[0] == 'N' && sname[1] == 'T') ||
              (sname[sname.size()-2] == 'N' && sname[sname.size()-1] == 'T') )
@@ -251,15 +251,15 @@ int SiteData::SetupSitesFromTop(Topology const& topIn) {
         else if ( sname[0] == 'C' && sname[1] == 'T' )
           siteTermType = T_C;
         else
-          siteTermType = T_NONE;
+          siteTermType = T_NONE;*/
         // Decide if we need to process this site.
         // If type is N-terminal and site is not N-terminal, skip it.
         // If the type is not N-terminal and the site is N-terminal, skip it.
         // Otherwise continue.
         if (termType == T_N) {
-          if (siteTermType != T_N) continue;
+          if (thisSite.Stype() != T_N) continue;
         } else {
-          if (siteTermType == T_N) continue;
+          if (thisSite.Stype() == T_N) continue;
         }
 
         TitratableSite const& site = GetSite( sname );
@@ -276,7 +276,7 @@ int SiteData::SetupSitesFromTop(Topology const& topIn) {
         if (siteIsPresent) {
           if (debug_ > 0) site.Print(); // DEBUG
           mprintf("\tFound Site '%s' in residue '%s'\n", jt->c_str(), topIn.TruncResNameNum(ires).c_str());
-          IdxNames_.push_back( IdxNamePair(ires, sname) );
+          IdxNames_.push_back( thisSite );
         }
       } // END loop over potential sites
     }

@@ -285,12 +285,12 @@ const
   Sites.clear();
   for (SiteData::const_iterator it = titrationData.begin(); it != titrationData.end(); ++it)
   {
-    int ridx = it->first;
+    int ridx = it->Ridx();
     if (ridx < 0 ) {
       mprinterr("Error: Residue number %i not found.\n", ridx);
       return 1;
     }
-    std::string const& siteName = it->second;
+    std::string const& siteName = it->Sname();
     TitratableSite const& site = titrationData.GetSite( siteName );
     if (setup_titration_site_calc(Sites, ref_atp, topIn, frameIn, site, ridx))
       return 1;
