@@ -190,7 +190,7 @@ int SiteData::LoadMeadSiteData(std::string const& sitesFileName,
 
   mprintf("\tTitratable sites:\n");
   for (IdxNameArray::const_iterator it = IdxNames_.begin(); it != IdxNames_.end(); ++it)
-    mprintf("\t  %6i %s\n", it->first, it->second.c_str());
+    mprintf("\t  %6i %s\n", it->first+1, it->second.c_str());
 
   if (debug_ > 0) PrintTitrationSiteData();
 
@@ -252,8 +252,16 @@ int SiteData::SetupSitesFromTop(Topology const& topIn) {
           siteTermType = T_C;
         else
           siteTermType = T_NONE;
-        if (termType != siteTermType) continue;
-            
+        // Decide if we need to process this site.
+        // If type is N-terminal and site is not N-terminal, skip it.
+        // If the type is not N-terminal and the site is N-terminal, skip it.
+        // Otherwise continue.
+        if (termType == T_N) {
+          if (siteTermType != T_N) continue;
+        } else {
+          if (siteTermType == T_N) continue;
+        }
+
         TitratableSite const& site = GetSite( sname );
         bool siteIsPresent = true;
         // All atoms of the site must be present
