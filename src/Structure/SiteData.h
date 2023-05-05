@@ -37,6 +37,8 @@ class SiteData {
 
     /// \return true if No sites
     bool NoSites() const { return IdxNames_.empty(); }
+    /// \return Default directory name containing titratable site data
+    static std::string DefaultSiteDir();
   private:
     typedef std::pair<std::string,TitratableSite> NameSitePair;
     typedef std::map<std::string,TitratableSite> NameSiteMap;
@@ -45,7 +47,6 @@ class SiteData {
     typedef std::pair<std::string, Sarray> ResSitesPair;
     typedef std::map<std::string, Sarray> ResSitesMap;
 
-    static std::string defaultSiteDir();
 
     void PrintTitrationSiteData() const;
 

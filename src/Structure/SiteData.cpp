@@ -14,7 +14,7 @@ SiteData::SiteData() :
   debug_(0)
 {}
 
-std::string SiteData::defaultSiteDir() {
+std::string SiteData::DefaultSiteDir() {
   const char* env = getenv("CPPTRAJHOME");
   if (env != 0)
     return (std::string(env) + std::string("/dat/TitratableSites"));
@@ -36,7 +36,7 @@ int SiteData::LoadSiteDirectory(std::string const& sitesDirNameIn)
 {
   std::string sitesDirName;
   if (sitesDirNameIn.empty())
-    sitesDirName = defaultSiteDir();
+    sitesDirName = DefaultSiteDir();
   else
     sitesDirName = sitesDirNameIn;
 
