@@ -1,5 +1,6 @@
 # Files for Structure subdirectory.
 STRUCTURE_SOURCES= \
+  ChangeTitratableResNames.cpp \
   Disulfide.cpp \
   FunctionalGroup.cpp \
   FxnGroupBuilder.cpp \
