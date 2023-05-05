@@ -8,10 +8,6 @@ namespace Structure {
 int DetermineHisProt(Topology&,
                      NameType const&, NameType const&,
                      NameType const&, NameType const&, NameType const&, NameType const&);
-/// Change all histidine residue names to doubly-protonated form name
-int ChangeHisToDoubleProt(Topology&,
-                          NameType const&, NameType const&,
-                          NameType const&, NameType const&);
 }
 }
 #endif

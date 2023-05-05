@@ -6,6 +6,7 @@
 #include "LeapInterface.h"
 #include "ParmFile.h"
 #include "StringRoutines.h"
+#include "Structure/ChangeTitratableResNames.h"
 #include "Structure/Disulfide.h"
 #include "Structure/HisProt.h"
 #include "Structure/ResStatArray.h"
@@ -985,18 +986,19 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
-  // If determining protonation state, change all histidines to doubly-protonated form
-  std::string hisname = argIn.GetStringKey("hisname", "HIS");
-  std::string hipname = argIn.GetStringKey("hipname", "HIP");
-  std::string hiename = argIn.GetStringKey("hiename", "HIE");
-  std::string hidname = argIn.GetStringKey("hidname", "HID");
   if (doProtonationState_) {
-    if (ChangeHisToDoubleProt(topIn, hisname, hiename, hidname, hipname)) {
-      mprinterr("Error: Changing histidine residue names to doubly-protonated form failed.\n");
+    // If determining protonation state, change titratable residue names
+    // to those associated with recognized sites.
+    if (ChangeTitratableResNames(topIn, "")) {
+      mprinterr("Error: Changing titratable residue names failed.\n");
       return CpptrajState::ERR;
     }
-  // Do histidine detection before H atoms are removed
   } else if (!argIn.hasKey("nohisdetect")) {
+    // Do histidine detection before H atoms are removed
+    std::string hisname = argIn.GetStringKey("hisname", "HIS");
+    std::string hipname = argIn.GetStringKey("hipname", "HIP");
+    std::string hiename = argIn.GetStringKey("hiename", "HIE");
+    std::string hidname = argIn.GetStringKey("hidname", "HID");
     std::string nd1name = argIn.GetStringKey("nd1", "ND1");
     std::string ne2name = argIn.GetStringKey("ne2", "NE2");
     mprintf("\tHistidine protonation detection:\n");
