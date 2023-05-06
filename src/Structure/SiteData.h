@@ -54,6 +54,9 @@ class SiteData {
     typedef std::map<std::string, Sarray> ResSitesMap;
 
     class ProtInfo;
+    typedef std::pair<std::string, ProtInfo> ResProtPair;
+    typedef std::map<std::string, ProtInfo> ResProtMap;
+
     ///< Use to hold topology-related info for a site
     class Tsite {
       public:
@@ -83,6 +86,7 @@ class SiteData {
     NameSiteMap NameToSite_;     ///< Map site names to titratable site data
     IdxNameArray IdxNames_;      ///< Hold res #s/site names in order.
     ResSitesMap resnameToSites_; ///< Map residue name to site names
+    ResProtMap resnameToProt_;   ///< Map residue names to protonation info
     int debug_;
 };
 }

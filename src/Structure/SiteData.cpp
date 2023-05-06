@@ -56,10 +56,24 @@ int SiteData::loadProtInfo(std::string const& sitesDirNameIn) {
       std::string protName( infile.NextToken() );
       std::string deprotName( infile.NextToken() );
       int defaultState = atoi( infile.NextToken() );
+      ProtInfo::PstateType stype;
+      if (defaultState == 0)
+        stype = ProtInfo::PROTONATED;
+      else if (defaultState == 1)
+        stype = ProtInfo::DEPROTONATED;
+      else {
+        mprinterr("Error: Invalid state %i (should be 0 or 1): %s\n", defaultState, ptr);
+        return 1;
+      }
       ProtInfo::Sarray removeAtoms;
       if (ntokens > 3) {
         ArgList ratomLine( infile.NextToken(), "," );
         removeAtoms = ratomLine.List();
+      }
+      ProtInfo prot(protName, deprotName, stype, removeAtoms);
+      ResProtMap::iterator it = resnameToProt_.lower_bound( prot.DefaultName() );
+      if (it == resnameToProt_.end() || it->first != prot.DefaultName()) {
+        it = resnameToProt_.insert(it, ResProtPair(prot.DefaultName(), prot));
       }
     }
     ptr = infile.Line();
