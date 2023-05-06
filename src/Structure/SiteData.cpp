@@ -33,6 +33,42 @@ void SiteData::PrintTitrationSiteData() const {
   }
 }
 
+/** Load residue name protonation info. */
+int SiteData::loadProtInfo(std::string const& sitesDirNameIn) {
+  std::string protFile = sitesDirNameIn + "/ProtonationInfo.dat";
+  mprintf("\tLoading protonation state residue name info from '%s'\n", protFile.c_str());
+
+  BufferedLine infile;
+  if (infile.OpenFileRead( protFile )) {
+    mprinterr("Error: Could not open protonation state residue name file '%s'\n", protFile.c_str());
+    return 1;
+  }
+  const char* ptr = infile.Line();
+  while (ptr != 0) {
+    if (*ptr != '#') {
+      // Expected format: <protonated name> <deprotonated name> <default state> [<remove atom list>]
+      int ntokens = infile.TokenizeLine(" ");
+      if (ntokens < 3) {
+        mprinterr("Error: Malformed line in protonation state residue name file '%s': %s\n", protFile.c_str(), ptr);
+        mprinterr("Error: Expected at least 3 tokens, got %i\n", ntokens);
+        return 1;
+      }
+      std::string protName( infile.NextToken() );
+      std::string deprotName( infile.NextToken() );
+      int defaultState = atoi( infile.NextToken() );
+      ProtInfo::Sarray removeAtoms;
+      if (ntokens > 3) {
+        ArgList ratomLine( infile.NextToken(), "," );
+        removeAtoms = ratomLine.List();
+      }
+    }
+    ptr = infile.Line();
+  }
+  infile.CloseFile();
+
+  return 0;
+}
+
 /** Load all sites in a given directory. */
 int SiteData::LoadSiteDirectory(std::string const& sitesDirNameIn)
 {

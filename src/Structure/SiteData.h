@@ -78,6 +78,7 @@ class SiteData {
     };
 
     void PrintTitrationSiteData() const;
+    int loadProtInfo(std::string const&);
 
     NameSiteMap NameToSite_;     ///< Map site names to titratable site data
     IdxNameArray IdxNames_;      ///< Hold res #s/site names in order.
