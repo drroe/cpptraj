@@ -17,7 +17,6 @@ using namespace Cpptraj::Structure;
 // Protonator internal classes
 #include "Protonator_StateArray.h"
 #include "Protonator_MC_Corr.h"
-#include "Protonator_ProtInfo.h"
 
 /** CONSTRUCTOR */
 Protonator::Protonator() :

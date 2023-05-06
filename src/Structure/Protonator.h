@@ -39,7 +39,6 @@ class Protonator {
   private:
     class StateArray;
     class MC_Corr;
-    class ProtInfo;
     typedef std::vector<double> Darray;
     typedef std::vector<int> Iarray;
     typedef std::pair<int,int> StatePair;

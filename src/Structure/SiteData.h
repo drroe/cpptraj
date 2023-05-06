@@ -52,6 +52,8 @@ class SiteData {
     typedef std::vector<std::string> Sarray;
     typedef std::pair<std::string, Sarray> ResSitesPair;
     typedef std::map<std::string, Sarray> ResSitesMap;
+
+    class ProtInfo;
     ///< Use to hold topology-related info for a site
     class Tsite {
       public:

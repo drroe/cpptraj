@@ -8,6 +8,8 @@
 #include <cstdlib> // atoi, getenv
 
 using namespace Cpptraj::Structure;
+// SiteData internal classes
+#include "SiteData_ProtInfo.h"
 
 /** CONSTRUCTOR */
 SiteData::SiteData() :
