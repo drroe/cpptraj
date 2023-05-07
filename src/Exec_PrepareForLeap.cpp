@@ -727,15 +727,26 @@ int Exec_PrepareForLeap::ProtonationStateCalc(CpptrajState& State, Topology cons
   DataSet const* ds = protonator.PkHalf();
   DataSet_1D const& pkhalf = static_cast<DataSet_1D const&>( *ds );
   unsigned int idx = 0;
+  const char* pstateStr[] = { "Protonated", "Deprotonated" };
   for (SiteData::const_iterator it = titrationData.begin(); it != titrationData.end(); ++it, ++idx) {
     double pka = pkhalf.Dval( idx );
     TitratableSite const& site = titrationData.GetSite( it->Sname() );
-    const char* pstate;
+    ProtInfo::PstateType pstate;
     if (target_pH_ < pka)
-      pstate = "Protonated";
+      pstate = ProtInfo::PROTONATED;
     else
-      pstate = "Deprotonated";
-    mprintf("\tSite %8s Res %8i pkhalf= %6.2f %s\n", site.SiteName().c_str(), it->Ridx() + 1, pka, pstate);
+      pstate = ProtInfo::DEPROTONATED;
+    mprintf("\tSite %8s Res %8i pkhalf= %6.2f  RefStateIdx= %i %s\n", site.SiteName().c_str(), it->Ridx() + 1, pka, site.RefStateIdx(), pstateStr[pstate]);
+    // Decide what to do.
+    if (it->Stype() == SiteData::T_N || it->Stype() == SiteData::T_C) {
+      mprintf("Warning: Terminal site; skipping.\n");
+    } else {
+      // Look for residue name prot info
+      SiteData::ResProtMap::const_iterator prot = titrationData.ResnameToProt().find( site.SiteResName() );
+      if ( prot != titrationData.ResnameToProt().end() ) {
+        mprintf("\t  Protonation info found.\n");
+      }
+    }
   }
 
   return 0;

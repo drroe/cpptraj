@@ -46,6 +46,9 @@ class SiteData {
     bool NoSites() const { return IdxNames_.empty(); }
     /// \return Default directory name containing titratable site data
     static std::string DefaultSiteDir();
+
+    typedef std::map<std::string, ProtInfo> ResProtMap;
+    ResProtMap const& ResnameToProt() const { return resnameToProt_; }
   private:
     typedef std::pair<std::string,TitratableSite> NameSitePair;
     typedef std::map<std::string,TitratableSite> NameSiteMap;
@@ -55,7 +58,6 @@ class SiteData {
     typedef std::map<std::string, Sarray> ResSitesMap;
 
     typedef std::pair<std::string, ProtInfo> ResProtPair;
-    typedef std::map<std::string, ProtInfo> ResProtMap;
 
     ///< Use to hold topology-related info for a site
     class Tsite {
