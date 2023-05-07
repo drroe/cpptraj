@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include "ProtInfo.h"
 class Topology;
 namespace Cpptraj {
 //TODO Move to Mead namespace
@@ -53,7 +54,6 @@ class SiteData {
     typedef std::pair<std::string, Sarray> ResSitesPair;
     typedef std::map<std::string, Sarray> ResSitesMap;
 
-    class ProtInfo;
     typedef std::pair<std::string, ProtInfo> ResProtPair;
     typedef std::map<std::string, ProtInfo> ResProtMap;
 

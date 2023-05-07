@@ -8,8 +8,6 @@
 #include <cstdlib> // atoi, getenv
 
 using namespace Cpptraj::Structure;
-// SiteData internal classes
-#include "SiteData_ProtInfo.h"
 
 /** CONSTRUCTOR */
 SiteData::SiteData() :
@@ -35,7 +33,17 @@ void SiteData::PrintTitrationSiteData() const {
 
 /** Load residue name protonation info. */
 int SiteData::loadProtInfo(std::string const& sitesDirNameIn) {
-  std::string protFile = sitesDirNameIn + "/ProtonationInfo.dat";
+  std::string sitesDirName;
+  if (sitesDirNameIn.empty())
+    sitesDirName = DefaultSiteDir();
+  else
+    sitesDirName = sitesDirNameIn;
+
+  std::string protFile = sitesDirName + "/ProtonationInfo.dat";
+  if (!File::Exists(protFile)) {
+    mprintf("Warning: Protonation state residue name info file '%s' not present.\n", protFile.c_str());
+    return 0;
+  }
   mprintf("\tLoading protonation state residue name info from '%s'\n", protFile.c_str());
 
   BufferedLine infile;
@@ -79,6 +87,17 @@ int SiteData::loadProtInfo(std::string const& sitesDirNameIn) {
     ptr = infile.Line();
   }
   infile.CloseFile();
+
+  mprintf("\tProtonation state residue names:\n");
+  for (ResProtMap::const_iterator it = resnameToProt_.begin(); it != resnameToProt_.end(); ++it)
+  {
+    mprintf("\t  (%s) %s prot. -> %s deprot.", it->second.DefaultName().c_str(),
+            it->second.ProtName().c_str(), it->second.DeprotName().c_str());
+    for (ProtInfo::Sarray::const_iterator at = it->second.RemoveAtoms().begin();
+                                            at != it->second.RemoveAtoms().end(); ++at)
+      mprintf(" %s", at->c_str());
+    mprintf("\n");
+  }
 
   return 0;
 }
@@ -157,6 +176,8 @@ int SiteData::LoadSiteDirectory(std::string const& sitesDirNameIn)
     } // END line is not comment
     ptr = infile.Line();
   } // END loop over file lines
+
+  if (loadProtInfo(sitesDirName)) return 1;
 
   mprintf("\tTitration data:\n");
   for (ResSitesMap::const_iterator it = resnameToSites_.begin(); it != resnameToSites_.end(); ++it)
@@ -239,6 +260,8 @@ int SiteData::LoadMeadSiteData(std::string const& sitesFileName,
     ptr = sitesFile.Line();
   }
   sitesFile.CloseFile();
+
+  if (loadProtInfo(sitesDirName)) return 1;
 
   mprintf("\tTitratable sites:\n");
   for (IdxNameArray::const_iterator it = IdxNames_.begin(); it != IdxNames_.end(); ++it)
