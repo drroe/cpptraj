@@ -535,6 +535,8 @@ int Exec_PrepareForLeap::RunLeap(CpptrajState& State,
   Topology leaptop;
   ParmFile parm;
   if (parm.ReadTopology(leaptop, topname, debug_)) return 1;
+  // This will be set to true if topology needs to be written back out
+  bool top_is_modified = false;
 
   // Do protonation state calculation if needed
   if (doProtonationState_) {
@@ -554,13 +556,15 @@ int Exec_PrepareForLeap::RunLeap(CpptrajState& State,
     leaptraj.ReadTrajFrame( 0, leapcrd );
     leaptraj.EndTraj();
     
-    if ( ProtonationStateCalc( State, leaptop, leapcrd ) ) {
+    int pstateErr = ProtonationStateCalc( leaptop, State, leapcrd );
+    if ( pstateErr < 0 ) {
       mprinterr("Error: Protonation state calculation failed.\n");
       return 1;
+    } else if (pstateErr == 1) {
+      top_is_modified = true;
     }
   }
 
-  bool top_is_modified = false;
   // Go through each residue. Find ones that need to be adjusted.
   // NOTE: If deoxy carbons are ever handled, need to add H1 hydrogen and
   //       add the former -OH charge to the carbon.
@@ -676,20 +680,24 @@ void Exec_PrepareForLeap::LeapFxnGroupWarning(Topology const& topIn, int rnum) {
   }
 }
 
-/** Perform protonation state calc. for titratable residues. */
-int Exec_PrepareForLeap::ProtonationStateCalc(CpptrajState& State, Topology const& leaptop, Frame const& leapcrd ) const {
+/** Perform protonation state calc. for titratable residues.
+  * \return 0 if topology not modified.
+  * \return 1 if topology was modified.
+  * \return -1 if an error occurred.
+  */ 
+int Exec_PrepareForLeap::ProtonationStateCalc(Topology& leaptop, CpptrajState& State, Frame const& leapcrd ) const {
   using namespace Cpptraj::Mead;
   mprintf("\tPerforming protonation state calculation for '%s'\n", leaptop.c_str());
   // Set up atoms TODO choose radii set?
   if (multiflex_->SetupAtoms(leaptop, leapcrd, MeadCalc::GB)) {
     mprinterr("Error: Could not set up atoms for protonation state calculation.\n");
-    return 1;
+    return -1;
   }
   // Set up grids
   MeadGrid ogm, mgm;
   if (ogm.SetupGridFromCoords(leapcrd)) {
     mprinterr("Error: Could not set up grid for protonation state calculation.\n");
-    return 1;
+    return -1;
   }
   ogm.Print();
   mgm = ogm;
@@ -697,11 +705,11 @@ int Exec_PrepareForLeap::ProtonationStateCalc(CpptrajState& State, Topology cons
   SiteData titrationData;
   if (titrationData.LoadSiteDirectory( "" )) {
     mprinterr("Error: Could not load titration sites data from CPPTRAJ dat directory.\n");
-    return 1;
+    return -1;
   }
   if (titrationData.SetupSitesFromTop( leaptop )) {
     mprinterr("Error: Could not set up titratable sites from topology '%s'\n", leaptop.c_str());
-    return 1;
+    return -1;
   }
   if (titrationData.NoSites()) {
     mprintf("Warning: No sites to calculate titration for.\n");
@@ -710,19 +718,19 @@ int Exec_PrepareForLeap::ProtonationStateCalc(CpptrajState& State, Topology cons
   // Calculate the pka for each site
   if (multiflex_->MultiFlex(ogm, mgm, leaptop, leapcrd, titrationData, -1)) {
     mprinterr("Error: Multiflex failed for titratable site calculation.\n");
-    return 1;
+    return -1;
   }
   // Calculate titration curve for each site
   Protonator protonator;
   ArgList protargs("pkout " + leapunitname_ + ".pkout");
   if (protonator.SetupProtonator( State, protargs, debug_, multiflex_->Results() )) {
     mprinterr("Error: Could not set up MC protonator for titratable site calc.\n");
-    return 1;
+    return -1;
   }
   protonator.PrintOptions();
   if (protonator.CalcTitrationCurves()) {
     mprinterr("Error: Calculation of titration curves failed.\n");
-    return CpptrajState::ERR;
+    return -1;
   }
   // Loop over each site
   mprintf("\tCalculated pK half values for each site:\n");
