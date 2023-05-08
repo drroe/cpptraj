@@ -533,9 +533,9 @@ const
   }
   leaptraj.ReadTrajFrame( 0, frameIn );
   leaptraj.EndTraj();
-  // Re-setup output COORDS FIXME this is broken, causes memory corruption
-  //outCoords_->CoordsSetup( leaptop, leaptraj.TrajCoordInfo() );
-  //outCoords_->SetCRD(0, frameIn );
+  // Re-setup output COORDS
+  outCoords_->CoordsSetup( leaptop, leaptraj.TrajCoordInfo() );
+  outCoords_->SetCRD(0, frameIn );
 
   return 0;
 }
