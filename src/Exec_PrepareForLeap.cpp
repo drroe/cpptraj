@@ -730,6 +730,7 @@ int Exec_PrepareForLeap::ProtonationStateCalc(CpptrajState& State, Topology cons
   DataSet_1D const& pkhalf = static_cast<DataSet_1D const&>( *ds );
   unsigned int idx = 0;
   const char* pstateStr[] = { "Protonated", "Deprotonated" };
+  std::string removeMaskStr;
   for (SiteData::const_iterator it = titrationData.begin(); it != titrationData.end(); ++it, ++idx) {
     double pka = pkhalf.Dval( idx );
     TitratableSite const& site = titrationData.GetSite( it->Sname() );
@@ -757,10 +758,22 @@ int Exec_PrepareForLeap::ProtonationStateCalc(CpptrajState& State, Topology cons
         if (leaptop.Res(it->Ridx()).Name() != newname) {
           mprintf("\t  Changing residue name for %s to %s\n",
                   leaptop.TruncResNameNum(it->Ridx()).c_str(), *newname);
-        }
+          if (!prot->second.RemoveAtoms().empty()) {
+            if (!removeMaskStr.empty()) removeMaskStr.append("|");
+            removeMaskStr.append(":" + integerToString(it->Ridx()+1) + "@");
+            for (ProtInfo::Sarray::const_iterator jt = prot->second.RemoveAtoms().begin();
+                                                  jt != prot->second.RemoveAtoms().end(); ++jt)
+            {
+              if (jt != prot->second.RemoveAtoms().begin()) removeMaskStr.append(",");
+              removeMaskStr.append( jt->c_str() );
+            }
+          } // END there are atoms to remove
+        } // END res name needs to change
       }
     }
-  }
+  } // END loop over titration sites
+  if (!removeMaskStr.empty())
+    mprintf("\tMask of atoms to remove: %s\n", removeMaskStr.c_str());
 
   return 0;
 }
