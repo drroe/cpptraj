@@ -1147,6 +1147,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   if (doProtonationState_) {
+    mprintf("\tWill attempt to assign the protonation state for recognized residues at pH %g\n", target_pH_);
     // If determining protonation state, change titratable residue names
     // to those associated with recognized sites.
     if (ChangeTitratableResNames(topIn, "")) {
