@@ -108,7 +108,7 @@ RunMake() {
   if [ -z "$CPPTRAJ_DACDIF" ] ; then
     OUT "  CPPTRAJ: $1"
   fi
-  make all
+  $MAKE_COMMAND all
   if [ $? -ne 0 -o ! -f 'a.out' ] ; then
     ProgramError "$1"
   else
@@ -278,6 +278,9 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   CmdLineOpts $*
 
   export CPPTRAJ_TEST_SETUP='yes'
+  if [ -z "$MAKE_COMMAND" ] ; then
+    export MAKE_COMMAND='make'
+  fi
 fi # END initial setup
 
 # Clean any existing test results files.
@@ -304,7 +307,7 @@ if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
     ErrMsg "No test directories specified."
     exit 1
   fi
-  make $TARGET
+  $MAKE_COMMAND $TARGET
   if [ $? -ne 0 ] ; then
     exit 1
   fi
