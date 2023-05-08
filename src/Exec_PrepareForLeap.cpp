@@ -30,7 +30,9 @@ Exec_PrepareForLeap::Exec_PrepareForLeap() : Exec(COORDS),
   doProtonationState_(false),
   debug_(0),
   target_pH_(0),
-  multiflex_(0)
+  multiflex_(0),
+  outCoords_(0),
+  PDB_(0)
 {
   SetHidden(false);
 }
@@ -38,6 +40,7 @@ Exec_PrepareForLeap::Exec_PrepareForLeap() : Exec(COORDS),
 /** DESTRUCTOR */
 Exec_PrepareForLeap::~Exec_PrepareForLeap() {
   if (multiflex_ != 0) delete multiflex_;
+  if (PDB_ != 0) delete PDB_;
 }
 
 /** If file not present, use a default set of residue names. */
@@ -536,8 +539,6 @@ int Exec_PrepareForLeap::RunLeap(CpptrajState& State,
   Topology leaptop;
   ParmFile parm;
   if (parm.ReadTopology(leaptop, topname, debug_)) return 1;
-  // This will be set to true if topology needs to be written back out
-  bool top_is_modified = false;
 
   // Do protonation state calculation if needed
   if (doProtonationState_) {
@@ -562,9 +563,12 @@ int Exec_PrepareForLeap::RunLeap(CpptrajState& State,
       mprinterr("Error: Protonation state calculation failed.\n");
       return 1;
     } else if (pstateErr == 1) {
-      top_is_modified = true;
+      mprintf("\tTopology was modified by the protonation state calculation.\n"); 
     }
   }
+
+  // This will be set to true if topology needs to be written back out
+  bool top_is_modified = false;
 
   // Go through each residue. Find ones that need to be adjusted.
   // NOTE: If deoxy carbons are ever handled, need to add H1 hydrogen and
@@ -1336,19 +1340,19 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   outCoords_->AddFrame( frameIn );
 
   if (!pdbout.empty()) {
-    Trajout_Single PDB;
-    PDB.SetDebug( debug_ );
-    if (PDB.InitTrajWrite( pdbout, "topresnum " + pdb_ter_arg, State.DSL(), TrajectoryFile::PDBFILE)) {
+    PDB_ = new Trajout_Single();
+    PDB_->SetDebug( debug_ );
+    if (PDB_->InitTrajWrite( pdbout, "topresnum " + pdb_ter_arg, State.DSL(), TrajectoryFile::PDBFILE)) {
       mprinterr("Error: Could not initialize output PDB\n");
       return CpptrajState::ERR;
     }
-    if (PDB.SetupTrajWrite(outCoords_->TopPtr(), outCoords_->CoordsInfo(), 1)) {
+    if (PDB_->SetupTrajWrite(outCoords_->TopPtr(), outCoords_->CoordsInfo(), 1)) {
       mprinterr("Error: Could not set up output PDB\n");
       return CpptrajState::ERR;
     }
-    PDB.PrintInfo(1);
-    PDB.WriteSingle(0, frameIn);
-    PDB.EndTraj();
+    PDB_->PrintInfo(1);
+    PDB_->WriteSingle(0, frameIn);
+    PDB_->EndTraj();
   }
 
   outfile->CloseFile();

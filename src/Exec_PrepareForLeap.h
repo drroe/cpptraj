@@ -61,5 +61,6 @@ class Exec_PrepareForLeap : public Exec {
     std::string solventResName_; ///< Solvent residue name
     Cpptraj::Mead::MeadCalc_Multiflex* multiflex_; ///< For doing the protonation state calc.
     DataSet_Coords_CRD* outCoords_; ///< Hold output COORDS set
+    Trajout_Single* PDB_;           ///< For writing output PDB file
 };
 #endif
