@@ -533,6 +533,10 @@ const
   }
   leaptraj.ReadTrajFrame( 0, frameIn );
   leaptraj.EndTraj();
+  // Re-setup output COORDS FIXME this is broken, causes memory corruption
+  //outCoords_->CoordsSetup( leaptop, leaptraj.TrajCoordInfo() );
+  //outCoords_->SetCRD(0, frameIn );
+
   return 0;
 }
 
@@ -593,8 +597,9 @@ int Exec_PrepareForLeap::RunLeap(CpptrajState& State,
     }
     leaptraj.ReadTrajFrame( 0, leapcrd );
     leaptraj.EndTraj();*/
-    // Run the protonation state calc
-    int pstateErr = ProtonationStateCalc( leaptop, State, leapcrd, LEAP );
+    // Run the protonation state calc.
+    // NOTE: Currently this ONLY updates leaptop
+    int pstateErr = ProtonationStateCalc( leaptop, State, leapcrd, LEAP, topname, rstname );
     if ( pstateErr < 0 ) {
       mprinterr("Error: Protonation state calculation failed.\n");
       return 1;
@@ -729,7 +734,9 @@ void Exec_PrepareForLeap::LeapFxnGroupWarning(Topology const& topIn, int rnum) {
   */ 
 int Exec_PrepareForLeap::ProtonationStateCalc(Topology& leaptop, CpptrajState& State,
                                               Frame const& leapcrd,
-                                              Cpptraj::LeapInterface const& LEAP )
+                                              Cpptraj::LeapInterface const& LEAP,
+                                              std::string const& topname,
+                                              std::string const& rstname)
 const
 {
   using namespace Cpptraj::Mead;
@@ -871,10 +878,10 @@ const
       }
     }
     // Re-setup output COORDS
-    outCoords_->CoordsSetup( leaptop, newFrame.CoordsInfo() );
-    outCoords_->SetCRD(0, newFrame );
+    //outCoords_->CoordsSetup( leaptop, newFrame.CoordsInfo() );
+    //outCoords_->SetCRD(0, newFrame );
     // Write the new PDB
-    if (PDB_->SetupTrajWrite(outCoords_->TopPtr(), outCoords_->CoordsInfo(), 1)) {
+    if (PDB_->SetupTrajWrite(&leaptop, newFrame.CoordsInfo(), 1)) {
       mprinterr("Error: Could not set up new protonation state output PDB\n");
       return -1;
     }
@@ -884,6 +891,9 @@ const
     // Run leap again
     if (LEAP.RunLeap()) {
       mprinterr("Error: Leap failed for new protonation state PDB.\n");
+      return 1;
+    }
+    if (readLeapTop(leaptop, newFrame, topname, rstname)) {
       return 1;
     }
   } // END topology is modified
