@@ -707,11 +707,12 @@ int Exec_PrepareForLeap::ProtonationStateCalc(CpptrajState& State, Topology cons
     mprintf("Warning: No sites to calculate titration for.\n");
     return 0;
   }
-  
+  // Calculate the pka for each site
   if (multiflex_->MultiFlex(ogm, mgm, leaptop, leapcrd, titrationData, -1)) {
     mprinterr("Error: Multiflex failed for titratable site calculation.\n");
     return 1;
   }
+  // Calculate titration curve for each site
   Protonator protonator;
   ArgList protargs("pkout " + leapunitname_ + ".pkout");
   if (protonator.SetupProtonator( State, protargs, debug_, multiflex_->Results() )) {
@@ -723,6 +724,7 @@ int Exec_PrepareForLeap::ProtonationStateCalc(CpptrajState& State, Topology cons
     mprinterr("Error: Calculation of titration curves failed.\n");
     return CpptrajState::ERR;
   }
+  // Loop over each site
   mprintf("\tCalculated pK half values for each site:\n");
   DataSet const* ds = protonator.PkHalf();
   DataSet_1D const& pkhalf = static_cast<DataSet_1D const&>( *ds );
@@ -737,14 +739,25 @@ int Exec_PrepareForLeap::ProtonationStateCalc(CpptrajState& State, Topology cons
     else
       pstate = ProtInfo::DEPROTONATED;
     mprintf("\tSite %8s Res %8i pkhalf= %6.2f  RefStateIdx= %i %s\n", site.SiteName().c_str(), it->Ridx() + 1, pka, site.RefStateIdx(), pstateStr[pstate]);
-    // Decide what to do.
+    // Decide whether site can be changed or not.
     if (it->Stype() == SiteData::T_N || it->Stype() == SiteData::T_C) {
       mprintf("Warning: Terminal site; skipping.\n");
     } else {
       // Look for residue name prot info
       SiteData::ResProtMap::const_iterator prot = titrationData.ResnameToProt().find( site.SiteResName() );
-      if ( prot != titrationData.ResnameToProt().end() ) {
-        mprintf("\t  Protonation info found.\n");
+      if ( prot == titrationData.ResnameToProt().end()) {
+        mprintf("Warning: No protonation residue name information found for site '%s' res '%s'\n",
+                site.SiteName().c_str(), site.SiteResName().c_str());
+      } else {
+        NameType newname;
+        if (pstate == ProtInfo::PROTONATED)
+          newname = prot->second.ProtName();
+        else
+          newname = prot->second.DeprotName();
+        if (leaptop.Res(it->Ridx()).Name() != newname) {
+          mprintf("\t  Changing residue name for %s to %s\n",
+                  leaptop.TruncResNameNum(it->Ridx()).c_str(), *newname);
+        }
       }
     }
   }
