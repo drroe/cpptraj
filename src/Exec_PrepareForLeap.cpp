@@ -557,8 +557,8 @@ int Exec_PrepareForLeap::RunLeap(CpptrajState& State,
     }
     leaptraj.ReadTrajFrame( 0, leapcrd );
     leaptraj.EndTraj();
-    
-    int pstateErr = ProtonationStateCalc( leaptop, State, leapcrd );
+    // Run the protonation state calc
+    int pstateErr = ProtonationStateCalc( leaptop, State, leapcrd, LEAP );
     if ( pstateErr < 0 ) {
       mprinterr("Error: Protonation state calculation failed.\n");
       return 1;
@@ -690,7 +690,11 @@ void Exec_PrepareForLeap::LeapFxnGroupWarning(Topology const& topIn, int rnum) {
   * \return 1 if topology was modified.
   * \return -1 if an error occurred.
   */ 
-int Exec_PrepareForLeap::ProtonationStateCalc(Topology& leaptop, CpptrajState& State, Frame const& leapcrd ) const {
+int Exec_PrepareForLeap::ProtonationStateCalc(Topology& leaptop, CpptrajState& State,
+                                              Frame const& leapcrd,
+                                              Cpptraj::LeapInterface const& LEAP )
+const
+{
   using namespace Cpptraj::Mead;
   mprintf("\tPerforming protonation state calculation for '%s'\n", leaptop.c_str());
   // Set up atoms TODO choose radii set?
@@ -801,6 +805,10 @@ int Exec_PrepareForLeap::ProtonationStateCalc(Topology& leaptop, CpptrajState& S
       newFrame = leapcrd;
     } else {
       // Remove the atoms selected by the mask from topology/coords.
+      // Note that since the 'bond' input given to leap uses
+      // unit.resnum.atomname and we are only removing hydrogens,
+      // residue numbering will not change and the 'bond' input
+      // should remain valid.
       mprintf("\tMask of atoms to remove: %s\n", removeMaskStr.c_str());
       AtomMask M1;
       if (M1.SetMaskString(removeMaskStr)) {
@@ -836,6 +844,11 @@ int Exec_PrepareForLeap::ProtonationStateCalc(Topology& leaptop, CpptrajState& S
     PDB_->PrintInfo(1);
     PDB_->WriteSingle(0, newFrame);
     PDB_->EndTraj();
+    // Run leap again
+    if (LEAP.RunLeap()) {
+      mprinterr("Error: Leap failed for new protonation state PDB.\n");
+      return 1;
+    }
   } // END topology is modified
 
   return 0;

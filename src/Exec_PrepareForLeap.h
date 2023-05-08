@@ -3,6 +3,7 @@
 #include "Exec.h"
 class DataSet_Coords_CRD;
 namespace Cpptraj {
+class LeapInterface;
 namespace Structure {
 class SugarBuilder;
 }
@@ -47,7 +48,7 @@ class Exec_PrepareForLeap : public Exec {
     static void LeapFxnGroupWarning(Topology const&, int);
 
     /// Do the protonation state calculation
-    int ProtonationStateCalc(Topology&, CpptrajState&, Frame const& ) const;
+    int ProtonationStateCalc(Topology&, CpptrajState&, Frame const&, Cpptraj::LeapInterface const&) const;
 
     // -----------------------
     typedef std::set<NameType> SetType;
