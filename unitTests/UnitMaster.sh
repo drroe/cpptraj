@@ -87,7 +87,7 @@ EOF
 all: a.out
 
 a.out: $UNITOBJECTS
-	\$(CXX) -o a.out $UNITOBJECTS
+	\$(CXX) -o a.out $UNITOBJECTS \$(LDFLAGS)
 
 EOF
 }
