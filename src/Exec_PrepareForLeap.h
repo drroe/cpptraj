@@ -1,6 +1,7 @@
 #ifndef INC_EXEC_PREPAREFORLEAP_H
 #define INC_EXEC_PREPAREFORLEAP_H
 #include "Exec.h"
+class DataSet_Coords_CRD;
 namespace Cpptraj {
 namespace Structure {
 class SugarBuilder;
@@ -59,5 +60,6 @@ class Exec_PrepareForLeap : public Exec {
     double target_pH_;           ///< Target pH if assigning protonation states (doProtonationState_).
     std::string solventResName_; ///< Solvent residue name
     Cpptraj::Mead::MeadCalc_Multiflex* multiflex_; ///< For doing the protonation state calc.
+    DataSet_Coords_CRD* outCoords_; ///< Hold output COORDS set
 };
 #endif

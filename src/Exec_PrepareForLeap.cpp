@@ -15,6 +15,7 @@
 #include "Structure/SugarBuilder.h"
 #include "Structure/Sugar.h"
 #include "Structure/Protonator.h"
+#include "Structure/StructureRoutines.h"
 #include "Trajin_Single.h" // For reading in leap file for prot. calc
 #include "Trajout_Single.h"
 #include "Mead/MeadGrid.h"
@@ -739,6 +740,7 @@ int Exec_PrepareForLeap::ProtonationStateCalc(Topology& leaptop, CpptrajState& S
   unsigned int idx = 0;
   const char* pstateStr[] = { "Protonated", "Deprotonated" };
   std::string removeMaskStr;
+  bool topIsModified = false;
   for (SiteData::const_iterator it = titrationData.begin(); it != titrationData.end(); ++it, ++idx) {
     double pka = pkhalf.Dval( idx );
     TitratableSite const& site = titrationData.GetSite( it->Sname() );
@@ -764,8 +766,10 @@ int Exec_PrepareForLeap::ProtonationStateCalc(Topology& leaptop, CpptrajState& S
         else
           newname = prot->second.DeprotName();
         if (leaptop.Res(it->Ridx()).Name() != newname) {
+          topIsModified = true;
           mprintf("\t  Changing residue name for %s to %s\n",
                   leaptop.TruncResNameNum(it->Ridx()).c_str(), *newname);
+          ChangeResName(leaptop.SetRes(it->Ridx()), newname);
           if (!prot->second.RemoveAtoms().empty()) {
             if (!removeMaskStr.empty()) removeMaskStr.append("|");
             removeMaskStr.append(":" + integerToString(it->Ridx()+1) + "@");
@@ -780,8 +784,39 @@ int Exec_PrepareForLeap::ProtonationStateCalc(Topology& leaptop, CpptrajState& S
       }
     }
   } // END loop over titration sites
-  if (!removeMaskStr.empty())
-    mprintf("\tMask of atoms to remove: %s\n", removeMaskStr.c_str());
+  // If topology was modified, it needs to be run through leap again
+  if (topIsModified) {
+    Frame newFrame;
+    if (removeMaskStr.empty()) {
+      // No further topology/coords modification needed.
+      newFrame = leapcrd;
+    } else {
+      // Remove the atoms selected by the mask from topology/coords.
+      mprintf("\tMask of atoms to remove: %s\n", removeMaskStr.c_str());
+      AtomMask M1;
+      if (M1.SetMaskString(removeMaskStr)) {
+        mprinterr("Error: Could not set remove atoms mask expression.\n");
+        return 1;
+      }
+      // Want to strip atoms selected by mask and keep others, so invert selection.
+      M1.InvertMaskExpression();
+      if (leaptop.SetupIntegerMask( M1 )) return 1;
+      if (M1.None()) {
+        mprintf("Warning: No atoms to remove.\n");
+      } else {
+        Topology* newParm = leaptop.modifyStateByMask( M1 );
+        if (newParm == 0) {
+          mprinterr("Error: Could not create new protonation state topology.\n");
+          return 1;
+        }
+        newParm->Brief("New protonation state topology:");
+        newFrame.SetupFrameV( newParm->Atoms(), leapcrd.CoordsInfo() );
+        newFrame.SetFrame( leapcrd, M1 );
+        leaptop = *newParm;
+        delete newParm;
+      }
+    }
+  } // END topology is modified
 
   return 0;
 }
@@ -864,12 +899,12 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: Must specify output COORDS set with 'name'\n");
     return CpptrajState::ERR;
   }
-  DataSet_Coords_CRD* outCoords = (DataSet_Coords_CRD*)State.DSL().AddSet( DataSet::COORDS, outname );
-  if (outCoords == 0) {
+  outCoords_ = (DataSet_Coords_CRD*)State.DSL().AddSet( DataSet::COORDS, outname );
+  if (outCoords_ == 0) {
     mprinterr("Error: Could not allocate output COORDS set.\n");
     return CpptrajState::ERR;
   }
-  mprintf("\tPrepared system will be saved to COORDS set '%s'\n", outCoords->legend());
+  mprintf("\tPrepared system will be saved to COORDS set '%s'\n", outCoords_->legend());
 
   std::string leapffname = argIn.GetStringKey("runleap");
   if (!leapffname.empty()) {
@@ -1297,8 +1332,8 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // Setup output COORDS
-  outCoords->CoordsSetup( topIn, coords.CoordsInfo() );
-  outCoords->AddFrame( frameIn );
+  outCoords_->CoordsSetup( topIn, coords.CoordsInfo() );
+  outCoords_->AddFrame( frameIn );
 
   if (!pdbout.empty()) {
     Trajout_Single PDB;
@@ -1307,7 +1342,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       mprinterr("Error: Could not initialize output PDB\n");
       return CpptrajState::ERR;
     }
-    if (PDB.SetupTrajWrite(outCoords->TopPtr(), outCoords->CoordsInfo(), 1)) {
+    if (PDB.SetupTrajWrite(outCoords_->TopPtr(), outCoords_->CoordsInfo(), 1)) {
       mprinterr("Error: Could not set up output PDB\n");
       return CpptrajState::ERR;
     }
