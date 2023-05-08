@@ -506,6 +506,36 @@ static inline int getLinkCarbonIdx(Topology const& leaptop, int at, int rnum)
   return c_idx;
 }
 
+/** Load a topology that has been written from leap. Update outCoords_. */
+int Exec_PrepareForLeap::readLeapTop(Topology& topIn,
+                                     Frame& frameIn,
+                                     std::string const& topname,
+                                     std::string const& rstname)
+const
+{
+  // Load the leap topology
+  // TODO should we be able to read directly into a passed in topology?
+  Topology leaptop;
+  ParmFile parm;
+  if (parm.ReadTopology(leaptop, topname, debug_)) return 1;
+  topIn = leaptop;
+  // Load the leap coords
+  Trajin_Single leaptraj;
+  ArgList leaptrajargs;
+  if (leaptraj.SetupTrajRead(rstname, leaptrajargs, &leaptop)) {
+    mprinterr("Error: Could not set up coordinates file written by LEaP.\n");
+    return 1;
+  }
+  frameIn.SetupFrameV( leaptop.Atoms(), leaptraj.TrajCoordInfo() );
+  if (leaptraj.BeginTraj()) {
+    mprinterr("Error: Could not open coordinates file written by LEaP.\n");
+    return 1;
+  }
+  leaptraj.ReadTrajFrame( 0, frameIn );
+  leaptraj.EndTraj();
+  return 0;
+}
+
 /** Run leap to generate topology. Modify the topology if needed. */
 int Exec_PrepareForLeap::RunLeap(CpptrajState& State,
                                  std::string const& ff_file,
@@ -535,15 +565,21 @@ int Exec_PrepareForLeap::RunLeap(CpptrajState& State,
     return 1;
   }
 
-  // Load the leap topology;
+  // Load the leap topology
   Topology leaptop;
+  Frame leapcrd;
+  if (readLeapTop(leaptop, leapcrd, topname, rstname)) {
+    return 1;
+  }
+/*
   ParmFile parm;
   if (parm.ReadTopology(leaptop, topname, debug_)) return 1;
+*/
 
   // Do protonation state calculation if needed
   if (doProtonationState_) {
     // Need the coordinates
-    Trajin_Single leaptraj;
+ /*   Trajin_Single leaptraj;
     ArgList leaptrajargs;
     if (leaptraj.SetupTrajRead(rstname, leaptrajargs, &leaptop)) {
       mprinterr("Error: Could not set up coordinates file written by LEaP.\n");
@@ -556,7 +592,7 @@ int Exec_PrepareForLeap::RunLeap(CpptrajState& State,
       return 1;
     }
     leaptraj.ReadTrajFrame( 0, leapcrd );
-    leaptraj.EndTraj();
+    leaptraj.EndTraj();*/
     // Run the protonation state calc
     int pstateErr = ProtonationStateCalc( leaptop, State, leapcrd, LEAP );
     if ( pstateErr < 0 ) {
@@ -662,6 +698,7 @@ int Exec_PrepareForLeap::RunLeap(CpptrajState& State,
 
   // If topology was modified, write it back out
   if (top_is_modified) {
+    ParmFile parm;
     mprintf("\tWriting modified topology back to '%s'\n", topname.c_str());
     parm.WriteTopology(leaptop, topname, parm.CurrentFormat(), debug_);
   }

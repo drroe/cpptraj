@@ -50,6 +50,9 @@ class Exec_PrepareForLeap : public Exec {
     /// Do the protonation state calculation
     int ProtonationStateCalc(Topology&, CpptrajState&, Frame const&, Cpptraj::LeapInterface const&) const;
 
+    /// Read topology/coords written from leap
+    int readLeapTop(Topology&, Frame&, std::string const&, std::string const&) const;
+
     // -----------------------
     typedef std::set<NameType> SetType;
     SetType pdb_res_names_; ///< PDB residue names recognized by Amber FFs
