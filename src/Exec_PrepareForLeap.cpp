@@ -790,6 +790,11 @@ int Exec_PrepareForLeap::ProtonationStateCalc(Topology& leaptop, CpptrajState& S
   } // END loop over titration sites
   // If topology was modified, it needs to be run through leap again
   if (topIsModified) {
+    // Sanity check
+    if (PDB_ == 0) {
+      mprinterr("Internal Error: Output PDB writer is not set up; cannot write new PDB.\n");
+      return -1;
+    }
     Frame newFrame;
     if (removeMaskStr.empty()) {
       // No further topology/coords modification needed.
@@ -800,18 +805,18 @@ int Exec_PrepareForLeap::ProtonationStateCalc(Topology& leaptop, CpptrajState& S
       AtomMask M1;
       if (M1.SetMaskString(removeMaskStr)) {
         mprinterr("Error: Could not set remove atoms mask expression.\n");
-        return 1;
+        return -1;
       }
       // Want to strip atoms selected by mask and keep others, so invert selection.
       M1.InvertMaskExpression();
-      if (leaptop.SetupIntegerMask( M1 )) return 1;
+      if (leaptop.SetupIntegerMask( M1 )) return -1;
       if (M1.None()) {
         mprintf("Warning: No atoms to remove.\n");
       } else {
         Topology* newParm = leaptop.modifyStateByMask( M1 );
         if (newParm == 0) {
           mprinterr("Error: Could not create new protonation state topology.\n");
-          return 1;
+          return -1;
         }
         newParm->Brief("New protonation state topology:");
         newFrame.SetupFrameV( newParm->Atoms(), leapcrd.CoordsInfo() );
@@ -820,6 +825,17 @@ int Exec_PrepareForLeap::ProtonationStateCalc(Topology& leaptop, CpptrajState& S
         delete newParm;
       }
     }
+    // Re-setup output COORDS
+    outCoords_->CoordsSetup( leaptop, newFrame.CoordsInfo() );
+    outCoords_->SetCRD(0, newFrame );
+    // Write the new PDB
+    if (PDB_->SetupTrajWrite(outCoords_->TopPtr(), outCoords_->CoordsInfo(), 1)) {
+      mprinterr("Error: Could not set up new protonation state output PDB\n");
+      return -1;
+    }
+    PDB_->PrintInfo(1);
+    PDB_->WriteSingle(0, newFrame);
+    PDB_->EndTraj();
   } // END topology is modified
 
   return 0;
