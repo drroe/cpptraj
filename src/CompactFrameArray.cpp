@@ -114,6 +114,9 @@ int CompactFrameArray::SetupFrameArray(CoordinateInfo const& cinfoIn, unsigned i
   components_.clear();
   offsets_.clear();
   long int currentOffset = 0;
+  compactFrames_.clear();
+  currentIdx_ = -1;
+  maxIdx_ = 0;
 
   if (cinfoIn.HasCrd())
     addComponent(currentOffset, CoordinateInfo::POSITION, (long int)natoms * 3);
