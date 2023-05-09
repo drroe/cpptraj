@@ -77,7 +77,7 @@ DoTest 4zzw.cpptraj.pdb.save 4zzw.cpptraj.pdb
 
 Run6abz() {
   UNITNAME='Prepare PDB 6abz for LEaP with protonation state calculation'
-  CheckFor inpath tleap
+  CheckFor inpath tleap mead
   if [ $? -eq 0 ] ; then
     echo "source leaprc.protein.ff14SB" > leap.ff.in
     cat > cpptraj.in <<EOF
@@ -101,7 +101,7 @@ EOF
 
 Run1opd() {
   UNITNAME='Prepare PDB 1opd for LEaP with protonation state calculation'
-  CheckFor inpath tleap
+  CheckFor inpath tleap mead
   if [ $? -eq 0 ] ; then
     cat > leap.ff.in <<EOF
 source leaprc.protein.ff19SB

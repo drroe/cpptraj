@@ -8,6 +8,7 @@ CleanFiles cpptraj.in potential.dat test.sphere.pqr solvate.dat bounds.dat MyGri
            tz2.dat tz2.ssi.dat tz2.pkint tz2.summ tz2.g \
            search.dat search.ssi.dat search.pkint search.summ search.g
 
+Requires mead
 INPUT='-i cpptraj.in'
 
 # This can be adjusted to increase the output from the underlying mead library

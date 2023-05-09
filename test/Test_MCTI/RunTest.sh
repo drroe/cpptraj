@@ -13,7 +13,9 @@ MCTI() {
   cat > cpptraj.in <<EOF
 random setdefault drand48
 mcti nmcsteps 1000 startph 0 stopph 12 phincr 0.2 \
-     iseed 1 mclog mc.log mcprefix ../Test_MEAD/tz2 \
+     iseed 1 mclog mc.log \
+     pkfilein ../Test_MEAD/tz2.pkint.save \
+     gfilein  ../Test_MEAD/tz2.g.save \
      mcmode reduced pkout mc.pkout
 EOF
   RunCpptraj "$UNITNAME"

@@ -51,6 +51,7 @@
 #   CPPTRAJ_TNGFILE      : If set CPPTRAJ has TNG file support.
 #   CPPTRAJ_SINGLE_ENS   : If set CPPTRAJ has single ensemble support.
 #   CPPTRAJ_OPENMM       : If set CPPTRAJ has OpenMM support.
+#   CPPTRAJ_MEAD         : If set CPPTRAJ has MEAD support.
 # ----- Variables that can be set by individual scripts ----
 #   TOP                  : Topology file for cpptraj
 #   INPUT                : Input file for cpptraj
@@ -828,6 +829,7 @@ CheckDefines() {
       '-DHAS_TNGFILE'   ) CPPTRAJ_TNGFILE='$DEFINE' ;;
       '-DENABLE_SINGLE_ENSEMBLE' ) export CPPTRAJ_SINGLE_ENS=$DEFINE ;;
       '-DHAS_OPENMM'    ) export CPPTRAJ_OPENMM=$DEFINE ;;
+      '-DHAS_MEAD'      ) export CPPTRAJ_MEAD=$DEFINE ;;
     esac
   done
   export CPPTRAJ_XDRFILE
@@ -1049,6 +1051,7 @@ CheckEnv() {
       'cuda'      ) TestLibrary "CUDA"               "$CPPTRAJ_CUDA" ;;
       'hip'       ) TestLibrary "HIP"                "$CPPTRAJ_HIP" ;;
       'openmm'    ) TestLibrary "OpenMM"             "$CPPTRAJ_OPENMM" ;;
+      'mead'      ) TestLibrary "MEAD"               "$CPPTRAJ_MEAD" ;;
       'notcuda'   )
 	if [ ! -z "$CPPTRAJ_CUDA" ]; then
           echo "  $DESCRIP cannot be run on CUDA."
