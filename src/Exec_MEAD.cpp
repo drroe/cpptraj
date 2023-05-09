@@ -3,6 +3,7 @@
 #include "StringRoutines.h"
 #include "Structure/SiteData.h"
 #include "Structure/TitratableSite.h"
+#ifdef HAS_MEAD
 #include "Mead/MeadGrid.h"
 #include "Mead/MeadOpts.h"
 #include "Mead/MeadCalc.h"
@@ -11,19 +12,24 @@
 #include "Mead/MeadCalc_Multiflex.h"
 
 using namespace Cpptraj::Mead;
+#endif /* HAS_MEAD */
 
-Exec_MEAD::Exec_MEAD() :
-  Exec(GENERAL),
-  MEAD_(0)
+Exec_MEAD::Exec_MEAD() : Exec(GENERAL)
+# ifdef HAS_MEAD
+  ,MEAD_(0)
+# endif
 {}
 
 Exec_MEAD::~Exec_MEAD() {
+# ifdef HAS_MEAD
   if (MEAD_ != 0) delete MEAD_;
+# endif
 }
 
 // Exec_MEAD::Help()
 void Exec_MEAD::Help() const
 {
+# ifdef HAS_MEAD
   mprintf("\t[ogm <ngridpoints>,<gridspacing> ...]\n"
           "\t[crdset <COORDS set>] [radmode {gb|parse|vdw}]\n"
           "\t[name <output set name>] [out <file>]\n"
@@ -36,8 +42,12 @@ void Exec_MEAD::Help() const
           "\t          [temp <temperature>] [rxngrid <input grid>]\n"
           "\t}\n"
          );
+# else
+  mprintf("Warning: CPPTRAJ was compiled without MEAD support. Command disabled.\n");
+# endif
 }
 
+#ifdef HAS_MEAD
 /** Check MEAD is properly set up. */
 int Exec_MEAD::CheckMead(MeadGrid const& ogm) const {
   // Sanity checks
@@ -278,10 +288,12 @@ int Exec_MEAD::addGridLevel(MeadGrid& ogm, std::string const& ogmstr) {
   }
   return 0;
 }
+#endif /* HAS_MEAD */
 
 // Exec_MEAD::Execute()
 Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
 {
+# ifdef HAS_MEAD
   using namespace Cpptraj;
   if (MEAD_ != 0) delete MEAD_;
   enum McalcType { POTENTIAL = 0, SOLVATE, MULTIFLEX };
@@ -385,5 +397,9 @@ Exec::RetType Exec_MEAD::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   if (err != 0) return CpptrajState::ERR;
-  return CpptrajState::OK;    
+  return CpptrajState::OK;
+# else
+  mprinterr("Error: CPPTRAJ was compiled without MEAD support.\n");
+  return CpptrajState::ERR;
+  #endif /* HAS_MEAD */
 }
