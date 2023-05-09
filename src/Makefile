@@ -130,6 +130,11 @@ notngfile:
 	@echo "Skipping bundled TNG build"
 	@echo ""
 
+nomead:
+	@echo ""
+	@echo "Skipping bundled MEAD build"
+	@echo ""
+
 noarpack:
 	@echo ""
 	@echo "Skipping bundled ARPACK build"
