@@ -7,9 +7,11 @@ class LeapInterface;
 namespace Structure {
 class SugarBuilder;
 }
+#ifdef HAS_MEAD
 namespace Mead {
 class MeadCalc_Multiflex;
 }
+#endif
 }
 /// Do common tasks to prepare a structure to be loaded into tleap 
 class Exec_PrepareForLeap : public Exec {
@@ -64,7 +66,9 @@ class Exec_PrepareForLeap : public Exec {
     int debug_;                  ///< Debug level
     double target_pH_;           ///< Target pH if assigning protonation states (doProtonationState_).
     std::string solventResName_; ///< Solvent residue name
+#   ifdef HAS_MEAD
     Cpptraj::Mead::MeadCalc_Multiflex* multiflex_; ///< For doing the protonation state calc.
+#   endif
     DataSet_Coords_CRD* outCoords_; ///< Hold output COORDS set
     Trajout_Single* PDB_;           ///< For writing output PDB file
 };

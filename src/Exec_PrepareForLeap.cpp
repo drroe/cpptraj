@@ -18,8 +18,10 @@
 #include "Structure/StructureRoutines.h"
 #include "Trajin_Single.h" // For reading in leap file for prot. calc
 #include "Trajout_Single.h"
-#include "Mead/MeadGrid.h"
-#include "Mead/MeadCalc_Multiflex.h"
+#ifdef HAS_MEAD
+# include "Mead/MeadGrid.h"
+# include "Mead/MeadCalc_Multiflex.h"
+#endif
 #include <stack> // FindTerByBonds
 
 using namespace Cpptraj::Structure;
@@ -30,7 +32,9 @@ Exec_PrepareForLeap::Exec_PrepareForLeap() : Exec(COORDS),
   doProtonationState_(false),
   debug_(0),
   target_pH_(0),
+# ifdef HAS_MEAD
   multiflex_(0),
+# endif
   outCoords_(0),
   PDB_(0)
 {
@@ -39,7 +43,9 @@ Exec_PrepareForLeap::Exec_PrepareForLeap() : Exec(COORDS),
 
 /** DESTRUCTOR */
 Exec_PrepareForLeap::~Exec_PrepareForLeap() {
+# ifdef HAS_MEAD
   if (multiflex_ != 0) delete multiflex_;
+# endif
   if (PDB_ != 0) delete PDB_;
 }
 
@@ -739,6 +745,7 @@ int Exec_PrepareForLeap::ProtonationStateCalc(Topology& leaptop, CpptrajState& S
                                               std::string const& rstname)
 const
 {
+# ifdef HAS_MEAD
   using namespace Cpptraj::Mead;
   mprintf("\tPerforming protonation state calculation for '%s'\n", leaptop.c_str());
   // Set up atoms TODO choose radii set?
@@ -899,6 +906,10 @@ const
   } // END topology is modified
 
   return 0;
+# else /* HAS_MEAD */
+  mprinterr("Error: CPPTRAJ was compiled without MEAD support.\n");
+  return 1;
+# endif /* HAS_MEAD */
 }
 
 // Exec_PrepareForLeap::Help()
@@ -945,8 +956,14 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   debug_ = State.Debug();
   errorsAreFatal_ = !argIn.hasKey("skiperrors");
   doProtonationState_ = argIn.hasKey("doprot");
-  if (doProtonationState_)
+  if (doProtonationState_) {
+#   ifdef HAS_MEAD
     target_pH_ = argIn.getKeyDouble("targetph", 7.0);
+#   else
+    mprinterr("Error: CPPTRAJ was compiled without MEAD support. Cannot do protonation state calc ('doprot').\n");
+    return CpptrajState::ERR;
+#   endif
+  }
   // Get input coords
   std::string crdset = argIn.GetStringKey("crdset");
   if (crdset.empty()) {
@@ -1297,6 +1314,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // Allocate multiflex if needed
+# ifdef HAS_MEAD
   if (doProtonationState_) {
     if (multiflex_ != 0) delete multiflex_;
     multiflex_ = new Cpptraj::Mead::MeadCalc_Multiflex();
@@ -1305,7 +1323,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       return CpptrajState::ERR;
     }
   }
-
+# endif
   // Prepare sugars
   if (prepare_sugars) {
     if (sugarBuilder.PrepareSugars(errorsAreFatal_, resStat, topIn, frameIn, LeapBonds))
