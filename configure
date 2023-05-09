@@ -233,10 +233,9 @@ LCUDA=12
 LHIP=13
 LOPENMM=14
 LHDF5=15
-LMEAD=16
-LSANDER=17  # Make sure this comes last to avoid pulling in unnecessary symbols
+LSANDER=16  # Make sure this comes last to avoid pulling in unnecessary symbols
 # Total number of external libraries
-NLIB=18
+NLIB=17
 
 # LIB_STAT = Library status:
 #   off       : Do not use library.
@@ -379,15 +378,6 @@ LIB_STTC[$LTNGFILE]='libtng_io.a'
 LIB_D_ON[$LTNGFILE]='-DHAS_TNGFILE'
 LIB_DOFF[$LTNGFILE]=''
 LIB_TYPE[$LTNGFILE]='cpp'
-
-LIB_STAT[$LMEAD]='bundled'
-LIB_CKEY[$LMEAD]='mead'
-LIB_HOME[$LMEAD]='../mead'
-LIB_FLAG[$LMEAD]='-lmead'
-LIB_STTC[$LMEAD]='libmead.a'
-LIB_D_ON[$LMEAD]='-DHAS_MEAD'
-LIB_DOFF[$LMEAD]=''
-LIB_TYPE[$LMEAD]='cpp'
 
 LIB_STAT[$LHDF5]='enabled'
 LIB_CKEY[$LHDF5]='hdf5'
@@ -1123,17 +1113,6 @@ EOF
   TestProgram "  Checking TNG" "$CXX" "$CXXFLAGS ${LIB_INCL[$LTNGFILE]}" testp.cpp "${LIB_FLAG[$LTNGFILE]}"
 }
 
-TestMead() {
-  cat > testp.cpp <<EOF
-#include <mead/PhysCond.h>
-int main() {
-  PhysCond::set_epsext(Opts.EpsExt());
-  return 0;
-}
-EOF
-  TestProgram "  Checking MEAD" "$CXX" "$CXXFLAGS ${LIB_INCL[$LMEAD]}" testp.cpp "${LIB_FLAG[$LMEAD]}"
-}
-
 TestSanderlib() {
   cat > testp.cpp <<EOF
 #include "sander.h"
@@ -1258,7 +1237,6 @@ TestLibraries() {
   if [ "${LIB_TEST[$LREADLINE]}" = 'yes' ] ; then TestReadline ; fi
   if [ "${LIB_TEST[$LXDRFILE]}" = 'yes'  ] ; then TestXdrfile ; fi
   if [ "${LIB_TEST[$LTNGFILE]}" = 'yes'  ] ; then TestTngfile ; fi
-  if [ "${LIB_TEST[$LMEAD]}" = 'yes'     ] ; then TestMead ; fi
   if [ "${LIB_TEST[$LSANDER]}" = 'yes'   ] ; then TestSanderlib ; fi
   if [ "${LIB_TEST[$LCUDA]}" = 'yes'     ] ; then TestCuda ; fi
   if [ "${LIB_TEST[$LHIP]}" = 'yes'      ] ; then TestHip ; fi
@@ -2881,12 +2859,6 @@ if [ "${LIB_STAT[$LTNGFILE]}" = 'bundled' ] ; then
 else
   TNGFILE_TARGET='notngfile'
 fi
-# MEAD
-if [ "${LIB_STAT[$LMEAD]}" = 'bundled' ] ; then
-  MEAD_TARGET=${LIB_FLAG[$LMEAD]}
-else
-  MEAD_TARGET='nomead'
-fi 
 # Arpack
 if [ "${LIB_STAT[$LARPACK]}" = 'bundled' ] ; then
   ARPACK_TARGET=${LIB_FLAG[$LARPACK]}
@@ -2938,8 +2910,6 @@ READLINE_LIB=${LIB_FLAG[$LREADLINE]}
 XDRFILE_TARGET=$XDRFILE_TARGET
 
 TNGFILE_TARGET=$TNGFILE_TARGET
-
-MEAD_TARGET=$MEAD_TARGET
 
 ARPACK_TARGET=$ARPACK_TARGET
 

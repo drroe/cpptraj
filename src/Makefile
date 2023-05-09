@@ -40,6 +40,10 @@ all: cpptraj$(SFX)$(EXE)
 # Install all targets
 install: $(INSTALL_TARGETS)
 
+# MEAD ---------------------------------
+MEAD_TARGET=../mead/libmead.a
+MEAD_LIB=../mead/libmead.a
+
 # Cpptraj ------------------------------
 install_cpptraj: cpptraj$(SFX)$(EXE)
 	$(VB)echo Install cpptraj$(SFX)$(EXE) to $(CPPTRAJBIN)
@@ -47,7 +51,7 @@ install_cpptraj: cpptraj$(SFX)$(EXE)
 
 cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(TNGFILE_TARGET) $(MEAD_TARGET)
 	$(VB)echo Link cpptraj$(SFX)$(EXE)
-	$(VB)$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(CUDA_TARGET) $(FFT_TARGET) $(READLINE_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
+	$(VB)$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(CUDA_TARGET) $(FFT_TARGET) $(READLINE_LIB) $(MEAD_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 # libcpptraj ---------------------------
 # Rule to make libcpptraj-specific objects
@@ -128,11 +132,6 @@ noxdrfile:
 notngfile:
 	@echo ""
 	@echo "Skipping bundled TNG build"
-	@echo ""
-
-nomead:
-	@echo ""
-	@echo "Skipping bundled MEAD build"
 	@echo ""
 
 noarpack:
