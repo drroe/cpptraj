@@ -1223,7 +1223,8 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     //myMap_.DetermineAtomIDs();
   }
 
-  // ----- Below here, no more removing/reordering atoms. ------------ 
+  // ----- Below here, no more removing/reordering non-H atoms. ------
+  // Removing H atoms is ok because that doesn't change residue #s.
 
   // Each residue starts out unknown.
   ResStatArray resStat( topIn.Nres() );
