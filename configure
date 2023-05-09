@@ -184,6 +184,7 @@ USE_MPI=0         # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
 USE_OPENMP=0      # 0 = no OpenMP, 1 = OpenMP
 USE_CUDA=0        # 0 = no CUDA, 1 = CUDA
 USE_HIP=0         # 0 = no HIP, 1 = HIP
+USE_MEAD=1        # 0 = no MEAD, 1 = MEAD
 USE_OPT=1         # 0 = no optimization, 1 = use compiler optimizations, 2 = optimize/tune.
 BLAS_TYPE='other' # none|mkl|libsci(cray)|openblas|macAccelerate|other=normal BLAS
 MKL_TYPE='mkl'    # mkl = -mkl for Intel compilers, line = link-line advisor style
@@ -1251,6 +1252,7 @@ SetupFinalFlags() {
   if [ $USE_CPPTRAJDEBUG -ne 0   ] ; then DIRECTIVES="$DIRECTIVES -DDEBUG" ; fi
   if [ $USE_SINGLEENSEMBLE -ne 0 ] ; then DIRECTIVES="$DIRECTIVES -DENABLE_SINGLE_ENSEMBLE" ; fi
   if [ ! -z "$LFS"               ] ; then DIRECTIVES="$DIRECTIVES $LFS" ; fi
+  if [ $USE_MEAD -eq 1           ] ; then DIRECTIVES="$DIRECTIVES -DHAS_MEAD" ; fi
   if [ "$C11_SUPPORT" = 'yes'    ] ; then
     DIRECTIVES="$DIRECTIVES -DC11_SUPPORT"
     if [ "${LIB_STAT[$LFFTW3]}" != 'off' ] ; then
@@ -2574,6 +2576,7 @@ while [ ! -z "$1" ] ; do
     '-openmp'        ) USE_OPENMP=1 ;;
     '-cuda'          ) USE_CUDA=1 ;;
     '-hip'           ) USE_HIP=1 ;;
+    '-nomead'        ) USE_MEAD=0 ;;
     '-cray'          ) PLATFORM='cray' ;;
     '-mkl'           ) BLAS_TYPE='mkl' ;;
     '-nomklfftw'     ) MKL_FFTW='no' ;;
@@ -2759,6 +2762,14 @@ for ((i=0; i < $NLIB; i++)) ; do
   fi
 done
 echo ""
+if [ $USE_MEAD -eq 1 ] ; then
+  echo "  MEAD support enabled."
+  MEAD_TARGET='../mead/libmead.a'
+  CPPTRAJ_LIB="../mead/libmead.a $CPPTRAJ_LIB"
+else
+  echo "  MEAD support disabled."
+  MEAD_TARGET='nomead'
+fi
 if [ $USE_SINGLEENSEMBLE -ne 0 ] ; then
   echo "  Support for single-ensemble trajectories enabled."
 fi
@@ -2910,6 +2921,8 @@ READLINE_LIB=${LIB_FLAG[$LREADLINE]}
 XDRFILE_TARGET=$XDRFILE_TARGET
 
 TNGFILE_TARGET=$TNGFILE_TARGET
+
+MEAD_TARGET=$MEAD_TARGET
 
 ARPACK_TARGET=$ARPACK_TARGET
 
