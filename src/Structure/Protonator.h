@@ -44,7 +44,7 @@ class Protonator {
     typedef std::pair<int,int> StatePair;
     typedef std::vector<StatePair> PairArray;
 
-    int read_files(CpptrajState&, std::string const&);
+    int read_files(CpptrajState&, std::string const&, std::string const&, std::string const&);
 
     static double mc_deltae(StateArray const&, int, unsigned int, DataSet_2D const&, DataSet_1D const&, Darray const&);
 

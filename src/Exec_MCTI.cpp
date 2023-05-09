@@ -5,7 +5,7 @@
 // Exec_MCTI::Help()
 void Exec_MCTI::Help() const
 {
-
+  Cpptraj::Structure::Protonator::HelpText();
 }
 
 // Exec_MCTI::Execute()

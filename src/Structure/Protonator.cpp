@@ -41,11 +41,16 @@ Protonator::Protonator() :
 {}
 
 /** For testing, read data from .pkint and .g files. */
-int Protonator::read_files(CpptrajState& State, std::string const& prefix)
+int Protonator::read_files(CpptrajState& State, std::string const& prefix,
+                           std::string const& pkintfileIn, std::string const& gfileIn)
 {
   CpptrajFile infile;
   // Pkint - site_intrinsic_pKas_, site_qunprot_, site_names_
-  std::string pkintfile = prefix + ".pkint";
+  std::string pkintfile;
+  if (pkintfileIn.empty())
+    pkintfile = prefix + ".pkint";
+  else
+    pkintfile = pkintfileIn;
   if (infile.OpenRead( pkintfile )) {
     mprinterr("Error: Opening file %s\n", pkintfile.c_str());
     return 1;
@@ -71,7 +76,11 @@ int Protonator::read_files(CpptrajState& State, std::string const& prefix)
   }
   infile.CloseFile();
   // G - site_site_matrix_
-  std::string gfile = prefix + ".g";
+  std::string gfile;
+  if (gfileIn.empty())
+    gfile = prefix + ".g";
+  else
+    gfile = gfileIn;
   if (infile.OpenRead( gfile )) {
     mprinterr("Error: Opening file %s\n", gfile.c_str());
     return 1;
@@ -100,7 +109,9 @@ int Protonator::read_files(CpptrajState& State, std::string const& prefix)
 }
 
 void Protonator::HelpText() {
-  mprintf("\t{setname <set name prefix>|mcprefix <file name prefix}\n"
+  mprintf("\t{ setname <set name prefix> |\n"
+          "\t  mcprefix <file name prefix |\n"
+          "\t  pkfilein <.pkint file> gfilein <.g file> }\n"
           "\t[nmcsteps <# MC steps>] [redsteps <# reduced MC steps>]\n"
           "\t[startph <start pH>] [stopph <stop pH>] [phincr <pH increment>]\n"
           "\t[minwint <interaction cut>] [fracttol <reduced site tol.>]\n"
@@ -121,11 +132,26 @@ int Protonator::SetupProtonator(CpptrajState& State, ArgList& argIn, int debugIn
   debug_ = debugIn;
   std::string mcprefix = argIn.GetStringKey("mcprefix");
   std::string setname = argIn.GetStringKey("setname");
-  if (!mcprefix.empty()) {
+  std::string pkfilename = argIn.GetStringKey("pkfilein");
+  std::string gfilename = argIn.GetStringKey("gfilein");
+  bool read_external_files = false;
+  if (!pkfilename.empty() || !gfilename.empty() || !mcprefix.empty()) {
+    read_external_files = true;
+    if (mcprefix.empty()) {
+      if (pkfilename.empty() || gfilename.empty()) {
+        mprinterr("Error: Both 'pkfilein' and 'gfilein' must be specified together.\n");
+        return 1;
+      }
+    }
     if (!setname.empty())
-      mprintf("Warning: Both 'mcprefix' and 'setname' specified; defaulting to 'mcprefix'.\n");
-    mprintf("\tLoading previous MEAD results for MC using prefix '%s'\n", mcprefix.c_str());
-    if (read_files(State, mcprefix)) return 1;
+      mprintf("Warning: Both 'setname' and one or more file read keywords were specified; defaulting to file read.\n");
+  }
+  if (read_external_files) {
+    if (!mcprefix.empty())
+      mprintf("\tLoading previous MEAD results for MC using prefix '%s'\n", mcprefix.c_str());
+    else
+      mprintf("\tLoading previous MEAD results for MC from '%s' and '%s'\n", pkfilename.c_str(), gfilename.c_str());
+    if (read_files(State, mcprefix, pkfilename, gfilename)) return 1;
   } else if (!setname.empty()) {
     // Look for existing sets
     site_intrinsic_pKas_ = State.DSL().GetDataSet( setname + "[pkint]" );
