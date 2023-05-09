@@ -1,5 +1,6 @@
 #ifndef INC_MEAD_MEADCALC_H
 #define INC_MEAD_MEADCALC_H
+#ifdef HAS_MEAD
 // Fwd declares
 class Topology;
 class Frame;
@@ -37,4 +38,5 @@ class MeadCalc {
 };
 } /* END namespace Mead */
 } /* END namespace Cpptraj */
+#endif
 #endif

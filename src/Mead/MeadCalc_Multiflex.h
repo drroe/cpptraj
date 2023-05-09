@@ -1,5 +1,6 @@
 #ifndef INC_MEAD_MEADCALC_MULTIFLEX_H
 #define INC_MEAD_MEADCALC_MULTIFLEX_H
+#ifdef HAS_MEAD
 #include "MeadCalc.h"
 #include "../Timer.h"
 // Fwd declares
@@ -60,4 +61,5 @@ class MeadCalc_Multiflex : public MeadCalc {
 };
 } /* END namespace Mead */
 } /* END namespace Cpptraj */
+#endif
 #endif

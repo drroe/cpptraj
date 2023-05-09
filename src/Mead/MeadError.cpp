@@ -1,3 +1,4 @@
+#ifdef HAS_MEAD
 #include "MeadError.h"
 #include "../CpptrajStdio.h"
 #include "../../mead/MEADexcept.h"
@@ -10,3 +11,4 @@ int Cpptraj::Mead::ERR(const char* fxn, MEADexcept& e) {
               e.get_error3().c_str());
   return 1;
 }
+#endif

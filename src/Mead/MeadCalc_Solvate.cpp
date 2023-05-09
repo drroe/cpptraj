@@ -1,3 +1,4 @@
+#ifdef HAS_MEAD
 #include "MeadCalc_Solvate.h"
 #include "MeadError.h"
 #include "MeadGrid.h"
@@ -102,3 +103,4 @@ const
 
   return 0;
 }
+#endif

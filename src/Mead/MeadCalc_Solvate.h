@@ -1,5 +1,6 @@
 #ifndef INC_MEAD_MEADCALC_SOLVATE_H
 #define INC_MEAD_MEADCALC_SOLVATE_H
+#ifdef HAS_MEAD
 #include "MeadCalc.h"
 class DataSet_3D;
 namespace Cpptraj {
@@ -13,4 +14,5 @@ class MeadCalc_Solvate : public MeadCalc {
 };
 }
 }
+#endif
 #endif

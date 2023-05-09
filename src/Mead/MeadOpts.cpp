@@ -1,3 +1,4 @@
+#ifdef HAS_MEAD
 #include "MeadOpts.h"
 #include "../CpptrajStdio.h"
 #include "../../mead/globals.h"
@@ -26,4 +27,4 @@ void Cpptraj::Mead::MeadOpts::MeadVerbosity(int i) {
   if (i != 0)
     mprintf("Info: MEAD verbosity set to %i\n", i);
 }
-
+#endif

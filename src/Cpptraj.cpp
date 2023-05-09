@@ -263,6 +263,9 @@ std::string Cpptraj::Defines() {
 #ifdef HAS_OPENMM
   defined_str.append(" -DHAS_OPENMM");
 #endif
+#ifdef HAS_MEAD
+  defined_str.append(" -DHAS_MEAD");
+#endif
   return defined_str;
 }
 

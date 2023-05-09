@@ -1,5 +1,6 @@
 #ifndef INC_MEAD_MEADGRID_H
 #define INC_MEAD_MEADGRID_H
+#ifdef HAS_MEAD
 #include <vector>
 #include "../Vec3.h"
 class Frame;
@@ -64,4 +65,5 @@ class MeadGrid {
 };
 }
 }
+#endif
 #endif

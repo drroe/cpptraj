@@ -1,3 +1,4 @@
+#ifdef HAS_MEAD
 #include "MeadCalc_Potential.h"
 #include "MeadError.h"
 #include "MeadOpts.h"
@@ -81,3 +82,4 @@ const
 
   return 0;
 }
+#endif

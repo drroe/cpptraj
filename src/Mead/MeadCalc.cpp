@@ -1,3 +1,4 @@
+#ifdef HAS_MEAD
 #include "MeadCalc.h"
 #include "MeadError.h"
 #include "../Frame.h"
@@ -82,3 +83,4 @@ int MeadCalc::SetupAtoms(Topology const& topIn, Frame const& frameIn, Radii_Mode
   
   return 0;
 }
+#endif

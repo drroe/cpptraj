@@ -1,5 +1,6 @@
 #ifndef INC_MEAD_MEADOPTS_H
 #define INC_MEAD_MEADOPTS_H
+#ifdef HAS_MEAD
 namespace Cpptraj {
 namespace Mead {
 /// Hold MEAD options
@@ -36,4 +37,5 @@ class MeadOpts {
 };
 }
 }
+#endif
 #endif

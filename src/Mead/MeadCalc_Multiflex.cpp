@@ -1,3 +1,4 @@
+#ifdef HAS_MEAD
 #include "MeadCalc_Multiflex.h"
 #include "MultiFlexResults.h"
 #include "MeadOpts.h"
@@ -623,3 +624,4 @@ int MeadCalc_Multiflex::MultiFlex(
 MultiFlexResults const& MeadCalc_Multiflex::Results() const {
   return *results_;
 }
+#endif

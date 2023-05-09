@@ -1,3 +1,4 @@
+#ifdef HAS_MEAD
 #include "MeadGrid.h"
 #include "MeadError.h"
 #include "../CpptrajStdio.h"
@@ -199,3 +200,4 @@ int MeadGrid::SetupGridFromCoords(Frame const& frameIn, int maxGridIn) {
 int MeadGrid::SetupGridFromCoords(Frame const& frameIn) {
   return SetupGridFromCoords(frameIn, -1);
 }
+#endif

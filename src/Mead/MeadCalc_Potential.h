@@ -1,5 +1,6 @@
 #ifndef INC_MEAD_MEADCALC_POTENTIAL_H
 #define INC_MEAD_MEADCALC_POTENTIAL_H
+#ifdef HAS_MEAD
 #include "MeadCalc.h"
 #include <vector>
 class DataSet_Vector_Scalar;
@@ -18,4 +19,5 @@ class MeadCalc_Potential : public MeadCalc {
 };
 }
 }
+#endif
 #endif
