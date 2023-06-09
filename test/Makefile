@@ -517,6 +517,11 @@ test.mead:
 
 test.mcti:
 	@-cd Test_MCTI && ./RunTest.sh $(OPT)
+test.avgbox:
+	@-cd Test_AvgBox && ./RunTest.sh $(OPT)
+
+test.tordiff:
+	@-cd Test_TorDiff && ./RunTest.sh $(OPT)
 
 # Every test target should go here.
 COMPLETETESTS=test.general \
@@ -681,7 +686,9 @@ COMPLETETESTS=test.general \
               test.netcdfdata \
               test.compareenergy \
               test.mead \
-              test.mcti
+              test.mcti \
+              test.avgbox \
+              test.tordiff
 
 test.all:
 	$(MAKE) test.complete summary
