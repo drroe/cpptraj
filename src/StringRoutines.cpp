@@ -36,6 +36,8 @@ std::string AppendNumber(std::string const &fname, int number) {
   *   '?': A single character.
   */
 int WildcardMatch(std::string const& S1, std::string const& S2) {
+  //mprintf("DEBUG: wildcard string : '%s'\n", S1.c_str());
+  //mprintf("DEBUG: string to match : '%s'\n", S2.c_str());
   std::string::const_iterator c1 = S1.begin();
   std::string::const_iterator c2 = S2.begin();
   while ( c1 != S1.end() || c2 != S2.end() ) {
@@ -43,15 +45,20 @@ int WildcardMatch(std::string const& S1, std::string const& S2) {
     if (*c1 == '*') {
       ++c1;
       if (c1 == S1.end()) return 1;
-      bool match = false;
-      while (c2 != S2.end()) {
-        if (*c2 == *c1) {
-          match = true;
-          break;
-        }
-        ++c2;
+      // Search for the last instance of c1 in s2
+      int last_idx = -1;
+      for (unsigned int i2 = (unsigned int)(c2 - S2.begin());
+                        i2 != S2.size(); ++i2)
+      {
+        if (S2[i2] == *c1)
+          last_idx = (int)i2;
       }
-      if (!match) return 0;
+      if (last_idx == -1) {
+        // c1 was not found in S2. No match.
+        return 0;
+      }
+      // c1 was found in S2. Adjust c2.
+      c2 = S2.begin() + last_idx;
     } else if (c2 == S2.end()) {
       return 0;
     } else if (*c1 == '?') {
@@ -279,6 +286,33 @@ bool validDouble(std::string const& argument) {
 */
 }
 
+/** \return True if this is a recognized CPPTRAJ mask expression.
+  * NOTE: The previous method for this was:
+  *   size_t found = arglist_[pos].find_first_of(":@*");
+  *   return (found != std::string::npos);
+  * Which could potentially let something weird through like 'test@'.
+  */
+bool StrIsMask(std::string const& str) {
+  if (str.empty()) return false;
+  std::string::const_iterator p = str.begin();
+  // Advance past any negate operator or open parentheses.
+  while (*p == '!' || *p == '(') {
+    ++p;
+    if (p == str.end()) return false;
+  }
+  // Determine if character could start a mask expression.
+  bool isMask;
+  switch ( *p ) {
+    case '@':
+    case ':':
+    case '^':
+    case '*':
+    case '=': isMask = true; break;
+    default : isMask = false;
+  }
+  return isMask;
+}
+
 // -----------------------------------------------------------------------------
 // NOTE: I think this serves as a great example of how printf syntax is way
 //       easier than iostream stuff (same printf command is only 3 lines). -DRR
@@ -400,17 +434,22 @@ std::string ArrayToRangeExpression(std::vector<int> const& arrayIn, int offsetIn
   unsigned int idx = 0;
   while (idx < arrayIn.size()) {
     unsigned int kdx = idx + 1;
-    int delta = arrayIn[kdx] - arrayIn[kdx-1];
-    while (delta == 1) {
-      kdx++;
-      if (kdx == arrayIn.size()) break;
-      delta = arrayIn[kdx] - arrayIn[kdx-1];
-    }
-    //mprintf("DEBUG: idx= %u kdx= %u array[i]= %i array[k-1]= %i delta= %i\n",
-    //        idx, kdx, arrayIn[idx], arrayIn[kdx-1], delta);
-    if (delta <= 0) {
-      mprinterr("Internal Error: ArrayToRangeExpression() requires arrays in increasing order.\n");
-      return std::string("");
+    if (kdx < arrayIn.size()) {
+      int delta = arrayIn[kdx] - arrayIn[kdx-1];
+      while (delta == 1) {
+        kdx++;
+        if (kdx == arrayIn.size()) break;
+        delta = arrayIn[kdx] - arrayIn[kdx-1];
+      }
+      //mprintf("DEBUG: idx= %u kdx= %u array[i]= %i array[k-1]= %i delta= %i\n",
+      //        idx, kdx, arrayIn[idx], arrayIn[kdx-1], delta);
+      if (delta <= 0) {
+        mprinterr("Internal Error: ArrayToRangeExpression() requires arrays in increasing order.\n");
+        mprinterr("Internal Error: idx = %u  kdx = %u  delta = %i\n", idx, kdx, delta);
+        for (unsigned int ii = 0; ii < arrayIn.size(); ii++)
+          mprinterr("Internal Error:\t\t[%8u] %8i\n", ii, arrayIn[ii]);
+        return std::string("");
+      }
     }
     if (commaGroup > 0)
       out.append(",");

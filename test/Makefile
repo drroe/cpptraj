@@ -506,6 +506,21 @@ test.keep:
 test.hremd:
 	@-cd Test_Ensemble_HREMD && ./RunTest.sh $(OPT)
 
+test.netcdfdata:
+	@-cd Test_NetcdfData && ./RunTest.sh $(OPT)
+
+test.compareenergy:
+	@-cd Test_CompareEnergy && ./RunTest.sh $(OPT)
+
+test.avgbox:
+	@-cd Test_AvgBox && ./RunTest.sh $(OPT)
+
+test.tordiff:
+	@-cd Test_TorDiff && ./RunTest.sh $(OPT)
+
+test.calcdiffusion:
+	@-cd Test_CalcDiffusion && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -665,7 +680,12 @@ COMPLETETESTS=test.general \
               test.ljc \
               test.hmassrepartition \
               test.prepareforleap \
-              test.keep
+              test.keep \
+              test.netcdfdata \
+              test.compareenergy \
+              test.avgbox \
+              test.tordiff \
+              test.calcdiffusion
 
 test.all:
 	$(MAKE) test.complete summary

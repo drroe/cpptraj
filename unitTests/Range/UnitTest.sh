@@ -2,9 +2,9 @@
 
 . ../UnitMaster.sh
 
-CleanFiles Makefile main.o Range.o a.out CpptrajStdio.o ArgList.o StringRoutines.o
+CleanFiles Makefile main.o Range.o StringRoutines.o a.out CpptrajStdio.o ArgList.o
 
-UNITSOURCES='Range.cpp CpptrajStdio.cpp ArgList.cpp StringRoutines.cpp'
+UNITSOURCES='Range.cpp StringRoutines.cpp CpptrajStdio.cpp ArgList.cpp'
 
 CreateMakefile
 

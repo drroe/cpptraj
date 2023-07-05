@@ -32,6 +32,7 @@ if %BUILD_TYPE% equ cmake-vs (
 	set CC=%MINGWPREFIX%-gcc.exe
 	set CXX=%MINGWPREFIX%-g++.exe
 	set FC=%MINGWPREFIX%-gfortran.exe
+        sh -lc "pacman-key --refresh-keys"
 	sh -lc "pacman -S --noconfirm --needed mingw-w64-x86_64-netcdf mingw-w64-x86_64-openblas mingw-w64-x86_64-arpack mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-fortran mingw-w64-x86_64-ncurses mingw-w64-x86_64-readline diffutils"
 
 	rem build NetCDF (we need our own version since the one in Pacman has an unwanted dependency on HDF5 and Termcap)
@@ -39,6 +40,8 @@ if %BUILD_TYPE% equ cmake-vs (
 	
 	rem path from here: https://www.appveyor.com/docs/build-environment/#mingw-msys-cygwin
 	set MINGWDIR=C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1
+	rem set "PATH=%PATH%;C:\projects\cpptraj\bin"
+	set "PATH=%cd%\bin;%PATH%"
 )
 
 if %BUILD_TYPE% equ cmake-mingw (

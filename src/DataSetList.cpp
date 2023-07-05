@@ -35,6 +35,7 @@
 #include "DataSet_Vector_Scalar.h"
 #include "DataSet_unsignedInt.h"
 #include "DataSet_PotentialFxn.h"
+#include "DataSet_Coords_FRM.h"
 
 bool DataSetList::useDiskCache_ = false;
 
@@ -72,6 +73,7 @@ DataSet* DataSetList::NewSet(DataSet::DataType typeIn) {
     case DataSet::REMLOG     : ds = DataSet_RemLog::Alloc(); break;
     case DataSet::XYMESH     : ds = DataSet_Mesh::Alloc(); break;
     case DataSet::TRAJ       : ds = DataSet_Coords_TRJ::Alloc(); break;
+    case DataSet::FRAMES     : ds = DataSet_Coords_FRM::Alloc(); break;
     case DataSet::REF_FRAME  : ds = DataSet_Coords_REF::Alloc(); break;
     case DataSet::MAT3X3     : ds = DataSet_Mat3x3::Alloc(); break;
     case DataSet::TOPOLOGY   : ds = DataSet_Topology::Alloc(); break;
@@ -878,6 +880,7 @@ std::string DataSetList::GetVariable(std::string const& varnameIn) const {
 int DataSetList::ReplaceVariables(std::string& varname, std::string const& varnameIn)
 const
 {
+  //mprintf("DEBUG: ReplaceVariables in '%s'\n", varnameIn.c_str());
   int nReplaced = 0;
   varname = varnameIn;
   size_t pos = varname.find("$");
