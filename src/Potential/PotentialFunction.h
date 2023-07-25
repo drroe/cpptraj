@@ -29,6 +29,8 @@ class PotentialFunction {
 
     int CalculateForce(Frame&);
 
+    int CalculateEnergy(Frame const&);
+
     void FnInfo() const;
 
     EnergyArray const& Energy() const { return earray_; }
