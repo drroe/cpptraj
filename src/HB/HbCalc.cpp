@@ -18,7 +18,7 @@ bool HbCalc::IsFON( Atom const& at ) {
 const char* HbCalc::TypeStr_[] = {
   "Hydrogen",
   "Donor",
-  "Acceptor"
+  "Acceptor",
   "Both"
 };
 
@@ -44,6 +44,7 @@ int HbCalc::SetupPairlistAtomMask(Topology const& topIn) {
     mprintf("Warning: No atoms selected by mask '%s' \n", generalMask_.MaskString());
     return 1;
   }
+  generalMask_.MaskInfo();
   // Decide what each atom is
   typedef std::pair<int, Type> Ptype;
   typedef std::vector<Ptype> Parray;
@@ -80,8 +81,12 @@ int HbCalc::SetupPairlistAtomMask(Topology const& topIn) {
     plTypes_.push_back( it->second );
   }
 
-  for (int idx = 0; idx != plMask_.Nselected(); idx++)
-    mprintf("\t%8i %4s %s\n", plMask_[idx]+1, *(topIn[plMask_[idx]].Name()), TypeStr_[plTypes_[idx]]);
+  for (int idx = 0; idx != plMask_.Nselected(); idx++) {
+    //mprintf("\t%8i %4s %s\n", plMask_[idx]+1, *(topIn[plMask_[idx]].Name()), TypeStr_[plTypes_[idx]]);
+    mprintf("\t%8i", plMask_[idx]+1);
+    mprintf(" %4s", *(topIn[plMask_[idx]].Name()));
+    mprintf(" %s\n", TypeStr_[plTypes_[idx]]);
+  }
 
   return 0;
 }

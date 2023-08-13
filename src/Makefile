@@ -12,7 +12,7 @@ include HB/hbfiles
 HB_SOURCEFILES=$(HB_SOURCES:%.cpp=HB/%.cpp)
 
 # All object files
-OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(CLUSTER_SOURCEFILES:.cpp=.o) $(STRUCTURE_SOURCEFILES:.cpp=.o) $(HB_SOURCEFILES:.cpp.o)
+OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(CLUSTER_SOURCEFILES:.cpp=.o) $(STRUCTURE_SOURCEFILES:.cpp=.o) $(HB_SOURCEFILES:.cpp=.o)
 
 # General rules
 .cpp.o:
