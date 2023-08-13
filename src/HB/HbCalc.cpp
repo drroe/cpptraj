@@ -1,6 +1,7 @@
 #include "HbCalc.h"
 #include <algorithm>
 #include <utility>
+#include "../ArgList.h"
 #include "../CpptrajStdio.h"
 #include "../Topology.h"
 
@@ -12,6 +13,25 @@ bool HbCalc::IsFON( Atom const& at ) {
   return ( at.Element() == Atom::OXYGEN ||
            at.Element() == Atom::NITROGEN ||
            at.Element() == Atom::FLUORINE );
+}
+
+const char* HbCalc::TypeStr_[] = {
+  "Hydrogen",
+  "Donor",
+  "Acceptor"
+  "Both"
+};
+
+/** Initialize */
+int HbCalc::InitHbCalc(ArgList& argIn) {
+  generalMask_.SetMaskString( argIn.GetMaskNext() );
+
+  return 0;
+}
+
+/** Print current options */
+void HbCalc::PrintHbCalcOpts() const {
+  mprintf("\tSearching for atoms in mask '%s'\n", generalMask_.MaskString());
 }
 
 /** Set up mask for pair list. */
@@ -30,7 +50,7 @@ int HbCalc::SetupPairlistAtomMask(Topology const& topIn) {
   Parray IdxTypes;
   IdxTypes.reserve( generalMask_.Nselected() ); // TODO not reserve?
 
-  plMask_.ClearSelected();
+  plMask_ = AtomMask( std::vector<int>(), topIn.Natom() );
   plTypes_.clear();
 
   for (AtomMask::const_iterator at = generalMask_.begin(); at != generalMask_.end(); ++at) {
@@ -59,6 +79,9 @@ int HbCalc::SetupPairlistAtomMask(Topology const& topIn) {
     plMask_.AddSelectedAtom( it->first );
     plTypes_.push_back( it->second );
   }
+
+  for (int idx = 0; idx != plMask_.Nselected(); idx++)
+    mprintf("\t%8i %4s %s\n", plMask_[idx]+1, *(topIn[plMask_[idx]].Name()), TypeStr_[plTypes_[idx]]);
 
   return 0;
 }

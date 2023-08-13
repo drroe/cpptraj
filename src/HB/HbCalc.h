@@ -2,6 +2,7 @@
 #define INC_HB_HBCALC_H
 #include "../AtomMask.h"
 #include "../PairList.h"
+class ArgList;
 class Atom;
 class Topology;
 namespace Cpptraj {
@@ -12,7 +13,11 @@ class HbCalc {
     /// CONSTRUCTOR
     HbCalc();
 
+    int InitHbCalc(ArgList&);
+
     int SetupPairlistAtomMask(Topology const&);
+
+    void PrintHbCalcOpts() const;
   private:
     PairList pairList_; ///< Pair list for atoms involved in hydrogen bond calc
 
@@ -22,6 +27,8 @@ class HbCalc {
 
     /// Different atom types
     enum Type { HYDROGEN = 0, DONOR, ACCEPTOR, BOTH };
+    /// Strings for different atom types
+    static const char* TypeStr_[];
 
     typedef std::vector<Type> Tarray;
 
