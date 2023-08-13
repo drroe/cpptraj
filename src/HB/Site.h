@@ -27,5 +27,5 @@ class Site {
     Iarray hlist_; ///< List of hydrogen indices
     int idx_;      ///< Heavy atom index
 };
-
+}
 #endif
