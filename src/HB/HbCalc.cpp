@@ -1,4 +1,5 @@
 #include "HbCalc.h"
+#include <cmath>
 #include <algorithm>
 #include <utility>
 #include "../ArgList.h"
@@ -7,7 +8,9 @@
 
 using namespace Cpptraj::HB;
 
-HbCalc::HbCalc() {}
+HbCalc::HbCalc() :
+  dcut2_(0)
+{}
 
 bool HbCalc::IsFON( Atom const& at ) {
   return ( at.Element() == Atom::OXYGEN ||
@@ -23,8 +26,14 @@ const char* HbCalc::TypeStr_[] = {
 };
 
 /** Initialize */
-int HbCalc::InitHbCalc(ArgList& argIn) {
+int HbCalc::InitHbCalc(ArgList& argIn, int debugIn) {
+  double dcut = argIn.getKeyDouble("dist",3.0);
+  dcut = argIn.getKeyDouble("distance", dcut); // for PTRAJ compat.
+  dcut2_ = dcut * dcut;
+
   generalMask_.SetMaskString( argIn.GetMaskNext() );
+
+  pairList_.InitPairList( dcut, 1.0, debugIn );
 
   return 0;
 }
@@ -32,10 +41,20 @@ int HbCalc::InitHbCalc(ArgList& argIn) {
 /** Print current options */
 void HbCalc::PrintHbCalcOpts() const {
   mprintf("\tSearching for atoms in mask '%s'\n", generalMask_.MaskString());
+  mprintf("\tHeavy atom distance cutoff= %g Ang.\n", sqrt(dcut2_));
+}
+
+/** Set up calculation */
+int HbCalc::SetupHbCalc(Topology const& topIn, Box const& boxIn) {
+  if (setupPairlistAtomMask( topIn )) return 1;
+
+  if (pairList_.SetupPairList( boxIn )) return 1;
+
+  return 0;
 }
 
 /** Set up mask for pair list. */
-int HbCalc::SetupPairlistAtomMask(Topology const& topIn) {
+int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
   if (topIn.SetupIntegerMask( generalMask_ )) {
     mprinterr("Error: Could not set up mask '%s'\n", generalMask_.MaskString());
     return 1;

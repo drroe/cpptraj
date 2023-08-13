@@ -4,6 +4,7 @@
 #include "../PairList.h"
 class ArgList;
 class Atom;
+class Box;
 class Topology;
 namespace Cpptraj {
 namespace HB {
@@ -13,12 +14,16 @@ class HbCalc {
     /// CONSTRUCTOR
     HbCalc();
 
-    int InitHbCalc(ArgList&);
+    int InitHbCalc(ArgList&, int);
 
-    int SetupPairlistAtomMask(Topology const&);
+    int SetupHbCalc(Topology const&, Box const&);
 
     void PrintHbCalcOpts() const;
   private:
+    static inline bool IsFON( Atom const& );
+
+    int setupPairlistAtomMask(Topology const&);
+
     PairList pairList_; ///< Pair list for atoms involved in hydrogen bond calc
 
     AtomMask generalMask_; ///< Mask of atoms to potentially calculate hydrogen bonds for
@@ -34,7 +39,7 @@ class HbCalc {
 
     Tarray plTypes_; ///< Type of each atom in plMask_
 
-    static inline bool IsFON( Atom const& );
+    double dcut2_; ///< Heavy atom distance cutoff (Ang) squared
 };
 }
 }
