@@ -1,0 +1,5 @@
+# Files for HB subdirectory.
+HB_SOURCES= \
+  Bridge.cpp \
+  HbCalc.cpp \
+  Hbond.cpp
