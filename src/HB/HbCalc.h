@@ -6,6 +6,7 @@ class ArgList;
 class Atom;
 class Box;
 class Topology;
+class Frame;
 namespace Cpptraj {
 namespace HB {
 /// Main driver for hydrogen bond calculation
@@ -19,6 +20,8 @@ class HbCalc {
     int SetupHbCalc(Topology const&, Box const&);
 
     void PrintHbCalcOpts() const;
+
+    int RunCalc_PL(Frame const&);
   private:
     static inline bool IsFON( Atom const& );
 
@@ -31,7 +34,7 @@ class HbCalc {
     AtomMask plMask_; ///< Mask selecting atoms to go into the pairlist
 
     /// Different atom types
-    enum Type { HYDROGEN = 0, DONOR, ACCEPTOR, BOTH };
+    enum Type { HYDROGEN = 0, DONOR, ACCEPTOR, BOTH, VDONOR, VACCEPTOR, VBOTH };
     /// Strings for different atom types
     static const char* TypeStr_[];
 

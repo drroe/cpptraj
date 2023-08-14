@@ -22,7 +22,10 @@ const char* HbCalc::TypeStr_[] = {
   "Hydrogen",
   "Donor",
   "Acceptor",
-  "Both"
+  "Both",
+  "Solvent Donor",
+  "Solvent Acceptor",
+  "Solvent Both"
 };
 
 /** Initialize */
@@ -83,11 +86,19 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
           IdxTypes.push_back( Ptype(*bat, HYDROGEN) );
         }
       }
+      int molnum = currentAtom.MolNum();
       Type currentType;
-      if (nh == 0)
-        currentType = ACCEPTOR;
-       else
-        currentType = BOTH;
+      if ( topIn.Mol(molnum).IsSolvent()) {
+        if (nh == 0)
+          currentType = VACCEPTOR;
+        else
+          currentType = VBOTH;
+      } else {
+        if (nh == 0)
+          currentType = ACCEPTOR;
+         else
+          currentType = BOTH;
+      }
       IdxTypes.push_back( Ptype(*at, currentType) );
     }
   }
@@ -109,3 +120,102 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
 
   return 0;
 }
+
+/** HB calc loop with a pairlist */
+int HbCalc::RunCalc_PL(Frame const& currentFrame)
+{
+  int retVal = pairList_.CreatePairList(currentFrame,
+                                        currentFrame.BoxCrd().UnitCell(),
+                                        currentFrame.BoxCrd().FracCell(), plMask_);
+  if (retVal < 0) {
+    mprinterr("Error: Grid setup failed.\n");
+    return 1;
+  } else if (retVal > 0) {
+    mprintf("Warning: %i atoms are off the grid.\n", retVal);
+  }
+  //problemAtoms_.clear();
+
+  int cidx;
+# ifdef _OPENMP
+  int mythread;
+# pragma omp parallel private(cidx,mythread) 
+  {
+  mythread = omp_get_thread_num();
+  thread_problemAtoms_[mythread].clear();
+# pragma omp for
+# endif 
+  for (cidx = 0; cidx < pairList_.NGridMax(); cidx++)
+  {
+    PairList::CellType const& thisCell = pairList_.Cell( cidx );
+    if (thisCell.NatomsInGrid() > 0)
+    {
+      // cellList contains this cell index and all neighbors.
+      PairList::Iarray const& cellList = thisCell.CellList();
+      // transList contains index to translation for the neighbor.
+      PairList::Iarray const& transList = thisCell.TransList();
+      // Loop over all atoms of thisCell.
+      for (PairList::CellType::const_iterator it0 = thisCell.begin();
+                                              it0 != thisCell.end(); ++it0)
+      {
+        if (plTypes_[it0->Idx()] == HYDROGEN) continue;
+        Vec3 const& xyz0 = it0->ImageCoords();
+        // Exclusion list for this atom
+        //ExclusionArray::ExListType const& excluded = Excluded_[it0->Idx()];
+        // Calc interaction of atom to all other atoms in thisCell.
+        for (PairList::CellType::const_iterator it1 = it0 + 1;
+                                                it1 != thisCell.end(); ++it1)
+        {
+          if (plTypes_[it1->Idx()] == HYDROGEN) continue;
+          Vec3 const& xyz1 = it1->ImageCoords();
+          Vec3 dxyz = xyz1 - xyz0;
+          double D2 = dxyz.Magnitude2();
+          if (D2 < dcut2_) {
+            mprintf("DBG: %i to %i %g\n", plMask_[it0->Idx()]+1, plMask_[it1->Idx()]+1, sqrt(D2));
+/*
+#           ifdef _OPENMP
+            thread_problemAtoms_[mythread]
+#           else
+            problemAtoms_
+#           endif
+              .push_back(Problem(Mask1_[it0->Idx()], Mask1_[it1->Idx()], sqrt(D2)));
+*/
+          }
+        } // END loop over all other atoms in thisCell
+        // Loop over all neighbor cells
+        for (unsigned int nidx = 1; nidx != cellList.size(); nidx++)
+        {
+          PairList::CellType const& nbrCell = pairList_.Cell( cellList[nidx] );
+          // Translate vector for neighbor cell
+          Vec3 const& tVec = pairList_.TransVec( transList[nidx] );
+          // Loop over every atom in nbrCell
+          for (PairList::CellType::const_iterator it1 = nbrCell.begin();
+                                                  it1 != nbrCell.end(); ++it1)
+          {
+            if (plTypes_[it1->Idx()] == HYDROGEN) continue;
+            Vec3 const& xyz1 = it1->ImageCoords();
+            Vec3 dxyz = xyz1 + tVec - xyz0;
+            double D2 = dxyz.Magnitude2();
+            if (D2 < dcut2_) {
+              mprintf("DBG: %i to %i %g\n", plMask_[it0->Idx()]+1, plMask_[it1->Idx()]+1, sqrt(D2));
+/*
+#             ifdef _OPENMP
+              thread_problemAtoms_[mythread]
+#             else
+              problemAtoms_
+#             endif
+                .push_back(Problem(Mask1_[it0->Idx()], Mask1_[it1->Idx()], sqrt(D2)));
+*/
+            }
+          } // END loop over atoms in neighbor cell
+        } // END loop over neighbor cells
+      } // END loop over atoms in thisCell
+    } // END cell not empty
+  } // END loop over cells
+# ifdef _OPENMP
+  } // END omp parallel
+# endif
+  //ConsolidateProblems();
+
+  return 0;
+}
+
