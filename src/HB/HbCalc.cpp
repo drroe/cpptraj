@@ -135,6 +135,8 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame)
   }
   //problemAtoms_.clear();
 
+  int Ninteractions = 0; // DEBUG
+
   int cidx;
 # ifdef _OPENMP
   int mythread;
@@ -170,6 +172,7 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame)
           Vec3 dxyz = xyz1 - xyz0;
           double D2 = dxyz.Magnitude2();
           if (D2 < dcut2_) {
+            Ninteractions++; // DEBUG
             mprintf("DBG: %i %s to %i %s %g\n", plMask_[it0->Idx()]+1, TypeStr_[plTypes_[it0->Idx()]],
                                                 plMask_[it1->Idx()]+1, TypeStr_[plTypes_[it1->Idx()]], sqrt(D2));
 /*
@@ -197,6 +200,7 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame)
             Vec3 dxyz = xyz1 + tVec - xyz0;
             double D2 = dxyz.Magnitude2();
             if (D2 < dcut2_) {
+              Ninteractions++; // DEBUG
               mprintf("DBG: %i %s to %i %s %g\n", plMask_[it0->Idx()]+1, TypeStr_[plTypes_[it0->Idx()]],
                                                   plMask_[it1->Idx()]+1, TypeStr_[plTypes_[it1->Idx()]], sqrt(D2));
 /*
@@ -217,7 +221,7 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame)
   } // END omp parallel
 # endif
   //ConsolidateProblems();
-
+  mprintf("DEBUG: %i interactions.\n", Ninteractions);
   return 0;
 }
 
