@@ -20,9 +20,9 @@ bool HbCalc::IsFON( Atom const& at ) {
 
 const char* HbCalc::TypeStr_[] = {
   "Hydrogen",
-  "Donor",
-  "Acceptor",
-  "Both",
+  "Solute Donor",
+  "Solute Acceptor",
+  "Solute Both",
   "Solvent Donor",
   "Solvent Acceptor",
   "Solvent Both"
@@ -170,7 +170,8 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame)
           Vec3 dxyz = xyz1 - xyz0;
           double D2 = dxyz.Magnitude2();
           if (D2 < dcut2_) {
-            mprintf("DBG: %i to %i %g\n", plMask_[it0->Idx()]+1, plMask_[it1->Idx()]+1, sqrt(D2));
+            mprintf("DBG: %i %s to %i %s %g\n", plMask_[it0->Idx()]+1, TypeStr_[plTypes_[it0->Idx()]],
+                                                plMask_[it1->Idx()]+1, TypeStr_[plTypes_[it1->Idx()]], sqrt(D2));
 /*
 #           ifdef _OPENMP
             thread_problemAtoms_[mythread]
@@ -196,7 +197,8 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame)
             Vec3 dxyz = xyz1 + tVec - xyz0;
             double D2 = dxyz.Magnitude2();
             if (D2 < dcut2_) {
-              mprintf("DBG: %i to %i %g\n", plMask_[it0->Idx()]+1, plMask_[it1->Idx()]+1, sqrt(D2));
+              mprintf("DBG: %i %s to %i %s %g\n", plMask_[it0->Idx()]+1, TypeStr_[plTypes_[it0->Idx()]],
+                                                  plMask_[it1->Idx()]+1, TypeStr_[plTypes_[it1->Idx()]], sqrt(D2));
 /*
 #             ifdef _OPENMP
               thread_problemAtoms_[mythread]
