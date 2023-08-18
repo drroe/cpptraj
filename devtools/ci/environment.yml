@@ -1,0 +1,11 @@
+channels:
+    - conda-forge
+dependencies:
+    - python=3.8
+    - pyflakes
+    - numpy
+    - cython
+    - setuptools
+    - pytest
+    - mock
+    - curl

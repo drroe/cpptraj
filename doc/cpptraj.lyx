@@ -1011,14 +1011,75 @@ trajin
  of trajectory 1, process 2 reads frames 1-500 of trajectory 2, and process
  3 reads frames 501-1000 of trajectory 2.
  Most Actions will work with across-trajectory parallelization with the
- exception of the following:
-\end_layout
-
-\begin_layout Standard
-'clusterdihedral', 'contacts', 'createreservoir', 'gist', 'lipidorder',
- 'pairwise', 'stfcdiffusion', 'unwrap', and 'xtalsymm'.
- Note that 'diffusion' will only work with across-trajectory parallelism
- if no imaging is to be performed.
+ exception of the following: 
+\series bold
+\emph on
+'clusterdihedral'
+\series default
+\emph default
+, 
+\series bold
+\emph on
+'contacts'
+\series default
+\emph default
+, 
+\series bold
+\emph on
+'createreservoir'
+\series default
+\emph default
+, 
+\series bold
+\emph on
+'gist'
+\series default
+\emph default
+, 
+\series bold
+\emph on
+'lipidorder'
+\series default
+\emph default
+, 
+\series bold
+\emph on
+'pairwise'
+\series default
+\emph default
+, 
+\series bold
+\emph on
+'stfcdiffusion'
+\series default
+\emph default
+, 
+\series bold
+\emph on
+'tordiff'
+\series default
+\emph default
+, 
+\series bold
+\emph on
+'unwrap'
+\series default
+\emph default
+, and 
+\series bold
+\emph on
+'xtalsymm'
+\series default
+\emph default
+.
+ The 
+\series bold
+\emph on
+'diffusion'
+\series default
+\emph default
+ Action will only work with across-trajectory parallelism if no imaging
+ is to be performed.
 \end_layout
 
 \begin_layout Standard
@@ -1048,6 +1109,27 @@ ensemblesize
 \emph default
  command be used prior to any ensemble command as this will make set up
  far more efficient.
+\end_layout
+
+\begin_layout Standard
+Note that most Analyses are not MPI-parallelized, with the exception of
+ the 
+\series bold
+\emph on
+calcdiffusion
+\series default
+\emph default
+ Analysis (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-calcdiffusion"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
 \end_layout
 
 \begin_layout Standard
@@ -1103,6 +1185,10 @@ cpptraj
 
 \begin_layout LyX-Code
 atomiccorr
+\end_layout
+
+\begin_layout LyX-Code
+calcdiffusion
 \end_layout
 
 \begin_layout LyX-Code
@@ -1179,6 +1265,10 @@ spam
 
 \begin_layout LyX-Code
 surf
+\end_layout
+
+\begin_layout LyX-Code
+tordiff
 \end_layout
 
 \begin_layout LyX-Code
@@ -2215,6 +2305,10 @@ for { {atoms|residues|molecules|molfirstres|mollastres}
 \end_layout
 
 \begin_layout LyX-Code
+      <var> indata <data set name> |
+\end_layout
+
+\begin_layout LyX-Code
       <var> oversets <list> |
 \end_layout
 
@@ -2307,6 +2401,27 @@ in
 
 <list> Loop over a comma-separated list of strings.
  File name wildcards can be used.
+\end_layout
+
+\begin_layout Description
+<var>
+\begin_inset space ~
+\end_inset
+
+in
+\begin_inset space ~
+\end_inset
+
+<data
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> Loop over elements of specified data set.
+ Currently only 1D scalar sets and string sets can be specified.
 \end_layout
 
 \begin_layout Description
@@ -2549,7 +2664,11 @@ set { <variable> <OP> <value> |
 \begin_inset space ~
 \end_inset
 
-{atoms|residues|molecules|atomnums|resnums|oresnums|molnums}
+{atoms|residues|molecules|atomnums|resnums
+\end_layout
+
+\begin_layout Description
+|oresnums|molnums}
 \begin_inset space ~
 \end_inset
 
@@ -2660,7 +2779,7 @@ The following input will put a range of residues selected by :LYS:
 \end_layout
 
 \begin_layout LyX-Code
-> set SELECTED1 = resnums inmask :LYS
+> set SELECTED1 = resnums inmask :1-183&:LYS
 \end_layout
 
 \begin_layout LyX-Code
@@ -2668,8 +2787,7 @@ The following input will put a range of residues selected by :LYS:
 \end_layout
 
 \begin_layout LyX-Code
-	Variable 'SELECTED1' set to '7-8,18,26,44,49,71,79,128,135,151,163,183,193,204-
-205,217-218'
+	Variable 'SELECTED1' set to '7-8,18,26,44,49,71,79,128,135,151,163,183'
 \end_layout
 
 \begin_layout Subsection
@@ -2883,7 +3001,7 @@ status open
 \begin_layout Plain Layout
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="18" columns="5">
+<lyxtabular version="3" rows="20" columns="5">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="20text%">
 <column alignment="center" valignment="top" width="20text%">
@@ -3271,6 +3389,53 @@ mdout
 
 \begin_layout Plain Layout
 Energy information, Read Only
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Amber Energy File
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.ene
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+amberene
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+1D
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Read Only
 \end_layout
 
 \end_inset
@@ -3700,7 +3865,7 @@ Used for cluster analysis.
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3709,7 +3874,7 @@ Pairwise Cache (NetCDF)
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3718,7 +3883,7 @@ Pairwise Cache (NetCDF)
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3727,7 +3892,7 @@ nccmatrix
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3736,11 +3901,58 @@ pairwise distances
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
 Used for cluster analysis.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+NetCDF Data
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.nc
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+netcdf
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+All data
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Only state info saved for pH data.
 \end_layout
 
 \end_inset
@@ -6532,6 +6744,13 @@ reference "subsec:cpptraj_createcrd"
 
 \begin_layout Subsection
 emin
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-emin"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
@@ -6539,7 +6758,7 @@ emin crdset <name> [trajoutname <name>] [rmstol <tol>] [nsteps <#>]
 \end_layout
 
 \begin_layout LyX-Code
- 	[<mask>] [frame <#>] [dx0 <step0>] [out <file>]
+ 	[<mask>] [frame <#>] [dx0 <step0>] [out <file>] [name <setname>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -6608,6 +6827,14 @@ crdset
 \end_layout
 
 \begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<setname>] If specified, create an energy per step data set.
+\end_layout
+
+\begin_layout Description
 [nonbond] If specified, use simple nonbonded potential term in additon to
  bonded terms.
 \end_layout
@@ -6629,9 +6856,61 @@ cut
 <cutoff> Set nonbonded interaction cutoff in Ang.
  (electrostatics and vdW).
  Default 8.0.
+\end_layout
+
+\begin_layout Description
+cutee
+\begin_inset space ~
+\end_inset
+
+<cutoff> Set electrostatics interaction cutoff in Ang.
  
 \end_layout
 
+\begin_layout Description
+cutnb
+\begin_inset space ~
+\end_inset
+
+<cutoff> Set vdW interaction cutoff in Ang.
+ 
+\end_layout
+
+\begin_layout Description
+scaleee
+\begin_inset space ~
+\end_inset
+
+<factor> Scaling factor to multiply 1-4 electrostatics interactions by.
+ 
+\end_layout
+
+\begin_layout Description
+scalenb
+\begin_inset space ~
+\end_inset
+
+<factor> Scaling factor to multiply 1-4 vdW interactions by.
+\end_layout
+
+\begin_layout Description
+shake
+\begin_inset space ~
+\end_inset
+
+<type> Use SHAKE constraints of <type>:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+'hydrogen' Constrain bonds to hydrogen.
+\end_layout
+
+\begin_layout Description
+'all' Constrain all bonds.
+\end_layout
+
+\end_deeper
 \begin_layout Description
 nexclude
 \begin_inset space ~
@@ -6639,6 +6918,22 @@ nexclude
 
 <#> Number of bonded atoms within which nonbonded interactions are excluded.
  Default 4.
+\end_layout
+
+\begin_layout Description
+qfac
+\begin_inset space ~
+\end_inset
+
+<factor> Factor to use in electrostatic calculation.
+\end_layout
+
+\begin_layout Standard
+DataSets Created
+\end_layout
+
+\begin_layout Description
+<setname>[Energy] Total energy at each minimization step.
 \end_layout
 
 \end_deeper
@@ -6801,6 +7096,68 @@ loadcrd
 loadcrd <filename> [parm <parm> | parmindex<#>] [<trajin args>] [name <name>]
 \end_layout
 
+\begin_layout LyX-Code
+        [prec {single|double}
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<filename> Trajectory file to load.
+\end_layout
+
+\begin_layout Description
+[parm
+\begin_inset space ~
+\end_inset
+
+<parmfile/tag>] Topology filename/tag to associate with trajectory (default
+ first topology).
+\end_layout
+
+\begin_layout Description
+[parmindex
+\begin_inset space ~
+\end_inset
+
+<#>] Index of Topology to associate with trajectory (default 0, first topology).
+\end_layout
+
+\begin_layout Description
+[<trajin
+\begin_inset space ~
+\end_inset
+
+args>] Additional 'trajin' args; see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_trajin"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<name>] Name of the COORDS set.
+\end_layout
+
+\begin_layout Description
+[prec
+\begin_inset space ~
+\end_inset
+
+{single|double}] Load as either a single-precision COORDS set (the default)
+ or a double-precision FRAMES set (which will use much more memory).
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 Immediately load trajectory <filename> as a COORDS data set named <name>
  (default base name of <filename>).
@@ -6823,12 +7180,33 @@ loadcrd traj2.nc name Crd2
 
 \begin_layout Subsection
 loadtraj
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-loadtraj"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
 loadtraj name <setname> [<filename>]
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<setname> Name of the TRAJ set.
+\end_layout
+
+\begin_layout Description
+[<filename>] If specified, trajectory to add to the TRAJ set.
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 This command functions in two ways.
  If <filename> is not provided, all currently loaded input trajectories
@@ -7963,7 +8341,7 @@ The following general commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="34" columns="2">
+<lyxtabular version="3" rows="35" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top">
 <column alignment="center" valignment="top">
@@ -8347,6 +8725,26 @@ parallelanalysis
 
 \begin_layout Plain Layout
 (MPI only) Divide current Analyses among MPI processes.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+parsedata
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Parse timing data from CPPTRAJ output.
 \end_layout
 
 \end_inset
@@ -9303,6 +9701,7 @@ cat
 ...
  Concatenate two or more data sets into a new data set (optionally named
  <name>).
+ Only works for scalar 1D and string sets.
 \end_layout
 
 \begin_layout Description
@@ -11074,6 +11473,175 @@ noprefix "false"
 \end_inset
 
 .
+\end_layout
+
+\begin_layout Subsection
+parsedata
+\end_layout
+
+\begin_layout LyX-Code
+parsetiming <filename args> ...
+ [out <file>] [name <setname>]
+\end_layout
+
+\begin_layout LyX-Code
+        	[sortby {time|cores|filename}] [includebad] [showdetails]
+\end_layout
+
+\begin_layout LyX-Code
+        	[type {trajproc|trajread|actframe}] [reverse]
+\end_layout
+
+\begin_layout LyX-Code
+        	[groupout <file> [grouptype {prefix|name|kind}]]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<filename
+\begin_inset space ~
+\end_inset
+
+args> Files containing CPPTRAJ output to get timing data from.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] Write total sorted timing sets to <file>.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<setname>] Set name for timing data sets.
+\end_layout
+
+\begin_layout Description
+[sortby
+\begin_inset space ~
+\end_inset
+
+{time|cores|filename}] Sort timing data sets by either time, number of cores
+ (MPI processes * OpenMP threads), or file name.
+\end_layout
+
+\begin_layout Description
+[includebad] If specified, include run output for which timing data cannot
+ be extracted (e.g.
+ an incomplete/failed run).
+\end_layout
+
+\begin_layout Description
+[showdetails] If specified, details about each run will be printed to STDOUT.
+\end_layout
+
+\begin_layout Description
+[type
+\begin_inset space ~
+\end_inset
+
+{trajproc|trajread|actframe} If specified, report time other than the total
+ time (which is the default):
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+trajproc Total trajectory processing time (trajectory I/O plus action frame
+ time).
+\end_layout
+
+\begin_layout Description
+trajread Trajectory read time (requires compiling with '-timer' configure
+ option/-DTIMER compiler define).
+\end_layout
+
+\begin_layout Description
+actframe Action frame time (requires compiling with '-timer' configure option/-D
+TIMER compiler define).
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[reverse] Instead of longest time to shortest time, sort shortest time to
+ longest time.
+\end_layout
+
+\begin_layout Description
+[groupout
+\begin_inset space ~
+\end_inset
+
+<file>] Group run output by a property and write to a file.
+ Additional details will be written like speedup and efficiency (relative
+ to the slowest run).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[grouptype
+\begin_inset space ~
+\end_inset
+
+{prefix|name|kind}] Property to group runs by in group output file.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+prefix Group by directory prefix.
+\end_layout
+
+\begin_layout Description
+name Group by run type name (see 
+\emph on
+<setname>[name]
+\emph default
+ below).
+\end_layout
+
+\begin_layout Description
+kind Group by run type name; OpenMP runs are separated by number of OpenMP
+ threads.
+\end_layout
+
+\end_deeper
+\end_deeper
+\begin_layout Standard
+DataSets Created:
+\end_layout
+
+\begin_layout Description
+<setname> Set containing sorted run times.
+\end_layout
+
+\begin_layout Description
+<setname>[name] Set containing shortedhand run names.
+ Consists of a prefix (S for serial, O for OpenMP, M for MPI, H for hybrid
+ MPI/OpenMP) followed by numbers indicating number of MPI processes 'x'
+ OpenMP threads; e.g., H16x4 means a hybrid run consisting of 16 MPI processes
+ and 4 OpenMP threads per process.
+ If CUDA is active, the name will be wrapped in 'G()', e.g.
+ G(H16x4).
+\end_layout
+
+\begin_layout Description
+<setname>[dir] Set containing output directory prefixes.
+ If no directory prefix, just contains output file name.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+The 
+\series bold
+\emph on
+parsedata
+\series default
+\emph default
+ command can be used to extract timing data from CPPTRAJ output.
 \end_layout
 
 \begin_layout Subsection
@@ -13170,7 +13738,12 @@ change [parm <name> | parmindex <#> | <#> |
 \end_layout
 
 \begin_layout LyX-Code
-      removebonds <mask1> [<mask2>] [out <file>] }
+      removebonds <mask1> [<mask2>] [out <file>] |
+\end_layout
+
+\begin_layout LyX-Code
+      bondparm <make1> [<mask2>] {setrk|scalerk|setreq|scalereq} <value>
+ }
 \end_layout
 
 \begin_deeper
@@ -13419,6 +13992,45 @@ removebonds
 
 <file>] If specified, write removed bonds to <file> with format '<residue
  name> <residue num> <atom name> <atom num>'.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+bondparm
+\begin_inset space ~
+\end_inset
+
+<mask1>
+\begin_inset space ~
+\end_inset
+
+[<mask2>]
+\begin_inset space ~
+\end_inset
+
+{setrk|scalerk|setreq|scalereq}
+\begin_inset space ~
+\end_inset
+
+<value> Modify bond parameters in bonds selected by <mask1> (and <mask2>
+ if specified) by specified <value>.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+setrk Set bond force constants to <value>.
+\end_layout
+
+\begin_layout Description
+scalerk Scale bond force constants by <value>.
+\end_layout
+
+\begin_layout Description
+setreq Set bond equilibrium lengths to <value>.
+\end_layout
+
+\begin_layout Description
+scalereq Scale bond equilibirum lengths by <value>.
 \end_layout
 
 \end_deeper
@@ -15052,7 +15664,7 @@ Cpptraj currently understands the following trajectory file formats:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="22" columns="4">
+<lyxtabular version="3" rows="24" columns="4">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="25text%">
@@ -15873,7 +16485,7 @@ Read Only
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -15882,7 +16494,7 @@ LMOD Conflib
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -15891,7 +16503,7 @@ conflib
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -15900,11 +16512,87 @@ conflib
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
 Read Only, Detection by extension
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+MDTraj H5
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+h5
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.h5
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Read Only
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+MDAnalysis H5MD
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+h5md
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.h5md
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Read Only
 \end_layout
 
 \end_inset
@@ -17581,6 +18269,26 @@ mdfrc Write only force information in trajectory.
 mdcrd Write coordinates to trajectory (only required with mdvel/mdfrc).
 \end_layout
 
+\begin_layout Description
+hdf5 Create file as NetCDF4/HDF5 instead of NetCDF4 (classic).
+\end_layout
+
+\begin_layout Description
+compress Use compression in NetCDF4/HDF5 file.
+\end_layout
+
+\begin_layout Description
+icompress Use lossy compression in NetCDF4/HDF5 file via conversion to integers.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Roe2022a"
+literal "true"
+
+\end_inset
+
+
+\end_layout
+
 \end_deeper
 \begin_layout Subsubsection
 
@@ -17700,6 +18408,18 @@ ucell Write older (v21) format trajectory that stores unit cell params instead
 
 \begin_layout Description
 veltraj Write velocity trajectory instead of coordinates.
+\end_layout
+
+\begin_layout Description
+dt Set trajectory time step in ps.
+\end_layout
+
+\begin_layout Description
+nstep # steps between frames.
+\end_layout
+
+\begin_layout Description
+step0 Initial step.
 \end_layout
 
 \end_deeper
@@ -18058,7 +18778,7 @@ Mod
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="88" columns="3">
+<lyxtabular version="3" rows="90" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="65text%">
@@ -18316,6 +19036,35 @@ average
 
 \begin_layout Plain Layout
 Calculate average structure.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+avgbox
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Calculate average unit cell (box), primarily for unwrapping NPT trajectories.
 \end_layout
 
 \end_inset
@@ -20395,6 +21144,35 @@ X
 \begin_inset Text
 
 \begin_layout Plain Layout
+tordiff
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Calculate diffusion using the toroidal-view-preserving scheme.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 trans, translate
 \end_layout
 
@@ -21870,12 +22648,97 @@ run
 \end_layout
 
 \begin_layout Subsection
+avgbox
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj_avgbox"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+avgbox [name <setname>] [out <file>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<setname>] Average unit cell data set name.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] File to write average unit cell data to.
+\end_layout
+
+\begin_layout Standard
+DataSets created:
+\end_layout
+
+\begin_layout Description
+<setname>[avg] Hold average unit cell as 3x3 matrix data.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Calculate the average unit cell vectors for incoming frames and store them
+ in a 3x3 matrix data set, The average unit cell is particularly useful
+ when unwrapping trajectories from NPT simulations where the box size fluctuates
+ (see the 
+\series bold
+\emph on
+unwrap
+\series default
+\emph default
+ command, 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_unwrap"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+If writing to a .dat file, the output will look something like:
+\end_layout
+
+\begin_layout LyX-Code
+#Frame                                                                 
+                                            MyBox[avg]
+\end_layout
+
+\begin_layout LyX-Code
+       1 42.433046075  0.000000000  0.000000000 -14.144347550 40.006259905  0.00000000
+0 -14.144347550 -20.003127532 34.646438786
+\end_layout
+
+\begin_layout Standard
+Where the first 3 floating point numbers are the average X unit cell vector,
+ the next 3 floating point numbers are the average Y unit cell vector, and
+ the last 3 floating point numbers are the average Z unit cell vector.
+\end_layout
+
+\begin_layout Subsection
 avgcoord
 \end_layout
 
 \begin_layout Standard
 This command is deprecated.
  Use 'vector center' (optionally with keyword 'magnitude') instead.
+ 
 \end_layout
 
 \begin_layout Subsection
@@ -23468,6 +24331,13 @@ density :WAT@O out wato.agr xydy
 
 \begin_layout Subsection
 diffusion
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-diffusion"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -23481,16 +24351,24 @@ diffusion
 \end_layout
 
 \begin_layout LyX-Code
-diffusion [{out <filename> | separateout <suffix>}] [time <time per frame>]
+diffusion [{out <filename>|separateout <suffix>}] [time <time per frame>]
  [noimage]
 \end_layout
 
 \begin_layout LyX-Code
-      	[<mask>] [<set name>] [individual] [diffout <filename>] [nocalc]
+          [<mask>] [<set name>] [individual] [diffout <filename>] [nocalc]
 \begin_inset Separator latexpar
 \end_inset
 
 
+\end_layout
+
+\begin_layout LyX-Code
+          [avgucell <avg ucell set>]
+\end_layout
+
+\begin_layout LyX-Code
+          [allowmultipleorigins]
 \end_layout
 
 \begin_deeper
@@ -23556,6 +24434,18 @@ name>] MSD data set name.
 [nocalc] Do not calculate diffusion constants.
 \end_layout
 
+\begin_layout Description
+[avgucell] Remove periodic box fluctuations from imaged NPT trajectories
+ using average unit cell vectors.
+\end_layout
+
+\begin_layout Description
+[allowmultipleorigins] (MPI only).
+ For imaged trajectories in parallel, calculate diffusion by averaging over
+ multiple time origins.
+ Should be used with caution.
+\end_layout
+
 \begin_layout Standard
 DataSet Aspects:
 \end_layout
@@ -23581,7 +24471,25 @@ DataSet Aspects:
 \end_layout
 
 \begin_layout Description
-[D] Diffusion constants.
+[D] Diffusion constants (1x10
+\begin_inset script superscript
+
+\begin_layout Plain Layout
+-5
+\end_layout
+
+\end_inset
+
+ cm
+\begin_inset script superscript
+
+\begin_layout Plain Layout
+2
+\end_layout
+
+\end_inset
+
+/s).
 \end_layout
 
 \begin_layout Description
@@ -23600,10 +24508,50 @@ DataSet Aspects:
 [Corr] Linear regression correlation coefficients.
 \end_layout
 
+\begin_layout Description
+[aX]:<atomN> (
+\series bold
+individual
+\series default
+ only) Atom <N> MSD in the X direction.
+\end_layout
+
+\begin_layout Description
+[aY]:<atomN> (
+\series bold
+individual
+\series default
+ only) Atom <N> MSD in the Y direction.
+\end_layout
+
+\begin_layout Description
+[aZ]:<atomN> (
+\series bold
+individual
+\series default
+ only) Atom <N> MSD in the Z direction.
+\end_layout
+
+\begin_layout Description
+[aR]:<atomN> (
+\series bold
+individual
+\series default
+ only) Atom <N> overall MSD.
+\end_layout
+
+\begin_layout Description
+[aA]:<atomN> (
+\series bold
+individual
+\series default
+ only) Atom <N> overall displacement.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
-Compute mean square displacement (MSD) plots (using distance traveled from
- initial position) for the atoms in 
+Compute mean-squared displacement (MSD, in Angstroms squared) plots (using
+ distance traveled from initial position) for the atoms in 
 \series bold
 <mask>
 \series default
@@ -23629,7 +24577,91 @@ In order to correctly calculate diffusion molecules should take continuous
 noimage
 \series default
  keyword can be used.
- 
+ To remove the 
+\begin_inset Quotes eld
+\end_inset
+
+noise
+\begin_inset Quotes erd
+\end_inset
+
+ caused by box fluctuations in NPT trajectories, the average unit cell vectors
+ describing the average box can be provided with the 
+\series bold
+avgucell
+\series default
+ keyword; see the 
+\series bold
+\emph on
+avgbox
+\series default
+\emph default
+ command (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_avgbox"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+ Alternatively, the trajectory can be unwrapped prior using the 
+\series bold
+\emph on
+unwrap
+\series default
+\emph default
+ command, 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_unwrap"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ If the trajectory is unwrapped, the 
+\series bold
+noimage
+\series default
+ keyword should be specified.
+\end_layout
+
+\begin_layout Standard
+Note that in parallel, imaging becomes difficult because there is no way
+ to correct for any wrapping that has been done on preceding MPI ranks.
+ Therefore this command will not work on imaged trajectories in parallel
+ by default.
+ There are two workarounds.
+ 1) Unwrap the trajectory prior to 
+\series bold
+\emph on
+diffusion
+\series default
+\emph default
+ with the 
+\series bold
+\emph on
+unwrap
+\series default
+\emph default
+ command, then run the diffusion calculation with the 
+\series bold
+noimage
+\series default
+ keyword (this is the recommended way), or 2) specify the 
+\series bold
+allowmultipleorigins
+\series default
+ keyword to calculate MSD separately on each MPI rank, then averaging over
+ all MSD plots.
+ This means the maximum length of any given MSD plot will be <# frames>
+ / <# MPI ranks>, and the calculated diffusion constants will not be as
+ accurate.
 \end_layout
 
 \begin_layout Standard
@@ -23752,6 +24784,23 @@ Due to the fact that diffusion is currently calculated from initial positions
  stochastic, so the results are most sensible when averaged over many atoms;
  for example, the diffusion of water should be calculated using all waters
  in the system.
+ If more averaging is needed, the 
+\series bold
+\emph on
+calcdiffusion
+\series default
+\emph default
+ Analysis command (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-calcdiffusion"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+) can be used to calculate diffusion from multiple time origins.
 \end_layout
 
 \begin_layout Standard
@@ -24690,15 +25739,16 @@ energy
 \end_layout
 
 \begin_layout LyX-Code
-energy [<name>] [<mask1>] [out <filename>] [nobondstoh]
+energy [<name>] [<mask1>] [out <filename>] [nobondstoh] [openmm [<mdopts>]]
 \end_layout
 
 \begin_layout LyX-Code
-   	[bond] [angle] [dihedral] {[nb14] | [e14] | [v14]}
+   	[bond] [angle] [dihedral] {[nb14]|[e14]|[v14]} {[nonbond]|[elec] [vdw]}
+ 
 \end_layout
 
 \begin_layout LyX-Code
-   	{[nonbond] | [elec] [vdw]} [kinetic [ketype {vel|vv}] [dt <dt>]]
+   	[{nokinetic|kinetic [ketype {vel|vv}] [dt <dt>]}]
 \end_layout
 
 \begin_layout LyX-Code
@@ -24768,6 +25818,24 @@ energy [<name>] [<mask1>] [out <filename>] [nobondstoh]
 \end_layout
 
 \begin_layout Description
+[openmm] If specified and CPPTRAJ is compiled with OpenMM support, use OpenMM
+ to calculate energy.
+ Note this will only calculate total energy; any keywords pertaining to
+ individual energy components are not available.
+ For a list of potential options that can be used with 'openmm', see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-emin"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Description
 [bond] Calculate bond energy.
 \end_layout
 
@@ -24803,6 +25871,51 @@ energy [<name>] [<mask1>] [out <filename>] [nobondstoh]
 [vdw] Calculate van der Waals energy (Lennard-Jones 6-12 potential).
 \end_layout
 
+\begin_layout Description
+[nokinetic] Do not calculate kinetic energy even if velocity/force information
+ present.
+\end_layout
+
+\begin_layout Description
+[kinetic] Attempt to calculate kinetic energy.
+ Requires force and/or velocity information.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+ketype
+\begin_inset space ~
+\end_inset
+
+{vel|vv} Specify kinetic energy type.
+ If not specified, if velocity and force information use a velocity verlet-type
+ calculation (
+\series bold
+vv
+\series default
+), i.e.
+ assume velocities are a half-step ahead of the forces.
+ If only velocity information is present, calculate from on-step velocities
+ (
+\series bold
+vel
+\series default
+).
+\end_layout
+
+\begin_layout Description
+dt
+\begin_inset space ~
+\end_inset
+
+<dt> Time step for 
+\series bold
+vv
+\series default
+ calculation in ps.
+\end_layout
+
+\end_deeper
 \begin_layout Description
 [etype
 \begin_inset space ~
@@ -25035,6 +26148,10 @@ DataSet Aspects:
 
 \begin_layout Description
 [elec] Electrostatic energy.
+\end_layout
+
+\begin_layout Description
+[kinetic] Kinetic energy.
 \end_layout
 
 \begin_layout Description
@@ -31942,7 +33059,7 @@ name "subsec:cpptraj_multidihedral"
 \end_layout
 
 \begin_layout LyX-Code
-multidihedral [<name>] <dihedral types> [resrange <range>] [out <filename>]
+multidihedral [<name>] <dihedral types> [resrange <range/mask>] [out <filename>]
  [range360]
 \end_layout
 
@@ -31998,8 +33115,10 @@ types> Dihedral types to look for.
 \begin_inset space ~
 \end_inset
 
-<range>] Residue range to look for dihedrals in.
+<range/mask>] Residue range to look for dihedrals in.
  Default is all solute residues.
+ If a mask expression is given, use residues selected by the mask expression;
+ if any part of a residue is selcted it will be used.
 \end_layout
 
 \begin_layout Description
@@ -32060,7 +33179,7 @@ run
 \end_layout
 
 \begin_layout Standard
-Calculate specified dihedral angle types for residues in given range.
+Calculate specified dihedral angle types for residues in given range/mask.
  By default, dihedral angles are identified based on standard Amber atom
  names.
  The resulting data sets will have aspect equal to [<dihedral type>] and
@@ -32409,6 +33528,10 @@ nastruct
 \end_layout
 
 \begin_layout LyX-Code
+         [bpmode {3dna|babcock}] [allhb]
+\end_layout
+
+\begin_layout LyX-Code
      	[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]
 \end_layout
 
@@ -32417,15 +33540,33 @@ nastruct
 \end_layout
 
 \begin_layout LyX-Code
-     	[{ first | reference | ref <name> | refindex <#> | allframes | guessbp}]
-\begin_inset Separator latexpar
-\end_inset
-
-
+         [axesout <file> [axesoutarg <arg> ...] [axesparmout <file>]]
 \end_layout
 
 \begin_layout LyX-Code
-         [bptype {anti | para} ...]
+     	[bpaxesout <file> [bpaxesoutarg <arg> ...] [bpaxesparmout <file>]]
+\end_layout
+
+\begin_layout LyX-Code
+     	[stepaxesout <file> [stepaxesoutarg <arg> ...] [stepaxesparmout <file>]]
+\end_layout
+
+\begin_layout LyX-Code
+         [axisnameo <name>] [axisnamex <name>] [axisnamey <name>] [axisnamez
+ <name>]
+\end_layout
+
+\begin_layout LyX-Code
+     	[{ first | reference | ref <name> | refindex <#> |
+\end_layout
+
+\begin_layout LyX-Code
+            allframes |
+\end_layout
+
+\begin_layout LyX-Code
+            specifiedbp pairs <b1>-<b2>,...
+ }]
 \end_layout
 
 \begin_deeper
@@ -32508,6 +33649,38 @@ naout
 \end_layout
 
 \begin_layout Description
+[bpmode
+\begin_inset space ~
+\end_inset
+
+{3dna|babcock}] Specify axis conventions for calculating base pair parameters.
+ If '3dna' (default), use conventions of 3DNA
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Lu2003"
+literal "true"
+
+\end_inset
+
+; flip Y and Z of complimentary base for antiparallel.
+ If 'babcock', use conventions of Babcock et al.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Babcock94"
+literal "true"
+
+\end_inset
+
+ ; flip Y and Z of complimentary base for antiparallel, flip X and Y for
+ parallel.
+\end_layout
+
+\begin_layout Description
+[allhb] Report the total number of hydrogen bonds detected instead of just
+ the number of Watson-Crick-Franklin hydrogen bonds.
+\end_layout
+
+\begin_layout Description
 [hbcut
 \begin_inset space ~
 \end_inset
@@ -32586,6 +33759,123 @@ literal "true"
 
 \end_deeper
 \begin_layout Description
+[axesout
+\begin_inset space ~
+\end_inset
+
+<file>] Trajectory file to write base axes to.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[axesoutarg
+\begin_inset space ~
+\end_inset
+
+<arg>] Trajectory argument to pass to base axes trajectory file (can specify
+ more than once).
+\end_layout
+
+\begin_layout Description
+[axesparmout
+\begin_inset space ~
+\end_inset
+
+<file>] Topology file to write base axes pseudo topology to.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[bpaxesout
+\begin_inset space ~
+\end_inset
+
+<file>] Trajectory file to write base pair axes to.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[bpaxesoutarg
+\begin_inset space ~
+\end_inset
+
+<arg>] Trajectory argument to pass to base pair axes trajectory file (can
+ specify more than once).
+\end_layout
+
+\begin_layout Description
+[bpaxesparmout
+\begin_inset space ~
+\end_inset
+
+<file>] Topology file to write base pair axes pseudo topology to.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[stepaxesout
+\begin_inset space ~
+\end_inset
+
+<file>] Trajectory file to write base pair step axes to.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[stepaxesoutarg
+\begin_inset space ~
+\end_inset
+
+<arg>] Trajectory argument to pass to base pair step axes trajectory file
+ (can specify more than once).
+\end_layout
+
+\begin_layout Description
+[stepaxesparmout
+\begin_inset space ~
+\end_inset
+
+<file>] Topology file to write base pair step axes pseudo topology to.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[axisnameo
+\begin_inset space ~
+\end_inset
+
+<name>] Change name of axis origin pseudo atom (default 'Orig').
+\end_layout
+
+\begin_layout Description
+[axisnamex
+\begin_inset space ~
+\end_inset
+
+<name>] Change name of axis origin pseudo atom (default 'X').
+\end_layout
+
+\begin_layout Description
+[axisnamey
+\begin_inset space ~
+\end_inset
+
+<name>] Change name of axis origin pseudo atom (default 'Y').
+\end_layout
+
+\begin_layout Description
+[axisnamez
+\begin_inset space ~
+\end_inset
+
+<name>] Change name of axis origin pseudo atom (default 'Z').
+\end_layout
+
+\begin_layout Standard
+How to determine base pairing:
+\end_layout
+
+\begin_layout Description
 [first] Use first frame to determine base pairing (default).
 \end_layout
 
@@ -32622,16 +33912,20 @@ ref
 \end_layout
 
 \begin_layout Description
-[guessbp
+[specifiedbp
 \begin_inset space ~
 \end_inset
 
-[bptype{anti|para}]] If specified base pairing will be determined based
- on selected NA strands.
- It is assumed that consecutive strands will be base-paired and that they
- are arranged 5' to 3'.
- The specific type of base pairing between strands can be specified with
- one or more 'bptype' arguments.
+pairs
+\begin_inset space ~
+\end_inset
+
+<b1>-<b2>,...] User specified base pairing.
+ Base pairs are specified in a comma-separated list after the 'pairs' keyword
+ as <b1>-<b2>, where <b1> and <b2> are the residue numbers of bases in the
+ base pair, e.g.
+ 'pairs 1-16,2-15,3-14,4-13'.
+ Can specify 'pairs' multiple times.
 \end_layout
 
 \begin_layout Standard
@@ -32840,6 +34134,15 @@ Base pairs are determined either once from the first frame or from a reference
 allframes
 \series default
  is specified.
+ Base pairing can also be specified via the 
+\series bold
+specifiedbp
+\series default
+ and 
+\series bold
+pairs
+\series default
+ keywords.
  Base pairing is determined first by base reference axis origin distance,
  then by stagger, then by angle between base Z axes, then finally by hydrogen
  bonding (at least one hydrogen bond must be present).
@@ -32880,8 +34183,14 @@ literal "true"
 \shape italic
 cpptraj
 \shape default
- nastruct gives the exact same numbers as 3DNA.
  
+\series bold
+\emph on
+nastruct
+\series default
+\emph default
+ should give the exact same numbers as 3DNA.
+ One notable exception are parameters for G-quadruplex structures.
 \end_layout
 
 \begin_layout Standard
@@ -32929,6 +34238,42 @@ ve bases in single strands by specifying
 sscalc
 \series default
 .
+\end_layout
+
+\begin_layout Standard
+Base axes, base pair axes, and base pair step axes can be written to trajectory
+ files using the 
+\series bold
+axesout
+\series default
+, 
+\series bold
+bpaxesout
+\series default
+, and 
+\series bold
+stepaxesout
+\series default
+ and related keywords.
+ The axes are written using 4 points: an origin, and X Y and Z which are
+ bonded to the origin.
+ The names of these pseudo atoms can be changed using the 
+\series bold
+axisnameo
+\series default
+, 
+\series bold
+axisnamex
+\series default
+, 
+\series bold
+axisnamey
+\series default
+, and 
+\series bold
+axisnamez
+\series default
+ keywords.
 \end_layout
 
 \begin_layout Subsubsection*
@@ -38308,6 +39653,219 @@ crdaction
 \end_layout
 
 \begin_layout Subsection
+tordiff
+\end_layout
+
+\begin_layout LyX-Code
+tordiff [<set name>] [<mask>] [mass] [out <file>] [diffout <file>] [time
+ <dt>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[<set
+\begin_inset space ~
+\end_inset
+
+name>] Output mean-squared-displacement data sets name.
+\end_layout
+
+\begin_layout Description
+[<mask>] Mask of molecules to calculate diffusion for.
+\end_layout
+
+\begin_layout Description
+[mass] Use center of mass of molecules instead of geometric center.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] File to write mean-squared-displacement sets to.
+\end_layout
+
+\begin_layout Description
+[diffout
+\begin_inset space ~
+\end_inset
+
+<file>] Write diffusion contants calculated from fits of mean-squared-displacent
+ data sets to <filename>.
+\end_layout
+
+\begin_layout Description
+[time
+\begin_inset space ~
+\end_inset
+
+<dt>] Time between frames in ps.
+\end_layout
+
+\begin_layout Standard
+DataSet Aspects:
+\end_layout
+
+\begin_layout Description
+[X] MSD(s) in the X direction.
+\end_layout
+
+\begin_layout Description
+[Y] MSD(s) in the Y direction.
+\end_layout
+
+\begin_layout Description
+[Z] MSD(s) in the Z direction.
+\end_layout
+
+\begin_layout Description
+[R] Overall MSD(s).
+\end_layout
+
+\begin_layout Description
+[A] Overall displacement(s) in Å.
+\end_layout
+
+\begin_layout Description
+[D] Diffusion constants (1x10
+\begin_inset script superscript
+
+\begin_layout Plain Layout
+-5
+\end_layout
+
+\end_inset
+
+ cm
+\begin_inset script superscript
+
+\begin_layout Plain Layout
+2
+\end_layout
+
+\end_inset
+
+/s).
+\end_layout
+
+\begin_layout Description
+[Label] Diffusion constant lablels.
+\end_layout
+
+\begin_layout Description
+[Slope] Linear regression slopes.
+\end_layout
+
+\begin_layout Description
+[Intercept] Linear refression Y-intercepts.
+\end_layout
+
+\begin_layout Description
+[Corr] Linear regression correlation coefficients.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Calculate the diffusion via mean-squared displacement (in Å
+\begin_inset Formula $^{\text{2}}$
+\end_inset
+
+/ps) of specified molecules using the toroidal-view-preserving (TOR) scheme
+ of Hummer et al.
+ 
+\series bold
+Note that currently this only works for orthogonal boxes
+\series default
+.
+ (
+\begin_inset Flex URL
+status open
+
+\begin_layout Plain Layout
+
+https://arxiv.org/abs/2303.09418
+\end_layout
+
+\end_inset
+
+).
+ Unlike the 
+\series bold
+\emph on
+diffusion
+\series default
+\emph default
+ (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-diffusion"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+) and 
+\series bold
+\emph on
+unwrap
+\series default
+\emph default
+ (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_unwrap"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+) commands which correct for box fluctuations via fractional coordinates,
+ the TOR scheme corrects for box fluctuations by tracking the displacement
+ of each molecule with respect to its position in the previous frame in
+ Cartesian space.
+\end_layout
+
+\begin_layout Standard
+Diffusion constants are calculated in the same manner as the 
+\series bold
+\emph on
+diffusion
+\series default
+\emph default
+ command; for more details see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-diffusion"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+For example, to calculate the diffusion (with data set name TOR) of waters
+ (name WAT) in an orthogonal box using the toroidal scheme:
+\end_layout
+
+\begin_layout LyX-Code
+parm tz2.ortho.parm7
+\end_layout
+
+\begin_layout LyX-Code
+trajin tz2.ortho.nc
+\end_layout
+
+\begin_layout LyX-Code
+tordiff TOR :WAT@O out tor.msd.dat diffout tor.diff.dat
+\end_layout
+
+\begin_layout Subsection
 trans | translate
 \end_layout
 
@@ -38485,10 +40043,17 @@ outtraj Ligand.pdb pdb
 
 \begin_layout Subsection
 unwrap
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj_unwrap"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
-unwrap [center] [{bymol | byres | byatom}]
+unwrap [center] [{byatom | byres | bymol}] [avgucell <avg ucell set>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -38499,13 +40064,18 @@ unwrap [center] [{bymol | byres | byatom}]
 
 \end_layout
 
+\begin_layout LyX-Code
+       [scheme {frac|tor}]
+\end_layout
+
 \begin_deeper
 \begin_layout Description
-[center] Unwrap by center of mass; otherwise unwrap by first atom position.
+[center] Unwrap by center of mass; otherwise unwrap by first atom position
+ (byres and bymol).
 \end_layout
 
 \begin_layout Description
-bymol Unwrap by molecule (default).
+byatom Unwrap by atom (default).
 \end_layout
 
 \begin_layout Description
@@ -38513,7 +40083,23 @@ byres Unwrap by residue.
 \end_layout
 
 \begin_layout Description
-byatom Unwrap by atom.
+bymol Unwrap by molecule.
+\end_layout
+
+\begin_layout Description
+[avgucell
+\begin_inset space ~
+\end_inset
+
+<avg
+\begin_inset space ~
+\end_inset
+
+ucell
+\begin_inset space ~
+\end_inset
+
+set>] Average unit cell data set; useful when unwrapping NPT trajectories.
 \end_layout
 
 \begin_layout Description
@@ -38556,6 +40142,22 @@ refindex
 [<mask>] Selection to unwrap.
 \end_layout
 
+\begin_layout Description
+[scheme
+\begin_inset space ~
+\end_inset
+
+frac|tor}] Unwrap using either 
+\series bold
+frac
+\series default
+tional coordinates (default) or 
+\series bold
+tor
+\series default
+oidal-view-preserving scheme (orthogonal boxes only).
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Under periodic boundary conditions, MD trajectories are not continuous if
@@ -38569,9 +40171,11 @@ iwrap
  This command, 
 \family sans
 \series bold
+\emph on
 unwrap
 \family default
 \series default
+\emph default
  processes the trajectories to force the 
 \shape italic
 mask
@@ -38581,34 +40185,86 @@ ed molecules continuous by translating the molecules into the neighboring
  It is the opposite function of 
 \family sans
 \series bold
+\emph on
 image
 \family default
 \series default
+\emph default
 , but this command can also be used to place molecules side by side, for
  example, two strands of a DNA duplex.
- However, this command fails when the 
+ However, this command may fail if the 
 \shape italic
 mask
 \shape default
-ed molecules travel more than half of the box size within a single frame.
+ed entities travel more than half of the box size within a single frame.
+ Note that uwrapping by atom (the default behavior) is slower than unwrapping
+ by residue or molecule, but is usually the safer method, especially if
+ it is unknown if the original imaging was done by atom, by residue, or
+ by molecule.
+ If the optional reference arguments are specified, then the first frame
+ is unwrapped according to the reference structure.
+ Otherwise, the first frame is not modified.
 \end_layout
 
 \begin_layout Standard
-If the optional argument 
+To remove the 
 \begin_inset Quotes eld
 \end_inset
 
-
-\family typewriter
-reference
-\family default
-
+noise
 \begin_inset Quotes erd
 \end_inset
 
- is specified, then the first frame is unwrapped according to the reference
- structure.
- Otherwise, the first frame is not modified.
+ caused by box fluctuations in NPT trajectories, the average unit cell vectors
+ describing the average box can be provided with the 
+\series bold
+avgucell
+\series default
+ keyword; see the 
+\series bold
+\emph on
+avgbox
+\series default
+\emph default
+ command (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_avgbox"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+ 
+\end_layout
+
+\begin_layout Standard
+By default coordinates are unwrapped using fractional coordinates.
+ To unwrap via the toroidal-view-preserving scheme (
+\begin_inset Flex URL
+status open
+
+\begin_layout Plain Layout
+
+https://arxiv.org/abs/2303.09418
+\end_layout
+
+\end_inset
+
+) specify 
+\series bold
+scheme tor.
+
+\series default
+ However, note that this currently 
+\series bold
+only works for orthogonal boxes
+\series default
+ and may result in unrealistic trajectories (particularly at long times
+ when molecules have had the chance to traverse multiple box lengths) and
+ is only currently recommended for calculating diffusion.
 \end_layout
 
 \begin_layout Standard
@@ -38628,6 +40284,51 @@ center :1-20 mass origin
 
 \begin_layout LyX-Code
 image origin center familiar
+\end_layout
+
+\begin_layout Standard
+To unwrap an NPT trajectory by using the average unit cell (box), the calculate
+ diffusion from the unwrapped trajectory:
+\end_layout
+
+\begin_layout LyX-Code
+parm tz2.ortho.parm7
+\end_layout
+
+\begin_layout LyX-Code
+trajin tz2.ortho.nc
+\end_layout
+
+\begin_layout LyX-Code
+# Create average box data
+\end_layout
+
+\begin_layout LyX-Code
+avgbox MyBox
+\end_layout
+
+\begin_layout LyX-Code
+run
+\end_layout
+
+\begin_layout LyX-Code
+# Unwrap using average box data
+\end_layout
+
+\begin_layout LyX-Code
+unwrap bymol avgucell MyBox[avg]
+\end_layout
+
+\begin_layout LyX-Code
+# Calculate diffusion
+\end_layout
+
+\begin_layout LyX-Code
+diffusion Water :WAT@O out tz2.ortho.wato.dat
+\end_layout
+
+\begin_layout LyX-Code
+run 
 \end_layout
 
 \begin_layout Subsection
@@ -39830,7 +41531,7 @@ trajin
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="47" columns="3">
+<lyxtabular version="3" rows="48" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="50text%">
@@ -39923,6 +41624,35 @@ Calculate average, standard deviation, min, and max for (or over) data sets.
 
 \begin_layout Plain Layout
 N 1D scalar
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+calcdiffusion
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Calculate diffusion using multiple time origins.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+COORDS
 \end_layout
 
 \end_inset
@@ -41459,6 +43189,279 @@ avg perres.peptide.dat out output.dat name V
 \end_layout
 
 \begin_layout Subsection
+calcdiffusion
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-calcdiffusion"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+calcdiffusion [crdset <coords set>] [maxlag <maxlag>] [<mask>] [time <dt>]
+\end_layout
+
+\begin_layout LyX-Code
+              [<name>] [out <file>] [diffout <file>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[crdset
+\begin_inset space ~
+\end_inset
+
+<coords
+\begin_inset space ~
+\end_inset
+
+set>] Input COORDS set to calculate diffusion for.
+\end_layout
+
+\begin_layout Description
+[maxlag
+\begin_inset space ~
+\end_inset
+
+<maxlag>] Maximum lag to calculate diffusion for in frames.
+ Defaults to half the number of input frames if not specified.
+\end_layout
+
+\begin_layout Description
+[<mask>] Mask of atoms to calculate diffusion for.
+\end_layout
+
+\begin_layout Description
+[time
+\begin_inset space ~
+\end_inset
+
+<dt>] Time between frames in ps.
+\end_layout
+
+\begin_layout Description
+[<name>] Output MSD data sets name.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] File to write MSD data sets to.
+\end_layout
+
+\begin_layout Description
+[diffout
+\begin_inset space ~
+\end_inset
+
+<file>] Write diffusion contants calculated from fits of MSD data sets to
+ <filename>.
+\end_layout
+
+\begin_layout Standard
+DataSet Aspects:
+\end_layout
+
+\begin_layout Description
+[X] MSD(s) in the X direction.
+\end_layout
+
+\begin_layout Description
+[Y] MSD(s) in the Y direction.
+\end_layout
+
+\begin_layout Description
+[Z] MSD(s) in the Z direction.
+\end_layout
+
+\begin_layout Description
+[R] Overall MSD(s).
+\end_layout
+
+\begin_layout Description
+[A] Overall displacement(s) in Å.
+\end_layout
+
+\begin_layout Description
+[D] Diffusion constants (1x10
+\begin_inset script superscript
+
+\begin_layout Plain Layout
+-5
+\end_layout
+
+\end_inset
+
+ cm
+\begin_inset script superscript
+
+\begin_layout Plain Layout
+2
+\end_layout
+
+\end_inset
+
+/s).
+\end_layout
+
+\begin_layout Description
+[Label] Diffusion constant lablels.
+\end_layout
+
+\begin_layout Description
+[Slope] Linear regression slopes.
+\end_layout
+
+\begin_layout Description
+[Intercept] Linear refression Y-intercepts.
+\end_layout
+
+\begin_layout Description
+[Corr] Linear regression correlation coefficients.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Calculate diffusion via mean-squared-displacements (MSD) of specified atoms.
+ Unlike the 
+\series bold
+\emph on
+diffusion
+\series default
+\emph default
+ Action (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-diffusion"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+), which calculates MSD from a single time origin, the 
+\series bold
+\emph on
+calcdiffusion
+\series default
+\emph default
+ command calculates diffusion from multiple time origins up to a user-specified
+ lag (in frames).
+ Note that no imaging is performed for this command, so any unwrapping should
+ be performed prior to this command (see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_unwrap"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+ Diffusion constants are calculated in the same manner as the 
+\series bold
+\emph on
+diffusion
+\series default
+\emph default
+ command; for more details see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-diffusion"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+This command is both OpenMP- and MPI-parallelized; either or both can be
+ active.
+ In order to keep per-process memory requirements low, it is recommended
+ that TRAJ (i.e.
+ on-disk) data sets be used with MPI instead of CRD (in-memory) sets (see
+ 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-loadtraj"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+For example, to calculate diffusion from multiple time origins (with a maximum
+ lag of half the number of trajectrory frames) from an input trajectory
+ in memory (unwrapping first):
+\end_layout
+
+\begin_layout LyX-Code
+parm tz2.ortho.parm7
+\end_layout
+
+\begin_layout LyX-Code
+loadcrd tz2.ortho.nc name TZ2
+\end_layout
+
+\begin_layout LyX-Code
+crdaction TZ2 unwrap bymol
+\end_layout
+
+\begin_layout LyX-Code
+runanalysis calcdiffusion crdset TZ2 out tz2.diff.dat :WAT@O
+\end_layout
+
+\begin_layout Standard
+To do the same calculation using MPI parallelism, it will first be necessary
+ to unwrap the trajectory (non-MPI parallel, but OpenMP parallelism can
+ be used):
+\end_layout
+
+\begin_layout LyX-Code
+parm tz2.ortho.parm7
+\end_layout
+
+\begin_layout LyX-Code
+trajin tz2.ortho.nc
+\end_layout
+
+\begin_layout LyX-Code
+unwrap bymol
+\end_layout
+
+\begin_layout LyX-Code
+trajout unwrap.dcd
+\end_layout
+
+\begin_layout Standard
+Then diffusion can be calculated using MPI (and/or OpenMP):
+\end_layout
+
+\begin_layout LyX-Code
+parm tz2.ortho.parm7
+\end_layout
+
+\begin_layout LyX-Code
+loadtraj unwrap.dcd name TZ2
+\end_layout
+
+\begin_layout LyX-Code
+runanalysis calcdiffusion crdset TZ2 out tz2.traj.diff.dat :WAT@O
+\end_layout
+
+\begin_layout Subsection
 calcstate
 \end_layout
 
@@ -42059,7 +44062,7 @@ cluster
 \end_layout
 
 \begin_layout LyX-Code
-	[pairdist <name>] [pwrecalc]
+	[pairdist <name> [pairdistfile <file>]] [pwrecalc]
 \end_layout
 
 \begin_layout LyX-Code
@@ -42669,6 +44672,24 @@ Pairwise Distance Matrix Options:
  distances.
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+[pairdistfile
+\begin_inset space ~
+\end_inset
+
+<file>] File name to use for pairwise cache; if not specified and 
+\series bold
+'pairdist'
+\series default
+ specified, uses 
+\series bold
+'pairdist'
+\series default
+.
+\end_layout
+
+\end_deeper
 \begin_layout Description
 [pwrecalc] If the loaded pairwise distance matrix does not match the current
  setup, force recalculation.
@@ -50118,7 +52139,7 @@ timecorr
 \end_layout
 
 \begin_layout LyX-Code
-timecorr vec1 <vecname1> [vec2 <vecname2>] out <filename>
+timecorr vec1 <vecname1> [vec2 <vecname2>] out <filename> [name <dsname>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -50167,6 +52188,14 @@ out
 <filename>
 \series default
  Name of file to write output to.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<dsname>] Name of output vector data sets.
 \end_layout
 
 \begin_layout Description
@@ -50279,6 +52308,14 @@ dplr
  only).
 \end_layout
 
+\begin_layout Standard
+DataSet Aspects for 
+\series bold
+dplr
+\series default
+ only:
+\end_layout
+
 \begin_layout Description
 [R3R3] <1/(r(0)
 \begin_inset script superscript
@@ -50298,31 +52335,27 @@ r(t)
 
 \end_inset
 
-> correlation function (
-\series bold
-dplr
-\series default
- only).
+> correlation function.
 \end_layout
 
 \begin_layout Description
-[R] (_TC_DIPOLAR_) Average magnitude (<R>).
+[R] Average magnitude (<R>).
 \end_layout
 
 \begin_layout Description
-[RRIG] (_TC_DIPOLAR_) Sqrt( <R^2> ).
+[RRIG] Sqrt( <R^2> ).
 \end_layout
 
 \begin_layout Description
-[R3] (_TC_DIPOLAR_) <1/R^3>.
+[R3] <1/R^3>.
 \end_layout
 
 \begin_layout Description
-[R6] (_TC_DIPOLAR_) <1/R^6>.
+[R6] <1/R^6>.
 \end_layout
 
 \begin_layout Description
-[Name] (_TC_DIPOLAR_) Vector name.
+[Name] Vector name.
 \end_layout
 
 \end_deeper
@@ -50346,18 +52379,10 @@ norm
 \series bold
 dplr
 \series default
- is specified, a new global data set named _TC_DIPOLAR_ will be created,
- containing extra data for each vector analyzed with a '
-\series bold
-\shape italic
-timecorr
-\series default
-\shape default
+ is specified, several additional data sets with aspects [R], [RRIG], [R3],
+ [R6], and [Name] will be created containing either 1 or 2 values depending
+ on how many vectors were specified.
  
-\series bold
-dplr
-\series default
-' command.
 \end_layout
 
 \begin_layout Subsubsection*

@@ -25,10 +25,12 @@ class DataSet {
     /// DataSet base type.
     /** When adding new entries make sure that Descriptions_ is updated. */ 
     enum DataType {
-      UNKNOWN_DATA=0, DOUBLE, FLOAT, INTEGER, STRING, MATRIX_DBL, MATRIX_FLT, 
+      DOUBLE = 0, FLOAT, INTEGER, STRING, MATRIX_DBL, MATRIX_FLT, 
       COORDS, VECTOR, MODES, GRID_FLT, GRID_DBL, REMLOG, XYMESH, TRAJ, REF_FRAME,
       MAT3X3, TOPOLOGY, PH, PH_EXPL, PH_IMPL,
-      PARAMETERS, PMATRIX_MEM, PMATRIX_NC, TENSOR, STRINGVAR, VECTOR_SCALAR, UNSIGNED_INTEGER
+      PARAMETERS, PMATRIX_MEM, PMATRIX_NC, TENSOR, STRINGVAR, VECTOR_SCALAR, UNSIGNED_INTEGER,
+      FRAMES,
+      UNKNOWN_DATA
     };
     /// Group DataSet belongs to.
     enum DataGroup {
@@ -78,6 +80,8 @@ class DataSet {
     // TODO pure virtual
     virtual int SendSet(int, Parallel::Comm const&) { return 1; }
     virtual int RecvSet(int, Parallel::Comm const&) { return 1; }
+    /// Broadcast data from this DataSet to all other processes.
+    virtual int Bcast(Parallel::Comm const&) { return 1; }
 #   endif
     // -----------------------------------------------------
     /// Associate additional data with this set.
@@ -132,6 +136,8 @@ class DataSet {
     };
     /// \return Text description based on given DataType
     static const char* description(DataType t) { return Descriptions_[t]; }
+    /// \return DataType from description
+    static DataType TypeFromDescription(std::string const&);
     /// \return Text description based on current DataType
     const char* description() const            { return Descriptions_[dType_]; }
   protected:

@@ -98,6 +98,8 @@ class Frame {
     int RepIdx()                      const { return repidx_;        }
     /// \return overall coordinate index
     int CrdIdx()                      const { return crdidx_;        }
+    /// Set XYZ for atom
+    inline void SetXYZ(int, Vec3 const&);
     /// Set box from another box
     void SetBox( Box const& b ) { box_ = b; }
     /// Modify box in place
@@ -152,6 +154,8 @@ class Frame {
     int SetupFrameV(std::vector<Atom> const&, CoordinateInfo const&);
     /// Allocate frame for selected # atoms, coords/mass only.
     int SetupFrameFromMask(AtomMask const&, std::vector<Atom> const&);
+    /// Allocate frame for selected # atoms and coordinate info.
+    int SetupFrameFromMask(AtomMask const&, std::vector<Atom> const&, CoordinateInfo const&);
     // ----- Add/remove components from Frame ----
     int AddVelocities(Darray const&);
     void RemoveVelocities();
@@ -305,6 +309,12 @@ class Frame {
     bool setupFrame(unsigned int, CoordinateInfo const&);
 };
 // ---------- INLINE FUNCTION DEFINITIONS --------------------------------------
+void Frame::SetXYZ(int atnum, Vec3 const& xyz) {
+  int idx = atnum*3;
+  X_[idx  ] = xyz[0];
+  X_[idx+1] = xyz[1];
+  X_[idx+2] = xyz[2];
+}
 
 bool Frame::CheckCoordsInvalid() const {
   if (natom_ > 1) {

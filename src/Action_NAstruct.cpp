@@ -5,62 +5,150 @@
 #include "StringRoutines.h" // integerToString
 #include "DistRoutines.h"
 #include "Constants.h" // RADDEG
+#include "Trajout_Single.h"
+#include "ParmFile.h"
 #ifdef NASTRUCTDEBUG
-#include "PDBfile.h"
+#include "PDBfile.h" //FIXME remove
 #endif
 #ifdef MPI
 # include "DataSet_float.h" // internal pointer needed for sync
 #endif
 
-// CONSTRUCTOR
+/** CONSTRUCTOR */
 Action_NAstruct::Action_NAstruct() :
   puckerMethod_(NA_Base::ALTONA),
   HBdistCut2_(12.25),     // Hydrogen Bond distance cutoff^2: 3.5^2
-  // NOTE: Is this too big?
-  originCut2_(6.25),      // Origin cutoff^2 for base-pairing: 2.5^2
+  // NOTE: should this be bigger? 3dna cutoff is 15 ang
+  originCut2_(25.0),      // Origin cutoff^2 for base-pairing: 5.0^2
+  // NOTE: should this be smaller? 3dna cutoff is 1.5 Ang
   staggerCut_(2.0),       // Vertical separation cutoff
+  // NOTE: should this be smaller? 3dna cutoff is 30 deg.
   z_angle_cut_(1.134464), // Z angle cutoff in radians (65 deg)
   maxResSize_(0),
   debug_(0),
   nframes_(0),
   findBPmode_(FIRST),
   grooveCalcType_(PP_OO),
+  bpConvention_(BP_3DNA),
   printheader_(true),
   seriesUpdated_(false),
   skipIfNoHB_(true),
   spaceBetweenFrames_(true),
   sscalc_(false),
+  wc_hb_only_(false),
   bpout_(0),
   ssout_(0),
   stepout_(0),
   helixout_(0),
-  masterDSL_(0)
+  masterDSL_(0),
 # ifdef NASTRUCTDEBUG
-  ,calcparam_(true)
+  calcparam_(true),
 # endif
+  axesOut_(0),
+  axesParm_(0),
+  bpAxesOut_(0),
+  bpAxesParm_(0),
+  stepAxesOut_(0),
+  stepAxesParm_(0),
+  setupNframes_(0),
+  setupTop_(0)
 {}
 
+/** DESTRUCTOR */
+Action_NAstruct::~Action_NAstruct() {
+  if (axesOut_ != 0) {
+    axesOut_->EndTraj();
+    delete axesOut_;
+  }
+  if (axesParm_ != 0) {
+    delete axesParm_;
+  }
+  if (bpAxesOut_ != 0) {
+    bpAxesOut_->EndTraj();
+    delete bpAxesOut_;
+  }
+  if (bpAxesParm_ != 0) {
+    delete bpAxesParm_;
+  }
+  if (stepAxesOut_ != 0) {
+    stepAxesOut_->EndTraj();
+    delete stepAxesOut_;
+  }
+  if (stepAxesParm_ != 0) {
+    delete stepAxesParm_;
+  }
+}
+
+/** Set up axes pseudo trajectory. */
+int Action_NAstruct::init_axes_pseudoTraj(const char* description,
+                                          const char* trajKeyword,
+                                          const char* argKeyword,
+                                          const char* parmKeyword,
+                                          const char* topName,
+                                          DataSetList const& DSL,
+                                          ArgList& actionArgs,
+                                          Trajout_Single** outputTraj,
+                                          Topology** outputParm)
+const
+{
+  std::string axesout = actionArgs.GetStringKey(trajKeyword);
+  if (!axesout.empty()) {
+    *outputTraj = new Trajout_Single();
+    (*outputTraj)->SetDebug( debug_ );
+#   ifdef MPI
+    (*outputTraj)->SetTrajComm( trajComm_ );
+#   endif
+    std::string axesoutargStr;
+    std::string axesoutarg = actionArgs.GetStringKey(argKeyword);
+    while (!axesoutarg.empty()) {
+      axesoutargStr.append(" " + axesoutarg);
+      axesoutarg = actionArgs.GetStringKey(argKeyword);
+    }
+    ArgList axesOutArglist( axesoutargStr );
+    if ((*outputTraj)->InitEnsembleTrajWrite( axesout, axesOutArglist, DSL,
+                                         TrajectoryFile::UNKNOWN_TRAJ, DSL.EnsembleNum()) )
+    {
+      mprinterr("Error: Could not init %s trajectory '%s'\n", description, axesout.c_str());
+      return 1;
+    }
+    std::string axesparmout = actionArgs.GetStringKey(parmKeyword);
+    *outputParm = new Topology();
+    (*outputParm)->SetDebug( debug_ );
+    (*outputParm)->SetParmName( topName, axesparmout );
+  }
+  return 0;
+}
+
+/** Print help text. */
 void Action_NAstruct::Help() const {
   mprintf("\t[<dataset name>] [resrange <range>] [sscalc] [naout <suffix>]\n"
           "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...] [calcnohb]\n"
           "\t[noframespaces] [baseref <file>] ...\n"
+          "\t[bpmode {3dna|babcock}] [allhb]\n"
           "\t[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]\n"
           "\t[zcut <zcut>] [zanglecut <zanglecut>] [groovecalc {simple | 3dna}]\n"
-          "\t[{ %s | allframes | guessbp}]\n", DataSetList::RefArgs);
-  mprintf("\t[bptype {anti | para} ...]\n");
+          "\t[axesout <file> [axesoutarg <arg> ...] [axesparmout <file>]]\n"
+          "\t[bpaxesout <file> [bpaxesoutarg <arg> ...] [bpaxesparmout <file>]]\n"
+          "\t[stepaxesout <file> [stepaxesoutarg <arg> ...] [stepaxesparmout <file>]]\n"
+          "\t[axisnameo <name>] [axisnamex <name>] [axisnamey <name>] [axisnamez <name>]\n"
+          "\t[{ %s |\n"
+          "\t   allframes |\n"
+          "\t   specifiedbp pairs <b1>-<b2>,... }]\n", DataSetList::RefArgs);
   mprintf("  Perform nucleic acid structure analysis. Base pairing can be determined\n"
           "  in multiple ways:\n"
           "    - If 'first' (default) or a reference is specified, determine base\n"
           "      pairing using geometric criteria in a manner similar to 3DNA.\n"
           "    - If 'allframes' is specified, base pairing will be determined\n"
           "      using geometric criteria for every single frame.\n"
-          "    - If 'guessbp' is specified, base pairing will be determined based\n"
-          "      on selected NA strands. It is assumed that consecutive strands will\n"
-          "      be base-paired and that they are arranged 5' to 3'. The type of base\n"
-          "      pairing between strands can be specified with one or more 'bptype'\n"
-          "      arguments.\n"
+          "    - If 'specifiedbp' is specified, base pairing is given by subsequent\n"
+          "      'pairs <b1>-<b2>,...' arguments, where <b1> and <b2> are the residue\n"
+          "      numbers of bases in the base pair, e.g. 'pairs 1-16,2-15,3-14,4-13'.\n"
+          "    - If 'reference', 'ref', or 'refindex' is specified, use a reference\n"
+          "      structure to determine base pairing.\n"
           "  If 'calcnohb' is specified NA parameters will be calculated even if no\n"
           "  hydrogen bonds present between base pairs.\n"
+          "  If 'allhb' is specified report the total number of hydrogen bonds detected\n"
+          "  instead of just the number of Watson-Crick-Franklin hydrogen bonds.\n"
           "  Base pair parameters are written to 'BP.<suffix>', base pair step parameters\n"
           "  are written to 'BPstep.<suffix>', and helix parameters are written to\n"
           "  Helix.<suffix>'.\n"
@@ -91,6 +179,18 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
       if (ssout_ == 0) return Action::ERR;
     }
   }
+  std::string bpmode = actionArgs.GetStringKey("bpmode");
+  if (bpmode.empty())
+    bpConvention_ = BP_3DNA;
+  else if (bpmode == "3dna")
+    bpConvention_ = BP_3DNA;
+  else if (bpmode == "babcock")
+    bpConvention_ = BP_BABCOCK;
+  else {
+    mprinterr("Error: Unrecognized keyword '%s' for 'bpmode'.\n", bpmode.c_str());
+    return Action::ERR;
+  }
+  wc_hb_only_ = !actionArgs.hasKey("allhb");
   double hbcut = actionArgs.getKeyDouble("hbcut", -1);
   if (hbcut > 0) 
     HBdistCut2_ = hbcut * hbcut;
@@ -116,6 +216,23 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     grooveCalcType_ = PP_OO;
   if      (actionArgs.hasKey("altona")) puckerMethod_=NA_Base::ALTONA;
   else if (actionArgs.hasKey("cremer")) puckerMethod_=NA_Base::CREMER;
+  // See if we want axes pseudo-trajectories
+  if (init_axes_pseudoTraj("base axes", "axesout", "axesoutarg", "axesparmout",
+                           "BaseAxes", init.DSL(), actionArgs,
+                           &axesOut_, &axesParm_))
+    return Action::ERR;
+  if (init_axes_pseudoTraj("basepair axes", "bpaxesout", "bpaxesoutarg", "bpaxesparmout",
+                           "BasePairAxes", init.DSL(), actionArgs,
+                           &bpAxesOut_, &bpAxesParm_))
+    return Action::ERR;
+  if (init_axes_pseudoTraj("step axes", "stepaxesout", "stepaxesoutarg", "stepaxesparmout",
+                           "StepAxes", init.DSL(), actionArgs,
+                           &stepAxesOut_, &stepAxesParm_))
+    return Action::ERR;
+  axisNameO_ = actionArgs.GetStringKey("axisnameo", "Orig");
+  axisNameX_ = actionArgs.GetStringKey("axisnamex", "X");
+  axisNameY_ = actionArgs.GetStringKey("axisnamey", "Y");
+  axisNameZ_ = actionArgs.GetStringKey("axisnamez", "Z");
   // Get residue range
   resRange_.SetRange(actionArgs.GetStringKey("resrange"));
   if (!resRange_.Empty())
@@ -130,9 +247,12 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     findBPmode_ = REFERENCE;
   else if (actionArgs.hasKey("allframes"))
     findBPmode_ = ALL;
-  else if (actionArgs.hasKey("guessbp"))
-    findBPmode_ = GUESS;
-  else if (actionArgs.hasKey("first"))
+  else if (actionArgs.hasKey("specifiedbp"))
+    findBPmode_ = SPECIFIED;
+  else if (actionArgs.hasKey("guessbp")) {
+    mprinterr("Error: 'guessbp' is deprecated. Consider using 'specifiedbp' instead.\n");
+    return Action::ERR;
+  } else if (actionArgs.hasKey("first"))
     findBPmode_ = FIRST;
   else 
     findBPmode_ = FIRST;
@@ -143,17 +263,59 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     return Action::ERR;
   }
 # endif
+  // Check for user-specified base pairs
+  if (findBPmode_ == SPECIFIED) {
+    std::string pairsarg = actionArgs.GetStringKey("pairs");
+    // Format is b1-b2,...
+    while (!pairsarg.empty()) {
+      ArgList pairslist( pairsarg, "," );
+      for (int iarg = 0; iarg < pairslist.Nargs(); iarg++) {
+        ArgList bpair( pairslist[iarg], "-" );
+        if (bpair.Nargs() != 2) {
+          mprinterr("Error: Malformed base pair argument: %s\n", pairslist[iarg].c_str());
+          return Action::ERR;
+        }
+        if (!validInteger(bpair[0])) {
+          mprinterr("Error: Expected an integer, got '%s'\n", bpair[0].c_str());
+          return Action::ERR;
+        }
+        if (!validInteger(bpair[1])) {
+          mprinterr("Error: Expected an integer, got '%s'\n", bpair[1].c_str());
+          return Action::ERR;
+        }
+        int b1idx = convertToInteger(bpair[0]);
+        int b2idx = convertToInteger(bpair[1]);
+        if (b1idx < 1 || b2idx < 1) {
+          mprinterr("Error: Base pair arg '%s', base #s must be > 0.\n", pairslist[iarg].c_str());
+          return Action::ERR;
+        }
+        specifiedPairs_.push_back( std::pair<unsigned int,unsigned int>( b1idx, b2idx ) );
+      } // END loop over specified pairs
+      pairsarg = actionArgs.GetStringKey("pairs");
+    } // END checking for 'pairs' keywords
+    if (specifiedPairs_.empty()) {
+      mprinterr("Error: No 'pairs' arguments for 'specifiedbp'\n");
+      return Action::ERR;
+    }
+  }
+  // Check for base pair mode incompatibilities
+  if (findBPmode_ == ALL) {
+    if (bpAxesOut_ != 0) {
+      mprinterr("Error: Cannot use 'allframes' mode with 'bpaxesout' since the # of\n"
+                "Error:  base pairs can change each frame.\n");
+      return Action::ERR;
+    }
+    if (stepAxesOut_ != 0) {
+      mprinterr("Error: Cannot use 'allframes' mode with 'stepaxesout' since the # of\n"
+                "Error:  base pair steps can change each frame.\n");
+      return Action::ERR;
+    }
+  }
   // For guess/specify modes, get base pairing type
   std::string bptype = actionArgs.GetStringKey("bptype");
   while (!bptype.empty()) {
-    if (bptype == "anti")
-      BpTypes_.push_back( true );
-    else if (bptype == "para")
-      BpTypes_.push_back( false );
-    else {
-      mprinterr("Error: Expected 'anti' or 'para' for 'bptype'\n");
-      return Action::ERR;
-    }
+    mprintf("Warning: 'bptype' is deprecated. Ignoring.\n");
+    bptype = actionArgs.GetStringKey("bptype");
   }
   // Get custom residue maps
   ArgList maplist;
@@ -216,16 +378,22 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     if (ssout_ != 0)
       mprintf("\tSingle strand parameters written to %s\n", ssout_->Filename().full());
   }
+  switch (bpConvention_) {
+    case BP_3DNA : mprintf("\tUsing 3DNA conventions for base pairing (no XY flip for parallel strands).\n"); break;
+    case BP_BABCOCK : mprintf("\tUsing Babcock et al. conventions for base pairing (XY flip for parallel strands).\n"); break;
+  }
   mprintf("\tHydrogen bond cutoff for determining base pairs is %.2f Angstroms.\n",
           sqrt( HBdistCut2_ ) );
-  if (findBPmode_ != GUESS) {
-    mprintf("\tBase reference axes origin cutoff for determining base pairs is %.2f Angstroms.\n",
-            sqrt( originCut2_ ) );
-    mprintf("\tBase Z height cutoff (stagger) for determining base pairs is %.2f Angstroms.\n",
-            staggerCut_);
-    mprintf("\tBase Z angle cutoff for determining base pairs is %.2f degrees.\n",
-            z_angle_cut_ * Constants::RADDEG);
-  }
+  if (wc_hb_only_)
+    mprintf("\tOnly reporting total # of Watson-Crick-Franklin hydrogen bonds.\n");
+  else
+    mprintf("\tReporting total # of all hydrogen bonds.\n");
+  mprintf("\tBase reference axes origin cutoff for determining base pairs is %.2f Angstroms.\n",
+          sqrt( originCut2_ ) );
+  mprintf("\tBase Z height cutoff (stagger) for determining base pairs is %.2f Angstroms.\n",
+          staggerCut_);
+  mprintf("\tBase Z angle cutoff for determining base pairs is %.2f degrees.\n",
+          z_angle_cut_ * Constants::RADDEG);
   if (!nameToRef_.empty()) {
     static const char natypeNames[] = { '?', 'A', 'C', 'G', 'T', 'U' };
     mprintf("\tWill attempt to map the following residues to existing references:\n");
@@ -243,10 +411,13 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     // Determine Base Pairing
     if ( DetermineBasePairing() ) return Action::ERR;
     mprintf("\tSet up %zu base pairs.\n", BasePairs_.size() );
+  } else if (findBPmode_ == SPECIFIED) {
+    mprintf("\tUser specified base pairs:");
+    for (PairArray::const_iterator it = specifiedPairs_.begin(); it != specifiedPairs_.end(); ++it)
+      mprintf(" %u-%u", it->first, it->second);
+    mprintf("\n");
   } else if (findBPmode_ == ALL)
     mprintf("\tBase pairs will be determined for each frame.\n");
-  else if (findBPmode_ == GUESS)
-    mprintf("\tBase pairs will be determined from NA strand layout.\n");
   else if (findBPmode_ == FIRST)
     mprintf("\tBase pairs will be determined from first frame.\n");
   if (skipIfNoHB_)
@@ -261,6 +432,25 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     mprintf("\tUsing simple groove width calculation (P-P and O-O base pair distances).\n");
   else if (grooveCalcType_ == HASSAN_CALLADINE)
     mprintf("\tUsing groove width calculation of El Hassan & Calladine.\n");
+  if (axesOut_ != 0) {
+    mprintf("\tWriting base axes pseudo trajectory to '%s'\n", axesOut_->Traj().Filename().full());
+    if (!axesParm_->OriginalFilename().empty())
+      mprintf("\tWriting base axes pseudo topology to '%s'\n", axesParm_->OriginalFilename().full());
+  }
+  if (bpAxesOut_ != 0) {
+    mprintf("\tWriting base pair axes pseudo trajectory to '%s'\n", bpAxesOut_->Traj().Filename().full());
+    if (!bpAxesParm_->OriginalFilename().empty())
+      mprintf("\tWriting base pair axes pseudo topology to '%s'\n", bpAxesParm_->OriginalFilename().full());
+  }
+  if (stepAxesOut_ != 0) {
+    mprintf("\tWriting base pair step axes pseudo trajectory to '%s'\n", stepAxesOut_->Traj().Filename().full());
+    if (!stepAxesParm_->OriginalFilename().empty())
+      mprintf("\tWriting base pair step axes pseudo topology to '%s'\n", stepAxesParm_->OriginalFilename().full());
+  }
+  if (axesOut_ != 0 || bpAxesOut_ != 0 || stepAxesOut_ != 0) {
+    mprintf("\tAxes pseudo atom names: origin='%s' X='%s' Y='%s' Z='%s'\n",
+            *axisNameO_, *axisNameX_, *axisNameY_, *axisNameZ_);
+  }
   mprintf("# Citations: Babcock MS; Pednault EPD; Olson WK; \"Nucleic Acid Structure\n"
           "#             Analysis: Mathematics for Local Cartesian and Helical Structure\n"
           "#             Parameters That Are Truly Comparable Between Structures\",\n"
@@ -299,6 +489,19 @@ static void WriteAxes(PDBfile& outfile, int resnum, const char* resname, NA_Axis
 // -----------------------------------------------------------------------------
 #endif
 
+/// Add NA_Axis to given Frame
+static void axesToFrame(Frame& frame, NA_Axis const& axis) {
+  // Origin
+  Vec3 oxyz = axis.Oxyz();
+  frame.AddVec3( oxyz );
+  // X vector
+  frame.AddVec3( axis.Rx() + oxyz );
+  // Y vector
+  frame.AddVec3( axis.Ry() + oxyz );
+  // Z vector
+  frame.AddVec3( axis.Rz() + oxyz );
+}
+
 // Action_NAstruct::SetupBaseAxes()
 /** For each residue in Bases (set up in Setup()), get the corresponding input
   * coords and fit the reference coords on top of input coords. This sets up 
@@ -308,8 +511,6 @@ int Action_NAstruct::SetupBaseAxes(Frame const& InputFrame) {
   Frame refFrame(maxResSize_); // Hold copy of base reference coords for RMS fit
   Frame inpFrame(maxResSize_); // Hold copy of input base coords for RMS fit
 # ifdef NASTRUCTDEBUG
-  PDBfile baseaxesfile;
-  baseaxesfile.OpenWrite("baseaxes.pdb");
   PDBfile basesfile;
   basesfile.OpenWrite("bases.pdb");
   mprintf("\n=================== Setup Base Axes ===================\n");
@@ -362,10 +563,9 @@ int Action_NAstruct::SetupBaseAxes(Frame const& InputFrame) {
       mprintf("Base %i: RMS of RefCoords from ExpCoords is %f\n",base->ResNum(), rmsd);
       base->Axis().PrintAxisInfo("BaseAxes");
     }
+
 #   ifdef NASTRUCTDEBUG
-    // DEBUG - Write base axis to file
-    WriteAxes(baseaxesfile, base->ResNum()+1, base->ResName(), base->Axis());
-     // Overlap ref coords onto input coords.
+    // Overlap ref coords onto input coords.
     Frame reftemp = base->Ref(); 
     reftemp.Trans_Rot_Trans(TransVec, RotMatrix, refTrans);
     // DEBUG - Write reference frame to file
@@ -376,6 +576,7 @@ int Action_NAstruct::SetupBaseAxes(Frame const& InputFrame) {
     }
 #   endif
   } // END loop over bases
+
   return 0;
 }
 
@@ -418,7 +619,7 @@ Action_NAstruct::HbondType Action_NAstruct::ID_HBtype(NA_Base const& base1, int 
 /** Given two NA_Bases for which IDs have been given and input coords set,
   * calculate the number of hydrogen bonds between them.
   */
-// TODO Identify type of base pairing (WC, Hoog., etc)
+// TODO Identify type of base pairing (WCF, Hoog., etc)
 int Action_NAstruct::CalcNumHB(NA_Base const& base1, NA_Base const& base2, int& n_WC) {
   int Nhbonds = 0;
   n_WC = 0;
@@ -496,6 +697,12 @@ Action_NAstruct::BPmap::iterator
       BP.major_ = 0;
       BP.minor_ = 0;
     }
+#   ifdef NASTRUCTDEBUG
+    //md.SetAspect("oxyz");
+    //BP.axes_oxyz_ = (DataSet*)masterDSL_->AddSet(DataSet::VECTOR, md);
+    md.SetAspect("nxyz");
+    BP.axes_nxyz_ = (DataSet*)masterDSL_->AddSet(DataSet::VECTOR, md);
+#   endif
     BP.bpidx_ = BasePairs_.size();
     BP.base1idx_ = base1idx;
     BP.base2idx_ = base2idx;
@@ -506,6 +713,113 @@ Action_NAstruct::BPmap::iterator
     mprintf("      Existing base pair: %i to %i", base1.ResNum()+1, base2.ResNum()+1);
 # endif
   return entry;
+}
+
+/** Search Bases_ for the specified residue number, return index into Bases_. */
+int Action_NAstruct::find_index_in_bases(int resnum) const {
+  for (Barray::const_iterator it = Bases_.begin(); it != Bases_.end(); ++it) {
+    if (it->ResNum() == resnum) {
+      return (int)(it - Bases_.begin());
+    }
+  }
+  return -1;
+}
+
+/** User-specified base pairing. */
+int Action_NAstruct::SpecifiedBasePairing() {
+  int n_wc_hb;
+# ifdef NASTRUCTDEBUG  
+  mprintf("\n=================== Specified Base Pairing ===================\n");
+# endif
+  for (PairArray::const_iterator it = specifiedPairs_.begin();
+                                 it != specifiedPairs_.end();
+                               ++it)
+  {
+    // User-specified base pair #s start from 1
+    int b1idx = find_index_in_bases(it->first - 1);
+    int b2idx = find_index_in_bases(it->second - 1);
+    if (b1idx < 0) {
+      mprinterr("Error: Specified base residue # %u not found in set up bases.\n", it->first);
+      return 1;
+    }
+    NA_Base& base1 = Bases_[b1idx];
+    if (b2idx < 0) {
+      mprinterr("Error: Specified base residue # %u not found in set up bases.\n", it->second);
+      return 1;
+    }
+    NA_Base& base2 = Bases_[b2idx];
+/*#   ifdef NASTRUCTDEBUG
+    // Glycosidic N-N distance
+    if (base1.HasNXatom() && base2.HasNXatom()) {
+      double n_n_dist2 = DIST2_NoImage(base1.NXxyz(), base2.NXxyz());
+      mprintf("DEBUG: NX-NX distance= %f\n", sqrt(n_n_dist2));
+    }
+#   endif*/
+    NA_Axis b1Axis = base1.Axis();
+    NA_Axis b2Axis = base2.Axis();
+    // Determine if base Z axis vectors are aligned with strand direction
+    bool is_z = false;
+    int b1_5to3 = axis_points_5p_to_3p( base1 );
+    int b2_5to3 = axis_points_5p_to_3p( base2 );
+    // TODO trap errors here
+    // If antiparallel and both bases are aligned 3' to 5', may be ZDNA
+    if (b1_5to3 == 0 && b2_5to3 == 0) {
+#     ifdef NASTRUCTDEBUG
+      mprintf("Both bases aligned 3' to 5', ZDNA\n");
+#     endif
+      b1Axis.FlipXZ();
+      b2Axis.FlipXZ();
+      is_z = true;
+    }
+    // Determine if base Z axis vectors point in same (theta <= 90) or
+    // opposite (theta > 90) directions.
+    bool is_antiparallel;
+    double z_theta = b1Axis.Rz().Angle( b2Axis.Rz() );
+#   ifdef NASTRUCTDEBUG
+    double z_deviation_from_linear;
+#   endif
+    if (z_theta > Constants::PIOVER2) { // If theta(Z) > 90 deg.
+#     ifdef NASTRUCTDEBUG
+      mprintf("\t%s is anti-parallel to %s (%g deg)\n", base1.ResName(), base2.ResName(),
+              z_theta * Constants::RADDEG);
+      z_deviation_from_linear = Constants::PI - z_theta;
+#     endif
+      is_antiparallel = true;
+      // Antiparallel - flip Y and Z axes of complimentary base
+      b2Axis.FlipYZ();
+    } else {
+#     ifdef NASTRUCTDEBUG
+      mprintf("\t%s is parallel to %s (%g deg)\n", base1.ResName(), base2.ResName(),
+              z_theta * Constants::RADDEG);
+      z_deviation_from_linear = z_theta;
+#     endif
+      is_antiparallel = false;
+      // Parallel - no flip needed if 3dna.
+      // If using Babcock convention, flip X and Y axes.
+      if (bpConvention_ == BP_BABCOCK)
+        b2Axis.FlipXY();
+    }
+#   ifdef NASTRUCTDEBUG
+    mprintf("\tDeviation from linear: %g deg.\n", z_deviation_from_linear * Constants::RADDEG);
+    // Calculate parameters between axes.
+    double Param[6];
+    calculateParameters(b2Axis, b1Axis, 0, Param);
+    mprintf("    Shear= %6.2f  Stretch= %6.2f  Stagger= %6.2f  Buck= %6.2f  Prop= %6.2f  Open= %6.2f\n",
+            Param[0], Param[1], Param[2], Param[5]*Constants::RADDEG, Param[4]*Constants::RADDEG, Param[3]*Constants::RADDEG);
+#   endif
+    int NHB = CalcNumHB(base1, base2, n_wc_hb);
+    BPmap::iterator entry = AddBasePair(b1idx, base1, b2idx, base2);
+#   ifdef NASTRUCTDEBUG
+    mprintf(", %i hbonds\n", NHB);
+#   endif
+    entry->second.nhb_ = NHB;
+    entry->second.n_wc_hb_ = n_wc_hb;
+    entry->second.isAnti_ = is_antiparallel;
+    entry->second.isZ_ = is_z;
+  } // END loop over pairs 
+
+  return 0;
+
 }
 
 // Action_NAstruct::DetermineBasePairing()
@@ -524,9 +838,10 @@ int Action_NAstruct::DetermineBasePairing() {
     {
       double dist2 = DIST2_NoImage(base1->Axis().Oxyz(), base2->Axis().Oxyz());
 #     ifdef NASTRUCTDEBUG
-      mprintf("  Axes distance for %i:%s -- %i:%s is %f\n",
+      double axes_distance = sqrt(dist2);
+      mprintf("\n  ----- Axes distance for %i:%s -- %i:%s is %f -----\n",
               base1->ResNum()+1, base1->ResName(), 
-              base2->ResNum()+1, base2->ResName(), sqrt(dist2));
+              base2->ResNum()+1, base2->ResName(), axes_distance);
 #     endif
       if (dist2 < originCut2_) {
 //#       ifdef NASTRUCTDEBUG
@@ -534,131 +849,88 @@ int Action_NAstruct::DetermineBasePairing() {
 //                base1->ResNum()+1, base1->ResName(), 
 //                base2->ResNum()+1, base2->ResName(), sqrt(dist2));
 //#       endif
+#       ifdef NASTRUCTDEBUG
+        // Glycosidic N-N distance
+        if (base1->HasNXatom() && base2->HasNXatom()) {
+          double n_n_dist2 = DIST2_NoImage(base1->NXxyz(), base2->NXxyz());
+          mprintf("DEBUG: NX-NX distance= %f\n", sqrt(n_n_dist2));
+        }
+#       endif
+        NA_Axis b1Axis = base1->Axis();
+        NA_Axis b2Axis = base2->Axis();
+        // Determine if base Z axis vectors are aligned with strand direction
+        bool is_z = false;
+        int b1_5to3 = axis_points_5p_to_3p( *base1 );
+        int b2_5to3 = axis_points_5p_to_3p( *base2 );
+        // TODO trap errors here
+        // If antiparallel and both bases are aligned 3' to 5', may be ZDNA
+        if (b1_5to3 == 0 && b2_5to3 == 0) {
+#         ifdef NASTRUCTDEBUG
+          mprintf("Both bases aligned 3' to 5', ZDNA\n");
+#         endif
+          b1Axis.FlipXZ();
+          b2Axis.FlipXZ();
+          is_z = true;
+        }
+        // Determine if base Z axis vectors point in same (theta <= 90) or
+        // opposite (theta > 90) directions.
+        bool is_antiparallel;
+        double z_theta = b1Axis.Rz().Angle( b2Axis.Rz() );
+        double z_deviation_from_linear;
+        if (z_theta > Constants::PIOVER2) { // If theta(Z) > 90 deg.
+#         ifdef NASTRUCTDEBUG
+          mprintf("\t%s is anti-parallel to %s (%g deg)\n", base1->ResName(), base2->ResName(),
+                  z_theta * Constants::RADDEG);
+#         endif
+          is_antiparallel = true;
+          z_deviation_from_linear = Constants::PI - z_theta;
+          // Antiparallel - flip Y and Z axes of complimentary base
+          b2Axis.FlipYZ();
+          
+        } else {
+#         ifdef NASTRUCTDEBUG
+          mprintf("\t%s is parallel to %s (%g deg)\n", base1->ResName(), base2->ResName(),
+                  z_theta * Constants::RADDEG);
+#         endif
+          is_antiparallel = false;
+          z_deviation_from_linear = z_theta;
+          // Parallel - no flip needed if 3dna.
+          // If using Babcock convention, flip X and Y axes.
+          if (bpConvention_ == BP_BABCOCK)
+            b2Axis.FlipXY();
+        }
+#       ifdef NASTRUCTDEBUG
+        mprintf("\tDeviation from linear: %g deg.\n", z_deviation_from_linear * Constants::RADDEG);
+#       endif       
         // Calculate parameters between axes.
         double Param[6];
-        calculateParameters(base1->Axis(), base2->Axis(), 0, Param);
+        //calculateParameters(base1->Axis(), base2->Axis(), 0, Param);
+        calculateParameters(b2Axis, b1Axis, 0, Param);
 #       ifdef NASTRUCTDEBUG
-        mprintf("    Shear=%g  Stretch=%g  Stagger=%g  Open=%g  Prop=%g  Buck=%g\n",
-                Param[0], Param[1], Param[2], Param[3], Param[4], Param[5]);
+        mprintf("    Shear= %6.2f  Stretch= %6.2f  Stagger= %6.2f  Buck= %6.2f  Prop= %6.2f  Open= %6.2f\n",
+                Param[0], Param[1], Param[2], Param[5]*Constants::RADDEG, Param[4]*Constants::RADDEG, Param[3]*Constants::RADDEG);
 #       endif
         // Stagger (vertical separation) must be less than a cutoff.
         if ( fabs(Param[2]) < staggerCut_ ) {
-          // Figure out if z vectors point in same (<90 deg) or opposite (>90 deg) direction
-          bool AntiParallel;
-          double theta = base1->Axis().Rz().Angle( base2->Axis().Rz() );
-          double t_delta; // Deviation from linear
-          if (theta > Constants::PIOVER2) { // If theta(Z) > 90 deg.
-#           ifdef NASTRUCTDEBUG
-            mprintf("\t%s is anti-parallel to %s (%g deg)\n", base1->ResName(), base2->ResName(),
-                    theta * Constants::RADDEG);
-#           endif
-            AntiParallel = true;
-            t_delta = Constants::PI - theta;
-          } else {
-#           ifdef NASTRUCTDEBUG
-            mprintf("\t%s is parallel to %s (%g deg)\n", base1->ResName(), base2->ResName(),
-                    theta * Constants::RADDEG);
-#           endif
-            AntiParallel = false;
-            t_delta = theta;
-          }
-#         ifdef NASTRUCTDEBUG
-          mprintf("\tDeviation from linear: %g deg.\n", t_delta * Constants::RADDEG);
-#         endif
           // Deviation from linear must be less than cutoff
-          if (t_delta < z_angle_cut_) {
+          if (z_deviation_from_linear < z_angle_cut_) {
             int NHB = CalcNumHB(*base1, *base2, n_wc_hb);
             if (NHB > 0) {
               BPmap::iterator entry = AddBasePair(base1-Bases_.begin(), *base1,
                                                   base2-Bases_.begin(), *base2);
 #             ifdef NASTRUCTDEBUG
-              mprintf(", %i hbonds.\n", NHB);
+              mprintf(", %i hbonds, axes distance= %g\n", NHB, axes_distance);
 #             endif
               entry->second.nhb_ = NHB;
               entry->second.n_wc_hb_ = n_wc_hb;
-              entry->second.isAnti_ = AntiParallel;
+              entry->second.isAnti_ = is_antiparallel;
+              entry->second.isZ_ = is_z;
             } // END if # hydrogen bonds > 0
           } // END if Z angle < cut
         } // END if stagger < stagger cut
       } // END if base to base origin distance < cut
     } // END base2 loop
   } // END base1 loop
-  return 0;
-}
-
-/** Try to guess base pairing based on strand layout. Assume NA strands
-  * are laid out 5' to 3', and that consecutive strands are supposed to
-  * base pair.
-  */
-int Action_NAstruct::GuessBasePairing(Topology const& Top) {
-# ifdef NASTRUCTDEBUG
-  mprintf("\n=================== Setup Base Pairing ===================\n");
-# endif
-  if (Strands_.size() < 2) {
-    mprinterr("Error: Need at least 2 strands to guess base pairing, have %zu\n",
-              Strands_.size());
-    return 1;
-  }
-  unsigned int nspairs = Strands_.size() / 2;
-  if (BpTypes_.empty()) {
-    mprintf("Warning: No 'bptype' args specified; assuming all strands anti-parallel.\n");
-    BpTypes_.assign( nspairs, true );
-  } else if (BpTypes_.size() < nspairs) {
-    mprintf("Warning: # 'bptype' args < # strands to pair (%u);", nspairs);
-    if (BpTypes_.back())
-      mprintf(" assume remaining pairs are anti-parallel.\n");
-    else
-      mprintf(" assume remaining pairs are parallel.\n");
-    BpTypes_.resize( nspairs, BpTypes_.back() );
-  }
-  std::vector<bool>::const_iterator bptype = BpTypes_.begin();
-  for (unsigned int sidx0 = 0; sidx0 < Strands_.size(); sidx0 += 2, ++bptype)
-  {
-    unsigned int sidx1 = sidx0 + 1;
-    int s0beg = Strands_[sidx0].first;
-    int s0end = Strands_[sidx0].second;
-    int s1beg = Strands_[sidx1].first;
-    int s1end = Strands_[sidx1].second;
-#   ifdef NASTRUCTDEBUG
-    mprintf("\tStrand %u: %i:%s to %i:%s\n", sidx0,
-            Bases_[s0beg].ResNum()+1, Bases_[s0beg].ResName(),
-            Bases_[s0end].ResNum()+1, Bases_[s0end].ResName(),
-            Bases_[s1beg].ResNum()+1, Bases_[s1beg].ResName(),
-            Bases_[s1end].ResNum()+1, Bases_[s1end].ResName());
-#   else
-    mprintf("\tStrand %u (%s-%s) to %u (%s-%s)",
-            sidx0,
-            Top.TruncResNameNum(Bases_[s0beg].ResNum()).c_str(),
-            Top.TruncResNameNum(Bases_[s0end].ResNum()).c_str(),
-            sidx1,
-            Top.TruncResNameNum(Bases_[s1beg].ResNum()).c_str(),
-            Top.TruncResNameNum(Bases_[s1end].ResNum()).c_str());
-    if (*bptype)
-      mprintf(", anti-parallel.\n");
-    else
-      mprintf(", parallel.\n");
-#   endif
-    int nstrand0 = s0end - s0beg;
-    int nstrand1 = s1end - s1beg;
-    if (nstrand0 != nstrand1) {
-      // TODO: try to guess based on G-C etc?
-      mprinterr("Error: # residues in strand %u (%i) != # residues in strand %u (%i)\n",
-                sidx0, nstrand0, sidx1, nstrand1);
-      return 1;
-    }
-    int idx1 = s1end;
-    for (int idx0 = s0beg; idx0 < s0end + 1; idx0++, idx1--)
-    {
-      BPmap::iterator entry = AddBasePair(idx0, Bases_[idx0], idx1, Bases_[idx1]);
-#     ifdef NASTRUCTDEBUG
-      mprintf("\n");
-#     endif
-      // Assume WC for now
-      entry->second.nhb_ = 0;
-      entry->second.n_wc_hb_ = 0;
-      entry->second.isAnti_ = *bptype;
-    }
-  }
 
   return 0;
 }
@@ -733,7 +1005,7 @@ int Action_NAstruct::calculateParameters(NA_Axis const& Axis1, NA_Axis const& Ax
 # ifdef NASTRUCTDEBUG
   // Print rotated R1 and R2
   RotatedR1.Print("Rotated R1");
-  RotatedR1.Print("Rotated R2");
+  RotatedR2.Print("Rotated R2");
   if (calcparam_) {
     tempAxis.StoreRotMatrix(RotatedR1, Axis1.Oxyz()); 
     WriteAxes(paramfile, 1, "R1'", tempAxis);
@@ -993,8 +1265,8 @@ int Action_NAstruct::DetermineStrandParameters(int frameNum) {
     //mprintf("DEBUG: Strand %u, bases %u to %u\n", SP.strandidx_, b1idx, b2idx);
 
     // Get bases
-    NA_Base& base1 = Bases_[b1idx];
-    NA_Base& base2 = Bases_[b2idx]; //TODO copy?
+    NA_Base const& base1 = Bases_[b1idx];
+    NA_Base const& base2 = Bases_[b2idx];
     // Calc parameters between bases in the strand
     calculateParameters(base2.Axis(), base1.Axis(), &commonAxis, Param);
     // Store data
@@ -1022,6 +1294,65 @@ int Action_NAstruct::DetermineStrandParameters(int frameNum) {
   return 0;
 }
 
+/** \return 1 if base Z axis is pointing in 5' to 3' direction.
+  * \return 0 if base Z axis is pointing 3' to 5'
+  * \return -1 if an error occurs.
+  */
+int Action_NAstruct::axis_points_5p_to_3p(NA_Base const& base1) const {
+  if (base1.HasC1atom()) {
+    // Ensure base Z vector points 5' to 3'
+    int c3residx = base1.C3resIdx();
+    int c5residx = base1.C5resIdx();
+    if (c3residx > -1 || c5residx > -1) {
+      const double *c5res_c1xyz = 0;
+      const double *c3res_c1xyz = 0;
+      if (c3residx == -1)
+        c3res_c1xyz = base1.C1xyz();
+      else if (Bases_[c3residx].HasC1atom())
+        c3res_c1xyz = Bases_[c3residx].C1xyz();
+      if (c5residx == -1)
+        c5res_c1xyz = base1.C1xyz();
+      else if (Bases_[c5residx].HasC1atom())
+        c5res_c1xyz = Bases_[c5residx].C1xyz();
+      if (c5res_c1xyz == 0 || c3res_c1xyz == 0) {
+        mprinterr("Error: 5' res and/ord 3' res missing C1 atom coords.\n");
+        return -1;
+      }
+#     ifdef NASTRUCTDEBUG
+      mprintf("DEBUG: Res %i  c5res_c1xyz = %f %f %f  c3res_c1xyz = %f %f %f\n",
+              base1.ResNum()+1,
+              c5res_c1xyz[0], c5res_c1xyz[1], c5res_c1xyz[2],
+              c3res_c1xyz[0], c3res_c1xyz[1], c3res_c1xyz[2]);
+#     endif
+      Vec3 strand_vec( c3res_c1xyz[0] - c5res_c1xyz[0],
+                       c3res_c1xyz[1] - c5res_c1xyz[1],
+                       c3res_c1xyz[2] - c5res_c1xyz[2] );
+      strand_vec.Normalize();
+      double s_angle = base1.Axis().Rz().Angle( strand_vec );
+#     ifdef NASTRUCTDEBUG
+      strand_vec.Print("strand vector");
+      base1.Axis().Rz().Print("Axis Z");
+      mprintf("DEBUG: Angle between strand and Axis Z = %f\n", s_angle * Constants::RADDEG);
+#     endif
+      if (s_angle > Constants::PIOVER2) {
+        // Z has flipped, likely due to rotation around chi.
+#       ifdef NASTRUCTDEBUG
+        mprintf("DEBUG: Res %i Z axis is aligned 3' to 5'\n", base1.ResNum()+1);
+#       endif
+        return 0;
+      } else {
+        // Z is aligned 5' to 3'
+#       ifdef NASTRUCTDEBUG
+        mprintf("DEBUG: Res %i Z axis is aligned 5' to 3'\n", base1.ResNum()+1);
+#       endif
+        return 1;
+      }
+    }
+  }
+  // If we are here, either not enough coords or not enough res. Assume aligned. TODO OK?
+  return 1;
+}
+
 // Action_NAstruct::DeterminePairParameters()
 /** For each base pair, get the values of buckle, propeller twist,
   * opening, shear, stretch, and stagger. Also determine the origin and 
@@ -1030,8 +1361,6 @@ int Action_NAstruct::DetermineStrandParameters(int frameNum) {
 int Action_NAstruct::DeterminePairParameters(int frameNum) {
   double Param[6];
 # ifdef NASTRUCTDEBUG
-  PDBfile basepairaxesfile;
-  basepairaxesfile.OpenWrite("basepairaxes.pdb");
   mprintf("\n=================== Determine BP Parameters ===================\n");
 # endif
   // NOTE: iterator cannot be const because bpaxis_ needs to be updated
@@ -1043,19 +1372,30 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
     int b2 = BP.base2idx_;
     NA_Base& base1 = Bases_[b1];
     NA_Base& base2 = Bases_[b2]; //TODO copy? 
+
 #   ifdef NASTRUCTDEBUG
     mprintf("BasePair %i:%s to %i:%s", b1+1, base1.ResName(), b2+1, base2.ResName());
     if (BP.isAnti_)
-      mprintf(" Anti-parallel.\n");
+      mprintf(" Anti-parallel,");
     else
-      mprintf(" Parallel.\n");
+      mprintf(" Parallel,");
+    if (BP.isZ_)
+      mprintf(" aligned 3' to 5' (Z).\n");
+    else
+      mprintf(" aligned 5' to 3' (A/B).\n");
+    base2.Axis().Rot().Print("Original base2 axis");
 #   endif
+    // Check Z-DNA - need to flip XZ
+    if (BP.isZ_) {
+      base1.Axis().FlipXZ();
+      base2.Axis().FlipXZ();
+    }
     // Check Antiparallel / Parallel
     // Flip YZ (rotate around X) for antiparallel
-    // Flip XY (rotate around Z) for parallel
+    // Flip XY (rotate around Z) for parallel (Babcock convention only)
     if (BP.isAnti_)
       base2.Axis().FlipYZ();
-    else
+    else if (bpConvention_ == BP_BABCOCK)
       base2.Axis().FlipXY();
     if (grooveCalcType_ == PP_OO) {
       // Calc direct P--P distance
@@ -1104,13 +1444,22 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
     BP.opening_->Add(frameNum, &opening);
     BP.prop_->Add(frameNum, &prop);
     BP.buckle_->Add(frameNum, &buckle);
-    BP.hbonds_->Add(frameNum, &(BP.n_wc_hb_));
+    if (wc_hb_only_)
+      BP.hbonds_->Add(frameNum, &(BP.n_wc_hb_));
+    else
+      BP.hbonds_->Add(frameNum, &(BP.nhb_));
     static const int ONE = 1;
     if (BP.nhb_ > 0)
       BP.isBP_->Add(frameNum, &ONE);
 #   ifdef NASTRUCTDEBUG
-    // DEBUG - write base pair axes
-    WriteAxes(basepairaxesfile, b1+1, base1.ResName(), BP.bpaxis_);
+    double bp_axes_vec[6]; // Hold base pair axis Z vec and origin
+    bp_axes_vec[0] = BP.bpaxis_.Rz()[0];
+    bp_axes_vec[1] = BP.bpaxis_.Rz()[1];
+    bp_axes_vec[2] = BP.bpaxis_.Rz()[2];
+    bp_axes_vec[3] = BP.bpaxis_.Oxyz()[0];
+    bp_axes_vec[4] = BP.bpaxis_.Oxyz()[1];
+    bp_axes_vec[5] = BP.bpaxis_.Oxyz()[2];
+    BP.axes_nxyz_->Add(frameNum, bp_axes_vec);
 #   endif
   }
   // Calculate base parameters.
@@ -1218,19 +1567,39 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
         }
         StepType& currentStep = entry->second;
         // Calc step parameters
-        NA_Axis midFrame;
-        calculateParameters(BP1.bpaxis_, BP2.bpaxis_, &midFrame, Param);
-        // Calculate zP
+        calculateParameters(BP1.bpaxis_, BP2.bpaxis_, &(currentStep.stepaxis_), Param);
+        NA_Axis& midFrame = currentStep.stepaxis_;
+        // Calculate zP: difference in step phosphate atoms along the Z axis
+        // of the step middle frame.
         float Zp = 0.0;
-        NA_Base const* s2base = 0;
-        if (BP1.isAnti_) {
-          if (base2.HasPatom()) s2base = &base2;
-        } else {
-          if (base4.HasPatom()) s2base = &base4;
-        }
-        if (s2base != 0) {
-          Vec3 xyzP = midFrame.Rot().TransposeMult((Vec3(base3.Pxyz()) - Vec3(s2base->Pxyz())) / 2);
-          //xyzP.Print("xyzP"); // TODO: Check/fix Xp
+        NA_Base const* pbase1 = &base3;
+        NA_Base const* pbase2 = 0;
+        if (BP1.isAnti_)
+          pbase2 = &base2;
+        else
+          pbase2 = &base4;
+        if (pbase1->HasPatom() && pbase2->HasPatom()) { // TODO warn if atoms missing?
+          // Rotate the coordinates of the base phosphate atoms so they are
+          // in the step middle frame.
+          Vec3 p1xyz = midFrame.Rot().TransposeMult( Vec3(pbase1->Pxyz()) - midFrame.Oxyz() );
+          Vec3 p2xyz = midFrame.Rot().TransposeMult( Vec3(pbase2->Pxyz()) - midFrame.Oxyz() );
+          // If anti-parallel, ensure axes on second strand are properly flipped
+          if (BP1.isAnti_) {
+            // FlipYZ
+            p2xyz[1] = -p2xyz[1];
+            p2xyz[2] = -p2xyz[2];
+          } else if (bpConvention_ == BP_BABCOCK) {
+            // FlipXY
+            p2xyz[0] = -p2xyz[0];
+            p2xyz[1] = -p2xyz[1];
+          }
+          Vec3 xyzP = (p1xyz + p2xyz) / 2.0;
+#         ifdef NASTRUCTDEBUG
+          mprintf("ZPCALC: SI '%3s' P %6.2f %6.2f %6.2f  |  SII '%3s' P %6.2f %6.2f %6.2f  |  %6.2f %6.2f %6.2f\n",
+                  pbase1->BaseName().c_str(), p1xyz[0], p1xyz[1], p1xyz[2],
+                  pbase2->BaseName().c_str(), p2xyz[0], p2xyz[1], p2xyz[2],
+                  xyzP[0], xyzP[1], xyzP[2]);
+#         endif
           Zp = (float)xyzP[2];
         }
         currentStep.Zp_->Add(frameNum, &Zp);
@@ -1291,7 +1660,7 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
         currentStep.tip_->Add(frameNum, &tip);
         currentStep.htwist_->Add(frameNum, &htwist);
       } // END second base pair found
-    } // END second base pair valid 
+    } // END second base pair valid
   } // END loop over base pairs 
   return 0;
 }
@@ -1403,11 +1772,10 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
     NA_Reference::RetType err = refBases_.SetupBaseRef( currentBase, setup.Top(), *resnum,
                                                         *masterDSL_, dataname_ );
     if (err == NA_Reference::NOT_FOUND) {
-      // Residue not recognized. Print a warning if the user specified this range.
-      if (!resRange_.Empty()) {
-        mprintf("Warning: Residue %i:%s not recognized as NA residue.\n",
-                *resnum+1, setup.Top().Res(*resnum).c_str());
-      }
+      // Residue not recognized. Print a warning.
+      mprintf("Warning: Residue %i:%s not recognized as a nucleic acid residue.\n",
+              *resnum+1, setup.Top().Res(*resnum).c_str());
+      mprintf("Warning: For non-standard names, use the 'resmap' keyword.\n");
       continue;
     } else if (err == NA_Reference::BASE_ERROR) {
       mprinterr("Error: Could not set up residue %s for NA structure analysis.\n",
@@ -1464,6 +1832,8 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
       if (c5neighbor == Bases_[idx].ResNum()) base->SetC5Idx( idx );
       if (c3neighbor == Bases_[idx].ResNum()) base->SetC3Idx( idx );
     }
+    if (debug_ > 0)
+      mprintf("DEBUG: Base res %i C3res=%i C5res=%i\n", base->ResNum()+1, base->C3resIdx(), base->C5resIdx());
   } // END loop over bases setting 5' and 3' neighbors
 
   // For each base, find 5' terminii, trace them to the 3' terminii, set up strands
@@ -1505,10 +1875,7 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
     for (StrandArray::const_iterator st = Strands_.begin(); st != Strands_.end(); ++st)
       mprintf("\t  %li: Base index %i to %i\n", st-Strands_.begin(), st->first, st->second);
   }
-  if (findBPmode_ == GUESS) {
-    if (GuessBasePairing(setup.Top())) return Action::ERR;
-    findBPmode_ = REFERENCE;
-  }
+  
   // Determine strand data
   if (sscalc_) {
     for (StrandArray::const_iterator strand = Strands_.begin();
@@ -1554,8 +1921,86 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
       } // END loop over bases in strand
     } // END loop over strands
   } // END if sscalc
+
+  // Set up base axes pseudo-topology
+  setupNframes_ = setup.Nframes();
+  setupTop_ = setup.TopAddress();
+  if (axesParm_ != 0) {
+    if (axesParm_->Natom() > 0) {
+      mprintf("\tBase axes pseudo-topology is already set up.\n");
+      // Check that number of bases has not changed
+      if ((unsigned int)axesParm_->Nres() != Bases_.size()) {
+        mprinterr("Error: Number of bases has changed from %i to %zu.\n"
+                  "Error: Base axes pseudo-topology is already set up for %i bases.\n",
+                  axesParm_->Nres(), Bases_.size(), axesParm_->Nres());
+        return Action::ERR;
+      }
+    } else {
+      // Create residue information for each base axes
+      std::vector<Residue> axesResidues;
+      axesResidues.reserve( Bases_.size() );
+      for (Barray::iterator base = Bases_.begin(); base != Bases_.end(); ++base) {
+        Residue const& res = setup.Top().Res( base->ResNum() );
+        axesResidues.push_back( res );
+      }
+      if (setup_axes_pseudoTraj( *axesParm_, *axesOut_, axesFrame_, axesResidues ))
+        return Action::ERR;
+    }
+  }
   return Action::OK;  
 }
+
+/** Set up topology for an axes pseudo-trajectory. */
+int Action_NAstruct::setup_axes_pseudoTraj(Topology& pseudo,
+                                           Trajout_Single& outtraj,
+                                           Frame& frame,
+                                           std::vector<Residue> const& axesResidues)
+const
+{
+  if (pseudo.Natom() > 0) {
+    mprintf("\tAxes pseudo-topology '%s' is already set up.\n", pseudo.c_str());
+    return 0;
+  }
+  // 1 pseudo bond type, Rk = 0.0, Req = 1.0 Ang., will be bond parm index 0
+  BondArray bonds;
+  pseudo.AddBondParm( BondParmType(0.0, 1.0) );
+  int natom = 0;
+  for (std::vector<Residue>::const_iterator res = axesResidues.begin();
+                                            res != axesResidues.end();
+                                          ++res)
+  {
+    // Order is origin, x, y, z
+    pseudo.AddTopAtom(Atom(axisNameO_, "C"), *res);
+    pseudo.AddTopAtom(Atom(axisNameX_, "H"), *res);
+    pseudo.AddTopAtom(Atom(axisNameY_, "H"), *res);
+    pseudo.AddTopAtom(Atom(axisNameZ_, "H"), *res);
+    // Bond x y and z to origin
+    pseudo.AddBond(natom, natom+1, 0);
+    pseudo.AddBond(natom, natom+2, 0);
+    pseudo.AddBond(natom, natom+3, 0);
+    natom += 4;
+  }
+
+  pseudo.CommonSetup();
+  if (!pseudo.OriginalFilename().empty()) {
+    mprintf("\tWriting axes pseudo-topology to '%s'\n", pseudo.OriginalFilename().full());
+    ParmFile pfile;
+    if (pfile.WriteTopology(pseudo, pseudo.OriginalFilename(), ParmFile::UNKNOWN_PARM, debug_)) {
+      mprinterr("Error: Could not write axes pseudo-topology '%s'\n", pseudo.c_str());
+      return 1;
+    }
+  }
+
+  if (outtraj.SetupTrajWrite( &pseudo, CoordinateInfo(), setupNframes_)) {
+    mprinterr("Error: Could not set up axes output trajectory.\n");
+    return 1;
+  }
+  mprintf("      "); //TODO this is a kludge; PrintInfo should be a string.
+  outtraj.PrintInfo(0);
+
+  frame = Frame(natom);
+  return 0;
+} 
 
 // Action_NAstruct::CalculateHbonds()
 void Action_NAstruct::CalculateHbonds() {
@@ -1579,6 +2024,11 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
     // calculated as part of determining base pairing.
     if ( SetupBaseAxes(frm.Frm()) ) return Action::ERR;
     if ( DetermineBasePairing() ) return Action::ERR;
+  } else if ( findBPmode_ == SPECIFIED ) {
+    // User-specified base pairing.
+    if ( SetupBaseAxes(frm.Frm()) ) return Action::ERR;
+    if ( SpecifiedBasePairing() ) return Action::ERR;
+    findBPmode_ = REFERENCE;
   } else if ( findBPmode_ == FIRST) {
     // Base pairs need to be determined from first frame.
 #   ifdef MPI
@@ -1611,21 +2061,110 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
 #   endif
     findBPmode_ = REFERENCE;
   }
+
+  // Set up base pair axes pseudo-topology. This is done inside DoAction
+  // because we may not know about base pairing until the first frame.
+  if (bpAxesParm_ != 0) {
+    if (bpAxesParm_->Natom() > 0) {
+      //mprintf("\tBase pair axes pseudo-topology is already set up.\n");
+      // Check that number of base pairs has not changed
+      if ((unsigned int)bpAxesParm_->Nres() != BasePairs_.size()) {
+        mprinterr("Error: Number of base pairs has changed from %i to %zu.\n"
+                  "Error: Base pair axes pseudo-topology is already set up for %i bases.\n",
+                  bpAxesParm_->Nres(), BasePairs_.size(), bpAxesParm_->Nres());
+        return Action::ERR;
+      }
+    } else {
+      // Create residue information for each base pair axes
+      std::vector<Residue> bpAxesResidues;
+      bpAxesResidues.reserve( BasePairs_.size() );
+      for (BPmap::const_iterator it = BasePairs_.begin(); it != BasePairs_.end(); ++it)
+      {
+        //if (it->second.nhb_ < 1 && skipIfNoHB_) continue;
+        BPtype const& BP = it->second;
+        int b1 = BP.base1idx_;
+        //int b2 = BP.base2idx_;
+        NA_Base const& base1 = Bases_[b1];
+        //NA_Base const& base2 = Bases_[b2];
+        Residue const& res = setupTop_->Res( base1.ResNum() );
+        bpAxesResidues.push_back( res );
+      }
+      if (setup_axes_pseudoTraj( *bpAxesParm_, *bpAxesOut_, bpAxesFrame_, bpAxesResidues ))
+        return Action::ERR;
+    }
+  }
+
   // Determine strand parameters if desired
   if (sscalc_)
     DetermineStrandParameters(frameNum);
+
+  // Output base axes if needed. Do it here because DeterminePairParameters()
+  // can flip base axes.
+  if (axesOut_ != 0) {
+    axesFrame_.ClearAtoms();
+    for (std::vector<NA_Base>::const_iterator base = Bases_.begin(); 
+                                              base != Bases_.end(); ++base)
+      axesToFrame( axesFrame_, base->Axis() );
+    axesOut_->WriteSingle(frm.TrajoutNum(), axesFrame_);
+  }
 
   // Determine base parameters
   DeterminePairParameters(frameNum);
 
   // Determine base pair step parameters
   DetermineStepParameters(frameNum);
+
+  // Set up base pair step axes pseudo-topology. This is done inside DoAction
+  // because we may not know about base pairing until the first frame.
+  if (stepAxesParm_ != 0) {
+    if (stepAxesParm_->Natom() > 0) {
+      //mprintf("\tBase pair step axes pseudo-topology is already set up.\n");
+      // Check that number of base pair steps has not changed
+      if ((unsigned int)stepAxesParm_->Nres() != Steps_.size()) {
+        mprinterr("Error: Number of base pair steps has changed from %i to %zu.\n"
+                  "Error: Base pair step axes pseudo-topology is already set up for %i bases.\n",
+                  stepAxesParm_->Nres(), Steps_.size(), stepAxesParm_->Nres());
+        return Action::ERR;
+      }
+    } else {
+      // Create residue information for each base pair step axes
+      std::vector<Residue> stepAxesResidues;
+      stepAxesResidues.reserve( Steps_.size() );
+      for (StepMap::const_iterator it = Steps_.begin(); it != Steps_.end(); ++it)
+      {
+        StepType const& BS = it->second;
+        NA_Base const& base1 = Bases_[BS.b1idx_];
+        Residue const& res = setupTop_->Res( base1.ResNum() );
+        stepAxesResidues.push_back( res );
+      }
+      if (setup_axes_pseudoTraj( *stepAxesParm_, *stepAxesOut_, stepAxesFrame_, stepAxesResidues ))
+        return Action::ERR;
+    }
+  }
+
+  // Output base pair axes if needed
+  if (bpAxesOut_ != 0) {
+    bpAxesFrame_.ClearAtoms();
+    for (BPmap::const_iterator it = BasePairs_.begin(); it != BasePairs_.end(); ++it) {
+      //if (it->second.nhb_ < 1 && skipIfNoHB_) continue;
+      axesToFrame( bpAxesFrame_, it->second.bpaxis_ );
+    }
+    bpAxesOut_->WriteSingle(frm.TrajoutNum(), bpAxesFrame_);
+  }
+  // Output base pair step axes if needed
+  if (stepAxesOut_ != 0) {
+    stepAxesFrame_.ClearAtoms();
+    for (StepMap::const_iterator it = Steps_.begin(); it != Steps_.end(); ++it)
+      axesToFrame( stepAxesFrame_, it->second.stepaxis_ );
+    stepAxesOut_->WriteSingle(frm.TrajoutNum(), stepAxesFrame_);
+  }
+
   nframes_++;
   return Action::OK;
 } 
 
 // UpdateTimeSeries()
-static inline void UpdateTimeSeries(unsigned int nframes_, DataSet_1D* ds) {
+static inline void UpdateTimeSeries(unsigned int nframes_, DataSet* ds) {
   if (ds != 0) {
     if (ds->Type() == DataSet::FLOAT) {
       const float ZERO = 0.0;
@@ -1633,6 +2172,11 @@ static inline void UpdateTimeSeries(unsigned int nframes_, DataSet_1D* ds) {
     } else if (ds->Type() == DataSet::INTEGER) {
       const int ZERO = 0;
       if (ds->Size() < nframes_) ds->Add(nframes_ - 1, &ZERO);
+    } else if (ds->Type() == DataSet::VECTOR) {
+      double ZERO[6];
+      for (int i = 0; i < 6; i++)
+        ZERO[i] = 0.0;
+      if (ds->Size() < nframes_) ds->Add(nframes_ - 1, ZERO);
     }
   }
 }
@@ -1886,6 +2430,9 @@ void Action_NAstruct::UpdateSeries() {
       UpdateTimeSeries( nframes_, BP.isBP_ );
       UpdateTimeSeries( nframes_, BP.major_ );
       UpdateTimeSeries( nframes_, BP.minor_ );
+#     ifdef NASTRUCTDEBUG
+      UpdateTimeSeries( nframes_, BP.axes_nxyz_ );
+#     endif
       UpdateTimeSeries( nframes_, Bases_[BP.base1idx_].Pucker() );
       UpdateTimeSeries( nframes_, Bases_[BP.base2idx_].Pucker() );
     }
