@@ -1,0 +1,39 @@
+#include "Action_HB.h"
+#include "CpptrajStdio.h"
+
+// Action_HB::Help()
+void Action_HB::Help() const {
+
+}
+
+// Action_HB::Init()
+Action::RetType Action_HB::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
+{
+  if (hbcalc_.InitHbCalc( actionArgs, debugIn )) {
+    mprinterr("Error: Could not initialize HB calc.\n");
+    return Action::ERR;
+  }
+
+  hbcalc_.PrintHbCalcOpts();
+
+  return Action::OK;
+}
+
+// Action_HB::Setup()
+Action::RetType Action_HB::Setup(ActionSetup& setup)
+{
+  if (hbcalc_.SetupHbCalc( setup.Top(), setup.CoordInfo().TrajBox() )) {
+    mprinterr("Error: Could not setup HB calc.\n");
+    return Action::ERR;
+  }
+
+  return Action::OK;
+}
+
+// Action_HB::DoAction()
+Action::RetType Action_HB::DoAction(int frameNum, ActionFrame& frm)
+{
+  if (hbcalc_.RunCalc_PL( frm.Frm() ))
+    return Action::ERR;
+  return Action::OK;
+}

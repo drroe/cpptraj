@@ -2,3 +2,4 @@ findDepend
 .kdev*
 src.kdev*
 *.o
+*.a
