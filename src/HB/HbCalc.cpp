@@ -76,6 +76,7 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
   plMask_ = AtomMask( std::vector<int>(), topIn.Natom() );
   plTypes_.clear();
 
+  int nsites = 0;
   for (AtomMask::const_iterator at = generalMask_.begin(); at != generalMask_.end(); ++at) {
     Atom const& currentAtom = topIn[*at];
     if (IsFON( currentAtom )) {
@@ -99,9 +100,11 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
          else
           currentType = BOTH;
       }
+      nsites++;
       IdxTypes.push_back( Ptype(*at, currentType) );
     }
   }
+  mprintf("\tNumber of heavy atom sites: %i\n", nsites);
 
   std::sort( IdxTypes.begin(), IdxTypes.end() );
 
