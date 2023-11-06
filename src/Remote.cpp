@@ -70,6 +70,11 @@ const
 
   std::string remoteCmd = cmd_ + remoteUrl + " " + oflag_ + outputFname.Full();
   mprintf("DEBUG: %s\n", remoteCmd.c_str());
+  int err = system(remoteCmd.c_str());
+  if (err != 0) {
+    mprinterr("Error: Could not download %s => %s\n", remoteUrl.c_str(), outputFname.full());
+    return 1;
+  }
 
   return 0;
 }
