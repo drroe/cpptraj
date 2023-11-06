@@ -8,6 +8,8 @@ using namespace Cpptraj;
 /** The remote download command. */
 std::string Remote::cmd_ = "";
 
+std::string Remote::oflag_ = "";
+
 /** CONSTRUCTOR */
 Remote::Remote() {
   setRemoteDownloadCommand();
@@ -27,12 +29,14 @@ int Remote::setRemoteDownloadCommand() {
   int err = system("curl --version");
   if (err == 0) {
     mprintf("\tcurl found.\n");
-    cmd_.assign("curl -L -o");
+    cmd_.assign("curl -L ");
+    oflag_.assign("-o ");
   } else {
     err = system("wget --version");
     if (err == 0) {
       mprintf("\twget found.\n");
-      cmd_.assign("wget -O");
+      cmd_.assign("wget ");
+      oflag_.assign("-O ");
     } else {
       mprinterr("Error: No working remote command found.\n");
       return 1;
@@ -60,6 +64,12 @@ const
     outputFname = fileName;
   else
     outputFname.SetFileName( outputFnameIn );
+
+  std::string remoteUrl = url_ + "/" + fileName.Full();
+  mprintf("\t %s => %s\n", remoteUrl.c_str(), outputFname.full());
+
+  std::string remoteCmd = cmd_ + remoteUrl + " " + oflag_ + outputFname.Full();
+  mprintf("DEBUG: %s\n", remoteCmd.c_str());
 
   return 0;
 }

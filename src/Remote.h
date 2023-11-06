@@ -17,6 +17,7 @@ class Remote {
 
     std::string url_; ///< Remote base URL
     static std::string cmd_; ///< Command to call to download remote files
+    static std::string oflag_; ///< Command output file flag
 };
 }
 #endif
