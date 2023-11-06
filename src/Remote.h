@@ -12,7 +12,11 @@ class Remote {
     /// Download file assuming URL is remote directory
     int DownloadFile(std::string const&, std::string const&) const;
   private:
+    /// Set remote download command
+    int setRemoteDownloadCommand();
+
     std::string url_; ///< Remote base URL
+    static std::string cmd_; ///< Command to call to download remote files
 };
 }
 #endif

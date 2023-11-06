@@ -1,20 +1,66 @@
 #include "Remote.h"
 #include "CpptrajStdio.h"
+#include "FileName.h"
+#include <cstdlib> // system
 
 using namespace Cpptraj;
 
+/** The remote download command. */
+std::string Remote::cmd_ = "";
+
 /** CONSTRUCTOR */
-Remote::Remote() {}
+Remote::Remote() {
+  setRemoteDownloadCommand();
+}
 
 /** CONSTRUCTOR - base url */
 Remote::Remote(std::string const& baseUrl) :
   url_(baseUrl)
-{}
+{
+  setRemoteDownloadCommand();
+}
+
+/** Set the remote download command. */
+int Remote::setRemoteDownloadCommand() {
+  if (!cmd_.empty()) return 0;
+  // First try curl
+  int err = system("curl --version");
+  if (err == 0) {
+    mprintf("\tcurl found.\n");
+    cmd_.assign("curl -L -o");
+  } else {
+    err = system("wget --version");
+    if (err == 0) {
+      mprintf("\twget found.\n");
+      cmd_.assign("wget -O");
+    } else {
+      mprinterr("Error: No working remote command found.\n");
+      return 1;
+    }
+  }
+  return 0;
+}
 
 /** Download file from base URL */
-int Remote::DownloadFile(std::string const& fname, std::string const& outputFname)
+int Remote::DownloadFile(std::string const& fname, std::string const& outputFnameIn)
 const
 {
+  if (cmd_.empty()) {
+    mprinterr("Error: No remote download command set.\n");
+    return 1;
+  }
+  if (fname.empty()) {
+    mprinterr("Error: No file name to download specified.\n");
+    return 1;
+  }
+  FileName fileName(fname);
+  // Set output file name if necessary
+  FileName outputFname;
+  if (outputFnameIn.empty())
+    outputFname = fileName;
+  else
+    outputFname.SetFileName( outputFnameIn );
+
   return 0;
 }
   
