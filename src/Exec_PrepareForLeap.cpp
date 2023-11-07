@@ -637,7 +637,8 @@ void Exec_PrepareForLeap::LeapFxnGroupWarning(Topology const& topIn, int rnum) {
 }
 
 /** Try to download missing parameters. */
-int Exec_PrepareForLeap::DownloadParameters(ResStatArray& resStat, SetType const& resNames)
+int Exec_PrepareForLeap::DownloadParameters(ResStatArray& resStat, SetType const& resNames,
+                                            CpptrajFile* leapInput)
 const
 {
   Cpptraj::Remote remote( parameterURL_ );
@@ -667,6 +668,11 @@ const
       if (!File::Exists(rname + ".mol2") || !File::Exists(rname + ".frcmod")) {
         mprinterr("Error: Problem downloading parameter files for '%s'\n", rname.c_str());
         return 1;
+      }
+      // Add leap input
+      if (leapInput != 0) {
+        leapInput->Printf("%s = loadmol2 %s.mol2\n", rname.c_str(), rname.c_str());
+        leapInput->Printf("parm%s = loadamberparams %s.frcmod\n", rname.c_str(), rname.c_str());
       }
     }
   } // END loop over residue names to get parameters for
@@ -1032,10 +1038,6 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   if (outfile == 0) return CpptrajState::ERR;
   mprintf("\tLEaP input containing 'loadpdb' and bond commands for disulfides,\n"
           "\t  sugars, etc will be written to '%s'\n", outfile->Filename().full());
-  // Add the loadpdb command if we are writing a PDB file.
-  // TODO add 'addPdbResMap { { 1 "NH2" "NHE" } }' to recognize NHE?
-  if (!pdbout.empty())
-    outfile->Printf("%s = loadpdb %s\n", leapunitname_.c_str(), pdbout.c_str());
 
   // Array that will hold bonds that need to be made in LEaP
   std::vector<BondType> LeapBonds;
@@ -1095,11 +1097,16 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     // Set default parameter URL if not yet set.
     if (parameterURL_.empty())
       parameterURL_.assign("https://raw.githubusercontent.com/phenix-project/geostd/master");
-    if (DownloadParameters(resStat, residuesToFindParamsFor)) {
+    if (DownloadParameters(resStat, residuesToFindParamsFor, outfile)) {
       mprinterr("Error: Download parameters failed.\n");
       return CpptrajState::ERR;
     }
   }
+
+  // Add the loadpdb command if we are writing a PDB file.
+  // TODO add 'addPdbResMap { { 1 "NH2" "NHE" } }' to recognize NHE?
+  if (!pdbout.empty())
+    outfile->Printf("%s = loadpdb %s\n", leapunitname_.c_str(), pdbout.c_str());
 
   // Create LEaP input for bonds that need to be made in LEaP
   for (std::vector<BondType>::const_iterator bnd = LeapBonds.begin();
