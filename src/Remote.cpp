@@ -8,11 +8,13 @@ using namespace Cpptraj;
 /** The remote download command. */
 std::string Remote::cmd_ = "";
 
+/** Flag for setting output file for remote command. */
 std::string Remote::oflag_ = "";
 
 /** CONSTRUCTOR */
 Remote::Remote() :
-  overwrite_(false)
+  overwrite_(false),
+  debug_(0)
 {
   setRemoteDownloadCommand();
 }
@@ -20,6 +22,7 @@ Remote::Remote() :
 /** CONSTRUCTOR - base url */
 Remote::Remote(std::string const& baseUrl) :
   overwrite_(false),
+  debug_(0),
   url_(baseUrl)
 {
   setRemoteDownloadCommand();
@@ -28,6 +31,11 @@ Remote::Remote(std::string const& baseUrl) :
 /** Set whether to overwrite existing files or not. */
 void Remote::SetOverwrite(bool b) {
   overwrite_ = b;
+}
+
+/** Set debug level */
+void Remote::SetDebug(int d) {
+  debug_ = d;
 }
 
 /** Set the remote download command. */
@@ -87,7 +95,7 @@ const
   mprintf("\t %s => %s\n", remoteUrl.c_str(), outputFname.full());
   // Download File
   std::string remoteCmd = cmd_ + remoteUrl + " " + oflag_ + outputFname.Full();
-  mprintf("DEBUG: %s\n", remoteCmd.c_str());
+  if (debug_ > 0) mprintf("DEBUG: %s\n", remoteCmd.c_str());
   int err = system(remoteCmd.c_str());
   if (err != 0) {
     mprinterr("Error: Could not download %s => %s\n", remoteUrl.c_str(), outputFname.full());
