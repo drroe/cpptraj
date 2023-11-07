@@ -61,7 +61,7 @@ const
   // Set output file name if necessary
   FileName outputFname;
   if (outputFnameIn.empty())
-    outputFname = fileName;
+    outputFname = fileName.Base();
   else
     outputFname.SetFileName( outputFnameIn );
 
