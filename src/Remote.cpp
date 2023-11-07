@@ -45,13 +45,13 @@ int Remote::setRemoteDownloadCommand() {
   int err = system("curl --version");
   if (err == 0) {
     mprintf("\tcurl found.\n");
-    cmd_.assign("curl -L ");
+    cmd_.assign("curl -s --show-error -f -L ");
     oflag_.assign("-o ");
   } else {
     err = system("wget --version");
     if (err == 0) {
       mprintf("\twget found.\n");
-      cmd_.assign("wget ");
+      cmd_.assign("wget --quiet ");
       oflag_.assign("-O ");
     } else {
       mprinterr("Error: No working remote command found.\n");
@@ -99,6 +99,7 @@ const
   int err = system(remoteCmd.c_str());
   if (err != 0) {
     mprinterr("Error: Could not download %s => %s\n", remoteUrl.c_str(), outputFname.full());
+    // FIXME: wget will leave behind empty files here
     return 1;
   }
 
