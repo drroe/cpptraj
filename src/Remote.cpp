@@ -11,15 +11,23 @@ std::string Remote::cmd_ = "";
 std::string Remote::oflag_ = "";
 
 /** CONSTRUCTOR */
-Remote::Remote() {
+Remote::Remote() :
+  overwrite_(false)
+{
   setRemoteDownloadCommand();
 }
 
 /** CONSTRUCTOR - base url */
 Remote::Remote(std::string const& baseUrl) :
+  overwrite_(false),
   url_(baseUrl)
 {
   setRemoteDownloadCommand();
+}
+
+/** Set whether to overwrite existing files or not. */
+void Remote::SetOverwrite(bool b) {
+  overwrite_ = b;
 }
 
 /** Set the remote download command. */
@@ -58,16 +66,26 @@ const
     return 1;
   }
   FileName fileName(fname);
-  // Set output file name if necessary
+  // Set output file name
   FileName outputFname;
   if (outputFnameIn.empty())
     outputFname = fileName.Base();
   else
     outputFname.SetFileName( outputFnameIn );
-
+  bool fileExists = File::Exists( outputFname );
+  if (overwrite_) {
+    if (fileExists)
+      mprintf("Warning: Overwriting existing file '%s'\n", outputFname.full());
+  } else {
+    if (fileExists) {
+      mprintf("Warning: Not overwriting existing file '%s'\n", outputFname.full());
+      return 0;
+    }
+  }
+  // Set remote URL
   std::string remoteUrl = url_ + "/" + fileName.Full();
   mprintf("\t %s => %s\n", remoteUrl.c_str(), outputFname.full());
-
+  // Download File
   std::string remoteCmd = cmd_ + remoteUrl + " " + oflag_ + outputFname.Full();
   mprintf("DEBUG: %s\n", remoteCmd.c_str());
   int err = system(remoteCmd.c_str());
@@ -78,4 +96,3 @@ const
 
   return 0;
 }
-  
