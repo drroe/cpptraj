@@ -104,3 +104,8 @@ const
 
   return 0;
 }
+
+/** Download file from base URL */
+int Remote::DownloadFile(std::string const& fname) const {
+  return DownloadFile(fname, "");
+}

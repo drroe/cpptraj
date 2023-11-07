@@ -13,8 +13,10 @@ class Remote {
     void SetOverwrite(bool);
     /// Set debug level
     void SetDebug(int);
-    /// Download file assuming URL is remote directory
+    /// Download file to output file assuming URL is remote directory
     int DownloadFile(std::string const&, std::string const&) const;
+    /// Download file assuming URL is remote directory
+    int DownloadFile(std::string const&) const;
   private:
     /// Set remote download command
     int setRemoteDownloadCommand();
