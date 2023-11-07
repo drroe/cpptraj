@@ -4,6 +4,7 @@
 namespace Cpptraj {
 namespace Structure {
 class SugarBuilder;
+class ResStatArray;
 }
 }
 /// Do common tasks to prepare a structure to be loaded into tleap 
@@ -15,6 +16,7 @@ class Exec_PrepareForLeap : public Exec {
     RetType Execute(CpptrajState&, ArgList&);
   private:
     typedef std::vector<int> Iarray;
+    typedef std::set<NameType> SetType;
 
     /// Set PDB residue names recognized by Amber FFs
     void SetPdbResNames();
@@ -30,27 +32,27 @@ class Exec_PrepareForLeap : public Exec {
     /// Try to determine where TER cards should be placed based on bonds
     int FindTerByBonds(Topology&, CharMask const&) const;
 
-
-    
     /// Remove specified atoms
     int ModifyCoords(Topology&, Frame&, bool, std::string const&, std::string const&,
                      std::string const&, Iarray const&) const;
     /// Remove hydrogen atoms
     int RemoveHydrogens(Topology&, Frame&) const;
 
-    
     /// Run leap to generate topology, perform any modifications
     int RunLeap(std::string const&, std::string const&) const;
     /// Print a warning for residues that will need modification after leap
     static void LeapFxnGroupWarning(Topology const&, int);
 
+    /// Download missing parameters
+    int DownloadParameters(Cpptraj::Structure::ResStatArray&, SetType const&) const;
+
     // -----------------------
-    typedef std::set<NameType> SetType;
     SetType pdb_res_names_; ///< PDB residue names recognized by Amber FFs
 
     std::string leapunitname_;
     bool errorsAreFatal_;   ///< If false, try to skip errors.
     int debug_;             ///< Debug level
     std::string solventResName_; ///< Solvent residue name
+    std::string parameterURL_;   ///< URL to download parameters from
 };
 #endif

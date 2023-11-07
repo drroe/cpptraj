@@ -4,6 +4,7 @@
 #include "DataSet_Coords_CRD.h"
 #include "LeapInterface.h"
 #include "ParmFile.h"
+#include "Remote.h"
 #include "StringRoutines.h"
 #include "Structure/Disulfide.h"
 #include "Structure/HisProt.h"
@@ -12,6 +13,7 @@
 #include "Structure/Sugar.h"
 #include "Trajout_Single.h"
 #include <stack> // FindTerByBonds
+#include <cctype> // tolower
 
 using namespace Cpptraj::Structure;
 
@@ -634,6 +636,43 @@ void Exec_PrepareForLeap::LeapFxnGroupWarning(Topology const& topIn, int rnum) {
   }
 }
 
+/** Try to download missing parameters. */
+int Exec_PrepareForLeap::DownloadParameters(ResStatArray& resStat, SetType const& resNames)
+const
+{
+  Cpptraj::Remote remote( parameterURL_ );
+  remote.SetDebug(1); // FIXME
+  for (SetType::const_iterator it = resNames.begin(); it != resNames.end(); ++it)
+  {
+    std::string rname = it->Truncated();
+    mprintf("\t\tSearching for parameters for residue '%s'\n", rname.c_str());
+    // Assume parameters are in a subdirectory starting with lowercase version
+    // of the first letter of the residue.
+    char lcase = tolower( rname[0] );
+    std::string rfbase = std::string(1, lcase) + "/" + rname;
+    mprintf("DEBUG: Base name: %s\n", rfbase.c_str());
+    int err = 0;
+    err += remote.DownloadFile( rfbase + ".mol2" );
+    if (err == 0) {
+      err += remote.DownloadFile( rfbase + ".frcmod" );
+      if (err != 0)
+        mprintf("Warning: Could not download %s.frcmod\n", rfbase.c_str());
+    } else {
+      mprintf("Warning: Could not download %s.mol2\n", rfbase.c_str());
+    }
+    if (err != 0)
+      mprintf("Warning: Could not download parameter files for '%s'\n", rname.c_str());
+    else {
+      // Sanity check - make sure the files are there.
+      if (!File::Exists(rname + ".mol2") || !File::Exists(rname + ".frcmod")) {
+        mprinterr("Error: Problem downloading parameter files for '%s'\n", rname.c_str());
+        return 1;
+      }
+    }
+  } // END loop over residue names to get parameters for
+  return 0;
+}
+
 // Exec_PrepareForLeap::Help()
 void Exec_PrepareForLeap::Help() const
 {
@@ -1053,6 +1092,13 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
                                  it != residuesToFindParamsFor.end(); ++it)
       mprintf(" %s", it->Truncated().c_str());
     mprintf("\n");
+    // Set default parameter URL if not yet set.
+    if (parameterURL_.empty())
+      parameterURL_.assign("https://raw.githubusercontent.com/phenix-project/geostd/master");
+    if (DownloadParameters(resStat, residuesToFindParamsFor)) {
+      mprinterr("Error: Download parameters failed.\n");
+      return CpptrajState::ERR;
+    }
   }
 
   // Create LEaP input for bonds that need to be made in LEaP
