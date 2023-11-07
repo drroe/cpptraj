@@ -1028,6 +1028,33 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     mprintf("\tNot preparing sugars.\n");
   }
 
+  // Determine unknown residues we may want to find parameters for
+  NameType solvName(solventResName_);
+  SetType residuesToFindParamsFor;
+  for (ResStatArray::iterator it = resStat.begin(); it != resStat.end(); ++it)
+  {
+    NameType const& residueName = topIn.Res(it-resStat.begin()).Name();
+    // Skip water if not removing water
+    if (!remove_water && residueName == solvName) continue;
+    // If status is unknown, see if this is a common residue name
+    if ( *it == ResStatArray::UNKNOWN ) {
+      SetType::const_iterator pname = pdb_res_names_.find( residueName );
+      if (pname == pdb_res_names_.end()) {
+        mprintf("\t%s is an unrecognized name and may not have parameters.\n",
+                topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
+        residuesToFindParamsFor.insert( residueName );
+      } else
+        *it = ResStatArray::VALIDATED;
+    }
+  }
+  if (!residuesToFindParamsFor.empty()) {
+    mprintf("\tResidues to find parameters for:");
+    for (SetType::const_iterator it = residuesToFindParamsFor.begin();
+                                 it != residuesToFindParamsFor.end(); ++it)
+      mprintf(" %s", it->Truncated().c_str());
+    mprintf("\n");
+  }
+
   // Create LEaP input for bonds that need to be made in LEaP
   for (std::vector<BondType>::const_iterator bnd = LeapBonds.begin();
                                              bnd != LeapBonds.end(); ++bnd)
@@ -1035,7 +1062,6 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Count any solvent molecules
   if (!remove_water) {
-    NameType solvName(solventResName_);
     unsigned int nsolvent = 0;
     for (Topology::res_iterator res = topIn.ResStart(); res != topIn.ResEnd(); ++res) {
       if ( res->Name() == solvName) {
