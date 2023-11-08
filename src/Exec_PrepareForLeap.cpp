@@ -682,6 +682,8 @@ const
       // Downloaded mol2 files do not have connectivity, so we need to add bonds.
       for (Iarray::const_iterator rn = it->second.begin(); rn != it->second.end(); ++rn)
       {
+        // Assume we are all good with parameters for these residues now.
+        resStat[*rn] = ResStatArray::VALIDATED;
         Residue const& currentRes = topIn.Res( *rn );
         // Check each atom for bonds to another residue
         for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); ++at) {
