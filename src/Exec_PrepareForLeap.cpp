@@ -638,7 +638,7 @@ void Exec_PrepareForLeap::LeapFxnGroupWarning(Topology const& topIn, int rnum) {
 
 /** Try to download missing parameters. */
 int Exec_PrepareForLeap::DownloadParameters(ResStatArray& resStat, RmapType const& resNames,
-                                            CpptrajFile* leapInput)
+                                            Topology const& topIn, CpptrajFile* leapInput)
 const
 {
   Cpptraj::Remote remote( parameterURL_ );
@@ -677,6 +677,21 @@ const
         leapInput->Printf("%s = loadmol2 %s.mol2\n", rname.c_str(), rname.c_str());
         leapInput->Printf("parm%s = loadamberparams %s.frcmod\n", rname.c_str(), rname.c_str());
       }
+      // Downloaded mol2 files do not have connectivity, so we need to add bonds.
+      for (Iarray::const_iterator rn = it->second.begin(); rn != it->second.end(); ++rn)
+      {
+        Residue const& currentRes = topIn.Res( *rn );
+        // Check each atom for bonds to another residue
+        for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); ++at) {
+          for (Atom::bond_iterator bat = topIn[at].bondbegin(); bat != topIn[at].bondend(); ++bat) {
+            if ( topIn[*bat].ResNum() != *rn ) {
+              mprintf("\t\t\tRes %s is bonded to res %s\n",
+                      topIn.TruncResAtomName(at).c_str(),
+                      topIn.TruncResAtomName(*bat).c_str());
+            }
+          } // END loop over bonded atoms
+        } // END loop over atoms in residue
+      } // END loop over residue numbers
     }
   } // END loop over residue names to get parameters for
   return 0;
@@ -1106,7 +1121,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     // Set default parameter URL if not yet set.
     if (parameterURL_.empty())
       parameterURL_.assign("https://raw.githubusercontent.com/phenix-project/geostd/master");
-    if (DownloadParameters(resStat, residuesToFindParamsFor, outfile)) {
+    if (DownloadParameters(resStat, residuesToFindParamsFor, topIn, outfile)) {
       mprinterr("Error: Download parameters failed.\n");
       return CpptrajState::ERR;
     }

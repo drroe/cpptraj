@@ -47,7 +47,8 @@ class Exec_PrepareForLeap : public Exec {
     static void LeapFxnGroupWarning(Topology const&, int);
 
     /// Download missing parameters
-    int DownloadParameters(Cpptraj::Structure::ResStatArray&, RmapType const&, CpptrajFile*) const;
+    int DownloadParameters(Cpptraj::Structure::ResStatArray&, RmapType const&,
+                           Topology const&, CpptrajFile*) const;
 
     // -----------------------
     SetType pdb_res_names_; ///< PDB residue names recognized by Amber FFs
