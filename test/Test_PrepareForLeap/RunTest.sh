@@ -4,7 +4,7 @@
 
 CleanFiles cpptraj.in 1qos.cpptraj.pdb leap.1qos.in \
            leap.4zzw.in 4zzw.cpptraj.pdb 1qos.cpptraj.pdb.2 \
-           leap.1qos.in.2
+           leap.1qos.in.2 *.mol2 *.frcmod 
 
 INPUT='-i cpptraj.in'
 
