@@ -5,6 +5,7 @@ namespace Cpptraj {
 namespace Structure {
 class SugarBuilder;
 class ResStatArray;
+class ResNameIndices;
 }
 }
 /// Do common tasks to prepare a structure to be loaded into tleap 
@@ -17,6 +18,8 @@ class Exec_PrepareForLeap : public Exec {
   private:
     typedef std::vector<int> Iarray;
     typedef std::set<NameType> SetType;
+    typedef std::pair<NameType,Iarray> RpairType;
+    typedef std::map<NameType,Iarray> RmapType;
 
     /// Set PDB residue names recognized by Amber FFs
     void SetPdbResNames();
@@ -44,7 +47,7 @@ class Exec_PrepareForLeap : public Exec {
     static void LeapFxnGroupWarning(Topology const&, int);
 
     /// Download missing parameters
-    int DownloadParameters(Cpptraj::Structure::ResStatArray&, SetType const&, CpptrajFile*) const;
+    int DownloadParameters(Cpptraj::Structure::ResStatArray&, RmapType const&, CpptrajFile*) const;
 
     // -----------------------
     SetType pdb_res_names_; ///< PDB residue names recognized by Amber FFs

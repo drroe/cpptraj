@@ -637,16 +637,19 @@ void Exec_PrepareForLeap::LeapFxnGroupWarning(Topology const& topIn, int rnum) {
 }
 
 /** Try to download missing parameters. */
-int Exec_PrepareForLeap::DownloadParameters(ResStatArray& resStat, SetType const& resNames,
+int Exec_PrepareForLeap::DownloadParameters(ResStatArray& resStat, RmapType const& resNames,
                                             CpptrajFile* leapInput)
 const
 {
   Cpptraj::Remote remote( parameterURL_ );
   remote.SetDebug(1); // FIXME
-  for (SetType::const_iterator it = resNames.begin(); it != resNames.end(); ++it)
+  for (RmapType::const_iterator it = resNames.begin(); it != resNames.end(); ++it)
   {
-    std::string rname = it->Truncated();
-    mprintf("\t\tSearching for parameters for residue '%s'\n", rname.c_str());
+    std::string rname = it->first.Truncated();
+    mprintf("\t\tSearching for parameters for residue '%s'", rname.c_str());
+    for (Iarray::const_iterator rn = it->second.begin(); rn != it->second.end(); ++rn)
+      mprintf(" %i", *rn + 1);
+    mprintf("\n");
     // Assume parameters are in a subdirectory starting with lowercase version
     // of the first letter of the residue.
     char lcase = tolower( rname[0] );
@@ -1071,7 +1074,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Determine unknown residues we may want to find parameters for
   NameType solvName(solventResName_);
-  SetType residuesToFindParamsFor;
+  RmapType residuesToFindParamsFor;
   for (ResStatArray::iterator it = resStat.begin(); it != resStat.end(); ++it)
   {
     NameType const& residueName = topIn.Res(it-resStat.begin()).Name();
@@ -1083,16 +1086,22 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       if (pname == pdb_res_names_.end()) {
         mprintf("\t%s is an unrecognized name and may not have parameters.\n",
                 topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
-        residuesToFindParamsFor.insert( residueName );
+        RmapType::iterator ret = residuesToFindParamsFor.lower_bound( residueName );
+        if (ret == residuesToFindParamsFor.end() || ret->first != residueName)
+        {
+          // New residue to get params for
+          ret = residuesToFindParamsFor.insert(ret, RpairType(residueName, Iarray()));
+        }
+        ret->second.push_back( it - resStat.begin() );
       } else
         *it = ResStatArray::VALIDATED;
     }
   }
   if (!residuesToFindParamsFor.empty()) {
     mprintf("\tResidues to find parameters for:");
-    for (SetType::const_iterator it = residuesToFindParamsFor.begin();
-                                 it != residuesToFindParamsFor.end(); ++it)
-      mprintf(" %s", it->Truncated().c_str());
+    for (RmapType::const_iterator it = residuesToFindParamsFor.begin();
+                                  it != residuesToFindParamsFor.end(); ++it)
+      mprintf(" %s", it->first.Truncated().c_str());
     mprintf("\n");
     // Set default parameter URL if not yet set.
     if (parameterURL_.empty())
