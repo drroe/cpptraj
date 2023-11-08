@@ -14,6 +14,7 @@
 #include "Trajout_Single.h"
 #include <stack> // FindTerByBonds
 #include <cctype> // tolower
+#include <algorithm> // unique
 
 using namespace Cpptraj::Structure;
 
@@ -638,7 +639,8 @@ void Exec_PrepareForLeap::LeapFxnGroupWarning(Topology const& topIn, int rnum) {
 
 /** Try to download missing parameters. */
 int Exec_PrepareForLeap::DownloadParameters(ResStatArray& resStat, RmapType const& resNames,
-                                            Topology const& topIn, CpptrajFile* leapInput)
+                                            Topology const& topIn, CpptrajFile* leapInput,
+                                            std::vector<BondType>& LeapBonds)
 const
 {
   Cpptraj::Remote remote( parameterURL_ );
@@ -688,6 +690,7 @@ const
               mprintf("\t\t\tRes %s is bonded to res %s\n",
                       topIn.TruncResAtomName(at).c_str(),
                       topIn.TruncResAtomName(*bat).c_str());
+              LeapBonds.push_back( BondType(at, *bat, -1) );
             }
           } // END loop over bonded atoms
         } // END loop over atoms in residue
@@ -1121,7 +1124,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     // Set default parameter URL if not yet set.
     if (parameterURL_.empty())
       parameterURL_.assign("https://raw.githubusercontent.com/phenix-project/geostd/master");
-    if (DownloadParameters(resStat, residuesToFindParamsFor, topIn, outfile)) {
+    if (DownloadParameters(resStat, residuesToFindParamsFor, topIn, outfile, LeapBonds)) {
       mprinterr("Error: Download parameters failed.\n");
       return CpptrajState::ERR;
     }
@@ -1131,6 +1134,11 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   // TODO add 'addPdbResMap { { 1 "NH2" "NHE" } }' to recognize NHE?
   if (!pdbout.empty())
     outfile->Printf("%s = loadpdb %s\n", leapunitname_.c_str(), pdbout.c_str());
+
+  // Remove any duplicate bonds
+  std::sort( LeapBonds.begin(), LeapBonds.end() );
+  std::vector<BondType>::const_iterator it = std::unique( LeapBonds.begin(), LeapBonds.end() );
+  LeapBonds.resize( it - LeapBonds.begin() );
 
   // Create LEaP input for bonds that need to be made in LEaP
   for (std::vector<BondType>::const_iterator bnd = LeapBonds.begin();

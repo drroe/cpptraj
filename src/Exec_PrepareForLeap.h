@@ -1,6 +1,7 @@
 #ifndef INC_EXEC_PREPAREFORLEAP_H
 #define INC_EXEC_PREPAREFORLEAP_H
 #include "Exec.h"
+class BondType;
 namespace Cpptraj {
 namespace Structure {
 class SugarBuilder;
@@ -48,7 +49,7 @@ class Exec_PrepareForLeap : public Exec {
 
     /// Download missing parameters
     int DownloadParameters(Cpptraj::Structure::ResStatArray&, RmapType const&,
-                           Topology const&, CpptrajFile*) const;
+                           Topology const&, CpptrajFile*, std::vector<BondType>&) const;
 
     // -----------------------
     SetType pdb_res_names_; ///< PDB residue names recognized by Amber FFs
