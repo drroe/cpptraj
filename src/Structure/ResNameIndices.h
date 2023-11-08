@@ -9,7 +9,9 @@ class ResNameIndices {
   public:
     ResNameIndices() {}
     /// CONSTRUCTOR - Residue name and index
-    ResNameIndices(NameType const& n, int r) : resname_(n), resnums_(1, r) {}
+    //ResNameIndices(NameType const& n, int r) : resname_(n), resnums_(1, r) {}
+    /// CONSTRUCTOR - Residue name
+    ResNameIndices(NameType const& n) : resname_(n) {}
     /// Add residue index
     void AddResnum(int r) { resnums_.push_back( r ); }
     /// Sort only by resname
