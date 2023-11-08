@@ -64,6 +64,11 @@ class BondType {
         return (a2_ < rhs.a2_);
       } else return (a1_ < rhs.a1_);
     }
+    bool operator==(const BondType& rhs) const {
+      if ( (a1_ == rhs.a1_ && a2_ == rhs.a2_) ||
+           (a2_ == rhs.a1_ && a1_ == rhs.a2_) ) return true;
+      return false;
+    }
   private:
     int a1_;
     int a2_;
