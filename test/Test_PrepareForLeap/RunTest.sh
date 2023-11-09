@@ -88,6 +88,7 @@ prepareforleap dlparams \
   nowat noh keepaltloc highestocc
 EOF
     RunCpptraj "$UNITNAME"
+    DoTest dlparams.leap.4zzw.in.save dlparams.leap.4zzw.in
   fi
 else
   echo "Warning: No 'ping' found, cannot check for internet connectivity."
