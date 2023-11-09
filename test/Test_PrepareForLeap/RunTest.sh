@@ -4,7 +4,9 @@
 
 CleanFiles cpptraj.in 1qos.cpptraj.pdb leap.1qos.in \
            leap.4zzw.in 4zzw.cpptraj.pdb 1qos.cpptraj.pdb.2 \
-           leap.1qos.in.2 *.mol2 *.frcmod 
+           leap.1qos.in.2 PEG.mol2 PEG.frcmod GOL.mol2 GOL.frcmod \
+           PCA.mol2 PCA.frcmod MG.mol2 MG.frcmod \
+           dlparams.leap.4zzw.in dlparams.4zzw.cpptraj.pdb 
 
 INPUT='-i cpptraj.in'
 
@@ -63,5 +65,26 @@ EOF
 RunCpptraj "Prepare PDB 4zzw for LEaP"
 DoTest leap.4zzw.in.save leap.4zzw.in
 DoTest 4zzw.cpptraj.pdb.save 4zzw.cpptraj.pdb
+
+# Test remote connectivity.
+PINGCMD=`which ping`
+if [ ! -z "$PINGCMD" ] ; then
+  $PINGCMD -c 1 raw.githubusercontent.com
+  if [ $? -eq 0 ] ; then
+    cat > cpptraj.in <<EOF
+parm 4zzw.pdb
+loadcrd 4zzw.pdb name MyCrd
+
+prepareforleap dlparams \
+  crdset MyCrd \
+  name Final \
+  out dlparams.leap.4zzw.in \
+  leapunitname m \
+  pdbout dlparams.4zzw.cpptraj.pdb \
+  nowat noh keepaltloc highestocc
+EOF
+    RunCpptraj "Prepare PDB 4zzw for LEaP, download missing parameters"
+  fi
+fi
 
 EndTest
