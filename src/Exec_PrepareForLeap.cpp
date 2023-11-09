@@ -21,6 +21,7 @@ using namespace Cpptraj::Structure;
 /** CONSTRUCTOR */
 Exec_PrepareForLeap::Exec_PrepareForLeap() : Exec(COORDS),
   errorsAreFatal_(true),
+  downloadParams_(true),
   debug_(0)
 {
   SetHidden(false);
@@ -708,7 +709,7 @@ void Exec_PrepareForLeap::Help() const
   mprintf("\tcrdset <coords set> [frame <#>] name <out coords set>\n"
           "\t[pdbout <pdbfile> [terbymol]]\n"
           "\t[leapunitname <unit>] [out <leap input file> [runleap <ff file>]]\n"
-          "\t[skiperrors]\n"
+          "\t[skiperrors] [{dlparams|nodlparams}]\n"
           "\t[nowat [watermask <watermask>] [noh]\n"
           "\t[keepaltloc {<alt loc ID>|highestocc}]\n"
           "\t[stripmask <stripmask>] [solventresname <solventresname>]\n"
@@ -733,6 +734,8 @@ void Exec_PrepareForLeap::Help() const
           "  have any inter-residue bonds removed, and the appropriate LEaP\n"
           "  input to add the bonds back once the structure has been loaded\n"
           "  into LEaP will be written to <leap input file>.\n"
+          "  The command will attempt to download parameters for unknown\n"
+          "  residues unless 'nodlparams' is specified.\n"
          );
 }
 
@@ -745,6 +748,12 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
           "#           J. Comp. Chem. (2022), V. 43, I. 13, pp 930-935.\n" );
   debug_ = State.Debug();
   errorsAreFatal_ = !argIn.hasKey("skiperrors");
+  if (argIn.hasKey("dlparams"))
+    downloadParams_ = true;
+  else if (argIn.hasKey("nodlparams"))
+    downloadParams_ = false;
+  else
+    downloadParams_ = true;
   // Get input coords
   std::string crdset = argIn.GetStringKey("crdset");
   if (crdset.empty()) {
@@ -847,6 +856,10 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     for (SetType::const_iterator it = pdb_res_names_.begin(); it != pdb_res_names_.end(); ++it)
       mprintf("\t  %s\n", *(*it));
   }
+  if (downloadParams_)
+    mprintf("\tWill attempt to download parameters for unknown residues.\n");
+  else
+    mprintf("\tWill not attempt to download paramters for unknown residues.\n");
 
   // Load PDB to glycam residue name map
   SugarBuilder sugarBuilder(debug_);
@@ -1117,7 +1130,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
         *it = ResStatArray::VALIDATED;
     }
   }
-  if (!residuesToFindParamsFor.empty()) {
+  if (downloadParams_ && !residuesToFindParamsFor.empty()) {
     mprintf("\tResidues to find parameters for:");
     for (RmapType::const_iterator it = residuesToFindParamsFor.begin();
                                   it != residuesToFindParamsFor.end(); ++it)
@@ -1166,7 +1179,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   int fatal_errors = 0;
   static const char* msg1 = "Potential problem : ";
   static const char* msg2 = "Fatal problem     : ";
-  for (ResStatArray::iterator it = resStat.begin(); it != resStat.end(); ++it)
+  for (ResStatArray::const_iterator it = resStat.begin(); it != resStat.end(); ++it)
   {
     LeapFxnGroupWarning(topIn, it-resStat.begin());
     //if ( *it == VALIDATED )
@@ -1175,12 +1188,12 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     //  mprintf("\t\t%s UNKNOWN\n", topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
     // ----- Warnings --------
     if ( *it == ResStatArray::UNKNOWN ) {
-      SetType::const_iterator pname = pdb_res_names_.find( topIn.Res(it-resStat.begin()).Name() );
-      if (pname == pdb_res_names_.end())
+      //SetType::const_iterator pname = pdb_res_names_.find( topIn.Res(it-resStat.begin()).Name() );
+      //if (pname == pdb_res_names_.end())
         mprintf("\t%s%s is an unrecognized name and may not have parameters.\n",
                 msg1, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
-      else
-        *it = ResStatArray::VALIDATED;
+      //else
+      //  *it = ResStatArray::VALIDATED;
     } else if ( *it == ResStatArray::SUGAR_NAME_MISMATCH ) {
         mprintf("\t%s%s sugar anomer type and/or configuration is not consistent with name.\n",
                 msg1, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());

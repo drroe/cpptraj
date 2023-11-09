@@ -52,11 +52,12 @@ class Exec_PrepareForLeap : public Exec {
                            Topology const&, CpptrajFile*, std::vector<BondType>&) const;
 
     // -----------------------
-    SetType pdb_res_names_; ///< PDB residue names recognized by Amber FFs
+    SetType pdb_res_names_;      ///< PDB residue names recognized by Amber FFs
 
-    std::string leapunitname_;
-    bool errorsAreFatal_;   ///< If false, try to skip errors.
-    int debug_;             ///< Debug level
+    std::string leapunitname_;   ///< Unit name to use when loading molecule
+    bool errorsAreFatal_;        ///< If false, try to skip errors.
+    bool downloadParams_;        ///< If true, try to download parameters for missing residues
+    int debug_;                  ///< Debug level
     std::string solventResName_; ///< Solvent residue name
     std::string parameterURL_;   ///< URL to download parameters from
 };
