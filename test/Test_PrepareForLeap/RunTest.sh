@@ -67,10 +67,14 @@ DoTest leap.4zzw.in.save leap.4zzw.in
 DoTest 4zzw.cpptraj.pdb.save 4zzw.cpptraj.pdb
 
 # Test remote connectivity.
+UNITNAME="Prepare PDB 4zzw for LEaP, download missing parameters"
 PINGCMD=`which ping`
 if [ ! -z "$PINGCMD" ] ; then
   $PINGCMD -c 1 raw.githubusercontent.com
-  if [ $? -eq 0 ] ; then
+  if [ $? -ne 0 ] ; then
+    echo "Warning: Could not ping raw.githubusercontent.com, no internet connectivity."
+    SkipCheck "$UNITNAME"
+  else
     cat > cpptraj.in <<EOF
 parm 4zzw.pdb
 loadcrd 4zzw.pdb name MyCrd
@@ -83,8 +87,11 @@ prepareforleap dlparams \
   pdbout dlparams.4zzw.cpptraj.pdb \
   nowat noh keepaltloc highestocc
 EOF
-    RunCpptraj "Prepare PDB 4zzw for LEaP, download missing parameters"
+    RunCpptraj "$UNITNAME"
   fi
+else
+  echo "Warning: No 'ping' found, cannot check for internet connectivity."
+  SkipCheck "$UNITNAME"
 fi
 
 EndTest
