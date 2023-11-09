@@ -20,7 +20,7 @@ cat > cpptraj.in <<EOF
 parm 1qos.pdb
 loadcrd 1qos.pdb name MyCrd
 
-prepareforleap \
+prepareforleap nodlparams \
   crdset MyCrd \
   name Final \
   out leap.1qos.in \
@@ -35,7 +35,7 @@ DoTest 1qos.cpptraj.pdb.save 1qos.cpptraj.pdb
 cat > cpptraj.in <<EOF
 parm 1qos.cpptraj.pdb.save
 loadcrd 1qos.cpptraj.pdb.save name MyCrd
-prepareforleap \
+prepareforleap nodlparams \
   hasglycam \
   crdset MyCrd \
   name Final \
@@ -52,7 +52,7 @@ cat > cpptraj.in <<EOF
 parm 4zzw.pdb
 loadcrd 4zzw.pdb name MyCrd
 
-prepareforleap \
+prepareforleap nodlparams \
   crdset MyCrd \
   name Final \
   out leap.4zzw.in \
