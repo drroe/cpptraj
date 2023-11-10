@@ -87,7 +87,8 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
           htype[1] = hline[idx+1];
           htype[2] = hline[idx+2];
           htype[3] = hline[idx+3];
-          mprintf("DEBUG:\t%s\n", htype);
+          //mprintf("DEBUG:\t%s\n", htype);
+          prm.AddHydrophilicAtomType( NameType(htype) );
         }
         section = (SectionType)((int)section + 1);
       }

@@ -65,6 +65,12 @@ void ParameterSet::Debug(const char* fnameIn) const {
     for (ParmHolder<DihedralParmType>::const_iterator bp = impParm_.begin(); bp != impParm_.end(); ++bp)
       Out.Printf("\t%6s %6s %6s %6s : %12.4f %12.4f %12.4f\n", *(bp->first[0]), *(bp->first[1]), *(bp->first[2]), *(bp->first[3]), bp->second.Pk(), bp->second.Pn(), bp->second.Phase());
   }
+  if (!hydrophilicAtomTypes_.empty()) {
+    Out.Printf("Hydrophilic atom types:");
+    for (NsetType::const_iterator it = hydrophilicAtomTypes_.begin(); it != hydrophilicAtomTypes_.end(); ++it)
+      Out.Printf(" %s", it->Truncated().c_str());
+    Out.Printf("\n");
+  }
 }
 
 /** Update/add to parameters in this topology with those from given set. */
@@ -95,5 +101,19 @@ int ParameterSet::UpdateParamSet(ParameterSet const& set1, UpdateCount& uc, int 
   uc.nLJ14paramsUpdated_ = UpdateParameters< ParmHolder<NonbondType> >(set0.NB14(), set1.NB14(), "LJ A-B 1-4");
 
   if (debugIn > 0) set0.Debug("newp.dat");
+  return 0;
+}
+
+/** Add hydrophilic atom type. */
+int ParameterSet::AddHydrophilicAtomType(NameType const& atype) {
+  for (NsetType::const_iterator it = hydrophilicAtomTypes_.begin(); it != hydrophilicAtomTypes_.end(); ++it)
+  {
+    if (atype == *it) {
+      mprintf("Warning: %s already defined as hydrophilic atom type.\n", atype.Truncated().c_str());
+      return 0;
+    }
+  }
+  // TODO check against existing types?
+  hydrophilicAtomTypes_.push_back( atype );
   return 0;
 }

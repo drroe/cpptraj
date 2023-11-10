@@ -50,9 +50,13 @@ class ParameterSet {
     };
     /// Update this set with parameters from given set
     int UpdateParamSet(ParameterSet const&, UpdateCount&, int);
+    /// Add hydrophilic atom type
+    int AddHydrophilicAtomType(NameType const&);
     /// \return Size in memory in bytes
     size_t DataSize() const;
   private:
+    typedef std::vector<NameType> NsetType;
+
     ParmHolder<AtomType> atomTypes_;       ///< Atom types
     ParmHolder<NonbondType> nbParm_;       ///< Lennard-Jones 6-12 A-B parameters
     ParmHolder<NonbondType> nb14Parm_;     ///< LJ 6-12 A-B parameters for 1-4 interactions
@@ -61,6 +65,7 @@ class ParameterSet {
     ParmHolder<BondParmType> ubParm_;      ///< Urey-Bradley parameters
     ParmHolder<DihedralParmType> impParm_; ///< Improper dihedral parameters
     DihedralParmHolder dihParm_;           ///< Cosine-series dihedral parameters
+    NsetType hydrophilicAtomTypes_;        ///< Hold names of hydrophilic atom types
     bool hasLJparams_;
 };
 #endif
