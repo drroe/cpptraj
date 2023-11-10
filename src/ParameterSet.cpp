@@ -17,9 +17,9 @@ void ParameterSet::Debug(const char* fnameIn) const {
   CpptrajFile Out;
   Out.OpenWrite( fnameIn );
   Out.Printf("Atom Types:\n");
-  Out.Printf("\t%6s %8s %12s %12s %12s\n", "Name", "TypeIdx", "Radius", "Depth", "Mass");
+  Out.Printf("\t%6s %8s %12s %12s %12s %12s\n", "Name", "TypeIdx", "Radius", "Depth", "Mass", "Polar.");
   for (ParmHolder<AtomType>::const_iterator at = atomTypes_.begin(); at != atomTypes_.end(); ++at) {
-    Out.Printf("\t%6s %8li %12.4f %12.4f %12.4f\n", *(at->first[0]), at - atomTypes_.begin(), at->second.LJ().Radius(), at->second.LJ().Depth(), at->second.Mass());
+    Out.Printf("\t%6s %8li %12.4f %12.4f %12.4f %12.4f\n", *(at->first[0]), at - atomTypes_.begin(), at->second.LJ().Radius(), at->second.LJ().Depth(), at->second.Mass(), at->second.Polarizability());
   }
   if (!nbParm_.empty()) {
     Out.Printf("LJ parameters:\n");

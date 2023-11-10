@@ -102,6 +102,7 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
     ptr = infile.Line();
   }
 
+  prm.Debug(); // TODO debug level
   infile.CloseFile();
   return 0;
 }

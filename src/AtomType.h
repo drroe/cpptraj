@@ -8,7 +8,7 @@ class AtomType {
     AtomType() : mass_(0.0), polarizability_(0.0), oidx_(-1) {}
     AtomType(double r, double d, int o) : lj_(r, d), mass_(0.0), polarizability_(0.0), oidx_(o) {} // TODO deprecate
     /// CONSTRUCTOR - Mass, polarizability
-    AtomType(double m, double p) : mass_(0.0), polarizability_(p), oidx_(-1) {}
+    AtomType(double m, double p) : mass_(m), polarizability_(p), oidx_(-1) {}
     /// CONSTRUCTOR - Mass only
     AtomType(double m) : mass_(m), oidx_(-1) {}
     /// CONSTRUCTOR - Radius, well depth, mass
@@ -17,6 +17,8 @@ class AtomType {
     LJparmType const& LJ() const { return lj_; }
     /// \return Atom mass in amu
     double Mass()          const { return mass_;   }
+    /// \return Atomic polarizability in Ang^3
+    double Polarizability() const { return polarizability_; }
     /// \return Original atom type index. Useful when checking for off-diagonal NB parameters.
     int OriginalIdx()      const { return oidx_; }
     /// \return true if LJ params are less than incoming
