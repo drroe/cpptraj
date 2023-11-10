@@ -50,13 +50,35 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
   }
   DataSet_Parameters& prm = static_cast<DataSet_Parameters&>( *ds ); 
 
+  // Read title
   BufferedLine infile;
   if (infile.OpenFileRead( fname )) {
     mprinterr("Error: Could not open file '%s' as Amber FF.\n", fname.full());
     return 1;
   }
-  std::string title = infile.GetLine();
+  const char* ptr = infile.Line();
+  if (ptr == 0) {
+    mprinterr("Error: Could not read anything from Amber FF file %s\n", fname.full());
+    return 1;
+  }
+  std::string title(ptr);
   mprintf("\tTitle: %s\n", title.c_str());
+  // Read file
+  enum SectionType { ATYPE = 0, UNKNOWN };
+  SectionType section = ATYPE;
+  while (ptr != 0) {
+    if (*ptr == '\0') {
+      // Section Change
+      if (section != UNKNOWN) {
+        section = (SectionType)((int)section + 1);
+      }
+    } else if (section == ATYPE) {
+      // Input for atom symbols and masses
+      // Format (A2,2X,F10.2x,f10.2)
+      mprintf("DEBUG: Atype: %s\n", ptr);
+    }
+    ptr = infile.Line();
+  }
 
   infile.CloseFile();
   return 0;
