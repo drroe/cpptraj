@@ -34,6 +34,7 @@
 #include "DataIO_Numpy.h"
 #include "DataIO_AmberPrep.h"
 #include "DataIO_AmberLib.h"
+#include "DataIO_AmberFF.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -89,6 +90,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Numpy array",        0,                             0,            DataIO_Numpy::Alloc},
   { "Amber Prep File",    DataIO_AmberPrep::ReadHelp,    0,            DataIO_AmberPrep::Alloc},
   { "Amber OFF File",     0,                             0,            DataIO_AmberLib::Alloc},
+  { "Amber Force Field",  0,                             0,            DataIO_AmberFF::Alloc},
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
@@ -118,6 +120,7 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { AMBERPREP,    "prepin",       ".prepin" },
   { AMBERLIB,     "off",          ".off" },
   { AMBERLIB,     "off",          ".lib" },
+  { AMBERFF,      "amberff",      ".parm" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
