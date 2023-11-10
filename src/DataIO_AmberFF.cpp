@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
 #include "DataSet_Parameters.h"
+#include <cstdio> // sscanf
 
 /// CONSTRUCTOR
 DataIO_AmberFF::DataIO_AmberFF()
@@ -66,6 +67,7 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
   // Read file
   enum SectionType { ATYPE = 0, UNKNOWN };
   SectionType section = ATYPE;
+  ptr = infile.Line();
   while (ptr != 0) {
     if (*ptr == '\0') {
       // Section Change
@@ -76,6 +78,26 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       // Input for atom symbols and masses
       // Format (A2,2X,F10.2x,f10.2)
       mprintf("DEBUG: Atype: %s\n", ptr);
+      char kndsym[16];
+      double amass;
+      double atpol;
+      int nscan = sscanf(ptr, "%s %lf %lf", kndsym, &amass, &atpol);
+      ParameterHolders::RetType ret;
+      if (nscan == 3) {
+        ret = prm.AT().AddParm( TypeNameHolder(kndsym),
+                                AtomType(amass, atpol),
+                                true );
+      } else if (nscan == 2) {
+        // Only mass
+        ret = prm.AT().AddParm( TypeNameHolder(kndsym),
+                                AtomType(amass),
+                                true );
+      } else {
+        mprinterr("Error: Expected atom type, mass, polarizability, got only %i\n", nscan);
+        return 1;
+      }
+      if (ret == ParameterHolders::UPDATED)
+        mprintf("Warning: Redefining atom type %s\n", kndsym);
     }
     ptr = infile.Line();
   }
