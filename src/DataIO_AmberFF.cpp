@@ -65,13 +65,30 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
   std::string title(ptr);
   mprintf("\tTitle: %s\n", title.c_str());
   // Read file
-  enum SectionType { ATYPE = 0, UNKNOWN };
+  enum SectionType { ATYPE = 0, HYDROPHILIC, UNKNOWN };
   SectionType section = ATYPE;
   ptr = infile.Line();
   while (ptr != 0) {
     if (*ptr == '\0') {
       // Section Change
       if (section != UNKNOWN) {
+        section = (SectionType)((int)section + 1);
+      }
+      // Special case; hydrophilic atom types. One line.
+      // FORMAT(20(A2,2X))
+      if (section == HYDROPHILIC) {
+        ptr = infile.Line();
+        mprintf("DEBUG: Hydrophilic: %s\n", ptr);
+        char htype[5];
+        htype[4] = '\0';
+        std::string hline(ptr);
+        for (unsigned int idx = 0; idx < hline.size(); idx+=4) {
+          htype[0] = hline[idx  ];
+          htype[1] = hline[idx+1];
+          htype[2] = hline[idx+2];
+          htype[3] = hline[idx+3];
+          mprintf("DEBUG:\t%s\n", htype);
+        }
         section = (SectionType)((int)section + 1);
       }
     } else if (section == ATYPE) {
