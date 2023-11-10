@@ -4,11 +4,14 @@
 /// Hold parameters for a unique atom type
 class AtomType {
   public:
-    AtomType() : mass_(0.0), oidx_(-1) {}
-    AtomType(double r, double d, int o) : lj_(r, d), mass_(0.0), oidx_(o) {} // TODO deprecate
-    /// Mass only
+    /// CONSTRUCTOR
+    AtomType() : mass_(0.0), polarizability_(0.0), oidx_(-1) {}
+    AtomType(double r, double d, int o) : lj_(r, d), mass_(0.0), polarizability_(0.0), oidx_(o) {} // TODO deprecate
+    /// CONSTRUCTOR - Mass, polarizability
+    AtomType(double m, double p) : mass_(0.0), polarizability_(p), oidx_(-1) {}
+    /// CONSTRUCTOR - Mass only
     AtomType(double m) : mass_(m), oidx_(-1) {}
-    /// Radius, well depth, mass
+    /// CONSTRUCTOR - Radius, well depth, mass
     AtomType(double r, double d, double m) : lj_(r, d), mass_(m), oidx_(-1) {}
     /// \return default LJ parameters
     LJparmType const& LJ() const { return lj_; }
@@ -27,6 +30,7 @@ class AtomType {
   private:
     LJparmType lj_; ///< Default Lennard-Jones parameters (always valid for self).
     double mass_;   ///< Mass in amu
+    double polarizability_; ///< Atomic polarizability in Ang^3
     int oidx_; ///< Original atom type index. TODO deprecate
 };
 #endif
