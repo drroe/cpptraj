@@ -36,6 +36,7 @@ int DataIO_AmberFF::processReadArgs(ArgList& argIn)
 // DataIO_AmberFF::ReadData()
 int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
+  static const int MAXSYMLEN = 16;
   // Allocate data set
   MetaData md( dsname );
   DataSet* ds = dsl.CheckForSet( md );
@@ -101,7 +102,7 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       // Input for atom symbols and masses
       // Format (A2,2X,F10.2x,f10.2)
       mprintf("DEBUG: Atype: %s\n", ptr);
-      char kndsym[16];
+      char kndsym[MAXSYMLEN];
       double amass;
       double atpol;
       int nscan = sscanf(ptr, "%s %lf %lf", kndsym, &amass, &atpol);
@@ -116,13 +117,28 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
                                 AtomType(amass),
                                 true );
       } else {
-        mprinterr("Error: Expected atom type, mass, polarizability, got only %i\n", nscan);
+        mprinterr("Error: Expected atom type, mass, polarizability, got only %i columns.\n", nscan);
         return 1;
       }
       if (ret == ParameterHolders::UPDATED)
         mprintf("Warning: Redefining atom type %s\n", kndsym);
     } else if (section == BOND) {
+      // Bond parameters
+      // IBT , JBT , RK , REQ
+      // FORMAT(A2,1X,A2,2F10.2)
       mprintf("DEBUG: Bond: %s\n", ptr);
+      char ibt[MAXSYMLEN];
+      char jbt[MAXSYMLEN];
+      double RK, REQ;
+      int nscan = sscanf(ptr, "%s %s %lf %lf", ibt, jbt, &RK, &REQ);
+      if (nscan != 4) {
+        mprinterr("Error: Expected atom type 1, atom type 2, RK, REQ, got only %i columns,\n", nscan);
+        return 1;
+      }
+      TypeNameHolder types(2);
+      types.AddName( ibt );
+      types.AddName( jbt );
+      prm.BP().AddParm(types, BondParmType(RK, REQ), false);
     }
     ptr = infile.Line();
   }
