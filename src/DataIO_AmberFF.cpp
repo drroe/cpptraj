@@ -159,20 +159,27 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
         return 1;
       }
       mprintf("DEBUG: %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), ptr+pos);
-      
+      double RK, REQ;
+      int nscan = sscanf(ptr+pos, "%lf %lf", &RK, &REQ);
+      if (nscan != 2) {
+        mprinterr("Error: Expected RK, REQ, got only %i elements\n", nscan);
+        return 1;
+      }
+      TypeNameHolder types(2);
+      types.AddName( symbols[0] );
+      types.AddName( symbols[1] );
+      prm.BP().AddParm(types, BondParmType(RK, REQ), false);
 /*
       char ibt[MAXSYMLEN];
       char jbt[MAXSYMLEN];
-      double RK, REQ;
       int nscan = sscanf(ptr, "%s %s %lf %lf", ibt, jbt, &RK, &REQ);
       if (nscan != 4) {
         mprinterr("Error: Expected atom type 1, atom type 2, RK, REQ, got only %i columns,\n", nscan);
         return 1;
       }
-      TypeNameHolder types(2);
       types.AddName( ibt );
       types.AddName( jbt );
-      prm.BP().AddParm(types, BondParmType(RK, REQ), false);*/
+*/
     }
     ptr = infile.Line();
   }
