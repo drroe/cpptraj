@@ -13,5 +13,7 @@ class DataIO_AmberFF : public DataIO {
     int processWriteArgs(ArgList&);
     int WriteData(FileName const&, DataSetList const&);
     bool ID_DataFormat(CpptrajFile&);
+  private:
+    static int read_symbols(const char*, std::vector<std::string>&, int);
 };
 #endif

@@ -33,6 +33,29 @@ int DataIO_AmberFF::processReadArgs(ArgList& argIn)
   return 0;
 }
 
+/** Read symbols delimited by - and space. */
+int DataIO_AmberFF::read_symbols(const char* ptrIn, std::vector<std::string>& symbols, int nsymbols)
+{
+  int isymbol = 0;
+  int idx = 0;
+  bool char_has_been_read = false;
+  const char* ptr = ptrIn;
+  for (; *ptr != '\0'; ++ptr)
+  {
+    if (*ptr == '-') {
+      isymbol++;
+      idx = 0;
+      char_has_been_read = false;
+    } else if (*ptr == ' ' && isymbol + 1 == nsymbols && char_has_been_read) {
+      break;
+    } else {
+      symbols[isymbol][idx++] = *ptr;
+      if (*ptr != ' ') char_has_been_read = true;
+    }
+  }
+  return (ptr - ptrIn);
+}
+
 // DataIO_AmberFF::ReadData()
 int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
@@ -127,6 +150,15 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       // IBT , JBT , RK , REQ
       // FORMAT(A2,1X,A2,2F10.2)
       mprintf("DEBUG: Bond: %s\n", ptr);
+      std::vector<std::string> symbols(2);
+      symbols[0].assign(MAXSYMLEN, ' ');
+      symbols[1].assign(MAXSYMLEN, ' ');
+      //char symbols[2][MAXSYMLEN];
+      //symbols[0][MAXSYMLEN-1] = '\0';
+      //symbols[1][MAXSYMLEN-1] = '\0';
+      read_symbols(ptr, symbols, 2);
+      mprintf("DEBUG: %s %s\n", symbols[0].c_str(), symbols[1].c_str());
+/*
       char ibt[MAXSYMLEN];
       char jbt[MAXSYMLEN];
       double RK, REQ;
@@ -138,7 +170,7 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       TypeNameHolder types(2);
       types.AddName( ibt );
       types.AddName( jbt );
-      prm.BP().AddParm(types, BondParmType(RK, REQ), false);
+      prm.BP().AddParm(types, BondParmType(RK, REQ), false);*/
     }
     ptr = infile.Line();
   }
