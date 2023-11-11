@@ -79,6 +79,11 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       if (section == HYDROPHILIC) {
         ptr = infile.Line();
         mprintf("DEBUG: Hydrophilic: %s\n", ptr);
+        // Take advantage of the fact that we expect whitespace-delimiters
+        ArgList hsymbols( ptr, " " );
+        for (int iarg = 0; iarg != hsymbols.Nargs(); ++iarg)
+          prm.AddHydrophilicAtomType( NameType( hsymbols[iarg] ) );
+        /*
         char htype[5];
         htype[4] = '\0';
         std::string hline(ptr);
@@ -89,7 +94,7 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
           htype[3] = hline[idx+3];
           //mprintf("DEBUG:\t%s\n", htype);
           prm.AddHydrophilicAtomType( NameType(htype) );
-        }
+        }*/
         section = (SectionType)((int)section + 1);
       }
     } else if (section == ATYPE) {
