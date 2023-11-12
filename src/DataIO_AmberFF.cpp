@@ -86,7 +86,7 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
   std::string title(ptr);
   mprintf("\tTitle: %s\n", title.c_str());
   // Read file
-  enum SectionType { ATYPE = 0, HYDROPHILIC, BOND, UNKNOWN };
+  enum SectionType { ATYPE = 0, HYDROPHILIC, BOND, ANGLE, UNKNOWN };
   SectionType section = ATYPE;
   ptr = infile.Line();
   while (ptr != 0) {
@@ -104,18 +104,6 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
         ArgList hsymbols( ptr, " " );
         for (int iarg = 0; iarg != hsymbols.Nargs(); ++iarg)
           prm.AddHydrophilicAtomType( NameType( hsymbols[iarg] ) );
-        /*
-        char htype[5];
-        htype[4] = '\0';
-        std::string hline(ptr);
-        for (unsigned int idx = 0; idx < hline.size(); idx+=4) {
-          htype[0] = hline[idx  ];
-          htype[1] = hline[idx+1];
-          htype[2] = hline[idx+2];
-          htype[3] = hline[idx+3];
-          //mprintf("DEBUG:\t%s\n", htype);
-          prm.AddHydrophilicAtomType( NameType(htype) );
-        }*/
         section = (SectionType)((int)section + 1);
       }
     } else if (section == ATYPE) {
@@ -148,11 +136,6 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       // FORMAT(A2,1X,A2,2F10.2)
       mprintf("DEBUG: Bond: %s\n", ptr);
       std::vector<std::string> symbols(2);
-      //symbols[0].assign(MAXSYMLEN, ' ');
-      //symbols[1].assign(MAXSYMLEN, ' ');
-      //char symbols[2][MAXSYMLEN];
-      //symbols[0][MAXSYMLEN-1] = '\0';
-      //symbols[1][MAXSYMLEN-1] = '\0';
       int pos = read_symbols(ptr, symbols, 2);
       if (pos < 0) {
         mprinterr("Error: Could not read symbols for bond from %s\n", ptr);
@@ -169,17 +152,29 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       types.AddName( symbols[0] );
       types.AddName( symbols[1] );
       prm.BP().AddParm(types, BondParmType(RK, REQ), false);
-/*
-      char ibt[MAXSYMLEN];
-      char jbt[MAXSYMLEN];
-      int nscan = sscanf(ptr, "%s %s %lf %lf", ibt, jbt, &RK, &REQ);
-      if (nscan != 4) {
-        mprinterr("Error: Expected atom type 1, atom type 2, RK, REQ, got only %i columns,\n", nscan);
+    } else if (section == ANGLE) {
+      // Angle parameters
+      //ITT , JTT , KTT , TK , TEQ
+      //FORMAT(A2,1X,A2,1X,A2,2F10.2)
+      mprintf("DEBUG: Angle: %s\n", ptr);
+      std::vector<std::string> symbols(3);
+      int pos = read_symbols(ptr, symbols, 3);
+      if (pos < 0) {
+        mprinterr("Error: Could not read symbols for angle from %s\n", ptr);
         return 1;
       }
-      types.AddName( ibt );
-      types.AddName( jbt );
-*/
+      mprintf("DEBUG: %s %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), symbols[2].c_str(), ptr+pos);
+      double TK, TEQ;
+      int nscan = sscanf(ptr+pos, "%lf %lf", &TK, &TEQ);
+      if (nscan != 2) {
+        mprinterr("Error: Expected TK, TEQ, got only %i elements\n", nscan);
+        return 1;
+      }
+      TypeNameHolder types(3);
+      types.AddName( symbols[0] );
+      types.AddName( symbols[1] );
+      types.AddName( symbols[2] );
+      prm.AP().AddParm(types, AngleParmType(TK, TEQ), false);
     }
     ptr = infile.Line();
   }
