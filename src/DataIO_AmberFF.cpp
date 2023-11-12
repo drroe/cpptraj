@@ -86,13 +86,17 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
   std::string title(ptr);
   mprintf("\tTitle: %s\n", title.c_str());
   // Read file
-  enum SectionType { ATYPE = 0, HYDROPHILIC, BOND, ANGLE, DIHEDRAL, UNKNOWN };
+  enum SectionType { ATYPE = 0, HYDROPHILIC, BOND, ANGLE, DIHEDRAL, IMPROPER, UNKNOWN };
   SectionType section = ATYPE;
   ptr = infile.Line();
   while (ptr != 0) {
+    // Advance to first non-space char
+    while (*ptr == ' ' && *ptr != '\0') ++ptr;
+    mprintf("DEBUG: First char: %c (%i)\n", *ptr, (int)*ptr);
     if (*ptr == '\0') {
       // Section Change
       if (section != UNKNOWN) {
+        mprintf("SECTION %i change to %i\n", (int)section, (int)section + 1);
         section = (SectionType)((int)section + 1);
       }
       // Special case; hydrophilic atom types. One line.
@@ -208,6 +212,30 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       types.AddName( symbols[2] );
       types.AddName( symbols[3] );
       prm.DP().AddParm(types, DihedralParmType(PK / (double)IDIVF, PN, PHASE), false);
+    } else if (section == IMPROPER) {
+      // Improper parameters
+      // IPT , JPT , KPT , LPT , IDIVF , PK , PHASE , PN
+      // FORMAT(A2,1X,A2,1X,A2,1X,A2,I4,3F15.2)
+      mprintf("DEBUG: Improper: %s\n", ptr);
+      std::vector<std::string> symbols(4);
+      int pos = read_symbols(ptr, symbols, 4);
+      if (pos < 0) {
+        mprinterr("Error: Could not read symbols for improper from %s\n", ptr);
+        return 1;
+      }
+      mprintf("DEBUG: %s %s %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), symbols[2].c_str(), symbols[3].c_str(), ptr+pos);
+      double PK, PHASE, PN;
+      int nscan = sscanf(ptr+pos, "%lf %lf %lf", &PK, &PHASE, &PN);
+      if (nscan != 3) {
+        mprinterr("Error: Expected PK, PHASE, PN, got only %i elements\n", nscan);
+        return 1;
+      }
+      TypeNameHolder types(4);
+      types.AddName( symbols[0] );
+      types.AddName( symbols[1] );
+      types.AddName( symbols[2] );
+      types.AddName( symbols[3] );
+      prm.IP().AddParm(types, DihedralParmType(PK, PN, PHASE), false);
     }
     ptr = infile.Line();
   }
