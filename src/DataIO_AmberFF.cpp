@@ -86,7 +86,8 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
   std::string title(ptr);
   mprintf("\tTitle: %s\n", title.c_str());
   // Read file
-  enum SectionType { ATYPE = 0, HYDROPHILIC, BOND, ANGLE, DIHEDRAL, IMPROPER, UNKNOWN };
+  enum SectionType { ATYPE = 0, HYDROPHILIC, BOND, ANGLE, DIHEDRAL, IMPROPER, 
+                     LJ1012, UNKNOWN };
   SectionType section = ATYPE;
   ptr = infile.Line();
   while (ptr != 0) {
@@ -109,6 +110,11 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
         for (int iarg = 0; iarg != hsymbols.Nargs(); ++iarg)
           prm.AddHydrophilicAtomType( NameType( hsymbols[iarg] ) );
         section = (SectionType)((int)section + 1);
+        // Look ahead. Older parm files have the hydrophilic section delimited
+        // with a newline.
+        ptr = infile.Line();
+        while (*ptr == ' ' && *ptr != '\0') ++ptr;
+        if (*ptr != '\0') continue;
       }
     } else if (section == ATYPE) {
       // Input for atom symbols and masses
@@ -236,7 +242,25 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       types.AddName( symbols[2] );
       types.AddName( symbols[3] );
       prm.IP().AddParm(types, DihedralParmType(PK, PN, PHASE), false);
-    }
+    } else if (section == LJ1012) {
+      // Lennard-Jones 10-12 hydrogen bonding term
+      // KT1 , KT2 , A , B , ASOLN , BSOLN , HCUT , IC
+      // FORMAT(2X,A2,2X,A2,2x,5F10.2,I2)
+      // NOTE: The ASOLN, BSOLN, HCUT, and IC columns are no longer used
+      //       and so are not read.
+      char KT1[MAXSYMLEN], KT2[MAXSYMLEN];
+      double A, B;
+      //double ASOLN, BSOLN, HCUT;
+      //int IC;
+      mprintf("DEBUG: LJ 10-12: %s\n", ptr);
+      //int nscan = sscanf(ptr, "%s %s %lf %lf %lf %lf %lf %i\n",
+      int nscan = sscanf(ptr, "%s %s %lf %lf", KT1, KT2, &A, &B);
+      if (nscan < 4) {
+        mprinterr("Error: Expected at least KT1, KT2, A, B, got only %i elements\n", nscan);
+        return 1;
+      }
+    } 
+      
     ptr = infile.Line();
   }
 
