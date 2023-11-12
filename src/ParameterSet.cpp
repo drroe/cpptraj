@@ -10,7 +10,9 @@ size_t ParameterSet::DataSize() const {
           angleParm_.DataSize() +
           ubParm_.DataSize() +
           dihParm_.DataSize() +
-          impParm_.DataSize());
+          impParm_.DataSize() +
+          HBparm_.DataSize() +
+          (hydrophilicAtomTypes_.size() * NameType::DataSize()));
 }
 
 void ParameterSet::Debug(const char* fnameIn) const {
@@ -32,6 +34,12 @@ void ParameterSet::Debug(const char* fnameIn) const {
     Out.Printf("\t%6s %6s : %12s %12s\n", "Type1", "Type2", "A", "B");
     for (ParmHolder<NonbondType>::const_iterator nb = nb14Parm_.begin(); nb != nb14Parm_.end(); ++nb)
       Out.Printf("\t%6s %6s : %12.4E %12.4E\n", (*nb->first[0]), (*nb->first[1]), nb->second.A(), nb->second.B());
+  }
+  if (!HBparm_.empty()) {
+    Out.Printf("HB LJ 10-12 parameters:\n");
+    Out.Printf("\t%6s %6s : %12s %12s %12s\n", "Type1", "Type2", "Asol", "Bsol", "HBcut");
+    for (ParmHolder<HB_ParmType>::const_iterator hb = HBparm_.begin(); hb != HBparm_.end(); ++hb)
+      Out.Printf("\t%6s %6s : %12.4f %124.f %12.4f\n", *(hb->first[0]), *(hb->first[1]), hb->second.Asol(), hb->second.Bsol(), hb->second.HBcut());
   }
   if (!bondParm_.empty()) {
     Out.Printf("Bond parameters:\n");

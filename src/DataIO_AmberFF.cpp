@@ -243,20 +243,21 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       types.AddName( symbols[3] );
       prm.IP().AddParm(types, DihedralParmType(PK, PN, PHASE), false);
     } else if (section == LJ1012) {
-      // Lennard-Jones 10-12 hydrogen bonding term
+      // Lennard-Jones 10-12 hydrogen bonding term.
+      // According to the docs, the format should be:
       // KT1 , KT2 , A , B , ASOLN , BSOLN , HCUT , IC
       // FORMAT(2X,A2,2X,A2,2x,5F10.2,I2)
-      // NOTE: The ASOLN, BSOLN, HCUT, and IC columns are no longer used
-      //       and so are not read.
+      // In practive (in e.g. parm91.dat), the actual format appears to be:
+      // KT1, KT2, A, B, HCUT
       char KT1[MAXSYMLEN], KT2[MAXSYMLEN];
-      double A, B;
+      double A, B, HCUT;
       //double ASOLN, BSOLN, HCUT;
       //int IC;
       mprintf("DEBUG: LJ 10-12: %s\n", ptr);
       //int nscan = sscanf(ptr, "%s %s %lf %lf %lf %lf %lf %i\n",
-      int nscan = sscanf(ptr, "%s %s %lf %lf", KT1, KT2, &A, &B);
-      if (nscan < 4) {
-        mprinterr("Error: Expected at least KT1, KT2, A, B, got only %i elements\n", nscan);
+      int nscan = sscanf(ptr, "%s %s %lf %lf %lf", KT1, KT2, &A, &B, &HCUT);
+      if (nscan < 5) {
+        mprinterr("Error: Expected at least KT1, KT2, A, B, HCUT, got only %i elements\n", nscan);
         return 1;
       }
     } 
