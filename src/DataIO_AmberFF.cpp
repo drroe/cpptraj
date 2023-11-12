@@ -86,7 +86,7 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
   std::string title(ptr);
   mprintf("\tTitle: %s\n", title.c_str());
   // Read file
-  enum SectionType { ATYPE = 0, HYDROPHILIC, BOND, ANGLE, UNKNOWN };
+  enum SectionType { ATYPE = 0, HYDROPHILIC, BOND, ANGLE, DIHEDRAL, UNKNOWN };
   SectionType section = ATYPE;
   ptr = infile.Line();
   while (ptr != 0) {
@@ -154,8 +154,8 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       prm.BP().AddParm(types, BondParmType(RK, REQ), false);
     } else if (section == ANGLE) {
       // Angle parameters
-      //ITT , JTT , KTT , TK , TEQ
-      //FORMAT(A2,1X,A2,1X,A2,2F10.2)
+      // ITT , JTT , KTT , TK , TEQ
+      // FORMAT(A2,1X,A2,1X,A2,2F10.2)
       mprintf("DEBUG: Angle: %s\n", ptr);
       std::vector<std::string> symbols(3);
       int pos = read_symbols(ptr, symbols, 3);
@@ -175,6 +175,39 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       types.AddName( symbols[1] );
       types.AddName( symbols[2] );
       prm.AP().AddParm(types, AngleParmType(TK, TEQ), false);
+    } else if (section == DIHEDRAL) {
+      // Dihedral parameters
+      // IPT , JPT , KPT , LPT , IDIVF , PK , PHASE , PN
+      // FORMAT(A2,1X,A2,1X,A2,1X,A2,I4,3F15.2)
+      // If IPT .eq. 'X ' .and. LPT .eq. 'X ' then any dihedrals in the
+      // system involving the atoms "JPT" and and "KPT" are assigned 
+      // the same parameters.  This is called the general dihedral type
+      // and is of the form "X "-"JPT"-"KPT"-"X ".
+      // IDIVF is the factor by which the torsional barrier is divided.
+      // Consult Weiner, et al., JACS 106:765 (1984) p. 769 for
+      // details. Basically, the actual torsional potential is
+      //   (PK/IDIVF) * (1 + cos(PN*phi - PHASE))
+      mprintf("DEBUG: Dihedral: %s\n", ptr);
+      std::vector<std::string> symbols(4);
+      int pos = read_symbols(ptr, symbols, 4);
+      if (pos < 0) {
+        mprinterr("Error: Could not read symbols for dihedral from %s\n", ptr);
+        return 1;
+      }
+      mprintf("DEBUG: %s %s %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), symbols[2].c_str(), symbols[3].c_str(), ptr+pos);
+      int IDIVF;
+      double PK, PHASE, PN;
+      int nscan = sscanf(ptr+pos, "%i %lf %lf %lf", &IDIVF, &PK, &PHASE, &PN);
+      if (nscan != 4) {
+        mprinterr("Error: Expected IDIVF, PK, PHASE, PN, got only %i elements\n", nscan);
+        return 1;
+      }
+      TypeNameHolder types(4);
+      types.AddName( symbols[0] );
+      types.AddName( symbols[1] );
+      types.AddName( symbols[2] );
+      types.AddName( symbols[3] );
+      prm.DP().AddParm(types, DihedralParmType(PK / (double)IDIVF, PN, PHASE), false);
     }
     ptr = infile.Line();
   }
