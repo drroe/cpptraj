@@ -39,7 +39,7 @@ void ParameterSet::Debug(const char* fnameIn) const {
     Out.Printf("HB LJ 10-12 parameters:\n");
     Out.Printf("\t%6s %6s : %12s %12s %12s\n", "Type1", "Type2", "Asol", "Bsol", "HBcut");
     for (ParmHolder<HB_ParmType>::const_iterator hb = HBparm_.begin(); hb != HBparm_.end(); ++hb)
-      Out.Printf("\t%6s %6s : %12.4f %124.f %12.4f\n", *(hb->first[0]), *(hb->first[1]), hb->second.Asol(), hb->second.Bsol(), hb->second.HBcut());
+      Out.Printf("\t%6s %6s : %12.4f %12.4f %12.4f\n", *(hb->first[0]), *(hb->first[1]), hb->second.Asol(), hb->second.Bsol(), hb->second.HBcut());
   }
   if (!bondParm_.empty()) {
     Out.Printf("Bond parameters:\n");

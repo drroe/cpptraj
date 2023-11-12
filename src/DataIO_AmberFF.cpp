@@ -260,6 +260,10 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
         mprinterr("Error: Expected at least KT1, KT2, A, B, HCUT, got only %i elements\n", nscan);
         return 1;
       }
+      TypeNameHolder types(2);
+      types.AddName( KT1 );
+      types.AddName( KT2 );
+      prm.HB().AddParm(types, HB_ParmType(A, B, HCUT), false);
     } 
       
     ptr = infile.Line();

@@ -258,6 +258,12 @@ typedef std::vector<DihedralType> DihedralArray;
 // ----- NON-BONDED PARAMETERS -------------------------------------------------
 /// Hold LJ 10-12 hbond params
 class HB_ParmType {
+    /** Tolerance for comparison. A little larger than SMALL because A
+      * and B tend to be large.
+      */
+    // NOTE: Probably should check __cpluscplus here instead of using a
+    //       define, but this is guaranteed to be portable.
+#     define tol_ 0.00000001
   public:
     HB_ParmType() : asol_(0), bsol_(0), hbcut_(0) {}
     HB_ParmType(double a, double b, double c) :
@@ -268,10 +274,33 @@ class HB_ParmType {
     void SetAsol(double a)  { asol_ = a;  }
     void SetBsol(double b)  { bsol_ = b;  }
     void SetHBcut(double h) { hbcut_ = h; }
+    /// \return True if A, B, and HBcut match
+    bool operator==(HB_ParmType const& rhs) const {
+      return ( (fabs(asol_ - rhs.asol_) < tol_) &&
+               (fabs(bsol_ - rhs.bsol_) < tol_) &&
+               (fabs(hbcut_ - rhs.hbcut_) < tol_) );
+    }
+    /// \return True if A, B, or HBcut do not match
+    bool operator!=(HB_ParmType const& rhs) const {
+      return ( (fabs(asol_ - rhs.asol_) > tol_) ||
+               (fabs(bsol_ - rhs.bsol_) > tol_) ||
+               (fabs(hbcut_ - rhs.hbcut_) > tol_) );
+    }
+    /// \return True if A less than zero, or B if A is equal. TODO add hbcut?
+    bool operator<(HB_ParmType const& rhs) const {
+      if (*this != rhs) {
+        if ( (fabs(asol_ - rhs.asol_) < tol_) )
+          return (bsol_ < rhs.bsol_);
+        else
+          return (asol_ < rhs.asol_);
+      } else
+        return false;
+    }
   private:
     double asol_;
     double bsol_;
     double hbcut_;
+#   undef tol_
 };
 typedef std::vector<HB_ParmType> HB_ParmArray;
 /// Hold Lennard-Jones 6-12 interaction A and B parameters
