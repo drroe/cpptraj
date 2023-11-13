@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
 #include "DataSet_Parameters.h"
+#include "StringRoutines.h"
 #include <cstdio> // sscanf
 
 /// CONSTRUCTOR
@@ -104,9 +105,8 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
   mprintf("\tTitle: %s\n", title.c_str());
   prm.SetParamSetName( title );
   // Read file
-  bool ljedit = false;
   enum SectionType { ATYPE = 0, HYDROPHILIC, BOND, ANGLE, DIHEDRAL, IMPROPER, 
-                     LJ1012, NB_EQUIV, NONBOND, UNKNOWN };
+                     LJ1012, NB_EQUIV, NONBOND, LJEDIT, UNKNOWN };
   SectionType section = ATYPE;
   ptr = infile.Line();
   while (ptr != 0) {
@@ -126,8 +126,7 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
             mprintf("END\n");
             section = UNKNOWN;
           } else if (nbline == "LJEDIT") {
-            ljedit = true;
-            section = UNKNOWN;
+            section = LJEDIT;
           } // Otherwise assume another nonbond section
         } else {
           mprintf("SECTION %i change to %i\n", (int)section, (int)section + 1);
@@ -326,25 +325,62 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       // ***** ONLY IF KINDNB .EQ. 'RE' *****
       // LTYNB , R , EDEP
       mprintf("DEBUG: Nonbond: %s\n", ptr);
-      char LTYNB[MAXSYMLEN];
-      double R, EDEP;
-      double R14, E14;
-      int nscan = sscanf(ptr, "%s %lf %lf %lf %lf", LTYNB, &R, &EDEP, &R14, &E14);
-      
-      if (nscan == 3 || nscan == 5) {
-        // symbol, rmin, epsilon
-        NBsets.back().LJ_.AddParm( TypeNameHolder(LTYNB), LJparmType(R, EDEP), false );
-        /*ParmHolder<AtomType>::iterator it = prm.AT().GetParam( TypeNameHolder(LTYNB) );
-        if (it == prm.AT().end()) {
-          mprintf("Warning: Nonbond parameters defined for previously undefined type '%s'."
-                          " Skipping.\n", LTYNB);
-        } else {
-          it->second.SetLJ().SetRadius( R );
-          it->second.SetLJ().SetDepth( EDEP );
-        }*/
+      //char LTYNB[MAXSYMLEN];
+      //double R, EDEP;
+      //double R14, E14;
+      // This section is a little tricky. Apparently CHARMM-style Amber FF
+      // files can have 14 LJ params here. Try to detect this.
+      ArgList nbargs( ptr, " " );
+      if (nbargs.Nargs() < 3) {
+        mprinterr("Error: Expected at least TYPE, R, DEPTH, got %i elements.\n", nbargs.Nargs());
+        return 1;
       }
-    } else if (ljedit) {
+      bool has_14 = false;
+      if (nbargs.Nargs() >= 5) {
+        if (validDouble( nbargs[3] ) && validDouble( nbargs[4] )) {
+          has_14 = true;
+        }
+      }
+      if (has_14) mprintf("DEBUG: NB HAS CHARMM.\n");
+      double R = convertToDouble( nbargs[1] );
+      double EDEP = convertToDouble( nbargs[2] );
+      NBsets.back().LJ_.AddParm( TypeNameHolder(nbargs[0]), LJparmType(R, EDEP), false );
+      //int nscan = sscanf(ptr, "%s %lf %lf %lf %lf", LTYNB, &R, &EDEP, &R14, &E14);
+
+      //if (nscan >= 5) {
+      //  // symbol, rmin, epsilon
+      //  NBsets.back().LJ_.AddParm( TypeNameHolder(LTYNB), LJparmType(R, EDEP), false );
+      //  /*ParmHolder<AtomType>::iterator it = prm.AT().GetParam( TypeNameHolder(LTYNB) );
+      //  if (it == prm.AT().end()) {
+      //    mprintf("Warning: Nonbond parameters defined for previously undefined type '%s'."
+      //                    " Skipping.\n", LTYNB);
+      //  } else {
+      //    it->second.SetLJ().SetRadius( R );
+      //    it->second.SetLJ().SetDepth( EDEP );
+      //  }*/
+      //}
+    } else if (section == LJEDIT) {
       mprintf("DEBUG: LJedit: %s\n", ptr);
+      // Lennard-Jones sigma and epsilon of the first atom type when it
+      // interacts with anything under the normal rules, then the sigma
+      // and epsilon of the second atom type when it interacts with the first.
+      char AT1[MAXSYMLEN], AT2[MAXSYMLEN];
+      double sig1, eps1, sig2, eps2;
+      int nscan = sscanf(ptr, "%s %s %lf %lf %lf %lf", AT1, AT2, &sig1, &eps1, &sig2, &eps2);
+      if (nscan != 6) {
+        mprinterr("Error: Expected AT1, AT2, SIG1, EPS1, SIG2, EPS2, got %i elements.\n", nscan);
+        return 1;
+      }
+      LJparmType LJ1(sig1, eps1);
+      LJparmType LJ2(sig2, eps2);
+      ParmHolder<AtomType>::iterator it = prm.AT().GetParam( TypeNameHolder(AT1) );
+      if (it == prm.AT().end()) {
+        mprinterr("Error: Off-diagonal nonbond parameters defined for previously undefined type '%s'.\n",
+                  AT1);
+        return 1;
+      }
+      it->second.SetLJ().SetRadius( LJ1.Radius() );
+      it->second.SetLJ().SetDepth( LJ1.Depth() );
     }
       
     ptr = infile.Line();
@@ -386,12 +422,12 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
     {
       ParmHolder<AtomType>::iterator at = prm.AT().GetParam( it->first );
       if (at == prm.AT().end()) {
-        mprintf("Warning: Nonbond parameters defined for previously undefined type '%s'."
-                        " Skipping.\n", *(it->first[0]));
-      } else {
-        at->second.SetLJ().SetRadius( it->second.Radius() );
-        at->second.SetLJ().SetDepth( it->second.Depth() );
-      }
+        mprinterr("Error: Nonbond parameters defined for previously undefined type '%s'.\n",
+                  *(it->first[0]));
+        return 1;
+      } 
+      at->second.SetLJ().SetRadius( it->second.Radius() );
+      at->second.SetLJ().SetDepth( it->second.Depth() );
     }
     // Do equivalent atoms.
     for (XNarray::const_iterator equivAts = EquivalentNames.begin();
