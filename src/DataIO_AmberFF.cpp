@@ -63,6 +63,21 @@ class NonbondSet {
     ParmHolder<LJparmType> LJ_; ///< Hold LJ 6-12 parameters
 };
 
+/// Hold an off-diagonal NB modification
+class OffdiagNB {
+  public:
+    OffdiagNB(NameType const& AT1, NameType const& AT2, double sig1, double eps1, double sig2, double eps2) :
+      types_(2), LJ1_(sig1, eps1), LJ2_(sig2, eps2)
+    {
+      types_.AddName(AT1);
+      types_.AddName(AT2);
+    }
+
+    TypeNameHolder types_;
+    LJparmType LJ1_;
+    LJparmType LJ2_;
+};
+
 // DataIO_AmberFF::ReadData()
 int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
@@ -89,6 +104,9 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
   typedef std::vector<NameType> Narray;
   typedef std::vector<Narray> XNarray;
   XNarray EquivalentNames;
+  // For holding off-diagonal mods
+  typedef std::vector<OffdiagNB> Oarray;
+  Oarray Offdiag;
 
   // Read title
   BufferedLine infile;
@@ -371,27 +389,12 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
         mprinterr("Error: Expected AT1, AT2, SIG1, EPS1, SIG2, EPS2, got %i elements.\n", nscan);
         return 1;
       }
-      LJparmType LJ1(sig1, eps1);
-      LJparmType LJ2(sig2, eps2);
-      // Set type 1
-      ParmHolder<AtomType>::iterator it = prm.AT().GetParam( TypeNameHolder(AT1) );
-      if (it == prm.AT().end()) {
-        mprinterr("Error: Off-diagonal nonbond parameters defined for previously undefined type '%s'.\n",
-                  AT1);
-        return 1;
-      }
-      it->second.SetLJ().SetRadius( LJ1.Radius() );
-      it->second.SetLJ().SetDepth( LJ1.Depth() );
-      // Set off-diagonal for type1-type2
-      TypeNameHolder types(2);
-      types.AddName( AT1 );
-      types.AddName( AT2 );
-      // FIXME different combine rules?
-      prm.NB().AddParm(types, LJ1.Combine_LB(LJ2), false);
+      Offdiag.push_back( OffdiagNB(AT1, AT2, sig1, eps1, sig2, eps2) );
     }
       
     ptr = infile.Line();
   } // END loop over file.
+
   // Deal with nonbond and equivalence
   if (!NBsets.empty()) {
     int nbsetidx = 0;
@@ -460,6 +463,26 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       }
     } // END loop over EquivalentNames
   } // END nonbond parameters
+
+  // Do off diagonal NB mods
+  if (!Offdiag.empty()) {
+    for (Oarray::const_iterator od = Offdiag.begin(); od != Offdiag.end(); ++od)
+    {
+      mprintf("DEBUG: Off diag %s %s\n", *(od->types_[0]), *(od->types_[1]));
+      // Set type 1
+      ParmHolder<AtomType>::iterator it = prm.AT().GetParam( od->types_[0] );
+      if (it == prm.AT().end()) {
+        mprinterr("Error: Off-diagonal nonbond parameters defined for previously undefined type '%s'.\n",
+                  *(od->types_[0]));
+        return 1;
+      }
+      it->second.SetLJ().SetRadius( od->LJ1_.Radius() );
+      it->second.SetLJ().SetDepth( od->LJ1_.Depth() );
+      // Set off-diagonal for type1-type2
+      // FIXME different combine rules?
+      prm.NB().AddParm(od->types_, od->LJ1_.Combine_LB(od->LJ2_), false);
+    }
+  } // END off-diagonal NB mods
 
   prm.Debug(); // TODO debug level
   infile.CloseFile();
