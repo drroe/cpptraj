@@ -87,7 +87,7 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
   mprintf("\tTitle: %s\n", title.c_str());
   // Read file
   enum SectionType { ATYPE = 0, HYDROPHILIC, BOND, ANGLE, DIHEDRAL, IMPROPER, 
-                     LJ1012, UNKNOWN };
+                     LJ1012, NB_EQUIV, NONBOND, UNKNOWN };
   SectionType section = ATYPE;
   ptr = infile.Line();
   while (ptr != 0) {
@@ -115,6 +115,14 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
         ptr = infile.Line();
         while (*ptr == ' ' && *ptr != '\0') ++ptr;
         if (*ptr != '\0') continue;
+      } else if (section == NONBOND) {
+        // Special case: first read the line:
+        // LABEL , KINDNB
+        // FORMAT(A4,6X,A2)
+        ptr = infile.Line();
+        char nb_label[MAXSYMLEN], nb_kind[MAXSYMLEN];
+        sscanf(ptr, "%s %s", nb_label, nb_kind);
+        mprintf("DEBUG: NB label= %s  NB kind = %s\n", nb_label, nb_kind);
       }
     } else if (section == ATYPE) {
       // Input for atom symbols and masses
@@ -264,7 +272,11 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       types.AddName( KT1 );
       types.AddName( KT2 );
       prm.HB().AddParm(types, HB_ParmType(A, B, HCUT), false);
-    } 
+    } else if (section == NB_EQUIV) {
+      mprintf("DEBUG: Nonbond equiv: %s\n", ptr);
+    } else if (section == NONBOND) {
+      mprintf("DEBUG: Nonbond: %s\n", ptr);
+    }
       
     ptr = infile.Line();
   }
