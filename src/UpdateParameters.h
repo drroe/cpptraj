@@ -14,6 +14,7 @@ static inline void PrintParmType(DihedralParmArray const& dpa) {
 }
 static inline void PrintParmType(AtomType const& at) { mprintf(" %12.4f %12.4f %12.4f\n", at.LJ().Radius(), at.LJ().Depth(), at.Mass()); }
 static inline void PrintParmType(NonbondType const& nb) { mprintf(" %12.4E %12.4E\n", nb.A(), nb.B()); }
+static inline void PrintParmType(HB_ParmType const& hb) { mprintf(" %12.4E %12.4E %12.4E\n", hb.Asol(), hb.Bsol(), hb.HBcut()); }
 
 /** Add update parameters.
   * \param0 Parameters to add to/update.

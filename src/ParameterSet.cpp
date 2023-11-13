@@ -107,6 +107,8 @@ int ParameterSet::UpdateParamSet(ParameterSet const& set1, UpdateCount& uc, int 
   uc.nLJparamsUpdated_ = UpdateParameters< ParmHolder<NonbondType> >(set0.NB(), set1.NB(), "LJ A-B");
   // LJ 1-4 Pairs
   uc.nLJ14paramsUpdated_ = UpdateParameters< ParmHolder<NonbondType> >(set0.NB14(), set1.NB14(), "LJ A-B 1-4");
+  // HB LJ 10-12 Pairs
+  uc.nHBparamsUpdated_ = UpdateParameters< ParmHolder<HB_ParmType> >(set0.HB(), set1.HB(), "LJ HB 10-12");
 
   if (debugIn > 0) set0.Debug("newp.dat");
   return 0;
