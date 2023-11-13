@@ -100,9 +100,10 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
         mprintf("SECTION %i change to %i\n", (int)section, (int)section + 1);
         section = (SectionType)((int)section + 1);
       }
-      // Special case; hydrophilic atom types. One line.
-      // FORMAT(20(A2,2X))
+      // Special cases
       if (section == HYDROPHILIC) {
+        // Special case: hydrophilic atom types. One line.
+        // FORMAT(20(A2,2X))
         ptr = infile.Line();
         mprintf("DEBUG: Hydrophilic: %s\n", ptr);
         // Take advantage of the fact that we expect whitespace-delimiters
@@ -116,13 +117,17 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
         while (*ptr == ' ' && *ptr != '\0') ++ptr;
         if (*ptr != '\0') continue;
       } else if (section == NONBOND) {
-        // Special case: first read the line:
+        // Special case: first read the line.
         // LABEL , KINDNB
         // FORMAT(A4,6X,A2)
         ptr = infile.Line();
         char nb_label[MAXSYMLEN], nb_kind[MAXSYMLEN];
         sscanf(ptr, "%s %s", nb_label, nb_kind);
         mprintf("DEBUG: NB label= %s  NB kind = %s\n", nb_label, nb_kind);
+        if (nb_kind[0] != 'R' || nb_kind[1] != 'E') {
+          mprinterr("Error: Nonbond parameters are not of type 'RE' (Rmin, Epsilon).\n");
+          return 1;
+        }
       }
     } else if (section == ATYPE) {
       // Input for atom symbols and masses
