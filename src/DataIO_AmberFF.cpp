@@ -321,14 +321,14 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       if (nscan == 3 || nscan == 5) {
         // symbol, rmin, epsilon
         NBsets.back().LJ_.AddParm( TypeNameHolder(LTYNB), LJparmType(R, EDEP), false );
-        ParmHolder<AtomType>::iterator it = prm.AT().GetParam( TypeNameHolder(LTYNB) );
+        /*ParmHolder<AtomType>::iterator it = prm.AT().GetParam( TypeNameHolder(LTYNB) );
         if (it == prm.AT().end()) {
           mprintf("Warning: Nonbond parameters defined for previously undefined type '%s'."
                           " Skipping.\n", LTYNB);
         } else {
           it->second.SetLJ().SetRadius( R );
           it->second.SetLJ().SetDepth( EDEP );
-        }
+        }*/
       }
     } else if (ljedit) {
       mprintf("DEBUG: LJedit: %s\n", ptr);
@@ -367,7 +367,19 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       }
     }
     mprintf("\tUsing nonbonded parm set: %s\n", NBsets[nbsetidx].name_.c_str());
-  }
+    for (ParmHolder<LJparmType>::const_iterator it = NBsets[nbsetidx].LJ_.begin();
+                                                it != NBsets[nbsetidx].LJ_.end(); ++it)
+    {
+      ParmHolder<AtomType>::iterator at = prm.AT().GetParam( it->first );
+      if (at == prm.AT().end()) {
+        mprintf("Warning: Nonbond parameters defined for previously undefined type '%s'."
+                        " Skipping.\n", *(it->first[0]));
+      } else {
+        at->second.SetLJ().SetRadius( it->second.Radius() );
+        at->second.SetLJ().SetDepth( it->second.Depth() );
+      }
+    }
+  } // END nonbond parameters
 
   prm.Debug(); // TODO debug level
   infile.CloseFile();
