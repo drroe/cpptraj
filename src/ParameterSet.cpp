@@ -18,6 +18,10 @@ size_t ParameterSet::DataSize() const {
 void ParameterSet::Debug(const char* fnameIn) const {
   CpptrajFile Out;
   Out.OpenWrite( fnameIn );
+  if (!name_.empty())
+    Out.Printf("Parameter set: %s\n", name_.c_str());
+  if (!NBname_.empty())
+    Out.Printf("Nonbond parameters name: %s\n", NBname_.c_str());
   Out.Printf("Atom Types:\n");
   Out.Printf("\t%6s %8s %12s %12s %12s %12s\n", "Name", "TypeIdx", "Radius", "Depth", "Mass", "Polar.");
   for (ParmHolder<AtomType>::const_iterator at = atomTypes_.begin(); at != atomTypes_.end(); ++at) {
@@ -126,4 +130,14 @@ int ParameterSet::AddHydrophilicAtomType(NameType const& atype) {
   // TODO check against existing types?
   hydrophilicAtomTypes_.push_back( atype );
   return 0;
+}
+
+/** Set parameter set name. */
+void ParameterSet::SetParamSetName(std::string const& nameIn) {
+  name_ = nameIn;
+}
+
+/** Set nonbond parameter set name. */
+void ParameterSet::SetNbParamName(std::string const& nameIn) {
+  NBname_ = nameIn;
 }

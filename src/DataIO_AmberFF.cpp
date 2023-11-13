@@ -102,6 +102,7 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
   }
   std::string title(ptr);
   mprintf("\tTitle: %s\n", title.c_str());
+  prm.SetParamSetName( title );
   // Read file
   bool ljedit = false;
   enum SectionType { ATYPE = 0, HYDROPHILIC, BOND, ANGLE, DIHEDRAL, IMPROPER, 
@@ -379,6 +380,7 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       }
     }
     mprintf("\tUsing nonbonded parm set: %s\n", NBsets[nbsetidx].name_.c_str());
+    prm.SetNbParamName( NBsets[nbsetidx].name_ );
     for (ParmHolder<LJparmType>::const_iterator it = NBsets[nbsetidx].LJ_.begin();
                                                 it != NBsets[nbsetidx].LJ_.end(); ++it)
     {

@@ -56,10 +56,17 @@ class ParameterSet {
     int UpdateParamSet(ParameterSet const&, UpdateCount&, int);
     /// Add hydrophilic atom type
     int AddHydrophilicAtomType(NameType const&);
+    /// Set parameter set name
+    void SetParamSetName(std::string const&);
+    /// Set nonbond parameter set name
+    void SetNbParamName(std::string const&);
     /// \return Size in memory in bytes
     size_t DataSize() const;
   private:
     typedef std::vector<NameType> NsetType;
+
+    std::string name_;                     ///< Parameter set name
+    std::string NBname_;                   ///< Nonbond set name
 
     ParmHolder<AtomType> atomTypes_;       ///< Atom types
     ParmHolder<NonbondType> nbParm_;       ///< Lennard-Jones 6-12 A-B parameters
