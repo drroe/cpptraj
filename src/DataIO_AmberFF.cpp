@@ -81,8 +81,13 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
   }
   DataSet_Parameters& prm = static_cast<DataSet_Parameters&>( *ds ); 
 
+  // For files with > 1 set of NB params
   typedef std::vector<NonbondSet> NbSetArrayType;
   NbSetArrayType NBsets;
+  // For holding equivalent NB type names
+  typedef std::vector<NameType> Narray;
+  typedef std::vector<Narray> XNarray;
+  XNarray EquivalentNames;
 
   // Read title
   BufferedLine infile;
@@ -308,7 +313,14 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       types.AddName( KT2 );
       prm.HB().AddParm(types, HB_ParmType(A, B, HCUT), false);
     } else if (section == NB_EQUIV) {
+      // EQUIVALENCING ATOM SYMBOLS FOR THE NON-BONDED 6-12 POTENTIAL PARAMETERS
+      // IORG , IEQV(I) , I = 1 , 19
+      // FORMAT(20(A2,2X))
       mprintf("DEBUG: Nonbond equiv: %s\n", ptr);
+      EquivalentNames.push_back( Narray() );
+      ArgList equiv_line( ptr, " " );
+      for (int iarg = 0; iarg != equiv_line.Nargs(); iarg++)
+        EquivalentNames.back().push_back( equiv_line[iarg] );
     } else if (section == NONBOND) {
       // ***** ONLY IF KINDNB .EQ. 'RE' *****
       // LTYNB , R , EDEP
@@ -379,6 +391,29 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
         at->second.SetLJ().SetDepth( it->second.Depth() );
       }
     }
+    // Do equivalent atoms.
+    for (XNarray::const_iterator equivAts = EquivalentNames.begin();
+                                 equivAts != EquivalentNames.end(); ++equivAts)
+    {
+      // First name is the type to copy TODO check size?
+      Narray::const_iterator typeName = equivAts->begin();
+      ParmHolder<AtomType>::const_iterator at0 = prm.AT().GetParam( *typeName );
+      if (at0 == prm.AT().end()) {
+        mprinterr("Error: Equivalent atom type '%s' not found.\n", *(*typeName) );
+        return 1;
+      }
+      ++typeName;
+      for (; typeName != equivAts->end(); ++typeName) {
+        ParmHolder<AtomType>::iterator at1 = prm.AT().GetParam( *typeName );
+        if (at1 == prm.AT().end()) {
+          mprinterr("Error: Equivalent atom type '%s' (base '%s') not found.\n", *(*typeName), *(at0->first[0]));
+          return 1;
+        }
+        mprintf("DEBUG: Equiv '%s' => '%s'\n", *(at0->first[0]), *(*typeName));
+        at1->second.SetLJ().SetRadius( at0->second.LJ().Radius() );
+        at1->second.SetLJ().SetDepth( at0->second.LJ().Depth() );
+      }
+    } // END loop over EquivalentNames
   } // END nonbond parameters
 
   prm.Debug(); // TODO debug level
