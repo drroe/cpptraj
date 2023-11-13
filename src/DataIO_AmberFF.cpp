@@ -280,7 +280,25 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
     } else if (section == NB_EQUIV) {
       mprintf("DEBUG: Nonbond equiv: %s\n", ptr);
     } else if (section == NONBOND) {
+      // ***** ONLY IF KINDNB .EQ. 'RE' *****
+      // LTYNB , R , EDEP
       mprintf("DEBUG: Nonbond: %s\n", ptr);
+      char LTYNB[MAXSYMLEN];
+      double R, EDEP;
+      double R14, E14;
+      int nscan = sscanf(ptr, "%s %lf %lf %lf %lf", LTYNB, &R, &EDEP, &R14, &E14);
+      
+      if (nscan == 3 || nscan == 5) {
+        // symbol, rmin, epsilon
+        ParmHolder<AtomType>::iterator it = prm.AT().GetParam( TypeNameHolder(LTYNB) );
+        if (it == prm.AT().end()) {
+          mprintf("Warning: Nonbond parameters defined for previously undefined type '%s'."
+                          " Skipping.\n", LTYNB);
+        } else {
+          it->second.SetLJ().SetRadius( R );
+          it->second.SetLJ().SetDepth( EDEP );
+        }
+      }
     }
       
     ptr = infile.Line();
