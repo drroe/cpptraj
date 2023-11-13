@@ -320,6 +320,7 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       
       if (nscan == 3 || nscan == 5) {
         // symbol, rmin, epsilon
+        NBsets.back().LJ_.AddParm( TypeNameHolder(LTYNB), LJparmType(R, EDEP), false );
         ParmHolder<AtomType>::iterator it = prm.AT().GetParam( TypeNameHolder(LTYNB) );
         if (it == prm.AT().end()) {
           mprintf("Warning: Nonbond parameters defined for previously undefined type '%s'."
