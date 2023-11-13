@@ -373,6 +373,7 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       }
       LJparmType LJ1(sig1, eps1);
       LJparmType LJ2(sig2, eps2);
+      // Set type 1
       ParmHolder<AtomType>::iterator it = prm.AT().GetParam( TypeNameHolder(AT1) );
       if (it == prm.AT().end()) {
         mprinterr("Error: Off-diagonal nonbond parameters defined for previously undefined type '%s'.\n",
@@ -381,6 +382,12 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       }
       it->second.SetLJ().SetRadius( LJ1.Radius() );
       it->second.SetLJ().SetDepth( LJ1.Depth() );
+      // Set off-diagonal for type1-type2
+      TypeNameHolder types(2);
+      types.AddName( AT1 );
+      types.AddName( AT2 );
+      // FIXME different combine rules?
+      prm.NB().AddParm(types, LJ1.Combine_LB(LJ2), false);
     }
       
     ptr = infile.Line();
