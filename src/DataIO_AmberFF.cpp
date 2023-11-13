@@ -98,6 +98,7 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
   std::string title(ptr);
   mprintf("\tTitle: %s\n", title.c_str());
   // Read file
+  bool ljedit = false;
   enum SectionType { ATYPE = 0, HYDROPHILIC, BOND, ANGLE, DIHEDRAL, IMPROPER, 
                      LJ1012, NB_EQUIV, NONBOND, UNKNOWN };
   SectionType section = ATYPE;
@@ -109,8 +110,23 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
     if (*ptr == '\0') {
       // Section Change
       if (section != UNKNOWN) {
-        mprintf("SECTION %i change to %i\n", (int)section, (int)section + 1);
-        section = (SectionType)((int)section + 1);
+        if (section == NONBOND) {
+          // Do a lookahead to see if there are multiple NB sets.
+          // It will either be another set, END, or LJEDIT
+          ptr = infile.Line();
+          while (*ptr == ' ' && *ptr != '\0') ++ptr;
+          std::string nbline(ptr);
+          if (nbline == "END") {
+            mprintf("END\n");
+            section = UNKNOWN;
+          } else if (nbline == "LJEDIT") {
+            ljedit = true;
+            section = UNKNOWN;
+          } // Otherwise assume another nonbond section
+        } else {
+          mprintf("SECTION %i change to %i\n", (int)section, (int)section + 1);
+          section = (SectionType)((int)section + 1);
+        }
       }
       // Special cases
       if (section == HYDROPHILIC) {
@@ -132,7 +148,8 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
         // Special case: first read the line.
         // LABEL , KINDNB
         // FORMAT(A4,6X,A2)
-        ptr = infile.Line();
+        if (NBsets.empty())
+          ptr = infile.Line();
         char nb_label[MAXSYMLEN], nb_kind[MAXSYMLEN];
         sscanf(ptr, "%s %s", nb_label, nb_kind);
         mprintf("DEBUG: NB label= %s  NB kind = %s\n", nb_label, nb_kind);
@@ -312,6 +329,8 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
           it->second.SetLJ().SetDepth( EDEP );
         }
       }
+    } else if (ljedit) {
+      mprintf("DEBUG: LJedit: %s\n", ptr);
     }
       
     ptr = infile.Line();
