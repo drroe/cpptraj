@@ -15,5 +15,7 @@ class DataIO_AmberFF : public DataIO {
     bool ID_DataFormat(CpptrajFile&);
   private:
     static int read_symbols(const char*, std::vector<std::string>&, int);
+
+    std::string nbsetname_; ///< Nonbonded parameter set name to use
 };
 #endif

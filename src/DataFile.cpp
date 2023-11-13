@@ -90,7 +90,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Numpy array",        0,                             0,            DataIO_Numpy::Alloc},
   { "Amber Prep File",    DataIO_AmberPrep::ReadHelp,    0,            DataIO_AmberPrep::Alloc},
   { "Amber OFF File",     0,                             0,            DataIO_AmberLib::Alloc},
-  { "Amber Force Field",  0,                             0,            DataIO_AmberFF::Alloc},
+  { "Amber Force Field",  DataIO_AmberFF::ReadHelp,      0,            DataIO_AmberFF::Alloc},
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 

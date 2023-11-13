@@ -23,13 +23,13 @@ bool DataIO_AmberFF::ID_DataFormat(CpptrajFile& infile)
 // DataIO_AmberFF::ReadHelp()
 void DataIO_AmberFF::ReadHelp()
 {
-
+  mprintf("\tnbset <nonbond set name> : Nonbonded set name to use when multiple nonbond parameter sets.\n");
 }
 
 // DataIO_AmberFF::processReadArgs()
 int DataIO_AmberFF::processReadArgs(ArgList& argIn)
 {
-
+  nbsetname_ = argIn.GetStringKey("nbset");
   return 0;
 }
 
@@ -335,6 +335,38 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
     }
       
     ptr = infile.Line();
+  } // END loop over file.
+  // Deal with nonbond and equivalence
+  if (!NBsets.empty()) {
+    int nbsetidx = 0;
+    if (NBsets.size() > 1 || !nbsetname_.empty()) {
+      // Choose from multiple nbsets
+      if (nbsetname_.empty()) {
+        mprinterr("Error: Parm set in file '%s' contains %zu nonbonded parameter sets\n"
+                  "Error:  but no set has been specified.\n", fname.full(), NBsets.size());
+        mprinterr("Error: Need to specify one of");
+        for (NbSetArrayType::const_iterator it = NBsets.begin(); it != NBsets.end(); ++it)
+          mprinterr(" %s", it->name_.c_str());
+        mprinterr("\n");
+      } else {
+        nbsetidx = -1;
+        for (NbSetArrayType::const_iterator it = NBsets.begin(); it != NBsets.end(); ++it) {
+          if (it->name_ == nbsetname_) {
+            nbsetidx = it - NBsets.begin();
+            break;
+          }
+        }
+        if (nbsetidx < 0) {
+          mprinterr("Error: Nonbonded set '%s' not found.\n", nbsetname_.c_str());
+          mprinterr("Error: Need to specify one of");
+          for (NbSetArrayType::const_iterator it = NBsets.begin(); it != NBsets.end(); ++it)
+            mprinterr(" %s", it->name_.c_str());
+          mprinterr("\n");
+          return 1;
+        }
+      }
+    }
+    mprintf("\tUsing nonbonded parm set: %s\n", NBsets[nbsetidx].name_.c_str());
   }
 
   prm.Debug(); // TODO debug level
