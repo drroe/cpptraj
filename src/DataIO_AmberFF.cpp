@@ -53,6 +53,15 @@ int DataIO_AmberFF::read_symbols(const char* ptrIn, std::vector<std::string>& sy
   return -1;
 }
 
+/// Hold a set of nonbonded parameters
+class NonbondSet {
+  public:
+    NonbondSet(std::string const& n) : name_(n) {}
+
+    std::string name_;          ///< Name of set parameters
+    ParmHolder<LJparmType> LJ_; ///< Hold LJ 6-12 parameters
+};
+
 // DataIO_AmberFF::ReadData()
 int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
@@ -71,6 +80,9 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
     if (ds == 0) return 1;
   }
   DataSet_Parameters& prm = static_cast<DataSet_Parameters&>( *ds ); 
+
+  typedef std::vector<NonbondSet> NbSetArrayType;
+  NbSetArrayType NBsets;
 
   // Read title
   BufferedLine infile;
@@ -128,6 +140,7 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
           mprinterr("Error: Nonbond parameters are not of type 'RE' (Rmin, Epsilon).\n");
           return 1;
         }
+        NBsets.push_back( NonbondSet( std::string(nb_label) ) );
       }
     } else if (section == ATYPE) {
       // Input for atom symbols and masses
