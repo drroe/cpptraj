@@ -8,7 +8,8 @@
 /// CONSTRUCTOR
 DataIO_AmberFF::DataIO_AmberFF()
 {
-
+  SetValid( DataSet::PARAMETERS );
+  // TODO Topology too?
 }
 
 // DataIO_AmberFF::ID_DataFormat()
@@ -505,6 +506,33 @@ int DataIO_AmberFF::processWriteArgs(ArgList& argIn)
 // DataIO_AmberFF::WriteData()
 int DataIO_AmberFF::WriteData(FileName const& fname, DataSetList const& dsl)
 {
+  std::vector<DataSet_Parameters*> toWrite;
+  for (DataSetList::const_iterator it = dsl.begin(); it != dsl.end(); ++it)
+  {
+    if ( (*it)->Type() == DataSet::PARAMETERS )
+      toWrite.push_back( (DataSet_Parameters*)(*it) );
+  }
+  if (toWrite.empty()) {
+    mprinterr("Error: No parameter sets to write.\n");
+    return 1;
+  } else if (toWrite.size() == 1) {
+    return writeParameterSet( *(toWrite.front()) );
+  } else {
+    // Create a combined parameter set
+    ParameterSet prm;
+    for (std::vector<DataSet_Parameters*>::const_iterator it = toWrite.begin();
+                                                          it != toWrite.end(); ++it)
+    {
+      ParameterSet::UpdateCount UC;
+      prm.UpdateParamSet( *(*it), UC, debug_ );
+    }
+    return writeParameterSet( prm );
+  }
 
   return 1;
+}
+
+int DataIO_AmberFF::writeParameterSet(ParameterSet const& prm) const {
+
+  return 0;
 }
