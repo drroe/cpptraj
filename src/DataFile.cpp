@@ -142,6 +142,7 @@ const FileTypes::KeyToken DataFile::DF_WriteKeyArray[] = {
   { CHARMMRTFPRM, "charmmrtfprm", ".prm" },
   { PEAKS,        "peaks",  ".peaks" },
   { NETCDFDATA,   "netcdf", ".nc" },
+  { AMBERFF,      "amberff",".parm"},
   { UNKNOWN_DATA, 0,        0        }
 };
 

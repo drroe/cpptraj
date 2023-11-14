@@ -30,6 +30,8 @@ class ParameterSet {
     ParmHolder<DihedralParmType> const& IP() const { return impParm_;   }
     DihedralParmHolder const& DP()           const { return dihParm_;   }
     ParmHolder<HB_ParmType> const& HB()      const { return HBparm_;    }
+    std::string const& ParamSetName()        const { return name_;      }
+    std::string const& NbParamName()         const { return NBname_;    }
 
     void Debug(const char*) const;
     void Debug() const { return Debug(""); }

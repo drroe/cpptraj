@@ -516,7 +516,7 @@ int DataIO_AmberFF::WriteData(FileName const& fname, DataSetList const& dsl)
     mprinterr("Error: No parameter sets to write.\n");
     return 1;
   } else if (toWrite.size() == 1) {
-    return writeParameterSet( *(toWrite.front()) );
+    return writeParameterSet( fname, *(toWrite.front()) );
   } else {
     // Create a combined parameter set
     ParameterSet prm;
@@ -526,13 +526,22 @@ int DataIO_AmberFF::WriteData(FileName const& fname, DataSetList const& dsl)
       ParameterSet::UpdateCount UC;
       prm.UpdateParamSet( *(*it), UC, debug_ );
     }
-    return writeParameterSet( prm );
+    return writeParameterSet( fname, prm );
   }
 
   return 1;
 }
 
-int DataIO_AmberFF::writeParameterSet(ParameterSet const& prm) const {
+int DataIO_AmberFF::writeParameterSet(FileName const& fname, ParameterSet const& prm) const {
+  CpptrajFile outfile;
+  if (outfile.OpenWrite(fname)) return 1;
+
+  std::string title;
+  if (prm.ParamSetName().empty())
+    title.assign("Parameters written from CPPTRAJ");
+  else
+    title = prm.ParamSetName();
+  outfile.Printf("%s\n", title.c_str());
 
   return 0;
 }
