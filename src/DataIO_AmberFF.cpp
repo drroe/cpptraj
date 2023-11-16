@@ -188,8 +188,8 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
       // Format (A2,2X,F10.2x,f10.2)
       mprintf("DEBUG: Atype: %s\n", ptr);
       char kndsym[MAXSYMLEN];
-      double amass;
-      double atpol;
+      double amass = 0;
+      double atpol = 0;
       int nscan = sscanf(ptr, "%s %lf %lf", kndsym, &amass, &atpol);
       ParameterHolders::RetType ret;
       if (nscan == 3) {
