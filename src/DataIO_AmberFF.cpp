@@ -535,13 +535,22 @@ int DataIO_AmberFF::WriteData(FileName const& fname, DataSetList const& dsl)
 int DataIO_AmberFF::writeParameterSet(FileName const& fname, ParameterSet const& prm) const {
   CpptrajFile outfile;
   if (outfile.OpenWrite(fname)) return 1;
-
+  // 1 - Title
   std::string title;
   if (prm.ParamSetName().empty())
     title.assign("Parameters written from CPPTRAJ");
   else
     title = prm.ParamSetName();
   outfile.Printf("%s\n", title.c_str());
+  // 2 - Atom symbols and masses
+  for (ParmHolder<AtomType>::const_iterator at = prm.AT().begin(); at != prm.AT().end(); ++at)
+  {
+    std::string asym = at->first[0].Truncated();
+    if (asym.size() > 2)
+      mprintf("Warning: Atom symbol %s is larger than 2 characters, which breaks Amber FF format.\n");
+
+    outfile.Printf("%-2s  %10.2f %10.2f\n", asym.c_str(), at->second.Mass(), at->second.Polarizability());
+  }
 
   return 0;
 }
