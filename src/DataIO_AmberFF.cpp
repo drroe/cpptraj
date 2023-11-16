@@ -548,8 +548,16 @@ int DataIO_AmberFF::writeParameterSet(FileName const& fname, ParameterSet const&
     std::string asym = at->first[0].Truncated();
     if (asym.size() > 2)
       mprintf("Warning: Atom symbol %s is larger than 2 characters, which breaks Amber FF format.\n");
+    outfile.Printf("%-2s", asym.c_str());
+    if (at->second.Mass() < 10.0)
+      outfile.Printf(" %-10.3f", at->second.Mass());
+    else if (at->second.Mass() < 100.0)
+      outfile.Printf(" %-10.2f", at->second.Mass());
+    else
+      outfile.Printf(" %-10.1f", at->second.Mass());
+    outfile.Printf(" %10.3f\n", at->second.Polarizability());
 
-    outfile.Printf("%-2s  %10.2f %10.2f\n", asym.c_str(), at->second.Mass(), at->second.Polarizability());
+    //outfile.Printf("%-2s  %-10.2f %-10.2f\n", asym.c_str(), at->second.Mass(), at->second.Polarizability());
   }
 
   return 0;
