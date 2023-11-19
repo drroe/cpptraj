@@ -1032,12 +1032,6 @@ trajin
 , 
 \series bold
 \emph on
-'gist'
-\series default
-\emph default
-, 
-\series bold
-\emph on
 'lipidorder'
 \series default
 \emph default
@@ -1080,6 +1074,17 @@ trajin
 \emph default
  Action will only work with across-trajectory parallelism if no imaging
  is to be performed.
+\end_layout
+
+\begin_layout Standard
+In addition to across-trajectory parallelism, the 
+\series bold
+\emph on
+'gist'
+\series default
+\emph default
+ command will also MPI-parallelize the entropy calculation that occurs after
+ trajectory processing.
 \end_layout
 
 \begin_layout Standard
@@ -2993,6 +2998,11 @@ phipsi.dat
 \end_layout
 
 \begin_layout Standard
+Note that when reading the Amber Prep and Amber OFF Library formats, a COORDS
+ data set will be created for each unit present in these files.
+\end_layout
+
+\begin_layout Standard
 \begin_inset Float table
 wide false
 sideways false
@@ -3001,7 +3011,7 @@ status open
 \begin_layout Plain Layout
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="20" columns="5">
+<lyxtabular version="3" rows="22" columns="5">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="20text%">
 <column alignment="center" valignment="top" width="20text%">
@@ -3912,7 +3922,7 @@ Used for cluster analysis.
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3921,7 +3931,7 @@ NetCDF Data
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3930,7 +3940,7 @@ NetCDF Data
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3939,7 +3949,7 @@ netcdf
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3948,11 +3958,105 @@ All data
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
 Only state info saved for pH data.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Amber Prep File
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.prepin
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+prepin
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+COORDS
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Read Only
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Amber OFF Library File
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.off, .lib
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+off,lib
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+COORDS
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Read Only
 \end_layout
 
 \end_inset
@@ -6253,7 +6357,7 @@ The following COORDS data set commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="17" columns="2">
+<lyxtabular version="3" rows="19" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="75text%">
@@ -6585,7 +6689,27 @@ Rotate specified dihedral to specified value or by given increment.
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+sequence
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Create a new molecule from a sequence of COORDS sets.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -6594,11 +6718,32 @@ splitcoords
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
 Split molecules in a COORDS set into a trajectory.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+zmatrix
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Apply Z-matrix to a COORDS set or calculate Z-matrix for a molecule/frame
+ in a COORDS set.
 \end_layout
 
 \end_inset
@@ -7487,11 +7632,17 @@ graft
 \end_layout
 
 \begin_layout LyX-Code
-graft src <source COORDS> [srcframe <#>] [srcfitmask <mask>] [srcmask <mask>]
+graft src <source COORDS> [srcframe <#>] [srcmask <srcmask> [srccharge <srccharg
+e>]]
 \end_layout
 
 \begin_layout LyX-Code
-  	tgt <target COORDS> [tgtframe <#>] [tgtfitmask <mask>] [tgtmask <mask>]
+  	tgt <target COORDS> [tgtframe <#>] [tgtmask <tgtmask> [tgtcharge <tgtcharge>]
+]
+\end_layout
+
+\begin_layout LyX-Code
+      {ic | [srcfitmask <srcmask>] [tgtfitmask <tgtmask>]}
 \end_layout
 
 \begin_layout LyX-Code
@@ -7520,14 +7671,6 @@ COORDS> Source coordinates.
 \end_layout
 
 \begin_layout Description
-[srcfitmask
-\begin_inset space ~
-\end_inset
-
-<mask>] Atoms from source to use if RMS-fitting source onto target.
-\end_layout
-
-\begin_layout Description
 [srcmask
 \begin_inset space ~
 \end_inset
@@ -7535,6 +7678,17 @@ COORDS> Source coordinates.
 <mask>] Atoms to keep from source (default all).
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+[srccharge
+\begin_inset space ~
+\end_inset
+
+<charge>] If trimming atoms from source, ensure sum of charges on remaining
+ atoms equals <charge> via scaling.
+\end_layout
+
+\end_deeper
 \begin_layout Description
 tgt
 \begin_inset space ~
@@ -7556,19 +7710,42 @@ COORDS> Target coordinates that will be grafted onto.
 \end_layout
 
 \begin_layout Description
-[tgtfitmask
-\begin_inset space ~
-\end_inset
-
-<mask>] Atoms from target to use if RMS-fitting source onto target.
-\end_layout
-
-\begin_layout Description
 [tgtmask
 \begin_inset space ~
 \end_inset
 
 <mask>] Atoms to keep from target (default all).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[tgtcharge
+\begin_inset space ~
+\end_inset
+
+<charge>] If trimming atoms from target, ensure sum of charges on remaining
+ atoms equals <charge> via scaling.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[ic] Connect source and target using internal coordinates.
+\end_layout
+
+\begin_layout Description
+[srcfitmask
+\begin_inset space ~
+\end_inset
+
+<mask>] Atoms from source to use if RMS-fitting source onto target.
+\end_layout
+
+\begin_layout Description
+[tgtfitmask
+\begin_inset space ~
+\end_inset
+
+<mask>] Atoms from target to use if RMS-fitting source onto target.
 \end_layout
 
 \begin_layout Description
@@ -7590,7 +7767,8 @@ COORDS> Name of output COORDS set containing source grafted onto target.
 
 <tgt>,<src>] Create a bond between target atom selected by <tgt> and source
  atoms selected by <src> in the final structure.
- May be specified multiple times.
+ Must be specified only once if connecting via internal coordinates, otherwise
+ may be specified multiple times.
 \end_layout
 
 \end_deeper
@@ -7621,6 +7799,8 @@ bond
 \series default
  keyword can be used to create bonds between target and source in the final
  structure.
+ If using internal coordinates to connect the units, exactly one bond must
+ be specified.
 \end_layout
 
 \begin_layout Subsection
@@ -8809,6 +8989,147 @@ crdout TZ2 tz2.rotate.1.mol2
 \end_layout
 
 \begin_layout Subsection
+sequence
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-sequence"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+sequence name <output set name> <unit0> <unit1> ...
+\end_layout
+
+\begin_layout LyX-Code
+         [{libset <libsetname>} ...]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> Name of final molecule.
+\end_layout
+
+\begin_layout Description
+<unit0>
+\begin_inset space ~
+\end_inset
+
+<unit1> Name of COORDS set (with connection info).
+\end_layout
+
+\begin_layout Description
+[{libset
+\begin_inset space ~
+\end_inset
+
+<libsetname>}
+\begin_inset space ~
+\end_inset
+
+...} One or more set name prefixes of data sets (libraries) containing units.
+\end_layout
+
+\begin_layout Standard
+Data sets created:
+\end_layout
+
+\begin_layout Description
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> COORDS set containing final molecule.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Connect units in different COORDS sets together to form a single molecule.
+ Internal coordinates are used to try to determine the correct geometry
+ around connection sites.
+ The COORDS sets must have connection information set, either from reading
+ in an Amber OFF library file or set manually via 
+\series bold
+\emph on
+dataset
+\series default
+\emph default
+ 
+\series bold
+connect
+\series default
+ (see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-datasetcmd"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+For example, the following reads in two Mol2 files as COORDS sets, sets
+ up connection atoms, then creates a molecule via 
+\series bold
+\emph on
+sequence:
+\end_layout
+
+\begin_layout LyX-Code
+parm MOC.mol2
+\end_layout
+
+\begin_layout LyX-Code
+loadcrd MOC.mol2 parm MOC.mol2 name MOC
+\end_layout
+
+\begin_layout LyX-Code
+dataset connect MOC tailmask @O5
+\end_layout
+
+\begin_layout LyX-Code
+parm CNALA.mol2 
+\end_layout
+
+\begin_layout LyX-Code
+loadcrd CNALA.mol2 parm CNALA.mol2 name CNALA
+\end_layout
+
+\begin_layout LyX-Code
+dataset connect CNALA headmask @N
+\end_layout
+
+\begin_layout LyX-Code
+sequence MOC CNALA name Mol
+\end_layout
+
+\begin_layout LyX-Code
+crdout Mol Mol.mol2
+\end_layout
+
+\begin_layout Subsection
 splitcoords
 \end_layout
 
@@ -8859,6 +9180,141 @@ Set0
 
 \begin_layout LyX-Code
 splitcoords Set0 name Set0Split
+\end_layout
+
+\begin_layout Subsection
+zmatrix
+\end_layout
+
+\begin_layout LyX-Code
+zmatrix <COORDS set name> [name <output set name>]
+\end_layout
+
+\begin_layout LyX-Code
+        { zset <input zmatrix set> [parm <top>|parmindex <#>] |
+\end_layout
+
+\begin_layout LyX-Code
+          [molnum <mol#>] [frame <frame#>] [out <zmatrix file>] }
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<COORDS
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> COORDS set to calculate Z-matrix from or use as topology for applied
+ Z-matrix.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name>] Name of output COORDS set (if 'zset') or output Z-matrix set.
+\end_layout
+
+\begin_layout Description
+zset
+\begin_inset space ~
+\end_inset
+
+<input
+\begin_inset space ~
+\end_inset
+
+zmatrix
+\begin_inset space ~
+\end_inset
+
+set> Name of Z-matrix set to use to generate coordinates.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+parm
+\begin_inset space ~
+\end_inset
+
+<top> Use specified topology name as topology for generated coordinates.
+\end_layout
+
+\begin_layout Description
+parmindex
+\begin_inset space ~
+\end_inset
+
+<#> Use topology index as topology for generated coordinates.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[molnum
+\begin_inset space ~
+\end_inset
+
+<mol#>] Calculate Z-matrix from specified molecule (default first molecule).
+\end_layout
+
+\begin_layout Description
+[frame
+\begin_inset space ~
+\end_inset
+
+<frame#>] Calculate Z-matrix from specified molecule in specified frame
+ (default first frame).
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<zmatrix
+\begin_inset space ~
+\end_inset
+
+file>] File to write calculated Z-matrix to.
+\end_layout
+
+\begin_layout Standard
+Data sets created:
+\end_layout
+
+\begin_layout Description
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> If 'zset', COORDS set containing final coordinates.
+ Otherwise contains Z-matrix data.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Command for working with Z-matrices.
+ If 'zset' is specified, generate coordinates from the specified Z-matrix
+ data set and topology.
+ Otherwise, calculate a Z-matrix for a single molecule from the specified
+ frame of given COORDS data set.
 \end_layout
 
 \begin_layout Section
@@ -10047,6 +10503,13 @@ reference "subsec:cpptraj-filter"
 
 \begin_layout Subsection
 dataset
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-datasetcmd"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
@@ -10083,6 +10546,11 @@ dataset { legend <legend> <set> |
 \begin_layout LyX-Code
           remove <criterion> <select> <value> [and <value2>] [<set selection>]
  |
+\end_layout
+
+\begin_layout LyX-Code
+          connect {[head <head atom>] [tail <tail atom>]|[headmask <headmask>]
+ [tailmask <tailmask>]}
 \end_layout
 
 \begin_layout LyX-Code
@@ -10370,6 +10838,73 @@ selection>] Remove data sets from <set selection> according to specified
 \end_layout
 
 \begin_layout Description
+connect
+\begin_inset space ~
+\end_inset
+
+<set
+\begin_inset space ~
+\end_inset
+
+args> Add/change connect atom information (used by the sequence command,
+ 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-sequence"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+) to COORDS set(s).
+ Head atoms connect to previous residue, tail atoms connect to next residue.
+ Can use either absolute atom numbers or atom mask expressions.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[head
+\begin_inset space ~
+\end_inset
+
+<head
+\begin_inset space ~
+\end_inset
+
+atom>]
+\begin_inset space ~
+\end_inset
+
+[tail
+\begin_inset space ~
+\end_inset
+
+<tail
+\begin_inset space ~
+\end_inset
+
+atom>] Specify the head/tail atoms by atom number.
+\end_layout
+
+\begin_layout Description
+[headmask
+\begin_inset space ~
+\end_inset
+
+<headmask>]
+\begin_inset space ~
+\end_inset
+
+[tailmask
+\begin_inset space ~
+\end_inset
+
+<tailmask>] Specify the head/tail atoms by atom mask.
+\end_layout
+
+\end_deeper
+\begin_layout Description
 dim
 \begin_inset space ~
 \end_inset
@@ -10577,7 +11112,7 @@ pucker
 \end_layout
 
 \begin_layout Standard
-Options for type noe only:
+Options for 'type noe' only:
 \end_layout
 
 \begin_layout Description
@@ -27396,11 +27931,19 @@ gist
 
 \end_inset
 
- [doorder] [doeij] [skipE] [skipS] [refdens <rdval>] [temp <tval>]
+ [name <dataset name>] [doorder [nopl] [plcut <plcut>]] 
+\end_layout
+
+\begin_layout LyX-Code
+     [doeij] [skipE] [skipS] [refdens <rdval>] [temp <tval>]
 \end_layout
 
 \begin_layout LyX-Code
      [noimage] [gridcntr <xval> <yval> <zval>]
+\end_layout
+
+\begin_layout LyX-Code
+     [rmsfit <fitmask>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -27438,6 +27981,18 @@ gist
 
 \begin_deeper
 \begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<dataset
+\begin_inset space ~
+\end_inset
+
+name>] Name for output data sets.
+\end_layout
+
+\begin_layout Description
 
 \series bold
 [doorder]
@@ -27453,6 +28008,21 @@ literal "true"
  for each voxel.
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+[nopl] If specified, do not use the pair list for the order calculation
+ (may be much slower).
+\end_layout
+
+\begin_layout Description
+[plcut
+\begin_inset space ~
+\end_inset
+
+<plcut>] Pair list cutoff for order calculation (default 10.0 Ang.).
+\end_layout
+
+\end_deeper
 \begin_layout Description
 
 \series bold
@@ -27529,6 +28099,15 @@ rdval>]
 <zval>]
 \series default
  Coordinates (Å) of the center of the grid (default 0.0, 0.0, 0.0).
+\end_layout
+
+\begin_layout Description
+[rmsfit
+\begin_inset space ~
+\end_inset
+
+<fitmask>] If specified, grid will be centered and rotated to follow atoms
+ selected by <fitmask>.
 \end_layout
 
 \begin_layout Description
@@ -28771,6 +29350,147 @@ literal "true"
 \end_inset
 
 , in order to define spherical hydration sites based on the density distribution.
+ More detailed descriptions of the files follows:
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-dipole-dens.dx
+\series default
+ - Magnitude of mean dipole moment (polarization) (Debye/Å3).
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-dipolex-dens.dx
+\series default
+ - X-component of the mean water dipole moment density (Debye/Å3).
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-dipoley-dens.dx
+\series default
+- Y-component of the mean water dipole moment density (Debye/Å3).
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-dipolez-dens.dx
+\series default
+ - Z-component of the mean water dipole moment density (Debye/Å3).
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-dTSorient-dens.dx
+\series default
+ - Density weighted first order orientational entropy (kcal/mole/Å3).
+ The more negative the isovalue, the more restricted or unfavorable the
+ orientation of the water is.
+ The value at bulk density is expected to be zero, most values will fall
+ between 0 and -1.
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-dTStrans-dens.dx
+\series default
+ - Density weighted first order tranlational entropy (kcal/mole/Å3).
+ The more negative isovalue, the more restricted the water is positionally.
+ The value at bulk density is expected to be zero, most values will fall
+ between 0 and -1.
+ 
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-Esw-dens.dx
+\series default
+ - Density weighted Solute-Water interaction energy (kcal/mole/Å3).
+ This is the interaction of the water with the entire solute.
+ Both Lennard-Jones and electrostatic interactions are computed without
+ any cutoff, within the minimum image convention.
+ The more negative the number, the more favorable the interaction between
+ the water and solute is.
+ Isovalues will be negative numbers.
+ 
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-Eww-dens.dx
+\series default
+ - Density weighted Water-Water interaction energy (kcal/mole/Å3).
+ This is the interaction of the water with the entire solvent.
+ Both Lennard-Jones and electrostatic interactions are computed without
+ any cutoff, within the minimum image convention.
+ The more negative the number, the more favorable the interaction between
+ water within this voxel and all other water molucules is.
+ Isovalues will be negative numbers.
+ 
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-gH.dx
+\series default
+ - Number density of hydrogen centers found in the voxel, in units of the
+ bulk density.
+ The expectation value of g_H for a neat water system is unity.
+ The units of this dx file are the density/bulk density.
+ Therefore an isovalue of 1 represents every voxel at or greater than bulk
+ density.
+ 
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-gO.dx
+\series default
+ - Number density of oxygen centers found in the voxel, in units of the
+ bulk density.
+ The expectation value of g_O for a neat water system is unity.
+ The units of this dx file are the density/bulk density.
+ Therefore an isovalue of 1 represents every voxel at or greater than bulk
+ density.
+ 
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-neighbor-norm.dx
+\series default
+ - Mean number of neighboring water molecules, per water molecule found
+ in the voxel (units of number per water).
+ Two waters are considered neighbors if their oxygens are within 3.5 Angstroms
+ of each other.
+ 
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-order-norm.dx
+\series default
+ - Average Tetrahedral Order Parameter for water molecules found in the
+ voxel, normalized by the number of waters in the voxel.
+ 
+\series bold
+doorder
+\series default
+ must be declared in the command line for this file to be produced.
 \end_layout
 
 \begin_layout Standard
@@ -31216,7 +31936,7 @@ keep [ bridgedata <bridge data set> [nbridge <#>] [nobridgewarn]
 \end_layout
 
 \begin_layout LyX-Code
-     [keepmask <atoms to keep>]
+     [keepmask <atoms to keep>] [charge <new charge>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -31310,6 +32030,19 @@ to
 \end_inset
 
 keep> Mask of atoms to keep.
+\end_layout
+
+\begin_layout Description
+charge
+\begin_inset space ~
+\end_inset
+
+<new
+\begin_inset space ~
+\end_inset
+
+charge> Scale charges so total charge of remaining atoms matches the specified
+ <new charge>.
 \end_layout
 
 \begin_layout Description
@@ -39609,7 +40342,7 @@ strip
 
 \end_inset
 
- <mask> 
+ <mask> [charge <new charge>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -39627,6 +40360,19 @@ strip
 \begin_deeper
 \begin_layout Description
 <mask> Remove atoms specified by mask from the system.
+\end_layout
+
+\begin_layout Description
+charge
+\begin_inset space ~
+\end_inset
+
+<new
+\begin_inset space ~
+\end_inset
+
+charge> Scale charges so total charge of remaining atoms matches the specified
+ <new charge>.
 \end_layout
 
 \begin_layout Description

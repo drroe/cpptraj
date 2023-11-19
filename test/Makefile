@@ -506,6 +506,9 @@ test.keep:
 test.hremd:
 	@-cd Test_Ensemble_HREMD && ./RunTest.sh $(OPT)
 
+test.ndiff:
+	@-cd Test_NDiff && ./RunTest.sh $(OPT)
+
 test.netcdfdata:
 	@-cd Test_NetcdfData && ./RunTest.sh $(OPT)
 
@@ -523,6 +526,18 @@ test.calcdiffusion:
 
 test.parsetiming:
 	@-cd Test_ParseTiming && ./RunTest.sh $(OPT)
+
+test.readprep:
+	@-cd Test_ReadPrep && ./RunTest.sh $(OPT)
+
+test.zmatrix:
+	@-cd Test_Zmatrix && ./RunTest.sh $(OPT)
+
+test.readoff:
+	@-cd Test_ReadOFF && ./RunTest.sh $(OPT)
+
+test.sequence:
+	@-cd Test_Sequence && ./RunTest.sh $(OPT)
 
 # Every test target should go here.
 COMPLETETESTS=test.general \
@@ -684,12 +699,17 @@ COMPLETETESTS=test.general \
               test.hmassrepartition \
               test.prepareforleap \
               test.keep \
+              test.ndiff \
               test.netcdfdata \
               test.compareenergy \
               test.avgbox \
               test.tordiff \
               test.calcdiffusion \
-              test.parsetiming
+              test.parsetiming \
+              test.readprep \
+              test.zmatrix \
+              test.readoff \
+              test.sequence
 
 test.all:
 	$(MAKE) test.complete summary
