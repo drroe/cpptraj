@@ -54,7 +54,28 @@ class OffdiagNB {
     LJparmType LJ2_;
 };
 
-// DataIO_AmberFF::ReadData()
+/** Read parametrers from Amber frcmod file. */
+int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int debugIn) const
+{
+ // Read title
+  BufferedLine infile;
+  if (infile.OpenFileRead( fname )) {
+    mprinterr("Error: Could not open file '%s' as Amber FF.\n", fname.full());
+    return 1;
+  }
+  const char* ptr = infile.Line();
+  if (ptr == 0) {
+    mprinterr("Error: Could not read anything from Amber FF file %s\n", fname.full());
+    return 1;
+  }
+  std::string title(ptr);
+  mprintf("\tTitle: %s\n", title.c_str());
+  //prm.SetParamSetName( title ); TODO append title
+
+  return 0;
+}
+
+/** Read parameters from Amber main FF parameter file. */
 int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
                                std::string const& nbsetnameIn, int debugIn) const
 {

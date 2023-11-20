@@ -9,7 +9,11 @@ class FileName;
 class AmberParamFile {
   public:
     AmberParamFile();
+    /// Read main Amber FF file
     int ReadParams(ParameterSet&, FileName const&, std::string const&, int) const;
+    /// Read Amber frcmod file
+    int ReadFrcmod(ParameterSet&, FileName const&, int) const;
+    /// Write main Amber FF file
     int WriteParams(ParameterSet&, FileName const&, int) const;
   private:
     static int read_symbols(const char*, std::vector<std::string>&, int);
