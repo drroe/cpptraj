@@ -33,7 +33,7 @@ int AmberParamFile::read_symbols(const char* ptrIn, std::vector<std::string>& sy
 }
 
 /// Hold a set of nonbonded parameters
-class NonbondSet {
+class AmberParamFile::NonbondSet {
   public:
     NonbondSet(std::string const& n) : name_(n) {}
 
@@ -255,6 +255,37 @@ const
     mprintf("Warning: Redefining LJ 10-12 hbond type %s %s\n", *(types[0]), *(types[1]));
   return 0;
 }
+
+/** Read radius/depth input for LJ 6-12 nonbond. */
+int AmberParamFile::read_nb_RE(NonbondSet& nbset, const char* ptr)
+const
+{
+  // ***** ONLY IF KINDNB .EQ. 'RE' *****
+  // LTYNB , R , EDEP
+  mprintf("DEBUG: Nonbond: %s\n", ptr);
+  //char LTYNB[MAXSYMLEN];
+  //double R, EDEP;
+  //double R14, E14;
+  // This section is a little tricky. Apparently CHARMM-style Amber FF
+  // files can have 14 LJ params here. Try to detect this.
+  ArgList nbargs( ptr, " " );
+  if (nbargs.Nargs() < 3) {
+    mprinterr("Error: Expected at least TYPE, R, DEPTH, got %i elements.\n", nbargs.Nargs());
+    return 1;
+  }
+  bool has_14 = false;
+  if (nbargs.Nargs() >= 5) {
+    if (validDouble( nbargs[3] ) && validDouble( nbargs[4] )) {
+      has_14 = true;
+    }
+  }
+  if (has_14) mprintf("DEBUG: NB HAS CHARMM.\n");
+  double R = convertToDouble( nbargs[1] );
+  double EDEP = convertToDouble( nbargs[2] );
+  nbset.LJ_.AddParm( TypeNameHolder(nbargs[0]), LJparmType(R, EDEP), false );
+  return 0;
+}
+
 
 /** Read parametrers from Amber frcmod file. */
 int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int debugIn) const

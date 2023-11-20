@@ -20,6 +20,9 @@ class AmberParamFile {
 
     enum SectionType { ATYPE = 0, HYDROPHILIC, BOND, ANGLE, DIHEDRAL, IMPROPER, 
                        LJ1012, NB_EQUIV, NONBOND, LJEDIT, UNKNOWN };
+
+    class NonbondSet;
+
     static int read_symbols(const char*, std::vector<std::string>&, int);
     /// Read atom type line
     int read_atype(ParameterSet&, const char*) const;
@@ -33,6 +36,8 @@ class AmberParamFile {
     int read_improper(ParameterSet&, const char*) const;
     /// Read LJ 10-12 hbond line
     int read_lj1012(ParameterSet&, const char*) const;
+    /// Read LJ 6-12 R/depth line
+    int read_nb_RE(NonbondSet&, const char*) const;
     //int ReadInput(std::string&, BufferedLine&) const;
 };
 #endif
