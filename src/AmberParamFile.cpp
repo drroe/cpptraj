@@ -226,6 +226,36 @@ const
   return 0;
 }
 
+/** Read input for LJ 10-12 hbond. */
+int AmberParamFile::read_lj1012(ParameterSet& prm, const char* ptr)
+const
+{
+  // Lennard-Jones 10-12 hydrogen bonding term.
+  // According to the docs, the format should be:
+  // KT1 , KT2 , A , B , ASOLN , BSOLN , HCUT , IC
+  // FORMAT(2X,A2,2X,A2,2x,5F10.2,I2)
+  // In practive (in e.g. parm91.dat), the actual format appears to be:
+  // KT1, KT2, A, B, HCUT
+  char KT1[MAXSYMLEN], KT2[MAXSYMLEN];
+  double A, B, HCUT;
+  //double ASOLN, BSOLN, HCUT;
+  //int IC;
+  mprintf("DEBUG: LJ 10-12: %s\n", ptr);
+  //int nscan = sscanf(ptr, "%s %s %lf %lf %lf %lf %lf %i\n",
+  int nscan = sscanf(ptr, "%s %s %lf %lf %lf", KT1, KT2, &A, &B, &HCUT);
+  if (nscan < 5) {
+    mprinterr("Error: Expected at least KT1, KT2, A, B, HCUT, got only %i elements\n", nscan);
+    return 1;
+  }
+  TypeNameHolder types(2);
+  types.AddName( KT1 );
+  types.AddName( KT2 );
+  ParameterHolders::RetType ret = prm.HB().AddParm(types, HB_ParmType(A, B, HCUT), false);
+  if (ret == ParameterHolders::UPDATED)
+    mprintf("Warning: Redefining LJ 10-12 hbond type %s %s\n", *(types[0]), *(types[1]));
+  return 0;
+}
+
 /** Read parametrers from Amber frcmod file. */
 int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int debugIn) const
 {
@@ -272,6 +302,8 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
           err = read_dihedral(prm, ptr);
         else if (section == IMPROPER)
           err = read_improper(prm, ptr);
+        else if (section == LJ1012)
+          err = read_lj1012(prm, ptr);
         if (err != 0) {
           mprinterr("Error: Reading line: %s\n", ptr);
           return 1;
@@ -390,27 +422,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
     } else if (section == IMPROPER) {
       read_err = read_improper(prm, ptr);
     } else if (section == LJ1012) {
-      // Lennard-Jones 10-12 hydrogen bonding term.
-      // According to the docs, the format should be:
-      // KT1 , KT2 , A , B , ASOLN , BSOLN , HCUT , IC
-      // FORMAT(2X,A2,2X,A2,2x,5F10.2,I2)
-      // In practive (in e.g. parm91.dat), the actual format appears to be:
-      // KT1, KT2, A, B, HCUT
-      char KT1[MAXSYMLEN], KT2[MAXSYMLEN];
-      double A, B, HCUT;
-      //double ASOLN, BSOLN, HCUT;
-      //int IC;
-      mprintf("DEBUG: LJ 10-12: %s\n", ptr);
-      //int nscan = sscanf(ptr, "%s %s %lf %lf %lf %lf %lf %i\n",
-      int nscan = sscanf(ptr, "%s %s %lf %lf %lf", KT1, KT2, &A, &B, &HCUT);
-      if (nscan < 5) {
-        mprinterr("Error: Expected at least KT1, KT2, A, B, HCUT, got only %i elements\n", nscan);
-        return 1;
-      }
-      TypeNameHolder types(2);
-      types.AddName( KT1 );
-      types.AddName( KT2 );
-      prm.HB().AddParm(types, HB_ParmType(A, B, HCUT), false);
+      read_err = read_lj1012(prm, ptr);
     } else if (section == NB_EQUIV) {
       // EQUIVALENCING ATOM SYMBOLS FOR THE NON-BONDED 6-12 POTENTIAL PARAMETERS
       // IORG , IEQV(I) , I = 1 , 19

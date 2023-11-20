@@ -31,6 +31,8 @@ class AmberParamFile {
     int read_dihedral(ParameterSet&, const char*) const;
     /// Read improper line
     int read_improper(ParameterSet&, const char*) const;
+    /// Read LJ 10-12 hbond line
+    int read_lj1012(ParameterSet&, const char*) const;
     //int ReadInput(std::string&, BufferedLine&) const;
 };
 #endif
