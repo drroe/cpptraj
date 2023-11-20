@@ -16,9 +16,13 @@ class AmberParamFile {
     /// Write main Amber FF file
     int WriteParams(ParameterSet&, FileName const&, int) const;
   private:
+    static const int MAXSYMLEN;
+
     enum SectionType { ATYPE = 0, HYDROPHILIC, BOND, ANGLE, DIHEDRAL, IMPROPER, 
                        LJ1012, NB_EQUIV, NONBOND, LJEDIT, UNKNOWN };
     static int read_symbols(const char*, std::vector<std::string>&, int);
+    /// Read atom type line
+    int read_atype(ParameterSet&, const char*) const;
     //int ReadInput(std::string&, BufferedLine&) const;
 };
 #endif

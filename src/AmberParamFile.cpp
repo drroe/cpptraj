@@ -7,6 +7,8 @@
 #include "ParameterSet.h"
 #include <cstdio> // sscanf
 
+const int AmberParamFile::MAXSYMLEN = 16;
+
 /// CONSTRUCTOR
 AmberParamFile::AmberParamFile() {}
 
@@ -54,6 +56,35 @@ class OffdiagNB {
     LJparmType LJ2_;
 };
 
+/** Read input for atom symbols and masses. */
+int AmberParamFile::read_atype(ParameterSet& prm, const char* ptr)
+const
+{
+  // Format (A2,2X,F10.2x,f10.2)
+  mprintf("DEBUG: Atype: %s\n", ptr);
+  char kndsym[MAXSYMLEN];
+  double amass = 0;
+  double atpol = 0;
+  int nscan = sscanf(ptr, "%s %lf %lf", kndsym, &amass, &atpol);
+  ParameterHolders::RetType ret;
+  if (nscan == 3) {
+    ret = prm.AT().AddParm( TypeNameHolder(kndsym),
+                            AtomType(amass, atpol),
+                            true );
+  } else if (nscan == 2) {
+    // Only mass
+    ret = prm.AT().AddParm( TypeNameHolder(kndsym),
+                            AtomType(amass),
+                            true );
+  } else {
+    mprinterr("Error: Expected atom type, mass, polarizability, got only %i columns.\n", nscan);
+    return 1;
+  }
+  if (ret == ParameterHolders::UPDATED)
+    mprintf("Warning: Redefining atom type %s\n", kndsym);
+  return 0;
+}
+
 /** Read parametrers from Amber frcmod file. */
 int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int debugIn) const
 {
@@ -89,6 +120,13 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
         // TODO check RE
       } else {
         mprintf("DEBUG: Section %i: %s\n", (int)section, ptr);
+        int err = 0;
+        if (section == ATYPE)
+          err = read_atype(prm, ptr);
+        if (err != 0) {
+          mprinterr("Error: Reading line: %s\n", ptr);
+          return 1;
+        }
       }
     }
     ptr = infile.Line();
@@ -101,7 +139,6 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
 int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
                                std::string const& nbsetnameIn, int debugIn) const
 {
-  static const int MAXSYMLEN = 16;
 
   // For files with > 1 set of NB params
   typedef std::vector<NonbondSet> NbSetArrayType;
@@ -135,6 +172,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
     // Advance to first non-space char
     while (*ptr == ' ' && *ptr != '\0') ++ptr;
     mprintf("DEBUG: First char: %c (%i)\n", *ptr, (int)*ptr);
+    int read_err = 0;
     if (*ptr == '\0') {
       // Section Change
       if (section != UNKNOWN) {
@@ -191,29 +229,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
         NBsets.push_back( NonbondSet( std::string(nb_label) ) );
       }
     } else if (section == ATYPE) {
-      // Input for atom symbols and masses
-      // Format (A2,2X,F10.2x,f10.2)
-      mprintf("DEBUG: Atype: %s\n", ptr);
-      char kndsym[MAXSYMLEN];
-      double amass = 0;
-      double atpol = 0;
-      int nscan = sscanf(ptr, "%s %lf %lf", kndsym, &amass, &atpol);
-      ParameterHolders::RetType ret;
-      if (nscan == 3) {
-        ret = prm.AT().AddParm( TypeNameHolder(kndsym),
-                                AtomType(amass, atpol),
-                                true );
-      } else if (nscan == 2) {
-        // Only mass
-        ret = prm.AT().AddParm( TypeNameHolder(kndsym),
-                                AtomType(amass),
-                                true );
-      } else {
-        mprinterr("Error: Expected atom type, mass, polarizability, got only %i columns.\n", nscan);
-        return 1;
-      }
-      if (ret == ParameterHolders::UPDATED)
-        mprintf("Warning: Redefining atom type %s\n", kndsym);
+      read_err = read_atype(prm, ptr);
     } else if (section == BOND) {
       // Bond parameters
       // IBT , JBT , RK , REQ
@@ -399,7 +415,10 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
       }
       Offdiag.push_back( OffdiagNB(AT1, AT2, sig1, eps1, sig2, eps2) );
     }
-      
+    if (read_err != 0) {
+      mprinterr("Error: Reading line: %s\n", ptr);
+      return 1;
+    } 
     ptr = infile.Line();
   } // END loop over file.
 
