@@ -23,6 +23,10 @@ class AmberParamFile {
     static int read_symbols(const char*, std::vector<std::string>&, int);
     /// Read atom type line
     int read_atype(ParameterSet&, const char*) const;
+    /// Read bond line
+    int read_bond(ParameterSet&, const char*) const;
+    /// Read angle line
+    int read_angle(ParameterSet&, const char*) const;
     //int ReadInput(std::string&, BufferedLine&) const;
 };
 #endif

@@ -85,6 +85,70 @@ const
   return 0;
 }
 
+/** Read input for bond. */
+int AmberParamFile::read_bond(ParameterSet& prm, const char* ptr)
+const
+{
+  // Bond parameters
+  // IBT , JBT , RK , REQ
+  // FORMAT(A2,1X,A2,2F10.2)
+  mprintf("DEBUG: Bond: %s\n", ptr);
+  std::vector<std::string> symbols(2);
+  int pos = read_symbols(ptr, symbols, 2);
+  if (pos < 0) {
+    mprinterr("Error: Could not read symbols for bond from %s\n", ptr);
+    return 1;
+  }
+  mprintf("DEBUG: %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), ptr+pos);
+  double RK, REQ;
+  int nscan = sscanf(ptr+pos, "%lf %lf", &RK, &REQ);
+  if (nscan != 2) {
+    mprinterr("Error: Expected RK, REQ, got only %i elements\n", nscan);
+    return 1;
+  }
+  TypeNameHolder types(2);
+  types.AddName( symbols[0] );
+  types.AddName( symbols[1] );
+  ParameterHolders::RetType ret = prm.BP().AddParm(types, BondParmType(RK, REQ), true);
+  if (ret == ParameterHolders::UPDATED)
+    mprintf("Warning: Redefining bond type %s - %s\n", *(types[0]), *(types[1]));
+
+  return 0;
+}
+
+/** Read input for angle. */
+int AmberParamFile::read_angle(ParameterSet& prm, const char* ptr)
+const
+{
+  // Angle parameters
+  // ITT , JTT , KTT , TK , TEQ
+  // FORMAT(A2,1X,A2,1X,A2,2F10.2)
+  mprintf("DEBUG: Angle: %s\n", ptr);
+  std::vector<std::string> symbols(3);
+  int pos = read_symbols(ptr, symbols, 3);
+  if (pos < 0) {
+    mprinterr("Error: Could not read symbols for angle from %s\n", ptr);
+    return 1;
+  }
+  mprintf("DEBUG: %s %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), symbols[2].c_str(), ptr+pos);
+  double TK, TEQ;
+  int nscan = sscanf(ptr+pos, "%lf %lf", &TK, &TEQ);
+  if (nscan != 2) {
+    mprinterr("Error: Expected TK, TEQ, got only %i elements\n", nscan);
+    return 1;
+  }
+  TypeNameHolder types(3);
+  types.AddName( symbols[0] );
+  types.AddName( symbols[1] );
+  types.AddName( symbols[2] );
+  ParameterHolders::RetType ret = prm.AP().AddParm(types, AngleParmType(TK, TEQ), true);
+  if (ret == ParameterHolders::UPDATED)
+    mprintf("Warning: Redefining angle type %s - %s - %s\n", *(types[0]), *(types[1]), *(types[2]));
+
+  return 0;
+}
+
+
 /** Read parametrers from Amber frcmod file. */
 int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int debugIn) const
 {
@@ -123,6 +187,10 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
         int err = 0;
         if (section == ATYPE)
           err = read_atype(prm, ptr);
+        else if (section == BOND)
+          err = read_bond(prm, ptr);
+        else if (section == ANGLE)
+          err = read_angle(prm, ptr);
         if (err != 0) {
           mprinterr("Error: Reading line: %s\n", ptr);
           return 1;
@@ -233,50 +301,9 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
     } else if (section == ATYPE) {
       read_err = read_atype(prm, ptr);
     } else if (section == BOND) {
-      // Bond parameters
-      // IBT , JBT , RK , REQ
-      // FORMAT(A2,1X,A2,2F10.2)
-      mprintf("DEBUG: Bond: %s\n", ptr);
-      std::vector<std::string> symbols(2);
-      int pos = read_symbols(ptr, symbols, 2);
-      if (pos < 0) {
-        mprinterr("Error: Could not read symbols for bond from %s\n", ptr);
-        return 1;
-      }
-      mprintf("DEBUG: %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), ptr+pos);
-      double RK, REQ;
-      int nscan = sscanf(ptr+pos, "%lf %lf", &RK, &REQ);
-      if (nscan != 2) {
-        mprinterr("Error: Expected RK, REQ, got only %i elements\n", nscan);
-        return 1;
-      }
-      TypeNameHolder types(2);
-      types.AddName( symbols[0] );
-      types.AddName( symbols[1] );
-      prm.BP().AddParm(types, BondParmType(RK, REQ), false);
+      read_err = read_bond(prm, ptr);
     } else if (section == ANGLE) {
-      // Angle parameters
-      // ITT , JTT , KTT , TK , TEQ
-      // FORMAT(A2,1X,A2,1X,A2,2F10.2)
-      mprintf("DEBUG: Angle: %s\n", ptr);
-      std::vector<std::string> symbols(3);
-      int pos = read_symbols(ptr, symbols, 3);
-      if (pos < 0) {
-        mprinterr("Error: Could not read symbols for angle from %s\n", ptr);
-        return 1;
-      }
-      mprintf("DEBUG: %s %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), symbols[2].c_str(), ptr+pos);
-      double TK, TEQ;
-      int nscan = sscanf(ptr+pos, "%lf %lf", &TK, &TEQ);
-      if (nscan != 2) {
-        mprinterr("Error: Expected TK, TEQ, got only %i elements\n", nscan);
-        return 1;
-      }
-      TypeNameHolder types(3);
-      types.AddName( symbols[0] );
-      types.AddName( symbols[1] );
-      types.AddName( symbols[2] );
-      prm.AP().AddParm(types, AngleParmType(TK, TEQ), false);
+      read_err = read_angle(prm, ptr);
     } else if (section == DIHEDRAL) {
       // Dihedral parameters
       // IPT , JPT , KPT , LPT , IDIVF , PK , PHASE , PN
