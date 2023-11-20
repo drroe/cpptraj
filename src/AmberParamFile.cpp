@@ -71,6 +71,28 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
   std::string title(ptr);
   mprintf("\tTitle: %s\n", title.c_str());
   //prm.SetParamSetName( title ); TODO append title
+  // Read file
+  SectionType section = UNKNOWN;
+  ptr = infile.Line();
+  while (ptr != 0) {
+    // Is this a recognized section keyword?
+    if (*ptr != '\0') {
+      std::string line(ptr);
+      if      (line.compare(0, 4, "MASS") == 0) section = ATYPE;
+      else if (line.compare(0, 4, "BOND") == 0) section = BOND;
+      else if (line.compare(0, 4, "ANGL") == 0) section = ANGLE;
+      else if (line.compare(0, 4, "DIHE") == 0) section = DIHEDRAL;
+      else if (line.compare(0, 4, "IMPR") == 0) section = IMPROPER;
+      else if (line.compare(0, 4, "HBON") == 0) section = LJ1012;
+      else if (line.compare(0, 4, "NONB") == 0) {
+        section = NONBOND;
+        // TODO check RE
+      } else {
+        mprintf("DEBUG: Section %i: %s\n", (int)section, ptr);
+      }
+    }
+    ptr = infile.Line();
+  }
 
   return 0;
 }
@@ -107,8 +129,6 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
   mprintf("\tTitle: %s\n", title.c_str());
   prm.SetParamSetName( title );
   // Read file
-  enum SectionType { ATYPE = 0, HYDROPHILIC, BOND, ANGLE, DIHEDRAL, IMPROPER, 
-                     LJ1012, NB_EQUIV, NONBOND, LJEDIT, UNKNOWN };
   SectionType section = ATYPE;
   ptr = infile.Line();
   while (ptr != 0) {
