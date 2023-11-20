@@ -186,8 +186,43 @@ const
   ParameterHolders::RetType ret =
     prm.DP().AddParm(types, DihedralParmType(PK / (double)IDIVF, PN, PHASE), true);
   if (ret == ParameterHolders::UPDATED)
-    mprintf("Warning: Redefining angle type %s - %s - %s - %s\n",
+    mprintf("Warning: Redefining dihedral type %s - %s - %s - %s\n",
             *(types[0]), *(types[1]), *(types[2]), *(types[3]));
+  return 0;
+}
+
+/** Read input for improper. */
+int AmberParamFile::read_improper(ParameterSet& prm, const char* ptr)
+const
+{
+  // Improper parameters
+  // IPT , JPT , KPT , LPT , IDIVF , PK , PHASE , PN
+  // FORMAT(A2,1X,A2,1X,A2,1X,A2,I4,3F15.2)
+  mprintf("DEBUG: Improper: %s\n", ptr);
+  std::vector<std::string> symbols(4);
+  int pos = read_symbols(ptr, symbols, 4);
+  if (pos < 0) {
+    mprinterr("Error: Could not read symbols for improper from %s\n", ptr);
+    return 1;
+  }
+  mprintf("DEBUG: %s %s %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), symbols[2].c_str(), symbols[3].c_str(), ptr+pos);
+  double PK, PHASE, PN;
+  int nscan = sscanf(ptr+pos, "%lf %lf %lf", &PK, &PHASE, &PN);
+  if (nscan != 3) {
+    mprinterr("Error: Expected PK, PHASE, PN, got only %i elements\n", nscan);
+    return 1;
+  }
+  TypeNameHolder types(4);
+  types.AddName( symbols[0] );
+  types.AddName( symbols[1] );
+  types.AddName( symbols[2] );
+  types.AddName( symbols[3] );
+  ParameterHolders::RetType ret =
+    prm.IP().AddParm(types, DihedralParmType(PK, PN, PHASE), false);
+  if (ret == ParameterHolders::UPDATED)
+    mprintf("Warning: Redefining improper type %s - %s - %s - %s\n",
+            *(types[0]), *(types[1]), *(types[2]), *(types[3]));
+
   return 0;
 }
 
@@ -235,6 +270,8 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
           err = read_angle(prm, ptr);
         else if (section == DIHEDRAL)
           err = read_dihedral(prm, ptr);
+        else if (section == IMPROPER)
+          err = read_improper(prm, ptr);
         if (err != 0) {
           mprinterr("Error: Reading line: %s\n", ptr);
           return 1;
@@ -351,29 +388,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
     } else if (section == DIHEDRAL) {
       read_err = read_dihedral(prm, ptr);
     } else if (section == IMPROPER) {
-      // Improper parameters
-      // IPT , JPT , KPT , LPT , IDIVF , PK , PHASE , PN
-      // FORMAT(A2,1X,A2,1X,A2,1X,A2,I4,3F15.2)
-      mprintf("DEBUG: Improper: %s\n", ptr);
-      std::vector<std::string> symbols(4);
-      int pos = read_symbols(ptr, symbols, 4);
-      if (pos < 0) {
-        mprinterr("Error: Could not read symbols for improper from %s\n", ptr);
-        return 1;
-      }
-      mprintf("DEBUG: %s %s %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), symbols[2].c_str(), symbols[3].c_str(), ptr+pos);
-      double PK, PHASE, PN;
-      int nscan = sscanf(ptr+pos, "%lf %lf %lf", &PK, &PHASE, &PN);
-      if (nscan != 3) {
-        mprinterr("Error: Expected PK, PHASE, PN, got only %i elements\n", nscan);
-        return 1;
-      }
-      TypeNameHolder types(4);
-      types.AddName( symbols[0] );
-      types.AddName( symbols[1] );
-      types.AddName( symbols[2] );
-      types.AddName( symbols[3] );
-      prm.IP().AddParm(types, DihedralParmType(PK, PN, PHASE), false);
+      read_err = read_improper(prm, ptr);
     } else if (section == LJ1012) {
       // Lennard-Jones 10-12 hydrogen bonding term.
       // According to the docs, the format should be:
