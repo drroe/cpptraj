@@ -218,7 +218,7 @@ const
   types.AddName( symbols[2] );
   types.AddName( symbols[3] );
   ParameterHolders::RetType ret =
-    prm.IP().AddParm(types, DihedralParmType(PK, PN, PHASE), false);
+    prm.IP().AddParm(types, DihedralParmType(PK, PN, PHASE), true);
   if (ret == ParameterHolders::UPDATED)
     mprintf("Warning: Redefining improper type %s - %s - %s - %s\n",
             *(types[0]), *(types[1]), *(types[2]), *(types[3]));
@@ -250,7 +250,7 @@ const
   TypeNameHolder types(2);
   types.AddName( KT1 );
   types.AddName( KT2 );
-  ParameterHolders::RetType ret = prm.HB().AddParm(types, HB_ParmType(A, B, HCUT), false);
+  ParameterHolders::RetType ret = prm.HB().AddParm(types, HB_ParmType(A, B, HCUT), true);
   if (ret == ParameterHolders::UPDATED)
     mprintf("Warning: Redefining LJ 10-12 hbond type %s %s\n", *(types[0]), *(types[1]));
   return 0;
