@@ -119,7 +119,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
         section = NONBOND;
         // TODO check RE
       } else {
-        mprintf("DEBUG: Section %i: %s\n", (int)section, ptr);
+        //mprintf("DEBUG: Section %i: %s\n", (int)section, ptr);
         int err = 0;
         if (section == ATYPE)
           err = read_atype(prm, ptr);
@@ -131,6 +131,8 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
     }
     ptr = infile.Line();
   }
+  prm.Debug(); // TODO debug level
+  infile.CloseFile();
 
   return 0;
 }
@@ -171,7 +173,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
   while (ptr != 0) {
     // Advance to first non-space char
     while (*ptr == ' ' && *ptr != '\0') ++ptr;
-    mprintf("DEBUG: First char: %c (%i)\n", *ptr, (int)*ptr);
+    //mprintf("DEBUG: First char: %c (%i)\n", *ptr, (int)*ptr);
     int read_err = 0;
     if (*ptr == '\0') {
       // Section Change
