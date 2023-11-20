@@ -148,6 +148,48 @@ const
   return 0;
 }
 
+/** Read input for dihedral. */
+int AmberParamFile::read_dihedral(ParameterSet& prm, const char* ptr)
+const
+{
+  // Dihedral parameters
+  // IPT , JPT , KPT , LPT , IDIVF , PK , PHASE , PN
+  // FORMAT(A2,1X,A2,1X,A2,1X,A2,I4,3F15.2)
+  // If IPT .eq. 'X ' .and. LPT .eq. 'X ' then any dihedrals in the
+  // system involving the atoms "JPT" and and "KPT" are assigned 
+  // the same parameters.  This is called the general dihedral type
+  // and is of the form "X "-"JPT"-"KPT"-"X ".
+  // IDIVF is the factor by which the torsional barrier is divided.
+  // Consult Weiner, et al., JACS 106:765 (1984) p. 769 for
+  // details. Basically, the actual torsional potential is
+  //   (PK/IDIVF) * (1 + cos(PN*phi - PHASE))
+  mprintf("DEBUG: Dihedral: %s\n", ptr);
+  std::vector<std::string> symbols(4);
+  int pos = read_symbols(ptr, symbols, 4);
+  if (pos < 0) {
+    mprinterr("Error: Could not read symbols for dihedral from %s\n", ptr);
+    return 1;
+  }
+  mprintf("DEBUG: %s %s %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), symbols[2].c_str(), symbols[3].c_str(), ptr+pos);
+  int IDIVF;
+  double PK, PHASE, PN;
+  int nscan = sscanf(ptr+pos, "%i %lf %lf %lf", &IDIVF, &PK, &PHASE, &PN);
+  if (nscan != 4) {
+    mprinterr("Error: Expected IDIVF, PK, PHASE, PN, got only %i elements\n", nscan);
+    return 1;
+  }
+  TypeNameHolder types(4);
+  types.AddName( symbols[0] );
+  types.AddName( symbols[1] );
+  types.AddName( symbols[2] );
+  types.AddName( symbols[3] );
+  ParameterHolders::RetType ret =
+    prm.DP().AddParm(types, DihedralParmType(PK / (double)IDIVF, PN, PHASE), true);
+  if (ret == ParameterHolders::UPDATED)
+    mprintf("Warning: Redefining angle type %s - %s - %s - %s\n",
+            *(types[0]), *(types[1]), *(types[2]), *(types[3]));
+  return 0;
+}
 
 /** Read parametrers from Amber frcmod file. */
 int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int debugIn) const
@@ -191,6 +233,8 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
           err = read_bond(prm, ptr);
         else if (section == ANGLE)
           err = read_angle(prm, ptr);
+        else if (section == DIHEDRAL)
+          err = read_dihedral(prm, ptr);
         if (err != 0) {
           mprinterr("Error: Reading line: %s\n", ptr);
           return 1;
@@ -305,38 +349,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
     } else if (section == ANGLE) {
       read_err = read_angle(prm, ptr);
     } else if (section == DIHEDRAL) {
-      // Dihedral parameters
-      // IPT , JPT , KPT , LPT , IDIVF , PK , PHASE , PN
-      // FORMAT(A2,1X,A2,1X,A2,1X,A2,I4,3F15.2)
-      // If IPT .eq. 'X ' .and. LPT .eq. 'X ' then any dihedrals in the
-      // system involving the atoms "JPT" and and "KPT" are assigned 
-      // the same parameters.  This is called the general dihedral type
-      // and is of the form "X "-"JPT"-"KPT"-"X ".
-      // IDIVF is the factor by which the torsional barrier is divided.
-      // Consult Weiner, et al., JACS 106:765 (1984) p. 769 for
-      // details. Basically, the actual torsional potential is
-      //   (PK/IDIVF) * (1 + cos(PN*phi - PHASE))
-      mprintf("DEBUG: Dihedral: %s\n", ptr);
-      std::vector<std::string> symbols(4);
-      int pos = read_symbols(ptr, symbols, 4);
-      if (pos < 0) {
-        mprinterr("Error: Could not read symbols for dihedral from %s\n", ptr);
-        return 1;
-      }
-      mprintf("DEBUG: %s %s %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), symbols[2].c_str(), symbols[3].c_str(), ptr+pos);
-      int IDIVF;
-      double PK, PHASE, PN;
-      int nscan = sscanf(ptr+pos, "%i %lf %lf %lf", &IDIVF, &PK, &PHASE, &PN);
-      if (nscan != 4) {
-        mprinterr("Error: Expected IDIVF, PK, PHASE, PN, got only %i elements\n", nscan);
-        return 1;
-      }
-      TypeNameHolder types(4);
-      types.AddName( symbols[0] );
-      types.AddName( symbols[1] );
-      types.AddName( symbols[2] );
-      types.AddName( symbols[3] );
-      prm.DP().AddParm(types, DihedralParmType(PK / (double)IDIVF, PN, PHASE), false);
+      read_err = read_dihedral(prm, ptr);
     } else if (section == IMPROPER) {
       // Improper parameters
       // IPT , JPT , KPT , LPT , IDIVF , PK , PHASE , PN

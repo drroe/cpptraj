@@ -27,6 +27,8 @@ class AmberParamFile {
     int read_bond(ParameterSet&, const char*) const;
     /// Read angle line
     int read_angle(ParameterSet&, const char*) const;
+    /// Read dihedral line
+    int read_dihedral(ParameterSet&, const char*) const;
     //int ReadInput(std::string&, BufferedLine&) const;
 };
 #endif
