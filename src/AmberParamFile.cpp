@@ -42,7 +42,7 @@ class AmberParamFile::NonbondSet {
 };
 
 /// Hold an off-diagonal NB modification
-class OffdiagNB {
+class AmberParamFile::OffdiagNB {
   public:
     OffdiagNB(NameType const& AT1, NameType const& AT2, double sig1, double eps1, double sig2, double eps2) :
       types_(2), LJ1_(sig1, eps1), LJ2_(sig2, eps2)
@@ -289,6 +289,26 @@ const
   return 0;
 }
 
+/** Read LJ off-diagonal modifications */
+int AmberParamFile::read_ljedit(Oarray& Offdiag, const char* ptr)
+const
+{
+  mprintf("DEBUG: LJedit: %s\n", ptr);
+  // Lennard-Jones sigma and epsilon of the first atom type when it
+  // interacts with anything under the normal rules, then the sigma
+  // and epsilon of the second atom type when it interacts with the first.
+  char AT1[MAXSYMLEN], AT2[MAXSYMLEN];
+  double sig1, eps1, sig2, eps2;
+  int nscan = sscanf(ptr, "%s %s %lf %lf %lf %lf", AT1, AT2, &sig1, &eps1, &sig2, &eps2);
+  if (nscan != 6) {
+    mprinterr("Error: Expected AT1, AT2, SIG1, EPS1, SIG2, EPS2, got %i elements.\n", nscan);
+    return 1;
+  }
+  Offdiag.push_back( OffdiagNB(AT1, AT2, sig1, eps1, sig2, eps2) );
+  return 0;
+}
+
+
 /** Assign nonbond parameters from a NonbondSet to ParameterSet */
 int AmberParamFile::assign_nb(ParameterSet& prm, NonbondSet const& nbset) const {
   // Nonbonds
@@ -325,6 +345,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
   mprintf("\tTitle: %s\n", title.c_str());
   //prm.SetParamSetName( title ); TODO append title
   NonbondSet nbset(title);
+  Oarray Offdiag;
   // Read file
   SectionType section = UNKNOWN;
   ptr = infile.Line();
@@ -338,6 +359,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
       else if (line.compare(0, 4, "DIHE") == 0) section = DIHEDRAL;
       else if (line.compare(0, 4, "IMPR") == 0) section = IMPROPER;
       else if (line.compare(0, 4, "HBON") == 0) section = LJ1012;
+      else if (line.compare(0, 6, "LJEDIT") == 0) section = LJEDIT;
       else if (line.compare(0, 4, "NONB") == 0) {
         section = NONBOND;
         // TODO check RE
@@ -358,6 +380,8 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
           err = read_lj1012(prm, ptr);
         else if (section == NONBOND)
           err = read_nb_RE(nbset, ptr);
+        else if (section == LJEDIT)
+          err = read_ljedit(Offdiag, ptr);
         if (err != 0) {
           mprinterr("Error: Reading line: %s\n", ptr);
           return 1;
@@ -388,7 +412,6 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
   typedef std::vector<Narray> XNarray;
   XNarray EquivalentNames;
   // For holding off-diagonal mods
-  typedef std::vector<OffdiagNB> Oarray;
   Oarray Offdiag;
 
   // Read title

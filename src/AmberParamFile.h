@@ -22,6 +22,8 @@ class AmberParamFile {
                        LJ1012, NB_EQUIV, NONBOND, LJEDIT, UNKNOWN };
 
     class NonbondSet;
+    class OffdiagNB;
+    typedef std::vector<OffdiagNB> Oarray;
 
     static int read_symbols(const char*, std::vector<std::string>&, int);
     /// Read atom type line
@@ -38,6 +40,8 @@ class AmberParamFile {
     int read_lj1012(ParameterSet&, const char*) const;
     /// Read LJ 6-12 R/depth line
     int read_nb_RE(NonbondSet&, const char*) const;
+    /// Read LJ 6-12 off-diagonal modifications
+    int read_ljedit(Oarray&, const char*) const;
     /// Assign parameters from NonbondSet to ParameterSet
     int assign_nb(ParameterSet&, NonbondSet const&) const;
     //int ReadInput(std::string&, BufferedLine&) const;
