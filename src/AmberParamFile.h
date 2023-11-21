@@ -44,6 +44,8 @@ class AmberParamFile {
     int read_ljedit(Oarray&, const char*) const;
     /// Assign parameters from NonbondSet to ParameterSet
     int assign_nb(ParameterSet&, NonbondSet const&) const;
+    /// Assign parameters from OffdiagNB array to ParameterSet
+    int assign_offdiag(ParameterSet&, Oarray const&) const;
     //int ReadInput(std::string&, BufferedLine&) const;
 };
 #endif
