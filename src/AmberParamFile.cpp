@@ -491,42 +491,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
         EquivalentNames.back().push_back( equiv_line[iarg] );
     } else if (section == NONBOND) {
       // ***** ONLY IF KINDNB .EQ. 'RE' *****
-      // LTYNB , R , EDEP
-      mprintf("DEBUG: Nonbond: %s\n", ptr);
-      //char LTYNB[MAXSYMLEN];
-      //double R, EDEP;
-      //double R14, E14;
-      // This section is a little tricky. Apparently CHARMM-style Amber FF
-      // files can have 14 LJ params here. Try to detect this.
-      ArgList nbargs( ptr, " " );
-      if (nbargs.Nargs() < 3) {
-        mprinterr("Error: Expected at least TYPE, R, DEPTH, got %i elements.\n", nbargs.Nargs());
-        return 1;
-      }
-      bool has_14 = false;
-      if (nbargs.Nargs() >= 5) {
-        if (validDouble( nbargs[3] ) && validDouble( nbargs[4] )) {
-          has_14 = true;
-        }
-      }
-      if (has_14) mprintf("DEBUG: NB HAS CHARMM.\n");
-      double R = convertToDouble( nbargs[1] );
-      double EDEP = convertToDouble( nbargs[2] );
-      NBsets.back().LJ_.AddParm( TypeNameHolder(nbargs[0]), LJparmType(R, EDEP), false );
-      //int nscan = sscanf(ptr, "%s %lf %lf %lf %lf", LTYNB, &R, &EDEP, &R14, &E14);
-
-      //if (nscan >= 5) {
-      //  // symbol, rmin, epsilon
-      //  NBsets.back().LJ_.AddParm( TypeNameHolder(LTYNB), LJparmType(R, EDEP), false );
-      //  /*ParmHolder<AtomType>::iterator it = prm.AT().GetParam( TypeNameHolder(LTYNB) );
-      //  if (it == prm.AT().end()) {
-      //    mprintf("Warning: Nonbond parameters defined for previously undefined type '%s'."
-      //                    " Skipping.\n", LTYNB);
-      //  } else {
-      //    it->second.SetLJ().SetRadius( R );
-      //    it->second.SetLJ().SetDepth( EDEP );
-      //  }*/
-      //}
+      read_err = read_nb_RE(NBsets.back(), ptr);
     } else if (section == LJEDIT) {
       mprintf("DEBUG: LJedit: %s\n", ptr);
       // Lennard-Jones sigma and epsilon of the first atom type when it
