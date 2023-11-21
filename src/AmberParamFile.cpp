@@ -282,7 +282,10 @@ const
   if (has_14) mprintf("DEBUG: NB HAS CHARMM.\n");
   double R = convertToDouble( nbargs[1] );
   double EDEP = convertToDouble( nbargs[2] );
-  nbset.LJ_.AddParm( TypeNameHolder(nbargs[0]), LJparmType(R, EDEP), false );
+  TypeNameHolder types( nbargs[0] );
+  ParameterHolders::RetType ret = nbset.LJ_.AddParm( types, LJparmType(R, EDEP), true );
+  if (ret == ParameterHolders::UPDATED)
+    mprintf("Warning: Redefining LJ 6-12 type %s\n", *(types[0]));
   return 0;
 }
 
@@ -304,6 +307,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
   std::string title(ptr);
   mprintf("\tTitle: %s\n", title.c_str());
   //prm.SetParamSetName( title ); TODO append title
+  NonbondSet nbset(title);
   // Read file
   SectionType section = UNKNOWN;
   ptr = infile.Line();
@@ -335,6 +339,8 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
           err = read_improper(prm, ptr);
         else if (section == LJ1012)
           err = read_lj1012(prm, ptr);
+        else if (section == NONBOND)
+          err = read_nb_RE(nbset, ptr);
         if (err != 0) {
           mprinterr("Error: Reading line: %s\n", ptr);
           return 1;
@@ -343,6 +349,20 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
     }
     ptr = infile.Line();
   }
+  // Nonbonds
+  for (ParmHolder<LJparmType>::const_iterator it = nbset.LJ_.begin();
+                                              it != nbset.LJ_.end(); ++it)
+  {
+    ParmHolder<AtomType>::iterator at = prm.AT().GetParam( it->first );
+    if (at == prm.AT().end()) {
+      mprinterr("Error: Nonbond parameters defined for previously undefined type '%s'.\n",
+                *(it->first[0]));
+      return 1;
+    } 
+    at->second.SetLJ().SetRadius( it->second.Radius() );
+    at->second.SetLJ().SetDepth( it->second.Depth() );
+  }
+
   prm.Debug(); // TODO debug level
   infile.CloseFile();
 
