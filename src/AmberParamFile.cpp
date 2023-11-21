@@ -429,7 +429,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
   // Off-diagonal NB modifications
   if (assign_offdiag(prm, Offdiag)) return 1;
 
-  prm.Debug(); // TODO debug level
+  if (debug_ > 0) prm.Debug();
   infile.CloseFile();
 
   return 0;
@@ -489,7 +489,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
             prm.SetHasLJparams( true );
           } // Otherwise assume another nonbond section
         } else {
-          mprintf("SECTION %i change to %i\n", (int)section, (int)section + 1);
+          if (debug_ > 0) mprintf("SECTION %i change to %i\n", (int)section, (int)section + 1);
           section = (SectionType)((int)section + 1);
         }
       }
@@ -625,7 +625,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
   // Do off diagonal NB mods
   if (assign_offdiag(prm, Offdiag)) return 1;
 
-  prm.Debug(); // TODO debug level
+  if (debug_ > 0) prm.Debug();
   infile.CloseFile();
   return 0;
 }
