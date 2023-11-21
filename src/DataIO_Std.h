@@ -38,6 +38,7 @@ class DataIO_Std : public DataIO {
     int WriteData3D(CpptrajFile&, DataSetList const&);
     int WriteSet2D(DataSet const&, CpptrajFile&);
     int WriteSet3D(DataSet const&, CpptrajFile&);
+    int WriteParameters(CpptrajFile&, DataSetList const&) const;
 
     modeType mode_;    ///< Read mode
     precType prec_;    ///< 3d reads, data set precision

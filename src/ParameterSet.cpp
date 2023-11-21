@@ -15,9 +15,16 @@ size_t ParameterSet::DataSize() const {
           (hydrophilicAtomTypes_.size() * NameType::DataSize()));
 }
 
+/** Write parameters out to file with given name. */
 void ParameterSet::Debug(const char* fnameIn) const {
   CpptrajFile Out;
   Out.OpenWrite( fnameIn );
+  Print( Out );
+  Out.CloseFile();
+}
+
+/** Write parameters out to given file. */
+void ParameterSet::Print(CpptrajFile& Out) const {
   if (!name_.empty())
     Out.Printf("Parameter set: %s\n", ParamSetName().c_str());
   if (!NBname_.empty())

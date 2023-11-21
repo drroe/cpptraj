@@ -3,6 +3,7 @@
 #include "ParameterTypes.h"
 #include "ParameterHolders.h"
 #include "AtomType.h"
+class CpptrajFile;
 /// Hold a set of parameters for atom types, bonds, angles, etc.
 class ParameterSet {
   public:
@@ -32,9 +33,12 @@ class ParameterSet {
     ParmHolder<HB_ParmType> const& HB()      const { return HBparm_;    }
     std::string const& NbParamName()         const { return NBname_;    }
     std::string ParamSetName()               const;
-
+    /// Write parameters to file with given name
     void Debug(const char*) const;
+    /// Write parameters to stdout
     void Debug() const { return Debug(""); }
+    /// Print parameters to given file
+    void Print(CpptrajFile&) const;
 
     /// Used to track what parameters were updated during UpdateParams
     class UpdateCount {

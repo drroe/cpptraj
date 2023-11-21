@@ -21,6 +21,7 @@
 #include "DataSet_MatrixFlt.h"
 #include "DataSet_MatrixDbl.h"
 #include "DataSet_3D.h"
+#include "DataSet_Parameters.h"
 
 // CONSTRUCTOR
 DataIO_Std::DataIO_Std() :
@@ -44,6 +45,7 @@ DataIO_Std::DataIO_Std() :
   dims_[0] = 0;
   dims_[1] = 0;
   dims_[2] = 0;
+  SetValid( DataSet::PARAMETERS );
 }
 
 static void PrintColumnError(int idx) {
@@ -1173,9 +1175,37 @@ int DataIO_Std::WriteData(FileName const& fname, DataSetList const& SetList)
       err = WriteData2D(file, SetList);
     else if (SetList[0]->Ndim() == 3)
       err = WriteData3D(file, SetList);
+    else if (SetList[0]->Type() == DataSet::PARAMETERS)
+      err = WriteParameters(file, SetList);
+    else
+      mprintf("Warning: Could not determine how to write dat based on set '%s'\n",
+              SetList[0]->legend());
     file.CloseFile();
   }
   return err;
+}
+
+/** Write parameters to data file. */
+int DataIO_Std::WriteParameters(CpptrajFile& file, DataSetList const& Sets) const {
+  if (Sets.size() == 1) {
+    DataSet_Parameters const& prm = static_cast<DataSet_Parameters const&>( *(Sets[0]) );
+    prm.Print(file);
+  } else if (Sets.size() > 1) {
+    // Create a combined parameter set
+    ParameterSet prm;
+    for (DataSetList::const_iterator it = Sets.begin(); it != Sets.end(); ++it)
+    {
+      if ((*it)->Type() == DataSet::PARAMETERS) {
+        DataSet_Parameters const& param = static_cast<DataSet_Parameters const&>( *(*it) );
+        ParameterSet::UpdateCount UC;
+        prm.UpdateParamSet( param, UC, debug_ );
+      } else {
+        mprintf("Warning: Set '%s' is not a parameter set, skipping.\n", (*it)->legend());
+      }
+    }
+    prm.Print(file);
+  }
+  return 0;
 }
 
 // DataIO_Std::WriteCmatrix()
