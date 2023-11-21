@@ -192,9 +192,11 @@ const
   types.AddName( symbols[3] );
   ParameterHolders::RetType ret =
     prm.DP().AddParm(types, DihedralParmType(PK / (double)IDIVF, PN, PHASE), true);
-  if (ret == ParameterHolders::UPDATED)
-    mprintf("Warning: Redefining dihedral type %s - %s - %s - %s\n",
-            *(types[0]), *(types[1]), *(types[2]), *(types[3]));
+  if (ret == ParameterHolders::UPDATED) {
+    mprintf("Warning: Redefining dihedral type %s - %s - %s - %s (PN=%g)\n",
+            *(types[0]), *(types[1]), *(types[2]), *(types[3]), PN);
+    //mprintf("DEBUG: %s\n", ptr);
+  }
   return 0;
 }
 
