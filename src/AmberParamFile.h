@@ -15,6 +15,8 @@ class AmberParamFile {
     int ReadFrcmod(ParameterSet&, FileName const&, int) const;
     /// Write main Amber FF file
     int WriteParams(ParameterSet&, FileName const&, int) const;
+    /// Set debug level
+    void SetDebug(int);
   private:
     static const int MAXSYMLEN;
 
@@ -47,5 +49,7 @@ class AmberParamFile {
     /// Assign parameters from OffdiagNB array to ParameterSet
     int assign_offdiag(ParameterSet&, Oarray const&) const;
     //int ReadInput(std::string&, BufferedLine&) const;
+
+    int debug_;
 };
 #endif

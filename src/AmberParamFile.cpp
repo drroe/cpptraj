@@ -10,7 +10,14 @@
 const int AmberParamFile::MAXSYMLEN = 16;
 
 /// CONSTRUCTOR
-AmberParamFile::AmberParamFile() {}
+AmberParamFile::AmberParamFile() :
+  debug_(0)
+{}
+
+/** Set debug level */
+void AmberParamFile::SetDebug(int d) {
+  debug_ = d;
+}
 
 /** Read symbols delimited by - and space. */
 int AmberParamFile::read_symbols(const char* ptrIn, std::vector<std::string>& symbols, int nsymbols)
@@ -61,7 +68,7 @@ int AmberParamFile::read_atype(ParameterSet& prm, const char* ptr)
 const
 {
   // Format (A2,2X,F10.2x,f10.2)
-  mprintf("DEBUG: Atype: %s\n", ptr);
+  if (debug_ > 1) mprintf("DEBUG: Atype: %s\n", ptr);
   char kndsym[MAXSYMLEN];
   double amass = 0;
   double atpol = 0;
@@ -92,14 +99,14 @@ const
   // Bond parameters
   // IBT , JBT , RK , REQ
   // FORMAT(A2,1X,A2,2F10.2)
-  mprintf("DEBUG: Bond: %s\n", ptr);
+  if (debug_ > 1) mprintf("DEBUG: Bond: %s\n", ptr);
   std::vector<std::string> symbols(2);
   int pos = read_symbols(ptr, symbols, 2);
   if (pos < 0) {
     mprinterr("Error: Could not read symbols for bond from %s\n", ptr);
     return 1;
   }
-  mprintf("DEBUG: %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), ptr+pos);
+  //mprintf("DEBUG: %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), ptr+pos);
   double RK, REQ;
   int nscan = sscanf(ptr+pos, "%lf %lf", &RK, &REQ);
   if (nscan != 2) {
@@ -123,14 +130,14 @@ const
   // Angle parameters
   // ITT , JTT , KTT , TK , TEQ
   // FORMAT(A2,1X,A2,1X,A2,2F10.2)
-  mprintf("DEBUG: Angle: %s\n", ptr);
+  if (debug_ > 1) mprintf("DEBUG: Angle: %s\n", ptr);
   std::vector<std::string> symbols(3);
   int pos = read_symbols(ptr, symbols, 3);
   if (pos < 0) {
     mprinterr("Error: Could not read symbols for angle from %s\n", ptr);
     return 1;
   }
-  mprintf("DEBUG: %s %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), symbols[2].c_str(), ptr+pos);
+  //mprintf("DEBUG: %s %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), symbols[2].c_str(), ptr+pos);
   double TK, TEQ;
   int nscan = sscanf(ptr+pos, "%lf %lf", &TK, &TEQ);
   if (nscan != 2) {
@@ -163,14 +170,14 @@ const
   // Consult Weiner, et al., JACS 106:765 (1984) p. 769 for
   // details. Basically, the actual torsional potential is
   //   (PK/IDIVF) * (1 + cos(PN*phi - PHASE))
-  mprintf("DEBUG: Dihedral: %s\n", ptr);
+  if (debug_ > 1) mprintf("DEBUG: Dihedral: %s\n", ptr);
   std::vector<std::string> symbols(4);
   int pos = read_symbols(ptr, symbols, 4);
   if (pos < 0) {
     mprinterr("Error: Could not read symbols for dihedral from %s\n", ptr);
     return 1;
   }
-  mprintf("DEBUG: %s %s %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), symbols[2].c_str(), symbols[3].c_str(), ptr+pos);
+  //mprintf("DEBUG: %s %s %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), symbols[2].c_str(), symbols[3].c_str(), ptr+pos);
   int IDIVF;
   double PK, PHASE, PN;
   int nscan = sscanf(ptr+pos, "%i %lf %lf %lf", &IDIVF, &PK, &PHASE, &PN);
@@ -198,14 +205,14 @@ const
   // Improper parameters
   // IPT , JPT , KPT , LPT , IDIVF , PK , PHASE , PN
   // FORMAT(A2,1X,A2,1X,A2,1X,A2,I4,3F15.2)
-  mprintf("DEBUG: Improper: %s\n", ptr);
+  if (debug_ > 1) mprintf("DEBUG: Improper: %s\n", ptr);
   std::vector<std::string> symbols(4);
   int pos = read_symbols(ptr, symbols, 4);
   if (pos < 0) {
     mprinterr("Error: Could not read symbols for improper from %s\n", ptr);
     return 1;
   }
-  mprintf("DEBUG: %s %s %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), symbols[2].c_str(), symbols[3].c_str(), ptr+pos);
+  //mprintf("DEBUG: %s %s %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), symbols[2].c_str(), symbols[3].c_str(), ptr+pos);
   double PK, PHASE, PN;
   int nscan = sscanf(ptr+pos, "%lf %lf %lf", &PK, &PHASE, &PN);
   if (nscan != 3) {
@@ -240,7 +247,7 @@ const
   double A, B, HCUT;
   //double ASOLN, BSOLN, HCUT;
   //int IC;
-  mprintf("DEBUG: LJ 10-12: %s\n", ptr);
+  if (debug_ > 1) mprintf("DEBUG: LJ 10-12: %s\n", ptr);
   //int nscan = sscanf(ptr, "%s %s %lf %lf %lf %lf %lf %i\n",
   int nscan = sscanf(ptr, "%s %s %lf %lf %lf", KT1, KT2, &A, &B, &HCUT);
   if (nscan < 5) {
@@ -262,7 +269,7 @@ const
 {
   // ***** ONLY IF KINDNB .EQ. 'RE' *****
   // LTYNB , R , EDEP
-  mprintf("DEBUG: Nonbond: %s\n", ptr);
+  if (debug_ > 1) mprintf("DEBUG: Nonbond: %s\n", ptr);
   //char LTYNB[MAXSYMLEN];
   //double R, EDEP;
   //double R14, E14;
@@ -279,7 +286,7 @@ const
       has_14 = true;
     }
   }
-  if (has_14) mprintf("DEBUG: NB HAS CHARMM.\n");
+  if (has_14) mprintf("DEBUG: NB HAS 1-4 LJ PARAMS.\n"); // FIXME save these
   double R = convertToDouble( nbargs[1] );
   double EDEP = convertToDouble( nbargs[2] );
   TypeNameHolder types( nbargs[0] );
@@ -293,7 +300,7 @@ const
 int AmberParamFile::read_ljedit(Oarray& Offdiag, const char* ptr)
 const
 {
-  mprintf("DEBUG: LJedit: %s\n", ptr);
+  if (debug_ > 1) mprintf("DEBUG: LJedit: %s\n", ptr);
   // Lennard-Jones sigma and epsilon of the first atom type when it
   // interacts with anything under the normal rules, then the sigma
   // and epsilon of the second atom type when it interacts with the first.
@@ -333,7 +340,7 @@ int AmberParamFile::assign_offdiag(ParameterSet& prm, Oarray const& Offdiag) con
   if (!Offdiag.empty()) {
     for (Oarray::const_iterator od = Offdiag.begin(); od != Offdiag.end(); ++od)
     {
-      mprintf("DEBUG: Off diag %s %s\n", *(od->types_[0]), *(od->types_[1]));
+      if (debug_ > 1) mprintf("DEBUG: Off diag %s %s\n", *(od->types_[0]), *(od->types_[1]));
       // Set type 1
       ParmHolder<AtomType>::iterator it = prm.AT().GetParam( od->types_[0] );
       if (it == prm.AT().end()) {
@@ -386,6 +393,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
       else if (line.compare(0, 6, "LJEDIT") == 0) section = LJEDIT;
       else if (line.compare(0, 4, "NONB") == 0) {
         section = NONBOND;
+        prm.SetHasLJparams( true );
         // TODO check RE
       } else {
         //mprintf("DEBUG: Section %i: %s\n", (int)section, ptr);
@@ -487,7 +495,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
         // Special case: hydrophilic atom types. One line.
         // FORMAT(20(A2,2X))
         ptr = infile.Line();
-        mprintf("DEBUG: Hydrophilic: %s\n", ptr);
+        if (debug_ > 1) mprintf("DEBUG: Hydrophilic: %s\n", ptr);
         // Take advantage of the fact that we expect whitespace-delimiters
         ArgList hsymbols( ptr, " " );
         for (int iarg = 0; iarg != hsymbols.Nargs(); ++iarg)
@@ -499,6 +507,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
         while (*ptr == ' ' && *ptr != '\0') ++ptr;
         if (*ptr != '\0') continue;
       } else if (section == NONBOND) {
+        prm.SetHasLJparams( true );
         // Special case: first read the line.
         // LABEL , KINDNB
         // FORMAT(A4,6X,A2)
@@ -533,7 +542,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
       // EQUIVALENCING ATOM SYMBOLS FOR THE NON-BONDED 6-12 POTENTIAL PARAMETERS
       // IORG , IEQV(I) , I = 1 , 19
       // FORMAT(20(A2,2X))
-      mprintf("DEBUG: Nonbond equiv: %s\n", ptr);
+      if (debug_ > 1) mprintf("DEBUG: Nonbond equiv: %s\n", ptr);
       EquivalentNames.push_back( Narray() );
       ArgList equiv_line( ptr, " " );
       for (int iarg = 0; iarg != equiv_line.Nargs(); iarg++)
@@ -542,18 +551,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
       // ***** ONLY IF KINDNB .EQ. 'RE' *****
       read_err = read_nb_RE(NBsets.back(), ptr);
     } else if (section == LJEDIT) {
-      mprintf("DEBUG: LJedit: %s\n", ptr);
-      // Lennard-Jones sigma and epsilon of the first atom type when it
-      // interacts with anything under the normal rules, then the sigma
-      // and epsilon of the second atom type when it interacts with the first.
-      char AT1[MAXSYMLEN], AT2[MAXSYMLEN];
-      double sig1, eps1, sig2, eps2;
-      int nscan = sscanf(ptr, "%s %s %lf %lf %lf %lf", AT1, AT2, &sig1, &eps1, &sig2, &eps2);
-      if (nscan != 6) {
-        mprinterr("Error: Expected AT1, AT2, SIG1, EPS1, SIG2, EPS2, got %i elements.\n", nscan);
-        return 1;
-      }
-      Offdiag.push_back( OffdiagNB(AT1, AT2, sig1, eps1, sig2, eps2) );
+      read_err = read_ljedit(Offdiag, ptr);
     }
     if (read_err != 0) {
       mprinterr("Error: Reading line: %s\n", ptr);
@@ -614,7 +612,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
           mprinterr("Error: Equivalent atom type '%s' (base '%s') not found.\n", *(*typeName), *(at0->first[0]));
           return 1;
         }
-        mprintf("DEBUG: Equiv '%s' => '%s'\n", *(at0->first[0]), *(*typeName));
+        if (debug_ > 1) mprintf("DEBUG: Equiv '%s' => '%s'\n", *(at0->first[0]), *(*typeName));
         at1->second.SetLJ().SetRadius( at0->second.LJ().Radius() );
         at1->second.SetLJ().SetDepth( at0->second.LJ().Depth() );
       }
