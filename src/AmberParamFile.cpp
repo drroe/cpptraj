@@ -622,24 +622,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
   } // END nonbond parameters
 
   // Do off diagonal NB mods
-  if (!Offdiag.empty()) {
-    for (Oarray::const_iterator od = Offdiag.begin(); od != Offdiag.end(); ++od)
-    {
-      mprintf("DEBUG: Off diag %s %s\n", *(od->types_[0]), *(od->types_[1]));
-      // Set type 1
-      ParmHolder<AtomType>::iterator it = prm.AT().GetParam( od->types_[0] );
-      if (it == prm.AT().end()) {
-        mprinterr("Error: Off-diagonal nonbond parameters defined for previously undefined type '%s'.\n",
-                  *(od->types_[0]));
-        return 1;
-      }
-      it->second.SetLJ().SetRadius( od->LJ1_.Radius() );
-      it->second.SetLJ().SetDepth( od->LJ1_.Depth() );
-      // Set off-diagonal for type1-type2
-      // FIXME different combine rules?
-      prm.NB().AddParm(od->types_, od->LJ1_.Combine_LB(od->LJ2_), false);
-    }
-  } // END off-diagonal NB mods
+  if (assign_offdiag(prm, Offdiag)) return 1;
 
   prm.Debug(); // TODO debug level
   infile.CloseFile();
