@@ -383,6 +383,8 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
   SectionType section = UNKNOWN;
   ptr = infile.Line();
   while (ptr != 0) {
+    // Advance to first non-space char
+    while (*ptr == ' ' && *ptr != '\0') ++ptr;
     // Is this a recognized section keyword?
     if (*ptr != '\0') {
       std::string line(ptr);
