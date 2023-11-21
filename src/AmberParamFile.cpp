@@ -289,6 +289,23 @@ const
   return 0;
 }
 
+/** Assign nonbond parameters from a NonbondSet to ParameterSet */
+int AmberParamFile::assign_nb(ParameterSet& prm, NonbondSet const& nbset) const {
+  // Nonbonds
+  for (ParmHolder<LJparmType>::const_iterator it = nbset.LJ_.begin();
+                                              it != nbset.LJ_.end(); ++it)
+  {
+    ParmHolder<AtomType>::iterator at = prm.AT().GetParam( it->first );
+    if (at == prm.AT().end()) {
+      mprinterr("Error: Nonbond parameters defined for previously undefined type '%s'.\n",
+                *(it->first[0]));
+      return 1;
+    } 
+    at->second.SetLJ().SetRadius( it->second.Radius() );
+    at->second.SetLJ().SetDepth( it->second.Depth() );
+  }
+  return 0;
+}
 
 /** Read parametrers from Amber frcmod file. */
 int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int debugIn) const
@@ -350,18 +367,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
     ptr = infile.Line();
   }
   // Nonbonds
-  for (ParmHolder<LJparmType>::const_iterator it = nbset.LJ_.begin();
-                                              it != nbset.LJ_.end(); ++it)
-  {
-    ParmHolder<AtomType>::iterator at = prm.AT().GetParam( it->first );
-    if (at == prm.AT().end()) {
-      mprinterr("Error: Nonbond parameters defined for previously undefined type '%s'.\n",
-                *(it->first[0]));
-      return 1;
-    } 
-    at->second.SetLJ().SetRadius( it->second.Radius() );
-    at->second.SetLJ().SetDepth( it->second.Depth() );
-  }
+  if (assign_nb(prm, nbset)) return 1;
 
   prm.Debug(); // TODO debug level
   infile.CloseFile();
@@ -574,18 +580,8 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
     }
     mprintf("\tUsing nonbonded parm set: %s\n", NBsets[nbsetidx].name_.c_str());
     prm.SetNbParamName( NBsets[nbsetidx].name_ );
-    for (ParmHolder<LJparmType>::const_iterator it = NBsets[nbsetidx].LJ_.begin();
-                                                it != NBsets[nbsetidx].LJ_.end(); ++it)
-    {
-      ParmHolder<AtomType>::iterator at = prm.AT().GetParam( it->first );
-      if (at == prm.AT().end()) {
-        mprinterr("Error: Nonbond parameters defined for previously undefined type '%s'.\n",
-                  *(it->first[0]));
-        return 1;
-      } 
-      at->second.SetLJ().SetRadius( it->second.Radius() );
-      at->second.SetLJ().SetDepth( it->second.Depth() );
-    }
+    if (assign_nb(prm, NBsets[nbsetidx])) return 1;
+    
     // Do equivalent atoms.
     for (XNarray::const_iterator equivAts = EquivalentNames.begin();
                                  equivAts != EquivalentNames.end(); ++equivAts)
