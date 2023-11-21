@@ -30,8 +30,8 @@ class ParameterSet {
     ParmHolder<DihedralParmType> const& IP() const { return impParm_;   }
     DihedralParmHolder const& DP()           const { return dihParm_;   }
     ParmHolder<HB_ParmType> const& HB()      const { return HBparm_;    }
-    std::string const& ParamSetName()        const { return name_;      }
     std::string const& NbParamName()         const { return NBname_;    }
+    std::string ParamSetName()               const;
 
     void Debug(const char*) const;
     void Debug() const { return Debug(""); }
@@ -66,8 +66,9 @@ class ParameterSet {
     size_t DataSize() const;
   private:
     typedef std::vector<NameType> NsetType;
+    typedef std::vector<std::string> Sarray;
 
-    std::string name_;                     ///< Parameter set name
+    Sarray name_;                          ///< Parameter set name(s)
     std::string NBname_;                   ///< Nonbond set name
 
     ParmHolder<AtomType> atomTypes_;       ///< Atom types

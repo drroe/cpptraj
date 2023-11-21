@@ -19,7 +19,7 @@ void ParameterSet::Debug(const char* fnameIn) const {
   CpptrajFile Out;
   Out.OpenWrite( fnameIn );
   if (!name_.empty())
-    Out.Printf("Parameter set: %s\n", name_.c_str());
+    Out.Printf("Parameter set: %s\n", ParamSetName().c_str());
   if (!NBname_.empty())
     Out.Printf("Nonbond parameters name: %s\n", NBname_.c_str());
   Out.Printf("Atom Types:\n");
@@ -132,9 +132,22 @@ int ParameterSet::AddHydrophilicAtomType(NameType const& atype) {
   return 0;
 }
 
+/** \return Single string with total parameter set name */
+std::string ParameterSet::ParamSetName() const {
+  if (name_.size() == 1)
+    return name_.front();
+  else if (name_.size() > 1) {
+    std::string out = name_.front();
+    for (unsigned int idx = 1; idx < name_.size(); idx++)
+      out.append(" + " + name_[idx]);
+    return out;
+  }
+  return std::string();
+}
+
 /** Set parameter set name. */
 void ParameterSet::SetParamSetName(std::string const& nameIn) {
-  name_ = nameIn;
+  name_.push_back( nameIn );
 }
 
 /** Set nonbond parameter set name. */

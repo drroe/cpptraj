@@ -374,7 +374,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
   }
   std::string title(ptr);
   mprintf("\tTitle: %s\n", title.c_str());
-  //prm.SetParamSetName( title ); TODO append title
+  prm.SetParamSetName( title );
   NonbondSet nbset(title);
   Oarray Offdiag;
   // Read file
