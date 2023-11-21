@@ -390,8 +390,10 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
       else if (line.compare(0, 4, "DIHE") == 0) section = DIHEDRAL;
       else if (line.compare(0, 4, "IMPR") == 0) section = IMPROPER;
       else if (line.compare(0, 4, "HBON") == 0) section = LJ1012;
-      else if (line.compare(0, 6, "LJEDIT") == 0) section = LJEDIT;
-      else if (line.compare(0, 4, "NONB") == 0) {
+      else if (line.compare(0, 6, "LJEDIT") == 0) {
+        section = LJEDIT;
+        prm.SetHasLJparams( true );
+      } else if (line.compare(0, 4, "NONB") == 0) {
         section = NONBOND;
         prm.SetHasLJparams( true );
         // TODO check RE
@@ -484,6 +486,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
             section = UNKNOWN;
           } else if (nbline == "LJEDIT") {
             section = LJEDIT;
+            prm.SetHasLJparams( true );
           } // Otherwise assume another nonbond section
         } else {
           mprintf("SECTION %i change to %i\n", (int)section, (int)section + 1);
