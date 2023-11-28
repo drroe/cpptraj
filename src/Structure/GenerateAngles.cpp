@@ -19,6 +19,30 @@ static inline void enumerateAngles(int at1, int at2, Topology const& topIn) {
   }
 }
 
+static inline void enumerateDihedrals(int at1, int at2, Topology const& topIn) {
+  Atom const& A1 = topIn[at1];
+  Atom const& A2 = topIn[at2];
+  if (A1.Nbonds() > 1 && A2.Nbonds() > 1) {
+    for (Atom::bond_iterator bat1 = A1.bondbegin(); bat1 != A1.bondend(); ++bat1)
+    {
+      if (*bat1 != at2) {
+        for (Atom::bond_iterator bat2 = A2.bondbegin(); bat2 != A2.bondend(); ++bat2)
+        {
+          if (*bat2 != at1) {
+            mprintf("%s - %s - %s - %s\n",
+                    topIn.AtomMaskName(*bat1).c_str(),
+                    topIn.AtomMaskName(at1).c_str(),
+                    topIn.AtomMaskName(at2).c_str(),
+                    topIn.AtomMaskName(*bat2).c_str());
+          }
+        }
+      }
+    }
+  }
+}
+
+        
+
 int Cpptraj::Structure::GenerateAngles(Topology& topIn) {
   if (topIn.Nbonds() < 1) {
     mprintf("Warning: No bonds in '%s', no angles to generate.\n", topIn.c_str());
@@ -49,6 +73,8 @@ int Cpptraj::Structure::GenerateAngles(Topology& topIn) {
     enumerateAngles( it->A1(), it->A2(), topIn );
     // Reverse direction. A2-A1-X
     enumerateAngles( it->A2(), it->A1(), topIn );
+    // Dihedrals
+    enumerateDihedrals( it->A1(), it->A2(), topIn );
   }
   return 0;
 }
