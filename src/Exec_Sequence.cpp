@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "AssociatedData_Connect.h"
 #include "Structure/Builder.h"
+#include "Structure/GenerateAngles.h"
 
 /** Generate and build the specified sequence. */
 int Exec_Sequence::generate_sequence(DataSet_Coords* OUT,
@@ -113,6 +114,14 @@ const
       return 1;
     }
   }
+
+  // Generate angles and dihedrals
+ if (combinedTop.Nbonds() > 0) {
+   if (Cpptraj::Structure::GenerateAngles(combinedTop)) {
+     mprinterr("Error: Angle generation failed.\n");
+     return 1;
+   }
+ }
 
   OUT->CoordsSetup(combinedTop, CombinedFrame.CoordsInfo());
   OUT->AddFrame( CombinedFrame );
