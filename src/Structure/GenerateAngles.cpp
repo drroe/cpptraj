@@ -4,12 +4,13 @@
 #include "../Topology.h"
 #include <algorithm> // std::sort
 
-static inline void enumerateAngles(int at1, int at2, Topology const& topIn) {
+static inline void enumerateAngles(int at1, int at2, Topology& topIn) {
   Atom const& A2 = topIn[at2];
   if (A2.Nbonds() > 1) {
     for (Atom::bond_iterator bat = A2.bondbegin(); bat != A2.bondend(); ++bat)
     {
       if (*bat != at1 && at1 < *bat) {
+        topIn.AddAngle(at1, at2, *bat);
         mprintf("%s - %s - %s\n",
                 topIn.AtomMaskName(at1).c_str(),
                 topIn.AtomMaskName(at2).c_str(),
@@ -19,7 +20,7 @@ static inline void enumerateAngles(int at1, int at2, Topology const& topIn) {
   }
 }
 
-static inline void enumerateDihedrals(int at1, int at2, Topology const& topIn) {
+static inline void enumerateDihedrals(int at1, int at2, Topology& topIn) {
   Atom const& A1 = topIn[at1];
   Atom const& A2 = topIn[at2];
   if (A1.Nbonds() > 1 && A2.Nbonds() > 1) {
@@ -29,6 +30,7 @@ static inline void enumerateDihedrals(int at1, int at2, Topology const& topIn) {
         for (Atom::bond_iterator bat2 = A2.bondbegin(); bat2 != A2.bondend(); ++bat2)
         {
           if (*bat2 != at1) {
+            topIn.AddDihedral(*bat1, at1, at2, *bat2);
             mprintf("%s - %s - %s - %s\n",
                     topIn.AtomMaskName(*bat1).c_str(),
                     topIn.AtomMaskName(at1).c_str(),
@@ -46,6 +48,14 @@ static inline void enumerateDihedrals(int at1, int at2, Topology const& topIn) {
 int Cpptraj::Structure::GenerateAngles(Topology& topIn) {
   if (topIn.Nbonds() < 1) {
     mprintf("Warning: No bonds in '%s', no angles to generate.\n", topIn.c_str());
+    return 0;
+  }
+  if (topIn.Nangles() > 0) {
+    mprintf("Warning: Topology '%s' already has angle information.\n", topIn.c_str());
+    return 0;
+  }
+  if (topIn.Ndihedrals() > 0) {
+    mprintf("Warning: Topology '%s' already has dihedral information.\n", topIn.c_str());
     return 0;
   }
   // Create a combined bonds array
