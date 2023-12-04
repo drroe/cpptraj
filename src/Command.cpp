@@ -58,6 +58,7 @@
 #include "Exec_ExtendedComparison.h"
 #include "Exec_Zmatrix.h"
 #include "Exec_Sequence.h"
+#include "Exec_Build.h"
 // ----- TRAJECTORY ------------------------------------------------------------
 #include "Exec_Traj.h"
 // ----- TOPOLOGY --------------------------------------------------------------
@@ -268,6 +269,7 @@ void Command::Init() {
   // SYSTEM
   Command::AddCmd( new Exec_System(), Cmd::EXE, 6, "gnuplot", "head", "less", "ls", "pwd", "xmgrace" );
   // COORDS
+  Command::AddCmd( new Exec_Build(),            Cmd::EXE, 1, "build" );
   Command::AddCmd( new Exec_CatCrd(),           Cmd::EXE, 1, "catcrd" );
   Command::AddCmd( new Exec_CombineCoords(),    Cmd::EXE, 1, "combinecrd" ); 
   Command::AddCmd( new Exec_CrdAction(),        Cmd::EXE, 1, "crdaction" );

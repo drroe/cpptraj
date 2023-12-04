@@ -50,14 +50,17 @@ int Cpptraj::Structure::GenerateAngles(Topology& topIn) {
     mprintf("Warning: No bonds in '%s', no angles to generate.\n", topIn.c_str());
     return 0;
   }
-  if (topIn.Nangles() > 0) {
+  bool has_angles = topIn.Nangles() > 0;
+  if (has_angles) {
     mprintf("Warning: Topology '%s' already has angle information.\n", topIn.c_str());
-    return 0;
+    //return 0;
   }
-  if (topIn.Ndihedrals() > 0) {
+  bool has_dihedrals = topIn.Ndihedrals() > 0;
+  if (has_dihedrals) {
     mprintf("Warning: Topology '%s' already has dihedral information.\n", topIn.c_str());
-    return 0;
+    //return 0;
   }
+  if (has_angles && has_dihedrals) return 0;
   // Create a combined bonds array
   BondArray allBonds;
   allBonds.reserve(topIn.Nbonds());
@@ -79,12 +82,16 @@ int Cpptraj::Structure::GenerateAngles(Topology& topIn) {
   AngleArray anglesH;
   for (BondArray::const_iterator it = allBonds.begin(); it != allBonds.end(); ++it)
   {
-    // Forward direction. A1-A2-X
-    enumerateAngles( it->A1(), it->A2(), topIn );
-    // Reverse direction. A2-A1-X
-    enumerateAngles( it->A2(), it->A1(), topIn );
-    // Dihedrals
-    enumerateDihedrals( it->A1(), it->A2(), topIn );
+    if (!has_angles) {
+      // Forward direction. A1-A2-X
+      enumerateAngles( it->A1(), it->A2(), topIn );
+      // Reverse direction. A2-A1-X
+      enumerateAngles( it->A2(), it->A1(), topIn );
+    }
+    if (!has_dihedrals) {
+      // Dihedrals
+      enumerateDihedrals( it->A1(), it->A2(), topIn );
+    }
   }
   return 0;
 }

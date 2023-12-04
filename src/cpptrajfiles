@@ -258,6 +258,7 @@ COMMON_SOURCES= \
         ExclusionArray.cpp \
         Exec_AddMissingRes.cpp \
         Exec_Analyze.cpp \
+        Exec_Build.cpp \
         Exec_Calc.cpp \
         Exec_CatCrd.cpp \
         Exec_Change.cpp \
