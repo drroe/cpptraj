@@ -101,8 +101,8 @@ class AngleParmType {
         return false;
     }
   private:
-    double tk_;
-    double teq_;
+    double tk_;  ///< Angle force constant in kcal/mol*rad^2
+    double teq_; ///< Angle equilibirum value in rad
 };
 typedef std::vector<AngleParmType> AngleParmArray;
 /// Hold angle atom indices and parameter index
