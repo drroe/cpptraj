@@ -81,10 +81,12 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     mainParmSet = ParamSets.front();
   else {
     free_parmset_mem = true;
-    mainParmSet = new DataSet_Parameters();
     mprintf("\tCombining parameter sets.\n");
+    Parray::const_iterator it = ParamSets.begin();
+    mainParmSet = new DataSet_Parameters( *(*it) );
+    ++it;
     ParameterSet::UpdateCount UC;
-    for (Parray::const_iterator it = ParamSets.begin(); it != ParamSets.end(); ++it)
+    for (; it != ParamSets.end(); ++it)
       mainParmSet->UpdateParamSet( *(*it), UC, State.Debug() );
   }
 
