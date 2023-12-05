@@ -284,6 +284,7 @@ class Topology {
     inline void AddAngleArray(AngleArray const&, AngleParmArray const&, int);
     inline void AddDihArray(DihedralArray const&, DihedralParmArray const&, int);
 
+    void AssignAtomTypeParm(ParmHolder<AtomType> const&);
     void AssignBondParm(ParmHolder<BondParmType> const&, ParmHolder<int>&, BondArray&, BondParmArray&, const char*);
     void AssignAngleParm(ParmHolder<AngleParmType> const&, ParmHolder<int>&, AngleArray&);
     void AssignImproperParm(ParmHolder<DihedralParmType> const&, ParmHolder<int>&, DihedralArray&);

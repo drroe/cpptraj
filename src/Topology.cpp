@@ -2564,6 +2564,24 @@ void AssignParm(std::vector<Atom> const& atoms,
   }
 }*/
 
+/** Set parameters for atoms via given atom type parameter holder. */
+void Topology::AssignAtomTypeParm(ParmHolder<AtomType> const& newAtomTypeParams)
+{
+  for (unsigned int iat = 0; iat != atoms_.size(); iat++)
+  {
+    bool found;
+    TypeNameHolder atype( atoms_[iat].Type() );
+    AtomType at = newAtomTypeParams.FindParam( atype, found );
+    if (found) {
+      // Update mass
+      atoms_[iat].SetMass( at.Mass() );
+      // Update polarizability
+      atoms_[iat].SetPolar( at.Polarizability() );
+    } else
+      mprintf("Warning: Atom type parameter not found for %s\n", *atype[0]);
+  }
+}
+
 /** Set parameters for bonds in given bond array. */
 void Topology::AssignBondParm(ParmHolder<BondParmType> const& newBondParams,
                               ParmHolder<int>& currentIndices,
@@ -2960,6 +2978,10 @@ int Topology::UpdateParams(ParameterSet const& set1) {
   }
   // Atom types
   updateCount = UpdateParameters< ParmHolder<AtomType> >(set0.AT(), set1.AT(), "atom type");
+  if (updateCount > 0) {
+    mprintf("\tRegenerating atom type parameters.\n");
+    AssignAtomTypeParm( set0.AT() );
+  }
   updateCount += UpdateParameters< ParmHolder<NonbondType> >(set0.NB(), set1.NB(), "LJ A-B");
   if (updateCount > 0) {
     mprintf("\tRegenerating nonbond parameters.\n");
