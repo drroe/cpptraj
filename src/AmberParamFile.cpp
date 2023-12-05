@@ -181,10 +181,21 @@ const
   //mprintf("DEBUG: %s %s %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), symbols[2].c_str(), symbols[3].c_str(), ptr+pos);
   int IDIVF;
   double PK, PHASE, PN;
-  int nscan = sscanf(ptr+pos, "%i %lf %lf %lf", &IDIVF, &PK, &PHASE, &PN);
-  if (nscan != 4) {
+  char sSCEE[128];
+  char sSCNB[128];
+  int nscan = sscanf(ptr+pos, "%i %lf %lf %lf %s %s", &IDIVF, &PK, &PHASE, &PN, sSCEE, sSCNB);
+  if (nscan < 4) {
     mprinterr("Error: Expected IDIVF, PK, PHASE, PN, got only %i elements\n", nscan);
     return 1;
+  }
+  double scee = 1.2; // AMBER DEFAULT
+  double scnb = 2.0; // AMBER DEFAULT
+  if (nscan == 6) {
+    // Check for SCEE/SCNB (GLYCAM)
+    if (sSCEE[0] == 'S' && sSCEE[1] == 'C' && sSCEE[2] == 'E' && sSCEE[3] == 'E')
+     sscanf( sSCEE, "SCEE=%lf", &scee);
+    if (sSCNB[0] == 'S' && sSCNB[1] == 'C' && sSCNB[2] == 'N' && sSCNB[3] == 'B')
+     sscanf( sSCNB, "SCNB=%lf", &scnb);
   }
   TypeNameHolder types(4);
   types.AddName( symbols[0] );
@@ -192,7 +203,7 @@ const
   types.AddName( symbols[2] );
   types.AddName( symbols[3] );
   ParameterHolders::RetType ret =
-    prm.DP().AddParm(types, DihedralParmType(PK / (double)IDIVF, PN, PHASE), true);
+    prm.DP().AddParm(types, DihedralParmType(PK / (double)IDIVF, PN, PHASE, scee, scnb), true);
   if (ret == ParameterHolders::UPDATED) {
     mprintf("Warning: Redefining dihedral type %s - %s - %s - %s (PN=%g)\n",
             *(types[0]), *(types[1]), *(types[2]), *(types[3]), PN);
