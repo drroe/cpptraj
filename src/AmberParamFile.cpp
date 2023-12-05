@@ -5,6 +5,7 @@
 #include "ParameterHolders.h"
 #include "StringRoutines.h"
 #include "ParameterSet.h"
+#include "Constants.h"
 #include <cstdio> // sscanf
 
 const int AmberParamFile::MAXSYMLEN = 16;
@@ -148,7 +149,7 @@ const
   types.AddName( symbols[0] );
   types.AddName( symbols[1] );
   types.AddName( symbols[2] );
-  ParameterHolders::RetType ret = prm.AP().AddParm(types, AngleParmType(TK, TEQ), true);
+  ParameterHolders::RetType ret = prm.AP().AddParm(types, AngleParmType(TK, TEQ*Constants::DEGRAD), true);
   if (ret == ParameterHolders::UPDATED)
     mprintf("Warning: Redefining angle type %s - %s - %s\n", *(types[0]), *(types[1]), *(types[2]));
 
