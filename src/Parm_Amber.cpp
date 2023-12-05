@@ -669,7 +669,7 @@ int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& 
   TopIn.SetNonbond().SetupLJforNtypes( values_[NTYPES] );
   numLJparm_ = TopIn.Nonbond().NBarray().size();
   TopIn.SetNonbond().SetNHBterms( values_[NPHB] );
-  TopIn.SetNatyp( values_[NATYP] );
+  //TopIn.SetNatyp( values_[NATYP] );
   return 0;
 }
 
@@ -2088,7 +2088,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
 
   // SOLTY - Currently unused but must be written.
   if (BufferAlloc(F_SOLTY, TopOut.NatomTypes())) return 1;
-  for (int idx = 0; idx != TopOut.NatomTypes(); idx++)
+  for (unsigned int idx = 0; idx != TopOut.NatomTypes(); idx++)
     file_.DblToBuffer( 0.0 );
   file_.FlushBuffer();
 

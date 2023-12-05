@@ -25,8 +25,6 @@ class Topology {
     void SetGBradiiSet(std::string const& s) { radius_set_ = s;              }
     void SetParmName(std::string const&, FileName const&);
     void SetDistMaskRef( Frame const& );
-    /// Set value of NATYP from Amber Topology. Only needed for Amber.
-    void SetNatyp(int n)                     { n_atom_types_ = n;            }
     // ----- Return internal variables -----------
     int Ipol()                     const { return ipol_;                  }
     int Pindex()                   const { return pindex_;                }
@@ -35,7 +33,7 @@ class Topology {
     int Nmol()                     const { return (int)molecules_.size(); }
     int Nsolvent()                 const { return NsolventMolecules_;     }
     int NextraPts()                const { return n_extra_pts_;           }
-    inline int NatomTypes()        const { return n_atom_types_;          }
+    unsigned int NatomTypes()      const;
     std::string const& ParmName()         const { return parmName_;       }
     FileName const& OriginalFilename()    const { return fileName_;       }
     std::string const& GBradiiSet()       const { return radius_set_;     }
@@ -336,7 +334,6 @@ class Topology {
     int NsolventMolecules_; ///< Number of molecules marked SOLVENT
     int pindex_;            ///< Internal index used to ID Topology 
     int n_extra_pts_;       ///< Number of extra points.
-    int n_atom_types_;      ///< Number of unique atom types.
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 NonbondType const& Topology::GetLJparam(int a1, int a2) const {

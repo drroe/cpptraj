@@ -17,8 +17,7 @@ Topology::Topology() :
   ipol_(0),
   NsolventMolecules_(0),
   pindex_(0),
-  n_extra_pts_(0),
-  n_atom_types_(0)
+  n_extra_pts_(0)
 { }
 
 // Topology::SetParmName()
@@ -46,6 +45,28 @@ unsigned int Topology::HeavyAtomCount() const {
       hac++;
   }
   return hac;
+}
+
+/** \return Total number of unique atom types. */
+unsigned int Topology::NatomTypes() const {
+  ParmHolder<int> currentAtomTypes;
+  for (std::vector<Atom>::const_iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
+  {
+    if (atm->Type().len() > 0) {
+      TypeNameHolder atype( atm->Type() );
+      // Find in currentAtomTypes.
+      bool found;
+      currentAtomTypes.FindParam( atype, found );
+      if (!found) {
+        currentAtomTypes.AddParm( atype, atm->TypeIndex(), false );
+      }
+    }
+  }
+  mprintf("DEBUG: Unique atom types in %s\n", c_str());
+  for (ParmHolder<int>::const_iterator it = currentAtomTypes.begin();
+                                       it != currentAtomTypes.end(); ++it)
+    mprintf("\t\t%s %i\n", *(it->first[0]), it->second);
+  return currentAtomTypes.size();
 }
 
 /** Reset all PDB-related info.
@@ -659,7 +680,6 @@ void Topology::Resize(Pointers const& pIn) {
   ipol_ = 0;
   NsolventMolecules_ = 0;
   n_extra_pts_ = 0;
-  n_atom_types_ = 0;
 
   atoms_.resize( pIn.natom_ );
   residues_.resize( pIn.nres_ );
@@ -1482,7 +1502,6 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   newParm->fileName_ = fileName_;
   newParm->radius_set_ = radius_set_;
   newParm->debug_ = debug_;
-  newParm->n_atom_types_ = n_atom_types_;
 
   // Reverse Atom map
   std::vector<int> atomMap( atoms_.size(),-1 );
