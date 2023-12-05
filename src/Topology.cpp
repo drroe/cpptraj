@@ -8,7 +8,6 @@
 #include "AtomType.h"
 #include "AtomMask.h"
 #include "CharMask.h"
-#include "UpdateParameters.h"
 
 const NonbondType Topology::LJ_EMPTY = NonbondType();
 
@@ -2944,49 +2943,57 @@ int Topology::UpdateParams(ParameterSet const& set1) {
     mprintf("DEBUG: Saving original parameters in originalp.dat, new parameters in newp.dat\n");
     set0.Debug("originalp.dat");
   }
+  // Update existing parameters with new parameters
+  ParameterSet::UpdateCount UC;
+  if (set0.UpdateParamSet( set1, UC, debug_ )) {
+    mprinterr("Error: Could not merge topology '%s' parameters with '%s' parameters.\n",
+              c_str(), set1.ParamSetName().c_str());
+    return 1;
+  }
 
-  unsigned int updateCount;
+//  unsigned int updateCount;
   // Bond parameters
-  updateCount = UpdateParameters< ParmHolder<BondParmType> >(set0.BP(), set1.BP(), "bond");
-  if (updateCount > 0) {
+//  updateCount = UpdateParameters< ParmHolder<BondParmType> >(set0.BP(), set1.BP(), "bond");
+  if (UC.nBondsUpdated_ > 0) {
     mprintf("\tRegenerating bond parameters.\n");
     AssignBondParams( set0.BP() );
   }
   // Angle parameters
-  updateCount = UpdateParameters< ParmHolder<AngleParmType> >(set0.AP(), set1.AP(), "angle");
-  if (updateCount > 0) {
+//  updateCount = UpdateParameters< ParmHolder<AngleParmType> >(set0.AP(), set1.AP(), "angle");
+  if (UC.nAnglesUpdated_ > 0) {
     mprintf("\tRegenerating angle parameters.\n");
     AssignAngleParams( set0.AP() );
   }
   // Dihedral parameters
-  updateCount = UpdateParameters< DihedralParmHolder >(set0.DP(), set1.DP(), "dihedral");
-  if (updateCount > 0) {
+//  updateCount = UpdateParameters< DihedralParmHolder >(set0.DP(), set1.DP(), "dihedral");
+  if (UC.nDihedralsUpdated_ > 0) {
     mprintf("\tRegenerating dihedral parameters.\n");
     AssignDihedralParams( set0.DP() );
   }
   // Urey-Bradley
-  updateCount = UpdateParameters< ParmHolder<BondParmType> >(set0.UB(), set1.UB(), "Urey-Bradley");
-  if (updateCount > 0) {
+//  updateCount = UpdateParameters< ParmHolder<BondParmType> >(set0.UB(), set1.UB(), "Urey-Bradley");
+  if (UC.nUreyBradleyUpdated_ > 0) {
     mprintf("\tRegenerating UB parameters.\n");
     AssignUBParams( set0.UB() );
   }
   // Improper parameters
-  updateCount = UpdateParameters< ParmHolder<DihedralParmType> >(set0.IP(), set1.IP(), "improper");
-  if (updateCount > 0) {
+//  updateCount = UpdateParameters< ParmHolder<DihedralParmType> >(set0.IP(), set1.IP(), "improper");
+  if (UC.nImpropersUpdated_ > 0) {
     mprintf("\tRegenerating improper parameters.\n");
     AssignImproperParams( set0.IP() );
   }
   // Atom types
-  updateCount = UpdateParameters< ParmHolder<AtomType> >(set0.AT(), set1.AT(), "atom type");
-  if (updateCount > 0) {
+//  updateCount = UpdateParameters< ParmHolder<AtomType> >(set0.AT(), set1.AT(), "atom type");
+  if (UC.nAtomTypeUpdated_ > 0) {
     mprintf("\tRegenerating atom type parameters.\n");
     AssignAtomTypeParm( set0.AT() );
   }
-  updateCount += UpdateParameters< ParmHolder<NonbondType> >(set0.NB(), set1.NB(), "LJ A-B");
-  if (updateCount > 0) {
+//  updateCount += UpdateParameters< ParmHolder<NonbondType> >(set0.NB(), set1.NB(), "LJ A-B");
+  if (UC.nAtomTypeUpdated_ > 0) {
     mprintf("\tRegenerating nonbond parameters.\n");
     AssignNonbondParams( set0.AT(), set0.NB() );
   }
+  // TODO LJ14 and HB
 
   if (debug_ > 0) set0.Debug("newp.dat");
   return 0;
