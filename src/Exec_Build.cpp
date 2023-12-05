@@ -88,7 +88,14 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
       mainParmSet->UpdateParamSet( *(*it), UC, State.Debug() );
   }
 
+  // Update parameters
+  Exec::RetType ret = CpptrajState::OK;
+  if ( topIn.UpdateParams( *mainParmSet  ) ) {
+    mprinterr("Error: Could not update parameters for '%s'.\n", topIn.c_str());
+    ret = CpptrajState::ERR;
+  }
+
   if (free_parmset_mem && mainParmSet != 0) delete mainParmSet;
 
-  return CpptrajState::OK;
+  return ret;
 }
