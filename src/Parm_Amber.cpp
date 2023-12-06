@@ -1611,20 +1611,38 @@ int Parm_Amber::WriteAngles(FlagType flag, AngleArray const& ANG) {
 
 /** Amber dihedral array. Indices must be x3, parameters index +1. End 
   * dihedrals have the third atom index negative, impropers have fourth.
+  * Because of this, atom index 0 cannot be in the third or fourth
+  * position. If this happens, reverse the ordering.
   */
 int Parm_Amber::WriteDihedrals(FlagType flag, DihedralArray const& DIH) {
   if (BufferAlloc(flag, DIH.size()*5)) return 1;
   for (DihedralArray::const_iterator it = DIH.begin(); it != DIH.end(); ++it) {
-    file_.IntToBuffer( it->A1()*3 );
-    file_.IntToBuffer( it->A2()*3 );
+    int dihIdxs[4];
+    if (it->Type() != DihedralType::NORMAL && (it->A3() == 0 || it->A4() == 0)) {
+      mprintf("Warning: Had to turn torsion around to avoid K,L == 0\n");
+      mprintf("Warning: Old order (i j k l): %i %i %i %i\n", it->A1(), it->A2(), it->A3(), it->A4());
+      dihIdxs[0] = it->A4()*3;
+      dihIdxs[1] = it->A3()*3;
+      dihIdxs[2] = it->A2()*3;
+      dihIdxs[3] = it->A1()*3;
+      mprintf("Warning: New order (i j k l): %i %i %i %i\n", it->A4(), it->A3(), it->A2(), it->A1());
+    } else {
+      dihIdxs[0] = it->A1()*3;
+      dihIdxs[1] = it->A2()*3;
+      dihIdxs[2] = it->A3()*3;
+      dihIdxs[3] = it->A4()*3;
+    }
+
+    file_.IntToBuffer( dihIdxs[0] );
+    file_.IntToBuffer( dihIdxs[1] );
     if ( it->Type() == DihedralType::BOTH || it->Type() == DihedralType::END)
-      file_.IntToBuffer( -(it->A3()*3) );
+      file_.IntToBuffer( -(dihIdxs[2]) );
     else
-      file_.IntToBuffer( it->A3()*3 );
+      file_.IntToBuffer( dihIdxs[2] );
     if ( it->Type() == DihedralType::BOTH || it->Type() == DihedralType::IMPROPER)
-      file_.IntToBuffer( -(it->A4()*3) );
+      file_.IntToBuffer( -(dihIdxs[3]) );
     else
-      file_.IntToBuffer( it->A4()*3 );
+      file_.IntToBuffer( dihIdxs[3] );
     file_.IntToBuffer( it->Idx()+1 );
   }
   file_.FlushBuffer();
@@ -1872,7 +1890,8 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   file_.IntToBuffer( TopOut.BondParm().size() ); // NUMBND
   file_.IntToBuffer( TopOut.AngleParm().size() ); // NUMANG
   file_.IntToBuffer( TopOut.DihedralParm().size() ); // NPTRA
-  file_.IntToBuffer( TopOut.NatomTypes() ); // NATYP, only for SOLTY
+  unsigned int n_unique_atom_types = TopOut.NatomTypes();
+  file_.IntToBuffer( n_unique_atom_types ); // NATYP, only for SOLTY
   file_.IntToBuffer( TopOut.Nonbond().HBarray().size() ); // NPHB
   file_.IntToBuffer( 0 ); // IFPERT
   file_.IntToBuffer( 0 ); // NBPER
@@ -2087,8 +2106,8 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   }
 
   // SOLTY - Currently unused but must be written.
-  if (BufferAlloc(F_SOLTY, TopOut.NatomTypes())) return 1;
-  for (unsigned int idx = 0; idx != TopOut.NatomTypes(); idx++)
+  if (BufferAlloc(F_SOLTY, n_unique_atom_types)) return 1;
+  for (unsigned int idx = 0; idx != n_unique_atom_types; idx++)
     file_.DblToBuffer( 0.0 );
   file_.FlushBuffer();
 
