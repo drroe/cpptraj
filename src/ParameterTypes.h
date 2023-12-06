@@ -19,6 +19,13 @@ static inline bool FNE(double v1, double v2) {
   return (delta > Constants::SMALL);
 }
 
+/// Calculate relative error of A1 from A0 TODO check A0?
+static inline double RELERR(double A0, double A1) {
+  double delta = A0 - A1;
+  if (delta < 0.0) delta = -delta;
+  return (delta / A0);
+}
+
 // ----- BOND/ANGLE/DIHEDRAL PARAMETERS ----------------------------------------
 /// Hold bond parameters
 class BondParmType {
@@ -305,8 +312,9 @@ class HB_ParmType {
 typedef std::vector<HB_ParmType> HB_ParmArray;
 /// Hold Lennard-Jones 6-12 interaction A and B parameters
 class NonbondType {
-    /** Tolerance for comparison. A little larger than SMALL because A
-      * and B tend to be large.
+    /** Tolerance for comparison. Using relative error here since A and
+      * B tend to be large (particularly A) and are different magnitudes
+      * from each other. Not using Constants::SMALL for the same reason.
       */
     // NOTE: Probably should check __cpluscplus here instead of using a
     //       define, but this is guaranteed to be portable.
@@ -333,18 +341,18 @@ class NonbondType {
     }
     /// \return True if A and B match
     bool operator==(NonbondType const& rhs) const {
-      return ( (fabs(A_ - rhs.A_) < tol_) &&
-               (fabs(B_ - rhs.B_) < tol_) );
+      return ( RELERR(A_, rhs.A_) < tol_ &&
+               RELERR(B_, rhs.B_) < tol_ );
     }
     /// \return True if A and B do not match
     bool operator!=(NonbondType const& rhs) const {
-      return ( (fabs(A_ - rhs.A_) > tol_) ||
-               (fabs(B_ - rhs.B_) > tol_) );
+      return ( RELERR(A_, rhs.A_) > tol_ ||
+               RELERR(B_, rhs.B_) > tol_ );
     }
     /// \return True if A less than zero, or B if A is equal.
     bool operator<(NonbondType const& rhs) const {
       if (*this != rhs) {
-        if ( (fabs(A_ - rhs.A_) < tol_) )
+        if ( RELERR(A_, rhs.A_) < tol_ )
           return (B_ < rhs.B_);
         else
           return (A_ < rhs.A_);
