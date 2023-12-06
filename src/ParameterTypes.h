@@ -252,6 +252,13 @@ class DihedralType {
         } else return (a2_ < rhs.a2_);
       } else return (a1_ < rhs.a1_);
     }
+    /// \return true if any atom indices do not match
+    bool operator!=(DihedralType const& rhs) const {
+      return (a1_ != rhs.a1_ ||
+              a2_ != rhs.a2_ ||
+              a3_ != rhs.a3_ ||
+              a4_ != rhs.a4_);
+    }
   private:
     int a1_;
     int a2_;
