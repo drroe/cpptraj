@@ -513,7 +513,7 @@ int Topology::CommonSetup(bool molsearch, bool renumberResidues)
   // TODO: Make bond parm assignment / molecule search optional?
   // Assign default lengths if necessary (for e.g. CheckStructure)
   if (bondparm_.empty())
-    AssignBondParameters();
+    generateBondParameters();
   if (molsearch) {
     // Determine molecule info from bonds
     if (DetermineMolecules())
@@ -747,8 +747,8 @@ void Topology::AddBondParam(BondType& bnd, BP_mapType& bpMap)
   bnd.SetIdx( bp_idx );
 }
 
-// Topology::AssignBondParameters()
-void Topology::AssignBondParameters() {
+/** Fill in bond parameters based on atomic element types. */
+void Topology::generateBondParameters() {
   mprintf("Warning: Determining bond length parameters from element types for '%s'.\n", c_str());
   bondparm_.clear();
   // Hold indices into bondparm for unique element pairs
@@ -939,25 +939,21 @@ void Topology::AddAngle(AngleType const& angIn, bool isH) {
 }
 
 // -----------------------------------------------
-// Topology::AddTorsionParm()
 /** Check if given dihedral parm exists in given dihedral parm array. Add if not.
   * \return Index in dihedral parm array.
   */
-int Topology::AddTorsionParm(DihedralParmArray& dparray, DihedralParmType const& DPin)
+int Topology::addTorsionParm(DihedralParmArray& dparray, DihedralParmType const& DPin)
 {
   // See if the DihedralParm exists.
   int pidx = -1;
   for (DihedralParmArray::const_iterator dp = dparray.begin();
                                          dp != dparray.end(); ++dp)
-    if ( fabs(DPin.Pk()    - dp->Pk()   ) < Constants::SMALL &&
-         fabs(DPin.Pn()    - dp->Pn()   ) < Constants::SMALL &&
-         fabs(DPin.Phase() - dp->Phase()) < Constants::SMALL &&
-         fabs(DPin.SCEE()  - dp->SCEE() ) < Constants::SMALL &&
-         fabs(DPin.SCNB()  - dp->SCNB() ) < Constants::SMALL )
-    {
+  {
+    if (DPin == *dp) {
       pidx = (int)(dp - dparray.begin());
       break;
     }
+  }
   if (pidx == -1) {
     pidx = (int)dparray.size();
     dparray.push_back( DPin );
@@ -997,7 +993,7 @@ DihedralType Topology::SetTorsionParmIndex(DihedralType const& dihIn,
 /** Add given dihedral with given dihedral parm to dihedral array. */
 void Topology::AddDihedral(DihedralType const& dih, DihedralParmType const& DPin)
 {
-  int pidx = AddTorsionParm(dihedralparm_, DPin);
+  int pidx = addTorsionParm(dihedralparm_, DPin);
   if (CheckTorsionRange(dih, "dihedral")) return;
   AddDihedral(dih, pidx);
 }
@@ -1028,7 +1024,7 @@ void Topology::AddDihedral(DihedralType const& dihIn, bool isH) {
 /** Add given Charmm improper with given improper parm to Charmm improper array. */
 void Topology::AddCharmmImproper(DihedralType const& imp, DihedralParmType const& IPin)
 {
-  int pidx = AddTorsionParm(chamber_.SetImproperParm(), IPin);
+  int pidx = addTorsionParm(chamber_.SetImproperParm(), IPin);
   if (CheckTorsionRange(imp, "CHARMM improper")) return;
   AddCharmmImproper(imp, pidx);
 }
@@ -2628,8 +2624,8 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
     mprintf("DEBUG: %zu incoming dihedrals, %zu unique dihedrals.\n",
             dihedralsIn.size(), dihedrals.size());
 
-  ParmHolder< std::vector<int> > currentIndices;
-  ParmHolder< int > improperIndices;
+  //ParmHolder< std::vector<int> > currentIndices;
+  //ParmHolder< int > improperIndices;
   dihedralsIn.clear();
   // Loop over all dihedrals
   for (DihedralArray::iterator dih = dihedrals.begin(); dih != dihedrals.end(); ++dih) {
@@ -2641,48 +2637,26 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
     bool found;
     if (dih->IsImproper()) {
       // ----- This is actually an improper dihedral. ----------------
-      int idx = improperIndices.FindParam( types, found );
+      DihedralParmType ip = newImproperParams.FindParam( types, found );
+      int idx;
       if (!found) {
-        // Not yet present; search in newImproperParams for parameter
-        DihedralParmType ip = newImproperParams.FindParam( types, found );
-        if (found) {
-          // Add parameter and save the index
-          idx = (int)dihedralparm_.size();
-          improperIndices.AddParm( types, idx, false );
-          dihedralparm_.push_back( ip );
-        } else
-          idx = -1;
-      }
-      if (idx == -1) {
+        idx = -1;
         mprintf("Warning: Improper parameters not found for dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
                 TruncResAtomNameNum(dih->A1()).c_str(),
                 TruncResAtomNameNum(dih->A2()).c_str(),
                 TruncResAtomNameNum(dih->A3()).c_str(),
                 TruncResAtomNameNum(dih->A4()).c_str(),
                 *types[0], *types[1], *types[2], *types[3]);
-        
+      } else {
+        idx = addTorsionParm( dihedralparm_, ip );
       }
       DihedralType mydih = *dih;
       mydih.SetIdx( idx );
       dihedralsIn.push_back( mydih );
     } else {
       // -----Regular dihedral. See if parameter already present. ----
-      std::vector<int> idxs = currentIndices.FindParam( types, found );
+      DihedralParmArray dpa = newDihedralParams.FindParam( types, found );
       if (!found) {
-        // Not yet present; search in newDihedralParams for parameter(s).
-        DihedralParmArray dpa = newDihedralParams.FindParam( types, found );
-        if (found) {
-          for (DihedralParmArray::const_iterator it = dpa.begin(); it != dpa.end(); ++it)
-          {
-            // Add parameter and save the index
-            int idx = (int)dihedralparm_.size();
-            idxs.push_back( idx );
-            dihedralparm_.push_back( *it );
-          }
-          currentIndices.AddParm( types, idxs, false );
-        }
-      }
-      if (idxs.empty()) {
         mprintf("Warning: Dihedral parameters not found for dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
                 TruncResAtomNameNum(dih->A1()).c_str(),
                 TruncResAtomNameNum(dih->A2()).c_str(),
@@ -2693,20 +2667,17 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
         mydih.SetIdx( -1 );
         dihedralsIn.push_back( mydih );
       } else {
-        bool multi = idxs.size() > 1;
         // Actually add the dihedrals
-        for (std::vector<int>::const_iterator dpidx = idxs.begin(); dpidx != idxs.end(); ++dpidx)
-        {
+        for (DihedralParmArray::const_iterator it = dpa.begin(); it != dpa.end(); ++it) {
           DihedralType mydih = *dih;
-          mydih.SetIdx( *dpidx );
-          if (multi) {
-            // If there are multiple parameters for the same dihedral, all but
-            // one of the 1-4 calcs need to be skipped.
-            if (dpidx == idxs.begin())
-              mydih.SetSkip14(false);
-            else
-              mydih.SetSkip14(true);
-          }
+          int idx = addTorsionParm( dihedralparm_, *it );
+          // If there are multiple parameters for the same dihedral, all but
+          // one of the 1-4 calcs need to be skipped.
+          if (it == dpa.begin())
+            mydih.SetSkip14(false);
+          else
+            mydih.SetSkip14(true);
+          mydih.SetIdx( idx );
           dihedralsIn.push_back( mydih );
         }
       }

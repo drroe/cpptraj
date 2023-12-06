@@ -250,8 +250,10 @@ class Topology {
     // NOTE: Use set so that elements are always sorted.
     typedef std::vector< std::set<Atom::AtomicElementType> > BP_mapType;
     void AddBondParam(BondType&, BP_mapType&);
-    void AssignBondParameters();
-    static inline int AddTorsionParm(DihedralParmArray&, DihedralParmType const&);
+    /// Fill in bond parameters with estimations based on atomic element types
+    void generateBondParameters();
+    /// \return Index of existing/added dihedral parameter in given array
+    static inline int addTorsionParm(DihedralParmArray&, DihedralParmType const&);
     bool CheckTorsionRange(DihedralType const& dihIn, const char*) const;
     static inline DihedralType SetTorsionParmIndex(DihedralType const&,
                                                    DihedralParmArray const&,
