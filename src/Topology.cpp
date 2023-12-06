@@ -1962,10 +1962,10 @@ DihedralArray Topology::StripDihedralArray(DihedralArray const& dihIn, std::vect
           if (newA4 != -1) {
             // Since in Amber improper/end dihedrals are stored as negative #s,
             // atom index 0 cannot be in 3rd or 4th position. Reverse.
-            if (olddih->Type() != DihedralType::NORMAL && (newA3 == 0 || newA4 == 0))
-              dihOut.push_back( DihedralType( newA4, newA3, newA2, newA1, 
-                                              olddih->Type(), olddih->Idx() ) );
-            else
+            //if (olddih->Type() != DihedralType::NORMAL && (newA3 == 0 || newA4 == 0))
+            //  dihOut.push_back( DihedralType( newA4, newA3, newA2, newA1, 
+            //                                  olddih->Type(), olddih->Idx() ) );
+            //else
               dihOut.push_back( DihedralType( newA1, newA2, newA3, newA4, 
                                               olddih->Type(), olddih->Idx() ) );
           }
@@ -2134,11 +2134,13 @@ template <class T> class TopVecAppend {
 // Topology::AppendTop()
 int Topology::AppendTop(Topology const& NewTop) {
   int atomOffset = (int)atoms_.size();
+  mprintf("DEBUG: Appending '%s' to '%s' (offset= %i)\n", NewTop.c_str(), c_str(), atomOffset);
   //int resOffset = (int)residues_.size();
 
   // Save old parameters
   mprintf("DEBUG: Getting old parameters.\n");
   ParameterSet oldParams = GetParameters();
+  oldParams.Debug(); // DEBUG
 
   // Append NewTop atoms to this topology.
   for (atom_iterator atom = NewTop.begin(); atom != NewTop.end(); ++atom)
@@ -2167,11 +2169,11 @@ int Topology::AppendTop(Topology const& NewTop) {
   for (DihedralArray::const_iterator dih = NewTop.Dihedrals().begin(); dih != NewTop.Dihedrals().end(); ++dih)
       AddDihedral( DihedralType( dih->A1() + atomOffset, dih->A2() + atomOffset,
                                  dih->A3() + atomOffset, dih->A4() + atomOffset,
-                                 dih->Type() ), -1 );
+                                 dih->Type() ) );
   for (DihedralArray::const_iterator dih = NewTop.DihedralsH().begin(); dih != NewTop.DihedralsH().end(); ++dih)
       AddDihedral( DihedralType( dih->A1() + atomOffset, dih->A2() + atomOffset,
                                  dih->A3() + atomOffset, dih->A4() + atomOffset,
-                                 dih->Type() ), -1 );
+                                 dih->Type() ) );
   // Update parameters
   mprintf("DEBUG: Updating with new parameters.\n");
   updateParams( oldParams, NewTop.GetParameters() );
@@ -2264,7 +2266,7 @@ static inline void GetImproperParams(ParmHolder<DihedralParmType>& IP, std::vect
 }
 
 // GetDihedralParams()
-static inline void GetDihedralParams(DihedralParmHolder& DP, std::vector<Atom> const& atoms, DihedralArray const& dih, DihedralParmArray const& dpa) {
+static inline void GetDihedralParams(DihedralParmHolder& DP, ParmHolder<DihedralParmType>& IP, std::vector<Atom> const& atoms, DihedralArray const& dih, DihedralParmArray const& dpa) {
   for (DihedralArray::const_iterator b = dih.begin(); b != dih.end(); ++b)
   {
     if (b->Idx() != -1) {
@@ -2274,9 +2276,27 @@ static inline void GetDihedralParams(DihedralParmHolder& DP, std::vector<Atom> c
       types.AddName( atoms[b->A3()].Type() );
       types.AddName( atoms[b->A4()].Type() );
       //mprintf("DEBUG: dihedral %li ( %i %i %i %i )\n", b - dih.begin() + 1, b->A1()+1, b->A2()+1, b->A3()+1, b->A4()+1);
-      ParameterHolders::RetType ret = DP.AddParm( types, dpa[b->Idx()], false );
-      if (ret == ParameterHolders::ERR)
+      //mprintf("DEBUG: dihedral %li %s %s %s %s idx=%i type=%i PK=%g PN=%g Phase=%g SCEE=%g SCNB=%g\n", b - dih.begin() + 1,
+      //        *(types[0]), *(types[1]), *(types[2]), *(types[3]), b->Idx(), (int)b->Type(),
+      //        dpa[b->Idx()].Pk(), dpa[b->Idx()].Pn(), dpa[b->Idx()].Phase(), dpa[b->Idx()].SCEE(), dpa[b->Idx()].SCNB());
+      ParameterHolders::RetType ret;
+      if (b->IsImproper()) {
+        ret = IP.AddParm( types, dpa[b->Idx()], false );
+      } else {
+        ret = DP.AddParm( types, dpa[b->Idx()], false );
+      }
+      if (ret == ParameterHolders::ERR) {
         paramOverwriteWarning("dihedral");
+        mprintf("Warning: Dihedral %s %s %s %s PK=%g PN=%g Phase=%g SCEE=%g SCNB=%g\n",
+                *(types[0]), *(types[1]), *(types[2]), *(types[3]),
+                dpa[b->Idx()].Pk(), dpa[b->Idx()].Pn(), dpa[b->Idx()].Phase(), dpa[b->Idx()].SCEE(), dpa[b->Idx()].SCNB());
+        //bool found;
+        //DihedralParmArray dpa = DP.FindParam(types, found);
+        //mprintf("Warning: Existing params:\n");
+        //for (DihedralParmArray::const_iterator d = dpa.begin(); d != dpa.end(); ++d)
+        //  mprintf("Warning:\t\tPK=%g PN=%g Phase=%g SCEE=%g SCNB=%g\n",
+        //          d->Pk(), d->Pn(), d->Phase(), d->SCEE(), d->SCNB());
+      }
     }
   }
 }
@@ -2289,6 +2309,7 @@ static inline void GetDihedralParams(DihedralParmHolder& DP, std::vector<Atom> c
 static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<NonbondType>& NB1, std::vector<Atom> const& atoms, NonbondParmType const& NB0, int debugIn)
 {
   if (NB0.HasNonbond()) {
+    mprintf("DEBUG: Topology has nonbond parameters.\n");
     // Nonbonded parameters are present.
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
     {
@@ -2356,6 +2377,7 @@ static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<N
     if (nModifiedOffDiagonal > 0)
       mprintf("Warning: %u modified off-diagonal LJ terms present.\n", nModifiedOffDiagonal);
   } else {
+    mprintf("DEBUG: Topology does not have nonbond parameters.\n");
     // No nonbonded parameters. Just save mass/polarizability.
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
       if (atm->Type().len() > 0)
@@ -2375,8 +2397,8 @@ ParameterSet Topology::GetParameters() const {
   GetAngleParams( Params.AP(), atoms_, angles_, angleparm_);
   GetAngleParams( Params.AP(), atoms_, anglesh_, angleparm_);
   // Dihedral parameters.
-  GetDihedralParams( Params.DP(), atoms_, dihedrals_, dihedralparm_);
-  GetDihedralParams( Params.DP(), atoms_, dihedralsh_, dihedralparm_);
+  GetDihedralParams( Params.DP(), Params.IP(), atoms_, dihedrals_, dihedralparm_);
+  GetDihedralParams( Params.DP(), Params.IP(), atoms_, dihedralsh_, dihedralparm_);
   // CHARMM parameters
   if (chamber_.HasChamber()) {
     // UB parameters
@@ -2578,24 +2600,27 @@ void Topology::AssignImproperParams(ParmHolder<DihedralParmType> const& newImpro
 
 /** Set parameters for dihedrals in given dihedral array. */
 void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
+                                  ParmHolder<DihedralParmType> const& newImproperParams,
                                   DihedralArray& dihedralsIn)
 {
   // Dihedrals can be a bit of a pain since there can be multiple
   // multiplicities for a single dihedral type. In case multiplicities
   // change, start with a fresh dihedral array containing only unique
   // dihedrals.
-  DihedralArray tmpdih = dihedralsIn;
-  std::sort( tmpdih.begin(), tmpdih.end() );
+  //DihedralArray tmpdih = dihedralsIn;
+  //std::sort( tmpdih.begin(), tmpdih.end() );
+  // Assume dihedrals with multiple terms are consecutive already
   DihedralArray dihedrals;
-  for (DihedralArray::iterator dih = tmpdih.begin(); dih != tmpdih.end(); ++dih) {
+  for (DihedralArray::const_iterator dih = dihedralsIn.begin(); dih != dihedralsIn.end(); ++dih) {
     if (dihedrals.empty())
       dihedrals.push_back( *dih );
     else {
-      DihedralType const& last = dihedrals.back();
-      if ( last.A1() != dih->A1() ||
-           last.A2() != dih->A2() ||
-           last.A3() != dih->A3() ||
-           last.A4() != dih->A4() )
+      if ( *dih != dihedrals.back() )
+      //DihedralType const& last = dihedrals.back();
+      //if ( last.A1() != dih->A1() ||
+      //     last.A2() != dih->A2() ||
+      //     last.A3() != dih->A3() ||
+      //     last.A4() != dih->A4() )
         dihedrals.push_back( *dih );
     }
   }
@@ -2604,7 +2629,9 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
             dihedralsIn.size(), dihedrals.size());
 
   ParmHolder< std::vector<int> > currentIndices;
+  ParmHolder< int > improperIndices;
   dihedralsIn.clear();
+  // Loop over all dihedrals
   for (DihedralArray::iterator dih = dihedrals.begin(); dih != dihedrals.end(); ++dih) {
     TypeNameHolder types(4);
     types.AddName( atoms_[dih->A1()].Type() );
@@ -2612,58 +2639,86 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
     types.AddName( atoms_[dih->A3()].Type() );
     types.AddName( atoms_[dih->A4()].Type() );
     bool found;
-    // See if parameter already present.
-    std::vector<int> idxs = currentIndices.FindParam( types, found );
-    if (!found) {
-      // Not yet present; search in newDihedralParams for parameter(s).
-      DihedralParmArray dpa = newDihedralParams.FindParam( types, found );
-      if (found) {
-        for (DihedralParmArray::const_iterator it = dpa.begin(); it != dpa.end(); ++it)
-        {
+    if (dih->IsImproper()) {
+      // ----- This is actually an improper dihedral. ----------------
+      int idx = improperIndices.FindParam( types, found );
+      if (!found) {
+        // Not yet present; search in newImproperParams for parameter
+        DihedralParmType ip = newImproperParams.FindParam( types, found );
+        if (found) {
           // Add parameter and save the index
-          int idx = (int)dihedralparm_.size();
-          idxs.push_back( idx );
-          dihedralparm_.push_back( *it );
-        }
-        currentIndices.AddParm( types, idxs, false );
+          idx = (int)dihedralparm_.size();
+          improperIndices.AddParm( types, idx, false );
+          dihedralparm_.push_back( ip );
+        } else
+          idx = -1;
       }
-    }
-    if (idxs.empty()) {
-      mprintf("Warning: Dihedral parameters not found for dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
-              TruncResAtomNameNum(dih->A1()).c_str(),
-              TruncResAtomNameNum(dih->A2()).c_str(),
-              TruncResAtomNameNum(dih->A3()).c_str(),
-              TruncResAtomNameNum(dih->A4()).c_str(),
-              *types[0], *types[1], *types[3], *types[4]);
+      if (idx == -1) {
+        mprintf("Warning: Improper parameters not found for dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
+                TruncResAtomNameNum(dih->A1()).c_str(),
+                TruncResAtomNameNum(dih->A2()).c_str(),
+                TruncResAtomNameNum(dih->A3()).c_str(),
+                TruncResAtomNameNum(dih->A4()).c_str(),
+                *types[0], *types[1], *types[2], *types[3]);
+        
+      }
       DihedralType mydih = *dih;
-      mydih.SetIdx( -1 );
+      mydih.SetIdx( idx );
       dihedralsIn.push_back( mydih );
     } else {
-      bool multi = idxs.size() > 1;
-      // Actually add the dihedrals
-      for (std::vector<int>::const_iterator dpidx = idxs.begin(); dpidx != idxs.end(); ++dpidx)
-      {
-        DihedralType mydih = *dih;
-        mydih.SetIdx( *dpidx );
-        if (multi) {
-          // If there are multiple parameters for the same dihedral, all but
-          // one of the 1-4 calcs need to be skipped.
-          if (dpidx+1 != idxs.end())
-            mydih.SetSkip14(true);
-          else
-            mydih.SetSkip14(false);
+      // -----Regular dihedral. See if parameter already present. ----
+      std::vector<int> idxs = currentIndices.FindParam( types, found );
+      if (!found) {
+        // Not yet present; search in newDihedralParams for parameter(s).
+        DihedralParmArray dpa = newDihedralParams.FindParam( types, found );
+        if (found) {
+          for (DihedralParmArray::const_iterator it = dpa.begin(); it != dpa.end(); ++it)
+          {
+            // Add parameter and save the index
+            int idx = (int)dihedralparm_.size();
+            idxs.push_back( idx );
+            dihedralparm_.push_back( *it );
+          }
+          currentIndices.AddParm( types, idxs, false );
         }
+      }
+      if (idxs.empty()) {
+        mprintf("Warning: Dihedral parameters not found for dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
+                TruncResAtomNameNum(dih->A1()).c_str(),
+                TruncResAtomNameNum(dih->A2()).c_str(),
+                TruncResAtomNameNum(dih->A3()).c_str(),
+                TruncResAtomNameNum(dih->A4()).c_str(),
+                *types[0], *types[1], *types[2], *types[3]);
+        DihedralType mydih = *dih;
+        mydih.SetIdx( -1 );
         dihedralsIn.push_back( mydih );
+      } else {
+        bool multi = idxs.size() > 1;
+        // Actually add the dihedrals
+        for (std::vector<int>::const_iterator dpidx = idxs.begin(); dpidx != idxs.end(); ++dpidx)
+        {
+          DihedralType mydih = *dih;
+          mydih.SetIdx( *dpidx );
+          if (multi) {
+            // If there are multiple parameters for the same dihedral, all but
+            // one of the 1-4 calcs need to be skipped.
+            if (dpidx+1 != idxs.end())
+              mydih.SetSkip14(true);
+            else
+              mydih.SetSkip14(false);
+          }
+          dihedralsIn.push_back( mydih );
+        }
       }
     }
-  }
+  } // END loop over all dihedrals
 }
 
 /** Replace any current dihedral parameters with given dihedral parameters. */
-void Topology::AssignDihedralParams(DihedralParmHolder const& newDihedralParams) {
+void Topology::AssignDihedralParams(DihedralParmHolder const& newDihedralParams, ParmHolder<DihedralParmType> const& newImproperParams) {
   dihedralparm_.clear();
-  AssignDihedralParm( newDihedralParams, dihedrals_ );
-  AssignDihedralParm( newDihedralParams, dihedralsh_ );
+  AssignDihedralParm( newDihedralParams, newImproperParams, dihedrals_ );
+  AssignDihedralParm( newDihedralParams, newImproperParams, dihedralsh_ );
 }
 
 /** Replace current nonbond parameters with given nonbond parameters. */
@@ -2814,7 +2869,8 @@ int Topology::UpdateParams(ParameterSet const& set1) {
 
 /** Update/add to parameters in this topology by combining those from given sets. */
 int Topology::updateParams(ParameterSet& set0, ParameterSet const& set1) {
-  // Check
+  set1.Debug(); // DEBUG
+  // Check TODO is this necessary?
   if (set0.AT().size() < 1)
     mprintf("Warning: No atom type information in '%s'\n", c_str());
   if (debug_ > 0) {
@@ -2846,7 +2902,7 @@ int Topology::updateParams(ParameterSet& set0, ParameterSet const& set1) {
 //  updateCount = UpdateParameters< DihedralParmHolder >(set0.DP(), set1.DP(), "dihedral");
   if (UC.nDihedralsUpdated_ > 0) {
     mprintf("\tRegenerating dihedral parameters.\n");
-    AssignDihedralParams( set0.DP() );
+    AssignDihedralParams( set0.DP(), set0.IP() );
   }
   // Urey-Bradley
 //  updateCount = UpdateParameters< ParmHolder<BondParmType> >(set0.UB(), set1.UB(), "Urey-Bradley");

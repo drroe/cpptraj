@@ -138,7 +138,7 @@ class Topology {
     void AddDihedral(DihedralType const&, bool);
     void AddDihedral(DihedralType const&, DihedralParmType const&);
     void AssignImproperParams(ParmHolder<DihedralParmType> const&);
-    void AssignDihedralParams(DihedralParmHolder const&);
+    void AssignDihedralParams(DihedralParmHolder const&, ParmHolder<DihedralParmType> const&);
     // ----- CMAP-specific routines --------------
     bool                     HasCmap()      const { return !cmapGrid_.empty(); }
     CmapGridArray     const& CmapGrid()     const { return cmapGrid_;     }
@@ -290,7 +290,7 @@ class Topology {
     void AssignBondParm(ParmHolder<BondParmType> const&, ParmHolder<int>&, BondArray&, BondParmArray&, const char*);
     void AssignAngleParm(ParmHolder<AngleParmType> const&, ParmHolder<int>&, AngleArray&);
     void AssignImproperParm(ParmHolder<DihedralParmType> const&, ParmHolder<int>&, DihedralArray&);
-    void AssignDihedralParm(DihedralParmHolder const&, DihedralArray&);
+    void AssignDihedralParm(DihedralParmHolder const&, ParmHolder<DihedralParmType> const&, DihedralArray&);
 
     static const NonbondType LJ_EMPTY;
     std::vector<Atom> atoms_;
