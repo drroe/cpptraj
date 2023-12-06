@@ -283,6 +283,9 @@ class Topology {
     inline void AddAngleArray(AngleArray const&, AngleParmArray const&, int);
     inline void AddDihArray(DihedralArray const&, DihedralParmArray const&, int);
 
+    /// Update parameters in this Topology with those from combined sets.
+    int updateParams(ParameterSet&, ParameterSet const&);
+
     void AssignAtomTypeParm(ParmHolder<AtomType> const&);
     void AssignBondParm(ParmHolder<BondParmType> const&, ParmHolder<int>&, BondArray&, BondParmArray&, const char*);
     void AssignAngleParm(ParmHolder<AngleParmType> const&, ParmHolder<int>&, AngleArray&);
