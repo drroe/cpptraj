@@ -2702,10 +2702,10 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
           if (multi) {
             // If there are multiple parameters for the same dihedral, all but
             // one of the 1-4 calcs need to be skipped.
-            if (dpidx+1 != idxs.end())
-              mydih.SetSkip14(true);
-            else
+            if (dpidx == idxs.begin())
               mydih.SetSkip14(false);
+            else
+              mydih.SetSkip14(true);
           }
           dihedralsIn.push_back( mydih );
         }
