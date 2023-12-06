@@ -589,7 +589,8 @@ int TopInfo::PrintAngleInfo(std::string const& mask1exp, std::string const& mask
 // TopInfo::PrintDihedrals()
 void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray const& dihedralparm,
                              CharMask const& mask1, CharMask const& mask2,
-                             CharMask const& mask3, CharMask const& mask4, int nw, int& nd) const
+                             CharMask const& mask3, CharMask const& mask4, int nw, int& nd,
+                             bool printExtraInfo) const
 {
   if (darray.empty()) return;
   for (DihedralArray::const_iterator dih = darray.begin();
@@ -618,9 +619,12 @@ void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray cons
       else if (dih->Type() == DihedralType::BOTH    ) type = 'B';
       outfile_->Printf("%c %*i", type, nw, nd);
       int didx = dih->Idx();
-      if ( didx > -1 )
+      if ( didx > -1 ) {
         outfile_->Printf(" %7.3f %5.2f %4.1f",dihedralparm[didx].Pk(),dihedralparm[didx].Phase(),
                  dihedralparm[didx].Pn());
+        if (printExtraInfo)
+          outfile_->Printf(" %4.1f %4.1f", dihedralparm[didx].SCEE(), dihedralparm[didx].SCNB());
+      }
       if ( !coords_.empty() )
         outfile_->Printf(" %7.2f", Torsion( coords_.XYZ(atom1),
                                             coords_.XYZ(atom2),
@@ -648,7 +652,7 @@ void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray cons
 // TopInfo::PrintDihedralInfo()
 int TopInfo::PrintDihedralInfo(std::string const& mask1exp, std::string const& mask2exp,
                                std::string const& mask3exp, std::string const& mask4exp,
-                               bool printImpropers) const
+                               bool printImpropers, bool printExtraInfo) const
 {
   CharMask mask1( mask1exp );
   if (SetupMask( mask1 )) return 1;
@@ -675,8 +679,11 @@ int TopInfo::PrintDihedralInfo(std::string const& mask1exp, std::string const& m
   }
   int nw = std::max(3, DigitWidth(n_torsions));
   outfile_->Printf("# %*s", nw, label);
-  if (hasParams)
+  if (hasParams) {
     outfile_->Printf(" %7s %5s %4s", "PK", "Phase", "PN");
+    if (printExtraInfo)
+      outfile_->Printf(" %4s %4s", "SCEE", "SCNB");
+  }
   if (!coords_.empty())
     outfile_->Printf(" %7s", "Value");
   outfile_->Printf(" %-*s %-*s %-*s %-*s %*s %*s %*s %*s %*s %*s %*s %*s\n",
@@ -688,10 +695,10 @@ int TopInfo::PrintDihedralInfo(std::string const& mask1exp, std::string const& m
                    max_type_len_, "T3", max_type_len_, "T4");
   int nd = 1;
   if (printImpropers) {
-    PrintDihedrals( parm_->Chamber().Impropers(), parm_->Chamber().ImproperParm(), mask1, mask2, mask3, mask4, nw, nd );
+    PrintDihedrals( parm_->Chamber().Impropers(), parm_->Chamber().ImproperParm(), mask1, mask2, mask3, mask4, nw, nd, printExtraInfo );
   } else {
-    PrintDihedrals( parm_->DihedralsH(), parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd );
-    PrintDihedrals( parm_->Dihedrals(),  parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd );
+    PrintDihedrals( parm_->DihedralsH(), parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd, printExtraInfo );
+    PrintDihedrals( parm_->Dihedrals(),  parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd, printExtraInfo );
   }
   return 0;
 }

@@ -26,7 +26,7 @@ class TopInfo {
     int PrintBondInfo(std::string const&, std::string const&, bool) const;
     int PrintAngleInfo(std::string const&, std::string const&, std::string const&) const;
     int PrintDihedralInfo(std::string const&, std::string const&,
-                          std::string const&, std::string const&,bool) const;
+                          std::string const&, std::string const&,bool,bool) const;
     int PrintChargeInfo(std::string const&, double&) const;
     int PrintMassInfo(std::string const&, double&) const;
   private:
@@ -45,7 +45,7 @@ class TopInfo {
                      int, int&) const;
     void PrintDihedrals(DihedralArray const&, DihedralParmArray const&,
                         CharMask const&, CharMask const&,
-                        CharMask const&, CharMask const&, int, int&) const;
+                        CharMask const&, CharMask const&, int, int&,bool) const;
 
     CpptrajFile* outfile_;
     Topology const* parm_;

@@ -100,7 +100,7 @@ Exec::RetType Exec_AngleInfo::Execute(CpptrajState& State, ArgList& argIn) {
 }
 // -----------------------------------------------------------------------------
 void Exec_DihedralInfo::Help() const {
-  mprintf("\t[%s] [<mask1>] [<mask2> <mask3> <mask4>]\n\t[out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] [<mask1>] [<mask2> <mask3> <mask4>]\n\t[out <file>] [extra]\n", DataSetList::TopIdxArgs);
   mprintf("  For specified topology (first by default) either print dihedral info for all\n"
           "  atoms in <mask1>, or print info for dihedrals with first atom in <mask1>,\n"
           "  second atom in <mask2>, third atom in <mask3>, and fourth atom in <mask4>.\n");
@@ -112,12 +112,13 @@ Exec::RetType Exec_DihedralInfo::Execute(CpptrajState& State, ArgList& argIn) {
               "Error:   selection please use 4 masks.\n");
     return CpptrajState::ERR;
   }
+  bool printExtraInfo = argIn.hasKey("extra");
   TopInfo info;
   if (CommonSetup(info, State, argIn, "Dihedral info")) return CpptrajState::ERR;
   std::string mask1 = argIn.GetMaskNext();
   std::string mask2 = argIn.GetMaskNext();
   std::string mask3 = argIn.GetMaskNext();
-  if (info.PrintDihedralInfo( mask1, mask2, mask3, argIn.GetMaskNext(), false ))
+  if (info.PrintDihedralInfo( mask1, mask2, mask3, argIn.GetMaskNext(), false, printExtraInfo ))
     return CpptrajState::ERR;
   return CpptrajState::OK;
 }
@@ -141,7 +142,7 @@ Exec::RetType Exec_ImproperInfo::Execute(CpptrajState& State, ArgList& argIn) {
   std::string mask1 = argIn.GetMaskNext();
   std::string mask2 = argIn.GetMaskNext();
   std::string mask3 = argIn.GetMaskNext();
-  if (info.PrintDihedralInfo( mask1, mask2, mask3, argIn.GetMaskNext(), true ))
+  if (info.PrintDihedralInfo( mask1, mask2, mask3, argIn.GetMaskNext(), true, false ))
     return CpptrajState::ERR;
   return CpptrajState::OK;
 }
