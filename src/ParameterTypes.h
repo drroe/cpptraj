@@ -166,10 +166,10 @@ class DihedralParmType {
                FEQ(scnb_, rhs.scnb_) );
     }
     bool operator<(DihedralParmType const& rhs) const {
-      if (pk_ == rhs.pk_) {
-        if (pn_ == rhs.pn_) {
-          if (phase_ == rhs.phase_) {
-            if (scee_ == rhs.scee_) {
+      if (FEQ(pk_, rhs.pk_)) {
+        if (FEQ(pn_, rhs.pn_)) {
+          if (FEQ(phase_, rhs.phase_)) {
+            if (FEQ(scee_, rhs.scee_)) {
               return (scnb_ < rhs.scnb_);
             } else return (scee_ < rhs.scee_);
           } else return (phase_ < rhs.phase_);
