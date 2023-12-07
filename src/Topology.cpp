@@ -783,18 +783,7 @@ void Topology::generateBondParameters() {
 // Topology::AddBond()
 void Topology::AddBond(int atom1, int atom2, BondParmType const& BPin) {
   // See if the BondParm exists.
-  int pidx = -1;
-  for (BondParmArray::const_iterator bp = bondparm_.begin(); bp != bondparm_.end(); ++bp)
-    if ( fabs(BPin.Rk()  - bp->Rk() ) < Constants::SMALL &&
-         fabs(BPin.Req() - bp->Req()) < Constants::SMALL )
-    {
-      pidx = (int)(bp - bondparm_.begin());
-      break;
-    }
-  if (pidx == -1) {
-    pidx = (int)bondparm_.size();
-    bondparm_.push_back( BPin );
-  }
+  int pidx = addBondParm( bondparm_, BPin );;
   AddBond( atom1, atom2, pidx );
 }
 
@@ -2492,24 +2481,17 @@ void Topology::AssignBondParm(ParmHolder<BondParmType> const& newBondParams,
     types.AddName( atoms_[bnd->A1()].Type() );
     types.AddName( atoms_[bnd->A2()].Type() );
     bool found;
-    // See if parameter already present.
-    int idx = currentIndices.FindParam( types, found );
+    // See if parameter is present.
+    int idx = -1;
+    BondParmType bp = newBondParams.FindParam( types, found );
     if (!found) {
-      // Search in new
-      BondParmType bp = newBondParams.FindParam( types, found );
-      if (found) {
-        // Add parameter
-        idx = (int)bpa.size();
-        bpa.push_back( bp );
-        currentIndices.AddParm( types, idx, false );
-      } else
-        idx = -1;
-    }
-    if (idx == -1)
       mprintf("Warning: parameter not found for %s %s-%s (%s-%s)\n", desc,
               TruncResAtomNameNum(bnd->A1()).c_str(),
               TruncResAtomNameNum(bnd->A2()).c_str(),
               *types[0], *types[1]);
+    } else {
+      idx = addBondParm( bondparm_, bp );
+    }
     bnd->SetIdx( idx );
   }
 }
