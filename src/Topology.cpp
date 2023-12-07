@@ -2428,42 +2428,6 @@ ParameterSet Topology::GetParameters() const {
 }
 
 // -----------------------------------------------------------------------------
-/** Set parameters in array V for objects in array U using parameters from array T. 
-  */
-/*
-template<typename T, typename U, typename V>
-void AssignParm(std::vector<Atom> const& atoms,
-                ParmHolder<T> const& newParams,  // BondParmType
-                ParmHolder<int>& currentIndices,
-                U& objects,                      // BondArray
-                V& currentParams)                // BondParmArray
-{
-  for (typename U::iterator obj = objects.begin(); obj != objects.end(); ++obj) {
-    TypeNameHolder types(obj->Nidx());
-    for (unsigned int idx = 0; idx != obj->Nidx(); idx++)
-      types.AddName( atoms[obj->Atom(idx)].Type() );
-    bool found;
-    // See if parameter already present.
-    int idx = currentIndices.FindParam( types, found );
-    if (!found) {
-      // Search in new
-      T param = newParams.FindParam( types, found );
-      if (found) {
-        // Add parameter
-        idx = (int)currentParams.size();
-        currentParams.push_back( param );
-      } else
-        idx = -1;
-    }
-    //if (idx == -1)
-    //  mprintf("Warning: Bond parameter not found for bond %s-%s (%s-%s)\n",
-    //          TruncResAtomNameNum(bnd->A1()).c_str(),
-    //          TruncResAtomNameNum(bnd->A2()).c_str(),
-    //          *types[0], *types[1]);
-    obj->SetIdx( idx );
-  }
-}*/
-
 /** Set parameters for atoms via given atom type parameter holder. */
 void Topology::AssignAtomTypeParm(ParmHolder<AtomType> const& newAtomTypeParams)
 {
@@ -2485,6 +2449,7 @@ void Topology::AssignAtomTypeParm(ParmHolder<AtomType> const& newAtomTypeParams)
 /** Set parameters for bonds in given bond array. */
 void Topology::AssignBondParm(ParmHolder<BondParmType> const& newBondParams,
                               BondArray& bonds, BondParmArray& bpa, const char* desc)
+const
 {
   for (BondArray::iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd) {
     TypeNameHolder types(2);
@@ -2500,7 +2465,7 @@ void Topology::AssignBondParm(ParmHolder<BondParmType> const& newBondParams,
               TruncResAtomNameNum(bnd->A2()).c_str(),
               *types[0], *types[1]);
     } else {
-      idx = addBondParm( bondparm_, bp );
+      idx = addBondParm( bpa, bp );
     }
     bnd->SetIdx( idx );
   }

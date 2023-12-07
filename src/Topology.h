@@ -294,7 +294,7 @@ class Topology {
     int updateParams(ParameterSet&, ParameterSet const&);
 
     void AssignAtomTypeParm(ParmHolder<AtomType> const&);
-    void AssignBondParm(ParmHolder<BondParmType> const&, BondArray&, BondParmArray&, const char*);
+    void AssignBondParm(ParmHolder<BondParmType> const&, BondArray&, BondParmArray&, const char*) const;
     void AssignAngleParm(ParmHolder<AngleParmType> const&, AngleArray&);
     void AssignImproperParm(ParmHolder<DihedralParmType> const&, DihedralArray&);
     void AssignDihedralParm(DihedralParmHolder const&, ParmHolder<DihedralParmType> const&, DihedralArray&);
