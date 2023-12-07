@@ -1890,7 +1890,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   file_.IntToBuffer( TopOut.BondParm().size() ); // NUMBND
   file_.IntToBuffer( TopOut.AngleParm().size() ); // NUMANG
   file_.IntToBuffer( TopOut.DihedralParm().size() ); // NPTRA
-  unsigned int n_unique_atom_types = TopOut.NatomTypes();
+  unsigned int n_unique_atom_types = TopOut.NuniqueAtomTypes();
   file_.IntToBuffer( n_unique_atom_types ); // NATYP, only for SOLTY
   file_.IntToBuffer( TopOut.Nonbond().HBarray().size() ); // NPHB
   file_.IntToBuffer( 0 ); // IFPERT

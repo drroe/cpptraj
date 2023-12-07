@@ -33,7 +33,8 @@ class Topology {
     int Nmol()                     const { return (int)molecules_.size(); }
     int Nsolvent()                 const { return NsolventMolecules_;     }
     int NextraPts()                const { return n_extra_pts_;           }
-    unsigned int NatomTypes()      const;
+    /// \return number of unique atom types
+    unsigned int NuniqueAtomTypes() const;
     std::string const& ParmName()         const { return parmName_;       }
     FileName const& OriginalFilename()    const { return fileName_;       }
     std::string const& GBradiiSet()       const { return radius_set_;     }

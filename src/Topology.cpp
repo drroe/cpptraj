@@ -46,10 +46,9 @@ unsigned int Topology::HeavyAtomCount() const {
   return hac;
 }
 
-/** \return Total number of unique nonbonded atom types. */
-unsigned int Topology::NatomTypes() const {
-  return nonbond_.Ntypes();
-/*  ParmHolder<int> currentAtomTypes;
+/** \return Total number of unique atom types. */
+unsigned int Topology::NuniqueAtomTypes() const {
+  ParmHolder<int> currentAtomTypes;
   for (std::vector<Atom>::const_iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
   {
     if (atm->Type().len() > 0) {
@@ -66,7 +65,7 @@ unsigned int Topology::NatomTypes() const {
   for (ParmHolder<int>::const_iterator it = currentAtomTypes.begin();
                                        it != currentAtomTypes.end(); ++it)
     mprintf("\t\t%s %i\n", *(it->first[0]), it->second);
-  return currentAtomTypes.size();*/
+  return currentAtomTypes.size();
 }
 
 /** Reset all PDB-related info.
