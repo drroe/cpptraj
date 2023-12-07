@@ -723,9 +723,30 @@ void Topology::SetAtomBondInfo(BondArray const& bonds) {
 }
 
 // -----------------------------------------------------------------------------
-// Topology::AddBondParam()
+/** Check if given bond parm exists in given bond parm array. Add if not.
+  * \return Index in bond parm array.
+  */
+int Topology::addBondParm(BondParmArray& bparray, BondParmType const& BPin)
+{
+  // See if the BondParm exists.
+  int pidx = -1;
+  for (BondParmArray::const_iterator bp = bparray.begin();
+                                     bp != bparray.end(); ++bp)
+  {
+    if (BPin == *bp) {
+      pidx = (int)(bp - bparray.begin());
+      break;
+    }
+  }
+  if (pidx == -1) {
+    pidx = (int)bparray.size();
+    bparray.push_back( BPin );
+  }
+  return pidx;
+}
+
 /** Create parameters for given bond based on element types. */
-void Topology::AddBondParam(BondType& bnd, BP_mapType& bpMap)
+void Topology::genBondParam(BondType& bnd, BP_mapType& bpMap)
 {
   unsigned int bp_idx;
   Atom::AtomicElementType a1Elt = atoms_[bnd.A1()].Element();
@@ -754,9 +775,9 @@ void Topology::generateBondParameters() {
   // Hold indices into bondparm for unique element pairs
   BP_mapType bpMap;
   for (BondArray::iterator bnd = bondsh_.begin(); bnd != bondsh_.end(); ++bnd)
-    AddBondParam( *bnd, bpMap ); 
+    genBondParam( *bnd, bpMap ); 
   for (BondArray::iterator bnd = bonds_.begin(); bnd != bonds_.end(); ++bnd)
-    AddBondParam( *bnd, bpMap );
+    genBondParam( *bnd, bpMap );
 } 
 
 // Topology::AddBond()
