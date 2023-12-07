@@ -2672,10 +2672,11 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
   // Regenerate nonbond params for existing types
   nonbond_.Clear();
   nonbond_.SetupLJforNtypes( currentAtomTypes.size() );
-  // Set type indices
+  // Set type indices in order.
   int nidx1 = 0;
   for (ParmHolder<AtomType>::iterator t1 = currentAtomTypes.begin(); t1 != currentAtomTypes.end(); ++t1, nidx1++)
     t1->second.SetTypeIdx( nidx1 );
+  // Loop over all atom type pairs
   nidx1 = 0;
   for (ParmHolder<AtomType>::const_iterator t1 = currentAtomTypes.begin(); t1 != currentAtomTypes.end(); ++t1, nidx1++)
   {
@@ -2691,10 +2692,11 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
       TypeNameHolder types(2);
       types.AddName( name1 );
       types.AddName( name2 );
-      // Check LJ10-12
+      // Check for LJ10-12 first
       ParmHolder<HB_ParmType>::const_iterator hb = newHB.GetParam( types );
       if (hb != newHB.end()) {
-        mprintf("DEBUG: LJ 10-12 parameter found for %s %s\n", *name1, *name2);
+        mprintf("LJ 10-12 parameter found for %s %s\n", *name1, *name2);
+        nonbond_.AddHBterm(nidx1, nidx2, hb->second);
       } else {
         // See if this parameter exists in the given nonbond array.
         NonbondType LJAB;
@@ -2797,7 +2799,7 @@ int Topology::updateParams(ParameterSet& set0, ParameterSet const& set1) {
     mprintf("\tRegenerating nonbond parameters.\n");
     AssignNonbondParams( set0.AT(), set0.NB(), set0.HB() );
   }
-  // TODO LJ14 and HB
+  // TODO LJ14
 
   if (debug_ > 0) set0.Debug("newp.dat");
   return 0;
