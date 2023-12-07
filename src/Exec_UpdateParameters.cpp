@@ -44,6 +44,9 @@ Exec::RetType Exec_UpdateParameters::Execute(CpptrajState& State, ArgList& argIn
   mprintf("\tUpdating parameters in topology '%s' using those in set '%s'\n",
           top.c_str(), ds->legend());
 
+  // Sort topology bond arrays to be consistent with LEaP
+  top.SortBonds();
+
   if (ds->Type() == DataSet::PARAMETERS)
     top.UpdateParams(static_cast<DataSet_Parameters const&>( *ds ));
   else if (ds->Type() == DataSet::TOPOLOGY) {

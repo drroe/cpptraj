@@ -1,9 +1,9 @@
-#include <algorithm> // find
+#include <algorithm> // find, copy, fill
 #include <stack> // For large system molecule search
 #include "Topology.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString 
-#include "Constants.h" // RADDEG, SMALL
+#include "Constants.h" // SMALL
 #include "AtomType.h"
 #include "AtomMask.h"
 #include "CharMask.h"
@@ -896,6 +896,12 @@ void Topology::AddBond(BondType const& bndIn, bool isH) {
   // Update atoms
   atoms_[bndIn.A1()].AddBondToIdx( bndIn.A2() );
   atoms_[bndIn.A2()].AddBondToIdx( bndIn.A1() );
+}
+
+/** Sort bond arrays. May want to do this to e.g. match LEAP bond ordering. */
+void Topology::SortBonds() {
+  std::sort(bonds_.begin(), bonds_.end());
+  std::sort(bondsh_.begin(), bondsh_.end());
 }
 
 /** Check if given angle parm exists in given angle parm array. Add if not.
@@ -2476,6 +2482,42 @@ void Topology::AssignBondParams(ParmHolder<BondParmType> const& newBondParams) {
   bondparm_.clear();
   AssignBondParm( newBondParams, bonds_,  bondparm_, "bond" );
   AssignBondParm( newBondParams, bondsh_, bondparm_, "bond" );
+/**  // Try to match leap bond ordering. Appears to be by index with priority
+  // given to heavy atoms.
+  BondArray tmpBonds;
+  tmpBonds.resize( bonds_.size() + bondsh_.size() );
+  std::copy( bonds_.begin(), bonds_.end(), tmpBonds.begin() );
+  std::copy( bondsh_.begin(), bondsh_.end(), tmpBonds.begin() + bonds_.size() );
+  std::sort( tmpBonds.begin(), tmpBonds.end() );**/
+/*
+  BondArray::iterator b1 = bonds_.begin();
+  BondArray::iterator b2 = bondsh_.begin();
+  while (b1 != bonds_.end() || b2 != bondsh_.end()) {
+    int iat = b1->A1();
+    tmpBonds.push_back( *b1 );
+    ++b1;
+    while (b1 != bonds_.end() && b1->A1() == iat) {
+      tmpBonds.push_back( *b1 );
+      ++b1;
+    }
+    while (b2 != bondsh_.end() && b2->A1() == iat) {
+      tmpBonds.push_back( *b2 );
+      ++b2;
+    }
+  }
+  if (tmpBonds.size() != bonds_.size() + bondsh_.size()) {
+    mprinterr("Internal Error: AssignBondParams: Size of temp. bonds array %zu != total # bonds %zu\n",
+              tmpBonds.size(), bonds_.size() + bondsh_.size());
+  }*/
+/**  AssignBondParm( newBondParams, tmpBonds, bondparm_, "bond" );
+  bonds_.clear();
+  bondsh_.clear();
+  for (BondArray::const_iterator it = tmpBonds.begin(); it != tmpBonds.end(); ++it)
+    if ( atoms_[it->A1()].Element() == Atom::HYDROGEN ||
+         atoms_[it->A2()].Element() == Atom::HYDROGEN)
+      bondsh_.push_back( *it );
+    else
+      bonds_.push_back( *it );**/
 }
 
 /** Replace any current Urey-Bradley parameters with given UB parameters. */
