@@ -257,6 +257,8 @@ class Topology {
     static inline int addTorsionParm(DihedralParmArray&, DihedralParmType const&);
     /// \return Index of existing/added bond parameter in given array
     static inline int addBondParm(BondParmArray&, BondParmType const&);
+    /// \return Index of existing/added angle parameter in given array
+    static inline int addAngleParm(AngleParmArray&, AngleParmType const&);
     bool CheckTorsionRange(DihedralType const& dihIn, const char*) const;
     static inline DihedralType SetTorsionParmIndex(DihedralType const&,
                                                    DihedralParmArray const&,
@@ -292,9 +294,9 @@ class Topology {
     int updateParams(ParameterSet&, ParameterSet const&);
 
     void AssignAtomTypeParm(ParmHolder<AtomType> const&);
-    void AssignBondParm(ParmHolder<BondParmType> const&, ParmHolder<int>&, BondArray&, BondParmArray&, const char*);
-    void AssignAngleParm(ParmHolder<AngleParmType> const&, ParmHolder<int>&, AngleArray&);
-    void AssignImproperParm(ParmHolder<DihedralParmType> const&, ParmHolder<int>&, DihedralArray&);
+    void AssignBondParm(ParmHolder<BondParmType> const&, BondArray&, BondParmArray&, const char*);
+    void AssignAngleParm(ParmHolder<AngleParmType> const&, AngleArray&);
+    void AssignImproperParm(ParmHolder<DihedralParmType> const&, DihedralArray&);
     void AssignDihedralParm(DihedralParmHolder const&, ParmHolder<DihedralParmType> const&, DihedralArray&);
 
     static const NonbondType LJ_EMPTY;

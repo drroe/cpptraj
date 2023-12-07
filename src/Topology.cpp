@@ -898,21 +898,32 @@ void Topology::AddBond(BondType const& bndIn, bool isH) {
   atoms_[bndIn.A2()].AddBondToIdx( bndIn.A1() );
 }
 
+/** Check if given angle parm exists in given angle parm array. Add if not.
+  * \return Index in angle parm array.
+  */
+int Topology::addAngleParm(AngleParmArray& aparray, AngleParmType const& APin)
+{
+  // See if the AngleParm exists.
+  int pidx = -1;
+  for (AngleParmArray::const_iterator ap = aparray.begin();
+                                      ap != aparray.end(); ++ap)
+  {
+    if (APin == *ap) {
+      pidx = (int)(ap - aparray.begin());
+      break;
+    }
+  }
+  if (pidx == -1) {
+    pidx = (int)aparray.size();
+    aparray.push_back( APin );
+  }
+  return pidx;
+}
+
 // Topology::AddAngle() 
 void Topology::AddAngle(int atom1, int atom2, int atom3, AngleParmType const& APin) {
   // See if the AngleParm exists.
-  int pidx = -1;
-  for (AngleParmArray::const_iterator ap = angleparm_.begin(); ap != angleparm_.end(); ++ap)
-    if ( fabs(APin.Tk()  - ap->Tk() ) < Constants::SMALL &&
-         fabs(APin.Teq() - ap->Teq()) < Constants::SMALL )
-    {
-      pidx = (int)(ap - angleparm_.begin());
-      break;
-    }
-  if (pidx == -1) {
-    pidx = (int)angleparm_.size();
-    angleparm_.push_back( APin );
-  }
+  int pidx = addAngleParm( angleparm_, APin );
   AddAngle( atom1, atom2, atom3, pidx );
 }
 
@@ -2473,7 +2484,6 @@ void Topology::AssignAtomTypeParm(ParmHolder<AtomType> const& newAtomTypeParams)
 
 /** Set parameters for bonds in given bond array. */
 void Topology::AssignBondParm(ParmHolder<BondParmType> const& newBondParams,
-                              ParmHolder<int>& currentIndices,
                               BondArray& bonds, BondParmArray& bpa, const char* desc)
 {
   for (BondArray::iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd) {
@@ -2499,22 +2509,18 @@ void Topology::AssignBondParm(ParmHolder<BondParmType> const& newBondParams,
 /** Replace any current bond parameters with given bond parameters. */
 void Topology::AssignBondParams(ParmHolder<BondParmType> const& newBondParams) {
   bondparm_.clear();
-  ParmHolder<int> currentIndices;
-  //AssignParm<BondParmType, BondArray, BondParmArray>( atoms, newBondParams, currentIndices, bonds_, bondparm_ );
-  AssignBondParm( newBondParams, currentIndices, bonds_,  bondparm_, "bond" );
-  AssignBondParm( newBondParams, currentIndices, bondsh_, bondparm_, "bond" );
+  AssignBondParm( newBondParams, bonds_,  bondparm_, "bond" );
+  AssignBondParm( newBondParams, bondsh_, bondparm_, "bond" );
 }
 
 /** Replace any current Urey-Bradley parameters with given UB parameters. */
 void Topology::AssignUBParams(ParmHolder<BondParmType> const& newBondParams) {
   chamber_.SetUBparm().clear();
-  ParmHolder<int> currentIndices;
-  AssignBondParm( newBondParams, currentIndices, chamber_.SetUB(), chamber_.SetUBparm(), "UB term" );
+  AssignBondParm( newBondParams, chamber_.SetUB(), chamber_.SetUBparm(), "UB term" );
 }
 
 /** Set parameters for angles in given angle array. */
 void Topology::AssignAngleParm(ParmHolder<AngleParmType> const& newAngleParams,
-                              ParmHolder<int>& currentIndices,
                               AngleArray& angles)
 {
   for (AngleArray::iterator ang = angles.begin(); ang != angles.end(); ++ang) {
@@ -2523,25 +2529,18 @@ void Topology::AssignAngleParm(ParmHolder<AngleParmType> const& newAngleParams,
     types.AddName( atoms_[ang->A2()].Type() );
     types.AddName( atoms_[ang->A3()].Type() );
     bool found;
-    // See if parameter already present.
-    int idx = currentIndices.FindParam( types, found );
+    // See if parameter is present.
+    int idx = -1;
+    AngleParmType ap = newAngleParams.FindParam( types, found );
     if (!found) {
-      // Search in new
-      AngleParmType ap = newAngleParams.FindParam( types, found );
-      if (found) {
-        // Add parameter
-        idx = (int)angleparm_.size();
-        angleparm_.push_back( ap );
-        currentIndices.AddParm( types, idx, false );
-      } else
-        idx = -1;
-    }
-    if (idx == -1)
       mprintf("Warning: Angle parameter not found for angle %s-%s-%s (%s-%s-%s)\n",
               TruncResAtomNameNum(ang->A1()).c_str(),
               TruncResAtomNameNum(ang->A2()).c_str(),
               TruncResAtomNameNum(ang->A3()).c_str(),
               *types[0], *types[1], *types[3]);
+    } else {
+      idx = addAngleParm( angleparm_, ap );
+    }
     ang->SetIdx( idx );
   }
 }
@@ -2549,14 +2548,12 @@ void Topology::AssignAngleParm(ParmHolder<AngleParmType> const& newAngleParams,
 /** Replace any current angle parameters with given angle parameters. */
 void Topology::AssignAngleParams(ParmHolder<AngleParmType> const& newAngleParams) {
   angleparm_.clear();
-  ParmHolder<int> currentIndices;
-  AssignAngleParm( newAngleParams, currentIndices, angles_ );
-  AssignAngleParm( newAngleParams, currentIndices, anglesh_ );
+  AssignAngleParm( newAngleParams, angles_ );
+  AssignAngleParm( newAngleParams, anglesh_ );
 }
 
-/** Set parameters for dihedrals in given dihedral array. */
+/** Set parameters for improper dihedrals in given improper dihedral array. */
 void Topology::AssignImproperParm(ParmHolder<DihedralParmType> const& newImproperParams,
-                                  ParmHolder<int>& currentIndices,
                                   DihedralArray& impropers)
 {
   for (DihedralArray::iterator imp = impropers.begin(); imp != impropers.end(); ++imp) {
@@ -2566,26 +2563,19 @@ void Topology::AssignImproperParm(ParmHolder<DihedralParmType> const& newImprope
     types.AddName( atoms_[imp->A3()].Type() );
     types.AddName( atoms_[imp->A4()].Type() );
     bool found;
-    // See if parameter already present.
-    int idx = currentIndices.FindParam( types, found );
+    // See if parameter is present.
+    int idx = -1;
+    DihedralParmType ip = newImproperParams.FindParam( types, found );
     if (!found) {
-      // Search in new
-      DihedralParmType ip = newImproperParams.FindParam( types, found );
-      if (found) {
-        // Add parameter
-        idx = (int)chamber_.ImproperParm().size();
-        chamber_.SetImproperParm().push_back( ip );
-        currentIndices.AddParm( types, idx, false );
-      } else
-        idx = -1;
-    }
-    if (idx == -1)
       mprintf("Warning: Parameter not found for improper %s-%s-%s-%s (%s-%s-%s-%s)\n",
               TruncResAtomNameNum(imp->A1()).c_str(),
               TruncResAtomNameNum(imp->A2()).c_str(),
               TruncResAtomNameNum(imp->A3()).c_str(),
               TruncResAtomNameNum(imp->A4()).c_str(),
               *types[0], *types[1], *types[3], *types[4]);
+    } else {
+      idx = addTorsionParm( chamber_.SetImproperParm(), ip );
+    }
     imp->SetIdx( idx );
   }
 }
@@ -2593,8 +2583,7 @@ void Topology::AssignImproperParm(ParmHolder<DihedralParmType> const& newImprope
 /** Replace any current improper parameters with given improper parameters. */
 void Topology::AssignImproperParams(ParmHolder<DihedralParmType> const& newImproperParams) {
   chamber_.SetImproperParm().clear();
-  ParmHolder<int> currentIndices;
-  AssignImproperParm( newImproperParams, currentIndices, chamber_.SetImpropers() );
+  AssignImproperParm( newImproperParams, chamber_.SetImpropers() );
 }
 
 /** Set parameters for dihedrals in given dihedral array. */
@@ -2615,11 +2604,6 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
       dihedrals.push_back( *dih );
     else {
       if ( *dih != dihedrals.back() )
-      //DihedralType const& last = dihedrals.back();
-      //if ( last.A1() != dih->A1() ||
-      //     last.A2() != dih->A2() ||
-      //     last.A3() != dih->A3() ||
-      //     last.A4() != dih->A4() )
         dihedrals.push_back( *dih );
     }
   }
@@ -2627,8 +2611,6 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
     mprintf("DEBUG: %zu incoming dihedrals, %zu unique dihedrals.\n",
             dihedralsIn.size(), dihedrals.size());
 
-  //ParmHolder< std::vector<int> > currentIndices;
-  //ParmHolder< int > improperIndices;
   dihedralsIn.clear();
   // Loop over all dihedrals
   for (DihedralArray::iterator dih = dihedrals.begin(); dih != dihedrals.end(); ++dih) {
@@ -2641,10 +2623,9 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
     if (dih->IsImproper()) {
       // ----- This is actually an improper dihedral. ----------------
       DihedralParmType ip = newImproperParams.FindParam( types, found );
-      int idx;
+      int idx = -1;
       if (!found) {
-        idx = -1;
-        mprintf("Warning: Improper parameters not found for dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
+        mprintf("Warning: Improper parameters not found for improper dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
                 TruncResAtomNameNum(dih->A1()).c_str(),
                 TruncResAtomNameNum(dih->A2()).c_str(),
                 TruncResAtomNameNum(dih->A3()).c_str(),
@@ -2785,56 +2766,6 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
   }
 }
 
-/** \return True if any atom has a non-zero charge. */
-bool Topology::HasChargeInfo() const {
-  for (std::vector<Atom>::const_iterator at = atoms_.begin();
-                                         at != atoms_.end(); ++at)
-    if (at->Charge() > 0.0 || at->Charge() < 0.0)
-      return true;
-  return false;
-}
-
-/** Redistribute charge on atoms to match given total target charge. */
-int Topology::RedistributeCharge(double charge) {
-  //mprintf("DEBUG: Redistribute charge for %s, total charge = %g\n", topIn.c_str(), charge);
-  double pcharge = 0;
-  double ncharge = 0;
-  for (unsigned int iat = 0; iat != atoms_.size(); iat++) {
-    if (atoms_[iat].Charge() > 0)
-      pcharge += atoms_[iat].Charge();
-    else if (atoms_[iat].Charge() < 0)
-      ncharge += atoms_[iat].Charge();
-  }
-  //if (fabs(pcharge) < Constants::SMALL)
-  bool PchargeZero = false;
-  if (pcharge == 0) {
-    mprintf("\tTotal positive charge is 0.0\n");
-    PchargeZero = true;
-  }
-  bool NchargeZero = false;
-  //if (fabs(ncharge) < Constants::SMALL)
-  if (ncharge == 0) {
-    mprintf("\tTotal negative charge is 0.0\n");
-    NchargeZero = true;
-  }
-  if (!PchargeZero && !NchargeZero) {
-    //double total_charge = 0;
-    for (unsigned int iat = 0; iat != atoms_.size(); iat++) {
-      double delta = atoms_[iat].Charge() * (charge - pcharge - ncharge) / (pcharge - ncharge);
-      if (atoms_[iat].Charge() >= 0) {
-        atoms_[iat].SetCharge( atoms_[iat].Charge() + delta );
-      } else {
-        atoms_[iat].SetCharge( atoms_[iat].Charge() - delta );
-      }
-      //total_charge += topIn[iat].Charge();
-    }
-    //mprintf("DEBUG: Total charge after redistribute: %g\n", total_charge);
-  }
-  return 0;
-}
-
-// -----------------------------------------------------------------------------
-
 /** Update/add to parameters in this topology with those from given set. */
 int Topology::UpdateParams(ParameterSet const& set1) {
   ParameterSet set0 = GetParameters();
@@ -2904,5 +2835,54 @@ int Topology::updateParams(ParameterSet& set0, ParameterSet const& set1) {
   // TODO LJ14 and HB
 
   if (debug_ > 0) set0.Debug("newp.dat");
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
+/** \return True if any atom has a non-zero charge. */
+bool Topology::HasChargeInfo() const {
+  for (std::vector<Atom>::const_iterator at = atoms_.begin();
+                                         at != atoms_.end(); ++at)
+    if (at->Charge() > 0.0 || at->Charge() < 0.0)
+      return true;
+  return false;
+}
+
+/** Redistribute charge on atoms to match given total target charge. */
+int Topology::RedistributeCharge(double charge) {
+  //mprintf("DEBUG: Redistribute charge for %s, total charge = %g\n", topIn.c_str(), charge);
+  double pcharge = 0;
+  double ncharge = 0;
+  for (unsigned int iat = 0; iat != atoms_.size(); iat++) {
+    if (atoms_[iat].Charge() > 0)
+      pcharge += atoms_[iat].Charge();
+    else if (atoms_[iat].Charge() < 0)
+      ncharge += atoms_[iat].Charge();
+  }
+  //if (fabs(pcharge) < Constants::SMALL)
+  bool PchargeZero = false;
+  if (pcharge == 0) {
+    mprintf("\tTotal positive charge is 0.0\n");
+    PchargeZero = true;
+  }
+  bool NchargeZero = false;
+  //if (fabs(ncharge) < Constants::SMALL)
+  if (ncharge == 0) {
+    mprintf("\tTotal negative charge is 0.0\n");
+    NchargeZero = true;
+  }
+  if (!PchargeZero && !NchargeZero) {
+    //double total_charge = 0;
+    for (unsigned int iat = 0; iat != atoms_.size(); iat++) {
+      double delta = atoms_[iat].Charge() * (charge - pcharge - ncharge) / (pcharge - ncharge);
+      if (atoms_[iat].Charge() >= 0) {
+        atoms_[iat].SetCharge( atoms_[iat].Charge() + delta );
+      } else {
+        atoms_[iat].SetCharge( atoms_[iat].Charge() - delta );
+      }
+      //total_charge += topIn[iat].Charge();
+    }
+    //mprintf("DEBUG: Total charge after redistribute: %g\n", total_charge);
+  }
   return 0;
 }
