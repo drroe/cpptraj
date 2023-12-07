@@ -46,9 +46,10 @@ unsigned int Topology::HeavyAtomCount() const {
   return hac;
 }
 
-/** \return Total number of unique atom types. */
+/** \return Total number of unique nonbonded atom types. */
 unsigned int Topology::NatomTypes() const {
-  ParmHolder<int> currentAtomTypes;
+  return nonbond_.Ntypes();
+/*  ParmHolder<int> currentAtomTypes;
   for (std::vector<Atom>::const_iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
   {
     if (atm->Type().len() > 0) {
@@ -65,7 +66,7 @@ unsigned int Topology::NatomTypes() const {
   for (ParmHolder<int>::const_iterator it = currentAtomTypes.begin();
                                        it != currentAtomTypes.end(); ++it)
     mprintf("\t\t%s %i\n", *(it->first[0]), it->second);
-  return currentAtomTypes.size();
+  return currentAtomTypes.size();*/
 }
 
 /** Reset all PDB-related info.
@@ -2671,20 +2672,33 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
   }
   // Regenerate nonbond params for existing types
   nonbond_.Clear();
-  nonbond_.SetupLJforNtypes( currentAtomTypes.size() );
   // Set type indices in order.
-  int nidx1 = 0;
-  for (ParmHolder<AtomType>::iterator t1 = currentAtomTypes.begin(); t1 != currentAtomTypes.end(); ++t1, nidx1++)
-    t1->second.SetTypeIdx( nidx1 );
+  for (ParmHolder<AtomType>::iterator t1 = currentAtomTypes.begin(); t1 != currentAtomTypes.end(); ++t1)
+    t1->second.SetTypeIdx( -1 );
+  int n_unique_lj_types = 0;
+  for (ParmHolder<AtomType>::iterator t1 = currentAtomTypes.begin(); t1 != currentAtomTypes.end(); ++t1)
+  {
+    if (t1->second.OriginalIdx() == -1) {
+      t1->second.SetTypeIdx( n_unique_lj_types );
+      // Look for equivalent nonbond types
+      for (ParmHolder<AtomType>::iterator t2 = t1 + 1; t2 != currentAtomTypes.end(); ++t2) {
+        if (t2->second.OriginalIdx() == -1 && t1->second.LJ() == t2->second.LJ()) {
+          mprintf("DEBUG: Type %s equivalent to type %s\n", *(t1->first[0]), *(t2->first[0]));
+          t2->second.SetTypeIdx( n_unique_lj_types );
+        }
+      }
+      n_unique_lj_types++;
+    }
+  }
+  mprintf("DEBUG: Setting up nonbond array for %i unique LJ types.\n", n_unique_lj_types);
+  nonbond_.SetupLJforNtypes( n_unique_lj_types );
   // Loop over all atom type pairs
-  nidx1 = 0;
-  for (ParmHolder<AtomType>::const_iterator t1 = currentAtomTypes.begin(); t1 != currentAtomTypes.end(); ++t1, nidx1++)
+  for (ParmHolder<AtomType>::const_iterator t1 = currentAtomTypes.begin(); t1 != currentAtomTypes.end(); ++t1)
   {
     NameType const& name1 = t1->first[0];
     //mprintf("DEBUG: Type1= %s (%i)\n", *name1, nidx1);
     AtomType const& type1 = t1->second;
-    int nidx2 = nidx1;
-    for (ParmHolder<AtomType>::const_iterator t2 = t1; t2 != currentAtomTypes.end(); ++t2, nidx2++)
+    for (ParmHolder<AtomType>::const_iterator t2 = t1; t2 != currentAtomTypes.end(); ++t2)
     {
       NameType const& name2 = t2->first[0];
       //mprintf("DEBUG:\t\tType2= %s (%i)\n", *name2, nidx2);
@@ -2696,7 +2710,7 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
       ParmHolder<HB_ParmType>::const_iterator hb = newHB.GetParam( types );
       if (hb != newHB.end()) {
         mprintf("LJ 10-12 parameter found for %s %s\n", *name1, *name2);
-        nonbond_.AddHBterm(nidx1, nidx2, hb->second);
+        nonbond_.AddHBterm(t1->second.OriginalIdx(), t2->second.OriginalIdx(), hb->second);
       } else {
         // See if this parameter exists in the given nonbond array.
         NonbondType LJAB;
@@ -2708,7 +2722,7 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
           mprintf("Using existing NB parameter for %s %s\n", *name1, *name2);
           LJAB = it->second;
         }
-        nonbond_.AddLJterm(nidx1, nidx2, LJAB);
+        nonbond_.AddLJterm(t1->second.OriginalIdx(), t2->second.OriginalIdx(), LJAB);
       }
     }
   }
