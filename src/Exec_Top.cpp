@@ -47,6 +47,8 @@ static int CommonSetup(TopInfo& info, CpptrajState& State, ArgList& argIn, const
   }
   if (argIn.hasKey("nointrares"))
     info.SetNoIntraRes(true);
+  if (argIn.hasKey("noindices"))
+    info.SetPrintParameterIndices(false);
   return err;
 }
 

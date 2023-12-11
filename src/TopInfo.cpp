@@ -18,7 +18,8 @@ TopInfo::TopInfo() :
   amn_width_(0),
   max_aname_len_(0),
   toStdout_(false),
-  noIntraRes_(false)
+  noIntraRes_(false),
+  printIndices_(true)
 {}
 
 /// CONSTRUCTOR - To Stdout
@@ -30,7 +31,8 @@ TopInfo::TopInfo(Topology const* pIn) :
   max_type_len_(0),
   max_aname_len_(0),
   toStdout_(false),
-  noIntraRes_(false)
+  noIntraRes_(false),
+  printIndices_(true)
 {
   SetupTopInfo( 0, pIn, 0 );
 }
@@ -42,7 +44,8 @@ TopInfo::~TopInfo() {
 }
 
 // TopInfo::SetupTopInfo()
-int TopInfo::SetupTopInfo(CpptrajFile* fIn, Topology const* pIn, DataSet_Coords* cIn) {
+int TopInfo::SetupTopInfo(CpptrajFile* fIn, Topology const* pIn, DataSet_Coords* cIn)
+{
   if (cIn == 0 && pIn == 0) {
     mprinterr("Internal Error: TopInfo: Null topology\n");
     return 1;
@@ -617,7 +620,10 @@ void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray cons
       if      (dih->Type() == DihedralType::END     ) type = 'E';
       else if (dih->Type() == DihedralType::IMPROPER) type = 'I';
       else if (dih->Type() == DihedralType::BOTH    ) type = 'B';
-      outfile_->Printf("%c %*i", type, nw, nd);
+      if (printIndices_)
+        outfile_->Printf("%c %*i", type, nw, nd);
+      else
+        outfile_->Printf("%c %*c", type, nw, ' ');
       int didx = dih->Idx();
       if ( didx > -1 ) {
         outfile_->Printf(" %7.3f %5.2f %4.1f",dihedralparm[didx].Pk(),dihedralparm[didx].Phase(),
