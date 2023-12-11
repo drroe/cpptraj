@@ -2621,13 +2621,22 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
             dihedralsIn.size(), dihedrals.size());
 
   dihedralsIn.clear();
+  // Keep track of 1-4 interactions
+  typedef std::pair<int,int> Ipair;
+  typedef std::set<Ipair> Imap;
+  Imap PairMap;
   // Loop over all dihedrals
   for (DihedralArray::iterator dih = dihedrals.begin(); dih != dihedrals.end(); ++dih) {
+
     TypeNameHolder types(4);
     types.AddName( atoms_[dih->A1()].Type() );
     types.AddName( atoms_[dih->A2()].Type() );
     types.AddName( atoms_[dih->A3()].Type() );
     types.AddName( atoms_[dih->A4()].Type() );
+//    mprintf("DEBUG: Assigning dihedral %4i %4i %4i %4i (%2s %2s %2s %2s) isImproper=%i skip14=%i\n",
+//            dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1,
+//            *types[0], *types[1], *types[2], *types[3],
+//            (int)dih->IsImproper(), (int)dih->Skip14());
     bool found;
     if (dih->IsImproper()) {
       // ----- This is actually an improper dihedral. ----------------
@@ -2645,6 +2654,9 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
       }
       DihedralType mydih = *dih;
       mydih.SetIdx( idx );
+      mydih.SetImproper( true );
+      // Always skip impropers FIXME is this always true? 
+      mydih.SetSkip14( true );
       dihedralsIn.push_back( mydih );
     } else {
       // -----Regular dihedral. See if parameter already present. ----
@@ -2660,18 +2672,73 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
         mydih.SetIdx( -1 );
         dihedralsIn.push_back( mydih );
       } else {
-        // Actually add the dihedrals
+        // Actually add parameters for this dihedral.
+        // Determine if this is actually a 1-4 interaction by making
+        // sure that A4 isnt part of a bond or angle with A1.
+        bool skip14 = false;
+        for (Atom::bond_iterator bat1 = atoms_[dih->A1()].bondbegin();
+                                 bat1 != atoms_[dih->A1()].bondend(); ++bat1)
+        {
+          if (*bat1 != dih->A2()) {
+            if (*bat1 == dih->A4()) {
+              skip14 = true;
+              break;
+            }
+            // Loop over angles, dih->A1() - bat1 - bat2
+            for (Atom::bond_iterator bat2 = atoms_[*bat1].bondbegin();
+                                     bat2 != atoms_[*bat1].bondend(); ++bat2)
+            {
+              //if (dih->A1() == 442 && dih->A4() == 444) { // DEBUG
+              //  mprintf("DEBUG: %4i %4i %4i %4i Checking angle %4i %4i %4i\n", dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1, dih->A1()+1, *bat1 + 1, *bat2 + 1);
+              //}
+              if (*bat2 != *bat1) {
+                if (*bat2 == dih->A4()) {
+                  skip14 = true;
+                  break;
+                }
+              }
+            } // END loop over bat1 bonded atoms
+            if (skip14) break;
+          }
+        } // END loop over dih->A1() bonded atoms
+        if (!skip14) {
+          // Determine if 1-4 interaction already calculated by previous dihedral.
+          // Make the lower end atom first. 
+          Ipair pair14;
+          if (dih->A1() < dih->A4()) {
+            pair14.first = dih->A1();
+            pair14.second = dih->A4();
+          } else {
+            pair14.first = dih->A4();
+            pair14.second = dih->A1();
+          }
+          Imap::const_iterator it = PairMap.find( pair14 );
+          if (it == PairMap.end()) {
+            skip14 = false;
+            PairMap.insert( pair14 );
+          } else {
+            skip14 = true;
+          }
+        }
+        // Loop over multiplicities
+        //if (dih->A1() == 442 && dih->A4() == 444) { // DEBUG
+        //  mprintf("DEBUG: Skip14= %i\n", (int)skip14);
+        //}
         for (DihedralParmArray::const_iterator it = dpa.begin(); it != dpa.end(); ++it) {
           DihedralType mydih = *dih;
           int idx = addTorsionParm( dihedralparm_, *it );
           // If there are multiple parameters for the same dihedral, all but
           // one of the 1-4 calcs need to be skipped.
           if (it == dpa.begin())
-            mydih.SetSkip14(false);
+            mydih.SetSkip14(skip14);
           else
             mydih.SetSkip14(true);
           mydih.SetIdx( idx );
           dihedralsIn.push_back( mydih );
+//          mprintf("DEBUG: Assigned %4i %4i %4i %4i (%2s %2s %2s %2s) isImproper=%i skip14=%i\n",
+//            mydih.A1()+1, mydih.A2()+1, mydih.A3()+1, mydih.A4()+1,
+//            *types[0], *types[1], *types[2], *types[3],
+//            (int)mydih.IsImproper(), (int)mydih.Skip14());
         }
       }
     }
