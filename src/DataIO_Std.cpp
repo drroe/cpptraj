@@ -1198,7 +1198,7 @@ int DataIO_Std::WriteParameters(CpptrajFile& file, DataSetList const& Sets) cons
       if ((*it)->Type() == DataSet::PARAMETERS) {
         DataSet_Parameters const& param = static_cast<DataSet_Parameters const&>( *(*it) );
         ParameterSet::UpdateCount UC;
-        prm.UpdateParamSet( param, UC, debug_ );
+        prm.UpdateParamSet( param, UC, debug_, debug_ ); // FIXME verbose
       } else {
         mprintf("Warning: Set '%s' is not a parameter set, skipping.\n", (*it)->legend());
       }

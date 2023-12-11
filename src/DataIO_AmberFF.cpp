@@ -95,7 +95,7 @@ int DataIO_AmberFF::WriteData(FileName const& fname, DataSetList const& dsl)
                                                           it != toWrite.end(); ++it)
     {
       ParameterSet::UpdateCount UC;
-      prm.UpdateParamSet( *(*it), UC, debug_ );
+      prm.UpdateParamSet( *(*it), UC, debug_, debug_ ); // FIXME verbose
     }
     return outfile.WriteParams( prm, fname, debug_ );
   }
