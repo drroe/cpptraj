@@ -20,8 +20,9 @@ static inline void PrintParmType(HB_ParmType const& hb) { mprintf(" %12.4E %12.4
   * \param0 Parameters to add to/update.
   * \param1 New parameters.
   * \param desc Description of parameters.
+  * \param verbose Verbosity: 0 - silent,  1 - updated only, 2 - updated & same, 3 - all
   */
-template <typename T> int UpdateParameters(T& param0, T const& param1, const char* desc)
+template <typename T> int UpdateParameters(T& param0, T const& param1, const char* desc, int verbose)
 {
   // DEBUG
 //  mprintf("DEBUG: Current %s Parameters:\n", desc);
@@ -33,16 +34,20 @@ template <typename T> int UpdateParameters(T& param0, T const& param1, const cha
   {
     ParameterHolders::RetType ret = param0.AddParm( newp->first, newp->second, true );
     if (ret != ParameterHolders::ERR) {
+      bool print = false;
       if (ret == ParameterHolders::ADDED) {
-        mprintf("\tAdded NEW %s parameter:", desc);
+        if (verbose > 2) { mprintf("\tAdded NEW %s parameter:", desc); print = true; }
         updateCount++;
       } else if (ret == ParameterHolders::UPDATED) {
-        mprintf("\tUpdated %s parameter:", desc);
+        if (verbose > 0) { mprintf("\tUpdated %s parameter:", desc); print = true; }
         updateCount++;
-      } else if (ret == ParameterHolders::SAME)
-        mprintf("\tParameter for %s already present:", desc);
-      mprintf(" %s", newp->first.TypeString().c_str());
-      PrintParmType( newp->second );
+      } else if (ret == ParameterHolders::SAME) {
+        if (verbose > 1) { mprintf("\tParameter for %s already present:", desc); print = true; }
+      }
+      if (print) {
+        mprintf(" %s", newp->first.TypeString().c_str());
+        PrintParmType( newp->second );
+      }
       //mprintf(" %s %s %12.4f %12.4f\n", 
       //        *(newp->first[0]), *(newp->first[1]), newp->second.Rk(), newp->second.Req());
     }
