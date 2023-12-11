@@ -899,10 +899,10 @@ void Topology::AddBond(BondType const& bndIn, bool isH) {
 }
 
 /** Sort bond arrays. May want to do this to e.g. match LEAP bond ordering. */
-void Topology::SortBonds() {
+/*void Topology::SortBonds() {
   std::sort(bonds_.begin(), bonds_.end());
   std::sort(bondsh_.begin(), bondsh_.end());
-}
+}*/
 
 /** Check if given angle parm exists in given angle parm array. Add if not.
   * \return Index in angle parm array.
@@ -2595,7 +2595,10 @@ void Topology::AssignImproperParams(ParmHolder<DihedralParmType> const& newImpro
   AssignImproperParm( newImproperParams, chamber_.SetImpropers() );
 }
 
-/** Set parameters for dihedrals in given dihedral array. */
+/** Set parameters for dihedrals in given dihedral array.
+  * Bond and angle information must be set up prior to calling
+  * this function in order for improper and 1-4 detection to work.
+  */
 void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
                                   ParmHolder<DihedralParmType> const& newImproperParams,
                                   DihedralArray& dihedralsIn)
@@ -2637,8 +2640,20 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
 //            dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1,
 //            *types[0], *types[1], *types[2], *types[3],
 //            (int)dih->IsImproper(), (int)dih->Skip14());
+    // Determine improper
+    bool isImproper = (!atoms_[dih->A1()].IsBondedTo(dih->A2())) ||
+                      (!atoms_[dih->A2()].IsBondedTo(dih->A3())) ||
+                      (!atoms_[dih->A3()].IsBondedTo(dih->A4()));
+    if (isImproper != dih->IsImproper()) {
+      mprintf("Warning: dihedral %s-%s-%s-%s improper status %i does not match detected (%i)\n",
+              TruncResAtomNameNum(dih->A1()).c_str(),
+              TruncResAtomNameNum(dih->A2()).c_str(),
+              TruncResAtomNameNum(dih->A3()).c_str(),
+              TruncResAtomNameNum(dih->A4()).c_str(),
+              (int)dih->IsImproper(), (int)isImproper);
+    }
     bool found;
-    if (dih->IsImproper()) {
+    if (isImproper) {
       // ----- This is actually an improper dihedral. ----------------
       DihedralParmType ip = newImproperParams.FindParam( types, found );
       int idx = -1;
@@ -2655,7 +2670,7 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
       DihedralType mydih = *dih;
       mydih.SetIdx( idx );
       mydih.SetImproper( true );
-      // Always skip impropers FIXME is this always true? 
+      // Always skip 1-4 for impropers
       mydih.SetSkip14( true );
       dihedralsIn.push_back( mydih );
     } else {
@@ -2718,6 +2733,7 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
             PairMap.insert( pair14 );
           } else {
             skip14 = true;
+            //mprintf("DEBUG: Prior 1-4 calc detected.\n");
           }
         }
         // Loop over multiplicities
