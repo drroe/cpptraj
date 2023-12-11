@@ -87,7 +87,7 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     ++it;
     ParameterSet::UpdateCount UC;
     for (; it != ParamSets.end(); ++it)
-      mainParmSet->UpdateParamSet( *(*it), UC, State.Debug() );
+      mainParmSet->UpdateParamSet( *(*it), UC, State.Debug(), State.Debug() ); // FIXME verbose
   }
 
   // Update parameters
