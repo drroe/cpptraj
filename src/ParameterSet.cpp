@@ -23,6 +23,23 @@ void ParameterSet::Debug(const char* fnameIn) const {
   Out.CloseFile();
 }
 
+/** Write summary to stdout. */
+void ParameterSet::Summary() const {
+  mprintf("\tParameter set: %s\n", ParamSetName().c_str());
+  mprintf("\t  %zu atom types:", atomTypes_.size());
+  for (ParmHolder<AtomType>::const_iterator at = atomTypes_.begin(); at != atomTypes_.end(); ++at)
+    mprintf(" %s", *(at->first[0]));
+  mprintf("\n");
+  mprintf("\t  %zu LJ 6-12 parameters.\n", nbParm_.size());
+  mprintf("\t  %zu LJ 6-12 1-4 parameters.\n", nb14Parm_.size());
+  mprintf("\t  %zu LJ 10-12 parameters.\n", HBparm_.size());
+  mprintf("\t  %zu bond parameters.\n", bondParm_.size());
+  mprintf("\t  %zu angle parameters.\n", angleParm_.size());
+  mprintf("\t  %zu UB parameters.\n", ubParm_.size());
+  mprintf("\t  %zu dihedral parameters.\n", dihParm_.size());
+  mprintf("\t  %zu improper parameters.\n", impParm_.size());
+}
+
 /** Write parameters out to given file. */
 void ParameterSet::Print(CpptrajFile& Out) const {
   if (!name_.empty())
@@ -35,7 +52,7 @@ void ParameterSet::Print(CpptrajFile& Out) const {
     Out.Printf("\t%6s %8li %12.4f %12.4f %12.4f %12.4f\n", *(at->first[0]), at - atomTypes_.begin(), at->second.LJ().Radius(), at->second.LJ().Depth(), at->second.Mass(), at->second.Polarizability());
   }
   if (!nbParm_.empty()) {
-    Out.Printf("LJ parameters:\n");
+    Out.Printf("LJ 6-12 parameters:\n");
     Out.Printf("\t%6s %6s : %12s %12s\n", "Type1", "Type2", "A", "B");
     for (ParmHolder<NonbondType>::const_iterator nb = nbParm_.begin(); nb != nbParm_.end(); ++nb)
       Out.Printf("\t%6s %6s : %12.4E %12.4E\n", (*nb->first[0]), (*nb->first[1]), nb->second.A(), nb->second.B());
@@ -93,7 +110,7 @@ void ParameterSet::Print(CpptrajFile& Out) const {
 }
 
 /** Update/add to parameters in this topology with those from given set. */
-int ParameterSet::UpdateParamSet(ParameterSet const& set1, UpdateCount& uc, int debugIn) {
+int ParameterSet::UpdateParamSet(ParameterSet const& set1, UpdateCount& uc, int debugIn, int verbose) {
   ParameterSet& set0 = *this;
   // Check
   if (debugIn > 0) {
@@ -103,23 +120,23 @@ int ParameterSet::UpdateParamSet(ParameterSet const& set1, UpdateCount& uc, int 
   }
 
   // Bond parameters
-  uc.nBondsUpdated_ = UpdateParameters< ParmHolder<BondParmType> >(set0.BP(), set1.BP(), "bond");
+  uc.nBondsUpdated_ = UpdateParameters< ParmHolder<BondParmType> >(set0.BP(), set1.BP(), "bond", verbose);
   // Angle parameters
-  uc.nAnglesUpdated_ = UpdateParameters< ParmHolder<AngleParmType> >(set0.AP(), set1.AP(), "angle");
+  uc.nAnglesUpdated_ = UpdateParameters< ParmHolder<AngleParmType> >(set0.AP(), set1.AP(), "angle", verbose);
   // Dihedral/improper parameters
-  uc.nDihedralsUpdated_ = UpdateParameters< DihedralParmHolder >(set0.DP(), set1.DP(), "dihedral");
+  uc.nDihedralsUpdated_ = UpdateParameters< DihedralParmHolder >(set0.DP(), set1.DP(), "dihedral", verbose);
   // Improper parameters
-  uc.nImpropersUpdated_ = UpdateParameters< ParmHolder<DihedralParmType> >(set0.IP(), set1.IP(), "improper");
+  uc.nImpropersUpdated_ = UpdateParameters< ParmHolder<DihedralParmType> >(set0.IP(), set1.IP(), "improper", verbose);
   // Urey-Bradley parameters
-  uc.nUreyBradleyUpdated_ = UpdateParameters< ParmHolder<BondParmType> >(set0.UB(), set1.UB(), "Urey-Bradley");
+  uc.nUreyBradleyUpdated_ = UpdateParameters< ParmHolder<BondParmType> >(set0.UB(), set1.UB(), "Urey-Bradley", verbose);
   // Atom types
-  uc.nAtomTypeUpdated_ = UpdateParameters< ParmHolder<AtomType> >(set0.AT(), set1.AT(), "atom type");
+  uc.nAtomTypeUpdated_ = UpdateParameters< ParmHolder<AtomType> >(set0.AT(), set1.AT(), "atom type", verbose);
   // LJ Pairs
-  uc.nLJparamsUpdated_ = UpdateParameters< ParmHolder<NonbondType> >(set0.NB(), set1.NB(), "LJ A-B");
+  uc.nLJparamsUpdated_ = UpdateParameters< ParmHolder<NonbondType> >(set0.NB(), set1.NB(), "LJ A-B", verbose);
   // LJ 1-4 Pairs
-  uc.nLJ14paramsUpdated_ = UpdateParameters< ParmHolder<NonbondType> >(set0.NB14(), set1.NB14(), "LJ A-B 1-4");
+  uc.nLJ14paramsUpdated_ = UpdateParameters< ParmHolder<NonbondType> >(set0.NB14(), set1.NB14(), "LJ A-B 1-4", verbose);
   // HB LJ 10-12 Pairs
-  uc.nHBparamsUpdated_ = UpdateParameters< ParmHolder<HB_ParmType> >(set0.HB(), set1.HB(), "LJ HB 10-12");
+  uc.nHBparamsUpdated_ = UpdateParameters< ParmHolder<HB_ParmType> >(set0.HB(), set1.HB(), "LJ HB 10-12", verbose);
 
   if (debugIn > 0) set0.Debug("newp.dat");
   return 0;

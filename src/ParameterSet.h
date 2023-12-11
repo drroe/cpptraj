@@ -39,6 +39,8 @@ class ParameterSet {
     void Debug() const { return Debug(""); }
     /// Print parameters to given file
     void Print(CpptrajFile&) const;
+    /// Print a summary to stdout
+    void Summary() const;
 
     /// Used to track what parameters were updated during UpdateParams
     class UpdateCount {
@@ -59,7 +61,7 @@ class ParameterSet {
         unsigned int nHBparamsUpdated_;
     };
     /// Update this set with parameters from given set
-    int UpdateParamSet(ParameterSet const&, UpdateCount&, int);
+    int UpdateParamSet(ParameterSet const&, UpdateCount&, int, int);
     /// Add hydrophilic atom type
     int AddHydrophilicAtomType(NameType const&);
     /// Set parameter set name
