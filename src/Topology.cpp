@@ -2163,7 +2163,7 @@ int Topology::AppendTop(Topology const& NewTop) {
   // Save old parameters
   mprintf("DEBUG: Getting old parameters.\n");
   ParameterSet oldParams = GetParameters();
-  oldParams.Debug(); // DEBUG
+  oldParams.Summary(); // DEBUG
 
   // Append NewTop atoms to this topology.
   for (atom_iterator atom = NewTop.begin(); atom != NewTop.end(); ++atom)
@@ -2350,8 +2350,10 @@ static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<N
       }
       thisType.SetTypeIdx( atm->TypeIndex() );
       ParameterHolders::RetType ret = atomTypes.AddParm( atype, thisType, true );
-      if (ret == ParameterHolders::ADDED) {
-        mprintf("DEBUG: New atom type: %s R=%g D=%g M=%g P=%g\n", *(atype[0]), thisType.LJ().Radius(), thisType.LJ().Depth(), thisType.Mass(), thisType.Polarizability());
+      if (debugIn > 0) {
+        if (ret == ParameterHolders::ADDED) {
+          mprintf("DEBUG: New atom type: %s R=%g D=%g M=%g P=%g\n", *(atype[0]), thisType.LJ().Radius(), thisType.LJ().Depth(), thisType.Mass(), thisType.Polarizability());
+        }
       }
     }
     // Do atom type pairs, check for off-diagonal elements.
@@ -2689,6 +2691,7 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
                                    ParmHolder<NonbondType> const& newNB,
                                    ParmHolder<HB_ParmType> const& newHB)
 {
+  static const int verbose = 0 ; // FIXME temporarily silence output
   // Generate array of only the types that are currently in Topology. TODO should this be a permanent part of Topology?
   ParmHolder<AtomType> currentAtomTypes;
   for (std::vector<Atom>::const_iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
@@ -2750,17 +2753,17 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
       // Check for LJ10-12 first
       ParmHolder<HB_ParmType>::const_iterator hb = newHB.GetParam( types );
       if (hb != newHB.end()) {
-        mprintf("LJ 10-12 parameter found for %s %s\n", *name1, *name2);
+        if (verbose > 0) mprintf("LJ 10-12 parameter found for %s %s\n", *name1, *name2);
         nonbond_.AddHBterm(t1->second.OriginalIdx(), t2->second.OriginalIdx(), hb->second);
       } else {
         // See if this parameter exists in the given nonbond array.
         NonbondType LJAB;
         ParmHolder<NonbondType>::const_iterator it = newNB.GetParam( types );
         if (it == newNB.end()) {
-          mprintf("NB parameter for %s %s not found. Generating.\n", *name1, *name2);
+          if (verbose > 0) mprintf("NB parameter for %s %s not found. Generating.\n", *name1, *name2);
           LJAB = type1.LJ().Combine_LB( type2.LJ() );
         } else {
-          mprintf("Using existing NB parameter for %s %s\n", *name1, *name2);
+          if (verbose > 0) mprintf("Using existing NB parameter for %s %s\n", *name1, *name2);
           LJAB = it->second;
         }
         nonbond_.AddLJterm(t1->second.OriginalIdx(), t2->second.OriginalIdx(), LJAB);
@@ -2796,7 +2799,7 @@ int Topology::UpdateParams(ParameterSet const& set1) {
 
 /** Update/add to parameters in this topology by combining those from given sets. */
 int Topology::updateParams(ParameterSet& set0, ParameterSet const& set1) {
-  set1.Debug(); // DEBUG
+  set1.Summary(); // DEBUG
   // Check TODO is this necessary?
   if (set0.AT().size() < 1)
     mprintf("Warning: No atom type information in '%s'\n", c_str());
@@ -2806,7 +2809,7 @@ int Topology::updateParams(ParameterSet& set0, ParameterSet const& set1) {
   }
   // Update existing parameters with new parameters
   ParameterSet::UpdateCount UC;
-  if (set0.UpdateParamSet( set1, UC, debug_ )) {
+  if (set0.UpdateParamSet( set1, UC, debug_, debug_ )) { // FIXME verbose
     mprinterr("Error: Could not merge topology '%s' parameters with '%s' parameters.\n",
               c_str(), set1.ParamSetName().c_str());
     return 1;
