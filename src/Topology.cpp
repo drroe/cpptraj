@@ -2480,21 +2480,29 @@ void Topology::AssignBondParm(ParmHolder<BondParmType> const& newBondParams,
                               BondArray& bonds, BondParmArray& bpa, const char* desc)
 const
 {
+  ParmHolder<int> currentTypes;
   for (BondArray::iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd) {
     TypeNameHolder types(2);
     types.AddName( atoms_[bnd->A1()].Type() );
     types.AddName( atoms_[bnd->A2()].Type() );
     bool found;
     // See if parameter is present.
-    int idx = -1;
-    BondParmType bp = newBondParams.FindParam( types, found );
+    int idx = currentTypes.FindParam(types, found);
     if (!found) {
-      mprintf("Warning: parameter not found for %s %s-%s (%s-%s)\n", desc,
-              TruncResAtomNameNum(bnd->A1()).c_str(),
-              TruncResAtomNameNum(bnd->A2()).c_str(),
-              *types[0], *types[1]);
-    } else {
-      idx = addBondParm( bpa, bp );
+      idx = -1;
+      // Not yet present in current types.
+      BondParmType bp = newBondParams.FindParam( types, found );
+      if (!found) {
+        mprintf("Warning: parameter not found for %s %s-%s (%s-%s)\n", desc,
+                TruncResAtomNameNum(bnd->A1()).c_str(),
+                TruncResAtomNameNum(bnd->A2()).c_str(),
+                *types[0], *types[1]);
+      } else {
+        //idx = addBondParm( bpa, bp ); TODO handle array packing
+        idx = (int)bpa.size();
+        bpa.push_back( bp );
+        currentTypes.AddParm(types, idx, false);
+      }
     }
     bnd->SetIdx( idx );
   }
@@ -2553,6 +2561,7 @@ void Topology::AssignUBParams(ParmHolder<BondParmType> const& newBondParams) {
 void Topology::AssignAngleParm(ParmHolder<AngleParmType> const& newAngleParams,
                               AngleArray& angles)
 {
+  ParmHolder<int> currentTypes;
   for (AngleArray::iterator ang = angles.begin(); ang != angles.end(); ++ang) {
     TypeNameHolder types(3);
     types.AddName( atoms_[ang->A1()].Type() );
@@ -2560,16 +2569,27 @@ void Topology::AssignAngleParm(ParmHolder<AngleParmType> const& newAngleParams,
     types.AddName( atoms_[ang->A3()].Type() );
     bool found;
     // See if parameter is present.
-    int idx = -1;
-    AngleParmType ap = newAngleParams.FindParam( types, found );
+    int idx = currentTypes.FindParam( types, found );
     if (!found) {
-      mprintf("Warning: Angle parameter not found for angle %s-%s-%s (%s-%s-%s)\n",
-              TruncResAtomNameNum(ang->A1()).c_str(),
-              TruncResAtomNameNum(ang->A2()).c_str(),
-              TruncResAtomNameNum(ang->A3()).c_str(),
-              *types[0], *types[1], *types[3]);
+      idx = -1;
+      // Not yet present in current types
+      AngleParmType ap = newAngleParams.FindParam( types, found );
+      if (!found) {
+        mprintf("Warning: Angle parameter not found for angle %s-%s-%s (%s-%s-%s)\n",
+                TruncResAtomNameNum(ang->A1()).c_str(),
+                TruncResAtomNameNum(ang->A2()).c_str(),
+                TruncResAtomNameNum(ang->A3()).c_str(),
+                *types[0], *types[1], *types[2]);
+      } else {
+        //idx = addAngleParm( angleparm_, ap ); // TODO uncomment for array packing
+        idx = (int)angleparm_.size();
+        angleparm_.push_back( ap );
+        mprintf("DEBUG: New angle type for %s-%s-%s (Tk=%g Teq=%g) idx=%i\n", *types[0], *types[1], *types[2], ap.Tk(), ap.Teq(), idx);
+        currentTypes.AddParm(types, idx, false);
+      }
     } else {
-      idx = addAngleParm( angleparm_, ap );
+        AngleParmType const& ap = angleparm_[idx];
+        mprintf("DEBUG: Existing angle type for %s-%s-%s (Tk=%g Teq=%g) idx=%i\n", *types[0], *types[1], *types[2], ap.Tk(), ap.Teq(), idx);
     }
     ang->SetIdx( idx );
   }
@@ -2586,6 +2606,7 @@ void Topology::AssignAngleParams(ParmHolder<AngleParmType> const& newAngleParams
 void Topology::AssignImproperParm(ParmHolder<DihedralParmType> const& newImproperParams,
                                   DihedralArray& impropers)
 {
+  ParmHolder<int> currentTypes;
   for (DihedralArray::iterator imp = impropers.begin(); imp != impropers.end(); ++imp) {
     TypeNameHolder types(4);
     types.AddName( atoms_[imp->A1()].Type() );
@@ -2594,17 +2615,24 @@ void Topology::AssignImproperParm(ParmHolder<DihedralParmType> const& newImprope
     types.AddName( atoms_[imp->A4()].Type() );
     bool found;
     // See if parameter is present.
-    int idx = -1;
-    DihedralParmType ip = newImproperParams.FindParam( types, found );
+    int idx = currentTypes.FindParam( types, found );
     if (!found) {
-      mprintf("Warning: Parameter not found for improper %s-%s-%s-%s (%s-%s-%s-%s)\n",
-              TruncResAtomNameNum(imp->A1()).c_str(),
-              TruncResAtomNameNum(imp->A2()).c_str(),
-              TruncResAtomNameNum(imp->A3()).c_str(),
-              TruncResAtomNameNum(imp->A4()).c_str(),
-              *types[0], *types[1], *types[3], *types[4]);
-    } else {
-      idx = addTorsionParm( chamber_.SetImproperParm(), ip );
+      idx = -1;
+      // Not yet present in current types
+      DihedralParmType ip = newImproperParams.FindParam( types, found );
+      if (!found) {
+        mprintf("Warning: Parameter not found for improper %s-%s-%s-%s (%s-%s-%s-%s)\n",
+                TruncResAtomNameNum(imp->A1()).c_str(),
+                TruncResAtomNameNum(imp->A2()).c_str(),
+                TruncResAtomNameNum(imp->A3()).c_str(),
+                TruncResAtomNameNum(imp->A4()).c_str(),
+                *types[0], *types[1], *types[2], *types[3]);
+      } else {
+        //idx = addTorsionParm( chamber_.SetImproperParm(), ip ); // TODO handle array packing
+        idx = (int)chamber_.ImproperParm().size();
+        chamber_.SetImproperParm().push_back( ip );
+        currentTypes.AddParm(types, idx, false);
+      }
     }
     imp->SetIdx( idx );
   }
@@ -2644,6 +2672,7 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
     mprintf("DEBUG: %zu incoming dihedrals, %zu unique dihedrals.\n",
             dihedralsIn.size(), dihedrals.size());
 
+  ParmHolder< std::vector<int> > currentTypes;
   dihedralsIn.clear();
   // Keep track of 1-4 interactions
   typedef std::pair<int,int> Ipair;
@@ -2676,108 +2705,128 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
     bool found;
     if (isImproper) {
       // ----- This is actually an improper dihedral. ----------------
-      DihedralParmType ip = newImproperParams.FindParam( types, found );
-      int idx = -1;
+      std::vector<int> idxs = currentTypes.FindParam( types, found );
       if (!found) {
-        mprintf("Warning: Improper parameters not found for improper dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
-                TruncResAtomNameNum(dih->A1()).c_str(),
-                TruncResAtomNameNum(dih->A2()).c_str(),
-                TruncResAtomNameNum(dih->A3()).c_str(),
-                TruncResAtomNameNum(dih->A4()).c_str(),
-                *types[0], *types[1], *types[2], *types[3]);
-      } else {
-        idx = addTorsionParm( dihedralparm_, ip );
+        // Not yet present in current types
+        DihedralParmType ip = newImproperParams.FindParam( types, found );
+        if (!found) {
+          idxs.push_back( -1 );
+          mprintf("Warning: Improper parameters not found for improper dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
+                  TruncResAtomNameNum(dih->A1()).c_str(),
+                  TruncResAtomNameNum(dih->A2()).c_str(),
+                  TruncResAtomNameNum(dih->A3()).c_str(),
+                  TruncResAtomNameNum(dih->A4()).c_str(),
+                  *types[0], *types[1], *types[2], *types[3]);
+        } else {
+          //int idx = addTorsionParm( dihedralparm_, ip ); // TODO handle array packing
+          int idx = (int)dihedralparm_.size();
+          dihedralparm_.push_back( ip );
+          idxs.push_back( idx );
+          currentTypes.AddParm(types, idxs, false);
+        }
       }
       DihedralType mydih = *dih;
-      mydih.SetIdx( idx );
+      mydih.SetIdx( idxs.front() );
       mydih.SetImproper( true );
       // Always skip 1-4 for impropers
       mydih.SetSkip14( true );
       dihedralsIn.push_back( mydih );
     } else {
-      // -----Regular dihedral. See if parameter already present. ----
-      DihedralParmArray dpa = newDihedralParams.FindParam( types, found );
-      if (!found) {
-        mprintf("Warning: Dihedral parameters not found for dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
-                TruncResAtomNameNum(dih->A1()).c_str(),
-                TruncResAtomNameNum(dih->A2()).c_str(),
-                TruncResAtomNameNum(dih->A3()).c_str(),
-                TruncResAtomNameNum(dih->A4()).c_str(),
-                *types[0], *types[1], *types[2], *types[3]);
-        DihedralType mydih = *dih;
-        mydih.SetIdx( -1 );
-        dihedralsIn.push_back( mydih );
-      } else {
-        // Actually add parameters for this dihedral.
-        // Determine if this is actually a 1-4 interaction by making
-        // sure that A4 isnt part of a bond or angle with A1.
-        bool skip14 = false;
-        for (Atom::bond_iterator bat1 = atoms_[dih->A1()].bondbegin();
-                                 bat1 != atoms_[dih->A1()].bondend(); ++bat1)
-        {
-          if (*bat1 != dih->A2()) {
-            if (*bat1 == dih->A4()) {
-              skip14 = true;
-              break;
-            }
-            // Loop over angles, dih->A1() - bat1 - bat2
-            for (Atom::bond_iterator bat2 = atoms_[*bat1].bondbegin();
-                                     bat2 != atoms_[*bat1].bondend(); ++bat2)
-            {
-              //if (dih->A1() == 442 && dih->A4() == 444) { // DEBUG
-              //  mprintf("DEBUG: %4i %4i %4i %4i Checking angle %4i %4i %4i\n", dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1, dih->A1()+1, *bat1 + 1, *bat2 + 1);
-              //}
-              if (*bat2 != *bat1) {
-                if (*bat2 == dih->A4()) {
-                  skip14 = true;
-                  break;
-                }
-              }
-            } // END loop over bat1 bonded atoms
-            if (skip14) break;
-          }
-        } // END loop over dih->A1() bonded atoms
-        if (!skip14) {
-          // Determine if 1-4 interaction already calculated by previous dihedral.
-          // Make the lower end atom first. 
-          Ipair pair14;
-          if (dih->A1() < dih->A4()) {
-            pair14.first = dih->A1();
-            pair14.second = dih->A4();
-          } else {
-            pair14.first = dih->A4();
-            pair14.second = dih->A1();
-          }
-          Imap::const_iterator it = PairMap.find( pair14 );
-          if (it == PairMap.end()) {
-            skip14 = false;
-            PairMap.insert( pair14 );
-          } else {
+      // -----Regular dihedral. --------------------------------------
+      // Determine if this is actually a 1-4 interaction by making
+      // sure that A4 isnt part of a bond or angle with A1.
+      bool skip14 = false;
+      for (Atom::bond_iterator bat1 = atoms_[dih->A1()].bondbegin();
+                               bat1 != atoms_[dih->A1()].bondend(); ++bat1)
+      {
+        if (*bat1 != dih->A2()) {
+          if (*bat1 == dih->A4()) {
             skip14 = true;
-            //mprintf("DEBUG: Prior 1-4 calc detected.\n");
+            break;
           }
+          // Loop over angles, dih->A1() - bat1 - bat2
+          for (Atom::bond_iterator bat2 = atoms_[*bat1].bondbegin();
+                                   bat2 != atoms_[*bat1].bondend(); ++bat2)
+          {
+            //if (dih->A1() == 442 && dih->A4() == 444) { // DEBUG
+            //  mprintf("DEBUG: %4i %4i %4i %4i Checking angle %4i %4i %4i\n", dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1, dih->A1()+1, *bat1 + 1, *bat2 + 1);
+            //}
+            if (*bat2 != *bat1) {
+              if (*bat2 == dih->A4()) {
+                skip14 = true;
+                break;
+              }
+            }
+          } // END loop over bat1 bonded atoms
+          if (skip14) break;
         }
-        // Loop over multiplicities
-        //if (dih->A1() == 442 && dih->A4() == 444) { // DEBUG
-        //  mprintf("DEBUG: Skip14= %i\n", (int)skip14);
-        //}
-        for (DihedralParmArray::const_iterator it = dpa.begin(); it != dpa.end(); ++it) {
-          DihedralType mydih = *dih;
-          int idx = addTorsionParm( dihedralparm_, *it );
-          // If there are multiple parameters for the same dihedral, all but
-          // one of the 1-4 calcs need to be skipped.
-          if (it == dpa.begin())
-            mydih.SetSkip14(skip14);
-          else
-            mydih.SetSkip14(true);
-          mydih.SetIdx( idx );
-          dihedralsIn.push_back( mydih );
-//          mprintf("DEBUG: Assigned %4i %4i %4i %4i (%2s %2s %2s %2s) isImproper=%i skip14=%i\n",
-//            mydih.A1()+1, mydih.A2()+1, mydih.A3()+1, mydih.A4()+1,
-//            *types[0], *types[1], *types[2], *types[3],
-//            (int)mydih.IsImproper(), (int)mydih.Skip14());
+      } // END loop over dih->A1() bonded atoms
+      if (!skip14) {
+        // Determine if 1-4 interaction already calculated by previous dihedral.
+        // Make the lower end atom first. 
+        Ipair pair14;
+        if (dih->A1() < dih->A4()) {
+          pair14.first = dih->A1();
+          pair14.second = dih->A4();
+        } else {
+          pair14.first = dih->A4();
+          pair14.second = dih->A1();
+        }
+        Imap::const_iterator it = PairMap.find( pair14 );
+        if (it == PairMap.end()) {
+          skip14 = false;
+          PairMap.insert( pair14 );
+        } else {
+          skip14 = true;
+          //mprintf("DEBUG: Prior 1-4 calc detected.\n");
         }
       }
+      //if (dih->A1() == 442 && dih->A4() == 444) { // DEBUG
+      //  mprintf("DEBUG: Skip14= %i\n", (int)skip14);
+      //}
+
+      // See if parameter already present. ----
+      std::vector<int> idxs = currentTypes.FindParam( types, found );
+      if (!found) {
+        // Not yet present in current types
+        DihedralParmArray dpa = newDihedralParams.FindParam( types, found );
+        if (!found) {
+          mprintf("Warning: Dihedral parameters not found for dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
+                  TruncResAtomNameNum(dih->A1()).c_str(),
+                  TruncResAtomNameNum(dih->A2()).c_str(),
+                  TruncResAtomNameNum(dih->A3()).c_str(),
+                  TruncResAtomNameNum(dih->A4()).c_str(),
+                  *types[0], *types[1], *types[2], *types[3]);
+          idxs.push_back( -1 );
+        } else {
+          // Loop over multiplicities
+          for (DihedralParmArray::const_iterator it = dpa.begin(); it != dpa.end(); ++it) {
+            //int idx = addTorsionParm( dihedralparm_, *it ); // TODO handle array packing
+            int idx = (int)dihedralparm_.size();
+            dihedralparm_.push_back( *it );
+            idxs.push_back( idx );
+          } // END loop over dihedral multiplicities
+          currentTypes.AddParm(types, idxs, false);
+        } // END parameters found for this dihedral
+      }
+      // Actually add parameters for this dihedral.
+      for (std::vector<int>::const_iterator idx = idxs.begin(); idx != idxs.end(); ++idx)
+      {
+        DihedralType mydih = *dih;
+        mydih.SetImproper( false );
+        // If there are multiple parameters for the same dihedral, all but
+        // one of the 1-4 calcs need to be skipped.
+        if (idx == idxs.begin())
+          mydih.SetSkip14(skip14);
+        else
+          mydih.SetSkip14(true);
+        mydih.SetIdx( *idx );
+        dihedralsIn.push_back( mydih );
+//        mprintf("DEBUG: Assigned %4i %4i %4i %4i (%2s %2s %2s %2s) isImproper=%i skip14=%i\n",
+//                mydih.A1()+1, mydih.A2()+1, mydih.A3()+1, mydih.A4()+1,
+//                *types[0], *types[1], *types[2], *types[3],
+//                (int)mydih.IsImproper(), (int)mydih.Skip14());
+      } // END loop over dihedral parameter indices
     }
   } // END loop over all dihedrals
 }
@@ -2895,7 +2944,11 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
   }
 }
 
-/** Update/add to parameters in this topology with those from given set. */
+/** Update/add to parameters in this topology with those from given set.
+  * NOTE: This routine is separate from updateParams() to allow that
+  *       routine to be used by AppendTop() for testing the parameter
+  *       update code with topology appending.
+  */
 int Topology::UpdateParams(ParameterSet const& set1) {
   ParameterSet set0 = GetParameters();
   return updateParams(set0, set1);
