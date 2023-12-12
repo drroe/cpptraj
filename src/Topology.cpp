@@ -7,6 +7,7 @@
 #include "AtomType.h"
 #include "AtomMask.h"
 #include "CharMask.h"
+#include "UpdateParameters.h"
 
 const NonbondType Topology::LJ_EMPTY = NonbondType();
 
@@ -2078,159 +2079,6 @@ void Topology::StripDihedralParmArray(DihedralArray& newDihedralArray, std::vect
   }
 }
 
-// Topology::AddBondArray()
-void Topology::AddBondArray(BondArray const& barray, BondParmArray const& bp, int atomOffset) {
-  if (bp.empty()) {
-    for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
-      AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
-  } else {
-    bool missingParameters = false;
-    for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond) {
-      if (bond->Idx() > -1)
-        AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset, bp[bond->Idx()] );
-      else {
-        missingParameters = true;
-        AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
-      }
-    }
-    if (missingParameters)
-      mprintf("Warning: Some bonds were missing parameters.\n");
-  }
-}
-
-// Topology::AddAngleArray()
-void Topology::AddAngleArray(AngleArray const& aarray, AngleParmArray const& ap, int atomOffset) {
-  if (ap.empty())
-    for (AngleArray::const_iterator angle = aarray.begin(); angle != aarray.end(); ++angle)
-      AddAngle( angle->A1() + atomOffset,
-                angle->A2() + atomOffset,
-                angle->A3() + atomOffset );
-  else
-    for (AngleArray::const_iterator angle = aarray.begin(); angle != aarray.end(); ++angle)
-      AddAngle( angle->A1() + atomOffset,
-                angle->A2() + atomOffset,
-                angle->A3() + atomOffset, ap[angle->Idx()] );
-}
-
-// Topology::AddDihArray()
-void Topology::AddDihArray(DihedralArray const& darray, DihedralParmArray const& dp, int atomOffset)
-{
-  if (dp.empty())
-    for (DihedralArray::const_iterator dih = darray.begin(); dih != darray.end(); ++dih)
-      AddDihedral( DihedralType( dih->A1() + atomOffset, dih->A2() + atomOffset,
-                                 dih->A3() + atomOffset, dih->A4() + atomOffset,
-                                 dih->Type() ), -1 );
-  else
-    for (DihedralArray::const_iterator dih = darray.begin(); dih != darray.end(); ++dih)
-      AddDihedral( DihedralType( dih->A1() + atomOffset, dih->A2() + atomOffset,
-                                 dih->A3() + atomOffset, dih->A4() + atomOffset,
-                                 dih->Type() ), dp[dih->Idx()] );
-}
-
-/** This template can be used when doing Append() on a generic std::vector array
-  * of type T. The array will be appended to a given array of the same type.
-  * If one is empty and the other is not, values will be filled in if necessary.
-  */
-template <class T> class TopVecAppend {
-  public:
-    /// CONSTRUCTOR
-    TopVecAppend() {}
-    /// Append current array to given array of same type
-    void Append(std::vector<T>& arrayOut, std::vector<T> const& arrayToAdd, unsigned int expectedSize)
-    {
-      if (arrayToAdd.empty() && arrayOut.empty()) {
-        // Both arrays are empty. Nothing to do.
-        return;
-      } else if (arrayToAdd.empty()) {
-        // The current array is empty but the given array is not. Fill in 
-        // array to append with blank values.
-        for (unsigned int idx = 0; idx != expectedSize; idx++)
-          arrayOut.push_back( T() );
-      } else {
-        // Append current array to array to given array. TODO use std::copy?
-        for (typename std::vector<T>::const_iterator it = arrayToAdd.begin(); it != arrayToAdd.end(); ++it)
-          arrayOut.push_back( *it );
-      }
-    }
-};
-
-// Topology::AppendTop()
-int Topology::AppendTop(Topology const& NewTop) {
-  int atomOffset = (int)atoms_.size();
-  mprintf("DEBUG: Appending '%s' to '%s' (offset= %i)\n", NewTop.c_str(), c_str(), atomOffset);
-  //int resOffset = (int)residues_.size();
-
-  // Save old parameters
-  mprintf("DEBUG: Getting old parameters.\n");
-  ParameterSet oldParams = GetParameters();
-  oldParams.Summary(); // DEBUG
-
-  // Append NewTop atoms to this topology.
-  for (atom_iterator atom = NewTop.begin(); atom != NewTop.end(); ++atom)
-  {
-    if (debug_ > 1)
-      mprintf("DBG: %6li %s %s %4i\n", atom-NewTop.begin(), 
-              *(atom->Name()), *(atom->Type()), atom->TypeIndex());
-    Atom CurrentAtom = *atom;
-    Residue const& res = NewTop.Res( CurrentAtom.ResNum() );
-    // Bonds need to be cleared and re-added.
-    CurrentAtom.ClearBonds();
-    AddTopAtom( CurrentAtom, Residue(res.Name(), res.OriginalResNum(),
-                                     res.Icode(), res.ChainId()) );
-  }
-  // Recreate bonds for the added atoms
-  for (BondArray::const_iterator bond = NewTop.Bonds().begin(); bond != NewTop.Bonds().end(); ++bond)
-    AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
-  for (BondArray::const_iterator bond = NewTop.BondsH().begin(); bond != NewTop.BondsH().end(); ++bond)
-    AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
-  // Recreate angles for the added atoms
-  for (AngleArray::const_iterator angle = NewTop.Angles().begin(); angle != NewTop.Angles().end(); ++angle)
-      AddAngle( angle->A1() + atomOffset, angle->A2() + atomOffset, angle->A3() + atomOffset );
-  for (AngleArray::const_iterator angle = NewTop.AnglesH().begin(); angle != NewTop.AnglesH().end(); ++angle)
-      AddAngle( angle->A1() + atomOffset, angle->A2() + atomOffset, angle->A3() + atomOffset );
-  // Recreate dihedrals for the added atoms
-  for (DihedralArray::const_iterator dih = NewTop.Dihedrals().begin(); dih != NewTop.Dihedrals().end(); ++dih)
-      AddDihedral( DihedralType( dih->A1() + atomOffset, dih->A2() + atomOffset,
-                                 dih->A3() + atomOffset, dih->A4() + atomOffset,
-                                 dih->Type() ) );
-  for (DihedralArray::const_iterator dih = NewTop.DihedralsH().begin(); dih != NewTop.DihedralsH().end(); ++dih)
-      AddDihedral( DihedralType( dih->A1() + atomOffset, dih->A2() + atomOffset,
-                                 dih->A3() + atomOffset, dih->A4() + atomOffset,
-                                 dih->Type() ) );
-  // Update parameters
-  mprintf("DEBUG: Updating with new parameters.\n");
-  updateParams( oldParams, NewTop.GetParameters() );
-
-  // EXTRA ATOM INFO
-  TopVecAppend<NameType> appendNameType;
-  appendNameType.Append( tree_, NewTop.tree_, NewTop.Natom() );
-  TopVecAppend<int> appendInt;
-  appendInt.Append( ijoin_, NewTop.ijoin_, NewTop.Natom() );
-  appendInt.Append( irotat_, NewTop.irotat_, NewTop.Natom() );
-  appendInt.Append( pdbSerialNum_, NewTop.pdbSerialNum_, NewTop.Natom() );
-  TopVecAppend<char> appendChar;
-  appendChar.Append( atom_altloc_, NewTop.atom_altloc_, NewTop.Natom() );
-  TopVecAppend<float> appendFloat;
-  appendFloat.Append( occupancy_, NewTop.occupancy_, NewTop.Natom() );
-  appendFloat.Append( bfactor_, NewTop.bfactor_, NewTop.Natom() );
-
- /* // BONDS
-  AddBondArray(NewTop.Bonds(),  NewTop.BondParm(), atomOffset);
-  AddBondArray(NewTop.BondsH(), NewTop.BondParm(), atomOffset);
-  // ANGLES
-  AddAngleArray(NewTop.Angles(),  NewTop.AngleParm(), atomOffset);
-  AddAngleArray(NewTop.AnglesH(), NewTop.AngleParm(), atomOffset);
-  // DIHEDRALS
-  AddDihArray(NewTop.Dihedrals(),  NewTop.DihedralParm(), atomOffset);
-  AddDihArray(NewTop.DihedralsH(), NewTop.DihedralParm(), atomOffset);*/
-
-  // TODO append missing stuff?
-
-  // Re-set up this topology
-  // TODO: Could get expensive for multiple appends.
-  return CommonSetup();
-}
-
 // -----------------------------------------------------------------------------
 static void paramOverwriteWarning(const char* type) {
   mprintf("Warning: An existing %s parameter would have been overwritten. This\n"
@@ -2433,6 +2281,179 @@ ParameterSet Topology::GetParameters() const {
   }
 
   return Params;
+}
+
+// -----------------------------------------------------------------------------
+// Topology::AddBondArray()
+void Topology::AddBondArray(BondArray const& barray, BondParmArray const& bp, int atomOffset) {
+  if (bp.empty()) {
+    for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
+      AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
+  } else {
+    bool missingParameters = false;
+    for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond) {
+      if (bond->Idx() > -1)
+        AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset, bp[bond->Idx()] );
+      else {
+        missingParameters = true;
+        AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
+      }
+    }
+    if (missingParameters)
+      mprintf("Warning: Some bonds were missing parameters.\n");
+  }
+}
+
+// Topology::AddAngleArray()
+void Topology::AddAngleArray(AngleArray const& aarray, AngleParmArray const& ap, int atomOffset) {
+  if (ap.empty())
+    for (AngleArray::const_iterator angle = aarray.begin(); angle != aarray.end(); ++angle)
+      AddAngle( angle->A1() + atomOffset,
+                angle->A2() + atomOffset,
+                angle->A3() + atomOffset );
+  else
+    for (AngleArray::const_iterator angle = aarray.begin(); angle != aarray.end(); ++angle)
+      AddAngle( angle->A1() + atomOffset,
+                angle->A2() + atomOffset,
+                angle->A3() + atomOffset, ap[angle->Idx()] );
+}
+
+// Topology::AddDihArray()
+void Topology::AddDihArray(DihedralArray const& darray, DihedralParmArray const& dp, int atomOffset)
+{
+  if (dp.empty())
+    for (DihedralArray::const_iterator dih = darray.begin(); dih != darray.end(); ++dih)
+      AddDihedral( DihedralType( dih->A1() + atomOffset, dih->A2() + atomOffset,
+                                 dih->A3() + atomOffset, dih->A4() + atomOffset,
+                                 dih->Type() ), -1 );
+  else
+    for (DihedralArray::const_iterator dih = darray.begin(); dih != darray.end(); ++dih)
+      AddDihedral( DihedralType( dih->A1() + atomOffset, dih->A2() + atomOffset,
+                                 dih->A3() + atomOffset, dih->A4() + atomOffset,
+                                 dih->Type() ), dp[dih->Idx()] );
+}
+
+/** This template can be used when doing Append() on a generic std::vector array
+  * of type T. The array will be appended to a given array of the same type.
+  * If one is empty and the other is not, values will be filled in if necessary.
+  */
+template <class T> class TopVecAppend {
+  public:
+    /// CONSTRUCTOR
+    TopVecAppend() {}
+    /// Append current array to given array of same type
+    void Append(std::vector<T>& arrayOut, std::vector<T> const& arrayToAdd, unsigned int expectedSize)
+    {
+      if (arrayToAdd.empty() && arrayOut.empty()) {
+        // Both arrays are empty. Nothing to do.
+        return;
+      } else if (arrayToAdd.empty()) {
+        // The current array is empty but the given array is not. Fill in 
+        // array to append with blank values.
+        for (unsigned int idx = 0; idx != expectedSize; idx++)
+          arrayOut.push_back( T() );
+      } else {
+        // Append current array to array to given array. TODO use std::copy?
+        for (typename std::vector<T>::const_iterator it = arrayToAdd.begin(); it != arrayToAdd.end(); ++it)
+          arrayOut.push_back( *it );
+      }
+    }
+};
+
+// Topology::AppendTop()
+int Topology::AppendTop(Topology const& NewTop) {
+  int atomOffset = (int)atoms_.size();
+  mprintf("DEBUG: Appending '%s' to '%s' (offset= %i)\n", NewTop.c_str(), c_str(), atomOffset);
+  //int resOffset = (int)residues_.size();
+
+// NOTE: Lines commented out with //# can be used to test appending via the
+//       parameter update functionality. This is slower, but is a good test
+//       that the parameter update function is working correctly.
+//#  // Save old parameters
+//#  mprintf("DEBUG: Getting old parameters.\n");
+//#  ParameterSet oldParams = GetParameters();
+//#  oldParams.Summary(); // DEBUG
+  // Save nonbonded parameters from each topology TODO LJ 10-12
+  ParmHolder<AtomType> myAtomTypes, newAtomTypes;
+  ParmHolder<NonbondType> myNB, newNB;
+  //ParmHolder<HB_ParmType> myHB, newHB;
+  GetLJAtomTypes( myAtomTypes, myNB, atoms_, nonbond_, debug_ );
+  GetLJAtomTypes( newAtomTypes, newNB, NewTop.atoms_, NewTop.nonbond_, debug_ );
+  int nAtomTypeUpdated = UpdateParameters< ParmHolder<AtomType> >( myAtomTypes, newAtomTypes, "atom type", 1 ); // TODO verbose 
+  int nLJparamsUpdated = UpdateParameters< ParmHolder<NonbondType> >( myNB, newNB, "LJ A-B", 1 ); // TODO verbose
+  mprintf("\t%i atom types updated, %i LJ params updated.\n", nAtomTypeUpdated, nLJparamsUpdated);
+
+  // Append NewTop atoms to this topology.
+  for (atom_iterator atom = NewTop.begin(); atom != NewTop.end(); ++atom)
+  {
+    if (debug_ > 1)
+      mprintf("DBG: %6li %s %s %4i\n", atom-NewTop.begin(), 
+              *(atom->Name()), *(atom->Type()), atom->TypeIndex());
+    Atom CurrentAtom = *atom;
+    Residue const& res = NewTop.Res( CurrentAtom.ResNum() );
+    // Bonds need to be cleared and re-added.
+    CurrentAtom.ClearBonds();
+    AddTopAtom( CurrentAtom, Residue(res.Name(), res.OriginalResNum(),
+                                     res.Icode(), res.ChainId()) );
+  }
+//#  // Recreate bonds for the added atoms
+//#  for (BondArray::const_iterator bond = NewTop.Bonds().begin(); bond != NewTop.Bonds().end(); ++bond)
+//#    AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
+//#  for (BondArray::const_iterator bond = NewTop.BondsH().begin(); bond != NewTop.BondsH().end(); ++bond)
+//#    AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
+//#  // Recreate angles for the added atoms
+//#  for (AngleArray::const_iterator angle = NewTop.Angles().begin(); angle != NewTop.Angles().end(); ++angle)
+//#      AddAngle( angle->A1() + atomOffset, angle->A2() + atomOffset, angle->A3() + atomOffset );
+//#  for (AngleArray::const_iterator angle = NewTop.AnglesH().begin(); angle != NewTop.AnglesH().end(); ++angle)
+//#      AddAngle( angle->A1() + atomOffset, angle->A2() + atomOffset, angle->A3() + atomOffset );
+//#  // Recreate dihedrals for the added atoms
+//#  for (DihedralArray::const_iterator dih = NewTop.Dihedrals().begin(); dih != NewTop.Dihedrals().end(); ++dih)
+//#      AddDihedral( DihedralType( dih->A1() + atomOffset, dih->A2() + atomOffset,
+//#                                 dih->A3() + atomOffset, dih->A4() + atomOffset,
+//#                                 dih->Type() ) );
+//#  for (DihedralArray::const_iterator dih = NewTop.DihedralsH().begin(); dih != NewTop.DihedralsH().end(); ++dih)
+//#      AddDihedral( DihedralType( dih->A1() + atomOffset, dih->A2() + atomOffset,
+//#                                 dih->A3() + atomOffset, dih->A4() + atomOffset,
+//#                                 dih->Type() ) );
+//#  // Update parameters
+//#  mprintf("DEBUG: Updating with new parameters.\n");
+//#  updateParams( oldParams, NewTop.GetParameters() );
+
+  // EXTRA ATOM INFO
+  TopVecAppend<NameType> appendNameType;
+  appendNameType.Append( tree_, NewTop.tree_, NewTop.Natom() );
+  TopVecAppend<int> appendInt;
+  appendInt.Append( ijoin_, NewTop.ijoin_, NewTop.Natom() );
+  appendInt.Append( irotat_, NewTop.irotat_, NewTop.Natom() );
+  appendInt.Append( pdbSerialNum_, NewTop.pdbSerialNum_, NewTop.Natom() );
+  TopVecAppend<char> appendChar;
+  appendChar.Append( atom_altloc_, NewTop.atom_altloc_, NewTop.Natom() );
+  TopVecAppend<float> appendFloat;
+  appendFloat.Append( occupancy_, NewTop.occupancy_, NewTop.Natom() );
+  appendFloat.Append( bfactor_, NewTop.bfactor_, NewTop.Natom() );
+
+  // BONDS
+  AddBondArray(NewTop.Bonds(),  NewTop.BondParm(), atomOffset);
+  AddBondArray(NewTop.BondsH(), NewTop.BondParm(), atomOffset);
+  // ANGLES
+  AddAngleArray(NewTop.Angles(),  NewTop.AngleParm(), atomOffset);
+  AddAngleArray(NewTop.AnglesH(), NewTop.AngleParm(), atomOffset);
+  // DIHEDRALS
+  AddDihArray(NewTop.Dihedrals(),  NewTop.DihedralParm(), atomOffset);
+  AddDihArray(NewTop.DihedralsH(), NewTop.DihedralParm(), atomOffset);
+  // UREY-BRADLEY TODO
+  // IMPROPERS TODO
+  // CMAP TODO
+
+  // Need to regenerate nonbonded info TODO verbose TODO LJ 10-12
+  mprintf("\tRegenerating nonbond parameters.\n");
+  AssignNonbondParams( myAtomTypes, myNB, ParmHolder<HB_ParmType>() ); //FIXME LJ 10-12
+
+  // TODO append missing stuff?
+
+  // Re-set up this topology
+  // TODO: Could get expensive for multiple appends.
+  return CommonSetup();
 }
 
 // -----------------------------------------------------------------------------
@@ -2810,7 +2831,7 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
       // Look for equivalent nonbond types
       for (ParmHolder<AtomType>::iterator t2 = t1 + 1; t2 != currentAtomTypes.end(); ++t2) {
         if (t2->second.OriginalIdx() == -1 && t1->second.LJ() == t2->second.LJ()) {
-          mprintf("DEBUG: Type %s equivalent to type %s\n", *(t1->first[0]), *(t2->first[0]));
+          mprintf("DEBUG: Type %s equivalent to type %s\n", *(t2->first[0]), *(t1->first[0]));
           t2->second.SetTypeIdx( n_unique_lj_types );
         }
       }
