@@ -288,9 +288,9 @@ class Topology {
     void StripDihedralParmArray(DihedralArray&, std::vector<int>&, DihedralParmArray&) const;
     void StripDihedralParmArray(DihedralArray&, std::vector<int>&, DihedralParmArray&,
                                 DihedralParmArray const&) const;
-    inline void AddBondArray(BondArray const&, BondParmArray const&, int);
-    inline void AddAngleArray(AngleArray const&, AngleParmArray const&, int);
-    inline void AddDihArray(DihedralArray const&, DihedralParmArray const&, int);
+//    inline void AddBondArray(BondArray const&, BondParmArray const&, int);
+//    inline void AddAngleArray(AngleArray const&, AngleParmArray const&, int);
+//    inline void AddDihArray(DihedralArray const&, DihedralParmArray const&, int);
 
     /// Update parameters in this Topology with those from combined sets.
     int updateParams(ParameterSet&, ParameterSet const&);

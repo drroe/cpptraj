@@ -2287,6 +2287,7 @@ ParameterSet Topology::GetParameters() const {
 }
 
 // -----------------------------------------------------------------------------
+/*
 // Topology::AddBondArray()
 void Topology::AddBondArray(BondArray const& barray, BondParmArray const& bp, int atomOffset) {
   if (bp.empty()) {
@@ -2334,7 +2335,7 @@ void Topology::AddDihArray(DihedralArray const& darray, DihedralParmArray const&
       AddDihedral( DihedralType( dih->A1() + atomOffset, dih->A2() + atomOffset,
                                  dih->A3() + atomOffset, dih->A4() + atomOffset,
                                  dih->Type() ), dp[dih->Idx()] );
-}
+}*/
 
 /** This template can be used when doing Append() on a generic std::vector array
   * of type T. The array will be appended to a given array of the same type.
@@ -2451,6 +2452,7 @@ int Topology::AppendTop(Topology const& NewTop) {
   addDihedralsWithOffset( dihedrals_, NewTop.Dihedrals(), atomOffset );
   addDihedralsWithOffset( dihedralsh_, NewTop.DihedralsH(), atomOffset );
   addDihedralsWithOffset( chamber_.SetImpropers(), NewTop.chamber_.Impropers(), atomOffset );
+  // TODO CMAP
 //#  for (BondArray::const_iterator bond = NewTop.Bonds().begin(); bond != NewTop.Bonds().end(); ++bond)
 //#    AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
 //#  for (BondArray::const_iterator bond = NewTop.BondsH().begin(); bond != NewTop.BondsH().end(); ++bond)
