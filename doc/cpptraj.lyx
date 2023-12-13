@@ -14449,7 +14449,11 @@ angleinfo | angles | printangles
 \end_layout
 
 \begin_layout LyX-Code
-angleinfo [parm <name> | parmindex <#> | <#>] [<mask1>] [<mask2> <mask3>]
+angleinfo [parm <name> | parmindex <#> | <#>]
+\end_layout
+
+\begin_layout LyX-Code
+          [<mask1>] [<mask2> <mask3>] [noindices]
 \end_layout
 
 \begin_layout LyX-Code
@@ -14496,6 +14500,10 @@ parmindex
 \end_inset
 
 <mask3>] If specified, angles must match all masks.
+\end_layout
+
+\begin_layout Description
+[noindices] Do not print angle indices.
 \end_layout
 
 \begin_layout Description
@@ -14674,7 +14682,7 @@ bondinfo [parm <name> | parmindex <#> | <#>]
 \end_layout
 
 \begin_layout LyX-Code
-         [<mask1>] [<mask2>] [out <file>] [nointrares]
+         [<mask1>] [<mask2>] [out <file>] [nointrares] [noindices]
 \end_layout
 
 \begin_deeper
@@ -14725,6 +14733,10 @@ parmindex
 
 \begin_layout Description
 [nointrares] Do not print intra-residue bonds.
+\end_layout
+
+\begin_layout Description
+[noindices] Do not print bond indices.
 \end_layout
 
 \end_deeper
@@ -15331,12 +15343,15 @@ dihedralinfo | dihedrals | printdihedrals
 \end_layout
 
 \begin_layout LyX-Code
-dihedralinfo [parm <name> | parmindex <#> | <#>] [<mask1>] [<mask2> <mask3>
- <mask4>]
+dihedralinfo [parm <name> | parmindex <#> | <#>]
 \end_layout
 
 \begin_layout LyX-Code
-             [out <file>]
+             [<mask1>] [<mask2> <mask3> <mask4>] [noindices]
+\end_layout
+
+\begin_layout LyX-Code
+             [out <file>] [extra]
 \end_layout
 
 \begin_deeper
@@ -15386,11 +15401,19 @@ parmindex
 \end_layout
 
 \begin_layout Description
+[noindices] Do not print dihedral indices.
+\end_layout
+
+\begin_layout Description
 [out
 \begin_inset space ~
 \end_inset
 
 <file>] File to print to (default STDOUT).
+\end_layout
+
+\begin_layout Description
+[extra] Print SCEE/SCNB info as well.
 \end_layout
 
 \end_deeper
@@ -15537,8 +15560,11 @@ improperinfo | impropers | printimpropers
 \end_layout
 
 \begin_layout LyX-Code
-improperinfo [parm <name> | parmindex <#> | <#>] [<mask1>] [<mask2> <mask3>
- <mask4>]
+improperinfo [parm <name> | parmindex <#> | <#>]
+\end_layout
+
+\begin_layout LyX-Code
+             [<mask1>] [<mask2> <mask3> <mask4>] [noindices]
 \end_layout
 
 \begin_layout LyX-Code
@@ -15589,6 +15615,10 @@ parmindex
 \end_inset
 
 <mask4>] If specified, impropers must match all masks.
+\end_layout
+
+\begin_layout Description
+[noindices] Do not print improper indices.
 \end_layout
 
 \begin_layout Description
@@ -16443,7 +16473,11 @@ printub | ubinfo
 \end_layout
 
 \begin_layout LyX-Code
-printub [parm <name> | parmindex <#> | <#>] [<mask1>] [<mask2>] [out <file>]
+printub [parm <name> | parmindex <#> | <#>]
+\end_layout
+
+\begin_layout LyX-Code
+        [<mask1>] [<mask2>] [out <file>] [noindices]
 \end_layout
 
 \begin_deeper
@@ -16490,6 +16524,10 @@ parmindex
 \end_inset
 
 <file>] File to print to (default STDOUT).
+\end_layout
+
+\begin_layout Description
+[noindices] Do not print UB indices.
 \end_layout
 
 \end_deeper

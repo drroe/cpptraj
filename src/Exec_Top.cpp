@@ -10,9 +10,8 @@ void Exec_LoadParm::Help() const {
 }
 // -----------------------------------------------------------------------------
 void Exec_ParmInfo::Help() const {
-  mprintf("\t[%s] [<mask>] [noindices]\n", DataSetList::TopIdxArgs);
-  mprintf("  Print information on specfied topology (first by default).\n"
-          "  If 'noindices' is specified indices will not be printed for parameters.\n");
+  mprintf("\t[%s] [<mask>]\n", DataSetList::TopIdxArgs);
+  mprintf("  Print information on specfied topology (first by default).\n");
 }
 
 Exec::RetType Exec_ParmInfo::Execute(CpptrajState& State, ArgList& argIn) {
@@ -55,7 +54,8 @@ static int CommonSetup(TopInfo& info, CpptrajState& State, ArgList& argIn, const
 
 // -----------------------------------------------------------------------------
 void Exec_BondInfo::Help() const {
-  mprintf("\t[%s] [<mask1>] [<mask2>] [out <file>] [nointrares]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s]\n"
+          "\t[<mask1>] [<mask2>] [out <file>] [nointrares] [noindices]\n", DataSetList::TopIdxArgs);
   mprintf("  For specified topology (first by default) either print bond info for all\n"
           "  atoms in <mask1>, or print info for bonds with first atom in <mask1> and\n"
           "  second atom in <mask2>. If 'nointrares' is specified, only print bonds\n"
@@ -71,7 +71,8 @@ Exec::RetType Exec_BondInfo::Execute(CpptrajState& State, ArgList& argIn) {
 }
 // -----------------------------------------------------------------------------
 void Exec_UBInfo::Help() const {
-  mprintf("\t[%s] [<mask1>] [<mask2>] [out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s]\n"
+          "\t[<mask1>] [<mask2>] [out <file>] [noindices]\n", DataSetList::TopIdxArgs);
   mprintf("  For specified topology (first by default) either print CHARMM Urey-Bradley\n"
           "  info for all atoms in <mask1>, or print info for bonds with first atom in\n"
           "  <mask1> and second atom in <mask2>.\n");
@@ -87,7 +88,9 @@ Exec::RetType Exec_UBInfo::Execute(CpptrajState& State, ArgList& argIn) {
 
 // -----------------------------------------------------------------------------
 void Exec_AngleInfo::Help() const {
-  mprintf("\t[%s] [<mask1>] [<mask2> <mask3>]\n\t[out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s]\n"
+          "\t[<mask1>] [<mask2> <mask3>] [noindices]\n"
+          "\t[out <file>]\n", DataSetList::TopIdxArgs);
   mprintf("  For specified topology (first by default) either print angle info for all\n"
           "  atoms in <mask1>, or print info for angles with first atom in <mask1>,\n"
           "  second atom in <mask2>, and third atom in <mask3>.\n");
@@ -103,10 +106,13 @@ Exec::RetType Exec_AngleInfo::Execute(CpptrajState& State, ArgList& argIn) {
 }
 // -----------------------------------------------------------------------------
 void Exec_DihedralInfo::Help() const {
-  mprintf("\t[%s] [<mask1>] [<mask2> <mask3> <mask4>]\n\t[out <file>] [extra]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s]\n"
+          "\t[<mask1>] [<mask2> <mask3> <mask4>] [noindices]\n"
+          "\t[out <file>] [extra]\n", DataSetList::TopIdxArgs);
   mprintf("  For specified topology (first by default) either print dihedral info for all\n"
           "  atoms in <mask1>, or print info for dihedrals with first atom in <mask1>,\n"
-          "  second atom in <mask2>, third atom in <mask3>, and fourth atom in <mask4>.\n");
+          "  second atom in <mask2>, third atom in <mask3>, and fourth atom in <mask4>.\n"
+          "  If 'extra' is specified, print SCEE and SCNB factors as well.\n");
 }
 
 Exec::RetType Exec_DihedralInfo::Execute(CpptrajState& State, ArgList& argIn) {
@@ -128,7 +134,9 @@ Exec::RetType Exec_DihedralInfo::Execute(CpptrajState& State, ArgList& argIn) {
 
 // -----------------------------------------------------------------------------
 void Exec_ImproperInfo::Help() const {
-  mprintf("\t[%s] [<mask1>] [<mask2> <mask3> <mask4>]\n\t[out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s]\n"
+          "\t[<mask1>] [<mask2> <mask3> <mask4>] [noindices]\n"
+          "\t[out <file>]\n", DataSetList::TopIdxArgs);
   mprintf("  For specified topology (first by default) either print CHARMM improper info\n"
           "  for all atoms in <mask1>, or print info for dihedrals with first atom in <mask1>,\n"
           "  second atom in <mask2>, third atom in <mask3>, and fourth atom in <mask4>.\n");
