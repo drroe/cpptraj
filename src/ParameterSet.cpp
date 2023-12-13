@@ -79,7 +79,7 @@ void ParameterSet::Print(CpptrajFile& Out) const {
     Out.Printf("Angle parameters:\n");
     Out.Printf("\t%6s %6s %6s : %12s %12s\n", "Type1", "Type2", "Type3", "Tk", "Teq");
     for (ParmHolder<AngleParmType>::const_iterator bp = angleParm_.begin(); bp != angleParm_.end(); ++bp)
-      Out.Printf("\t%6s %6s %6s : %12.4f %12.4f\n", *(bp->first[0]), *(bp->first[1]), *(bp->first[2]), bp->second.Tk(), bp->second.Teq());
+      Out.Printf("\t%6s %6s %6s : %12.4f %12.4f\n", *(bp->first[0]), *(bp->first[1]), *(bp->first[2]), bp->second.Tk(), bp->second.Teq()*Constants::RADDEG);
   }
   if (!ubParm_.empty()) {
     Out.Printf("UB parameters:\n");
