@@ -10,8 +10,9 @@ void Exec_LoadParm::Help() const {
 }
 // -----------------------------------------------------------------------------
 void Exec_ParmInfo::Help() const {
-  mprintf("\t[%s] [<mask>]\n", DataSetList::TopIdxArgs);
-  mprintf("  Print information on specfied topology (first by default).\n");
+  mprintf("\t[%s] [<mask>] [noindices]\n", DataSetList::TopIdxArgs);
+  mprintf("  Print information on specfied topology (first by default).\n"
+          "  If 'noindices' is specified indices will not be printed for parameters.\n");
 }
 
 Exec::RetType Exec_ParmInfo::Execute(CpptrajState& State, ArgList& argIn) {

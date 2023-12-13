@@ -449,7 +449,10 @@ void TopInfo::PrintBonds(BondArray const& barray, BondParmArray const& bondparm,
         printBond = false;
     }
     if (printBond) {
-      outfile_->Printf("%*i", nw, nb);
+      if (printIndices_)
+        outfile_->Printf("%*i", nw, nb);
+      else
+        outfile_->Printf("%*c", nw, ' ');
       int bidx = batom->Idx();
       if ( bidx > -1 )
         outfile_->Printf(" %6.2f %6.3f", bondparm[bidx].Rk(), bondparm[bidx].Req());
@@ -534,7 +537,10 @@ void TopInfo::PrintAngles(AngleArray const& aarray, AngleParmArray const& anglep
                     mask1.AtomInCharMask(atom2) ||
                     mask1.AtomInCharMask(atom3));
     if (printAngle) {
-      outfile_->Printf("%*i", nw, na);
+      if (printIndices_)
+        outfile_->Printf("%*i", nw, na);
+      else
+        outfile_->Printf("%*c", nw, ' ');
       int aidx = aatom->Idx();
       if ( aidx > -1 )
         outfile_->Printf(" %6.3f %6.2f", angleparm[aidx].Tk(), 
