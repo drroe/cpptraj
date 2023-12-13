@@ -75,7 +75,7 @@ parmwrite out FabI.NDP.TCS.parm7 crdset combinedCrd
 EOF
   RunCpptraj "Split coords and recombine test."
   DoTest E1.dat E2.dat
-  DoTest ../FtuFabI.NAD.TCL.parm7 FabI.NDP.TCS.parm7 -I %VERSION
+  DoTest FabI.NDP.TCS.parm7.save FabI.NDP.TCS.parm7 -I %VERSION
 fi
 
 EndTest
