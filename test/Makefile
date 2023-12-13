@@ -539,6 +539,12 @@ test.readoff:
 test.sequence:
 	@-cd Test_Sequence && ./RunTest.sh $(OPT)
 
+test.refinetrajectory:
+	@-cd Test_RefineTrajectory && ./RunTest.sh $(OPT)
+
+test.readamberff:
+	@-cd Test_ReadAmberFF && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -709,7 +715,9 @@ COMPLETETESTS=test.general \
               test.readprep \
               test.zmatrix \
               test.readoff \
-              test.sequence
+              test.sequence \
+              test.refinetrajectory \
+              test.readamberff
 
 test.all:
 	$(MAKE) test.complete summary
