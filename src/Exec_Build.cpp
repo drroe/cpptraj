@@ -3,6 +3,40 @@
 #include "DataSet_Parameters.h"
 #include "Structure/GenerateAngles.h"
 
+DataSet_Coords* Exec_Build::IdTemplateFromName(Carray const& Templates,
+                                               NameType const& rname)
+{
+  DataSet_Coords* out = 0;
+  // Assume Coords set aspect is what we need
+  for (Carray::const_iterator it = Templates.begin(); it != Templates.end(); ++it) {
+    if ( rname == NameType( (*it)->Meta().Aspect() ) ) {
+      out = *it;
+      break;
+    }
+  }
+  return out;
+}
+
+/** Use given templates to construct a final molecule. */
+int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
+                                       Carray const& Templates,
+                                       Topology const& topIn, Frame const& frameIn)
+{
+  for (int ires = 0; ires != topIn.Nres(); ires++)
+  {
+    // Identify a template based on the residue name.
+    DataSet_Coords* resTemplate = IdTemplateFromName(Templates, topIn.Res(ires).Name());
+    if (resTemplate == 0) {
+      mprintf("Warning: No template found for residue %s\n", topIn.TruncResNameNum(ires).c_str());
+    } else {
+      mprintf("\tTemplate %s being used for residue %s\n",
+              resTemplate->legend(), topIn.TruncResNameNum(ires).c_str());
+    }
+  }
+
+  return 0;
+}
+
 // Exec_Build::Help()
 void Exec_Build::Help() const
 {
@@ -37,7 +71,6 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   Topology& topIn = *(coords.TopPtr());
 
   // Get residue templates.
-  typedef std::vector<DataSet_Coords*> Carray;
   Carray Templates;
   std::string lib = argIn.GetStringKey("lib");
   if (lib.empty()) {
@@ -77,6 +110,12 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // Fill in atoms with templates
+  Topology topOut;
+  Frame frameOut;
+  if (FillAtomsWithTemplates(topOut, frameOut, Templates, topIn, frameIn)) {
+    mprinterr("Error: Could not fill in atoms using templates.\n");
+    return CpptrajState::ERR;
+  }
 
   // Generate angles/dihedrals
   if (Cpptraj::Structure::GenerateAngles(topIn)) {
