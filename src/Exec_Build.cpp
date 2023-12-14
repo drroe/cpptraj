@@ -36,6 +36,46 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   // Get modifiable topology
   Topology& topIn = *(coords.TopPtr());
 
+  // Get residue templates.
+  typedef std::vector<DataSet_Coords*> Carray;
+  Carray Templates;
+  std::string lib = argIn.GetStringKey("lib");
+  if (lib.empty()) {
+    mprintf("\tNo template(s) specified with 'lib'; using any loaded templates.\n");
+    DataSetList sets = State.DSL().SelectGroupSets( "*", DataSet::COORDINATES ); // TODO specific set type for units?
+    for (DataSetList::const_iterator it = sets.begin(); it != sets.end(); ++it)
+    {
+      // Should only be a single residue FIXME need new set type
+      DataSet_Coords const& ds = static_cast<DataSet_Coords const&>( *(*it) );
+      if ( ds.Top().Nres() == 1 )
+        Templates.push_back( (DataSet_Coords*)(*it) );
+    }
+  } else {
+    while (!lib.empty()) {
+      DataSetList sets = State.DSL().SelectGroupSets( lib, DataSet::COORDINATES ); // TODO specific set type for units?
+      if (sets.empty()) {
+        mprintf("Warning: No sets corresponding to '%s'\n", lib.c_str());
+      } else {
+        for (DataSetList::const_iterator it = sets.begin(); it != sets.end(); ++it)
+        {
+          // Should only be a single residue FIXME need new set type
+          DataSet_Coords const& ds = static_cast<DataSet_Coords const&>( *(*it) );
+          if ( ds.Top().Nres() == 1 )
+            Templates.push_back( (DataSet_Coords*)(*it) );
+        }
+      }
+      lib = argIn.GetStringKey("lib");
+    }
+  }
+  if (Templates.empty())
+    mprintf("Warning: No residue templates loaded.\n");
+  else {
+    mprintf("\t%zu residue templates found:", Templates.size());
+    for (std::vector<DataSet_Coords*>::const_iterator it = Templates.begin(); it != Templates.end(); ++it)
+      mprintf(" %s", (*it)->legend());
+    mprintf("\n");
+  }
+
   // Fill in atoms with templates
 
   // Generate angles/dihedrals
