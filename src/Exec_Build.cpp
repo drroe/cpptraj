@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_Parameters.h"
 #include "Structure/GenerateAngles.h"
+#include "Structure/Zmatrix.h"
 
 DataSet_Coords* Exec_Build::IdTemplateFromName(Carray const& Templates,
                                                NameType const& rname)
@@ -46,6 +47,9 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
                                        Carray const& Templates,
                                        Topology const& topIn, Frame const& frameIn)
 {
+  std::vector<Vec3> XYZ; // FIXME should use frameOut
+  Cpptraj::Structure::Zmatrix::Barray hasPosition;
+  int nAtomsMissing = 0;
   for (int ires = 0; ires != topIn.Nres(); ires++)
   {
     // Identify a template based on the residue name.
@@ -55,6 +59,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     } else {
       mprintf("\tTemplate %s being used for residue %s\n",
               resTemplate->legend(), topIn.TruncResNameNum(ires).c_str());
+      // Map atoms to template atoms
       std::vector<int> map = MapAtomsToTemplate( topIn, ires, resTemplate );
       mprintf("\t  Atom map:\n");
       for (int iref = 0; iref != resTemplate->Top().Natom(); iref++) {
@@ -64,7 +69,47 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
         else
           mprintf(" %6i %6s\n", map[iref]+1, *(topIn[map[iref]].Name()));
       }
+      for (int iref = 0; iref != resTemplate->Top().Natom(); iref++) {
+        topOut.AddTopAtom( resTemplate->Top()[iref], topIn.Res(ires) );
+        if (map[iref] == -1) {
+          XYZ.push_back( Vec3(0.0) );
+          hasPosition.push_back( false );
+          nAtomsMissing++;
+        } else {
+          XYZ.push_back( Vec3(frameIn.XYZ(map[iref])) );
+          hasPosition.push_back( true );
+        }
+      }
+      // DEBUG
+      Frame templateFrame = resTemplate->AllocateFrame();
+      resTemplate->GetFrame( 0, templateFrame );
+      Cpptraj::Structure::Zmatrix zmatrix;
+      if (zmatrix.SetFromFrame( templateFrame, resTemplate->Top(), 0 )) {
+        mprinterr("Error: Could not set up residue template zmatrix.\n");
+        return 1;
+      }
+      zmatrix.print();
+      // If no atoms missing just fill in the residue
+/*      if (nAtomsMissing == 0) {
+        for (int iref = 0; iref != resTemplate->Top().Natom(); iref++) {
+          topOut.AddTopAtom( resTemplate->Top()[iref], topIn.Res(ires) );
+          XYZ.push_back( Vec3(frameIn.XYZ(map[iref])) );
+        }
+      } else {
+        mprintf("\tTrying to fill in missing atoms.\n");
+        // one or more atoms missing. Try to use Zmatrix to fill it in
+        
+         // DEBUG*/
+
     }
+  }
+  mprintf("\t%i atoms missing.\n", nAtomsMissing);
+  for (int iat = 0; iat != topOut.Natom(); iat++)
+  {
+    Residue const& res = topOut.Res( topOut[iat].ResNum() );
+    mprintf("%6i %6s %6i %6s (%i) %g %g %g\n",
+            iat+1, *(topOut[iat].Name()), res.OriginalResNum(), *(res.Name()),
+            (int)hasPosition[iat], XYZ[iat][0], XYZ[iat][1], XYZ[iat][2]);
   }
 
   return 0;
