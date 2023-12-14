@@ -15,5 +15,7 @@ class Exec_Build : public Exec {
     static DataSet_Coords* IdTemplateFromName(Carray const&, NameType const&);
     /// Create new topology/frame using templates
     static int FillAtomsWithTemplates(Topology&, Frame&, Carray const&, Topology const&, Frame const&);
+    /// Map atoms in topology to template
+    static std::vector<int> MapAtomsToTemplate(Topology const&, int, DataSet_Coords*);
 };
 #endif

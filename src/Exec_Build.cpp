@@ -17,6 +17,30 @@ DataSet_Coords* Exec_Build::IdTemplateFromName(Carray const& Templates,
   return out;
 }
 
+/** Map atoms in residue to template. */
+std::vector<int> Exec_Build::MapAtomsToTemplate(Topology const& topIn,
+                                                int rnum,
+                                                DataSet_Coords* resTemplate)
+{
+  std::vector<int> mapOut;
+  mapOut.reserve( resTemplate->Top().Natom() );
+  Residue const& resIn = topIn.Res(rnum);
+  for (int iref = 0; iref != resTemplate->Top().Natom(); iref++)
+  {
+    // Find this atom name in topIn
+    NameType const& refName = resTemplate->Top()[iref].Name();
+    int iat = -1;
+    for (int itgt = resIn.FirstAtom(); itgt != resIn.LastAtom(); itgt++) {
+      if ( refName == topIn[itgt].Name() ) {
+        iat = itgt;
+        break;
+      }
+    }
+    mapOut.push_back( iat );
+  }
+  return mapOut;
+}
+
 /** Use given templates to construct a final molecule. */
 int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
                                        Carray const& Templates,
@@ -31,6 +55,15 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     } else {
       mprintf("\tTemplate %s being used for residue %s\n",
               resTemplate->legend(), topIn.TruncResNameNum(ires).c_str());
+      std::vector<int> map = MapAtomsToTemplate( topIn, ires, resTemplate );
+      mprintf("\t  Atom map:\n");
+      for (int iref = 0; iref != resTemplate->Top().Natom(); iref++) {
+        mprintf("\t\t%6i %6s =>", iref+1, *(resTemplate->Top()[iref].Name()));
+        if (map[iref] == -1)
+          mprintf(" No match\n");
+        else
+          mprintf(" %6i %6s\n", map[iref]+1, *(topIn[map[iref]].Name()));
+      }
     }
   }
 
