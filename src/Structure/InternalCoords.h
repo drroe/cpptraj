@@ -1,5 +1,6 @@
 #ifndef INC_STRUCTURE_INTERNALCOORDS_H
 #define INC_STRUCTURE_INTERNALCOORDS_H
+#include <vector>
 class Topology;
 namespace Cpptraj {
 namespace Structure {
@@ -38,6 +39,8 @@ class InternalCoords {
     static unsigned int sizeInBytes() { return (4*sizeof(int)) + (3*sizeof(double)); }
 
     void printIC(Topology const&) const;
+    /// Remap internal indices according to given map
+    void RemapIndices(std::vector<int> const&);
   private:
     int ati_;       ///< Atom I index
     int idx_[3];    ///< Atom indices for distance, angle, torsion

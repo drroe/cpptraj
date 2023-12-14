@@ -88,6 +88,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
         mprinterr("Error: Could not set up residue template zmatrix.\n");
         return 1;
       }
+      zmatrix.RemapIcIndices( map );
       zmatrix.print();
       // If no atoms missing just fill in the residue
 /*      if (nAtomsMissing == 0) {

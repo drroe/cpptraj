@@ -120,6 +120,12 @@ void Zmatrix::print(Topology* topIn) const {
   }
 }
 
+/** Remap internal coordinate indices according to the given atom map. */
+void Zmatrix::RemapIcIndices(std::vector<int> const& map) {
+  for (ICarray::iterator it = IC_.begin(); it != IC_.end(); ++it)
+    it->RemapIndices(map);
+}
+
 /** \return True if all Cartesian seeds are set. */
 bool Zmatrix::HasCartSeeds() const {
   bool has_cart_seed = (seedAt0_ != InternalCoords::NO_ATOM &&
