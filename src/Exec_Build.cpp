@@ -75,7 +75,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   // hasPosition - for each atom in topOut, status on whether atom in frameOut needs building
   Cpptraj::Structure::Zmatrix::Barray hasPosition;
   hasPosition.reserve( newNatom );
-  // Z-matrices for residues that have missing atoms
+  // Hold Z-matrices for residues that have missing atoms
   typedef std::vector<Cpptraj::Structure::Zmatrix*> Zarray;
   Zarray ResZmatrices;
   ResZmatrices.reserve( topIn.Nres() );
@@ -185,10 +185,12 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   return 0;
 }
 
+// -----------------------------------------------------------------------------
 // Exec_Build::Help()
 void Exec_Build::Help() const
 {
-  mprintf("\tcrdset <COORDS set> [frame <#>] [parmset <param set> ...]\n");
+  mprintf("\tname <output COORDS> crdset <COORDS set> [frame <#>]\n"
+          "\t[parmset <param set> ...] [lib <lib set> ...]\n");
 }
 
 // Exec_Build::Execute()
@@ -200,12 +202,13 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: Must specify input COORDS set with 'crdset'\n");
     return CpptrajState::ERR;
   }
-  DataSet* ds = State.DSL().FindSetOfGroup( crdset, DataSet::COORDINATES );
-  if (ds == 0) {
+  DataSet* inCrdPtr = State.DSL().FindSetOfGroup( crdset, DataSet::COORDINATES );
+  if (inCrdPtr == 0) {
     mprinterr("Error: No COORDS set found matching %s\n", crdset.c_str());
     return CpptrajState::ERR;
   }
-  DataSet_Coords& coords = static_cast<DataSet_Coords&>( *((DataSet_Coords*)ds) );
+  // TODO make it so this can be const (cant bc GetFrame)
+  DataSet_Coords& coords = static_cast<DataSet_Coords&>( *((DataSet_Coords*)inCrdPtr) );
   // Get frame from input coords
   int tgtframe = argIn.getKeyInt("frame", 1) - 1;
   mprintf("\tUsing frame %i from COORDS set %s\n", tgtframe+1, coords.legend());
@@ -216,7 +219,22 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   Frame frameIn = coords.AllocateFrame();
   coords.GetFrame(tgtframe, frameIn);
   // Get modifiable topology
-  Topology& topIn = *(coords.TopPtr());
+  //Topology& topIn = *(coords.TopPtr());
+  Topology const& topIn = coords.Top();
+
+  // Output coords
+  std::string outset = argIn.GetStringKey("name");
+  if (outset.empty()) {
+    mprinterr("Error: Must specify output COORDS set with 'name'\n");
+    return CpptrajState::ERR;
+  }
+  DataSet* outCrdPtr = State.DSL().AddSet( DataSet::COORDS, outset );
+  if (outCrdPtr == 0) {
+    mprinterr("Error: Could not allocate output COORDS set with name '%s'\n", outset.c_str());
+    return CpptrajState::ERR;
+  }
+  DataSet_Coords& crdout = static_cast<DataSet_Coords&>( *((DataSet_Coords*)outCrdPtr) );
+  mprintf("\tOutput COORDS set: %s\n", crdout.legend());
 
   // Get residue templates.
   Carray Templates;
@@ -266,8 +284,8 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // Generate angles/dihedrals
-  if (Cpptraj::Structure::GenerateAngles(topIn)) {
-    mprinterr("Error: Could not generate angles/dihedrals for '%s'\n", topIn.c_str());
+  if (Cpptraj::Structure::GenerateAngles(topOut)) {
+    mprinterr("Error: Could not generate angles/dihedrals for '%s'\n", topOut.c_str());
     return CpptrajState::ERR;
   }
 
@@ -319,12 +337,19 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
 
   // Update parameters
   Exec::RetType ret = CpptrajState::OK;
-  if ( topIn.UpdateParams( *mainParmSet  ) ) {
-    mprinterr("Error: Could not update parameters for '%s'.\n", topIn.c_str());
+  if ( topOut.UpdateParams( *mainParmSet  ) ) {
+    mprinterr("Error: Could not update parameters for '%s'.\n", topOut.c_str());
     ret = CpptrajState::ERR;
   }
 
   if (free_parmset_mem && mainParmSet != 0) delete mainParmSet;
+
+  // Update coords 
+  if (crdout.CoordsSetup( topOut, CoordinateInfo() )) { // FIXME better coordinate info
+    mprinterr("Error: Could not set up output COORDS.\n");
+    return CpptrajState::ERR;
+  }
+  crdout.SetCRD(0, frameOut);
 
   return ret;
 }
