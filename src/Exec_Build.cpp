@@ -75,13 +75,19 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   // hasPosition - for each atom in topOut, status on whether atom in frameOut needs building
   Cpptraj::Structure::Zmatrix::Barray hasPosition;
   hasPosition.reserve( newNatom );
-  // For holding bonded atom pairs
-  typedef std::pair<int,int> Ipair;
-  typedef std::vector<Ipair> IParray;
+
   // Hold Z-matrices for residues that have missing atoms
   typedef std::vector<Cpptraj::Structure::Zmatrix*> Zarray;
   Zarray ResZmatrices;
   ResZmatrices.reserve( topIn.Nres() );
+
+  // For inter-residue bonding, use residue # and atom name since
+  // atom numbering may change if atoms are added from templates.
+  typedef std::pair<int,NameType> ResAtPair;
+  typedef std::vector<ResAtPair> ResAtArray;
+  ResAtArray interResBonds;
+
+  // Loop for setting up atoms in the topology from residues or residue templates.
   int nRefAtomsMissing = 0;
   for (int ires = 0; ires != topIn.Nres(); ires++)
   {
@@ -89,6 +95,9 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     int atomOffset = topOut.Natom();
     Residue const& currentRes = topIn.Res(ires);
     DataSet_Coords* resTemplate = ResTemplates[ires];
+    // For holding bonded atom pairs
+    typedef std::pair<int,int> Ipair;
+    typedef std::vector<Ipair> IParray;
     IParray intraResBonds;
     if (resTemplate == 0) {
       // No template. Just add the atoms.
@@ -100,10 +109,13 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
         for (Atom::bond_iterator bat = currentAtom.bondbegin(); bat != currentAtom.bondend(); ++bat) {
           if ( topIn[*bat].ResNum() == ires ) {
             int at1 = *bat - currentRes.FirstAtom() + atomOffset;
-            mprintf("Will add bond between %i and %i (original %i and %i)\n", at0+1, at1+1, itgt+1, *bat + 1);
-            intraResBonds.push_back( Ipair(at0, at1) );
-            //topOut.AddBond(at0, at1);
-            // TODO inter-residue
+            if (at1 > at0) {
+              mprintf("Will add bond between %i and %i (original %i and %i)\n", at0+1, at1+1, itgt+1, *bat + 1);
+              intraResBonds.push_back( Ipair(at0, at1) );
+            }
+          } else {
+            interResBonds.push_back( ResAtPair(ires, currentAtom.Name()) );
+            interResBonds.push_back( ResAtPair(topIn[*bat].ResNum(), topIn[*bat].Name()) );
           }
         }
         currentAtom.ClearBonds(); // FIXME AddTopAtom should clear bonds
@@ -132,12 +144,16 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
         Atom currentAtom = resTemplate->Top()[iref];
         int at0 = iref + atomOffset;
         for (Atom::bond_iterator bat = currentAtom.bondbegin(); bat != currentAtom.bondend(); ++bat) {
-          if ( topIn[*bat].ResNum() == ires ) {
+          //if ( resTemplate->Top()[*bat].ResNum() == ires ) {
             int at1 = *bat + atomOffset;
-            mprintf("Will add bond between %i and %i (original %i and %i)\n", at0+1, at1+1, iref+1, *bat + 1);
-            intraResBonds.push_back( Ipair(at0, at1) );
-          }
+            if (at1 > at0) {
+              mprintf("Will add bond between %i and %i (original %i and %i)\n", at0+1, at1+1, iref+1, *bat + 1);
+              intraResBonds.push_back( Ipair(at0, at1) );
+            }
+          //}
         }
+        // TODO connect atoms for inter-residue connections
+        // TODO check source atoms for inter-residue connections
         currentAtom.ClearBonds();
         topOut.AddTopAtom( currentAtom, currentRes );
         if (map[iref] == -1) {
@@ -176,8 +192,23 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     } // END template exists
     // Add intra-residue bonds
     for (IParray::const_iterator it = intraResBonds.begin(); it != intraResBonds.end(); ++it)
+    {
+      mprintf("DEBUG: Intra-res bond: Res %s atom %s to res %s atom %s\n",
+              topOut.TruncResNameNum(topOut[it->first].ResNum()).c_str(), *(topOut[it->first].Name()),
+              topOut.TruncResNameNum(topOut[it->second].ResNum()).c_str(), *(topOut[it->second].Name()));
       topOut.AddBond(it->first, it->second);
+    }
   } // END loop over source residues
+  // Add inter-residue bonds
+  for (ResAtArray::const_iterator it = interResBonds.begin(); it != interResBonds.end(); ++it)
+  {
+    ResAtPair const& ra0 = *it;
+    ++it;
+    ResAtPair const& ra1 = *it;
+    mprintf("DEBUG: Inter-res bond: Res %i atom %s to res %i atom %s\n",
+            ra0.first+1, *(ra0.second),
+            ra1.first+1, *(ra1.second));
+  }
   mprintf("\t%i template atoms missing in source.\n", nRefAtomsMissing);
 
   // Build using internal coords if needed.
