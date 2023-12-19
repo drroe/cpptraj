@@ -47,21 +47,57 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
                                        Carray const& Templates,
                                        Topology const& topIn, Frame const& frameIn)
 {
-  std::vector<Vec3> XYZ; // FIXME should use frameOut
-  Cpptraj::Structure::Zmatrix::Barray hasPosition;
-  int nAtomsMissing = 0;
+  // Array of templates for each residue
+  std::vector<DataSet_Coords*> ResTemplates;
+  ResTemplates.reserve( topIn.Nres() );
+  // Initial loop to try to match residues to templates
+  int newNatom = 0;
   for (int ires = 0; ires != topIn.Nres(); ires++)
   {
     // Identify a template based on the residue name.
-    DataSet_Coords* resTemplate = IdTemplateFromName(Templates, topIn.Res(ires).Name());
+    Residue const& currentRes = topIn.Res(ires);
+    DataSet_Coords* resTemplate = IdTemplateFromName(Templates, currentRes.Name());
     if (resTemplate == 0) {
       mprintf("Warning: No template found for residue %s\n", topIn.TruncResNameNum(ires).c_str());
+      newNatom += currentRes.NumAtoms();
     } else {
       mprintf("\tTemplate %s being used for residue %s\n",
               resTemplate->legend(), topIn.TruncResNameNum(ires).c_str());
-      // Map atoms to template atoms
+      newNatom += resTemplate->Top().Natom();
+    }
+    ResTemplates.push_back( resTemplate );
+  }
+  mprintf("\tFinal structure should have %i atoms.\n", newNatom);
+  frameOut.SetupFrame( newNatom );
+  // Clear frame so that AddXYZ can be used
+  frameOut.ClearAtoms();
+
+  // hasPosition - for each atom in topOut, status on whether atom in frameOut needs building
+  Cpptraj::Structure::Zmatrix::Barray hasPosition;
+  hasPosition.reserve( newNatom );
+  // Z-matrices for residues that have missing atoms
+  typedef std::vector<Cpptraj::Structure::Zmatrix*> Zarray;
+  Zarray ResZmatrices;
+  ResZmatrices.reserve( topIn.Nres() );
+  int nRefAtomsMissing = 0;
+  for (int ires = 0; ires != topIn.Nres(); ires++)
+  {
+    Residue const& currentRes = topIn.Res(ires);
+    DataSet_Coords* resTemplate = ResTemplates[ires];
+    if (resTemplate == 0) {
+      // No template. Just add the atoms.
+      for (int itgt = currentRes.FirstAtom(); itgt != currentRes.LastAtom(); ++itgt)
+      {
+        topOut.AddTopAtom( topIn[itgt], currentRes );
+        frameOut.AddVec3( Vec3(frameIn.XYZ(itgt)) );
+        hasPosition.push_back( true );
+      }
+    } else {
+      // A template exists for this residue.
+      // Map source atoms to template atoms.
       std::vector<int> map = MapAtomsToTemplate( topIn, ires, resTemplate );
       mprintf("\t  Atom map:\n");
+      // DEBUG - print map
       for (int iref = 0; iref != resTemplate->Top().Natom(); iref++) {
         mprintf("\t\t%6i %6s =>", iref+1, *(resTemplate->Top()[iref].Name()));
         if (map[iref] == -1)
@@ -69,50 +105,66 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
         else
           mprintf(" %6i %6s\n", map[iref]+1, *(topIn[map[iref]].Name()));
       }
+      // Map template atoms back to source atoms.
+      std::vector<int> pdb(currentRes.NumAtoms(), -1);
+      bool atomsNeedBuilding = false;
       for (int iref = 0; iref != resTemplate->Top().Natom(); iref++) {
-        topOut.AddTopAtom( resTemplate->Top()[iref], topIn.Res(ires) );
+        topOut.AddTopAtom( resTemplate->Top()[iref], currentRes );
         if (map[iref] == -1) {
-          XYZ.push_back( Vec3(0.0) );
+          frameOut.AddVec3( Vec3(0.0) );
           hasPosition.push_back( false );
-          nAtomsMissing++;
+          nRefAtomsMissing++;
+          atomsNeedBuilding = true;
         } else {
-          XYZ.push_back( Vec3(frameIn.XYZ(map[iref])) );
+          int itgt = map[iref];
+          frameOut.AddVec3( Vec3(frameIn.XYZ(itgt)) );
           hasPosition.push_back( true );
+          pdb[itgt-currentRes.FirstAtom()] = iref;
         }
       }
-      // DEBUG
-      Frame templateFrame = resTemplate->AllocateFrame();
-      resTemplate->GetFrame( 0, templateFrame );
-      Cpptraj::Structure::Zmatrix zmatrix;
-      if (zmatrix.SetFromFrame( templateFrame, resTemplate->Top(), 0 )) {
-        mprinterr("Error: Could not set up residue template zmatrix.\n");
-        return 1;
-      }
-      zmatrix.RemapIcIndices( map );
-      zmatrix.print();
-      // If no atoms missing just fill in the residue
-/*      if (nAtomsMissing == 0) {
-        for (int iref = 0; iref != resTemplate->Top().Natom(); iref++) {
-          topOut.AddTopAtom( resTemplate->Top()[iref], topIn.Res(ires) );
-          XYZ.push_back( Vec3(frameIn.XYZ(map[iref])) );
+      // See if any current atoms were not mapped to reference
+      int nTgtAtomsMissing = 0;
+      for (int itgt = 0; itgt != currentRes.NumAtoms(); itgt++)
+        if (pdb[itgt] == -1)
+          nTgtAtomsMissing++;
+      mprintf("\t%i source atoms not mapped to template.\n", nTgtAtomsMissing);
+      // Save zmatrix if atoms need to be built
+      if (atomsNeedBuilding) {
+        Frame templateFrame = resTemplate->AllocateFrame();
+        resTemplate->GetFrame( 0, templateFrame );
+        Cpptraj::Structure::Zmatrix* zmatrix = new Cpptraj::Structure::Zmatrix();
+        if (zmatrix->SetFromFrame( templateFrame, resTemplate->Top(), 0 )) {
+          mprinterr("Error: Could not set up residue template zmatrix.\n");
+          return 1;
         }
-      } else {
-        mprintf("\tTrying to fill in missing atoms.\n");
-        // one or more atoms missing. Try to use Zmatrix to fill it in
-        
-         // DEBUG*/
-
-    }
-  }
-  mprintf("\t%i atoms missing.\n", nAtomsMissing);
+        zmatrix->RemapIcIndices( map );
+        ResZmatrices.push_back( zmatrix );
+        //zmatrix->print();
+      } else
+        ResZmatrices.push_back( 0 );
+    } // END template exists
+  } // END loop over source residues
+  mprintf("\t%i template atoms missing in source.\n", nRefAtomsMissing);
   for (int iat = 0; iat != topOut.Natom(); iat++)
   {
     Residue const& res = topOut.Res( topOut[iat].ResNum() );
+    const double* XYZ = frameOut.XYZ(iat);
     mprintf("%6i %6s %6i %6s (%i) %g %g %g\n",
             iat+1, *(topOut[iat].Name()), res.OriginalResNum(), *(res.Name()),
-            (int)hasPosition[iat], XYZ[iat][0], XYZ[iat][1], XYZ[iat][2]);
+            (int)hasPosition[iat], XYZ[0], XYZ[1], XYZ[2]);
   }
 
+  for (Zarray::const_iterator it = ResZmatrices.begin(); it != ResZmatrices.end(); ++it)
+  {
+    mprintf("DEBUG: Zmatrix for building residue %li\n", it - ResZmatrices.begin() + 1);
+    Cpptraj::Structure::Zmatrix* zmatrix = *it;
+    if (zmatrix != 0)
+      zmatrix->print();
+  }
+
+  // Clean up zmatrices
+  for (Zarray::iterator it = ResZmatrices.begin(); it != ResZmatrices.end(); ++it)
+    delete *it;
   return 0;
 }
 
