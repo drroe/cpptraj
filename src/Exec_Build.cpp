@@ -91,7 +91,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     DataSet_Coords* resTemplate = ResTemplates[ires];
     if (resTemplate == 0) {
       // No template. Just add the atoms.
-      IParray bondsToAdd;
+      IParray intraResBonds;
       for (int itgt = currentRes.FirstAtom(); itgt != currentRes.LastAtom(); ++itgt)
       {
         // Add intra-residue bonds
@@ -101,17 +101,17 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
           if ( topIn[*bat].ResNum() == ires ) {
             int at1 = *bat - currentRes.FirstAtom() + atomOffset;
             mprintf("Will add bond between %i and %i (original %i and %i)\n", at0+1, at1+1, itgt+1, *bat + 1);
-            bondsToAdd.push_back( Ipair(at0, at1) );
+            intraResBonds.push_back( Ipair(at0, at1) );
             //topOut.AddBond(at0, at1);
             // TODO inter-residue
           }
         }
-        currentAtom.ClearBonds();
+        currentAtom.ClearBonds(); // FIXME AddTopAtom should clear bonds
         topOut.AddTopAtom( currentAtom, currentRes );
         frameOut.AddVec3( Vec3(frameIn.XYZ(itgt)) );
         hasPosition.push_back( true );
       }
-      for (IParray::const_iterator it = bondsToAdd.begin(); it != bondsToAdd.end(); ++it)
+      for (IParray::const_iterator it = intraResBonds.begin(); it != intraResBonds.end(); ++it)
         topOut.AddBond(it->first, it->second);
     } else {
       // A template exists for this residue.
