@@ -121,9 +121,15 @@ void Zmatrix::print(Topology* topIn) const {
 }
 
 /** Remap internal coordinate indices according to the given atom map. */
-void Zmatrix::RemapIcIndices(std::vector<int> const& map) {
+/*void Zmatrix::RemapIcIndices(std::vector<int> const& map) {
   for (ICarray::iterator it = IC_.begin(); it != IC_.end(); ++it)
     it->RemapIndices(map);
+}*/
+
+/** Increment IC indices by given offset */
+void Zmatrix::OffsetIcIndices(int offset) {
+  for (ICarray::iterator it = IC_.begin(); it != IC_.end(); ++it)
+    it->OffsetIndices(offset);
 }
 
 /** \return True if all Cartesian seeds are set. */

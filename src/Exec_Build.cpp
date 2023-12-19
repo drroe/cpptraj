@@ -82,6 +82,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   int nRefAtomsMissing = 0;
   for (int ires = 0; ires != topIn.Nres(); ires++)
   {
+    mprintf("\tAdding atoms for residue %s\n", topIn.TruncResNameNum(ires).c_str());
     Residue const& currentRes = topIn.Res(ires);
     DataSet_Coords* resTemplate = ResTemplates[ires];
     if (resTemplate == 0) {
@@ -108,6 +109,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       // Map template atoms back to source atoms.
       std::vector<int> pdb(currentRes.NumAtoms(), -1);
       bool atomsNeedBuilding = false;
+      int atomOffset = topOut.Natom();
       for (int iref = 0; iref != resTemplate->Top().Natom(); iref++) {
         topOut.AddTopAtom( resTemplate->Top()[iref], currentRes );
         if (map[iref] == -1) {
@@ -137,14 +139,35 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
           mprinterr("Error: Could not set up residue template zmatrix.\n");
           return 1;
         }
-        zmatrix->RemapIcIndices( map );
+        zmatrix->print( resTemplate->TopPtr() );
+        zmatrix->OffsetIcIndices( atomOffset );
         ResZmatrices.push_back( zmatrix );
-        //zmatrix->print();
+        zmatrix->print( &topOut );
       } else
         ResZmatrices.push_back( 0 );
     } // END template exists
   } // END loop over source residues
   mprintf("\t%i template atoms missing in source.\n", nRefAtomsMissing);
+
+  // Build using internal coords if needed.
+  bool buildFailed = false;
+  for (Zarray::const_iterator it = ResZmatrices.begin(); it != ResZmatrices.end(); ++it)
+  {
+    Cpptraj::Structure::Zmatrix* zmatrix = *it;
+    if (zmatrix != 0) {
+      mprintf("DEBUG: Zmatrix for building residue %li %s\n", it - ResZmatrices.begin() + 1,
+              topOut.TruncResNameNum(it - ResZmatrices.begin()).c_str());
+      zmatrix->print(&topOut);
+      zmatrix->SetDebug( 1 ); // DEBUG
+      if (zmatrix->SetToFrame( frameOut, hasPosition )) {
+        mprinterr("Error: Building residue %s failed.\n",
+                  topOut.TruncResNameNum(it - ResZmatrices.begin()).c_str());
+        buildFailed = true;
+      }
+    }
+  }
+
+  // DEBUG - Print new top/coords
   for (int iat = 0; iat != topOut.Natom(); iat++)
   {
     Residue const& res = topOut.Res( topOut[iat].ResNum() );
@@ -154,17 +177,11 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
             (int)hasPosition[iat], XYZ[0], XYZ[1], XYZ[2]);
   }
 
-  for (Zarray::const_iterator it = ResZmatrices.begin(); it != ResZmatrices.end(); ++it)
-  {
-    mprintf("DEBUG: Zmatrix for building residue %li\n", it - ResZmatrices.begin() + 1);
-    Cpptraj::Structure::Zmatrix* zmatrix = *it;
-    if (zmatrix != 0)
-      zmatrix->print();
-  }
-
   // Clean up zmatrices
   for (Zarray::iterator it = ResZmatrices.begin(); it != ResZmatrices.end(); ++it)
-    delete *it;
+    if (*it != 0) delete *it;
+
+  if (buildFailed) return 1;
   return 0;
 }
 

@@ -40,7 +40,9 @@ class InternalCoords {
 
     void printIC(Topology const&) const;
     /// Remap internal indices according to given map
-    void RemapIndices(std::vector<int> const&);
+    //void RemapIndices(std::vector<int> const&);
+    /// Offset internal indices by given offset
+    void OffsetIndices(int);
   private:
     int ati_;       ///< Atom I index
     int idx_[3];    ///< Atom indices for distance, angle, torsion

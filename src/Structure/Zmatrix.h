@@ -32,7 +32,9 @@ class Zmatrix {
     /// Set specified IC
     void SetIC(unsigned int, InternalCoords const&);
     /// Remap IC indices according to given map
-    void RemapIcIndices(std::vector<int> const&);
+    //void RemapIcIndices(std::vector<int> const&);
+    /// Offset IC indices by given value
+    void OffsetIcIndices(int);
 
     /// Set seed atoms from frame/top
     int SetSeedPositions(Frame const&, Topology const&, int, int, int);
