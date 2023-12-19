@@ -75,6 +75,9 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   // hasPosition - for each atom in topOut, status on whether atom in frameOut needs building
   Cpptraj::Structure::Zmatrix::Barray hasPosition;
   hasPosition.reserve( newNatom );
+  // For holding bonded atom pairs
+  typedef std::pair<int,int> Ipair;
+  typedef std::vector<Ipair> IParray;
   // Hold Z-matrices for residues that have missing atoms
   typedef std::vector<Cpptraj::Structure::Zmatrix*> Zarray;
   Zarray ResZmatrices;
@@ -83,16 +86,33 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   for (int ires = 0; ires != topIn.Nres(); ires++)
   {
     mprintf("\tAdding atoms for residue %s\n", topIn.TruncResNameNum(ires).c_str());
+    int atomOffset = topOut.Natom();
     Residue const& currentRes = topIn.Res(ires);
     DataSet_Coords* resTemplate = ResTemplates[ires];
     if (resTemplate == 0) {
       // No template. Just add the atoms.
+      IParray bondsToAdd;
       for (int itgt = currentRes.FirstAtom(); itgt != currentRes.LastAtom(); ++itgt)
       {
-        topOut.AddTopAtom( topIn[itgt], currentRes );
+        // Add intra-residue bonds
+        Atom currentAtom = topIn[itgt];
+        int at0 = itgt - currentRes.FirstAtom() + atomOffset;
+        for (Atom::bond_iterator bat = currentAtom.bondbegin(); bat != currentAtom.bondend(); ++bat) {
+          if ( topIn[*bat].ResNum() == ires ) {
+            int at1 = *bat - currentRes.FirstAtom() + atomOffset;
+            mprintf("Will add bond between %i and %i (original %i and %i)\n", at0+1, at1+1, itgt+1, *bat + 1);
+            bondsToAdd.push_back( Ipair(at0, at1) );
+            //topOut.AddBond(at0, at1);
+            // TODO inter-residue
+          }
+        }
+        currentAtom.ClearBonds();
+        topOut.AddTopAtom( currentAtom, currentRes );
         frameOut.AddVec3( Vec3(frameIn.XYZ(itgt)) );
         hasPosition.push_back( true );
       }
+      for (IParray::const_iterator it = bondsToAdd.begin(); it != bondsToAdd.end(); ++it)
+        topOut.AddBond(it->first, it->second);
     } else {
       // A template exists for this residue.
       // Map source atoms to template atoms.
@@ -109,7 +129,6 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       // Map template atoms back to source atoms.
       std::vector<int> pdb(currentRes.NumAtoms(), -1);
       bool atomsNeedBuilding = false;
-      int atomOffset = topOut.Natom();
       for (int iref = 0; iref != resTemplate->Top().Natom(); iref++) {
         topOut.AddTopAtom( resTemplate->Top()[iref], currentRes );
         if (map[iref] == -1) {
