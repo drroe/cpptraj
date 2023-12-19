@@ -104,9 +104,9 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       for (int itgt = currentRes.FirstAtom(); itgt != currentRes.LastAtom(); ++itgt)
       {
         // Track intra-residue bonds
-        Atom currentAtom = topIn[itgt];
+        Atom sourceAtom = topIn[itgt];
         int at0 = itgt - currentRes.FirstAtom() + atomOffset;
-        for (Atom::bond_iterator bat = currentAtom.bondbegin(); bat != currentAtom.bondend(); ++bat) {
+        for (Atom::bond_iterator bat = sourceAtom.bondbegin(); bat != sourceAtom.bondend(); ++bat) {
           if ( topIn[*bat].ResNum() == ires ) {
             int at1 = *bat - currentRes.FirstAtom() + atomOffset;
             if (at1 > at0) {
@@ -114,12 +114,12 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
               intraResBonds.push_back( Ipair(at0, at1) );
             }
           } else {
-            interResBonds.push_back( ResAtPair(ires, currentAtom.Name()) );
+            interResBonds.push_back( ResAtPair(ires, sourceAtom.Name()) );
             interResBonds.push_back( ResAtPair(topIn[*bat].ResNum(), topIn[*bat].Name()) );
           }
         }
-        currentAtom.ClearBonds(); // FIXME AddTopAtom should clear bonds
-        topOut.AddTopAtom( currentAtom, currentRes );
+        sourceAtom.ClearBonds(); // FIXME AddTopAtom should clear bonds
+        topOut.AddTopAtom( sourceAtom, currentRes );
         frameOut.AddVec3( Vec3(frameIn.XYZ(itgt)) );
         hasPosition.push_back( true );
       }
@@ -141,9 +141,9 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       bool atomsNeedBuilding = false;
       for (int iref = 0; iref != resTemplate->Top().Natom(); iref++) {
         // Track intra-residue bonds
-        Atom currentAtom = resTemplate->Top()[iref];
+        Atom templateAtom = resTemplate->Top()[iref];
         int at0 = iref + atomOffset;
-        for (Atom::bond_iterator bat = currentAtom.bondbegin(); bat != currentAtom.bondend(); ++bat) {
+        for (Atom::bond_iterator bat = templateAtom.bondbegin(); bat != templateAtom.bondend(); ++bat) {
           //if ( resTemplate->Top()[*bat].ResNum() == ires ) {
             int at1 = *bat + atomOffset;
             if (at1 > at0) {
@@ -153,9 +153,8 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
           //}
         }
         // TODO connect atoms for inter-residue connections
-        // TODO check source atoms for inter-residue connections
-        currentAtom.ClearBonds();
-        topOut.AddTopAtom( currentAtom, currentRes );
+        templateAtom.ClearBonds();
+        topOut.AddTopAtom( templateAtom, currentRes );
         if (map[iref] == -1) {
           frameOut.AddVec3( Vec3(0.0) );
           hasPosition.push_back( false );
@@ -166,6 +165,14 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
           frameOut.AddVec3( Vec3(frameIn.XYZ(itgt)) );
           hasPosition.push_back( true );
           pdb[itgt-currentRes.FirstAtom()] = iref;
+          // Check source atoms for inter-residue connections
+          Atom const& sourceAtom = topIn[itgt];
+          for (Atom::bond_iterator bat = sourceAtom.bondbegin(); bat != sourceAtom.bondend(); ++bat) {
+            if ( topIn[*bat].ResNum() != ires ) {
+              interResBonds.push_back( ResAtPair(ires, sourceAtom.Name()) );
+              interResBonds.push_back( ResAtPair(topIn[*bat].ResNum(), topIn[*bat].Name()) );
+            }
+          }
         }
       }
       // See if any current atoms were not mapped to reference
