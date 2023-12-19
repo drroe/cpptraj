@@ -114,8 +114,10 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
               intraResBonds.push_back( Ipair(at0, at1) );
             }
           } else {
-            interResBonds.push_back( ResAtPair(ires, sourceAtom.Name()) );
-            interResBonds.push_back( ResAtPair(topIn[*bat].ResNum(), topIn[*bat].Name()) );
+            if (topIn[*bat].ResNum() > ires) {
+              interResBonds.push_back( ResAtPair(ires, sourceAtom.Name()) );
+              interResBonds.push_back( ResAtPair(topIn[*bat].ResNum(), topIn[*bat].Name()) );
+            }
           }
         }
         sourceAtom.ClearBonds(); // FIXME AddTopAtom should clear bonds
@@ -168,7 +170,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
           // Check source atoms for inter-residue connections
           Atom const& sourceAtom = topIn[itgt];
           for (Atom::bond_iterator bat = sourceAtom.bondbegin(); bat != sourceAtom.bondend(); ++bat) {
-            if ( topIn[*bat].ResNum() != ires ) {
+            if ( topIn[*bat].ResNum() > ires ) {
               interResBonds.push_back( ResAtPair(ires, sourceAtom.Name()) );
               interResBonds.push_back( ResAtPair(topIn[*bat].ResNum(), topIn[*bat].Name()) );
             }
