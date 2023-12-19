@@ -217,6 +217,17 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     mprintf("DEBUG: Inter-res bond: Res %i atom %s to res %i atom %s\n",
             ra0.first+1, *(ra0.second),
             ra1.first+1, *(ra1.second));
+    int at0 = topOut.FindAtomInResidue(ra0.first, ra0.second);
+    if (at0 < 0) {
+      mprinterr("Error: Atom %s not found in residue %i\n", *(ra0.second), ra0.first);
+      return 1;
+    }
+    int at1 = topOut.FindAtomInResidue(ra1.first, ra1.second);
+    if (at1 < 0) {
+      mprinterr("Error: Atom %s not found in residue %i\n", *(ra1.second), ra1.first);
+      return 1;
+    }
+    topOut.AddBond(at0, at1);
   }
   mprintf("\t%i template atoms missing in source.\n", nRefAtomsMissing);
 
@@ -251,6 +262,10 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   // Clean up zmatrices
   for (Zarray::iterator it = ResZmatrices.begin(); it != ResZmatrices.end(); ++it)
     if (*it != 0) delete *it;
+
+  // Finalize topology
+  topOut.CommonSetup(); // TODO dont assign default bond parameters here
+  topOut.Summary();
 
   if (buildFailed) return 1;
   return 0;
