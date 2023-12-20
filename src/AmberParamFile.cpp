@@ -375,7 +375,10 @@ int AmberParamFile::assign_offdiag(ParameterSet& prm, Oarray const& Offdiag) con
 /** Read parametrers from Amber frcmod file. */
 int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int debugIn) const
 {
- // Read title
+  // Set wildcard character for dihedrals and impropers
+  prm.DP().SetWildcard('X');
+  prm.IP().SetWildcard('X');
+  // Read title
   BufferedLine infile;
   if (infile.OpenFileRead( fname )) {
     mprinterr("Error: Could not open file '%s' as Amber FF.\n", fname.full());
@@ -455,7 +458,9 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
 int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
                                std::string const& nbsetnameIn, int debugIn) const
 {
-
+  // Set wildcard character for dihedrals and impropers
+  prm.DP().SetWildcard('X');
+  prm.IP().SetWildcard('X');
   // For files with > 1 set of NB params
   typedef std::vector<NonbondSet> NbSetArrayType;
   NbSetArrayType NBsets;

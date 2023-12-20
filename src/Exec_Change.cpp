@@ -377,7 +377,7 @@ int Exec_Change::FindBondTypeIdx(Topology const& topIn, BondArray const& bonds,
     TypeNameHolder thisType(2);
     thisType.AddName( topIn[bnd->A1()].Type() );
     thisType.AddName( topIn[bnd->A2()].Type() );
-    if (thisType == tgtType) {
+    if (thisType.Match_NoWC( tgtType )) {
       bidx = bnd->Idx();
       break;
     }

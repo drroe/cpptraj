@@ -20,12 +20,14 @@ template <class T> class ParmHolder {
     void clear()              { bpmap_.clear(); }
     size_t size()       const { return bpmap_.size(); }
     bool empty()        const { return bpmap_.empty(); }
+    /// Set wildcard character
+    void SetWildcard(char wc) { wc_ = NameType(std::string(1, wc)); }
     /// Add (or update if allowed) given parameter to holder.
     ParameterHolders::RetType AddParm(TypeNameHolder const& types, T const& bp, bool allowUpdate) {
       // Check if parm for these types exist
       typename Bmap::iterator it = bpmap_.begin();
       for (; it != bpmap_.end(); ++it)
-        if (it->first == types) break;
+        if (it->first.Match_NoWC( types )) break;
       if (it == bpmap_.end()) {
         // New parm
         //mprintf("DEBUG: New parameter:");
@@ -71,20 +73,32 @@ template <class T> class ParmHolder {
     T FindParam(TypeNameHolder const& types, bool& found) const { // TODO only use GetParam()?
       found = true;
       for (const_iterator it = begin(); it != end(); ++it)
-        if (it->first == types) return it->second;
+        if (it->first.Match_NoWC( types )) return it->second;
+      if (wc_.len() > 0) {
+        for (const_iterator it = begin(); it != end(); ++it)
+          if (it->first.Match_WC( types, wc_)) return it->second;
+      }
       found = false;
       return T();
     }
     /// \return iterator to parameter matching the given types.
     iterator GetParam(TypeNameHolder const& types) {
       for (iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
-        if (it->first == types) return it;
+        if (it->first.Match_NoWC( types )) return it;
+      if (wc_.len() > 0) {
+        for (iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
+          if (it->first.Match_WC( types, wc_)) return it;
+      }
       return bpmap_.end();
     }
     /// \return const iterator to parameter matching the given types.
     const_iterator GetParam(TypeNameHolder const& types) const {
       for (const_iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
-        if (it->first == types) return it;
+        if (it->first.Match_NoWC( types )) return it;
+      if (wc_.len() > 0) {
+        for (const_iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
+          if (it->first.Match_WC( types, wc_)) return it;
+      }
       return bpmap_.end();
     }
     /// \return size in memory in bytes
@@ -98,6 +112,7 @@ template <class T> class ParmHolder {
     }
   private:
     Bmap bpmap_;
+    NameType wc_; ///< Wildcard character
 };
 
 // -----------------------------------------------------------------------------
@@ -115,6 +130,8 @@ class DihedralParmHolder {
     void clear()              { bpmap_.clear();        }
     size_t size()       const { return bpmap_.size();  }
     bool empty()        const { return bpmap_.empty(); }
+    /// Set wildcard character
+    void SetWildcard(char wc) { wc_ = NameType(std::string(1, wc)); }
     /** Add (or update) a single dihedral parameter for given atom types. */
     ParameterHolders::RetType
     AddParm(TypeNameHolder const& types, DihedralParmType const& dp, bool allowUpdate) {
@@ -122,7 +139,7 @@ class DihedralParmHolder {
       Bmap::iterator it0 = bpmap_.begin();
       for (; it0 != bpmap_.end(); ++it0)
       {
-        if (it0->first == types)
+        if (it0->first.Match_NoWC( types ))
           break;
       }
       if (it0 == bpmap_.end()) {
@@ -167,7 +184,7 @@ class DihedralParmHolder {
       Bmap::iterator it0 = bpmap_.begin();
       for (; it0 != bpmap_.end(); ++it0)
       {
-        if (it0->first == types)
+        if (it0->first.Match_NoWC( types ))
           break;
       }
       if (it0 == bpmap_.end()) {
@@ -204,7 +221,11 @@ class DihedralParmHolder {
     DihedralParmArray FindParam(TypeNameHolder const& types, bool& found) const {
       found = true;
       for (const_iterator it = begin(); it != end(); ++it)
-        if (it->first == types) return it->second;
+        if (it->first.Match_NoWC( types )) return it->second;
+      if (wc_.len() > 0) {
+        for (const_iterator it = begin(); it != end(); ++it)
+          if (it->first.Match_WC( types, wc_)) return it->second;
+      }
       found = false;
       return DihedralParmArray();
     }
@@ -219,5 +240,6 @@ class DihedralParmHolder {
     }
   private:
     Bmap bpmap_;
+    NameType wc_; ///< Wildcard character
 };
 #endif

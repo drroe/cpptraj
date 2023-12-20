@@ -14,8 +14,8 @@ class TypeNameHolder {
     TypeNameHolder(Narray const& namesIn) : types_(namesIn) {}
     /// CONSTRUCTOR - Reserve space for given number of type names
     TypeNameHolder(int size) { types_.clear(); types_.reserve(size); }
-    /// CONSTRUCTOR - Set wildcard name and reserve space for given number of type names.
-    TypeNameHolder(int size, NameType const& wc) : wildcard_(wc) { types_.clear(); types_.reserve(size); }
+/*    /// CONSTRUCTOR - Set wildcard name and reserve space for given number of type names.
+    TypeNameHolder(int size, NameType const& wc) : wildcard_(wc) { types_.clear(); types_.reserve(size); }*/
     /// Add atom type name.
     void AddName(NameType const& n) { types_.push_back( n ); }
     /// \return Iterator to beginning of type name array.
@@ -26,7 +26,50 @@ class TypeNameHolder {
     size_t Size() const { return types_.size(); }
     /// \return Type name at index
     NameType const& operator[](int idx) const { return types_[idx]; }
+    /// \return true if either direction is an exact match, no wildcard.
+    bool Match_NoWC(TypeNameHolder const& rhs) const {
+      if (types_.size() != rhs.types_.size()) return false;
+      // Forwards direction
+      bool match = true;
+      for (unsigned int idx = 0; idx != types_.size(); idx++)
+        if (types_[idx] != rhs.types_[idx]) {
+          match = false;
+          break;
+        }
+      if (match) return true;
+      // Reverse direction
+      match = true;
+      unsigned int idx2 = types_.size() - 1;
+      for (unsigned int idx = 0; idx != types_.size(); idx++, idx2--)
+        if (types_[idx] != rhs.types_[idx2]) {
+          match = false;
+          break;
+        }
+      return match;
+    }
     /// \return true if either direction is a match, taking into account wildcard.
+    bool Match_WC(TypeNameHolder const& rhs, NameType const& wildcard) const {
+      // Sanity check
+      if (types_.size() != rhs.types_.size()) return false;
+      // Forwards direction
+      bool match = true;
+      for (unsigned int idx = 0; idx != types_.size(); idx++)
+        if (types_[idx] != rhs.types_[idx] && types_[idx] != wildcard) {
+          match = false;
+          break;
+        }
+      if (match) return true;
+      // Reverse direction
+      match = true;
+      unsigned int idx2 = types_.size() - 1;
+      for (unsigned int idx = 0; idx != types_.size(); idx++, idx2--)
+        if (types_[idx] != rhs.types_[idx2] && types_[idx] != wildcard) {
+          match = false;
+          break;
+        }
+      return match;
+    }
+/*    /// \return true if either direction is a match, taking into account wildcard.
     bool operator==(TypeNameHolder const& rhs) const {
       // Sanity check
       if (types_.size() != rhs.types_.size()) return false;
@@ -47,7 +90,7 @@ class TypeNameHolder {
           break;
         }
       return match;
-    }
+    }*/
     /// Will sort by type names in ascending order.
     bool operator<(TypeNameHolder const& rhs) const {
       if (types_.size() != rhs.types_.size()) {
@@ -71,6 +114,6 @@ class TypeNameHolder {
     size_t DataSize() const { return (types_.size()*NameType::DataSize()) + NameType::DataSize(); }
   private:
     Narray types_;
-    NameType wildcard_;
+    //NameType wildcard_;
 };
 #endif

@@ -82,6 +82,10 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
   std::string currentResName;
   double currentResQ = 0.0;
 
+  // Set wildcard character for dihedrals and impropers
+  prm.DP().SetWildcard('X');
+  prm.IP().SetWildcard('X');
+
   while (ReadInput(input, infile)) {
     if (input.empty()) continue;
     if (input[0] == '*') {
@@ -220,7 +224,8 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
             if (args.Nargs() < 7)
               mprintf("Warning: Bad syntax for dihedral parameter on line %i: %s\n", infile.LineNumber(), line);
             else {
-              TypeNameHolder types(4, "X"); // X is wildcard character
+              //TypeNameHolder types(4, "X"); // X is wildcard character
+              TypeNameHolder types(4);
               types.AddName( args.GetStringNext() );
               types.AddName( args.GetStringNext() );
               types.AddName( args.GetStringNext() );
