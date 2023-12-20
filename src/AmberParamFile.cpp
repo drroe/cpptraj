@@ -203,7 +203,7 @@ const
   types.AddName( symbols[2] );
   types.AddName( symbols[3] );
   ParameterHolders::RetType ret =
-    prm.DP().AddParm(types, DihedralParmType(PK / (double)IDIVF, PN, PHASE, scee, scnb), true);
+    prm.DP().AddParm(types, DihedralParmType(PK / (double)IDIVF, PN, PHASE*Constants::DEGRAD, scee, scnb), true);
   if (ret == ParameterHolders::UPDATED) {
     mprintf("Warning: Redefining dihedral type %s - %s - %s - %s (PN=%g)\n",
             *(types[0]), *(types[1]), *(types[2]), *(types[3]), PN);
@@ -239,7 +239,7 @@ const
   types.AddName( symbols[2] );
   types.AddName( symbols[3] );
   ParameterHolders::RetType ret =
-    prm.IP().AddParm(types, DihedralParmType(PK, PN, PHASE), true);
+    prm.IP().AddParm(types, DihedralParmType(PK, PN, PHASE*Constants::DEGRAD), true);
   if (ret == ParameterHolders::UPDATED)
     mprintf("Warning: Redefining improper type %s - %s - %s - %s\n",
             *(types[0]), *(types[1]), *(types[2]), *(types[3]));
