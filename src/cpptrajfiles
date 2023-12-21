@@ -337,6 +337,7 @@ COMMON_SOURCES= \
         GridAction.cpp \
         GridMover.cpp \
         GridBin.cpp \
+        GuessAtomHybridization.cpp \
         HistBin.cpp \
         Hungarian.cpp \
         ImageRoutines.cpp \
