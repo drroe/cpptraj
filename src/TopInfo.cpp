@@ -622,7 +622,8 @@ void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray cons
                        mask1.AtomInCharMask(atom4));
     if (printDihedral) {
       // Determine dihedral type: 'E'nd, 'I'mproper, or 'B'oth
-      char type = ' ';
+      //char type = ' ';
+      char type = 'D'; // DEBUG
       if      (dih->Type() == DihedralType::END     ) type = 'E';
       else if (dih->Type() == DihedralType::IMPROPER) type = 'I';
       else if (dih->Type() == DihedralType::BOTH    ) type = 'B';
