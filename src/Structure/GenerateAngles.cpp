@@ -115,6 +115,9 @@ int Cpptraj::Structure::GenerateImpropers(Topology& topIn, ParmHolder<AtomType> 
         hybrid = Cpptraj::GuessAtomHybridization( AJ, topIn );
       if (hybrid == AtomType::SP2) {
         mprintf("DEBUG: Potential improper center: %s\n", topIn.AtomMaskName(iat).c_str());
+      } else if (hybrid == AtomType::UNKNOWN_HYBRIDIZATION) {
+        mprintf("Warning: When searching for impropers could not determine hybridization of %s\n",
+                topIn.AtomMaskName(iat).c_str());
       }
     }
   }
