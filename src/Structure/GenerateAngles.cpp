@@ -102,12 +102,17 @@ int Cpptraj::Structure::GenerateAngles(Topology& topIn) {
 }
 
 /** Try to determine impropers for topology. */
-int Cpptraj::Structure::GenerateImpropers(Topology& topIn) {
+int Cpptraj::Structure::GenerateImpropers(Topology& topIn, ParmHolder<AtomType> const& AT) {
   for (int iat = 0; iat != topIn.Natom(); iat++) {
     Atom const& AJ = topIn[iat];
     if (AJ.Nbonds() == 3) { // TODO only 3 atoms OK?
-      // FIXME pass in atom types
-      AtomType::HybridizationType hybrid = Cpptraj::GuessAtomHybridization( AJ, topIn );
+      AtomType::HybridizationType hybrid = AtomType::UNKNOWN_HYBRIDIZATION; 
+      bool found;
+      AtomType atype = AT.FindParam(TypeNameHolder(AJ.Type()), found);
+      if (found)
+        hybrid = atype.Hybridization();
+      if (hybrid == AtomType::UNKNOWN_HYBRIDIZATION)
+        hybrid = Cpptraj::GuessAtomHybridization( AJ, topIn );
       if (hybrid == AtomType::SP2) {
         mprintf("DEBUG: Potential improper center: %s\n", topIn.AtomMaskName(iat).c_str());
       }

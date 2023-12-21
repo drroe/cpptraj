@@ -375,12 +375,6 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
-  // Generate impropers
-  if (Cpptraj::Structure::GenerateImpropers(topOut)) {
-    mprinterr("Error: Could not generate impropers for '%s'\n", topOut.c_str());
-    return CpptrajState::ERR;
-  }
-
   // Get parameter sets.
   typedef std::vector<DataSet_Parameters*> Parray;
   Parray ParamSets;
@@ -425,6 +419,12 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     ParameterSet::UpdateCount UC;
     for (; it != ParamSets.end(); ++it)
       mainParmSet->UpdateParamSet( *(*it), UC, State.Debug(), State.Debug() ); // FIXME verbose
+  }
+
+  // Generate impropers
+  if (Cpptraj::Structure::GenerateImpropers(topOut, mainParmSet->AT())) {
+    mprinterr("Error: Could not generate impropers for '%s'\n", topOut.c_str());
+    return CpptrajState::ERR;
   }
 
   // Update parameters
