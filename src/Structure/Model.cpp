@@ -7,7 +7,7 @@
 
 /** Attempt to assign a reasonable value for theta internal coordinate for
   * atom i given that atoms j and k have known positions.
-  */
+  */ // FIXME use GuessAtomHybridization
 int Cpptraj::Structure::Model::AssignTheta(double& theta, int ai, int aj, int ak, Topology const& topIn, Frame const& frameIn, std::vector<bool> const& atomPositionKnown, int debug)
 {
   // Figure out hybridization and chirality of atom j.
