@@ -423,7 +423,7 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
 
   // Update parameters
   Exec::RetType ret = CpptrajState::OK;
-  if ( topOut.UpdateParams( *mainParmSet  ) ) {
+  if ( topOut.AssignParams( *mainParmSet  ) ) {
     mprinterr("Error: Could not update parameters for '%s'.\n", topOut.c_str());
     ret = CpptrajState::ERR;
   }

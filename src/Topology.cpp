@@ -3010,6 +3010,33 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
   }
 }
 
+/** Replace existing parameters with the given parameter set. */
+int Topology::AssignParams(ParameterSet const& set0) {
+  // Bond parameters
+  mprintf("\tRegenerating bond parameters.\n");
+  AssignBondParams( set0.BP() );
+  // Angle parameters
+  mprintf("\tRegenerating angle parameters.\n");
+  AssignAngleParams( set0.AP() );
+  // Dihedral parameters
+  mprintf("\tRegenerating dihedral parameters.\n");
+  AssignDihedralParams( set0.DP(), set0.IP() );
+  // Urey-Bradley
+  mprintf("\tRegenerating UB parameters.\n");
+  AssignUBParams( set0.UB() );
+  // Improper parameters
+  mprintf("\tRegenerating improper parameters.\n");
+  AssignImproperParams( set0.IP() );
+  // Atom types
+  mprintf("\tRegenerating atom type parameters.\n");
+  AssignAtomTypeParm( set0.AT() );
+  // LJ 6-12
+  mprintf("\tRegenerating nonbond parameters.\n");
+  AssignNonbondParams( set0.AT(), set0.NB(), set0.HB() );
+  // TODO LJ14
+  return 0;
+}
+
 /** Update/add to parameters in this topology with those from given set.
   * NOTE: This routine is separate from updateParams() to allow that
   *       routine to be used by AppendTop() for testing the parameter
