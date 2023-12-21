@@ -48,8 +48,7 @@ static inline void enumerateDihedrals(int at1, int at2, Topology& topIn) {
   }
 }
 
-        
-
+/* Set angles and dihedrals in given topology based on current bond arrays. */
 int Cpptraj::Structure::GenerateAngles(Topology& topIn) {
   if (topIn.Nbonds() < 1) {
     mprintf("Warning: No bonds in '%s', no angles to generate.\n", topIn.c_str());
@@ -101,7 +100,7 @@ int Cpptraj::Structure::GenerateAngles(Topology& topIn) {
   return 0;
 }
 
-/** Try to determine impropers for topology. */
+/** Try to determine impropers for topology. */ // TODO option for charmm improper
 int Cpptraj::Structure::GenerateImpropers(Topology& topIn, ParmHolder<AtomType> const& AT) {
   for (int iat = 0; iat != topIn.Natom(); iat++) {
     Atom const& AJ = topIn[iat];
@@ -115,6 +114,14 @@ int Cpptraj::Structure::GenerateImpropers(Topology& topIn, ParmHolder<AtomType> 
         hybrid = Cpptraj::GuessAtomHybridization( AJ, topIn );
       if (hybrid == AtomType::SP2) {
         mprintf("DEBUG: Potential improper center: %s\n", topIn.AtomMaskName(iat).c_str());
+        // iat is the central (3rd) atom.
+        // lowest bonded atom index is the 1st atom.
+        // highest bonded atom index is the second atom.
+        // remaining atom is the fourth atom.
+        Atom AJcopy = AJ;
+        AJcopy.SortBonds();
+        std::vector<int> const& bonds = AJcopy.BondIdxArray();
+        topIn.AddDihedral( DihedralType( bonds[0], bonds[2], iat, bonds[1], DihedralType::BOTH ) );
       } else if (hybrid == AtomType::UNKNOWN_HYBRIDIZATION) {
         mprintf("Warning: When searching for impropers could not determine hybridization of %s\n",
                 topIn.AtomMaskName(iat).c_str());
