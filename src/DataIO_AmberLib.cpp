@@ -89,7 +89,7 @@ int DataIO_AmberLib::ReadData(FileName const& fname, DataSetList& dsl, std::stri
 const char* DataIO_AmberLib::sectionStr_[] = {
   "atoms", "atomspertinfo", "boundbox", "childsequence", "connect",
   "connectivity", "hierarchy", "name", "positions", "residueconnect",
-  "residues", "solventcap", "velocities", 0 };
+  "residues", "residuesPdbSequenceNumber", "solventcap", "velocities", 0 };
 
 /** \return Section type from entry line. */
 DataIO_AmberLib::SectionType DataIO_AmberLib::id_section(std::string const& line,

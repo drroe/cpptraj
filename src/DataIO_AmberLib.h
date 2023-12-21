@@ -19,7 +19,7 @@ class DataIO_AmberLib : public DataIO {
     // Keep in sync with sectionStr_
     enum SectionType { ATOMTABLE = 0, PERTINFO, BOUNDBOX, CHILDSEQUENCE, CONNECT,
                        CONNECTIVITY, HIERARCHY, UNITNAME, POSITIONS, RESCONNECT,
-                       RESIDUES, SOLVENTCAP, VELOCITIES, UNKNOWN_SECTION };
+                       RESIDUES, RESPDBSEQUENCE, SOLVENTCAP, VELOCITIES, UNKNOWN_SECTION };
     /// Strings corresponding to section type
     static const char* sectionStr_[];
 
