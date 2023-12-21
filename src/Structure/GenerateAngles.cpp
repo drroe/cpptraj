@@ -1,5 +1,6 @@
 #include "GenerateAngles.h"
 #include "../CpptrajStdio.h"
+#include "../GuessAtomHybridization.h"
 #include "../ParameterTypes.h"
 #include "../Topology.h"
 #include <algorithm> // std::sort
@@ -95,6 +96,21 @@ int Cpptraj::Structure::GenerateAngles(Topology& topIn) {
     if (!has_dihedrals) {
       // Dihedrals
       enumerateDihedrals( it->A1(), it->A2(), topIn );
+    }
+  }
+  return 0;
+}
+
+/** Try to determine impropers for topology. */
+int Cpptraj::Structure::GenerateImpropers(Topology& topIn) {
+  for (int iat = 0; iat != topIn.Natom(); iat++) {
+    Atom const& AJ = topIn[iat];
+    if (AJ.Nbonds() == 3) { // TODO only 3 atoms OK?
+      // FIXME pass in atom types
+      AtomType::HybridizationType hybrid = Cpptraj::GuessAtomHybridization( AJ, topIn );
+      if (hybrid == AtomType::SP2) {
+        mprintf("DEBUG: Potential improper center: %s\n", topIn.AtomMaskName(iat).c_str());
+      }
     }
   }
   return 0;
