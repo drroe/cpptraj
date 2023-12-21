@@ -156,21 +156,27 @@ const
   return 0;
 }
 
-/** Read input for dihedral. */
+/** Read input for dihedral.
+  * IPT , JPT , KPT , LPT , IDIVF , PK , PHASE , PN
+  * FORMAT(A2,1X,A2,1X,A2,1X,A2,I4,3F15.2)
+  * If IPT .eq. 'X ' .and. LPT .eq. 'X ' then any dihedrals in the
+  * system involving the atoms "JPT" and and "KPT" are assigned 
+  * the same parameters.  This is called the general dihedral type
+  * and is of the form "X "-"JPT"-"KPT"-"X ".
+  * IDIVF is the factor by which the torsional barrier is divided.
+  * Consult Weiner, et al., JACS 106:765 (1984) p. 769 for
+  * details. Basically, the actual torsional potential is
+  *   (PK/IDIVF) * (1 + cos(PN*phi - PHASE))
+  * If PN .lt. 0.0 then the torsional potential is assumed to have more
+  * than one term, and the values of the rest of the terms are read from
+  * the next cards until a positive PN is encountered.  The negative value
+  * of pn is used only for identifying the existence of the next term and 
+  * only the absolute value of PN is kept.
+  */
 int AmberParamFile::read_dihedral(ParameterSet& prm, const char* ptr)
 const
 {
   // Dihedral parameters
-  // IPT , JPT , KPT , LPT , IDIVF , PK , PHASE , PN
-  // FORMAT(A2,1X,A2,1X,A2,1X,A2,I4,3F15.2)
-  // If IPT .eq. 'X ' .and. LPT .eq. 'X ' then any dihedrals in the
-  // system involving the atoms "JPT" and and "KPT" are assigned 
-  // the same parameters.  This is called the general dihedral type
-  // and is of the form "X "-"JPT"-"KPT"-"X ".
-  // IDIVF is the factor by which the torsional barrier is divided.
-  // Consult Weiner, et al., JACS 106:765 (1984) p. 769 for
-  // details. Basically, the actual torsional potential is
-  //   (PK/IDIVF) * (1 + cos(PN*phi - PHASE))
   if (debug_ > 1) mprintf("DEBUG: Dihedral: %s\n", ptr);
   std::vector<std::string> symbols(4);
   int pos = read_symbols(ptr, symbols, 4);
@@ -183,11 +189,13 @@ const
   double PK, PHASE, PN;
   char sSCEE[128];
   char sSCNB[128];
+  // TODO note when PN is negative and expect more terms?
   int nscan = sscanf(ptr+pos, "%i %lf %lf %lf %s %s", &IDIVF, &PK, &PHASE, &PN, sSCEE, sSCNB);
   if (nscan < 4) {
     mprinterr("Error: Expected IDIVF, PK, PHASE, PN, got only %i elements\n", nscan);
     return 1;
   }
+  if (PN < 0.0) PN = -PN;
   double scee = 1.2; // AMBER DEFAULT
   double scnb = 2.0; // AMBER DEFAULT
   if (nscan == 6) {
@@ -232,6 +240,11 @@ const
   if (nscan != 3) {
     mprinterr("Error: Expected PK, PHASE, PN, got only %i elements\n", nscan);
     return 1;
+  }
+  if (PN < 0.0) {
+    mprintf("Warning: Improper for %s-%s-%s-%s has negative phase (%g)\n",
+            symbols[0].c_str(), symbols[1].c_str(), symbols[2].c_str(), symbols[3].c_str(), PN);
+    PN = -PN;
   }
   TypeNameHolder types(4);
   types.AddName( symbols[0] );
