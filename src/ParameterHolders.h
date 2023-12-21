@@ -152,27 +152,32 @@ class DihedralParmHolder {
         DihedralParmArray::iterator it1 = it0->second.begin();
         for (; it1 != it0->second.end(); ++it1)
         {
-          if (it1->Pn() == dp.Pn())
+          if (FEQ(it1->Pn(), dp.Pn()))
             break;
         }
         if (it1 == it0->second.end()) {
           // Brand new multiplicity for this dihedral.
           //mprintf("DEBUG: Dihedral new mult: %s %s %s %s pk=%12.4f pn=%12.4f pp=%12.4f\n",
           //        *types[0], *types[1], *types[2], *types[3], dp.Pk(), dp.Pn(), dp.Phase());
-          //it0->second.push_back( dp );
-          // Try to keep multiplicities in order.
-          DihedralParmArray sorted;
-          bool isInserted = false;
-          for (DihedralParmArray::const_iterator jt = it0->second.begin(); jt != it0->second.end(); ++jt) {
-            if (!isInserted) {
-              if (dp.Pn() < jt->Pn()) {
-                sorted.push_back( dp );
-                isInserted = true;
+          if (it0->second.empty())
+            it0->second.push_back( dp );
+          else if (dp.Pn() > it0->second.back().Pn())
+            it0->second.push_back( dp );
+          else {
+            // Try to keep multiplicities in order.
+            DihedralParmArray sorted;
+            bool isInserted = false;
+            for (DihedralParmArray::const_iterator jt = it0->second.begin(); jt != it0->second.end(); ++jt) {
+              if (!isInserted) {
+                if (dp.Pn() < jt->Pn()) {
+                  sorted.push_back( dp );
+                  isInserted = true;
+                }
               }
+              sorted.push_back( *jt );
             }
-            sorted.push_back( *jt );
+            it0->second = sorted;
           }
-          it0->second = sorted;
         } else {
           if (dp < *it1 || *it1 < dp) {
             //mprintf("DEBUG: Attempt dihedral update mult (allow=%i): %s %s %s %s pk=%6.2f pn=%3.1f pp=%6.3f (orig pk=%6.2f pn=%3.1f pp=%6.3f )\n",
