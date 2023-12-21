@@ -30,7 +30,11 @@ static inline void enumerateDihedrals(int at1, int at2, Topology& topIn) {
         for (Atom::bond_iterator bat2 = A2.bondbegin(); bat2 != A2.bondend(); ++bat2)
         {
           if (*bat2 != at1) {
-            topIn.AddDihedral(*bat1, at1, at2, *bat2);
+            // LEaP convention appears to be first atom less than last atom
+            if (*bat1 < *bat2)
+              topIn.AddDihedral(*bat1, at1, at2, *bat2);
+            else
+              topIn.AddDihedral(*bat2, at2, at1, *bat1);
             mprintf("%s - %s - %s - %s\n",
                     topIn.AtomMaskName(*bat1).c_str(),
                     topIn.AtomMaskName(at1).c_str(),
