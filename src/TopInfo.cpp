@@ -637,6 +637,11 @@ void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray cons
                  dihedralparm[didx].Pn());
         if (printExtraInfo)
           outfile_->Printf(" %4.1f %4.1f", dihedralparm[didx].SCEE(), dihedralparm[didx].SCNB());
+      } else {
+        // DEBUG
+        outfile_->Printf(" %7s %5s %4s", "NONE", "NONE", "NONE");
+        if (printExtraInfo)
+          outfile_->Printf(" %4s %4s", "NONE", "NONE");
       }
       if ( !coords_.empty() )
         outfile_->Printf(" %7.2f", Torsion( coords_.XYZ(atom1),

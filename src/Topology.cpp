@@ -2818,9 +2818,7 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
                 TruncResAtomNameNum(dih->A4()).c_str(),
                 *types[0], *types[1], *types[2], *types[3]);
         DihedralType mydih = *dih;
-        int idx = addTorsionParm( dihedralparm_, DihedralParmType() ); // DEBUG
-        mydih.SetIdx( idx ); // DEBUG
-        //mydih.SetIdx( -1 );
+        mydih.SetIdx( -1 );
         dihedralsIn.push_back( mydih );
       } else {
         // Actually add parameters for this dihedral.
