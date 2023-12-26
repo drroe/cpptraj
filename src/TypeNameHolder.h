@@ -129,6 +129,12 @@ class TypeNameHolder {
       if (types_[1] > types_[3]) tswap(types_[1], types_[3]);
       if (types_[0] > types_[1]) tswap(types_[0], types_[1]);
       if (types_[1] > types_[3]) tswap(types_[1], types_[3]);
+      if (wc.len() > 0) {
+        // Restore wildcards
+        if (types_[0] == " ") types_[0] = wc;
+        if (types_[1] == " ") types_[1] = wc;
+        if (types_[3] == " ") types_[3] = wc;
+      }
     }
     /// \return size in bytes
     size_t DataSize() const { return (types_.size()*NameType::DataSize()) + NameType::DataSize(); }
