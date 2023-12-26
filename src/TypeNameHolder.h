@@ -4,6 +4,12 @@
 #include "NameType.h"
 /// Used to hold one or more atom type names.
 class TypeNameHolder {
+    // Swap NameTypes
+    static inline void tswap(NameType& n0, NameType& n1) {
+      NameType tmp = n1;
+      n1 = n0;
+      n0 = tmp;
+    }
   public:
     typedef std::vector<NameType> Narray;
     typedef Narray::const_iterator const_iterator;
@@ -109,6 +115,20 @@ class TypeNameHolder {
       for (Narray::const_iterator it = types_.begin(); it != types_.end(); ++it)
         tstr.append( " " + std::string( *(*it) ) );
       return tstr;
+    }
+    /// Sort typenames alphabetically, preserving the 3rd position (for impropers)
+    void SortImproperByAlpha(NameType const& wc) {
+      if (types_.size() != 4) return;
+      if (wc.len() > 0) {
+        // Replace wildcards with spaces so they appear first
+        if (types_[0] == wc) types_[0] = NameType(" ");
+        if (types_[1] == wc) types_[1] = NameType(" ");
+        if (types_[3] == wc) types_[3] = NameType(" ");
+      }
+      if (types_[0] > types_[1]) tswap(types_[0], types_[1]);
+      if (types_[1] > types_[3]) tswap(types_[1], types_[3]);
+      if (types_[0] > types_[1]) tswap(types_[0], types_[1]);
+      if (types_[1] > types_[3]) tswap(types_[1], types_[3]);
     }
     /// \return size in bytes
     size_t DataSize() const { return (types_.size()*NameType::DataSize()) + NameType::DataSize(); }
