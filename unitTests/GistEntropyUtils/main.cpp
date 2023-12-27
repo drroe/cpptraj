@@ -119,7 +119,8 @@ int main() {
     Vec3(1, 0, 0), 0, 1, 0, w4, x4, y4, z4, grid_crd, grid_Q, grid_Nx, grid_Ny, grid_Nz, grid_spacing, 2, -1).first,
     GIST_HUGE, "Wrong trans. dist. with empty grid.");
 
-  // after adding a point in the same voxel, it should be found.
+  // after adding a point in the same voxel, it should be foundi.
+  // grid index 9 corresponds to 1 0 0
   grid_crd[9].push_back(0.6); grid_crd[9].push_back(0); grid_crd[9].push_back(0);
   grid_Q[9].push_back(1); grid_Q[9].push_back(0); grid_Q[9].push_back(0); grid_Q[9].push_back(0);
   std::pair<double, double>nbrs;
@@ -135,6 +136,7 @@ int main() {
 
   // add another point one voxel higher, with different rotation;
   // Depending on rotation, this might be the NN. But might not be found if n_layers is < 2;
+  // grid index 18 corresponds to 2 0 0
   grid_crd[18].push_back(1.1); grid_crd[18].push_back(0); grid_crd[18].push_back(0);
   grid_Q[18].push_back(0); grid_Q[18].push_back(1); grid_Q[18].push_back(0); grid_Q[18].push_back(0);
 
