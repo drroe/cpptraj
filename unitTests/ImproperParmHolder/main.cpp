@@ -12,6 +12,7 @@ static const int Err(const char* msg) {
 
 int main() {
   ImproperParmHolder IP;
+  IP.SetWildcard('X');
 
   TypeNameHolder ip0(4);
   ip0.AddName("N*");
