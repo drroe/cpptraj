@@ -280,6 +280,8 @@ class ImproperParmHolder : private DihedralParmHolder {
     }
   public:
     ImproperParmHolder() {}
+    /** Set Wildcard char */
+    void SetWildcard(char wc) { DihedralParmHolder::SetWildcard(wc); }
     /** Add (or update) a single improper parameter for given atom types. */
     ParameterHolders::RetType
     AddParm(TypeNameHolder const& types, DihedralParmType const& dp, bool allowUpdate) {
