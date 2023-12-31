@@ -127,6 +127,7 @@ class DihedralParmHolder {
     typedef std::vector<Bpair> Bmap;
   public:
     DihedralParmHolder() {}
+    virtual ~DihedralParmHolder() {} ///< Virtual since inherited
     void clear()              { bpmap_.clear();        }
     size_t size()       const { return bpmap_.size();  }
     bool empty()        const { return bpmap_.empty(); }
@@ -236,7 +237,7 @@ class DihedralParmHolder {
     const_iterator begin() const { return bpmap_.begin(); }
     const_iterator end()   const { return bpmap_.end();   }
     /// \return Array of dihedral parameters matching given atom types.
-    DihedralParmArray FindParam(TypeNameHolder const& types, bool& found) const {
+    virtual DihedralParmArray FindParam(TypeNameHolder const& types, bool& found) const {
       found = true;
       for (const_iterator it = begin(); it != end(); ++it)
         if (it->first.Match_NoWC( types )) return it->second;
@@ -256,8 +257,108 @@ class DihedralParmHolder {
              (bpmap_.size() * sizeof(DihedralParmArray)) +
              sizeof(Bmap);
     }
+  protected:
+    NameType wc_; ///< Wildcard character
   private:
     Bmap bpmap_;
-    NameType wc_; ///< Wildcard character
+};
+// -----------------------------------------------------------------------------
+/// Specialized class for associating atom types with improper parameters.
+/** Impropers are a little tricky in that by convention the third atom is
+  * the central atom, and all other atoms can be in any order.
+  * The Amber convention is usually (but not always) to have the non-central
+  * improper atom types sorted alphabetically, with wildcards given
+  * precedence, but this is not always the case and does not always work.
+  * For example, using straight up backwards/forwards matching, the wildcard
+  * type X-X-CW-H4 will not match the given alphabetized type C*-H4-CW-NA.
+  * All combinations of A1, A2, and A4 should be checked.
+  */
+class ImproperParmHolder : private DihedralParmHolder {
+    /// Function for matching wildcards (WildCard Match)
+    static inline bool wcm(NameType const& t0, NameType const& t1, NameType const& wc) {
+      return (t0 == wc || t0 == t1);
+    }
+  public:
+    ImproperParmHolder() {}
+    /** Add (or update) a single improper parameter for given atom types. */
+    ParameterHolders::RetType
+    AddParm(TypeNameHolder const& types, DihedralParmType const& dp, bool allowUpdate) {
+      return DihedralParmHolder::AddParm( types, dp, allowUpdate );
+    }
+    /// \return Array of improper parameters matching given atom types.
+    DihedralParmArray FindParam(TypeNameHolder const& types, bool& found) const {
+      found = true;
+      // First, no wildcard
+      for (const_iterator it = begin(); it != end(); ++it) {
+        TypeNameHolder const& myTypes = it->first;
+        // Central (third) type must match
+        if (myTypes[2] == types[2]) {
+          // Try all permutations
+          if (myTypes[0] == types[0]) {
+            if (myTypes[1] == types[1] && myTypes[3] == types[3]) {
+              // 0 1 2 3
+              return it->second;
+            } else if (myTypes[1] == types[3] && myTypes[3] == types[1]) {
+              // 0 3 2 1
+              return it->second;
+            }
+          } else if (myTypes[0] == types[1]) {
+            if (myTypes[1] == types[0] && myTypes[3] == types[3]) {
+              // 1 0 2 3
+              return it->second;
+            } else if (myTypes[1] == types[3] && myTypes[3] == types[0]) {
+              // 1 3 2 0
+              return it->second;
+            }
+          } else if (myTypes[0] == types[3]) {
+            if (myTypes[1] == types[0] && myTypes[3] == types[1]) {
+              // 3 0 2 1
+              return it->second;
+            } else if (myTypes[1] == types[1] && myTypes[3] == types[0]) {
+              // 3 1 2 0
+              return it->second;
+            }
+          }
+        }
+      } // END loop over parameters
+      // Wildcard if present
+      if (wc_.len() > 0) {
+        for (const_iterator it = begin(); it != end(); ++it) {
+          TypeNameHolder const& myTypes = it->first;
+          // Central (third) type must match
+          if (wcm(myTypes[2], types[2], wc_)) {
+            // Try all permutations
+            if (wcm(myTypes[0], types[0], wc_)) {
+              if (wcm(myTypes[1], types[1], wc_) && wcm(myTypes[3], types[3], wc_)) {
+                // 0 1 2 3
+                return it->second;
+              } else if (wcm(myTypes[1], types[3], wc_) && wcm(myTypes[3], types[1], wc_)) {
+                // 0 3 2 1
+                return it->second;
+              }
+            } else if (wcm(myTypes[0], types[1], wc_)) {
+              if (wcm(myTypes[1], types[0], wc_) && wcm(myTypes[3], types[3], wc_)) {
+                // 1 0 2 3
+                return it->second;
+              } else if (wcm(myTypes[1], types[3], wc_) && wcm(myTypes[3], types[0], wc_)) {
+                // 1 3 2 0
+                return it->second;
+              }
+            } else if (wcm(myTypes[0], types[3], wc_)) {
+              if (wcm(myTypes[1], types[0], wc_) && wcm(myTypes[3], types[1], wc_)) {
+                // 3 0 2 1
+                return it->second;
+              } else if (wcm(myTypes[1], types[1], wc_) && wcm(myTypes[3], types[0], wc_)) {
+                // 3 1 2 0
+                return it->second;
+              }
+            }
+          }
+        } // END loop over parameters
+      } // END wildcard matches
+      found = false;
+      return DihedralParmArray();
+    } // END FindParam()
+  private:
 };
 #endif
