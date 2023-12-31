@@ -1,4 +1,4 @@
-// Unit test for NameType class
+// Unit test for TypeNameHolder class
 #include <cstdio>
 #include <vector>
 #include <string>
