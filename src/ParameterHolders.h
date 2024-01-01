@@ -280,12 +280,26 @@ class ImproperParmHolder : private DihedralParmHolder {
     }
   public:
     ImproperParmHolder() {}
+    /// \return Number of improper parameter sets
+    size_t size()       const { return DihedralParmHolder::size();  }
+    /// \return True if no parameters
+    bool empty()        const { return DihedralParmHolder::empty(); }
+
+    typedef typename DihedralParmHolder::const_iterator const_iterator;
+    const_iterator begin() const { return DihedralParmHolder::begin(); }
+    const_iterator end()   const { return DihedralParmHolder::end();   }
+
     /** Set Wildcard char */
     void SetWildcard(char wc) { DihedralParmHolder::SetWildcard(wc); }
     /** Add (or update) a single improper parameter for given atom types. */
     ParameterHolders::RetType
     AddParm(TypeNameHolder const& types, DihedralParmType const& dp, bool allowUpdate) {
       return DihedralParmHolder::AddParm( types, dp, allowUpdate );
+    }
+    /** This version takes an array of dihedral parameters. */
+    ParameterHolders::RetType
+    AddParm(TypeNameHolder const& types, DihedralParmArray const& dpa, bool allowUpdate) {
+      return DihedralParmHolder::AddParm( types, dpa, allowUpdate );
     }
     /// \return Array of improper parameters matching given atom types.
     DihedralParmArray FindParam(TypeNameHolder const& types, bool& found) const {
@@ -353,6 +367,8 @@ class ImproperParmHolder : private DihedralParmHolder {
       found = false;
       return DihedralParmArray();
     } // END FindParam()
+    /// \return size in memory in bytes
+    size_t DataSize() const { return DihedralParmHolder::DataSize(); }
   private:
 };
 #endif

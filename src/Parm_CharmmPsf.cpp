@@ -113,8 +113,13 @@ int Parm_CharmmPsf::ReadDihedrals(BufferedLine& infile, int ndihedral, const cha
             }
           } else {
             // Charmm Improper. Expect only one paramter per type.
-            DihedralParmType ipt = params_.IP().FindParam( types, found );
-            parmOut.AddCharmmImproper( dih, ipt );
+            DihedralParmArray ipa = params_.IP().FindParam( types, found );
+            if (found) {
+              if (ipa.size() > 1)
+                mprintf("Warning: %zu improper parameters found for types %s - %s - %s - %s, expected only one."
+                        "Warning: Only using first parameter.\n", ipa.size(), *(types[0]), *(types[1]), *(types[2]), *(types[3]));
+              parmOut.AddCharmmImproper( dih, ipa.front() );
+            }
           } 
           if (!found) {
             mprintf("Warning: Parameters not found for %s %s - %s - %s - %s\n", typestr, parmOut.AtomMaskName(a1).c_str(), parmOut.AtomMaskName(a2).c_str(), parmOut.AtomMaskName(a3).c_str(), parmOut.AtomMaskName(a4).c_str());

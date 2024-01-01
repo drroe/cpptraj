@@ -98,8 +98,10 @@ void ParameterSet::Print(CpptrajFile& Out) const {
   if (!impParm_.empty()) {
     Out.Printf("Improper parameters:\n");
     Out.Printf("\t%6s %6s %6s %6s %12s %12s %12s\n", "Type1", "Type2", "Type3", "Type4", "Pk", "Pn", "Phase");
-    for (ParmHolder<DihedralParmType>::const_iterator bp = impParm_.begin(); bp != impParm_.end(); ++bp)
-      Out.Printf("\t%6s %6s %6s %6s : %12.4f %12.4f %12.4f\n", *(bp->first[0]), *(bp->first[1]), *(bp->first[2]), *(bp->first[3]), bp->second.Pk(), bp->second.Pn(), bp->second.Phase()*Constants::RADDEG);
+    for (ImproperParmHolder::const_iterator it0 = impParm_.begin(); it0 != impParm_.end(); ++it0)
+      for (DihedralParmArray::const_iterator it1 = it0->second.begin();
+                                             it1 != it0->second.end(); ++it1)
+        Out.Printf("\t%6s %6s %6s %6s : %12.4f %12.4f %12.4f\n", *(it0->first[0]), *(it0->first[1]), *(it0->first[2]), *(it0->first[3]), it1->Pk(), it1->Pn(), it1->Phase()*Constants::RADDEG);
   }
   if (!hydrophilicAtomTypes_.empty()) {
     Out.Printf("Hydrophilic atom types:");
@@ -126,7 +128,7 @@ int ParameterSet::UpdateParamSet(ParameterSet const& set1, UpdateCount& uc, int 
   // Dihedral/improper parameters
   uc.nDihedralsUpdated_ = UpdateParameters< DihedralParmHolder >(set0.DP(), set1.DP(), "dihedral", verbose);
   // Improper parameters
-  uc.nImpropersUpdated_ = UpdateParameters< ParmHolder<DihedralParmType> >(set0.IP(), set1.IP(), "improper", verbose);
+  uc.nImpropersUpdated_ = UpdateParameters< ImproperParmHolder >(set0.IP(), set1.IP(), "improper", verbose);
   // Urey-Bradley parameters
   uc.nUreyBradleyUpdated_ = UpdateParameters< ParmHolder<BondParmType> >(set0.UB(), set1.UB(), "Urey-Bradley", verbose);
   // Atom types

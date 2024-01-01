@@ -139,8 +139,8 @@ class Topology {
     void AddDihedral(int i, int j, int k, int l) { AddDihedral(DihedralType(i,j,k,l,-1), -1); }
     void AddDihedral(DihedralType const&, bool);
     void AddDihedral(DihedralType const&, DihedralParmType const&);
-    void AssignImproperParams(ParmHolder<DihedralParmType> const&);
-    void AssignDihedralParams(DihedralParmHolder const&, ParmHolder<DihedralParmType> const&);
+    void AssignImproperParams(ImproperParmHolder const&);
+    void AssignDihedralParams(DihedralParmHolder const&, ImproperParmHolder const&);
     // ----- CMAP-specific routines --------------
     bool                     HasCmap()      const { return !cmapGrid_.empty(); }
     CmapGridArray     const& CmapGrid()     const { return cmapGrid_;     }
@@ -300,8 +300,8 @@ class Topology {
     void AssignAtomTypeParm(ParmHolder<AtomType> const&);
     void AssignBondParm(ParmHolder<BondParmType> const&, BondArray&, BondParmArray&, const char*) const;
     void AssignAngleParm(ParmHolder<AngleParmType> const&, AngleArray&);
-    void AssignImproperParm(ParmHolder<DihedralParmType> const&, DihedralArray&);
-    void AssignDihedralParm(DihedralParmHolder const&, ParmHolder<DihedralParmType> const&, DihedralArray&);
+    void AssignImproperParm(ImproperParmHolder const&, DihedralArray&);
+    void AssignDihedralParm(DihedralParmHolder const&, ImproperParmHolder const&, DihedralArray&);
 
     static const NonbondType LJ_EMPTY;
     std::vector<Atom> atoms_;

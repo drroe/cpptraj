@@ -15,7 +15,7 @@ class ParameterSet {
     ParmHolder<BondParmType>& BP()     { return bondParm_;  }
     ParmHolder<AngleParmType>& AP()    { return angleParm_; }
     ParmHolder<BondParmType>& UB()     { return ubParm_;    }
-    ParmHolder<DihedralParmType>& IP() { return impParm_;   }
+    ImproperParmHolder& IP()           { return impParm_;   }
     DihedralParmHolder& DP()           { return dihParm_;   }
     ParmHolder<HB_ParmType>& HB()      { return HBparm_;    }
 
@@ -28,7 +28,7 @@ class ParameterSet {
     ParmHolder<BondParmType> const& BP()     const { return bondParm_;  }
     ParmHolder<AngleParmType> const& AP()    const { return angleParm_; }
     ParmHolder<BondParmType> const& UB()     const { return ubParm_;    }
-    ParmHolder<DihedralParmType> const& IP() const { return impParm_;   }
+    ImproperParmHolder const& IP()           const { return impParm_;   }
     DihedralParmHolder const& DP()           const { return dihParm_;   }
     ParmHolder<HB_ParmType> const& HB()      const { return HBparm_;    }
     std::string const& NbParamName()         const { return NBname_;    }
@@ -83,7 +83,7 @@ class ParameterSet {
     ParmHolder<BondParmType> bondParm_;    ///< Hooke's law bond potential parameters
     ParmHolder<AngleParmType> angleParm_;  ///< Hooke's law angle potential parameters
     ParmHolder<BondParmType> ubParm_;      ///< Urey-Bradley parameters
-    ParmHolder<DihedralParmType> impParm_; ///< Improper dihedral parameters
+    ImproperParmHolder impParm_;           ///< Improper dihedral parameters
     DihedralParmHolder dihParm_;           ///< Cosine-series dihedral parameters
     ParmHolder<HB_ParmType> HBparm_;       ///< LJ 10-12 A-B parameters for hydrogen bonds
     NsetType hydrophilicAtomTypes_;        ///< Hold names of hydrophilic atom types
