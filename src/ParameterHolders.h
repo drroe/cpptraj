@@ -4,7 +4,7 @@
 #include <utility> // std::pair
 #include "TypeNameHolder.h"
 #include "ParameterTypes.h"
-//#incl ude "CpptrajStdio.h" // DEBUG
+//#inc lude "CpptrajStdio.h" // DEBUG
 
 namespace ParameterHolders {
   enum RetType { ADDED = 0, SAME, UPDATED, ERR };
@@ -289,37 +289,35 @@ class ImproperParmHolder : private DihedralParmHolder {
     }
     /// \return Array of improper parameters matching given atom types.
     DihedralParmArray FindParam(TypeNameHolder const& types, bool& found) const {
+      //mprintf("DEBUG: FindParam wc=%s Inco=%s-%s-%s-%s\n",*wc_, *(types[0]), *(types[1]),   *(types[2]),   *(types[3]));
       found = true;
       // First, no wildcard
       for (const_iterator it = begin(); it != end(); ++it) {
         TypeNameHolder const& myTypes = it->first;
         // Central (third) type must match
         if (myTypes[2] == types[2]) {
+          //mprintf("DEBUG: FindParam (improper) central atom match %s", *(types[2]));
+          //mprintf(" This=%s-%s-%s-%s", *(myTypes[0]), *(myTypes[1]), *(myTypes[2]), *(myTypes[3]));
+          //mprintf(" Inco=%s-%s-%s-%s\n", *(types[0]), *(types[1]),   *(types[2]),   *(types[3]));
           // Try all permutations
-          if (myTypes[0] == types[0]) {
-            if (myTypes[1] == types[1] && myTypes[3] == types[3]) {
+          if (       myTypes[0] == types[0] && myTypes[1] == types[1] && myTypes[3] == types[3]) {
               // 0 1 2 3
               return it->second;
-            } else if (myTypes[1] == types[3] && myTypes[3] == types[1]) {
+          } else if (myTypes[0] == types[0] && myTypes[1] == types[3] && myTypes[3] == types[1]) {
               // 0 3 2 1
               return it->second;
-            }
-          } else if (myTypes[0] == types[1]) {
-            if (myTypes[1] == types[0] && myTypes[3] == types[3]) {
+          } else if (myTypes[0] == types[1] && myTypes[1] == types[0] && myTypes[3] == types[3]) {
               // 1 0 2 3
               return it->second;
-            } else if (myTypes[1] == types[3] && myTypes[3] == types[0]) {
+          } else if (myTypes[0] == types[1] && myTypes[1] == types[3] && myTypes[3] == types[0]) {
               // 1 3 2 0
               return it->second;
-            }
-          } else if (myTypes[0] == types[3]) {
-            if (myTypes[1] == types[0] && myTypes[3] == types[1]) {
+          } else if (myTypes[0] == types[3] && myTypes[1] == types[0] && myTypes[3] == types[1]) {
               // 3 0 2 1
               return it->second;
-            } else if (myTypes[1] == types[1] && myTypes[3] == types[0]) {
+          } else if (myTypes[0] == types[3] && myTypes[1] == types[1] && myTypes[3] == types[0]) {
               // 3 1 2 0
               return it->second;
-            }
           }
         }
       } // END loop over parameters
@@ -330,30 +328,24 @@ class ImproperParmHolder : private DihedralParmHolder {
           // Central (third) type must match
           if (wcm(myTypes[2], types[2], wc_)) {
             // Try all permutations
-            if (wcm(myTypes[0], types[0], wc_)) {
-              if (wcm(myTypes[1], types[1], wc_) && wcm(myTypes[3], types[3], wc_)) {
+            if (       wcm(myTypes[0], types[0], wc_) && wcm(myTypes[1], types[1], wc_) && wcm(myTypes[3], types[3], wc_)) {
                 // 0 1 2 3
                 return it->second;
-              } else if (wcm(myTypes[1], types[3], wc_) && wcm(myTypes[3], types[1], wc_)) {
+            } else if (wcm(myTypes[0], types[0], wc_) && wcm(myTypes[1], types[3], wc_) && wcm(myTypes[3], types[1], wc_)) {
                 // 0 3 2 1
                 return it->second;
-              }
-            } else if (wcm(myTypes[0], types[1], wc_)) {
-              if (wcm(myTypes[1], types[0], wc_) && wcm(myTypes[3], types[3], wc_)) {
+            } else if (wcm(myTypes[0], types[1], wc_) && wcm(myTypes[1], types[0], wc_) && wcm(myTypes[3], types[3], wc_)) {
                 // 1 0 2 3
                 return it->second;
-              } else if (wcm(myTypes[1], types[3], wc_) && wcm(myTypes[3], types[0], wc_)) {
+            } else if (wcm(myTypes[0], types[1], wc_) && wcm(myTypes[1], types[3], wc_) && wcm(myTypes[3], types[0], wc_)) {
                 // 1 3 2 0
                 return it->second;
-              }
-            } else if (wcm(myTypes[0], types[3], wc_)) {
-              if (wcm(myTypes[1], types[0], wc_) && wcm(myTypes[3], types[1], wc_)) {
+            } else if (wcm(myTypes[0], types[3], wc_) && wcm(myTypes[1], types[0], wc_) && wcm(myTypes[3], types[1], wc_)) {
                 // 3 0 2 1
                 return it->second;
-              } else if (wcm(myTypes[1], types[1], wc_) && wcm(myTypes[3], types[0], wc_)) {
+            } else if (wcm(myTypes[0], types[3], wc_) && wcm(myTypes[1], types[1], wc_) && wcm(myTypes[3], types[0], wc_)) {
                 // 3 1 2 0
                 return it->second;
-              }
             }
           }
         } // END loop over parameters
