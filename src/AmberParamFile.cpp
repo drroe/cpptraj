@@ -251,6 +251,7 @@ const
   types.AddName( symbols[1] );
   types.AddName( symbols[2] );
   types.AddName( symbols[3] );
+  //types.SortImproperByAlpha("X"); // FIXME wildcard should be a static var
   ParameterHolders::RetType ret =
     prm.IP().AddParm(types, DihedralParmType(PK, PN, PHASE*Constants::DEGRAD), true);
   if (ret == ParameterHolders::UPDATED)
