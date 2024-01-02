@@ -2695,16 +2695,20 @@ void Topology::AssignAngleParams(ParmHolder<AngleParmType> const& newAngleParams
   AssignAngleParm( newAngleParams, anglesh_ );
 }
 
-/** Reorder improper atoms so that they match the parameter. */
-static void match_improper_to_parm(DihedralType& imp, TypeNameHolder const& types, ImproperParmHolder::OrderType order)
+/** Warn if improper atoms have been reordered so they match the parameter. */
+void Topology::warn_improper_reorder(DihedralType const& imp0, DihedralType const& imp)
+const
 {
-  mprintf("DEBUG: Improper types : %4s %4s %4s %4s (order %i)\n", *(types[0]), *(types[1]), *(types[2]), *(types[3]),
-          //*(atoms_[imp->A1()].Type()),
-          //*(atoms_[imp->A2()].Type()),
-          //*(atoms_[imp->A3()].Type()),
-          //*(atoms_[imp->A4()].Type()),
-          (int)order);
-  //mprintf("DEBUG: Parm types     : %4s %4s %4s %4s\n", 
+  mprintf("Warning: Improper types have been reordered from %4s %4s %4s %4s",
+          *(atoms_[imp0.A1()].Type()),
+          *(atoms_[imp0.A2()].Type()),
+          *(atoms_[imp0.A3()].Type()),
+          *(atoms_[imp0.A4()].Type()));
+  mprintf(" to %4s %4s %4s %4s to match improper parameter.\n",
+          *(atoms_[imp.A1()].Type()),
+          *(atoms_[imp.A2()].Type()),
+          *(atoms_[imp.A3()].Type()),
+          *(atoms_[imp.A4()].Type()));
 }
 
 /** Set parameters for improper dihedrals in given improper dihedral array. */
@@ -2720,8 +2724,10 @@ void Topology::AssignImproperParm(ImproperParmHolder const& newImproperParams,
     bool found;
     // See if parameter is present.
     int idx = -1;
-    ImproperParmHolder::OrderType lastOrder;
-    DihedralParmArray ipa = newImproperParams.FindParam( types, found, lastOrder );
+    //ImproperParmHolder::OrderType lastOrder;
+    DihedralType imp0 = *imp;
+    bool reordered;
+    DihedralParmArray ipa = newImproperParams.FindParam( types, found, *imp, reordered );
     if (!found) {
       mprintf("Warning: Parameter not found for improper %s-%s-%s-%s (%s-%s-%s-%s)\n",
               TruncResAtomNameNum(imp->A1()).c_str(),
@@ -2733,7 +2739,7 @@ void Topology::AssignImproperParm(ImproperParmHolder const& newImproperParams,
       if (ipa.size() > 1)
         mprintf("Warning: %zu improper parameters found for types %s - %s - %s - %s, expected only one."
                         "Warning: Only using first parameter.\n", ipa.size(), *(types[0]), *(types[1]), *(types[2]), *(types[3]));
-      match_improper_to_parm( *imp, types, lastOrder );
+      if (reordered) warn_improper_reorder( imp0, *imp );
       idx = addTorsionParm( chamber_.SetImproperParm(), ipa.front() );
     }
     imp->SetIdx( idx );
@@ -2806,8 +2812,10 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
     bool found;
     if (isImproper) {
       // ----- This is actually an improper dihedral. ----------------
-      ImproperParmHolder::OrderType lastOrder;
-      DihedralParmArray ipa = newImproperParams.FindParam( types, found, lastOrder );
+      //ImproperParmHolder::OrderType lastOrder;
+      DihedralType dih0 = *dih;
+      bool reordered;
+      DihedralParmArray ipa = newImproperParams.FindParam( types, found, *dih, reordered );
       int idx = -1;
       if (!found) {
         mprintf("Warning: Improper parameters not found for improper dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
@@ -2820,7 +2828,7 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
         if (ipa.size() > 1)
           mprintf("Warning: %zu improper parameters found for types %s - %s - %s - %s, expected only one."
                   "Warning: Only using first parameter.\n", ipa.size(), *(types[0]), *(types[1]), *(types[2]), *(types[3]));
-        match_improper_to_parm( *dih, types, lastOrder );
+        if (reordered) warn_improper_reorder( dih0, *dih );
         idx = addTorsionParm( dihedralparm_, ipa.front() );
       }
       DihedralType mydih = *dih;

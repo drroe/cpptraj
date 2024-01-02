@@ -300,6 +300,7 @@ class Topology {
     void AssignAtomTypeParm(ParmHolder<AtomType> const&);
     void AssignBondParm(ParmHolder<BondParmType> const&, BondArray&, BondParmArray&, const char*) const;
     void AssignAngleParm(ParmHolder<AngleParmType> const&, AngleArray&);
+    void warn_improper_reorder(DihedralType const&, DihedralType const&) const;
     void AssignImproperParm(ImproperParmHolder const&, DihedralArray&);
     void AssignDihedralParm(DihedralParmHolder const&, ImproperParmHolder const&, DihedralArray&);
 
