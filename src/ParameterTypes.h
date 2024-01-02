@@ -233,6 +233,10 @@ class DihedralType {
     void SetIdx(int i)        { idx_ = i;      }
     void SetSkip14(bool b)    { skip14_ = b;   }
     void SetImproper(bool b)  { improper_ = b; }
+    int& ChangeA1() { return a1_; }
+    int& ChangeA2() { return a2_; }
+    int& ChangeA3() { return a3_; }
+    int& ChangeA4() { return a4_; }
     /// \return type based on skip 1-4 (end) and improper status
     inline Dtype Type() const {
       if (skip14_ && improper_) return BOTH;

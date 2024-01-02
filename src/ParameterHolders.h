@@ -278,6 +278,8 @@ class ImproperParmHolder : private DihedralParmHolder {
     static inline bool wcm(NameType const& t0, NameType const& t1, NameType const& wc) {
       return (t0 == wc || t0 == t1);
     }
+    /// Function for swapping integers
+    static inline void swp(int& i1, int& i2) { int tmp = i1; i1 = i2; i2 = tmp; }
   public:
     /// Denote returned parameter atom type order
     enum OrderType { O_013,
@@ -312,6 +314,17 @@ class ImproperParmHolder : private DihedralParmHolder {
     DihedralParmArray FindParam(TypeNameHolder const& types, bool& found) const {
       OrderType lastOrder;
       return FindParam(types, found, lastOrder);
+    }
+    /// Remap the given improper according to the desired order
+    static void ReorderImproper(DihedralType& imp, OrderType order) {
+      switch (order) {
+        case O_013 : break;
+        case O_031 : swp( imp.ChangeA2(), imp.ChangeA4() ); break;
+        case O_103 : swp( imp.ChangeA1(), imp.ChangeA2() ); break;
+        case O_130 : swp( imp.ChangeA1(), imp.ChangeA4() ); swp( imp.ChangeA1(), imp.ChangeA2() ); break;
+        case O_301 : swp( imp.ChangeA2(), imp.ChangeA4() ); swp( imp.ChangeA1(), imp.ChangeA2() ); break;
+        case O_310 : swp( imp.ChangeA1(), imp.ChangeA4() ); break;
+      }
     }
     /// \return Array of improper parameters matching given atom types.
     DihedralParmArray FindParam(TypeNameHolder const& types, bool& found, OrderType& lastOrder_) const {
