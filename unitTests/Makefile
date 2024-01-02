@@ -22,6 +22,9 @@ unit.Range:
 unit.TypeNameHolder:
 	@-cd TypeNameHolder && ./UnitTest.sh $(OPT)
 
+unit.ImproperParmHolder:
+	@-cd ImproperParmHolder && ./UnitTest.sh $(OPT)
+
 # ----- Every unit test should go here -----------
 COMPLETETESTS= \
   unit.NameType \
@@ -29,7 +32,8 @@ COMPLETETESTS= \
   unit.GistEntropyUtils \
   unit.StringRoutines \
   unit.Range \
-  unit.TypeNameHolder
+  unit.TypeNameHolder \
+  unit.ImproperParmHolder
 
 test.cpptraj: $(COMPLETETESTS)
 

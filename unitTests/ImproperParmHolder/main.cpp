@@ -60,28 +60,28 @@ int main() {
   if (found) return Err("Improper parameter search found something when it should not have.");
 
   DihedralType imp( 0, 1, 2, 3, -1 );
-  ImproperParmHolder::ReorderImproper( imp, ImproperParmHolder::O_013 );
+  IP.ReorderImproper( imp, ImproperParmHolder::O_013 );
   if (imp.A1() != 0 || imp.A2() != 1 || imp.A3() != 2 || imp.A4() != 3)
     return Err("Improper reorder failed (O_013).");
-  ImproperParmHolder::ReorderImproper( imp, ImproperParmHolder::O_031 );
+  IP.ReorderImproper( imp, ImproperParmHolder::O_031 );
   if (imp.A1() != 0 || imp.A2() != 3 || imp.A3() != 2 || imp.A4() != 1)
     return Err("Improper reorder failed (O_031).");
   imp = DihedralType( 0, 1, 2, 3, -1 );
-  ImproperParmHolder::ReorderImproper( imp, ImproperParmHolder::O_103 );
+  IP.ReorderImproper( imp, ImproperParmHolder::O_103 );
   if (imp.A1() != 1 || imp.A2() != 0 || imp.A3() != 2 || imp.A4() != 3)
     return Err("Improper reorder failed (O_103).");
   imp = DihedralType( 0, 1, 2, 3, -1 );
-  ImproperParmHolder::ReorderImproper( imp, ImproperParmHolder::O_130 );
+  IP.ReorderImproper( imp, ImproperParmHolder::O_130 );
   //printImp(imp);
   if (imp.A1() != 1 || imp.A2() != 3 || imp.A3() != 2 || imp.A4() != 0)
     return Err("Improper reorder failed (O_130).");
   imp = DihedralType( 0, 1, 2, 3, -1 );
-  ImproperParmHolder::ReorderImproper( imp, ImproperParmHolder::O_301 );
+  IP.ReorderImproper( imp, ImproperParmHolder::O_301 );
   //printImp(imp);
   if (imp.A1() != 3 || imp.A2() != 0 || imp.A3() != 2 || imp.A4() != 1)
     return Err("Improper reorder failed (O_301).");
   imp = DihedralType( 0, 1, 2, 3, -1 );
-  ImproperParmHolder::ReorderImproper( imp, ImproperParmHolder::O_310 );
+  IP.ReorderImproper( imp, ImproperParmHolder::O_310 );
   //printImp(imp);
   if (imp.A1() != 3 || imp.A2() != 1 || imp.A3() != 2 || imp.A4() != 0)
     return Err("Improper reorder failed (O_310).");
