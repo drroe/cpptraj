@@ -311,12 +311,9 @@ class ImproperParmHolder : private DihedralParmHolder {
     AddParm(TypeNameHolder const& types, DihedralParmArray const& dpa, bool allowUpdate) {
       return DihedralParmHolder::AddParm( types, dpa, allowUpdate );
     }
-    DihedralParmArray FindParam(TypeNameHolder const& types, bool& found) const {
-      OrderType lastOrder;
-      return FindParam(types, found, lastOrder);
-    }
-    /// Remap the given improper according to the desired order
-    static void ReorderImproper(DihedralType& imp, OrderType order) {
+  private:
+    /// Remap the given improper according to the desired order, correct for wildcards in given types
+    void ReorderImproper(DihedralType& imp, OrderType order, TypeNameHolder const& types) const {
       switch (order) {
         case O_013 : break;
         case O_031 : swp( imp.ChangeA2(), imp.ChangeA4() ); break;
@@ -325,13 +322,42 @@ class ImproperParmHolder : private DihedralParmHolder {
         case O_301 : swp( imp.ChangeA2(), imp.ChangeA4() ); swp( imp.ChangeA1(), imp.ChangeA2() ); break;
         case O_310 : swp( imp.ChangeA1(), imp.ChangeA4() ); break;
       }
+      if (wc_.len() > 0 && types.Size() > 0) {
+        // If there are wildcards, need to order matching types by atom index.
+        // General order of imp should now match types due to above swaps.
+        bool wc1 = (types[0] == wc_);
+        bool wc2 = (types[1] == wc_);
+        bool wc4 = (types[3] == wc_);
+        //mprintf("DEBUG: %s WC0=%i %s WC1=%i %s WC3=%i\n", *types[0], (int)wc1, *types[1], (int)wc2, *types[3], (int)wc4);
+        if (wc4 && wc2 && wc1) {
+          // All three wildcard - should be rare but need to check.
+          if (imp.A1() > imp.A2()) swp(imp.ChangeA1(), imp.ChangeA2());
+          if (imp.A2() > imp.A4()) swp(imp.ChangeA2(), imp.ChangeA4());
+          if (imp.A1() > imp.A2()) swp(imp.ChangeA1(), imp.ChangeA2());
+          if (imp.A2() > imp.A4()) swp(imp.ChangeA2(), imp.ChangeA4());
+        } else if (wc1 && wc2) {
+          if (imp.A1() > imp.A2()) swp(imp.ChangeA1(), imp.ChangeA2());
+        } else if (wc1 && wc4) {
+          if (imp.A1() > imp.A4()) swp(imp.ChangeA1(), imp.ChangeA4());
+        } else if (wc2 && wc4) {
+          if (imp.A2() > imp.A4()) swp(imp.ChangeA2(), imp.ChangeA4());
+        }
+      }
     }
-    /// \return Array of improper parameters matching given atom types.
-    DihedralParmArray FindParam(TypeNameHolder const& types, bool& found, OrderType& lastOrder_) const {
+  public:
+    /// Remap the given improper according to the desired order. Used by unit test to check that reordering works.
+    void ReorderImproper(DihedralType& imp, OrderType order) const {
+      ReorderImproper(imp, order, TypeNameHolder());
+    }
+    /// \return Array of improper parameters matching given atom types. Improper will be reordered to match parameter order.
+    DihedralParmArray FindParam(TypeNameHolder const& types, bool& found, DihedralType& imp, bool& reordered) const {
       //mprintf("DEBUG: FindParam wc=%s Inco=%s-%s-%s-%s\n",*wc_, *(types[0]), *(types[1]),   *(types[2]),   *(types[3]));
-      found = true;
+      found = false;
+      reordered = false;
       // First, no wildcard
-      for (const_iterator it = begin(); it != end(); ++it) {
+      const_iterator it = begin();
+      OrderType lastOrder_;
+      for (; it != end(); ++it) {
         TypeNameHolder const& myTypes = it->first;
         // Central (third) type must match
         if (myTypes[2] == types[2]) {
@@ -342,33 +368,46 @@ class ImproperParmHolder : private DihedralParmHolder {
           if (       myTypes[0] == types[0] && myTypes[1] == types[1] && myTypes[3] == types[3]) {
               // 0 1 2 3
               lastOrder_ = O_013;
-              return it->second;
+              found = true;
+              //return it->second;
+              break;
           } else if (myTypes[0] == types[0] && myTypes[1] == types[3] && myTypes[3] == types[1]) {
               // 0 3 2 1
               lastOrder_ = O_031;
-              return it->second;
+              found = true;
+              //return it->second;
+              break;
           } else if (myTypes[0] == types[1] && myTypes[1] == types[0] && myTypes[3] == types[3]) {
               // 1 0 2 3
               lastOrder_ = O_103;
-              return it->second;
+              found = true;
+              //return it->second;
+              break;
           } else if (myTypes[0] == types[1] && myTypes[1] == types[3] && myTypes[3] == types[0]) {
               // 1 3 2 0
               lastOrder_ = O_130;
-              return it->second;
+              found = true;
+              //return it->second;
+              break;
           } else if (myTypes[0] == types[3] && myTypes[1] == types[0] && myTypes[3] == types[1]) {
               // 3 0 2 1
               lastOrder_ = O_301;
-              return it->second;
+              found = true;
+              //return it->second;
+              break;
           } else if (myTypes[0] == types[3] && myTypes[1] == types[1] && myTypes[3] == types[0]) {
               // 3 1 2 0
               lastOrder_ = O_310;
-              return it->second;
+              found = true;
+              //return it->second;
+              break;
           }
         }
       } // END loop over parameters
       // Wildcard if present
-      if (wc_.len() > 0) {
-        for (const_iterator it = begin(); it != end(); ++it) {
+      if (!found && wc_.len() > 0) {
+        it = begin();
+        for (; it != end(); ++it) {
           TypeNameHolder const& myTypes = it->first;
           // Central (third) type must match
           if (wcm(myTypes[2], types[2], wc_)) {
@@ -376,34 +415,56 @@ class ImproperParmHolder : private DihedralParmHolder {
             if (       wcm(myTypes[0], types[0], wc_) && wcm(myTypes[1], types[1], wc_) && wcm(myTypes[3], types[3], wc_)) {
                 // 0 1 2 3
                 lastOrder_ = O_013;
-                return it->second;
+                found = true;
+                //return it->second;
+                break;
             } else if (wcm(myTypes[0], types[0], wc_) && wcm(myTypes[1], types[3], wc_) && wcm(myTypes[3], types[1], wc_)) {
                 // 0 3 2 1
                 lastOrder_ = O_031;
-                return it->second;
+                found = true;
+                //return it->second;
+                break;
             } else if (wcm(myTypes[0], types[1], wc_) && wcm(myTypes[1], types[0], wc_) && wcm(myTypes[3], types[3], wc_)) {
                 // 1 0 2 3
                 lastOrder_ = O_103;
-                return it->second;
+                found = true;
+                //return it->second;
+                break;
             } else if (wcm(myTypes[0], types[1], wc_) && wcm(myTypes[1], types[3], wc_) && wcm(myTypes[3], types[0], wc_)) {
                 // 1 3 2 0
                 lastOrder_ = O_130;
-                return it->second;
+                found = true;
+                //return it->second;
+                break;
             } else if (wcm(myTypes[0], types[3], wc_) && wcm(myTypes[1], types[0], wc_) && wcm(myTypes[3], types[1], wc_)) {
                 // 3 0 2 1
                 lastOrder_ = O_301;
-                return it->second;
+                found = true;
+                //return it->second;
+                break;
             } else if (wcm(myTypes[0], types[3], wc_) && wcm(myTypes[1], types[1], wc_) && wcm(myTypes[3], types[0], wc_)) {
                 // 3 1 2 0
                 lastOrder_ = O_310;
-                return it->second;
+                found = true;
+                //return it->second;
+                break;
             }
           }
         } // END loop over parameters
       } // END wildcard matches
-      found = false;
-      return DihedralParmArray();
+      //found = false;
+      if (!found) return DihedralParmArray();
+      // We have found a parameter. Do any reordering.
+      if (lastOrder_ != O_013) reordered = true;
+      ReorderImproper( imp, lastOrder_, it->first );
+      return it->second;
     } // END FindParam()
+    /// \return Dihedral parm array corresponding to types. Use by unit test.
+    DihedralParmArray FindParam(TypeNameHolder const& types, bool& found) const {
+      DihedralType blank;
+      bool reordered;
+      return FindParam(types, found, blank, reordered);
+    }
     /// \return size in memory in bytes
     size_t DataSize() const { return DihedralParmHolder::DataSize(); }
   private:
