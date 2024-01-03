@@ -306,7 +306,7 @@ static int order_improper_atoms(int* indices, int centralAt, Topology const& top
 
 /** Try to determine impropers for topology. */ // TODO option for charmm improper
 int Cpptraj::Structure::GenerateImpropers(Topology& topIn, ParmHolder<AtomType> const& AT) {
-  for (int iat = 0; iat != topIn.Natom(); iat++) {
+  for (int iat = topIn.Natom()-1; iat >= 0; iat--) {
     Atom const& AJ = topIn[iat];
     if (AJ.Nbonds() == 3) { // TODO only 3 atoms OK?
       AtomType::HybridizationType hybrid = AtomType::UNKNOWN_HYBRIDIZATION; 
