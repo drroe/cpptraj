@@ -5,17 +5,18 @@
 #include "../Topology.h"
 #include <algorithm> // std::swap
 
-static inline void enumerateAngles(int at1, int at2, Topology& topIn) {
+static inline void enumerateAngles(int& aidx, int at1, int at2, Topology& topIn) {
   Atom const& A2 = topIn[at2];
   if (A2.Nbonds() > 1) {
     for (Atom::bond_iterator bat = A2.bondbegin(); bat != A2.bondend(); ++bat)
     {
       if (*bat != at1 && at1 < *bat) {
         topIn.AddAngle(at1, at2, *bat);
-        mprintf("%s - %s - %s\n",
-                topIn.AtomMaskName(at1).c_str(),
-                topIn.AtomMaskName(at2).c_str(),
-                topIn.AtomMaskName(*bat).c_str());
+        mprintf("DEBUG: ANGLE  i= %i  %i - %i - %i (%i %i %i)\n",  aidx++, at1+1, at2+1, *bat+1, at1*3, at2*3, *bat*3);
+        //mprintf("%s - %s - %s\n",
+        //        topIn.AtomMaskName(at1).c_str(),
+        //        topIn.AtomMaskName(at2).c_str(),
+        //        topIn.AtomMaskName(*bat).c_str());
       }
     }
   }
@@ -36,11 +37,11 @@ static inline void enumerateDihedrals(int at1, int at2, Topology& topIn) {
               topIn.AddDihedral(*bat1, at1, at2, *bat2);
             else
               topIn.AddDihedral(*bat2, at2, at1, *bat1);
-            mprintf("%s - %s - %s - %s\n",
-                    topIn.AtomMaskName(*bat1).c_str(),
-                    topIn.AtomMaskName(at1).c_str(),
-                    topIn.AtomMaskName(at2).c_str(),
-                    topIn.AtomMaskName(*bat2).c_str());
+            //mprintf("%s - %s - %s - %s\n",
+            //        topIn.AtomMaskName(*bat1).c_str(),
+            //        topIn.AtomMaskName(at1).c_str(),
+            //        topIn.AtomMaskName(at2).c_str(),
+            //        topIn.AtomMaskName(*bat2).c_str());
           }
         }
       }
@@ -95,23 +96,46 @@ int Cpptraj::Structure::GenerateBondAngleTorsionArrays(Topology& topIn) {
     }
   }
 
-  mprintf("DEBUG: Sorted bonds:\n");
-  for (BondArray::const_iterator it = allBonds.begin(); it != allBonds.end(); ++it)
-    mprintf("\t%s - %s\n",
-            topIn.AtomMaskName(it->A1()).c_str(),
-            topIn.AtomMaskName(it->A2()).c_str());
+  // ANGLES TODO combine above
+  int aidx = 0;
+  for (int ires = 0; ires < topIn.Nres(); ires++)
+  {
+    Residue const& res = topIn.Res(ires);
+    for (int iat1 = res.LastAtom()-1; iat1 >= res.FirstAtom(); iat1--)
+    {
+      Atom const& At1 = topIn[iat1];
+      for (int bidx1 = 0; bidx1 < At1.Nbonds(); bidx1++) {
+        int iat2 = At1.Bond(bidx1);
+        Atom const& At2 = topIn[iat2];
+        for (int bidx2 = 0; bidx2 < At2.Nbonds(); bidx2++) {
+          int iat3 = At2.Bond(bidx2);
+          if (iat1 < iat3) {
+            mprintf("DEBUG: ANGLE  i= %i  %i - %i - %i (%i %i %i)\n", aidx++, iat1+1, iat2+1, iat3+1, iat1*3, iat2*3, iat3*3);
+            topIn.AddAngle(iat1, iat2, iat3);
+          }
+        }
+      }
+    }
+  }
+
+  //mprintf("DEBUG: Sorted bonds:\n");
+  //for (BondArray::const_iterator it = allBonds.begin(); it != allBonds.end(); ++it)
+  //  mprintf("\t%s - %s\n",
+  //          topIn.AtomMaskName(it->A1()).c_str(),
+  //          topIn.AtomMaskName(it->A2()).c_str());
 
   // Angles
   //AngleArray angles;
   //AngleArray anglesH;
+  aidx = 0;
   for (BondArray::const_iterator it = allBonds.begin(); it != allBonds.end(); ++it)
   {
-    if (!has_angles) {
-      // Forward direction. A1-A2-X
-      enumerateAngles( it->A1(), it->A2(), topIn );
-      // Reverse direction. A2-A1-X
-      enumerateAngles( it->A2(), it->A1(), topIn );
-    }
+    //if (!has_angles) {
+    //  // Forward direction. A1-A2-X
+    //  enumerateAngles( aidx, it->A1(), it->A2(), topIn );
+    //  // Reverse direction. A2-A1-X
+    //  enumerateAngles( aidx, it->A2(), it->A1(), topIn );
+    //}
     if (!has_dihedrals) {
       // Dihedrals
       enumerateDihedrals( it->A1(), it->A2(), topIn );
