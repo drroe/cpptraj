@@ -175,7 +175,46 @@ class AngleType {
     int a3_;
     int idx_;
 };
-typedef std::vector<AngleType> AngleArray;
+/// Hold array of angle parameters
+class AngleArray {
+    typedef std::vector<AngleType> AArray;
+  public:
+    /// CONSTRUCTOR
+    AngleArray() {}
+
+    /// iterator
+    typedef AArray::iterator iterator;
+    /// begin
+    iterator begin() { return angles_.begin(); }
+    /// end
+    iterator end()   { return angles_.end();   }
+    /// const iterator
+    typedef AArray::const_iterator const_iterator;
+    /// const begin
+    const_iterator begin() const { return angles_.begin(); }
+    /// const end
+    const_iterator end()   const { return angles_.end();   }
+
+    /// Reserve space for # of angles
+    void reserve(size_t n) { angles_.reserve(n); }
+    /// Add angle
+    void push_back(AngleType const& b) { angles_.push_back(b); }
+    /// Clear angles
+    void clear() { angles_.clear(); }
+    /// Erase given angle from array
+    void erase( iterator bnd ) { angles_.erase( bnd ); }
+
+    /// \return true if no angles
+    bool empty()  const { return angles_.empty(); }
+    /// \return number of angles
+    size_t size() const { return angles_.size(); }
+    /// \return specified angle
+    AngleType const& operator[](size_t idx) const { return angles_[idx]; }
+    /// \return underlying array
+    std::vector<AngleType> const& Array() const { return angles_; }
+  private:
+    AArray angles_;
+};
 /// Hold dihedral parameters
 class DihedralParmType {
   public:
