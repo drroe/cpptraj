@@ -49,6 +49,57 @@ static inline void enumerateDihedrals(int at1, int at2, Topology& topIn) {
   }
 }
 
+/* Set bonds, angles, and dihedral arrays for a given topology based on
+ * a sorted and combined version of the current bond arrays.
+ */
+int Cpptraj::Structure::GenerateAngleTorsionArrays(Topology& topIn) {
+  if (topIn.Nbonds() < 1) {
+    mprintf("Warning: No bonds in '%s', no angles to generate.\n", topIn.c_str());
+    return 0;
+  }
+  bool has_angles = topIn.Nangles() > 0;
+  if (has_angles) {
+    mprintf("Warning: Topology '%s' already has angle information.\n", topIn.c_str());
+    //return 0;
+  }
+  bool has_dihedrals = topIn.Ndihedrals() > 0;
+  if (has_dihedrals) {
+    mprintf("Warning: Topology '%s' already has dihedral information.\n", topIn.c_str());
+    //return 0;
+  }
+  if (has_angles && has_dihedrals) return 0;
+  // Create a combined bonds array
+  BondArray allBonds;
+  allBonds.reserve(topIn.Nbonds());
+  for (BondArray::const_iterator it = topIn.Bonds().begin(); it != topIn.Bonds().end(); ++it)
+    allBonds.push_back( *it );
+  for (BondArray::const_iterator it = topIn.BondsH().begin(); it != topIn.BondsH().end(); ++it)
+    allBonds.push_back( *it );
+  std::sort( allBonds.begin(), allBonds.end() );
+  mprintf("DEBUG: Sorted bonds:\n");
+  for (BondArray::const_iterator it = allBonds.begin(); it != allBonds.end(); ++it)
+    mprintf("\t%s - %s\n",
+            topIn.AtomMaskName(it->A1()).c_str(),
+            topIn.AtomMaskName(it->A2()).c_str());
+
+  // Angles and Torsiions
+  int aidx = 0;
+  for (BondArray::const_iterator it = allBonds.begin(); it != allBonds.end(); ++it)
+  {
+    if (!has_angles) {
+      // Forward direction. A1-A2-X
+      enumerateAngles( aidx, it->A1(), it->A2(), topIn );
+      // Reverse direction. A2-A1-X
+      enumerateAngles( aidx, it->A2(), it->A1(), topIn );
+    }
+    if (!has_dihedrals) {
+      // Dihedrals
+      enumerateDihedrals( it->A1(), it->A2(), topIn );
+    }
+  }
+  return 0;
+}
+
 /* Set bonds, angles, and dihedral arrays for a given topology based on 
  * current atom connectivity.
  * This is done in the same manner as LEaP, which goes in increasing
@@ -72,10 +123,8 @@ int Cpptraj::Structure::GenerateBondAngleTorsionArrays(Topology& topIn) {
   if (has_angles && has_dihedrals) return 0;
   // Clear existing bond information TODO clear angles and dihedrals?
   topIn.ClearBondArrays();
-  // Create a combined bonds array
-  BondArray allBonds;
-  allBonds.reserve(topIn.Nbonds());
 
+  // BONDS
   int bidx = 0;
   for (int ires = 0; ires < topIn.Nres(); ires++)
   {
@@ -87,7 +136,6 @@ int Cpptraj::Structure::GenerateBondAngleTorsionArrays(Topology& topIn) {
       {
         if (iat < *bat) {
           mprintf("DEBUG: BOND  i= %i  %i - %i (%i %i)\n",  bidx++, iat+1, *bat+1, iat*3, *bat*3);
-          allBonds.push_back( BondType(iat, *bat, -1) );
           topIn.AddToBondArrays( BondType(iat, *bat, -1) );
         }
         //else
@@ -118,29 +166,6 @@ int Cpptraj::Structure::GenerateBondAngleTorsionArrays(Topology& topIn) {
     }
   }
 
-  //mprintf("DEBUG: Sorted bonds:\n");
-  //for (BondArray::const_iterator it = allBonds.begin(); it != allBonds.end(); ++it)
-  //  mprintf("\t%s - %s\n",
-  //          topIn.AtomMaskName(it->A1()).c_str(),
-  //          topIn.AtomMaskName(it->A2()).c_str());
-
-  // Angles
-  //AngleArray angles;
-  //AngleArray anglesH;
-  aidx = 0;
-  for (BondArray::const_iterator it = allBonds.begin(); it != allBonds.end(); ++it)
-  {
-    //if (!has_angles) {
-    //  // Forward direction. A1-A2-X
-    //  enumerateAngles( aidx, it->A1(), it->A2(), topIn );
-    //  // Reverse direction. A2-A1-X
-    //  enumerateAngles( aidx, it->A2(), it->A1(), topIn );
-    //}
-    if (!has_dihedrals) {
-      // Dihedrals
-      enumerateDihedrals( it->A1(), it->A2(), topIn );
-    }
-  }
   return 0;
 }
 

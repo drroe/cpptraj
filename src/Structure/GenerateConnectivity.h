@@ -5,6 +5,8 @@ class AtomType;
 template <typename Type> class ParmHolder;
 namespace Cpptraj {
 namespace Structure {
+/// Generate angle/torsion arrays from bond arrays in a Topology
+int GenerateAngleTorsionArrays(Topology&);
 /// Generate bond/angle/torsion arrays from atom connectivity in a Topology
 int GenerateBondAngleTorsionArrays(Topology&);
 /// Generate impropers in a Topology
