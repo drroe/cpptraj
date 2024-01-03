@@ -1,9 +1,9 @@
-#include "GenerateAngles.h"
+#include "GenerateConnectivity.h"
 #include "../CpptrajStdio.h"
 #include "../GuessAtomHybridization.h"
 #include "../ParameterTypes.h"
 #include "../Topology.h"
-#include <algorithm> // std::sort
+#include <algorithm> // std::swap
 
 static inline void enumerateAngles(int at1, int at2, Topology& topIn) {
   Atom const& A2 = topIn[at2];
@@ -48,8 +48,12 @@ static inline void enumerateDihedrals(int at1, int at2, Topology& topIn) {
   }
 }
 
-/* Set angles and dihedrals in given topology based on current bond arrays. */
-int Cpptraj::Structure::GenerateAngles(Topology& topIn) {
+/* Set bonds, angles, and dihedral arrays for a given topology based on 
+ * current atom connectivity.
+ * This is done in the same manner as LEaP, which goes in increasing
+ * residue order but decreasing atom index.
+ */
+int Cpptraj::Structure::GenerateBondAngleTorsionArrays(Topology& topIn) {
   if (topIn.Nbonds() < 1) {
     mprintf("Warning: No bonds in '%s', no angles to generate.\n", topIn.c_str());
     return 0;
@@ -65,15 +69,31 @@ int Cpptraj::Structure::GenerateAngles(Topology& topIn) {
     //return 0;
   }
   if (has_angles && has_dihedrals) return 0;
+  // Clear existing bond information TODO clear angles and dihedrals?
+  topIn.ClearBondArrays();
   // Create a combined bonds array
   BondArray allBonds;
   allBonds.reserve(topIn.Nbonds());
 
-  for (BondArray::const_iterator it = topIn.Bonds().begin(); it != topIn.Bonds().end(); ++it)
-    allBonds.push_back( *it );
-  for (BondArray::const_iterator it = topIn.BondsH().begin(); it != topIn.BondsH().end(); ++it)
-    allBonds.push_back( *it );
-  std::sort( allBonds.begin(), allBonds.end() );
+  int bidx = 0;
+  for (int ires = 0; ires < topIn.Nres(); ires++)
+  {
+    Residue const& res = topIn.Res(ires);
+    for (int iat = res.LastAtom()-1; iat >= res.FirstAtom(); iat--)
+    {
+      Atom const& At = topIn[iat];
+      for (Atom::bond_iterator bat = At.bondbegin(); bat != At.bondend(); ++bat)
+      {
+        if (iat < *bat) {
+          mprintf("DEBUG: BOND  i= %i  %i - %i (%i %i)\n",  bidx++, iat+1, *bat+1, iat*3, *bat*3);
+          allBonds.push_back( BondType(iat, *bat, -1) );
+          topIn.AddToBondArrays( BondType(iat, *bat, -1) );
+        }
+        //else
+        //  mprintf("DEBUG: X    i= %i  %i - %i (%i %i)\n",   bidx++, iat+1, *bat+1, iat*3, *bat*3);
+      }
+    }
+  }
 
   mprintf("DEBUG: Sorted bonds:\n");
   for (BondArray::const_iterator it = allBonds.begin(); it != allBonds.end(); ++it)
@@ -82,8 +102,8 @@ int Cpptraj::Structure::GenerateAngles(Topology& topIn) {
             topIn.AtomMaskName(it->A2()).c_str());
 
   // Angles
-  AngleArray angles;
-  AngleArray anglesH;
+  //AngleArray angles;
+  //AngleArray anglesH;
   for (BondArray::const_iterator it = allBonds.begin(); it != allBonds.end(); ++it)
   {
     if (!has_angles) {
