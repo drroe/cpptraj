@@ -7,6 +7,7 @@
 #include "AtomType.h"
 #include "AtomMask.h"
 #include "CharMask.h"
+#include "Structure/GenerateConnectivityArrays.h"
 
 const NonbondType Topology::LJ_EMPTY = NonbondType();
 
@@ -2600,8 +2601,15 @@ const
 /** Replace any current bond parameters with given bond parameters. */
 void Topology::AssignBondParams(ParmHolder<BondParmType> const& newBondParams) {
   bondparm_.clear();
-  AssignBondParm( newBondParams, bonds_,  bondparm_, "bond" );
-  AssignBondParm( newBondParams, bondsh_, bondparm_, "bond" );
+  // Regenerate bond array in LEaP order
+  bonds_.clear();
+  bondsh_.clear();
+  BondArray allBonds = Cpptraj::Structure::GenerateBondArray(residues_, atoms_);
+  AssignBondParm( newBondParams, allBonds, bondparm_, "bond" );
+  for (BondArray::const_iterator bnd = allBonds.begin(); bnd != allBonds.end(); ++bnd)
+    AddToBondArrays( *bnd );
+//  AssignBondParm( newBondParams, bonds_,  bondparm_, "bond" );
+//  AssignBondParm( newBondParams, bondsh_, bondparm_, "bond" );
 /**  // Try to match leap bond ordering. Appears to be by index with priority
   // given to heavy atoms.
   BondArray tmpBonds;
