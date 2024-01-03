@@ -385,6 +385,8 @@ class DihedralArray {
     size_t size() const { return dihedrals_.size(); }
     /// \return specified dihedral
     DihedralType const& operator[](size_t idx) const { return dihedrals_[idx]; }
+    /// \return last dihedral added
+    DihedralType const& back() const { return dihedrals_.back(); }
     /// \return underlying array
     std::vector<DihedralType> const& Array() const { return dihedrals_; }
   private:
