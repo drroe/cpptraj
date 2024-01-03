@@ -100,6 +100,32 @@ int Cpptraj::Structure::GenerateAngleTorsionArrays(Topology& topIn) {
   return 0;
 }
 
+/** From atom connectivity, generate a bond array in the same order as LEaP. */ // TODO use in GenerateBAT
+BondArray Cpptraj::Structure::GenerateBondArray(Topology const& topIn)
+{
+  BondArray out;
+  // BONDS
+  int bidx = 0;
+  for (int ires = 0; ires < topIn.Nres(); ires++)
+  {
+    Residue const& res = topIn.Res(ires);
+    for (int iat = res.LastAtom()-1; iat >= res.FirstAtom(); iat--)
+    {
+      Atom const& At = topIn[iat];
+      for (Atom::bond_iterator bat = At.bondbegin(); bat != At.bondend(); ++bat)
+      {
+        if (iat < *bat) {
+          mprintf("DEBUG: BOND  i= %i  %i - %i (%i %i)\n",  bidx++, iat+1, *bat+1, iat*3, *bat*3);
+          out.push_back( BondType(iat, *bat, -1) );
+        }
+        //else
+        //  mprintf("DEBUG: X    i= %i  %i - %i (%i %i)\n",   bidx++, iat+1, *bat+1, iat*3, *bat*3);
+      }
+    }
+  }
+  return out;
+}
+
 /* Set bonds, angles, and dihedral arrays for a given topology based on 
  * current atom connectivity.
  * This is done in the same manner as LEaP, which goes in increasing

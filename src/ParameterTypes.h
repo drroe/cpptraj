@@ -81,7 +81,46 @@ class BondType {
     int a2_;
     int idx_;
 };
-typedef std::vector<BondType> BondArray;
+/// Hold array of bond parameters
+class BondArray {
+    typedef std::vector<BondType> BArray;
+  public:
+    /// CONSTRUCTOR
+    BondArray() {}
+
+    /// iterator
+    typedef BArray::iterator iterator;
+    /// begin
+    iterator begin() { return bonds_.begin(); }
+    /// end
+    iterator end()   { return bonds_.end();   }
+    /// const iterator
+    typedef BArray::const_iterator const_iterator;
+    /// const begin
+    const_iterator begin() const { return bonds_.begin(); }
+    /// const end
+    const_iterator end()   const { return bonds_.end();   }
+
+    /// Reserve space for # of bonds
+    void reserve(size_t n) { bonds_.reserve(n); }
+    /// Add bond
+    void push_back(BondType const& b) { bonds_.push_back(b); }
+    /// Clear bonds
+    void clear() { bonds_.clear(); }
+    /// Erase given bond from array
+    void erase( iterator bnd ) { bonds_.erase( bnd ); }
+
+    /// \return true if no bonds
+    bool empty()  const { return bonds_.empty(); }
+    /// \return number of bonds
+    size_t size() const { return bonds_.size(); }
+    /// \return specified bond
+    BondType const& operator[](size_t idx) const { return bonds_[idx]; }
+    /// \return underlying array
+    std::vector<BondType> const& Array() const { return bonds_; }
+  private:
+    BArray bonds_;
+};
 /// Hold angle parameters
 class AngleParmType {
   public:
