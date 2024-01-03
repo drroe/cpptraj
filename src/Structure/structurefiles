@@ -5,6 +5,7 @@ STRUCTURE_SOURCES= \
   Disulfide.cpp \
   FunctionalGroup.cpp \
   FxnGroupBuilder.cpp \
+  GenerateConnectivityArrays.cpp \
   GenerateConnectivity.cpp \
   HisProt.cpp \
   InternalCoords.cpp \

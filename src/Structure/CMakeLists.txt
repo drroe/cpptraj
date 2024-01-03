@@ -5,6 +5,7 @@ target_sources(cpptraj_common_obj PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}/Disulfide.cpp
   ${CMAKE_CURRENT_LIST_DIR}/FunctionalGroup.cpp
   ${CMAKE_CURRENT_LIST_DIR}/FxnGroupBuilder.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/GenerateConnectivityArrays.cpp
   ${CMAKE_CURRENT_LIST_DIR}/GenerateConnectivity.cpp
   ${CMAKE_CURRENT_LIST_DIR}/HisProt.cpp
   ${CMAKE_CURRENT_LIST_DIR}/InternalCoords.cpp
