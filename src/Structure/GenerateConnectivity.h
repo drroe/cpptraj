@@ -2,7 +2,6 @@
 #define INC_STRUCTURE_GENERATECONNECTIVITY_H
 class Topology;
 class AtomType;
-class BondArray;
 template <typename Type> class ParmHolder;
 namespace Cpptraj {
 namespace Structure {
@@ -12,8 +11,6 @@ int GenerateAngleTorsionArrays(Topology&);
 int GenerateBondAngleTorsionArrays(Topology&);
 /// Generate impropers in a Topology
 int GenerateImpropers(Topology&, ParmHolder<AtomType> const&);
-/// Generate bond array in same order as leap
-BondArray GenerateBondArray(Topology const&);
 }
 }
 #endif
