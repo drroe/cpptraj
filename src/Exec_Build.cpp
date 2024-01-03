@@ -1,7 +1,7 @@
 #include "Exec_Build.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Parameters.h"
-#include "Structure/GenerateAngles.h"
+#include "Structure/GenerateConnectivity.h"
 #include "Structure/Zmatrix.h"
 
 DataSet_Coords* Exec_Build::IdTemplateFromName(Carray const& Templates,
@@ -370,7 +370,7 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // Generate angles/dihedrals
-  if (Cpptraj::Structure::GenerateAngles(topOut)) {
+  if (Cpptraj::Structure::GenerateBondAngleTorsionArrays(topOut)) {
     mprinterr("Error: Could not generate angles/dihedrals for '%s'\n", topOut.c_str());
     return CpptrajState::ERR;
   }

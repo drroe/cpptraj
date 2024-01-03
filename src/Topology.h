@@ -116,6 +116,10 @@ class Topology {
     void AddBond(int, int, BondParmType const&);
     int RemoveBond(int, int);
     void AssignBondParams(ParmHolder<BondParmType> const&);
+    /// Clear bond arrays but not atom connectivity
+    void ClearBondArrays();
+    /// Add to bond arrays but do not update atom connectivity
+    void AddToBondArrays(BondType const&);
     // ----- Angle-specific routines -------------
     size_t Nangles()                           const { return angles_.size()+anglesh_.size(); }
     AngleArray        const& Angles()       const { return angles_;       }

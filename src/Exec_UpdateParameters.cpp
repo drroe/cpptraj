@@ -2,7 +2,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_Parameters.h"
 #include "DataSet_Topology.h"
-#include "Structure/GenerateAngles.h"
+#include "Structure/GenerateConnectivity.h"
 
 const char* Exec_UpdateParameters::disclaimer_ = "Warning: This command is provided for convenience only.\nWarning: For editing topology files, ParmEd is a much better alternative.\n";
 
@@ -53,7 +53,7 @@ Exec::RetType Exec_UpdateParameters::Execute(CpptrajState& State, ArgList& argIn
   //top.SortBonds();
 
   if (genAngles) {
-    if (Cpptraj::Structure::GenerateAngles( top )) {
+    if (Cpptraj::Structure::GenerateBondAngleTorsionArrays( top )) {
       mprinterr("Error: Could not generate angle/dihedral information.\n");
       return CpptrajState::ERR;
     }

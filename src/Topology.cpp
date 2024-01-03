@@ -898,6 +898,26 @@ void Topology::AddBond(BondType const& bndIn, bool isH) {
   atoms_[bndIn.A2()].AddBondToIdx( bndIn.A1() );
 }
 
+/** Clear bond arrays, but do not clear atom connectivity. Used
+  * when regenerating bond information from atom connectivity.
+  */
+void Topology::ClearBondArrays() {
+  bonds_.clear();
+  bondsh_.clear();
+}
+
+/** Add to bond arrays but do not update atom connectivity. Used
+  * when regenerating bond information from atom connectivity.
+  */
+void Topology::AddToBondArrays(BondType const& bnd) {
+  // TODO enforce H as second atom?
+  if (atoms_[bnd.A1()].Element() == Atom::HYDROGEN ||
+      atoms_[bnd.A2()].Element() == Atom::HYDROGEN)
+    bondsh_.push_back( bnd );
+  else
+    bonds_.push_back( bnd );
+}
+
 /** Check if given angle parm exists in given angle parm array. Add if not.
   * \return Index in angle parm array.
   */
