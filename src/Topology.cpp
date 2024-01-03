@@ -980,6 +980,17 @@ void Topology::AddAngle(AngleType const& angIn, bool isH) {
     angles_.push_back( angIn );
 }
 
+/** Add to angle arrays. Used when regenerating angle information
+  * from atom connectivity.
+  */
+void Topology::AddToAngleArrays(AngleType const& ang) {
+  if (atoms_[ang.A1()].Element() == Atom::HYDROGEN ||
+      atoms_[ang.A2()].Element() == Atom::HYDROGEN ||
+      atoms_[ang.A3()].Element() == Atom::HYDROGEN)
+    anglesh_.push_back( ang );
+  else
+    angles_.push_back( ang );
+}
 // -----------------------------------------------
 /** Check if given dihedral parm exists in given dihedral parm array. Add if not.
   * \return Index in dihedral parm array.
@@ -2713,8 +2724,15 @@ void Topology::AssignAngleParm(ParmHolder<AngleParmType> const& newAngleParams,
 /** Replace any current angle parameters with given angle parameters. */
 void Topology::AssignAngleParams(ParmHolder<AngleParmType> const& newAngleParams) {
   angleparm_.clear();
-  AssignAngleParm( newAngleParams, angles_ );
-  AssignAngleParm( newAngleParams, anglesh_ );
+  // Regenerate angle array in LEaP order
+  angles_.clear();
+  anglesh_.clear();
+  AngleArray allAngles = Cpptraj::Structure::GenerateAngleArray(residues_, atoms_);
+  AssignAngleParm( newAngleParams, allAngles );
+  for (AngleArray::const_iterator ang = allAngles.begin(); ang != allAngles.end(); ++ang)
+    AddToAngleArrays( *ang );
+  //AssignAngleParm( newAngleParams, angles_ );
+  //AssignAngleParm( newAngleParams, anglesh_ );
 }
 
 /** Warn if improper atoms have been reordered so they match the parameter. */

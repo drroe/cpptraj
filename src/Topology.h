@@ -129,7 +129,9 @@ class Topology {
     void AddAngle(int i, int j, int k)            { AddAngle(i, j, k, -1); }
     void AddAngle(int, int, int, int);
     void AddAngle(AngleType const&, bool);
-    void AddAngle(int, int, int, AngleParmType const&); 
+    void AddAngle(int, int, int, AngleParmType const&);
+    /// Add to angle arrays
+    void AddToAngleArrays(AngleType const&);
     void AssignAngleParams(ParmHolder<AngleParmType> const&);
     // ----- Dihedral-specific routines ----------
     size_t Ndihedrals()                        const { return dihedrals_.size()+dihedralsh_.size(); }
