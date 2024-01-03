@@ -898,12 +898,6 @@ void Topology::AddBond(BondType const& bndIn, bool isH) {
   atoms_[bndIn.A2()].AddBondToIdx( bndIn.A1() );
 }
 
-/** Sort bond arrays. May want to do this to e.g. match LEAP bond ordering. */
-/*void Topology::SortBonds() {
-  std::sort(bonds_.begin(), bonds_.end());
-  std::sort(bondsh_.begin(), bondsh_.end());
-}*/
-
 /** Check if given angle parm exists in given angle parm array. Add if not.
   * \return Index in angle parm array.
   */
