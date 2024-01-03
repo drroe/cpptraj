@@ -350,7 +350,46 @@ class DihedralType {
     bool skip14_; ///< If true the 1-4 interaction for this dihedral should be skipped.
     bool improper_; ///< If true this is an improper dihedral.
 };
-typedef std::vector<DihedralType> DihedralArray;
+/// Hold array of dihedral parameters
+class DihedralArray {
+    typedef std::vector<DihedralType> DArray;
+  public:
+    /// CONSTRUCTOR
+    DihedralArray() {}
+
+    /// iterator
+    typedef DArray::iterator iterator;
+    /// begin
+    iterator begin() { return dihedrals_.begin(); }
+    /// end
+    iterator end()   { return dihedrals_.end();   }
+    /// const iterator
+    typedef DArray::const_iterator const_iterator;
+    /// const begin
+    const_iterator begin() const { return dihedrals_.begin(); }
+    /// const end
+    const_iterator end()   const { return dihedrals_.end();   }
+
+    /// Reserve space for # of dihedrals
+    void reserve(size_t n) { dihedrals_.reserve(n); }
+    /// Add dihedral
+    void push_back(DihedralType const& b) { dihedrals_.push_back(b); }
+    /// Clear dihedrals
+    void clear() { dihedrals_.clear(); }
+    /// Erase given dihedral from array
+    void erase( iterator bnd ) { dihedrals_.erase( bnd ); }
+
+    /// \return true if no dihedrals
+    bool empty()  const { return dihedrals_.empty(); }
+    /// \return number of dihedrals
+    size_t size() const { return dihedrals_.size(); }
+    /// \return specified dihedral
+    DihedralType const& operator[](size_t idx) const { return dihedrals_[idx]; }
+    /// \return underlying array
+    std::vector<DihedralType> const& Array() const { return dihedrals_; }
+  private:
+    DArray dihedrals_;
+};
 // ----- NON-BONDED PARAMETERS -------------------------------------------------
 /// Hold LJ 10-12 hbond params
 class HB_ParmType {
