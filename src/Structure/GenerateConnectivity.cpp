@@ -166,6 +166,34 @@ int Cpptraj::Structure::GenerateBondAngleTorsionArrays(Topology& topIn) {
     }
   }
 
+  // TORSIONS TODO combine above
+  int didx = 0;
+  for (int ires = 0; ires < topIn.Nres(); ires++)
+  {
+    Residue const& res = topIn.Res(ires);
+    for (int iat1 = res.LastAtom()-1; iat1 >= res.FirstAtom(); iat1--)
+    {
+      Atom const& At1 = topIn[iat1];
+      for (int bidx1 = 0; bidx1 < At1.Nbonds(); bidx1++) {
+        int iat2 = At1.Bond(bidx1);
+        Atom const& At2 = topIn[iat2];
+        for (int bidx2 = 0; bidx2 < At2.Nbonds(); bidx2++) {
+          int iat3 = At2.Bond(bidx2);
+          if (iat3 != iat1) {
+            Atom const& At3 = topIn[iat3];
+            for (int bidx3 = 0; bidx3 < At3.Nbonds(); bidx3++) {
+              int iat4 = At3.Bond(bidx3);
+              if (iat4 != iat2 && iat1 < iat4) {
+                mprintf("DEBUG: DIHEDRAL  i= %i  %i - %i - %i - %i (%i %i %i %i)\n", didx++, iat1+1, iat2+1, iat3+1, iat4+1, iat1*3, iat2*3, iat3*3, iat4*3);
+                topIn.AddDihedral( iat1, iat2, iat3, iat4 );
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   return 0;
 }
 
