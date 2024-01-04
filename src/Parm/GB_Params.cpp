@@ -24,6 +24,16 @@ static const char* GB_RadiiTypeKey_[] = {
   0
 };
 
+/** \return GB_RadiiType corresponding to string. */
+Cpptraj::Parm::GB_RadiiType Cpptraj::Parm::GbTypeFromKey(std::string const& key) {
+  if (!key.empty()) {
+    for (int i = 0; i < (int)UNKNOWN_GB; i++) {
+      if ( key == std::string(GB_RadiiTypeKey_[i]) ) return (GB_RadiiType)i;
+    }
+  }
+  return UNKNOWN_GB;
+}
+
 /// These are the numeric iGBparm values used in LEaP
 static const int GB_RadiiTypeIGB_[] = {
   0, // bondi

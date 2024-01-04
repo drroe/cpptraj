@@ -1,5 +1,6 @@
 #ifndef INC_PARM_GBPARAMS_H
 #define INC_PARM_GBPARAMS_H
+#include <string>
 class Topology;
 namespace Cpptraj {
 namespace Parm {
@@ -14,6 +15,8 @@ enum GB_RadiiType {
   MBONDI3,          ///< 8, ArgH and AspGluO modified Bondi2 radii
   UNKNOWN_GB
 };
+/// \return GB radii type corresponding to string
+GB_RadiiType GbTypeFromKey(std::string const&);
 /// Assign GB radii
 int Assign_GB_Radii(Topology&, GB_RadiiType);
 }
