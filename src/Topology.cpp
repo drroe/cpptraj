@@ -2769,7 +2769,7 @@ void Topology::AssignImproperParams(ImproperParmHolder const& newImproperParams)
 DihedralArray Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
                                            ImproperParmHolder const& newImproperParams,
                                            DihedralArray const& dihedrals)
-{
+{ // TODO skip extra points
   DihedralArray dihedralsIn;
   // Keep track of 1-4 interactions
   typedef std::pair<int,int> Ipair;
