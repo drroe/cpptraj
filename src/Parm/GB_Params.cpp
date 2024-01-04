@@ -286,6 +286,112 @@ static void assign_gb_radii(Topology& top, Cpptraj::Parm::GB_RadiiType radiiSet)
   } // END loop over atoms
 }
 
+/** Assign GB screening parameters. */
+static void assign_gb_screen(Topology& top, Cpptraj::Parm::GB_RadiiType radiiSet)
+{
+  int iGBparm = GB_RadiiTypeIGB_[radiiSet];
+  for (int iat = 0; iat != top.Natom(); iat++)
+  {
+    Atom const& currentAtom = top[iat];
+    double dGBscreen = 0;
+    if (iGBparm < 4 || iGBparm == 6 || iGBparm == 8) {
+
+      // For now, hardwire the Bondi radii
+      switch (currentAtom.Element()) {
+        case Atom::HYDROGEN:
+          dGBscreen = 0.85;
+          break;
+        case Atom::CARBON:
+          dGBscreen = 0.72;
+          break;
+        case Atom::NITROGEN:
+          dGBscreen = 0.79;
+          break;
+        case Atom::OXYGEN:
+          dGBscreen = 0.85;
+          break;
+        case Atom::FLUORINE:
+          dGBscreen = 0.88;
+          break;
+        case Atom::PHOSPHORUS:
+          dGBscreen = 0.86;
+          break;
+        case Atom::SULFUR:
+          dGBscreen = 0.96;
+          break;
+        default:
+          dGBscreen = 0.8;
+          break;          // or should fail??
+      }
+    }
+    else if (iGBparm == 4) {    // param for Jayaram et al. 'GB'
+      switch (currentAtom.Element()) {
+        case Atom::HYDROGEN:
+          dGBscreen = 0.8461;
+          break;
+        case Atom::CARBON:
+          dGBscreen = 0.9615;
+          break;
+        case Atom::NITROGEN:
+          dGBscreen = 0.9343;
+          break;
+        case Atom::OXYGEN:
+          dGBscreen = 1.0088;
+          break;
+        case Atom::SODIUM:
+          dGBscreen = 1.0000;
+          break;
+        case Atom::MAGNESIUM:
+          dGBscreen = 1.0000;
+          break;          // Set by HG
+        case Atom::PHOSPHORUS:
+          dGBscreen = 1.0700;
+          break;
+        case Atom::SULFUR:
+          dGBscreen = 1.1733;
+          break;
+        default:
+          dGBscreen = 0.8000;
+          break;          // Set by HG
+      }
+    }
+    else if (iGBparm == 5) {
+
+      // Param for Jayaram et al. 'MGB'
+      switch (currentAtom.Element()) {
+        case Atom::HYDROGEN:
+          dGBscreen = 0.8846;
+          break;
+        case Atom::CARBON:
+          dGBscreen = 0.9186;
+          break;
+        case Atom::NITROGEN:
+          dGBscreen = 0.8733;
+          break;
+        case Atom::OXYGEN:
+          dGBscreen = 0.8836;
+          break;
+        case Atom::SODIUM:
+          dGBscreen = 1.0000;
+          break;
+        case Atom::MAGNESIUM:
+          dGBscreen = 1.0000;
+          break;          // Set by HG
+        case Atom::PHOSPHORUS:
+          dGBscreen = 0.9604;
+          break;
+        case Atom::SULFUR:
+          dGBscreen = 0.9323;
+          break;
+        default:
+          dGBscreen = 0.8000;
+          break;          // Set by HG
+      }
+    }
+    top.SetAtom(iat).SetGBscreen( dGBscreen );
+  } // END loop over atoms
+}
+
 /** Assign GB radii and screening parameters based on the given radius set. */
 int Cpptraj::Parm::Assign_GB_Radii(Topology& top, GB_RadiiType radiiSet)
 {
@@ -296,6 +402,7 @@ int Cpptraj::Parm::Assign_GB_Radii(Topology& top, GB_RadiiType radiiSet)
   mprintf("\tUsing GB radii set: %s\n", GB_RadiiTypeStr_[radiiSet]);
   top.SetGBradiiSet( std::string(GB_RadiiTypeStr_[radiiSet]) );
   assign_gb_radii( top, radiiSet );
+  assign_gb_screen( top, radiiSet );
 
   return 0;
 }
