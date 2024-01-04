@@ -8,6 +8,7 @@
 #include "AtomMask.h"
 #include "CharMask.h"
 #include "Structure/GenerateConnectivityArrays.h"
+#include "Structure/GenerateImpropers.h"
 
 const NonbondType Topology::LJ_EMPTY = NonbondType();
 
@@ -3080,11 +3081,19 @@ int Topology::AssignParams(ParameterSet const& set0) {
   for (DihedralArray::const_iterator dih = allDihedrals.begin(); dih != allDihedrals.end(); ++dih)
     AddToDihedralArrays( *dih );
   // Urey-Bradley
-  mprintf("\tRegenerating UB parameters.\n");
+  mprintf("\tRegenerating Urey-Bradley parameters.\n");
   AssignUBParams( set0.UB() );
   // Improper parameters
-  mprintf("\tRegenerating improper parameters.\n");
-  AssignImproperParams( set0.IP() );
+  if (!chamber_.Impropers().empty()) {
+    mprintf("\tRegenerating CHARMM improper parameters.\n");
+    AssignImproperParams( set0.IP() );
+  } else {
+    mprintf("\tRegenerating improper parameters.\n");
+    DihedralArray allImpropers = Cpptraj::Structure::GenerateImproperArray(atoms_, set0.AT());
+    allImpropers = AssignDihedralParm( set0.DP(), set0.IP(), allImpropers );
+    for (DihedralArray::const_iterator imp = allImpropers.begin(); imp != allImpropers.end(); ++imp)
+      AddToDihedralArrays( *imp );
+  }
   // Atom types
   mprintf("\tRegenerating atom type parameters.\n");
   AssignAtomTypeParm( set0.AT() );
