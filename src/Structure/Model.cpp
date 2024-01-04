@@ -29,7 +29,7 @@ int Cpptraj::Structure::Model::AssignTheta(double& theta, int ai, int aj, int ak
     return 1;
   }
   // TODO pass in atom type info?
-  AtomType::HybridizationType hybrid = GuessAtomHybridization(AJ, topIn);
+  AtomType::HybridizationType hybrid = GuessAtomHybridization(AJ, topIn.Atoms());
 /*
   HybridizationType hybrid = UNKNOWN_HYBRIDIZATION;
   // Handle specific elements
