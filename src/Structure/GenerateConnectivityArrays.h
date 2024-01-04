@@ -12,7 +12,7 @@ namespace Structure {
 BondArray GenerateBondArray(std::vector<Residue> const&, std::vector<Atom> const&);
 /// Generate angle array in same order as leap
 AngleArray GenerateAngleArray(std::vector<Residue> const&, std::vector<Atom> const&);
-/// Generate dihedral array in same order as leap
+/// Generate proper dihedral array in same order as leap
 DihedralArray GenerateDihedralArray(std::vector<Residue> const&, std::vector<Atom> const&);
 }
 }
