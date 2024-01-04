@@ -146,6 +146,8 @@ class Topology {
     void AddDihedral(DihedralType const&, DihedralParmType const&);
     void AssignImproperParams(ImproperParmHolder const&);
     void AssignDihedralParams(DihedralParmHolder const&, ImproperParmHolder const&);
+    /// Add to dihedral arrays
+    void AddToDihedralArrays(DihedralType const&);
     // ----- CMAP-specific routines --------------
     bool                     HasCmap()      const { return !cmapGrid_.empty(); }
     CmapGridArray     const& CmapGrid()     const { return cmapGrid_;     }
@@ -306,7 +308,7 @@ class Topology {
     void AssignBondParm(ParmHolder<BondParmType> const&, BondArray&, BondParmArray&, const char*) const;
     void AssignAngleParm(ParmHolder<AngleParmType> const&, AngleArray&);
     void warn_improper_reorder(DihedralType const&, DihedralType const&) const;
-    void AssignImproperParm(ImproperParmHolder const&, DihedralArray&);
+    void AssignImproperParm(ImproperParmHolder const&, DihedralArray&, DihedralParmArray&) const;
     inline DihedralArray get_unique_dihedrals(DihedralArray const&) const;
     DihedralArray AssignDihedralParm(DihedralParmHolder const&, ImproperParmHolder const&, DihedralArray const&);
 

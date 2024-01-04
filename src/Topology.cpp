@@ -991,6 +991,7 @@ void Topology::AddToAngleArrays(AngleType const& ang) {
   else
     angles_.push_back( ang );
 }
+
 // -----------------------------------------------
 /** Check if given dihedral parm exists in given dihedral parm array. Add if not.
   * \return Index in dihedral parm array.
@@ -1072,6 +1073,19 @@ void Topology::AddDihedral(DihedralType const& dihIn, bool isH) {
     dihedralsh_.push_back( dihIn );
   else
     dihedrals_.push_back( dihIn );
+}
+
+/** Add to dihedral arrays. Used when regenerating dihedral information
+  * from atom connectivity.
+  */
+void Topology::AddToDihedralArrays(DihedralType const& dih) {
+  if (atoms_[dih.A1()].Element() == Atom::HYDROGEN ||
+      atoms_[dih.A4()].Element() == Atom::HYDROGEN ||
+      atoms_[dih.A2()].Element() == Atom::HYDROGEN ||
+      atoms_[dih.A3()].Element() == Atom::HYDROGEN)
+    dihedralsh_.push_back( dih );
+  else
+    dihedrals_.push_back( dih );
 }
 
 /** Add given Charmm improper with given improper parm to Charmm improper array. */
@@ -2703,7 +2717,9 @@ const
 
 /** Set parameters for improper dihedrals in given improper dihedral array. */
 void Topology::AssignImproperParm(ImproperParmHolder const& newImproperParams,
-                                  DihedralArray& impropers)
+                                  DihedralArray& impropers,
+                                  DihedralParmArray& dpa)
+const
 {
   for (DihedralArray::iterator imp = impropers.begin(); imp != impropers.end(); ++imp) {
     TypeNameHolder types(4);
@@ -2730,7 +2746,7 @@ void Topology::AssignImproperParm(ImproperParmHolder const& newImproperParams,
         mprintf("Warning: %zu improper parameters found for types %s - %s - %s - %s, expected only one."
                         "Warning: Only using first parameter.\n", ipa.size(), *(types[0]), *(types[1]), *(types[2]), *(types[3]));
       if (reordered) warn_improper_reorder( imp0, *imp );
-      idx = addTorsionParm( chamber_.SetImproperParm(), ipa.front() );
+      idx = addTorsionParm( dpa, ipa.front() );
     }
     imp->SetIdx( idx );
   }
@@ -2739,7 +2755,7 @@ void Topology::AssignImproperParm(ImproperParmHolder const& newImproperParams,
 /** Replace any current improper parameters with given improper parameters. */
 void Topology::AssignImproperParams(ImproperParmHolder const& newImproperParams) {
   chamber_.SetImproperParm().clear();
-  AssignImproperParm( newImproperParams, chamber_.SetImpropers() );
+  AssignImproperParm( newImproperParams, chamber_.SetImpropers(), chamber_.SetImproperParm() );
 }
 
 /** Set parameters for dihedrals in given dihedral array.
@@ -3057,7 +3073,12 @@ int Topology::AssignParams(ParameterSet const& set0) {
     AddToAngleArrays( *ang );
   // Dihedral parameters
   mprintf("\tRegenerating dihedral parameters.\n");
-  AssignDihedralParams( set0.DP(), set0.IP() );
+  dihedrals_.clear();
+  dihedralsh_.clear();
+  DihedralArray allDihedrals = Cpptraj::Structure::GenerateDihedralArray(residues_, atoms_);
+  allDihedrals = AssignDihedralParm( set0.DP(), set0.IP(), allDihedrals );
+  for (DihedralArray::const_iterator dih = allDihedrals.begin(); dih != allDihedrals.end(); ++dih)
+    AddToDihedralArrays( *dih );
   // Urey-Bradley
   mprintf("\tRegenerating UB parameters.\n");
   AssignUBParams( set0.UB() );
