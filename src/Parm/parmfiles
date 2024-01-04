@@ -1,0 +1,3 @@
+# Files for Parm subdirectory.
+PARM_SOURCES= \
+  GB_Params.cpp
