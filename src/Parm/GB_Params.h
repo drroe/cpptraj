@@ -15,6 +15,8 @@ enum GB_RadiiType {
   MBONDI3,          ///< 8, ArgH and AspGluO modified Bondi2 radii
   UNKNOWN_GB
 };
+/// \return string corresponding to gb radii set
+std::string GbTypeStr(GB_RadiiType);
 /// \return GB radii type corresponding to string
 GB_RadiiType GbTypeFromKey(std::string const&);
 /// Assign GB radii

@@ -24,6 +24,11 @@ static const char* GB_RadiiTypeKey_[] = {
   0
 };
 
+/** \return char string corresponding to type. */
+std::string Cpptraj::Parm::GbTypeStr(GB_RadiiType t) {
+  return std::string(GB_RadiiTypeStr_[t]);
+}
+
 /** \return GB_RadiiType corresponding to string. */
 Cpptraj::Parm::GB_RadiiType Cpptraj::Parm::GbTypeFromKey(std::string const& key) {
   if (!key.empty()) {
