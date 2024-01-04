@@ -307,7 +307,8 @@ class Topology {
     void AssignAngleParm(ParmHolder<AngleParmType> const&, AngleArray&);
     void warn_improper_reorder(DihedralType const&, DihedralType const&) const;
     void AssignImproperParm(ImproperParmHolder const&, DihedralArray&);
-    void AssignDihedralParm(DihedralParmHolder const&, ImproperParmHolder const&, DihedralArray&);
+    inline DihedralArray get_unique_dihedrals(DihedralArray const&) const;
+    DihedralArray AssignDihedralParm(DihedralParmHolder const&, ImproperParmHolder const&, DihedralArray const&);
 
     static const NonbondType LJ_EMPTY;
     std::vector<Atom> atoms_;

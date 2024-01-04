@@ -2745,39 +2745,21 @@ void Topology::AssignImproperParams(ImproperParmHolder const& newImproperParams)
 /** Set parameters for dihedrals in given dihedral array.
   * Bond and angle information must be set up prior to calling
   * this function in order for improper and 1-4 detection to work.
+  * \param newDihedralParams New proper dihedral parameters.
+  * \param newImproperParams New improper dihedral parameters.
+  * \param dihedrals Array containing only unique dihedrals.
   */
-void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
-                                  ImproperParmHolder const& newImproperParams,
-                                  DihedralArray& dihedralsIn)
+DihedralArray Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
+                                           ImproperParmHolder const& newImproperParams,
+                                           DihedralArray const& dihedrals)
 {
-  // Dihedrals can be a bit of a pain since there can be multiple
-  // multiplicities for a single dihedral type. In case multiplicities
-  // change, start with a fresh dihedral array containing only unique
-  // dihedrals.
-  //DihedralArray tmpdih = dihedralsIn;
-  //std::sort( tmpdih.begin(), tmpdih.end() );
-  // Assume dihedrals with multiple terms are consecutive already
-  DihedralArray dihedrals;
-  for (DihedralArray::const_iterator dih = dihedralsIn.begin(); dih != dihedralsIn.end(); ++dih) {
-    if (dihedrals.empty())
-      dihedrals.push_back( *dih );
-    else {
-      if ( *dih != dihedrals.back() )
-        dihedrals.push_back( *dih );
-    }
-  }
-  if (debug_ > 0)
-    mprintf("DEBUG: %zu incoming dihedrals, %zu unique dihedrals.\n",
-            dihedralsIn.size(), dihedrals.size());
-
-  dihedralsIn.clear();
+  DihedralArray dihedralsIn;
   // Keep track of 1-4 interactions
   typedef std::pair<int,int> Ipair;
   typedef std::set<Ipair> Imap;
   Imap PairMap;
   // Loop over all dihedrals
-  for (DihedralArray::iterator dih = dihedrals.begin(); dih != dihedrals.end(); ++dih) {
-
+  for (DihedralArray::const_iterator dih = dihedrals.begin(); dih != dihedrals.end(); ++dih) {
     TypeNameHolder types(4);
     types.AddName( atoms_[dih->A1()].Type() );
     types.AddName( atoms_[dih->A2()].Type() );
@@ -2803,9 +2785,9 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
     if (isImproper) {
       // ----- This is actually an improper dihedral. ----------------
       //ImproperParmHolder::OrderType lastOrder;
-      DihedralType dih0 = *dih;
+      DihedralType mydih = *dih;
       bool reordered;
-      DihedralParmArray ipa = newImproperParams.FindParam( types, found, *dih, reordered );
+      DihedralParmArray ipa = newImproperParams.FindParam( types, found, mydih, reordered );
       int idx = -1;
       if (!found) {
         mprintf("Warning: Improper parameters not found for improper dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
@@ -2818,10 +2800,9 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
         if (ipa.size() > 1)
           mprintf("Warning: %zu improper parameters found for types %s - %s - %s - %s, expected only one."
                   "Warning: Only using first parameter.\n", ipa.size(), *(types[0]), *(types[1]), *(types[2]), *(types[3]));
-        if (reordered) warn_improper_reorder( dih0, *dih );
+        if (reordered) warn_improper_reorder( *dih, mydih );
         idx = addTorsionParm( dihedralparm_, ipa.front() );
       }
-      DihedralType mydih = *dih;
       mydih.SetIdx( idx );
       mydih.SetImproper( true );
       // Always skip 1-4 for impropers
@@ -2913,13 +2894,36 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
       }
     }
   } // END loop over all dihedrals
+  return dihedralsIn;
+}
+
+/** \return Array of only unique dihedrals (get rid of multiplicities) */
+DihedralArray Topology::get_unique_dihedrals(DihedralArray const& dihedralsIn) const {
+  // Assume dihedrals with multiple terms are consecutive already
+  DihedralArray dihedrals;
+  for (DihedralArray::const_iterator dih = dihedralsIn.begin(); dih != dihedralsIn.end(); ++dih) {
+    if (dihedrals.empty())
+      dihedrals.push_back( *dih );
+    else {
+      if ( *dih != dihedrals.back() )
+        dihedrals.push_back( *dih );
+    }
+  }
+  if (debug_ > 0)
+    mprintf("DEBUG: %zu incoming dihedrals, %zu unique dihedrals.\n",
+            dihedralsIn.size(), dihedrals.size());
+  return dihedrals;
 }
 
 /** Replace any current dihedral parameters with given dihedral parameters. */
 void Topology::AssignDihedralParams(DihedralParmHolder const& newDihedralParams, ImproperParmHolder const& newImproperParams) {
   dihedralparm_.clear();
-  AssignDihedralParm( newDihedralParams, newImproperParams, dihedrals_ );
-  AssignDihedralParm( newDihedralParams, newImproperParams, dihedralsh_ );
+  // Dihedrals can be a bit of a pain since there can be multiple
+  // multiplicities for a single dihedral type. In case multiplicities
+  // change, start with a fresh dihedral array containing only unique
+  // dihedrals.
+  dihedrals_  = AssignDihedralParm( newDihedralParams, newImproperParams, get_unique_dihedrals(dihedrals_)  );
+  dihedralsh_ = AssignDihedralParm( newDihedralParams, newImproperParams, get_unique_dihedrals(dihedralsh_) );
 }
 
 /** Replace current nonbond parameters with given nonbond parameters. */
