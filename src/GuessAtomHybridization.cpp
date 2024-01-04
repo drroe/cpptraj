@@ -1,8 +1,7 @@
 #include "GuessAtomHybridization.h"
 #include "Atom.h"
-#include "Topology.h"
 
-AtomType::HybridizationType Cpptraj::GuessAtomHybridization(Atom const& AJ, Topology const& topIn)
+AtomType::HybridizationType Cpptraj::GuessAtomHybridization(Atom const& AJ, std::vector<Atom> const& atoms)
 {
   AtomType::HybridizationType hybrid = AtomType::UNKNOWN_HYBRIDIZATION;
   // Handle specific elements
@@ -22,7 +21,7 @@ AtomType::HybridizationType Cpptraj::GuessAtomHybridization(Atom const& AJ, Topo
           // hydrogen, assume SP2. TODO actually check for aromaticity.
           int n_hydrogens = 0;
           for (Atom::bond_iterator bat = AJ.bondbegin(); bat != AJ.bondend(); ++bat)
-            if (topIn[*bat].Element() == Atom::HYDROGEN)
+            if (atoms[*bat].Element() == Atom::HYDROGEN)
               n_hydrogens++;
           if (n_hydrogens == 1)
             hybrid = AtomType::SP2;
