@@ -3,6 +3,7 @@
 #include "DataSet_Parameters.h"
 //#inc lude "Structure/GenerateConnectivity.h"
 #include "Structure/Zmatrix.h"
+#include "Parm/GB_Params.h"
 
 DataSet_Coords* Exec_Build::IdTemplateFromName(Carray const& Templates,
                                                NameType const& rname)
@@ -322,6 +323,18 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   DataSet_Coords& crdout = static_cast<DataSet_Coords&>( *((DataSet_Coords*)outCrdPtr) );
   mprintf("\tOutput COORDS set: %s\n", crdout.legend());
 
+  // GB radii set
+  Cpptraj::Parm::GB_RadiiType gbradii = Cpptraj::Parm::MBONDI; // Default
+  std::string gbset = argIn.GetStringKey("gb");
+  if (!gbset.empty()) {
+    gbradii = Cpptraj::Parm::GbTypeFromKey( gbset );
+    if (gbradii == Cpptraj::Parm::UNKNOWN_GB) {
+      mprinterr("Error: Unknown GB radii set: %s\n", gbset.c_str());
+      return CpptrajState::ERR;
+    }
+  }
+  mprintf("\tGB radii set: %s\n", Cpptraj::Parm::GbTypeStr(gbradii).c_str());
+
   // Get residue templates.
   Carray Templates;
   std::string lib = argIn.GetStringKey("lib");
@@ -420,6 +433,11 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   Exec::RetType ret = CpptrajState::OK;
   if ( topOut.AssignParams( *mainParmSet  ) ) {
     mprinterr("Error: Could not assign parameters for '%s'.\n", topOut.c_str());
+    ret = CpptrajState::ERR;
+  }
+  // Assign GB parameters
+  if (Cpptraj::Parm::Assign_GB_Radii( topOut, gbradii )) {
+    mprinterr("Error: Could not assign GB parameters for '%s'\n", topOut.c_str());
     ret = CpptrajState::ERR;
   }
 
