@@ -1,7 +1,7 @@
 #include "Exec_Build.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Parameters.h"
-#include "Structure/GenerateConnectivity.h"
+//#inc lude "Structure/GenerateConnectivity.h"
 #include "Structure/Zmatrix.h"
 
 DataSet_Coords* Exec_Build::IdTemplateFromName(Carray const& Templates,
@@ -369,12 +369,6 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
-  // Generate angles/dihedrals
-  if (Cpptraj::Structure::GenerateBondAngleTorsionArrays(topOut)) {
-    mprinterr("Error: Could not generate angles/dihedrals for '%s'\n", topOut.c_str());
-    return CpptrajState::ERR;
-  }
-
   // Get parameter sets.
   typedef std::vector<DataSet_Parameters*> Parray;
   Parray ParamSets;
@@ -421,16 +415,11 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
       mainParmSet->UpdateParamSet( *(*it), UC, State.Debug(), State.Debug() ); // FIXME verbose
   }
 
-  // Generate impropers
-  if (Cpptraj::Structure::GenerateImpropers(topOut, mainParmSet->AT())) {
-    mprinterr("Error: Could not generate impropers for '%s'\n", topOut.c_str());
-    return CpptrajState::ERR;
-  }
-
-  // Update parameters
+  // Assign parameters. This will create the bond/angle/dihedral/improper
+  // arrays as well.
   Exec::RetType ret = CpptrajState::OK;
   if ( topOut.AssignParams( *mainParmSet  ) ) {
-    mprinterr("Error: Could not update parameters for '%s'.\n", topOut.c_str());
+    mprinterr("Error: Could not assign parameters for '%s'.\n", topOut.c_str());
     ret = CpptrajState::ERR;
   }
 
