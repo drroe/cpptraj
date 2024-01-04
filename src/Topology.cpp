@@ -2612,51 +2612,8 @@ const
 /** Replace any current bond parameters with given bond parameters. */
 void Topology::AssignBondParams(ParmHolder<BondParmType> const& newBondParams) {
   bondparm_.clear();
-  // Regenerate bond array in LEaP order
-  bonds_.clear();
-  bondsh_.clear();
-  BondArray allBonds = Cpptraj::Structure::GenerateBondArray(residues_, atoms_);
-  AssignBondParm( newBondParams, allBonds, bondparm_, "bond" );
-  for (BondArray::const_iterator bnd = allBonds.begin(); bnd != allBonds.end(); ++bnd)
-    AddToBondArrays( *bnd );
-//  AssignBondParm( newBondParams, bonds_,  bondparm_, "bond" );
-//  AssignBondParm( newBondParams, bondsh_, bondparm_, "bond" );
-/**  // Try to match leap bond ordering. Appears to be by index with priority
-  // given to heavy atoms.
-  BondArray tmpBonds;
-  tmpBonds.resize( bonds_.size() + bondsh_.size() );
-  std::copy( bonds_.begin(), bonds_.end(), tmpBonds.begin() );
-  std::copy( bondsh_.begin(), bondsh_.end(), tmpBonds.begin() + bonds_.size() );
-  std::sort( tmpBonds.begin(), tmpBonds.end() );**/
-/*
-  BondArray::iterator b1 = bonds_.begin();
-  BondArray::iterator b2 = bondsh_.begin();
-  while (b1 != bonds_.end() || b2 != bondsh_.end()) {
-    int iat = b1->A1();
-    tmpBonds.push_back( *b1 );
-    ++b1;
-    while (b1 != bonds_.end() && b1->A1() == iat) {
-      tmpBonds.push_back( *b1 );
-      ++b1;
-    }
-    while (b2 != bondsh_.end() && b2->A1() == iat) {
-      tmpBonds.push_back( *b2 );
-      ++b2;
-    }
-  }
-  if (tmpBonds.size() != bonds_.size() + bondsh_.size()) {
-    mprinterr("Internal Error: AssignBondParams: Size of temp. bonds array %zu != total # bonds %zu\n",
-              tmpBonds.size(), bonds_.size() + bondsh_.size());
-  }*/
-/**  AssignBondParm( newBondParams, tmpBonds, bondparm_, "bond" );
-  bonds_.clear();
-  bondsh_.clear();
-  for (BondArray::const_iterator it = tmpBonds.begin(); it != tmpBonds.end(); ++it)
-    if ( atoms_[it->A1()].Element() == Atom::HYDROGEN ||
-         atoms_[it->A2()].Element() == Atom::HYDROGEN)
-      bondsh_.push_back( *it );
-    else
-      bonds_.push_back( *it );**/
+  AssignBondParm( newBondParams, bonds_,  bondparm_, "bond" );
+  AssignBondParm( newBondParams, bondsh_, bondparm_, "bond" );
 }
 
 /** Replace any current Urey-Bradley parameters with given UB parameters. */
@@ -2724,15 +2681,8 @@ void Topology::AssignAngleParm(ParmHolder<AngleParmType> const& newAngleParams,
 /** Replace any current angle parameters with given angle parameters. */
 void Topology::AssignAngleParams(ParmHolder<AngleParmType> const& newAngleParams) {
   angleparm_.clear();
-  // Regenerate angle array in LEaP order
-  angles_.clear();
-  anglesh_.clear();
-  AngleArray allAngles = Cpptraj::Structure::GenerateAngleArray(residues_, atoms_);
-  AssignAngleParm( newAngleParams, allAngles );
-  for (AngleArray::const_iterator ang = allAngles.begin(); ang != allAngles.end(); ++ang)
-    AddToAngleArrays( *ang );
-  //AssignAngleParm( newAngleParams, angles_ );
-  //AssignAngleParm( newAngleParams, anglesh_ );
+  AssignAngleParm( newAngleParams, angles_ );
+  AssignAngleParm( newAngleParams, anglesh_ );
 }
 
 /** Warn if improper atoms have been reordered so they match the parameter. */
@@ -3080,12 +3030,27 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
 
 /** Replace existing parameters with the given parameter set. */
 int Topology::AssignParams(ParameterSet const& set0) {
+
   // Bond parameters
   mprintf("\tRegenerating bond parameters.\n");
-  AssignBondParams( set0.BP() );
+  bondparm_.clear();
+  // Regenerate bond array in LEaP order
+  bonds_.clear();
+  bondsh_.clear();
+  BondArray allBonds = Cpptraj::Structure::GenerateBondArray(residues_, atoms_);
+  AssignBondParm( set0.BP(), allBonds, bondparm_, "bond" );
+  for (BondArray::const_iterator bnd = allBonds.begin(); bnd != allBonds.end(); ++bnd)
+    AddToBondArrays( *bnd );
   // Angle parameters
   mprintf("\tRegenerating angle parameters.\n");
-  AssignAngleParams( set0.AP() );
+  angleparm_.clear();
+  // Regenerate angle array in LEaP order
+  angles_.clear();
+  anglesh_.clear();
+  AngleArray allAngles = Cpptraj::Structure::GenerateAngleArray(residues_, atoms_);
+  AssignAngleParm( set0.AP(), allAngles );
+  for (AngleArray::const_iterator ang = allAngles.begin(); ang != allAngles.end(); ++ang)
+    AddToAngleArrays( *ang );
   // Dihedral parameters
   mprintf("\tRegenerating dihedral parameters.\n");
   AssignDihedralParams( set0.DP(), set0.IP() );
