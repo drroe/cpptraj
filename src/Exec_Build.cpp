@@ -440,6 +440,10 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: Could not assign GB parameters for '%s'\n", topOut.c_str());
     ret = CpptrajState::ERR;
   }
+  // Create empty arrays for the TREE, JOIN, and IROTAT arrays
+  topOut.AllocTreeChainClassification( );
+  topOut.AllocJoinArray();
+  topOut.AllocRotateArray();
 
   if (free_parmset_mem && mainParmSet != 0) delete mainParmSet;
 
