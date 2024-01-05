@@ -142,7 +142,7 @@ static void order_improper_atoms(int* indices, std::vector<Atom> const& atoms)
 
 // DEBUG
 static inline void printName(Atom const& AJ) {
-  mprintf(" :%i@%s", AJ.ResNum()+1, AJ.Name().Truncated().c_str());
+  mprintf(" :%i@%s (%s)", AJ.ResNum()+1, AJ.Name().Truncated().c_str(), AJ.Type().Truncated().c_str());
 }
 
 /** From atom connectivity, generate an improper array in the same order as LEaP.
