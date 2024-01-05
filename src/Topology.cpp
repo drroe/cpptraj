@@ -3089,7 +3089,7 @@ int Topology::AssignParams(ParameterSet const& set0) {
     AssignImproperParams( set0.IP() );
   } else {
     mprintf("\tRegenerating improper parameters.\n");
-    DihedralArray allImpropers = Cpptraj::Structure::GenerateImproperArray(atoms_, set0.AT());
+    DihedralArray allImpropers = Cpptraj::Structure::GenerateImproperArray(residues_, atoms_, set0.AT());
     allImpropers = AssignDihedralParm( set0.DP(), set0.IP(), allImpropers );
     for (DihedralArray::const_iterator imp = allImpropers.begin(); imp != allImpropers.end(); ++imp)
       AddToDihedralArrays( *imp );

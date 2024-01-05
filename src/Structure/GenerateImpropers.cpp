@@ -2,6 +2,7 @@
 #include "../CpptrajStdio.h"
 #include "../Atom.h"
 #include "../AtomType.h"
+#include "../Residue.h"
 #include "../GuessAtomHybridization.h"
 #include "../ParameterTypes.h"
 #include "../ParameterHolders.h"
@@ -37,12 +38,19 @@ static inline void printName(Atom const& AJ) {
 }
 
 /** Try to determine impropers for topology. */ // TODO option for charmm improper
-DihedralArray Cpptraj::Structure::GenerateImproperArray(std::vector<Atom> const& atoms,
+DihedralArray Cpptraj::Structure::GenerateImproperArray(std::vector<Residue> const& residues,
+                                                        std::vector<Atom> const& atoms,
                                                         ParmHolder<AtomType> const& AT)
 {
   DihedralArray out;
-  long int atBegin = (long int)(atoms.size()) - 1;
-  for (long int iat = atBegin; iat >= 0; iat--) {
+  //int iidx = 0;
+  for (std::vector<Residue>::const_iterator res = residues.begin(); res != residues.end(); ++res)
+  {
+    for (int iat = res->LastAtom()-1; iat >= res->FirstAtom(); iat--)
+    {
+//
+//  long int atBegin = (long int)(atoms.size()) - 1;
+//  for (long int iat = atBegin; iat >= 0; iat--) {
     Atom const& AJ = atoms[iat];
     if (AJ.Nbonds() == 3) { // TODO only 3 atoms OK?
       AtomType::HybridizationType hybrid = AtomType::UNKNOWN_HYBRIDIZATION; 
@@ -77,6 +85,7 @@ DihedralArray Cpptraj::Structure::GenerateImproperArray(std::vector<Atom> const&
         printName(AJ);
         mprintf("\n");
       }
+    }
     }
   }
   return out;
