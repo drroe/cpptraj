@@ -91,3 +91,69 @@ DihedralArray Cpptraj::Structure::GenerateDihedralArray(std::vector<Residue> con
   }
   return out;
 }
+
+/** Try to order an improper the same way that LEaP does.
+  * LEaP has wild card names first, followed by atom types
+  * in alphabetical order.
+  */
+static void order_improper_atoms(int* indices, std::vector<Atom> const& atoms)
+{
+  if (atoms[indices[0]].Type() > atoms[indices[1]].Type()) std::swap( indices[0], indices[1] );
+  if (atoms[indices[1]].Type() > atoms[indices[2]].Type()) std::swap( indices[1], indices[2] );
+  if (atoms[indices[0]].Type() > atoms[indices[1]].Type()) std::swap( indices[0], indices[1] );
+  if (atoms[indices[1]].Type() > atoms[indices[2]].Type()) std::swap( indices[1], indices[2] );
+}
+
+// DEBUG
+static inline void printName(Atom const& AJ) {
+  mprintf(" :%i@%s", AJ.ResNum()+1, AJ.Name().Truncated().c_str());
+}
+
+/** From atom connectivity, generate an improper array in the same order as LEaP.
+  * No attempt is made to determine if this is an sp2 center; that is done
+  * during parameterization.
+  */
+DihedralArray Cpptraj::Structure::GenerateImproperArray(std::vector<Residue> const& residues,
+                                                        std::vector<Atom> const& atoms)
+{
+  DihedralArray out;
+  int iidx = 0;
+  for (std::vector<Residue>::const_iterator res = residues.begin(); res != residues.end(); ++res)
+  {
+    for (int iat3 = res->LastAtom()-1; iat3 >= res->FirstAtom(); iat3--)
+    {
+      Atom const& AJ = atoms[iat3];
+      if (AJ.Nbonds() >= 3) {
+        for (int bidx0 = 0; bidx0 < AJ.Nbonds(); bidx0++) {
+          for (int bidx1 = bidx0 + 1; bidx1 < AJ.Nbonds(); bidx1++) {
+            for (int bidx2 = bidx1 + 1; bidx2 < AJ.Nbonds(); bidx2++) {
+              int iat1 = AJ.BondIdxArray()[bidx0];
+              int iat2 = AJ.BondIdxArray()[bidx1];
+              int iat4 = AJ.BondIdxArray()[bidx2];
+              mprintf("DEBUG: IMPROPER  i= %i  %i - %i - %i - %i (%i %i %i %i)\n", iidx++, iat1+1, iat2+1, iat3+1, iat4+1, iat1*3, iat2*3, iat3*3, iat4*3);
+              int indices[3];
+              indices[0] = iat1;
+              indices[1] = iat2;
+              indices[2] = iat4;
+              order_improper_atoms(indices, atoms);
+              out.push_back( DihedralType(indices[0], indices[1], iat3, indices[2], DihedralType::BOTH) );
+              // DEBUG
+              mprintf("DEBUG:\tOriginal order :");
+              printName(atoms[iat1]);
+              printName(atoms[iat2]);
+              printName(atoms[iat3]);
+              printName(atoms[iat4]);
+              mprintf("\nDEBUG:\tLeap order     :");
+              printName(atoms[indices[0]]);
+              printName(atoms[indices[1]]);
+              printName(atoms[iat3]);
+              printName(atoms[indices[2]]);
+              mprintf("\n");
+            }
+          }
+        } // END outer loop over bond indices
+      }
+    } // END loop over residue atoms
+  } // END loop over residues
+  return out;
+}

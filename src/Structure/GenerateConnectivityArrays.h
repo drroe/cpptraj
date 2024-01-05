@@ -14,6 +14,8 @@ BondArray GenerateBondArray(std::vector<Residue> const&, std::vector<Atom> const
 AngleArray GenerateAngleArray(std::vector<Residue> const&, std::vector<Atom> const&);
 /// Generate proper dihedral array in same order as leap
 DihedralArray GenerateDihedralArray(std::vector<Residue> const&, std::vector<Atom> const&);
+/// Generate improper dihedral array in same order as leap
+DihedralArray GenerateImproperArray(std::vector<Residue> const&, std::vector<Atom> const&);
 }
 }
 #endif
