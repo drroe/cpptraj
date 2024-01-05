@@ -3,6 +3,7 @@
 #include "../Atom.h"
 #include "../Residue.h"
 #include "../CpptrajStdio.h"
+#include <algorithm> // std::swap
 
 /** From atom connectivity, generate a bond array in the same order as LEaP. */ // TODO use in GenerateBAT
 BondArray Cpptraj::Structure::GenerateBondArray(std::vector<Residue> const& residues,

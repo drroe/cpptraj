@@ -145,7 +145,7 @@ class Topology {
     void AddDihedral(DihedralType const&, bool);
     void AddDihedral(DihedralType const&, DihedralParmType const&);
     void AssignImproperParams(ImproperParmHolder const&);
-    void AssignDihedralParams(DihedralParmHolder const&, ImproperParmHolder const&);
+    void AssignDihedralParams(DihedralParmHolder const&, ImproperParmHolder const&, ParmHolder<AtomType> const&);
     /// Add to dihedral arrays
     void AddToDihedralArrays(DihedralType const&);
     // ----- CMAP-specific routines --------------
@@ -310,7 +310,8 @@ class Topology {
     void warn_improper_reorder(DihedralType const&, DihedralType const&) const;
     void AssignImproperParm(ImproperParmHolder const&, DihedralArray&, DihedralParmArray&) const;
     inline DihedralArray get_unique_dihedrals(DihedralArray const&) const;
-    DihedralArray AssignDihedralParm(DihedralParmHolder const&, ImproperParmHolder const&, DihedralArray const&);
+    DihedralArray AssignDihedralParm(DihedralParmHolder const&, ImproperParmHolder const&,
+                                     ParmHolder<AtomType> const&, DihedralArray const&);
 
     static const NonbondType LJ_EMPTY;
     std::vector<Atom> atoms_;

@@ -7,8 +7,8 @@
 #include "AtomType.h"
 #include "AtomMask.h"
 #include "CharMask.h"
+#include "GuessAtomHybridization.h"
 #include "Structure/GenerateConnectivityArrays.h"
-#include "Structure/GenerateImpropers.h"
 
 const NonbondType Topology::LJ_EMPTY = NonbondType();
 
@@ -2768,6 +2768,7 @@ void Topology::AssignImproperParams(ImproperParmHolder const& newImproperParams)
   */
 DihedralArray Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
                                            ImproperParmHolder const& newImproperParams,
+                                           ParmHolder<AtomType> const& AT,
                                            DihedralArray const& dihedrals)
 { // TODO skip extra points
   DihedralArray dihedralsIn;
@@ -2799,8 +2800,12 @@ DihedralArray Topology::AssignDihedralParm(DihedralParmHolder const& newDihedral
               (int)dih->IsImproper(), (int)isImproper);
     }
     bool found;
-    if (isImproper) {
+    if (dih->IsImproper()) {
       // ----- This is actually an improper dihedral. ----------------
+      // Impropers are treated differently than other topology types. If
+      // no parameter is found, do not add it to the list of dihedrals.
+      // However, if no parameter is found and the central atom is
+      // SP2, print a warning.
       //ImproperParmHolder::OrderType lastOrder;
       DihedralType mydih = *dih;
       bool reordered;
@@ -2813,18 +2818,31 @@ DihedralArray Topology::AssignDihedralParm(DihedralParmHolder const& newDihedral
                 TruncResAtomNameNum(dih->A3()).c_str(),
                 TruncResAtomNameNum(dih->A4()).c_str(),
                 *types[0], *types[1], *types[2], *types[3]);
+        // Central atom
+        Atom const& AJ = atoms_[dih->A3()];
+        AtomType::HybridizationType hybrid = AtomType::UNKNOWN_HYBRIDIZATION;
+        AtomType atype = AT.FindParam(TypeNameHolder(AJ.Type()), found);
+        if (found)
+          hybrid = atype.Hybridization();
+        if (hybrid == AtomType::UNKNOWN_HYBRIDIZATION) {
+          mprintf("Warning: Guessing hybridization for improper central atom %s\n", AtomMaskName(dih->A3()).c_str());
+          hybrid = Cpptraj::GuessAtomHybridization( AJ, atoms_ );
+        }
+        if (hybrid == AtomType::SP2) {
+          mprintf("Warning: No improper parameters for SP2 hybridized atom %s\n", AtomMaskName(dih->A3()).c_str());
+        }
       } else {
         if (ipa.size() > 1)
           mprintf("Warning: %zu improper parameters found for types %s - %s - %s - %s, expected only one."
                   "Warning: Only using first parameter.\n", ipa.size(), *(types[0]), *(types[1]), *(types[2]), *(types[3]));
         if (reordered) warn_improper_reorder( *dih, mydih );
         idx = addTorsionParm( dihedralparm_, ipa.front() );
+        mydih.SetIdx( idx );
+        mydih.SetImproper( true );
+        // Always skip 1-4 for impropers
+        mydih.SetSkip14( true );
+        dihedralsIn.push_back( mydih );
       }
-      mydih.SetIdx( idx );
-      mydih.SetImproper( true );
-      // Always skip 1-4 for impropers
-      mydih.SetSkip14( true );
-      dihedralsIn.push_back( mydih );
     } else {
       // -----Regular dihedral. See if parameter already present. ----
       DihedralParmArray dpa = newDihedralParams.FindParam( types, found );
@@ -2933,14 +2951,16 @@ DihedralArray Topology::get_unique_dihedrals(DihedralArray const& dihedralsIn) c
 }
 
 /** Replace any current dihedral parameters with given dihedral parameters. */
-void Topology::AssignDihedralParams(DihedralParmHolder const& newDihedralParams, ImproperParmHolder const& newImproperParams) {
+void Topology::AssignDihedralParams(DihedralParmHolder const& newDihedralParams, ImproperParmHolder const& newImproperParams,
+                                    ParmHolder<AtomType> const& AT)
+{
   dihedralparm_.clear();
   // Dihedrals can be a bit of a pain since there can be multiple
   // multiplicities for a single dihedral type. In case multiplicities
   // change, start with a fresh dihedral array containing only unique
   // dihedrals.
-  dihedrals_  = AssignDihedralParm( newDihedralParams, newImproperParams, get_unique_dihedrals(dihedrals_)  );
-  dihedralsh_ = AssignDihedralParm( newDihedralParams, newImproperParams, get_unique_dihedrals(dihedralsh_) );
+  dihedrals_  = AssignDihedralParm( newDihedralParams, newImproperParams, AT, get_unique_dihedrals(dihedrals_)  );
+  dihedralsh_ = AssignDihedralParm( newDihedralParams, newImproperParams, AT, get_unique_dihedrals(dihedralsh_) );
 }
 
 /** Replace current nonbond parameters with given nonbond parameters. */
@@ -3077,7 +3097,7 @@ int Topology::AssignParams(ParameterSet const& set0) {
   dihedrals_.clear();
   dihedralsh_.clear();
   DihedralArray allDihedrals = Cpptraj::Structure::GenerateDihedralArray(residues_, atoms_);
-  allDihedrals = AssignDihedralParm( set0.DP(), set0.IP(), allDihedrals );
+  allDihedrals = AssignDihedralParm( set0.DP(), set0.IP(), set0.AT(), allDihedrals );
   for (DihedralArray::const_iterator dih = allDihedrals.begin(); dih != allDihedrals.end(); ++dih)
     AddToDihedralArrays( *dih );
   // Urey-Bradley
@@ -3089,8 +3109,8 @@ int Topology::AssignParams(ParameterSet const& set0) {
     AssignImproperParams( set0.IP() );
   } else {
     mprintf("\tRegenerating improper parameters.\n");
-    DihedralArray allImpropers = Cpptraj::Structure::GenerateImproperArray(residues_, atoms_, set0.AT());
-    allImpropers = AssignDihedralParm( set0.DP(), set0.IP(), allImpropers );
+    DihedralArray allImpropers = Cpptraj::Structure::GenerateImproperArray(residues_, atoms_);
+    allImpropers = AssignDihedralParm( set0.DP(), set0.IP(), set0.AT(), allImpropers );
     for (DihedralArray::const_iterator imp = allImpropers.begin(); imp != allImpropers.end(); ++imp)
       AddToDihedralArrays( *imp );
   }
@@ -3152,7 +3172,7 @@ int Topology::updateParams(ParameterSet& set0, ParameterSet const& set1) {
 //  updateCount = UpdateParameters< DihedralParmHolder >(set0.DP(), set1.DP(), "dihedral");
   if (UC.nDihedralsUpdated_ > 0) {
     mprintf("\tRegenerating dihedral parameters.\n");
-    AssignDihedralParams( set0.DP(), set0.IP() );
+    AssignDihedralParams( set0.DP(), set0.IP(), set0.AT() );
   }
   // Urey-Bradley
 //  updateCount = UpdateParameters< ParmHolder<BondParmType> >(set0.UB(), set1.UB(), "Urey-Bradley");
