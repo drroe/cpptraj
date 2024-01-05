@@ -100,7 +100,10 @@ DihedralArray Cpptraj::Structure::GenerateDihedralArray(std::vector<Residue> con
   int didx = 0;
   for (std::vector<Residue>::const_iterator res = residues.begin(); res != residues.end(); ++res)
   {
-    for (int iat1 = res->LastAtom()-1; iat1 >= res->FirstAtom(); iat1--)
+    int start, end, offset;
+    set_indices(start, end, offset, res->FirstAtom(), res->LastAtom());
+    for (int iat1 = start; iat1 != end; iat1 += offset)
+    //for (int iat1 = res->LastAtom()-1; iat1 >= res->FirstAtom(); iat1--)
     {
       Atom const& At1 = atoms[iat1];
       for (int bidx1 = 0; bidx1 < At1.Nbonds(); bidx1++) {
@@ -153,7 +156,10 @@ DihedralArray Cpptraj::Structure::GenerateImproperArray(std::vector<Residue> con
   int iidx = 0;
   for (std::vector<Residue>::const_iterator res = residues.begin(); res != residues.end(); ++res)
   {
-    for (int iat3 = res->LastAtom()-1; iat3 >= res->FirstAtom(); iat3--)
+    int start, end, offset;
+    set_indices(start, end, offset, res->FirstAtom(), res->LastAtom());
+    for (int iat3 = start; iat3 != end; iat3 += offset)
+    //for (int iat3 = res->LastAtom()-1; iat3 >= res->FirstAtom(); iat3--)
     {
       Atom const& AJ = atoms[iat3];
       if (AJ.Nbonds() >= 3) {
