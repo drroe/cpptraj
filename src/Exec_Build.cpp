@@ -1,7 +1,7 @@
 #include "Exec_Build.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Parameters.h"
-//#inc lude "Structure/GenerateConnectivity.h"
+#include "Structure/GenerateConnectivityArrays.h"
 #include "Structure/Zmatrix.h"
 #include "Parm/GB_Params.h"
 
@@ -277,12 +277,26 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
 void Exec_Build::Help() const
 {
   mprintf("\tname <output COORDS> crdset <COORDS set> [frame <#>]\n"
-          "\t[parmset <param set> ...] [lib <lib set> ...]\n");
+          "\t[parmset <param set> ...] [lib <lib set> ...]\n"
+          "\t[atomscandir {f|b}]\n"
+         );
 }
 
 // Exec_Build::Execute()
 Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
 {
+  // Atom scan direction
+  std::string atomscandir = argIn.GetStringKey("atomscandir");
+  if (!atomscandir.empty()) {
+    if (atomscandir == "f")
+      Cpptraj::Structure::SetAtomScanDirection(Cpptraj::Structure::SCAN_ATOMS_FORWARDS);
+    else if (atomscandir == "b")
+      Cpptraj::Structure::SetAtomScanDirection(Cpptraj::Structure::SCAN_ATOMS_BACKWARDS);
+    else {
+      mprinterr("Error: Unrecognized keyword for 'atomscandir' : %s\n", atomscandir.c_str());
+      return CpptrajState::ERR;
+    }
+  }
   // Get input coords
   std::string crdset = argIn.GetStringKey("crdset");
   if (crdset.empty()) {

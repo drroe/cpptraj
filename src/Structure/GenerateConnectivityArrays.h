@@ -8,6 +8,10 @@ class Residue;
 class Atom;
 namespace Cpptraj {
 namespace Structure {
+/// Specify direction in which atoms in residues should be scanned
+enum AtomScanDirectionType { SCAN_ATOMS_BACKWARDS = 0, SCAN_ATOMS_FORWARDS };
+/// Set default atom scan direction
+void SetAtomScanDirection(AtomScanDirectionType);
 /// Generate bond array in same order as leap
 BondArray GenerateBondArray(std::vector<Residue> const&, std::vector<Atom> const&);
 /// Generate angle array in same order as leap

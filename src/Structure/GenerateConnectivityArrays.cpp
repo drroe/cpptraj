@@ -5,6 +5,32 @@
 #include "../CpptrajStdio.h"
 #include <algorithm> // std::swap
 
+/// The direction in which atoms in residues should be scanned
+static Cpptraj::Structure::AtomScanDirectionType CpptrajStructureAtomScanDirection_ = Cpptraj::Structure::SCAN_ATOMS_BACKWARDS;
+
+/** Set default atom scan direction. */
+void Cpptraj::Structure::SetAtomScanDirection( AtomScanDirectionType direction ) {
+  if (direction == SCAN_ATOMS_BACKWARDS)
+    mprintf("\tSetting atom scan direction to backwards.\n");
+  else
+    mprintf("\tSetting atom scan direction to forwards.\n");
+  CpptrajStructureAtomScanDirection_ = direction;
+}
+
+/// Set start and end atoms along with offset based on atom scan direction
+static inline void set_indices(int& start, int& end, int& offset, int firstatom, int lastatom)
+{
+  if (CpptrajStructureAtomScanDirection_ == Cpptraj::Structure::SCAN_ATOMS_BACKWARDS) {
+    start = lastatom - 1;
+    end = firstatom - 1;
+    offset = -1;
+  } else {
+    start = firstatom;
+    end = lastatom;
+    offset = 1;
+  }
+}
+
 /** From atom connectivity, generate a bond array in the same order as LEaP. */ // TODO use in GenerateBAT
 BondArray Cpptraj::Structure::GenerateBondArray(std::vector<Residue> const& residues,
                                                 std::vector<Atom> const& atoms)
@@ -14,7 +40,10 @@ BondArray Cpptraj::Structure::GenerateBondArray(std::vector<Residue> const& resi
   int bidx = 0;
   for (std::vector<Residue>::const_iterator res = residues.begin(); res != residues.end(); ++res)
   {
-    for (int iat = res->LastAtom()-1; iat >= res->FirstAtom(); iat--)
+    int start, end, offset;
+    set_indices(start, end, offset, res->FirstAtom(), res->LastAtom());
+    for (int iat = start; iat != end; iat += offset)
+    //for (int iat = res->LastAtom()-1; iat >= res->FirstAtom(); iat--)
     {
       Atom const& At = atoms[iat];
       for (Atom::bond_iterator bat = At.bondbegin(); bat != At.bondend(); ++bat)
@@ -40,7 +69,10 @@ AngleArray Cpptraj::Structure::GenerateAngleArray(std::vector<Residue> const& re
   int aidx = 0;
   for (std::vector<Residue>::const_iterator res = residues.begin(); res != residues.end(); ++res)
   {
-    for (int iat1 = res->LastAtom()-1; iat1 >= res->FirstAtom(); iat1--)
+    int start, end, offset;
+    set_indices(start, end, offset, res->FirstAtom(), res->LastAtom());
+    for (int iat1 = start; iat1 != end; iat1 += offset)
+    //for (int iat1 = res->LastAtom()-1; iat1 >= res->FirstAtom(); iat1--)
     {
       Atom const& At1 = atoms[iat1];
       for (int bidx1 = 0; bidx1 < At1.Nbonds(); bidx1++) {
