@@ -295,8 +295,6 @@ class ImproperParmHolder : private DihedralParmHolder {
     bool empty()        const { return DihedralParmHolder::empty(); }
     /// \return Wildcard
     NameType const& Wildcard() const { return wc_; }
-    /// \return ordering of last type
-    //OrderType LastOrder() const { return lastOrder_; }
     typedef typename DihedralParmHolder::const_iterator const_iterator;
     const_iterator begin() const { return DihedralParmHolder::begin(); }
     const_iterator end()   const { return DihedralParmHolder::end();   }
@@ -448,115 +446,6 @@ class ImproperParmHolder : private DihedralParmHolder {
         found = true;
         return it->second;
       }
-/*
-      //mprintf("DEBUG: FindParam wc=%s Inco=%s-%s-%s-%s\n",*wc_, *(types[0]), *(types[1]),   *(types[2]),   *(types[3]));
-      found = false;
-      reordered = false;
-      // First, no wildcard
-      const_iterator it = begin();
-      OrderType lastOrder_;
-      for (; it != end(); ++it) {
-        TypeNameHolder const& myTypes = it->first;
-        // Central (third) type must match
-        if (myTypes[2] == types[2]) {
-          //mprintf("DEBUG: FindParam (improper) central atom match %s", *(types[2]));
-          //mprintf(" This=%s-%s-%s-%s", *(myTypes[0]), *(myTypes[1]), *(myTypes[2]), *(myTypes[3]));
-          //mprintf(" Inco=%s-%s-%s-%s\n", *(types[0]), *(types[1]),   *(types[2]),   *(types[3]));
-          // Try all permutations
-          if (       myTypes[0] == types[0] && myTypes[1] == types[1] && myTypes[3] == types[3]) {
-              // 0 1 2 3
-              lastOrder_ = O_013;
-              found = true;
-              //return it->second;
-              break;
-          } else if (myTypes[0] == types[0] && myTypes[1] == types[3] && myTypes[3] == types[1]) {
-              // 0 3 2 1
-              lastOrder_ = O_031;
-              found = true;
-              //return it->second;
-              break;
-          } else if (myTypes[0] == types[1] && myTypes[1] == types[0] && myTypes[3] == types[3]) {
-              // 1 0 2 3
-              lastOrder_ = O_103;
-              found = true;
-              //return it->second;
-              break;
-          } else if (myTypes[0] == types[1] && myTypes[1] == types[3] && myTypes[3] == types[0]) {
-              // 1 3 2 0
-              lastOrder_ = O_130;
-              found = true;
-              //return it->second;
-              break;
-          } else if (myTypes[0] == types[3] && myTypes[1] == types[0] && myTypes[3] == types[1]) {
-              // 3 0 2 1
-              lastOrder_ = O_301;
-              found = true;
-              //return it->second;
-              break;
-          } else if (myTypes[0] == types[3] && myTypes[1] == types[1] && myTypes[3] == types[0]) {
-              // 3 1 2 0
-              lastOrder_ = O_310;
-              found = true;
-              //return it->second;
-              break;
-          }
-        }
-      } // END loop over parameters
-      // Wildcard if present
-      if (!found && wc_.len() > 0) {
-        it = begin();
-        for (; it != end(); ++it) {
-          TypeNameHolder const& myTypes = it->first;
-          // Central (third) type must match
-          if (wcm(myTypes[2], types[2], wc_)) {
-            // Try all permutations
-            if (       wcm(myTypes[0], types[0], wc_) && wcm(myTypes[1], types[1], wc_) && wcm(myTypes[3], types[3], wc_)) {
-                // 0 1 2 3
-                lastOrder_ = O_013;
-                found = true;
-                //return it->second;
-                break;
-            } else if (wcm(myTypes[0], types[0], wc_) && wcm(myTypes[1], types[3], wc_) && wcm(myTypes[3], types[1], wc_)) {
-                // 0 3 2 1
-                lastOrder_ = O_031;
-                found = true;
-                //return it->second;
-                break;
-            } else if (wcm(myTypes[0], types[1], wc_) && wcm(myTypes[1], types[0], wc_) && wcm(myTypes[3], types[3], wc_)) {
-                // 1 0 2 3
-                lastOrder_ = O_103;
-                found = true;
-                //return it->second;
-                break;
-            } else if (wcm(myTypes[0], types[1], wc_) && wcm(myTypes[1], types[3], wc_) && wcm(myTypes[3], types[0], wc_)) {
-                // 1 3 2 0
-                lastOrder_ = O_130;
-                found = true;
-                //return it->second;
-                break;
-            } else if (wcm(myTypes[0], types[3], wc_) && wcm(myTypes[1], types[0], wc_) && wcm(myTypes[3], types[1], wc_)) {
-                // 3 0 2 1
-                lastOrder_ = O_301;
-                found = true;
-                //return it->second;
-                break;
-            } else if (wcm(myTypes[0], types[3], wc_) && wcm(myTypes[1], types[1], wc_) && wcm(myTypes[3], types[0], wc_)) {
-                // 3 1 2 0
-                lastOrder_ = O_310;
-                found = true;
-                //return it->second;
-                break;
-            }
-          }
-        } // END loop over parameters
-      } // END wildcard matches
-      //found = false;
-      if (!found) return DihedralParmArray();
-      // We have found a parameter. Do any reordering.
-      if (lastOrder_ != O_013) reordered = true;
-      ReorderImproper( imp, lastOrder_, it->first );
-      return it->second;
-*/
     } // END FindParam()
     /// \return Dihedral parm array corresponding to types. Use by unit test.
     DihedralParmArray FindParam(TypeNameHolder const& types, bool& found) const {
@@ -567,6 +456,5 @@ class ImproperParmHolder : private DihedralParmHolder {
     /// \return size in memory in bytes
     size_t DataSize() const { return DihedralParmHolder::DataSize(); }
   private:
-    //OrderType lastOrder_; ///< Atom ordering of the last returned parameter
 };
 #endif

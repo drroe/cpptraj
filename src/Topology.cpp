@@ -2742,7 +2742,6 @@ const
     bool found;
     // See if parameter is present.
     int idx = -1;
-    //ImproperParmHolder::OrderType lastOrder;
     DihedralType imp0 = *imp;
     bool reordered;
     DihedralParmArray ipa = newImproperParams.FindParam( types, found, *imp, reordered );
@@ -2820,7 +2819,6 @@ DihedralArray Topology::AssignDihedralParm(DihedralParmHolder const& newDihedral
       // no parameter is found, do not add it to the list of dihedrals.
       // However, if no parameter is found and the central atom is
       // SP2, print a warning.
-      //ImproperParmHolder::OrderType lastOrder;
       found = false;
       DihedralType mydih = *dih;
       bool reordered;
