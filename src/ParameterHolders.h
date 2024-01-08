@@ -440,6 +440,15 @@ class ImproperParmHolder : private DihedralParmHolder {
     } // END GetParam()
     /// \return Array of improper parameters matching given atom types. Improper will be reordered to match parameter order.
     DihedralParmArray FindParam(TypeNameHolder const& types, bool& found, DihedralType& imp, bool& reordered) const {
+      const_iterator it = GetParam( types, imp, reordered );
+      if (it == end()) {
+        found = false;
+        return DihedralParmArray();
+      } else {
+        found = true;
+        return it->second;
+      }
+/*
       //mprintf("DEBUG: FindParam wc=%s Inco=%s-%s-%s-%s\n",*wc_, *(types[0]), *(types[1]),   *(types[2]),   *(types[3]));
       found = false;
       reordered = false;
@@ -547,6 +556,7 @@ class ImproperParmHolder : private DihedralParmHolder {
       if (lastOrder_ != O_013) reordered = true;
       ReorderImproper( imp, lastOrder_, it->first );
       return it->second;
+*/
     } // END FindParam()
     /// \return Dihedral parm array corresponding to types. Use by unit test.
     DihedralParmArray FindParam(TypeNameHolder const& types, bool& found) const {
