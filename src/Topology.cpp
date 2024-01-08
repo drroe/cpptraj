@@ -2775,11 +2775,13 @@ void Topology::AssignImproperParams(ImproperParmHolder const& newImproperParams)
   * \param newDihedralParams New proper dihedral parameters.
   * \param newImproperParams New improper dihedral parameters.
   * \param dihedrals Array containing only unique dihedrals.
+  * \param sort_improper_cache If true, sort improper types in cache (to match current leap behavior)
   */
 DihedralArray Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
                                            ImproperParmHolder const& newImproperParams,
                                            ParmHolder<AtomType> const& AT,
-                                           DihedralArray const& dihedrals)
+                                           DihedralArray const& dihedrals,
+                                           bool sort_improper_cache)
 { // TODO skip extra points
   DihedralArray dihedralsIn;
   // Improper cache
@@ -2882,7 +2884,7 @@ DihedralArray Topology::AssignDihedralParm(DihedralParmHolder const& newDihedral
         if (is_new_improper) {
           // To match leap behavior, make sure paramTypes are sorted alphabetically.
           mprintf("DEBUG: Improper wildcard: %s\n", *(newImproperParams.Wildcard()));
-          paramTypes.SortImproperByAlpha( newImproperParams.Wildcard() );
+          if (sort_improper_cache) paramTypes.SortImproperByAlpha( newImproperParams.Wildcard() );
           improperCache.AddParm( paramTypes, ipa.front(), false );
         }
       }
@@ -3002,8 +3004,8 @@ void Topology::AssignDihedralParams(DihedralParmHolder const& newDihedralParams,
   // multiplicities for a single dihedral type. In case multiplicities
   // change, start with a fresh dihedral array containing only unique
   // dihedrals.
-  dihedrals_  = AssignDihedralParm( newDihedralParams, newImproperParams, AT, get_unique_dihedrals(dihedrals_)  );
-  dihedralsh_ = AssignDihedralParm( newDihedralParams, newImproperParams, AT, get_unique_dihedrals(dihedralsh_) );
+  dihedrals_  = AssignDihedralParm( newDihedralParams, newImproperParams, AT, get_unique_dihedrals(dihedrals_), false  );
+  dihedralsh_ = AssignDihedralParm( newDihedralParams, newImproperParams, AT, get_unique_dihedrals(dihedralsh_), false );
 }
 
 /** Replace current nonbond parameters with given nonbond parameters. */
@@ -3116,7 +3118,7 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
 int Topology::AssignParams(ParameterSet const& set0) {
 
   // Bond parameters
-  mprintf("\tRegenerating bond parameters.\n");
+  mprintf("\tAssigning bond parameters.\n");
   bondparm_.clear();
   // Regenerate bond array in LEaP order
   bonds_.clear();
@@ -3126,7 +3128,7 @@ int Topology::AssignParams(ParameterSet const& set0) {
   for (BondArray::const_iterator bnd = allBonds.begin(); bnd != allBonds.end(); ++bnd)
     AddToBondArrays( *bnd );
   // Angle parameters
-  mprintf("\tRegenerating angle parameters.\n");
+  mprintf("\tAssigning angle parameters.\n");
   angleparm_.clear();
   // Regenerate angle array in LEaP order
   angles_.clear();
@@ -3136,32 +3138,32 @@ int Topology::AssignParams(ParameterSet const& set0) {
   for (AngleArray::const_iterator ang = allAngles.begin(); ang != allAngles.end(); ++ang)
     AddToAngleArrays( *ang );
   // Dihedral parameters
-  mprintf("\tRegenerating dihedral parameters.\n");
+  mprintf("\tAssigning dihedral parameters.\n");
   dihedrals_.clear();
   dihedralsh_.clear();
   DihedralArray allDihedrals = Cpptraj::Structure::GenerateDihedralArray(residues_, atoms_);
-  allDihedrals = AssignDihedralParm( set0.DP(), set0.IP(), set0.AT(), allDihedrals );
+  allDihedrals = AssignDihedralParm( set0.DP(), set0.IP(), set0.AT(), allDihedrals, false );
   for (DihedralArray::const_iterator dih = allDihedrals.begin(); dih != allDihedrals.end(); ++dih)
     AddToDihedralArrays( *dih );
   // Urey-Bradley
-  mprintf("\tRegenerating Urey-Bradley parameters.\n");
+  mprintf("\tAssigning Urey-Bradley parameters.\n");
   AssignUBParams( set0.UB() );
   // Improper parameters
   if (!chamber_.Impropers().empty()) {
-    mprintf("\tRegenerating CHARMM improper parameters.\n");
+    mprintf("\tAssigning CHARMM improper parameters.\n");
     AssignImproperParams( set0.IP() );
   } else {
-    mprintf("\tRegenerating improper parameters.\n");
+    mprintf("\tAssigning improper parameters.\n");
     DihedralArray allImpropers = Cpptraj::Structure::GenerateImproperArray(residues_, atoms_);
-    allImpropers = AssignDihedralParm( set0.DP(), set0.IP(), set0.AT(), allImpropers );
+    allImpropers = AssignDihedralParm( set0.DP(), set0.IP(), set0.AT(), allImpropers, true );
     for (DihedralArray::const_iterator imp = allImpropers.begin(); imp != allImpropers.end(); ++imp)
       AddToDihedralArrays( *imp );
   }
   // Atom types
-  mprintf("\tRegenerating atom type parameters.\n");
+  mprintf("\tAssigning atom type parameters.\n");
   AssignAtomTypeParm( set0.AT() );
   // LJ 6-12
-  mprintf("\tRegenerating nonbond parameters.\n");
+  mprintf("\tAssigning nonbond parameters.\n");
   AssignNonbondParams( set0.AT(), set0.NB(), set0.HB() );
   // TODO LJ14
   return 0;
