@@ -2823,12 +2823,13 @@ DihedralArray Topology::AssignDihedralParm(DihedralParmHolder const& newDihedral
       DihedralParmArray ipa = newImproperParams.FindParam( types, found, mydih, reordered );
       int idx = -1;
       if (!found) {
-        mprintf("Warning: Improper parameters not found for improper dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
-                TruncResAtomNameNum(dih->A1()).c_str(),
-                TruncResAtomNameNum(dih->A2()).c_str(),
-                TruncResAtomNameNum(dih->A3()).c_str(),
-                TruncResAtomNameNum(dih->A4()).c_str(),
-                *types[0], *types[1], *types[2], *types[3]);
+        if (debug_ > 0)
+          mprintf("Warning: Improper parameters not found for improper dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
+                  TruncResAtomNameNum(dih->A1()).c_str(),
+                  TruncResAtomNameNum(dih->A2()).c_str(),
+                  TruncResAtomNameNum(dih->A3()).c_str(),
+                  TruncResAtomNameNum(dih->A4()).c_str(),
+                  *types[0], *types[1], *types[2], *types[3]);
         // Central atom
         Atom const& AJ = atoms_[dih->A3()];
         AtomType::HybridizationType hybrid = AtomType::UNKNOWN_HYBRIDIZATION;
