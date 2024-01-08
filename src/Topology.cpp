@@ -2783,6 +2783,8 @@ DihedralArray Topology::AssignDihedralParm(DihedralParmHolder const& newDihedral
                                            DihedralArray const& dihedrals)
 { // TODO skip extra points
   DihedralArray dihedralsIn;
+  // Improper cache
+  ImproperParmHolder improperCache;
   // Keep track of 1-4 interactions
   typedef std::pair<int,int> Ipair;
   typedef std::set<Ipair> Imap;
@@ -2820,7 +2822,13 @@ DihedralArray Topology::AssignDihedralParm(DihedralParmHolder const& newDihedral
       //ImproperParmHolder::OrderType lastOrder;
       DihedralType mydih = *dih;
       bool reordered;
-      DihedralParmArray ipa = newImproperParams.FindParam( types, found, mydih, reordered );
+      DihedralParmArray ipa;
+      ImproperParmHolder::const_iterator impit = improperCache.GetParam( types, mydih, reordered );
+      if (impit == improperCache.end()) {
+        ipa = newImproperParams.FindParam( types, found, mydih, reordered );
+      } else {
+        ipa = impit->second;
+      }
       int idx = -1;
       if (!found) {
         if (debug_ > 0)
