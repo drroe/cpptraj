@@ -349,6 +349,91 @@ class ImproperParmHolder : private DihedralParmHolder {
     void ReorderImproper(DihedralType& imp, OrderType order) const {
       ReorderImproper(imp, order, TypeNameHolder());
     }
+    /// Get improper parameters matching given atom types. If found, improper will be reordered to match parameter order.
+    const_iterator GetParam(TypeNameHolder const& types, DihedralType& imp, bool& reordered) const {
+      //mprintf("DEBUG: FindParam wc=%s Inco=%s-%s-%s-%s\n",*wc_, *(types[0]), *(types[1]),   *(types[2]),   *(types[3]));
+      reordered = false;
+      // First, no wildcard
+      const_iterator it = begin();
+      OrderType lastOrder_;
+      for (; it != end(); ++it) {
+        TypeNameHolder const& myTypes = it->first;
+        // Central (third) type must match
+        if (myTypes[2] == types[2]) {
+          //mprintf("DEBUG: FindParam (improper) central atom match %s", *(types[2]));
+          //mprintf(" This=%s-%s-%s-%s", *(myTypes[0]), *(myTypes[1]), *(myTypes[2]), *(myTypes[3]));
+          //mprintf(" Inco=%s-%s-%s-%s\n", *(types[0]), *(types[1]),   *(types[2]),   *(types[3]));
+          // Try all permutations
+          if (       myTypes[0] == types[0] && myTypes[1] == types[1] && myTypes[3] == types[3]) {
+              // 0 1 2 3
+              lastOrder_ = O_013;
+              break;
+          } else if (myTypes[0] == types[0] && myTypes[1] == types[3] && myTypes[3] == types[1]) {
+              // 0 3 2 1
+              lastOrder_ = O_031;
+              break;
+          } else if (myTypes[0] == types[1] && myTypes[1] == types[0] && myTypes[3] == types[3]) {
+              // 1 0 2 3
+              lastOrder_ = O_103;
+              break;
+          } else if (myTypes[0] == types[1] && myTypes[1] == types[3] && myTypes[3] == types[0]) {
+              // 1 3 2 0
+              lastOrder_ = O_130;
+              break;
+          } else if (myTypes[0] == types[3] && myTypes[1] == types[0] && myTypes[3] == types[1]) {
+              // 3 0 2 1
+              lastOrder_ = O_301;
+              break;
+          } else if (myTypes[0] == types[3] && myTypes[1] == types[1] && myTypes[3] == types[0]) {
+              // 3 1 2 0
+              lastOrder_ = O_310;
+              break;
+          }
+        }
+      } // END loop over parameters
+      // Wildcard if present
+      if (it == end() && wc_.len() > 0) {
+        it = begin();
+        for (; it != end(); ++it) {
+          TypeNameHolder const& myTypes = it->first;
+          // Central (third) type must match
+          if (wcm(myTypes[2], types[2], wc_)) {
+            // Try all permutations
+            if (       wcm(myTypes[0], types[0], wc_) && wcm(myTypes[1], types[1], wc_) && wcm(myTypes[3], types[3], wc_)) {
+                // 0 1 2 3
+                lastOrder_ = O_013;
+                break;
+            } else if (wcm(myTypes[0], types[0], wc_) && wcm(myTypes[1], types[3], wc_) && wcm(myTypes[3], types[1], wc_)) {
+                // 0 3 2 1
+                lastOrder_ = O_031;
+                break;
+            } else if (wcm(myTypes[0], types[1], wc_) && wcm(myTypes[1], types[0], wc_) && wcm(myTypes[3], types[3], wc_)) {
+                // 1 0 2 3
+                lastOrder_ = O_103;
+                break;
+            } else if (wcm(myTypes[0], types[1], wc_) && wcm(myTypes[1], types[3], wc_) && wcm(myTypes[3], types[0], wc_)) {
+                // 1 3 2 0
+                lastOrder_ = O_130;
+                break;
+            } else if (wcm(myTypes[0], types[3], wc_) && wcm(myTypes[1], types[0], wc_) && wcm(myTypes[3], types[1], wc_)) {
+                // 3 0 2 1
+                lastOrder_ = O_301;
+                break;
+            } else if (wcm(myTypes[0], types[3], wc_) && wcm(myTypes[1], types[1], wc_) && wcm(myTypes[3], types[0], wc_)) {
+                // 3 1 2 0
+                lastOrder_ = O_310;
+                break;
+            }
+          }
+        } // END loop over parameters
+      } // END wildcard matches
+      if (it != end()) {
+        // We have found a parameter. Do any reordering.
+        if (lastOrder_ != O_013) reordered = true;
+        ReorderImproper( imp, lastOrder_, it->first );
+      }
+      return it;
+    } // END GetParam()
     /// \return Array of improper parameters matching given atom types. Improper will be reordered to match parameter order.
     DihedralParmArray FindParam(TypeNameHolder const& types, bool& found, DihedralType& imp, bool& reordered) const {
       //mprintf("DEBUG: FindParam wc=%s Inco=%s-%s-%s-%s\n",*wc_, *(types[0]), *(types[1]),   *(types[2]),   *(types[3]));
