@@ -497,12 +497,23 @@ const
 }
 
 // Topology::CommonSetup()
-/** Set up common to all topologies.
+/** Set up common to all topologies. Assign bond lengths if none are present.
   * \param molsearch If true, determine molecules based on bond info.
   * \param renumberResidues If true, renumber residues if any residue is part of more than 1 molecule
   *        e.g. when alternate locations are present.
   */
 int Topology::CommonSetup(bool molsearch, bool renumberResidues)
+{
+  return CommonSetup(molsearch, renumberResidues, true);
+}
+
+/** Set up common to all topologies.
+  * \param molsearch If true, determine molecules based on bond info.
+  * \param renumberResidues If true, renumber residues if any residue is part of more than 1 molecule
+  *        e.g. when alternate locations are present.
+  * \param assignBondParm If true, assign default bond lengths if no parameters present.
+  */
+int Topology::CommonSetup(bool molsearch, bool renumberResidues, bool assignBondParm)
 {
   // Check the size of any "extra" arrays
   if (CheckExtraSize(tree_.size(), "Amber tree")) return 1;
@@ -514,7 +525,7 @@ int Topology::CommonSetup(bool molsearch, bool renumberResidues)
   if (CheckExtraSize(pdbSerialNum_.size(), "PDB serial #")) return 1;
   // TODO: Make bond parm assignment / molecule search optional?
   // Assign default lengths if necessary (for e.g. CheckStructure)
-  if (bondparm_.empty())
+  if (assignBondParm && bondparm_.empty())
     generateBondParameters();
   if (molsearch) {
     // Determine molecule info from bonds

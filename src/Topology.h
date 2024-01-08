@@ -221,7 +221,9 @@ class Topology {
     //void StartNewMol();
     /// Perform common final setup: optional molecule determination, renumber residues by molecules
     int CommonSetup(bool, bool);
-    /// Perform common final setup with molecule determination on, renumber residues off.
+    /// Perform common final setup: optional molecule determination, renumber residues by molecules, assign bond parameters
+    int CommonSetup(bool, bool, bool);
+    /// Perform common final setup with molecule determination on, renumber residues off, assign bond parameters on.
     int CommonSetup() { return CommonSetup(true, false); }
     /// Set up with no residue info TODO deprecate in favor of routine in CommonSetup?
     int Setup_NoResInfo();

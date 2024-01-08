@@ -177,7 +177,7 @@ int DataIO_AmberLib::read_bonds(Topology& topOut, std::string const& line) {
 }
 
 /** Read connections line */
-int DataIO_AmberLib::read_connect(AssociatedData_Connect& ConnectAtoms, std::string const& line) {
+int DataIO_AmberLib::read_connect(AssociatedData_Connect& ConnectAtoms, std::string const& line) const {
   int connectAtom = -1;
   if (sscanf(line.c_str(), "%i", &connectAtom) != 1) {
     mprinterr("Error: Expected 1 column for connect line: %s\n", line.c_str());
@@ -185,7 +185,9 @@ int DataIO_AmberLib::read_connect(AssociatedData_Connect& ConnectAtoms, std::str
   }
   // Amber lib atoms start from 1
   if (connectAtom < 1) {
-    mprintf("Warning: Atom index < 1 in connect line: %s\n", line.c_str());
+    // This may be legit when only one connect atom
+    if (debug_ > 0)
+      mprintf("Warning: Atom index < 1 in connect line: %s\n", line.c_str());
   }
   ConnectAtoms.AddConnectAtom( connectAtom-1 );
   return 0;
@@ -261,7 +263,8 @@ const
       }
     }
   }
-  top.CommonSetup();
+  // Set up topology; determine molecules, but no residue renumber or bond parm determination
+  top.CommonSetup(true, false, false);
   if (debug_ > 1) top.Summary();
   frm.SetupFrameV( top.Atoms(), CoordinateInfo() );
   frm.ClearAtoms();
@@ -272,7 +275,7 @@ const
   crd->AddFrame( frm );
   crd->AssociateData( &ConnectAtoms );
   if (debug_ > 1) ConnectAtoms.Ainfo();
-  mprintf("\n");
+  if (debug_ > 0) mprintf("\n");
   
   return 0;
 }
