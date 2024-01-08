@@ -13,5 +13,9 @@ class DataIO_LeapRC : public DataIO {
     int processWriteArgs(ArgList&);
     int WriteData(FileName const&, DataSetList const&);
     bool ID_DataFormat(CpptrajFile&);
+  private:
+    int LoadAmberParams(std::string const&, DataSetList&, std::string const&) const;
+
+    std::string amberhome_;
 };
 #endif
