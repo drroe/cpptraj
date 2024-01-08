@@ -137,17 +137,18 @@ int DataIO_AmberLib::read_atoms(Topology& topOut, std::string const& line, std::
     return 1;
   }
   // Sanity check
-  if (seq-1 != topOut.Natom()) {
-    mprinterr("Error: For unit %s expected sequence %i, got %i\n", unitName.c_str(), topOut.Natom()+1, seq);
-    return 1;
-  }
+  //if (seq-1 != topOut.Natom()) {
+  //  mprinterr("Error: For unit %s expected sequence %i, got %i\n", unitName.c_str(), topOut.Natom()+1, seq);
+  //  return 1;
+  //}
   Atom atm;
   atm.SetName( NameType(noquotes(aname)) );
   atm.SetTypeName( NameType(noquotes(atype)) );
   atm.DetermineElement( elt );
   atm.SetMassFromElement();
   atm.SetCharge( charge );
-  Residue res( unitName, resx, ' ', ' ' );
+  // We dont know the actual residue name yet
+  Residue res( "TMP", resx, ' ', ' ' );
   topOut.AddTopAtom( atm, res );
   return 0;
 }
@@ -210,6 +211,7 @@ const
   top.SetParmName( unitName, FileName() );
   std::vector<Vec3> positions;
   Frame frm;
+  int ridx = 0;
 
   bool readUnit = true;
   while (readUnit) {
@@ -243,6 +245,19 @@ const
         if (read_positions(positions, Line)) return 1;
       } else if (currentSection == CONNECT) {
         if (read_connect(ConnectAtoms, Line)) return 1;
+      } else if (currentSection == RESIDUES) {
+        // Rely on ArgList to remove quotes
+        ArgList tmpArg( Line );
+        if (tmpArg.Nargs() < 1) {
+          mprinterr("Error: Could not read residue from residues section.\n");
+          mprinterr("Error: Line: %s\n", Line);
+          return 1;
+        }
+        if (ridx >= top.Nres()) {
+          mprinterr("Error: Too many residues in residues section, or residues section before atom table.\n");
+          return 1;
+        }
+        top.SetRes( ridx++ ).SetName( tmpArg[0] );
       }
     }
   }
