@@ -15,6 +15,7 @@ class DataIO_LeapRC : public DataIO {
     bool ID_DataFormat(CpptrajFile&);
   private:
     int LoadAmberParams(std::string const&, DataSetList&, std::string const&) const;
+    int LoadOFF(std::string const&, DataSetList&, std::string const&) const;
 
     std::string amberhome_;
 };

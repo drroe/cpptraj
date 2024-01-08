@@ -3,6 +3,7 @@
 #include "BufferedLine.h"
 #include "DataIO_AmberFF.h"
 #include "DataIO_AmberFrcmod.h"
+#include "DataIO_AmberLib.h"
 #include <cstdlib> //getenv
 
 /// CONSTRUCTOR
@@ -72,6 +73,16 @@ int DataIO_LeapRC::LoadAmberParams(std::string const& filename, DataSetList& dsl
   return 0;
 }
 
+/** LEaP loadOff command. */
+int DataIO_LeapRC::LoadOFF(std::string const& filename, DataSetList& dsl, std::string const& dsname) const {
+  DataIO_AmberLib infile;
+  if (infile.ReadData(amberhome_ + "lib/" + filename, dsl, dsname)) {
+    mprinterr("Error: Could not load library file '%s'\n", filename.c_str());
+    return 1;
+  }
+  return 0;
+}
+
 // DataIO_LeapRC::ReadData()
 int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
@@ -101,6 +112,10 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
         err = LoadAmberParams( line.GetStringKey("loadAmberParams"), dsl, dsname );
       else if (line.Contains("loadamberparams"))
         err = LoadAmberParams( line.GetStringKey("loadamberparams"), dsl, dsname );
+      else if (line.Contains("loadOff"))
+        err = LoadOFF( line.GetStringKey("loadOff"), dsl, dsname );
+      else if (line.Contains("loadoff"))
+        err = LoadOFF( line.GetStringKey("loadoff"), dsl, dsname );
     }
     if (err != 0) break;
     ptr = infile.Line();
