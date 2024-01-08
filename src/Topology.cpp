@@ -2820,14 +2820,29 @@ DihedralArray Topology::AssignDihedralParm(DihedralParmHolder const& newDihedral
       // However, if no parameter is found and the central atom is
       // SP2, print a warning.
       //ImproperParmHolder::OrderType lastOrder;
+      found = false;
       DihedralType mydih = *dih;
       bool reordered;
       DihedralParmArray ipa;
+      TypeNameHolder paramTypes;
       ImproperParmHolder::const_iterator impit = improperCache.GetParam( types, mydih, reordered );
       if (impit == improperCache.end()) {
-        ipa = newImproperParams.FindParam( types, found, mydih, reordered );
+        impit = newImproperParams.GetParam( types, mydih, reordered );
+        if (impit != newImproperParams.end()) {
+          paramTypes = impit->first;
+          ipa = impit->second;
+          found = true;
+          mprintf("DEBUG: Found new value for improper %2s %2s %2s %2s (%2s %2s %2s %2s)\n",
+                  *types[0], *types[1], *types[2], *types[3],
+                  *paramTypes[0], *paramTypes[1], *paramTypes[2], *paramTypes[3]);
+        }
       } else {
+        paramTypes = impit->first;
         ipa = impit->second;
+        found = true;
+        mprintf("DEBUG: Using cached value for improper %2s %2s %2s %2s (%2s %2s %2s %2s)\n",
+                *types[0], *types[1], *types[2], *types[3],
+                  *paramTypes[0], *paramTypes[1], *paramTypes[2], *paramTypes[3]);
       }
       int idx = -1;
       if (!found) {
