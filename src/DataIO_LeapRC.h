@@ -16,6 +16,7 @@ class DataIO_LeapRC : public DataIO {
   private:
     int LoadAmberParams(std::string const&, DataSetList&, std::string const&) const;
     int LoadOFF(std::string const&, DataSetList&, std::string const&) const;
+    int LoadAmberPrep(std::string const&, DataSetList&, std::string const&) const;
 
     std::string amberhome_;
 };

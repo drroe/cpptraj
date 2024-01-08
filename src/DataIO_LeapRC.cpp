@@ -4,6 +4,7 @@
 #include "DataIO_AmberFF.h"
 #include "DataIO_AmberFrcmod.h"
 #include "DataIO_AmberLib.h"
+#include "DataIO_AmberPrep.h"
 #include <cstdlib> //getenv
 
 /// CONSTRUCTOR
@@ -83,6 +84,16 @@ int DataIO_LeapRC::LoadOFF(std::string const& filename, DataSetList& dsl, std::s
   return 0;
 }
 
+/** LEaP loadAmberPrep command. */
+int DataIO_LeapRC::LoadAmberPrep(std::string const& filename, DataSetList& dsl, std::string const& dsname) const {
+  DataIO_AmberPrep infile;
+  if (infile.ReadData(amberhome_ + "lib/" + filename, dsl, dsname)) {
+    mprinterr("Error: Could not load prep file '%s'\n", filename.c_str());
+    return 1;
+  }
+  return 0;
+}
+
 // DataIO_LeapRC::ReadData()
 int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
@@ -94,7 +105,11 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
     mprintf("Warning: AMBERHOME is not set. Determining FF file location based on leaprc file.\n");
     // Try to guess based on where the leaprc file is
     FileName leapcmddir( fname.DirPrefix_NoSlash() );
-    amberhome_ = leapcmddir.DirPrefix();
+    if (leapcmddir.Base() == "oldff") {
+      FileName leapcmddir2( leapcmddir.DirPrefix_NoSlash() );
+      amberhome_ = leapcmddir2.DirPrefix();
+    } else
+      amberhome_ = leapcmddir.DirPrefix();
   }
   mprintf("\tForce field files located in '%s'\n", amberhome_.c_str());
   BufferedLine infile;
@@ -116,6 +131,10 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
         err = LoadOFF( line.GetStringKey("loadOff"), dsl, dsname );
       else if (line.Contains("loadoff"))
         err = LoadOFF( line.GetStringKey("loadoff"), dsl, dsname );
+      else if (line.Contains("loadAmberPrep"))
+        err = LoadAmberPrep( line.GetStringKey("loadAmberPrep"), dsl, dsname );
+      else if (line.Contains("loadamberprep"))
+        err = LoadAmberPrep( line.GetStringKey("loadamberprep"), dsl, dsname );
     }
     if (err != 0) break;
     ptr = infile.Line();
