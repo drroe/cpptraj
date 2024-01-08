@@ -36,6 +36,7 @@
 #include "DataIO_AmberLib.h"
 #include "DataIO_AmberFF.h"
 #include "DataIO_AmberFrcmod.h"
+#include "DataIO_LeapRC.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -93,6 +94,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Amber OFF File",     0,                             0,            DataIO_AmberLib::Alloc},
   { "Amber Force Field",  DataIO_AmberFF::ReadHelp,      0,            DataIO_AmberFF::Alloc},
   { "Amber Frcmod File",  0,                             0,            DataIO_AmberFrcmod::Alloc},
+  { "Amber LEaP RC File", 0,                             0,            DataIO_LeapRC::Alloc},
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
@@ -124,6 +126,7 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { AMBERLIB,     "off",          ".lib" },
   { AMBERFF,      "amberff",      ".parm" },
   { AMBERFRCMOD,  "frcmod",       ".frcmod" },
+  { AMBERLEAPRC,  "leaprc",       ".leaprc" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
