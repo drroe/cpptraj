@@ -2785,6 +2785,7 @@ DihedralArray Topology::AssignDihedralParm(DihedralParmHolder const& newDihedral
   DihedralArray dihedralsIn;
   // Improper cache
   ImproperParmHolder improperCache;
+  improperCache.SetWildcard( newImproperParams.Wildcard() );
   // Keep track of 1-4 interactions
   typedef std::pair<int,int> Ipair;
   typedef std::set<Ipair> Imap;
@@ -2823,12 +2824,14 @@ DihedralArray Topology::AssignDihedralParm(DihedralParmHolder const& newDihedral
       found = false;
       DihedralType mydih = *dih;
       bool reordered;
+      bool is_new_improper = false;
       DihedralParmArray ipa;
       TypeNameHolder paramTypes;
       ImproperParmHolder::const_iterator impit = improperCache.GetParam( types, mydih, reordered );
       if (impit == improperCache.end()) {
         impit = newImproperParams.GetParam( types, mydih, reordered );
         if (impit != newImproperParams.end()) {
+          is_new_improper = true;
           paramTypes = impit->first;
           ipa = impit->second;
           found = true;
@@ -2877,6 +2880,13 @@ DihedralArray Topology::AssignDihedralParm(DihedralParmHolder const& newDihedral
         // Always skip 1-4 for impropers
         mydih.SetSkip14( true );
         dihedralsIn.push_back( mydih );
+        // Add to the cache
+        if (is_new_improper) {
+          // To match leap behavior, make sure paramTypes are sorted alphabetically.
+          mprintf("DEBUG: Improper wildcard: %s\n", *(newImproperParams.Wildcard()));
+          paramTypes.SortImproperByAlpha( newImproperParams.Wildcard() );
+          improperCache.AddParm( paramTypes, ipa.front(), false );
+        }
       }
     } else {
       // -----Regular dihedral. See if parameter already present. ----

@@ -293,6 +293,8 @@ class ImproperParmHolder : private DihedralParmHolder {
     size_t size()       const { return DihedralParmHolder::size();  }
     /// \return True if no parameters
     bool empty()        const { return DihedralParmHolder::empty(); }
+    /// \return Wildcard
+    NameType const& Wildcard() const { return wc_; }
     /// \return ordering of last type
     //OrderType LastOrder() const { return lastOrder_; }
     typedef typename DihedralParmHolder::const_iterator const_iterator;
@@ -301,6 +303,8 @@ class ImproperParmHolder : private DihedralParmHolder {
 
     /** Set Wildcard char */
     void SetWildcard(char wc) { DihedralParmHolder::SetWildcard(wc); }
+    /** Set Wildcard */
+    void SetWildcard(NameType const& wc) { wc_ = wc; }
     /** Add (or update) a single improper parameter for given atom types. */
     ParameterHolders::RetType
     AddParm(TypeNameHolder const& types, DihedralParmType const& dp, bool allowUpdate) {
