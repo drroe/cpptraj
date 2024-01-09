@@ -2172,6 +2172,7 @@ static inline void GetAngleParams(ParmHolder<AngleParmType>& AP, std::vector<Ato
 
 // GetImproperParams()
 static inline void GetImproperParams(ImproperParmHolder& IP, std::vector<Atom> const& atoms, DihedralArray const& imp, DihedralParmArray const& ipa) {
+  IP.SetRequireExactMatch(true);
   for (DihedralArray::const_iterator b = imp.begin(); b != imp.end(); ++b)
   {
     if (b->Idx() != -1) {
@@ -2189,6 +2190,7 @@ static inline void GetImproperParams(ImproperParmHolder& IP, std::vector<Atom> c
 
 // GetDihedralParams()
 static inline void GetDihedralParams(DihedralParmHolder& DP, ImproperParmHolder& IP, std::vector<Atom> const& atoms, DihedralArray const& dih, DihedralParmArray const& dpa) {
+  IP.SetRequireExactMatch(true);
   for (DihedralArray::const_iterator b = dih.begin(); b != dih.end(); ++b)
   {
     if (b->Idx() != -1) {
@@ -2787,6 +2789,7 @@ DihedralArray Topology::AssignDihedralParm(DihedralParmHolder const& newDihedral
   // Improper cache
   ImproperParmHolder improperCache;
   improperCache.SetWildcard( newImproperParams.Wildcard() );
+  improperCache.SetRequireExactMatch( newImproperParams.RequireExactMatch() );
   // Keep track of 1-4 interactions
   typedef std::pair<int,int> Ipair;
   typedef std::set<Ipair> Imap;

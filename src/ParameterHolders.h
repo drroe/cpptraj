@@ -300,22 +300,24 @@ class ImproperParmHolder : private DihedralParmHolder {
                      O_310 };
     ImproperParmHolder() : require_exact_match_(false) {}
     /// \return Number of improper parameter sets
-    size_t size()       const { return DihedralParmHolder::size();  }
+    size_t size()              const { return DihedralParmHolder::size();  }
     /// \return True if no parameters
-    bool empty()        const { return DihedralParmHolder::empty(); }
+    bool empty()               const { return DihedralParmHolder::empty(); }
     /// \return Wildcard
     NameType const& Wildcard() const { return wc_; }
+    /// \return True if an exact match is required to find a parameter
+    bool RequireExactMatch()   const { return require_exact_match_; }
     /// const iterator
     typedef typename DihedralParmHolder::const_iterator const_iterator;
     /// const iterator to beginning of parameters
-    const_iterator begin() const { return DihedralParmHolder::begin(); }
+    const_iterator begin()     const { return DihedralParmHolder::begin(); }
     /// const iterator to end of parameters
-    const_iterator end()   const { return DihedralParmHolder::end();   }
+    const_iterator end()       const { return DihedralParmHolder::end();   }
     /// Set Wildcard char
     void SetWildcard(char wc) { DihedralParmHolder::SetWildcard(wc); }
     /// Set Wildcard
     void SetWildcard(NameType const& wc) { wc_ = wc; }
-    /// Indicate whether exact type matches are required
+    /// Indicate whether exact type matches are required to find parameters
     void SetRequireExactMatch(bool b) { require_exact_match_ = b; }
     /// Add (or update) a single improper parameter for given atom types.
     ParameterHolders::RetType
@@ -458,6 +460,6 @@ class ImproperParmHolder : private DihedralParmHolder {
     /// \return size in memory in bytes
     size_t DataSize() const { return DihedralParmHolder::DataSize(); }
   private:
-    bool require_exact_match_; ///< If true, types must match in exact order
+    bool require_exact_match_; ///< If true, types must match in exact order when finding parameters
 };
 #endif
