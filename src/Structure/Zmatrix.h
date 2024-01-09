@@ -71,6 +71,8 @@ class Zmatrix {
     static Vec3 AtomIposition(InternalCoords const&, Frame const&);
   private:
     typedef std::vector<int> Iarray;
+    /// Set seeds as 3 consecutive atoms with known positions
+    int autoSetSeeds_withPositions(Frame const&, Topology const&, Molecule const&, Barray const&);
     /// Simple version of auto set seeds based on connectivity only
     int autoSetSeeds_simple(Frame const&, Topology const&, Molecule const&);
     /// Calculate and add an internal coordinate given indices and Cartesian coords.
@@ -78,7 +80,7 @@ class Zmatrix {
     /// Add internal coordiantes by tracing a molecule
     int traceMol(int, int, int, Frame const&, Topology const&, unsigned int, unsigned int&, Barray&);
     /// Convert from Cartesian to minimal Zmatrix by tracing a molecule
-    int SetFromFrame_Trace(Frame const&, Topology const&, int);
+    int SetFromFrame_Trace(Frame const&, Topology const&, int, Barray const&);
     /// \return True if IC seeds are set
     //bool HasICSeeds() const;
     /// \return True if Cartesian seeds are set

@@ -192,6 +192,91 @@ void Zmatrix::addIc(int at0, int at1, int at2, int at3,
                                 Torsion(xyz0, xyz1, xyz2, xyz3) * Constants::RADDEG) );
 }
 
+/** Set seeds as 3 consecutive atoms for which positions are known. */
+int Zmatrix::autoSetSeeds_withPositions(Frame const& frameIn, Topology const& topIn, Molecule const& mol, Barray const& positionKnown)
+{
+  seedAt0_ = InternalCoords::NO_ATOM;
+  seedAt1_ = InternalCoords::NO_ATOM;
+  seedAt2_ = InternalCoords::NO_ATOM;
+
+  if (positionKnown.empty()) {
+    mprinterr("InternalError: Zmatrix::autoSetSeeds_withPositions() called with an empty known position array.\n");
+    return 1;
+  }
+  if (mol.NumAtoms() < 1) {
+    mprinterr("Internal Error: Zmatrix::autoSetSeeds_withPositions() called with an empty molecule.\n");
+    return 1;
+  }
+  // Special cases
+  if (mol.NumAtoms() == 1) {
+    seedAt0_ = mol.MolUnit().Front();
+    seed0Pos_ = Vec3(frameIn.XYZ(seedAt0_));
+    return 0;
+  } else if (mol.NumAtoms() == 2) {
+    seedAt0_ = mol.MolUnit().Front();
+    seed0Pos_ = Vec3(frameIn.XYZ(seedAt0_));
+    if (topIn[seedAt0_].Nbonds() != 1) {
+      mprinterr("Internal Error: Zmatrix::autoSetSeeds_simple(): 2 atoms but no bonds.\n");
+      return 1;
+    }
+    seedAt1_ = topIn[seedAt0_].Bond(0);
+    seed1Pos_ = Vec3(frameIn.XYZ(seedAt1_));
+    return 0;
+  }
+  // Loop over atoms in the molecule
+  int numS2bonds = -1;
+  for (Unit::const_iterator seg = mol.MolUnit().segBegin();
+                            seg != mol.MolUnit().segEnd(); ++seg)
+  {
+    for (int at = seg->Begin(); at != seg->End(); ++at) {
+      if (positionKnown[at]) {
+        Atom const& AJ = topIn[at];
+        if (AJ.Nbonds() > 1) {
+          for (int bidx1 = 0; bidx1 < AJ.Nbonds(); bidx1++) {
+            for (int bidx2 = bidx1 + 1; bidx2 < AJ.Nbonds(); bidx2++) {
+              int bat1 = AJ.Bond(bidx1);
+              int bat2 = AJ.Bond(bidx2);
+              if (positionKnown[bat1] && positionKnown[bat2]) {
+                int s1 = at;
+                int s0, s2;
+                // b1 - AJ - b2
+                Atom const& b1 = topIn[bat1];
+                Atom const& b2 = topIn[bat2];
+                // The atom with more bonds should be AK (seed 2)
+                if (b1.Nbonds() > b2.Nbonds()) {
+                  s0 = bat2;
+                  s2 = bat1;
+                } else {
+                  s0 = bat1;
+                  s2 = bat2;
+                }
+                if (numS2bonds == -1 || topIn[s2].Nbonds() > numS2bonds) {
+                  seedAt0_ = s0;
+                  seedAt1_ = s1;
+                  seedAt2_ = s2;
+                  numS2bonds = topIn[s2].Nbonds();
+                }
+              }
+            } // END inner loop over bonded atoms
+          } // END outer loop over bonded atoms
+        } // END AJ bonds > 1
+      } // END position of AJ is known
+    } // END loop over segment atoms
+  } // END loop over segments
+
+  if (seedAt0_ == InternalCoords::NO_ATOM ||
+      seedAt1_ == InternalCoords::NO_ATOM ||
+      seedAt2_ == InternalCoords::NO_ATOM)
+  {
+    mprinterr("Error: No suitable seed atoms with known positions could be found.\n");
+    return 1;
+  }
+  seed0Pos_ = Vec3(frameIn.XYZ(seedAt0_));
+  seed1Pos_ = Vec3(frameIn.XYZ(seedAt1_));
+  seed2Pos_ = Vec3(frameIn.XYZ(seedAt2_));
+  return 0;
+}
+
 /** Simple automatic setting of seeds for a molecule.
   * seed0 - seed1 - seed 2
   * Prefer that seed1 has only exactly 2 bonds. It cannot have 1.
@@ -202,11 +287,11 @@ int Zmatrix::autoSetSeeds_simple(Frame const& frameIn, Topology const& topIn, Mo
   seedAt1_ = InternalCoords::NO_ATOM;
   seedAt2_ = InternalCoords::NO_ATOM;
 
-  // Handle special cases
   if (mol.NumAtoms() < 1) {
     mprinterr("Internal Error: Zmatrix::autoSetSeeds_simple() called with an empty molecule.\n");
     return 1;
   }
+  // Handle special cases
   if (mol.NumAtoms() == 1) {
     seedAt0_ = mol.MolUnit().Front();
     seed0Pos_ = Vec3(frameIn.XYZ(seedAt0_));
@@ -450,7 +535,8 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
   * This algorithm attempts to "trace" the molecule in a manner that
   * should make internal coordinate assignment more "natural".
   */
-int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int molnum)
+int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int molnum,
+                                Barray const& knownPositions)
 {
   if (molnum < 0) {
     mprinterr("Internal Error: Zmatrix::SetFromFrame(): Negative molecule index.\n");
@@ -470,13 +556,17 @@ int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int
 
   // See if we need to assign seed atoms
   if (!HasCartSeeds()) {
-    // First seed atom will just be first atom TODO lowest index heavy atom?
-    if (autoSetSeeds_simple(frameIn, topIn, currentMol)) {
+    int seedErr = 0;
+    if (knownPositions.empty())
+      // First seed atom will just be first atom TODO lowest index heavy atom?
+      seedErr = autoSetSeeds_simple(frameIn, topIn, currentMol);
+    else
+      seedErr = autoSetSeeds_withPositions(frameIn, topIn, currentMol, knownPositions);
+    if (seedErr != 0) {
     //if (autoSetSeeds(frameIn, topIn, maxnatom, currentMol.MolUnit().Front())) {
       mprinterr("Error: Could not automatically determine seed atoms.\n");
       return 1;
     }
-
   } else {
     // Seed atoms already set
     if (debug_ > 0)
@@ -542,13 +632,13 @@ int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int
 
 /** Setup Zmatrix from Cartesian coordinates/topology. */
 int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn) {
-  return SetFromFrame_Trace(frameIn, topIn, 0);
+  return SetFromFrame_Trace(frameIn, topIn, 0, Barray());
 }
 
 /** Setup Zmatrix from Cartesian coordinates/topology. */
 int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnum)
 {
-  return SetFromFrame_Trace(frameIn, topIn, molnum);
+  return SetFromFrame_Trace(frameIn, topIn, molnum, Barray());
 }
 
 /** Given two bonded atoms A and B, where B has a depth of at least 2
