@@ -13,7 +13,7 @@ class AtomType {
     /// CONSTRUCTOR - Mass, polarizability
     AtomType(double m, double p) : mass_(m), polarizability_(p), oidx_(-1), hybrid_(UNKNOWN_HYBRIDIZATION) {}
     /// CONSTRUCTOR - Radius, well depth, mass, polarizability
-    AtomType(double r, double d, double m, double p) : lj_(r, d), mass_(m), oidx_(-1), hybrid_(UNKNOWN_HYBRIDIZATION) {}
+    AtomType(double r, double d, double m, double p) : lj_(r, d), mass_(m), polarizability_(p), oidx_(-1), hybrid_(UNKNOWN_HYBRIDIZATION) {}
     /// Set type index
     void SetTypeIdx(int i) { oidx_ = i; }
     /// \return default LJ parameters
