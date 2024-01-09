@@ -539,6 +539,47 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
   return 0;
 }
 
+/** Add IC for the given atom. */
+int Zmatrix::addInternalCoordForAtom(int iat, Frame const& frameIn, Topology const& topIn)
+{
+  int maxScore = -1;
+  int maxAtj = -1;
+  int maxAtk = -1;
+  int maxAtl = -1;
+  Atom const& atomI = topIn[iat];
+  for (Atom::bond_iterator jat = atomI.bondbegin(); jat != atomI.bondend(); ++jat) {
+    Atom const& atomJ = topIn[*jat];
+    for (Atom::bond_iterator kat = atomJ.bondbegin(); kat != atomJ.bondend(); ++kat) {
+      if (*kat != iat) {
+        Atom const& atomK = topIn[*kat];
+        for (Atom::bond_iterator lat = atomK.bondbegin(); lat != atomK.bondend(); ++lat) {
+          if (*lat != *jat && *lat != iat) {
+            int nbondScore = topIn[*lat].Nbonds();
+            if (maxScore == -1 || nbondScore > maxScore) {
+              maxScore = nbondScore;
+              maxAtj = *jat;
+              maxAtk = *kat;
+              maxAtl = *lat;
+            }
+            mprintf("DEBUG: Potential IC for %s [ %s - %s - %s ] score= %i\n",
+                    topIn.AtomMaskName(iat).c_str(),
+                    topIn.AtomMaskName(*jat).c_str(),
+                    topIn.AtomMaskName(*kat).c_str(),
+                    topIn.AtomMaskName(*lat).c_str(),
+                    nbondScore);
+          }
+        }
+      }
+    }
+  }
+  if (maxScore == -1) {
+    mprintf("Warning: Unable to define IC for atom %s\n", topIn.AtomMaskName(iat).c_str());
+  } else {
+      addIc( iat, maxAtj, maxAtk, maxAtl, frameIn.XYZ(iat), frameIn.XYZ(maxAtj), frameIn.XYZ(maxAtk), frameIn.XYZ(maxAtl) );
+  }
+  return 0;
+}
+
 /** Set up Zmatrix from Cartesian coordinates and topology.
   * This algorithm attempts to "trace" the molecule in a manner that
   * should make internal coordinate assignment more "natural".
@@ -582,7 +623,7 @@ int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int
               topIn.AtomMaskName(seedAt1_).c_str(),
               topIn.AtomMaskName(seedAt2_).c_str());
   }
-  // Add IC seeds
+  // Add basic ICs for seeds
   if (seedAt0_ != InternalCoords::NO_ATOM)
     AddIC( InternalCoords(seedAt0_, InternalCoords::NO_ATOM, InternalCoords::NO_ATOM, InternalCoords::NO_ATOM,
                               0, 0, 0) );
@@ -633,7 +674,28 @@ int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int
   if (nHasIC < maxnatom) {
     mprintf("Warning: Not all atoms have an associated internal coordinate.\n");
   }
-
+  // Add ICs for seeds
+  if (maxnatom > 3) {
+    //Atom const& SA0 = topIn[seedAt0_];
+    //Atom const& SA1 = topIn[seedAt1_];
+    //Atom const& SA2 = topIn[seedAt2_];
+    // Seed 0; 0-1-2-X
+    addInternalCoordForAtom(seedAt0_, frameIn, topIn);
+    addInternalCoordForAtom(seedAt1_, frameIn, topIn);
+    addInternalCoordForAtom(seedAt2_, frameIn, topIn);
+/*    if (SA2.Nbonds() < 2)
+      mprintf("Warning: Third seed atom has only one bond. Cannot create full IC for seed 0.\n");
+    else {
+      int at3;
+      for (Atom::bond_iterator bat = SA2.bondbegin(); bat != SA2.bondend(); ++bat) {
+        if (*bat != seedAt1_ && *bat != seedAt0_) {
+          at3 = *bat;
+          break;
+        }
+      }
+      addIc( seedAt0_, seedAt1_, seedAt2_, at3, frameIn.XYZ(seedAt0_), frameIn.XYZ(seedAt1_), frameIn.XYZ(seedAt2_), frameIn.XYZ(at3) );
+    }*/
+  }
   return 0;
 }
 
@@ -923,6 +985,7 @@ int Zmatrix::SetToFrame(Frame& frameOut, Barray& hasPosition) const {
   Barray isUsed( IC_.size(), false );
   unsigned int Nused = 0;
   if (HasCartSeeds()) {
+    mprintf("DEBUG: Has Cartesian seeds.\n");
     if (icseed0_ != InternalCoords::NO_ATOM) MARK(icseed0_, isUsed, Nused);
     if (icseed1_ != InternalCoords::NO_ATOM) MARK(icseed1_, isUsed, Nused);
     if (icseed2_ != InternalCoords::NO_ATOM) MARK(icseed2_, isUsed, Nused);
@@ -968,17 +1031,21 @@ int Zmatrix::SetToFrame(Frame& frameOut, Barray& hasPosition) const {
   } // END Does not have Cart. seeds
   // Find the lowest unused IC
   unsigned int lowestUnusedIC = 0;
-  for (; lowestUnusedIC < IC_.size(); ++lowestUnusedIC)
-    if (!isUsed[lowestUnusedIC]) break;
-  if (debug_ > 0) mprintf("DEBUG: Lowest unused IC: %u\n", lowestUnusedIC+1);
+//  for (; lowestUnusedIC < IC_.size(); ++lowestUnusedIC)
+//    if (!isUsed[lowestUnusedIC]) break;
+//  if (debug_ > 0) mprintf("DEBUG: Lowest unused IC: %u\n", lowestUnusedIC+1);
 
   // Loop over remaining ICs 
   while (Nused < IC_.size()) {
     // Find the next IC that is not yet used.
-    unsigned int idx = lowestUnusedIC;
+//    unsigned int idx = lowestUnusedIC;
+    unsigned int idx = 0;
     bool findNextIC = true;
     while (findNextIC) {
-      while (idx < IC_.size() && isUsed[idx]) idx++;
+      while (idx < IC_.size() && isUsed[idx]) {
+        mprintf("DEBUG:\t\tIC %u is used\n", idx+1);
+        idx++;
+      }
       if (idx >= IC_.size()) {
         mprinterr("Error: Could not find next IC to use.\n");
         return 1;
@@ -989,8 +1056,10 @@ int Zmatrix::SetToFrame(Frame& frameOut, Barray& hasPosition) const {
           hasPosition[ IC_[idx].AtL() ])
       {
         findNextIC = false;
-      } else
+      } else {
+        mprintf("DEBUG:\t\tIC %u is missing atoms.\n", idx+1);
         idx++;
+      }
     } // END loop finding next atom to set
     if (debug_ > 0) mprintf("DEBUG: Next IC to use is %u\n", idx+1);
 

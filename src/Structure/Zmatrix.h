@@ -79,8 +79,11 @@ class Zmatrix {
     int autoSetSeeds_simple(Frame const&, Topology const&, Molecule const&);
     /// Calculate and add an internal coordinate given indices and Cartesian coords.
     void addIc(int,int,int,int,const double*,const double*,const double*,const double*);
-    /// Add internal coordiantes by tracing a molecule
+    /// Add internal coordinates by tracing a molecule
     int traceMol(int, int, int, Frame const&, Topology const&, unsigned int, unsigned int&, Barray&);
+    /// Add internal coordinate for given atom
+    int addInternalCoordForAtom(int, Frame const&, Topology const&);
+
     /// Convert from Cartesian to minimal Zmatrix by tracing a molecule
     int SetFromFrame_Trace(Frame const&, Topology const&, int);
     /// \return True if IC seeds are set
