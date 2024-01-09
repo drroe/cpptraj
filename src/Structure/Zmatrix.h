@@ -38,6 +38,8 @@ class Zmatrix {
 
     /// Set seed atoms from frame/top
     int SetSeedPositions(Frame const&, Topology const&, int, int, int);
+    /// Set seed atoms as 3 consecutive atoms with known positions for specified residue # 
+    int AutoSetSeedsWithPositions(Frame const&, Topology const&, int, Barray const&);
 
     /// Convert specifed molecule of Frame/Topology to internal coordinates array
     int SetFromFrame(Frame const&, Topology const&, int);
@@ -72,7 +74,7 @@ class Zmatrix {
   private:
     typedef std::vector<int> Iarray;
     /// Set seeds as 3 consecutive atoms with known positions
-    int autoSetSeeds_withPositions(Frame const&, Topology const&, Molecule const&, Barray const&);
+    int autoSetSeeds_withPositions(Frame const&, Topology const&, int, int, Barray const&);
     /// Simple version of auto set seeds based on connectivity only
     int autoSetSeeds_simple(Frame const&, Topology const&, Molecule const&);
     /// Calculate and add an internal coordinate given indices and Cartesian coords.
@@ -80,7 +82,7 @@ class Zmatrix {
     /// Add internal coordiantes by tracing a molecule
     int traceMol(int, int, int, Frame const&, Topology const&, unsigned int, unsigned int&, Barray&);
     /// Convert from Cartesian to minimal Zmatrix by tracing a molecule
-    int SetFromFrame_Trace(Frame const&, Topology const&, int, Barray const&);
+    int SetFromFrame_Trace(Frame const&, Topology const&, int);
     /// \return True if IC seeds are set
     //bool HasICSeeds() const;
     /// \return True if Cartesian seeds are set

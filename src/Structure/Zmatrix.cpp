@@ -192,8 +192,14 @@ void Zmatrix::addIc(int at0, int at1, int at2, int at3,
                                 Torsion(xyz0, xyz1, xyz2, xyz3) * Constants::RADDEG) );
 }
 
+/** Set seeds as 3 consecutive atoms from mol 0 for which positions are known. */
+int Zmatrix::AutoSetSeedsWithPositions(Frame const& frameIn, Topology const& topIn, int ires, Barray const& positionKnown)
+{
+  return autoSetSeeds_withPositions(frameIn, topIn, topIn.Res(ires).FirstAtom(), topIn.Res(ires).LastAtom(), positionKnown);
+}
+
 /** Set seeds as 3 consecutive atoms for which positions are known. */
-int Zmatrix::autoSetSeeds_withPositions(Frame const& frameIn, Topology const& topIn, Molecule const& mol, Barray const& positionKnown)
+int Zmatrix::autoSetSeeds_withPositions(Frame const& frameIn, Topology const& topIn, int startAtom, int endAtom, Barray const& positionKnown)
 {
   seedAt0_ = InternalCoords::NO_ATOM;
   seedAt1_ = InternalCoords::NO_ATOM;
@@ -203,17 +209,18 @@ int Zmatrix::autoSetSeeds_withPositions(Frame const& frameIn, Topology const& to
     mprinterr("InternalError: Zmatrix::autoSetSeeds_withPositions() called with an empty known position array.\n");
     return 1;
   }
-  if (mol.NumAtoms() < 1) {
-    mprinterr("Internal Error: Zmatrix::autoSetSeeds_withPositions() called with an empty molecule.\n");
+  int numAtoms = endAtom - startAtom;
+  if (numAtoms < 1) {
+    mprinterr("Internal Error: Zmatrix::autoSetSeeds_withPositions() called with start <= end atom.\n");
     return 1;
   }
   // Special cases
-  if (mol.NumAtoms() == 1) {
-    seedAt0_ = mol.MolUnit().Front();
+  if (numAtoms == 1) {
+    seedAt0_ = startAtom;
     seed0Pos_ = Vec3(frameIn.XYZ(seedAt0_));
     return 0;
-  } else if (mol.NumAtoms() == 2) {
-    seedAt0_ = mol.MolUnit().Front();
+  } else if (numAtoms == 2) {
+    seedAt0_ = startAtom;
     seed0Pos_ = Vec3(frameIn.XYZ(seedAt0_));
     if (topIn[seedAt0_].Nbonds() != 1) {
       mprinterr("Internal Error: Zmatrix::autoSetSeeds_simple(): 2 atoms but no bonds.\n");
@@ -225,10 +232,11 @@ int Zmatrix::autoSetSeeds_withPositions(Frame const& frameIn, Topology const& to
   }
   // Loop over atoms in the molecule
   int numS2bonds = -1;
-  for (Unit::const_iterator seg = mol.MolUnit().segBegin();
-                            seg != mol.MolUnit().segEnd(); ++seg)
-  {
-    for (int at = seg->Begin(); at != seg->End(); ++at) {
+  for (int at = startAtom; at < endAtom; at++) {
+//  for (Unit::const_iterator seg = mol.MolUnit().segBegin();
+//                            seg != mol.MolUnit().segEnd(); ++seg)
+//  {
+//    for (int at = seg->Begin(); at != seg->End(); ++at) {
       if (positionKnown[at]) {
         Atom const& AJ = topIn[at];
         if (AJ.Nbonds() > 1) {
@@ -261,7 +269,7 @@ int Zmatrix::autoSetSeeds_withPositions(Frame const& frameIn, Topology const& to
           } // END outer loop over bonded atoms
         } // END AJ bonds > 1
       } // END position of AJ is known
-    } // END loop over segment atoms
+    //} // END loop over segment atoms
   } // END loop over segments
 
   if (seedAt0_ == InternalCoords::NO_ATOM ||
@@ -535,8 +543,7 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
   * This algorithm attempts to "trace" the molecule in a manner that
   * should make internal coordinate assignment more "natural".
   */
-int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int molnum,
-                                Barray const& knownPositions)
+int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int molnum)
 {
   if (molnum < 0) {
     mprinterr("Internal Error: Zmatrix::SetFromFrame(): Negative molecule index.\n");
@@ -557,11 +564,11 @@ int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int
   // See if we need to assign seed atoms
   if (!HasCartSeeds()) {
     int seedErr = 0;
-    if (knownPositions.empty())
+    //if (knownPositions.empty())
       // First seed atom will just be first atom TODO lowest index heavy atom?
       seedErr = autoSetSeeds_simple(frameIn, topIn, currentMol);
-    else
-      seedErr = autoSetSeeds_withPositions(frameIn, topIn, currentMol, knownPositions);
+    //else
+    //  seedErr = autoSetSeeds_withPositions(frameIn, topIn, currentMol, knownPositions);
     if (seedErr != 0) {
     //if (autoSetSeeds(frameIn, topIn, maxnatom, currentMol.MolUnit().Front())) {
       mprinterr("Error: Could not automatically determine seed atoms.\n");
@@ -632,13 +639,13 @@ int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int
 
 /** Setup Zmatrix from Cartesian coordinates/topology. */
 int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn) {
-  return SetFromFrame_Trace(frameIn, topIn, 0, Barray());
+  return SetFromFrame_Trace(frameIn, topIn, 0);
 }
 
 /** Setup Zmatrix from Cartesian coordinates/topology. */
 int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnum)
 {
-  return SetFromFrame_Trace(frameIn, topIn, molnum, Barray());
+  return SetFromFrame_Trace(frameIn, topIn, molnum);
 }
 
 /** Given two bonded atoms A and B, where B has a depth of at least 2
