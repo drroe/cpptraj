@@ -16,12 +16,16 @@ template <class T> class ParmHolder {
     typedef std::pair<TypeNameHolder,T> Bpair;
     typedef std::vector<Bpair> Bmap;
   public:
+    /// CONSTRUCTOR
     ParmHolder() {}
+    /// Clear all parameters
     void clear()              { bpmap_.clear(); }
+    /// \return Number of parameters
     size_t size()       const { return bpmap_.size(); }
+    /// \return true if no parameters
     bool empty()        const { return bpmap_.empty(); }
     /// Set wildcard character
-    void SetWildcard(char wc) { wc_ = NameType(std::string(1, wc)); }
+    //void SetWildcard(char wc) { wc_ = NameType(std::string(1, wc)); }
     /// Add (or update if allowed) given parameter to holder.
     ParameterHolders::RetType AddParm(TypeNameHolder const& types, T const& bp, bool allowUpdate) {
       // Check if parm for these types exist
@@ -74,10 +78,10 @@ template <class T> class ParmHolder {
       found = true;
       for (const_iterator it = begin(); it != end(); ++it)
         if (it->first.Match_NoWC( types )) return it->second;
-      if (wc_.len() > 0) {
-        for (const_iterator it = begin(); it != end(); ++it)
-          if (it->first.Match_WC( types, wc_)) return it->second;
-      }
+      //if (wc_.len() > 0) {
+      //  for (const_iterator it = begin(); it != end(); ++it)
+      //    if (it->first.Match_WC( types, wc_)) return it->second;
+      //}
       found = false;
       return T();
     }
@@ -85,20 +89,20 @@ template <class T> class ParmHolder {
     iterator GetParam(TypeNameHolder const& types) {
       for (iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
         if (it->first.Match_NoWC( types )) return it;
-      if (wc_.len() > 0) {
-        for (iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
-          if (it->first.Match_WC( types, wc_)) return it;
-      }
+      //if (wc_.len() > 0) {
+      //  for (iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
+      //    if (it->first.Match_WC( types, wc_)) return it;
+      //}
       return bpmap_.end();
     }
     /// \return const iterator to parameter matching the given types.
     const_iterator GetParam(TypeNameHolder const& types) const {
       for (const_iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
         if (it->first.Match_NoWC( types )) return it;
-      if (wc_.len() > 0) {
-        for (const_iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
-          if (it->first.Match_WC( types, wc_)) return it;
-      }
+      //if (wc_.len() > 0) {
+      //  for (const_iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
+      //    if (it->first.Match_WC( types, wc_)) return it;
+      //}
       return bpmap_.end();
     }
     /// \return size in memory in bytes
@@ -112,7 +116,7 @@ template <class T> class ParmHolder {
     }
   private:
     Bmap bpmap_;
-    NameType wc_; ///< Wildcard character
+    //NameType wc_; ///< Wildcard character
 };
 
 // -----------------------------------------------------------------------------
@@ -126,14 +130,19 @@ class DihedralParmHolder {
     typedef std::pair<TypeNameHolder,DihedralParmArray> Bpair;
     typedef std::vector<Bpair> Bmap;
   public:
+    /// CONSTRUCTOR
     DihedralParmHolder() {}
-    virtual ~DihedralParmHolder() {} ///< Virtual since inherited
+    /// DESTRUCTOR - virtual since inherited
+    virtual ~DihedralParmHolder() {}
+    /// Clear dihedral parameters
     void clear()              { bpmap_.clear();        }
+    /// \return Number of dihedral parameters
     size_t size()       const { return bpmap_.size();  }
+    /// \return true if no dihedral parameters
     bool empty()        const { return bpmap_.empty(); }
     /// Set wildcard character
     void SetWildcard(char wc) { wc_ = NameType(std::string(1, wc)); }
-    /** Add (or update) a single dihedral parameter for given atom types. */
+    /// Add (or update) a single dihedral parameter for given atom types.
     ParameterHolders::RetType
     AddParm(TypeNameHolder const& types, DihedralParmType const& dp, bool allowUpdate) {
       // Check if parm for these types exist
@@ -195,8 +204,7 @@ class DihedralParmHolder {
       }
       return ParameterHolders::ADDED;
     }
-
-    /** This version takes an array of dihedral parameters. */
+    /// Add array of dihedral parameters with unique multiplicities
     ParameterHolders::RetType
     AddParm(TypeNameHolder const& types, DihedralParmArray const& dpa, bool allowUpdate) {
       // Check if parm for these types exist
@@ -232,9 +240,11 @@ class DihedralParmHolder {
       }
       return ParameterHolders::ADDED;
     }
-
+    /// Const iterator
     typedef typename Bmap::const_iterator const_iterator;
+    /// \return const iterator to beginning
     const_iterator begin() const { return bpmap_.begin(); }
+    /// \return const iterator to end
     const_iterator end()   const { return bpmap_.end();   }
     /// \return Array of dihedral parameters matching given atom types.
     DihedralParmArray FindParam(TypeNameHolder const& types, bool& found) const {
@@ -288,27 +298,31 @@ class ImproperParmHolder : private DihedralParmHolder {
                      O_130,
                      O_301,
                      O_310 };
-    ImproperParmHolder() {}
+    ImproperParmHolder() : require_exact_match_(false) {}
     /// \return Number of improper parameter sets
     size_t size()       const { return DihedralParmHolder::size();  }
     /// \return True if no parameters
     bool empty()        const { return DihedralParmHolder::empty(); }
     /// \return Wildcard
     NameType const& Wildcard() const { return wc_; }
+    /// const iterator
     typedef typename DihedralParmHolder::const_iterator const_iterator;
+    /// const iterator to beginning of parameters
     const_iterator begin() const { return DihedralParmHolder::begin(); }
+    /// const iterator to end of parameters
     const_iterator end()   const { return DihedralParmHolder::end();   }
-
-    /** Set Wildcard char */
+    /// Set Wildcard char
     void SetWildcard(char wc) { DihedralParmHolder::SetWildcard(wc); }
-    /** Set Wildcard */
+    /// Set Wildcard
     void SetWildcard(NameType const& wc) { wc_ = wc; }
-    /** Add (or update) a single improper parameter for given atom types. */
+    /// Indicate whether exact type matches are required
+    void SetRequireExactMatch(bool b) { require_exact_match_ = b; }
+    /// Add (or update) a single improper parameter for given atom types.
     ParameterHolders::RetType
     AddParm(TypeNameHolder const& types, DihedralParmType const& dp, bool allowUpdate) {
       return DihedralParmHolder::AddParm( types, dp, allowUpdate );
     }
-    /** This version takes an array of dihedral parameters. */
+    /// Add array of improper parameters, one for each multiplicity.
     ParameterHolders::RetType
     AddParm(TypeNameHolder const& types, DihedralParmArray const& dpa, bool allowUpdate) {
       return DihedralParmHolder::AddParm( types, dpa, allowUpdate );
@@ -355,80 +369,68 @@ class ImproperParmHolder : private DihedralParmHolder {
     const_iterator GetParam(TypeNameHolder const& types, DihedralType& imp, bool& reordered) const {
       //mprintf("DEBUG: FindParam wc=%s Inco=%s-%s-%s-%s\n",*wc_, *(types[0]), *(types[1]),   *(types[2]),   *(types[3]));
       reordered = false;
-      // First, no wildcard
+      OrderType lastOrder_ = O_013;
       const_iterator it = begin();
-      OrderType lastOrder_;
-      for (; it != end(); ++it) {
-        TypeNameHolder const& myTypes = it->first;
-        // Central (third) type must match
-        if (myTypes[2] == types[2]) {
-          //mprintf("DEBUG: FindParam (improper) central atom match %s", *(types[2]));
-          //mprintf(" This=%s-%s-%s-%s", *(myTypes[0]), *(myTypes[1]), *(myTypes[2]), *(myTypes[3]));
-          //mprintf(" Inco=%s-%s-%s-%s\n", *(types[0]), *(types[1]),   *(types[2]),   *(types[3]));
-          // Try all permutations
-          if (       myTypes[0] == types[0] && myTypes[1] == types[1] && myTypes[3] == types[3]) {
-              // 0 1 2 3
-              lastOrder_ = O_013;
-              break;
-          } else if (myTypes[0] == types[0] && myTypes[1] == types[3] && myTypes[3] == types[1]) {
-              // 0 3 2 1
-              lastOrder_ = O_031;
-              break;
-          } else if (myTypes[0] == types[1] && myTypes[1] == types[0] && myTypes[3] == types[3]) {
-              // 1 0 2 3
-              lastOrder_ = O_103;
-              break;
-          } else if (myTypes[0] == types[1] && myTypes[1] == types[3] && myTypes[3] == types[0]) {
-              // 1 3 2 0
-              lastOrder_ = O_130;
-              break;
-          } else if (myTypes[0] == types[3] && myTypes[1] == types[0] && myTypes[3] == types[1]) {
-              // 3 0 2 1
-              lastOrder_ = O_301;
-              break;
-          } else if (myTypes[0] == types[3] && myTypes[1] == types[1] && myTypes[3] == types[0]) {
-              // 3 1 2 0
-              lastOrder_ = O_310;
-              break;
+      // If we require an exact match, look for that first.
+      if (require_exact_match_) {
+        for (; it != end(); ++it) {
+          TypeNameHolder const& myTypes = it->first;
+          if (myTypes[2] == types[2] && myTypes[0] == types[0] &&
+              myTypes[1] == types[1] && myTypes[3] == types[3])
+          {
+            break;
           }
         }
-      } // END loop over parameters
-      // Wildcard if present
-      if (it == end() && wc_.len() > 0) {
-        it = begin();
+      } else {
+        // Inexact match. First, no wildcard
         for (; it != end(); ++it) {
           TypeNameHolder const& myTypes = it->first;
           // Central (third) type must match
-          if (wcm(myTypes[2], types[2], wc_)) {
+          if (myTypes[2] == types[2]) {
+            //mprintf("DEBUG: FindParam (improper) central atom match %s", *(types[2]));
+            //mprintf(" This=%s-%s-%s-%s", *(myTypes[0]), *(myTypes[1]), *(myTypes[2]), *(myTypes[3]));
+            //mprintf(" Inco=%s-%s-%s-%s\n", *(types[0]), *(types[1]),   *(types[2]),   *(types[3]));
             // Try all permutations
-            if (       wcm(myTypes[0], types[0], wc_) && wcm(myTypes[1], types[1], wc_) && wcm(myTypes[3], types[3], wc_)) {
-                // 0 1 2 3
-                lastOrder_ = O_013;
-                break;
-            } else if (wcm(myTypes[0], types[0], wc_) && wcm(myTypes[1], types[3], wc_) && wcm(myTypes[3], types[1], wc_)) {
-                // 0 3 2 1
-                lastOrder_ = O_031;
-                break;
-            } else if (wcm(myTypes[0], types[1], wc_) && wcm(myTypes[1], types[0], wc_) && wcm(myTypes[3], types[3], wc_)) {
-                // 1 0 2 3
-                lastOrder_ = O_103;
-                break;
-            } else if (wcm(myTypes[0], types[1], wc_) && wcm(myTypes[1], types[3], wc_) && wcm(myTypes[3], types[0], wc_)) {
-                // 1 3 2 0
-                lastOrder_ = O_130;
-                break;
-            } else if (wcm(myTypes[0], types[3], wc_) && wcm(myTypes[1], types[0], wc_) && wcm(myTypes[3], types[1], wc_)) {
-                // 3 0 2 1
-                lastOrder_ = O_301;
-                break;
-            } else if (wcm(myTypes[0], types[3], wc_) && wcm(myTypes[1], types[1], wc_) && wcm(myTypes[3], types[0], wc_)) {
-                // 3 1 2 0
-                lastOrder_ = O_310;
-                break;
+            if (       myTypes[0] == types[0] && myTypes[1] == types[1] && myTypes[3] == types[3]) { // 0 1 2 3
+                lastOrder_ = O_013; break;
+            } else if (myTypes[0] == types[0] && myTypes[1] == types[3] && myTypes[3] == types[1]) { // 0 3 2 1
+                lastOrder_ = O_031; break;
+            } else if (myTypes[0] == types[1] && myTypes[1] == types[0] && myTypes[3] == types[3]) { // 1 0 2 3
+                lastOrder_ = O_103; break;
+            } else if (myTypes[0] == types[1] && myTypes[1] == types[3] && myTypes[3] == types[0]) { // 1 3 2 0
+                lastOrder_ = O_130; break;
+            } else if (myTypes[0] == types[3] && myTypes[1] == types[0] && myTypes[3] == types[1]) { // 3 0 2 1
+                lastOrder_ = O_301; break;
+            } else if (myTypes[0] == types[3] && myTypes[1] == types[1] && myTypes[3] == types[0]) { // 3 1 2 0
+                lastOrder_ = O_310; break;
             }
           }
         } // END loop over parameters
-      } // END wildcard matches
+        // Second, do wildcard matches if wildcard is set.
+        if (it == end() && wc_.len() > 0) {
+          it = begin();
+          for (; it != end(); ++it) {
+            TypeNameHolder const& myTypes = it->first;
+            // Central (third) type must match
+            if (wcm(myTypes[2], types[2], wc_)) {
+              // Try all permutations
+              if (       wcm(myTypes[0], types[0], wc_) && wcm(myTypes[1], types[1], wc_) && wcm(myTypes[3], types[3], wc_)) { // 0 1 2 3
+                  lastOrder_ = O_013; break;
+              } else if (wcm(myTypes[0], types[0], wc_) && wcm(myTypes[1], types[3], wc_) && wcm(myTypes[3], types[1], wc_)) { // 0 3 2 1
+                  lastOrder_ = O_031; break;
+              } else if (wcm(myTypes[0], types[1], wc_) && wcm(myTypes[1], types[0], wc_) && wcm(myTypes[3], types[3], wc_)) { // 1 0 2 3
+                  lastOrder_ = O_103; break;
+              } else if (wcm(myTypes[0], types[1], wc_) && wcm(myTypes[1], types[3], wc_) && wcm(myTypes[3], types[0], wc_)) { // 1 3 2 0
+                  lastOrder_ = O_130; break;
+              } else if (wcm(myTypes[0], types[3], wc_) && wcm(myTypes[1], types[0], wc_) && wcm(myTypes[3], types[1], wc_)) { // 3 0 2 1
+                  lastOrder_ = O_301; break;
+              } else if (wcm(myTypes[0], types[3], wc_) && wcm(myTypes[1], types[1], wc_) && wcm(myTypes[3], types[0], wc_)) { // 3 1 2 0
+                  lastOrder_ = O_310; break;
+              }
+            }
+          } // END loop over parameters
+        } // END wildcard matches
+      } // END require exact match
       if (it != end()) {
         // We have found a parameter. Do any reordering.
         if (lastOrder_ != O_013) reordered = true;
@@ -456,5 +458,6 @@ class ImproperParmHolder : private DihedralParmHolder {
     /// \return size in memory in bytes
     size_t DataSize() const { return DihedralParmHolder::DataSize(); }
   private:
+    bool require_exact_match_; ///< If true, types must match in exact order
 };
 #endif
