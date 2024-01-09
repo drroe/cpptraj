@@ -20,6 +20,8 @@ AngleArray GenerateAngleArray(std::vector<Residue> const&, std::vector<Atom> con
 DihedralArray GenerateDihedralArray(std::vector<Residue> const&, std::vector<Atom> const&);
 /// Generate improper dihedral array in same order as leap
 DihedralArray GenerateImproperArray(std::vector<Residue> const&, std::vector<Atom> const&);
+/// Generate angle and torsion arrays from bonds
+void GenerateAngleAndTorsionArraysFromBonds(AngleArray&, DihedralArray&, std::vector<Atom> const&, BondArray const&);
 }
 }
 #endif

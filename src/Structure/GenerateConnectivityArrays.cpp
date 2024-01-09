@@ -196,3 +196,59 @@ DihedralArray Cpptraj::Structure::GenerateImproperArray(std::vector<Residue> con
   } // END loop over residues
   return out;
 }
+
+/// Given 2 bonded atoms at1 and at2, get all angles at1-at2-X
+static inline void enumerateAngles(AngleArray& angles, int at1, int at2, std::vector<Atom> const& atoms)
+{
+  Atom const& A2 = atoms[at2];
+  if (A2.Nbonds() > 1) {
+    for (Atom::bond_iterator bat = A2.bondbegin(); bat != A2.bondend(); ++bat)
+    {
+      if (*bat != at1 && at1 < *bat) {
+        mprintf("DEBUG: ANGLE  i= %zu  %i - %i - %i (%i %i %i)\n",  angles.size(), at1+1, at2+1, *bat+1, at1*3, at2*3, *bat*3);
+        angles.push_back( AngleType(at1, at2, *bat, -1) );
+      }
+    }
+  }
+}
+
+/// Given 2 bonded atoms at1 and at2, get all torsions X-at1-at2-Y
+static inline void enumerateDihedrals(DihedralArray& dihedrals, int at1, int at2, std::vector<Atom> const& atoms)
+{
+  Atom const& A1 = atoms[at1];
+  Atom const& A2 = atoms[at2];
+  if (A1.Nbonds() > 1 && A2.Nbonds() > 1) {
+    for (Atom::bond_iterator bat1 = A1.bondbegin(); bat1 != A1.bondend(); ++bat1)
+    {
+      if (*bat1 != at2) {
+        for (Atom::bond_iterator bat2 = A2.bondbegin(); bat2 != A2.bondend(); ++bat2)
+        {
+          if (*bat2 != at1) {
+            // LEaP convention appears to be first atom less than last atom
+            if (*bat1 < *bat2)
+              dihedrals.push_back( DihedralType(*bat1, at1, at2, *bat2, -1) );
+            else
+              dihedrals.push_back( DihedralType(*bat2, at2, at1, *bat1, -1) );
+          }
+        }
+      }
+    }
+  }
+}
+
+/** Generate angle and torsion arrays from given bond array. */
+void Cpptraj::Structure::GenerateAngleAndTorsionArraysFromBonds(AngleArray& angles,
+                                                                DihedralArray& dihedrals,
+                                                                std::vector<Atom> const& atoms,
+                                                                BondArray const& allBonds)
+{
+  for (BondArray::const_iterator it = allBonds.begin(); it != allBonds.end(); ++it)
+  {
+    // Forward direction. A1-A2-X
+    enumerateAngles( angles, it->A1(), it->A2(), atoms );
+    // Reverse direction. A2-A1-X
+    enumerateAngles( angles, it->A2(), it->A1(), atoms );
+    // Dihedrals
+    enumerateDihedrals( dihedrals, it->A1(), it->A2(), atoms );
+  }
+}
