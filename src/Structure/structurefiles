@@ -6,7 +6,6 @@ STRUCTURE_SOURCES= \
   FunctionalGroup.cpp \
   FxnGroupBuilder.cpp \
   GenerateConnectivityArrays.cpp \
-  GenerateConnectivity.cpp \
   HisProt.cpp \
   InternalCoords.cpp \
   Model.cpp \

@@ -3142,6 +3142,8 @@ int Topology::AssignParams(ParameterSet const& set0) {
     AddToAngleArrays( *ang );
   // Dihedral parameters
   mprintf("\tAssigning dihedral parameters.\n");
+  dihedralparm_.clear();
+  // Regenerate dihedral array in LEaP order
   dihedrals_.clear();
   dihedralsh_.clear();
   DihedralArray allDihedrals = Cpptraj::Structure::GenerateDihedralArray(residues_, atoms_);

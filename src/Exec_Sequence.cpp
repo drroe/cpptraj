@@ -2,7 +2,6 @@
 #include "CpptrajStdio.h"
 #include "AssociatedData_Connect.h"
 #include "Structure/Builder.h"
-#include "Structure/GenerateConnectivity.h"
 
 /** Generate and build the specified sequence. */
 int Exec_Sequence::generate_sequence(DataSet_Coords* OUT,
@@ -91,7 +90,6 @@ const
   Frame CombinedFrame = Units.front()->AllocateFrame();
   Units.front()->GetFrame(0, CombinedFrame);
 
-
   using namespace Cpptraj::Structure;
   Builder builder;
   for (unsigned int idx = 1; idx < Units.size(); idx++) {
@@ -116,12 +114,12 @@ const
   }
 
   // Generate angles and dihedrals
- if (combinedTop.Nbonds() > 0) {
-   if (Cpptraj::Structure::GenerateBondAngleTorsionArrays(combinedTop)) {
-     mprinterr("Error: Angle generation failed.\n");
-     return 1;
-   }
- }
+  //if (combinedTop.Nbonds() > 0) {
+  //  if (Cpptraj::Structure::GenerateBondAngleTorsionArrays(combinedTop)) {
+  //    mprinterr("Error: Angle generation failed.\n");
+  //    return 1;
+  //  }
+  //}
 
   OUT->CoordsSetup(combinedTop, CombinedFrame.CoordsInfo());
   OUT->AddFrame( CombinedFrame );
@@ -142,6 +140,19 @@ void Exec_Sequence::Help() const
 Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
 {
   debug_ = State.Debug();
+  // Atom scan direction TODO add to help
+/*    Cpptraj::Structure::SetAtomScanDirection(Cpptraj::Structure::SCAN_ATOMS_FORWARDS);
+  std::string atomscandir = argIn.GetStringKey("atomscandir");
+  if (!atomscandir.empty()) {
+    if (atomscandir == "f")
+      Cpptraj::Structure::SetAtomScanDirection(Cpptraj::Structure::SCAN_ATOMS_FORWARDS);
+    else if (atomscandir == "b")
+      Cpptraj::Structure::SetAtomScanDirection(Cpptraj::Structure::SCAN_ATOMS_BACKWARDS);
+    else {
+      mprinterr("Error: Unrecognized keyword for 'atomscandir' : %s\n", atomscandir.c_str());
+      return CpptrajState::ERR;
+    }
+  }*/
   // Args
   Sarray LibSetNames;
   std::string libsetname = argIn.GetStringKey("libset");
