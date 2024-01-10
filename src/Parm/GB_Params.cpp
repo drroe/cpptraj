@@ -24,9 +24,25 @@ static const char* GB_RadiiTypeKey_[] = {
   0
 };
 
+static const char* GB_RadiiAmberFlag_[] = {
+  "Bondi radii (bondi)",                              // 0
+  "amber6 modified Bondi radii (amber6)",             // 1
+  "modified Bondi radii (mbondi)",                    // 2
+  "Huo and Kollman optimized radii (pbamber)",        // 3
+  "H(N)-modified Bondi radii (mbondi2)",              // 6
+  "Parse radii (parse)",                              // 7
+  "ArgH and AspGluO modified Bondi2 radii (mbondi3)", // 8
+  "Unknown radius set (leap needs to be modified!)"
+};
+
 /** \return char string corresponding to type. */
 std::string Cpptraj::Parm::GbTypeStr(GB_RadiiType t) {
   return std::string(GB_RadiiTypeStr_[t]);
+}
+
+/** \return Amber topology FLAG */
+std::string Cpptraj::Parm::GbAmberFlag(GB_RadiiType t) {
+  return std::string(GB_RadiiAmberFlag_[t]);
 }
 
 /** \return GB_RadiiType corresponding to string. */
@@ -400,7 +416,7 @@ int Cpptraj::Parm::Assign_GB_Radii(Topology& top, GB_RadiiType radiiSet)
     return 1;
   }
   mprintf("\tUsing GB radii set: %s\n", GB_RadiiTypeStr_[radiiSet]);
-  top.SetGBradiiSet( std::string(GB_RadiiTypeStr_[radiiSet]) );
+  top.SetGBradiiSet( std::string(GB_RadiiAmberFlag_[radiiSet]) );
   assign_gb_radii( top, radiiSet );
   assign_gb_screen( top, radiiSet );
 
