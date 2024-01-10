@@ -48,6 +48,48 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
                                        Carray const& Templates,
                                        Topology const& topIn, Frame const& frameIn)
 {
+  // Determine which residues are terminal
+  typedef std::vector<int> Iarray;
+  typedef std::vector<Iarray> IIarray;
+  IIarray terminalResidues( topIn.Nmol() );
+  for (int ires = 0; ires != topIn.Nres(); ires++)
+  {
+    Residue const& currentRes = topIn.Res(ires);
+    int n_connections = 0;
+    for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); at++)
+    {
+      if (topIn[at].Element() != Atom::HYDROGEN && topIn[at].Nbonds() > 1) {
+        for (Atom::bond_iterator bat = topIn[at].bondbegin(); bat != topIn[at].bondend(); ++bat)
+        {
+          if (topIn[*bat].ResNum() != topIn[at].ResNum())
+            n_connections++;
+        }
+      }
+    }
+    mprintf("DEBUG: Res %s has %i connections.\n", topIn.TruncResNameNum(ires).c_str(), n_connections);
+    if (n_connections == 1) {
+      int molnum = topIn[currentRes.FirstAtom()].MolNum();
+      terminalResidues[ molnum ].push_back( ires );
+    }
+  }
+  enum TermType { BEG_TERMINAL = 0, REGULAR, END_TERMINAL };
+  typedef std::vector<TermType> Tarray;
+  Tarray residueTerminalStatus( topIn.Nres(), REGULAR );
+  mprintf("\tTerminal residues:\n");
+  for (IIarray::const_iterator mit = terminalResidues.begin(); mit != terminalResidues.end(); ++mit)
+  {
+    mprintf("\t\tMol %li:", mit - terminalResidues.begin() + 1);
+    for (Iarray::const_iterator it = mit->begin(); it != mit->end(); ++it) {
+      mprintf(" %s", topIn.TruncResNameNum( *it ).c_str());
+      if (it == mit->begin())
+        residueTerminalStatus[*it] = BEG_TERMINAL;
+      else
+        residueTerminalStatus[*it] = END_TERMINAL;
+      mprintf("(%i)", (int)residueTerminalStatus[*it]);
+    }
+    mprintf("\n");
+  }
+
   // Array of templates for each residue
   std::vector<DataSet_Coords*> ResTemplates;
   ResTemplates.reserve( topIn.Nres() );
