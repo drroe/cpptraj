@@ -1030,11 +1030,50 @@ int Zmatrix::SetToFrame(Frame& frameOut, Barray& hasPosition) const {
     } // END seed atom 0
   } // END Does not have Cart. seeds
   // Find the lowest unused IC
-  unsigned int lowestUnusedIC = 0;
+//  unsigned int lowestUnusedIC = 0;
 //  for (; lowestUnusedIC < IC_.size(); ++lowestUnusedIC)
 //    if (!isUsed[lowestUnusedIC]) break;
 //  if (debug_ > 0) mprintf("DEBUG: Lowest unused IC: %u\n", lowestUnusedIC+1);
 
+  // Out of the remaining ICs, count which ones do not have positions set.
+  unsigned int remainingPositionsToSet = 0;
+  for (unsigned int icIdx = 0; icIdx != IC_.size(); ++icIdx) {
+    if (!isUsed[icIdx] && !hasPosition[IC_[icIdx].AtI()])
+      remainingPositionsToSet++;
+  }
+  mprintf("DEBUG: %u positions to set.\n", remainingPositionsToSet);
+
+  while (remainingPositionsToSet > 0 && Nused < IC_.size()) {
+    // Get the next IC with a position to set
+    int icIdx = -1;
+    for (unsigned int idx = 0; idx != IC_.size(); ++idx) {
+      if (!isUsed[idx] && !hasPosition[IC_[idx].AtI()]) {
+        // All 3 of the connecting atoms must be set
+        if (hasPosition[ IC_[idx].AtJ() ] &&
+            hasPosition[ IC_[idx].AtK() ] &&
+            hasPosition[ IC_[idx].AtL() ])
+        {
+          icIdx = (int)idx;
+          break;
+        } else {
+          mprintf("DEBUG:\t\tIC %u is missing atoms.\n", idx+1);
+        }
+      }
+    }
+    if (icIdx < 0) {
+      mprinterr("Error: Could not find next IC to use.\n");
+      return 1;
+    }
+    if (debug_ > 0) mprintf("DEBUG: Next IC to use is %i\n", icIdx+1);
+    InternalCoords const& ic = IC_[icIdx];
+    Vec3 posI = AtomIposition(ic, frameOut);
+
+    frameOut.SetXYZ( ic.AtI(), posI );
+    hasPosition[ ic.AtI() ] = true;
+    remainingPositionsToSet--;
+    MARK(icIdx, isUsed, Nused);
+  } // END loop over remaining positions
+/*
   // Loop over remaining ICs 
   while (Nused < IC_.size()) {
     // Find the next IC that is not yet used.
@@ -1077,6 +1116,6 @@ int Zmatrix::SetToFrame(Frame& frameOut, Barray& hasPosition) const {
 
     //break; // DEBUG
   } // END loop over internal coordinates
-
+*/
   return 0;
 }
