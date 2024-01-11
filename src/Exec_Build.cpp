@@ -249,10 +249,10 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
           mprinterr("Error: Could not set up residue template zmatrix.\n");
           return 1;
         }
-        zmatrix->print( resTemplate->TopPtr() );
+        //zmatrix->print( resTemplate->TopPtr() );
         zmatrix->OffsetIcIndices( atomOffset );
         ResZmatrices.push_back( zmatrix );
-        zmatrix->print( &topOut );
+        //zmatrix->print( &topOut );
       } else
         ResZmatrices.push_back( 0 );
     } // END template exists
