@@ -60,7 +60,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     int n_connections = 0;
     for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); at++)
     {
-      if (topIn[at].Element() != Atom::HYDROGEN && topIn[at].Nbonds() > 1) {
+      //if (topIn[at].Element() != Atom::HYDROGEN && topIn[at].Nbonds() > 1) {
         for (Atom::bond_iterator bat = topIn[at].bondbegin(); bat != topIn[at].bondend(); ++bat)
         {
           if (topIn[*bat].ResNum() != topIn[at].ResNum()) {
@@ -68,7 +68,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
             resConnections[ ires ].push_back( topIn[*bat].ResNum() );
           }
         }
-      }
+      //}
     }
     mprintf("DEBUG: Res %s has %i connections.\n", topIn.TruncResNameNum(ires).c_str(), n_connections);
     if (n_connections == 1) {
