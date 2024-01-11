@@ -19,7 +19,7 @@ class Zmatrix {
     /// Set debug level
     void SetDebug(int d) { debug_ = d; }
     /// Print to stdout
-    void print(Topology*) const;
+    void print(Topology const*) const;
     /// Print to stdout, no atom names
     void print() const { print(0); }
 

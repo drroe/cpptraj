@@ -93,7 +93,7 @@ std::vector<int> Zmatrix::AtomI_indices(int atomi) const {
 }
 
 /** Print to stdout */
-void Zmatrix::print(Topology* topIn) const {
+void Zmatrix::print(Topology const* topIn) const {
   mprintf("%zu internal coords.\n", IC_.size());
   mprintf("Seed IC indices    : %i %i %i\n", icseed0_+1, icseed1_+1, icseed2_+1);
   mprintf("Seed Cart. indices : %i %i %i\n", seedAt0_+1, seedAt1_+1, seedAt2_+1);
