@@ -192,6 +192,10 @@ void Zmatrix::addIc(int at0, int at1, int at2, int at3,
                                 Torsion(xyz0, xyz1, xyz2, xyz3) * Constants::RADDEG) );
 }
 
+void Zmatrix::addIc(int at0, int at1, int at2, int at3, Frame const& frameIn) {
+  addIc(at0, at1, at2, at3, frameIn.XYZ(at0), frameIn.XYZ(at1), frameIn.XYZ(at2), frameIn.XYZ(at3));
+}
+
 /** Set seeds as 3 consecutive atoms from mol 0 for which positions are known. */
 int Zmatrix::AutoSetSeedsWithPositions(Frame const& frameIn, Topology const& topIn, int ires, Barray const& positionKnown)
 {
@@ -436,7 +440,7 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
     }
     // Create ICs for 1 bond atoms
     for (Iarray::const_iterator atI = OneBondAtoms.begin(); atI != OneBondAtoms.end(); ++atI) {
-      addIc(*atI, atJ, atK, atL, frameIn.XYZ(*atI), frameIn.XYZ(atJ), frameIn.XYZ(atK), frameIn.XYZ(atL));
+      addIc(*atI, atJ, atK, atL, frameIn);
       if (debug_ > 1) {
         mprintf("DEBUG: Added (1 atom) ");
         IC_.back().printIC(topIn);
@@ -463,7 +467,7 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
                   topIn.AtomMaskName(p.al_).c_str());
         }
         if (!hasIC[p.ai_]) {
-          addIc(p.ai_, p.aj_, p.ak_, p.al_, frameIn.XYZ(p.ai_), frameIn.XYZ(p.aj_), frameIn.XYZ(p.ak_), frameIn.XYZ(p.al_));
+          addIc(p.ai_, p.aj_, p.ak_, p.al_, frameIn);
           if (debug_ > 1) {
             mprintf("DEBUG: Added (stack) ");
             IC_.back().printIC(topIn);
@@ -501,7 +505,7 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
       }
       // Add lowest index as IC
       if (!hasIC[atI]) {
-        addIc(atI, atJ, atK, atL, frameIn.XYZ(atI), frameIn.XYZ(atJ), frameIn.XYZ(atK), frameIn.XYZ(atL));
+        addIc(atI, atJ, atK, atL, frameIn);
         if (debug_ > 1) {
           mprintf("DEBUG: Added (next) ");
           IC_.back().printIC(topIn);
@@ -576,8 +580,57 @@ int Zmatrix::addInternalCoordForAtom(int iat, Frame const& frameIn, Topology con
   if (maxScore == -1) {
     mprintf("Warning: Unable to define IC for atom %s\n", topIn.AtomMaskName(iat).c_str());
   } else {
-      addIc( iat, maxAtj, maxAtk, maxAtl, frameIn.XYZ(iat), frameIn.XYZ(maxAtj), frameIn.XYZ(maxAtk), frameIn.XYZ(maxAtl) );
+      addIc( iat, maxAtj, maxAtk, maxAtl, frameIn );
   }
+  return 0;
+}
+
+/** Set up Zmatrix from Cartesian coordinates and topology.
+  * Use torsions based on bonds to create a complete set of ICs.
+  */
+int Zmatrix::SetFromFrameAndBonds(Frame const& frameIn, Topology const& topIn, int molnum)
+{
+  if (molnum < 0) {
+    mprinterr("Internal Error: Zmatrix::SetFromFrame(): Negative molecule index.\n");
+    return 1;
+  }
+  if (topIn.Nmol() < 1) {
+    mprinterr("Internal Error: Zmatrix::SetFromFrame(): No molecules.\n");
+    return 1;
+  }
+  clear();
+
+  IC_.clear();
+  Molecule const& currentMol = topIn.Mol(molnum);
+
+  for (Unit::const_iterator seg = currentMol.MolUnit().segBegin();
+                            seg != currentMol.MolUnit().segEnd(); ++seg)
+  {
+    for (int iat1 = seg->Begin(); iat1 != seg->End(); ++iat1)
+    {
+      Atom const& At1 = topIn[iat1];
+      for (int bidx1 = 0; bidx1 < At1.Nbonds(); bidx1++) {
+        int iat2 = At1.Bond(bidx1);
+        Atom const& At2 = topIn[iat2];
+        for (int bidx2 = 0; bidx2 < At2.Nbonds(); bidx2++) {
+          int iat3 = At2.Bond(bidx2);
+          if (iat3 != iat1) {
+            Atom const& At3 = topIn[iat3];
+            for (int bidx3 = 0; bidx3 < At3.Nbonds(); bidx3++) {
+              int iat4 = At3.Bond(bidx3);
+              if (iat4 != iat2 && iat1 < iat4) {
+                mprintf("DEBUG: DIHEDRAL  %i - %i - %i - %i (%i %i %i %i)\n", iat1+1, iat2+1, iat3+1, iat4+1, iat1*3, iat2*3, iat3*3, iat4*3);
+                //out.push_back( DihedralType( iat1, iat2, iat3, iat4, -1 ) );
+                addIc(iat1, iat2, iat3, iat4, frameIn);
+                addIc(iat4, iat3, iat2, iat1, frameIn);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   return 0;
 }
 
@@ -663,7 +716,7 @@ int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int
           //     I
           //     |
           // L - K - J
-          addIc(*bat, seedAt2_, seedAt1_, seedAt0_, frameIn.XYZ(*bat), frameIn.XYZ(seedAt2_), frameIn.XYZ(seedAt1_), frameIn.XYZ(seedAt0_));
+          addIc(*bat, seedAt2_, seedAt1_, seedAt0_, frameIn);
           MARK(*bat, hasIC, nHasIC);
           // Follow improper branch if needed: L - K - I - ?
           if (traceMol(seedAt0_, seedAt1_, *bat, frameIn, topIn, maxnatom, nHasIC, hasIC)) return 1;
@@ -676,7 +729,7 @@ int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int
     mprintf("Warning: Not all atoms have an associated internal coordinate.\n");
   }
   // Add ICs for seeds
-  if (maxnatom > 3) {
+  /*if (maxnatom > 3) {
     //Atom const& SA0 = topIn[seedAt0_];
     //Atom const& SA1 = topIn[seedAt1_];
     //Atom const& SA2 = topIn[seedAt2_];
@@ -684,19 +737,7 @@ int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int
     addInternalCoordForAtom(seedAt0_, frameIn, topIn);
     addInternalCoordForAtom(seedAt1_, frameIn, topIn);
     addInternalCoordForAtom(seedAt2_, frameIn, topIn);
-/*    if (SA2.Nbonds() < 2)
-      mprintf("Warning: Third seed atom has only one bond. Cannot create full IC for seed 0.\n");
-    else {
-      int at3;
-      for (Atom::bond_iterator bat = SA2.bondbegin(); bat != SA2.bondend(); ++bat) {
-        if (*bat != seedAt1_ && *bat != seedAt0_) {
-          at3 = *bat;
-          break;
-        }
-      }
-      addIc( seedAt0_, seedAt1_, seedAt2_, at3, frameIn.XYZ(seedAt0_), frameIn.XYZ(seedAt1_), frameIn.XYZ(seedAt2_), frameIn.XYZ(at3) );
-    }*/
-  }
+  }*/
   return 0;
 }
 
@@ -1039,16 +1080,45 @@ int Zmatrix::SetToFrame(Frame& frameOut, Barray& hasPosition) const {
 //  if (debug_ > 0) mprintf("DEBUG: Lowest unused IC: %u\n", lowestUnusedIC+1);
 
   // Out of the remaining ICs, count which ones do not have positions set.
-  unsigned int remainingPositionsToSet = 0;
+  Iarray positionsToSet;
+  //unsigned int remainingPositionsToSet = 0;
   for (unsigned int icIdx = 0; icIdx != IC_.size(); ++icIdx) {
     if (!isUsed[icIdx] && !hasPosition[IC_[icIdx].AtI()]) {
-      remainingPositionsToSet++;
-      mprintf("DEBUG:\t\tAtom %i needs its position set.\n", IC_[icIdx].AtI()+1);
+      Iarray::const_iterator it = std::find(positionsToSet.begin(), positionsToSet.end(), IC_[icIdx].AtI());
+      if (it == positionsToSet.end()) {
+        positionsToSet.push_back( IC_[icIdx].AtI() );
+        mprintf("DEBUG:\t\tAtom %i needs its position set.\n", IC_[icIdx].AtI()+1);
+      }
     }
   }
-  mprintf("DEBUG: %u positions to set.\n", remainingPositionsToSet);
+  mprintf("DEBUG: %zu positions to set.\n", positionsToSet.size());
 
-  while (remainingPositionsToSet > 0 && Nused < IC_.size()) {
+  //while (remainingPositionsToSet > 0 && Nused < IC_.size()) {
+  Iarray::const_iterator at_with_unset_pos = positionsToSet.begin();
+  while (Nused < IC_.size()) {
+    // Get next atom that needs its position set
+    for (; at_with_unset_pos != positionsToSet.end(); ++at_with_unset_pos)
+      if (!hasPosition[*at_with_unset_pos]) break;
+    if (at_with_unset_pos == positionsToSet.end()) {
+      mprintf("DEBUG: No more positions to set.\n");
+      break;
+    }
+    mprintf("DEBUG: Setting position of atom %i\n", (*at_with_unset_pos) + 1);
+    // Get IC that corresponds to this atom
+    int icIdx = -1;
+    for (unsigned int idx = 0; idx != IC_.size(); ++idx) {
+      if (IC_[idx].AtI() == *at_with_unset_pos) {
+        // All 3 of the connecting atoms must be set
+        if (hasPosition[ IC_[idx].AtJ() ] &&
+            hasPosition[ IC_[idx].AtK() ] &&
+            hasPosition[ IC_[idx].AtL() ])
+        {
+          icIdx = (int)idx;
+          break;
+        }
+      }
+    }
+/*
     // Get the next IC with a position to set
     int icIdx = -1;
     for (unsigned int idx = 0; idx != IC_.size(); ++idx) {
@@ -1064,10 +1134,15 @@ int Zmatrix::SetToFrame(Frame& frameOut, Barray& hasPosition) const {
           mprintf("DEBUG:\t\tIC %u is missing atoms.\n", idx+1);
         }
       }
-    }
+    }*/
     if (icIdx < 0) {
-      mprinterr("Error: Could not find next IC to use.\n");
-      return 1;
+      mprintf("DEBUG: Could not find complete IC yet.\n");
+      ++at_with_unset_pos;
+      if (at_with_unset_pos == positionsToSet.end()) {
+        mprinterr("Error: Could not find next IC to use.\n");
+        return 1;
+      }
+      continue; // FIXME
     }
     if (debug_ > 0) mprintf("DEBUG: Next IC to use is %i\n", icIdx+1);
     InternalCoords const& ic = IC_[icIdx];
@@ -1075,8 +1150,10 @@ int Zmatrix::SetToFrame(Frame& frameOut, Barray& hasPosition) const {
 
     frameOut.SetXYZ( ic.AtI(), posI );
     hasPosition[ ic.AtI() ] = true;
-    remainingPositionsToSet--;
+    //remainingPositionsToSet--;
     MARK(icIdx, isUsed, Nused);
+    // Go back to start, new ICs may now be enabled
+    at_with_unset_pos = positionsToSet.begin();
   } // END loop over remaining positions
 /*
   // Loop over remaining ICs 
