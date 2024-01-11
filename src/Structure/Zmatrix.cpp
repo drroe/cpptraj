@@ -561,12 +561,12 @@ int Zmatrix::addInternalCoordForAtom(int iat, Frame const& frameIn, Topology con
               maxAtk = *kat;
               maxAtl = *lat;
             }
-            mprintf("DEBUG: Potential IC for %s [ %s - %s - %s ] score= %i\n",
-                    topIn.AtomMaskName(iat).c_str(),
-                    topIn.AtomMaskName(*jat).c_str(),
-                    topIn.AtomMaskName(*kat).c_str(),
-                    topIn.AtomMaskName(*lat).c_str(),
-                    nbondScore);
+            //mprintf("DEBUG: Potential IC for %s [ %s - %s - %s ] score= %i\n",
+            //        topIn.AtomMaskName(iat).c_str(),
+            //        topIn.AtomMaskName(*jat).c_str(),
+            //        topIn.AtomMaskName(*kat).c_str(),
+            //        topIn.AtomMaskName(*lat).c_str(),
+            //        nbondScore);
           }
         }
       }
