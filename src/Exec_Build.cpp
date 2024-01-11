@@ -48,10 +48,12 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
                                        Carray const& Templates,
                                        Topology const& topIn, Frame const& frameIn)
 {
-  // Determine which residues are terminal
   typedef std::vector<int> Iarray;
   typedef std::vector<Iarray> IIarray;
-  IIarray terminalResidues( topIn.Nmol() );
+  // Determine which residues are terminal
+  IIarray molTermResidues( topIn.Nmol() );
+  // Track residue connections
+  IIarray resConnections( topIn.Nres() );
   for (int ires = 0; ires != topIn.Nres(); ires++)
   {
     Residue const& currentRes = topIn.Res(ires);
@@ -61,24 +63,36 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       if (topIn[at].Element() != Atom::HYDROGEN && topIn[at].Nbonds() > 1) {
         for (Atom::bond_iterator bat = topIn[at].bondbegin(); bat != topIn[at].bondend(); ++bat)
         {
-          if (topIn[*bat].ResNum() != topIn[at].ResNum())
+          if (topIn[*bat].ResNum() != topIn[at].ResNum()) {
             n_connections++;
+            resConnections[ ires ].push_back( topIn[*bat].ResNum() );
+          }
         }
       }
     }
     mprintf("DEBUG: Res %s has %i connections.\n", topIn.TruncResNameNum(ires).c_str(), n_connections);
     if (n_connections == 1) {
       int molnum = topIn[currentRes.FirstAtom()].MolNum();
-      terminalResidues[ molnum ].push_back( ires );
+      molTermResidues[ molnum ].push_back( ires );
     }
   }
+  // DEBUG Print residue connections
+  mprintf("DEBUG: Residue connections:\n");
+  for (IIarray::const_iterator rit = resConnections.begin(); rit != resConnections.end(); ++rit)
+  {
+    mprintf("DEBUG:\t\t%s to", topIn.TruncResNameNum(rit-resConnections.begin()).c_str());
+    for (Iarray::const_iterator it = rit->begin(); it != rit->end(); ++it)
+      mprintf(" %s", topIn.TruncResNameNum( *it ).c_str());
+    mprintf("\n");
+  }
+  // Set residue terminal status
   enum TermType { BEG_TERMINAL = 0, REGULAR, END_TERMINAL };
   typedef std::vector<TermType> Tarray;
   Tarray residueTerminalStatus( topIn.Nres(), REGULAR );
   mprintf("\tTerminal residues:\n");
-  for (IIarray::const_iterator mit = terminalResidues.begin(); mit != terminalResidues.end(); ++mit)
+  for (IIarray::const_iterator mit = molTermResidues.begin(); mit != molTermResidues.end(); ++mit)
   {
-    mprintf("\t\tMol %li:", mit - terminalResidues.begin() + 1);
+    mprintf("\t\tMol %li:", mit - molTermResidues.begin() + 1);
     for (Iarray::const_iterator it = mit->begin(); it != mit->end(); ++it) {
       mprintf(" %s", topIn.TruncResNameNum( *it ).c_str());
       if (it == mit->begin())
@@ -280,6 +294,8 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   {
     Cpptraj::Structure::Zmatrix* zmatrix = *it;
     if (zmatrix != 0) {
+      // Create zmatrix with previous residue if needed
+      
       // Update zmatrix seeds
       if (zmatrix->AutoSetSeedsWithPositions( frameOut, topOut, it - ResZmatrices.begin(), hasPosition )) {
         mprinterr("Error: Could not set up seed atoms for Zmatrix.\n");

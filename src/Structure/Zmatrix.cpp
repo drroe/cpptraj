@@ -1038,8 +1038,10 @@ int Zmatrix::SetToFrame(Frame& frameOut, Barray& hasPosition) const {
   // Out of the remaining ICs, count which ones do not have positions set.
   unsigned int remainingPositionsToSet = 0;
   for (unsigned int icIdx = 0; icIdx != IC_.size(); ++icIdx) {
-    if (!isUsed[icIdx] && !hasPosition[IC_[icIdx].AtI()])
+    if (!isUsed[icIdx] && !hasPosition[IC_[icIdx].AtI()]) {
       remainingPositionsToSet++;
+      mprintf("DEBUG:\t\tAtom %i needs its position set.\n", IC_[icIdx].AtI());
+    }
   }
   mprintf("DEBUG: %u positions to set.\n", remainingPositionsToSet);
 
