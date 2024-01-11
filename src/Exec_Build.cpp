@@ -295,6 +295,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     long int ires = it-ResZmatrices.begin();
     Cpptraj::Structure::Zmatrix* zmatrix = *it;
     if (zmatrix != 0) {
+      mprintf("DEBUG: BUILD residue %li %s\n", ires + 1, topOut.TruncResNameNum(ires).c_str());
       // Update zmatrix seeds
       if (zmatrix->AutoSetSeedsWithPositions( frameOut, topOut, ires, hasPosition )) {
         mprinterr("Error: Could not set up seed atoms for Zmatrix.\n");
