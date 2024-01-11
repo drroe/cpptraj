@@ -721,9 +721,10 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
                                 BuildAtom const& AtomA, BuildAtom const& AtomB)
 {
   if (debug_ > 0)
-    mprintf("DEBUG: SetupICsAroundBond: atA= %s (%i)  atB= %s (%i)\n",
+    mprintf("DEBUG: SetupICsAroundBond: atA= %s (%i)  atB= %s (%i) total # atoms %i\n",
             topIn.AtomMaskName(atA).c_str(), atA+1,
-            topIn.AtomMaskName(atB).c_str(), atB+1);
+            topIn.AtomMaskName(atB).c_str(), atB+1,
+            topIn.Natom());
   IC_.clear();
 
   Barray hasIC( topIn.Natom(), false );
@@ -732,6 +733,7 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
   for (std::vector<bool>::const_iterator it = atomPositionKnown.begin();
                                          it != atomPositionKnown.end(); ++it)
   {
+    //mprintf("DEBUG: MARKING KNOWN ATOMS. %li\n", it - atomPositionKnown.begin());
     if (*it) MARK( it - atomPositionKnown.begin(), hasIC, nHasIC );
   }
 
