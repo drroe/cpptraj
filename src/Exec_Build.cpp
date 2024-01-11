@@ -70,7 +70,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
         }
       //}
     }
-    mprintf("DEBUG: Res %s has %i connections.\n", topIn.TruncResNameNum(ires).c_str(), n_connections);
+    mprintf("DEBUG: Res %s has %i connections.\n", topIn.TruncResNameOnumId(ires).c_str(), n_connections);
     if (n_connections == 1) {
       int molnum = topIn[currentRes.FirstAtom()].MolNum();
       molTermResidues[ molnum ].push_back( ires );
@@ -80,9 +80,9 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   mprintf("DEBUG: Residue connections:\n");
   for (IIarray::const_iterator rit = resConnections.begin(); rit != resConnections.end(); ++rit)
   {
-    mprintf("DEBUG:\t\t%s to", topIn.TruncResNameNum(rit-resConnections.begin()).c_str());
+    mprintf("DEBUG:\t\t%s to", topIn.TruncResNameOnumId(rit-resConnections.begin()).c_str());
     for (Iarray::const_iterator it = rit->begin(); it != rit->end(); ++it)
-      mprintf(" %s", topIn.TruncResNameNum( *it ).c_str());
+      mprintf(" %s", topIn.TruncResNameOnumId( *it ).c_str());
     mprintf("\n");
   }
   // Set residue terminal status
@@ -94,7 +94,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   {
     mprintf("\t\tMol %li:", mit - molTermResidues.begin() + 1);
     for (Iarray::const_iterator it = mit->begin(); it != mit->end(); ++it) {
-      mprintf(" %s", topIn.TruncResNameNum( *it ).c_str());
+      mprintf(" %s", topIn.TruncResNameOnumId( *it ).c_str());
       if (it == mit->begin())
         residueTerminalStatus[*it] = BEG_TERMINAL;
       else
@@ -115,11 +115,11 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     Residue const& currentRes = topIn.Res(ires);
     DataSet_Coords* resTemplate = IdTemplateFromName(Templates, currentRes.Name());
     if (resTemplate == 0) {
-      mprintf("Warning: No template found for residue %s\n", topIn.TruncResNameNum(ires).c_str());
+      mprintf("Warning: No template found for residue %s\n", topIn.TruncResNameOnumId(ires).c_str());
       newNatom += currentRes.NumAtoms();
     } else {
       mprintf("\tTemplate %s being used for residue %s\n",
-              resTemplate->legend(), topIn.TruncResNameNum(ires).c_str());
+              resTemplate->legend(), topIn.TruncResNameOnumId(ires).c_str());
       newNatom += resTemplate->Top().Natom();
     }
     ResTemplates.push_back( resTemplate );
@@ -148,8 +148,9 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   int nRefAtomsMissing = 0;
   for (int ires = 0; ires != topIn.Nres(); ires++)
   {
-    mprintf("\tAdding atoms for residue %s\n", topIn.TruncResNameNum(ires).c_str());
+    mprintf("\tAdding atoms for residue %s\n", topIn.TruncResNameOnumId(ires).c_str());
     int atomOffset = topOut.Natom();
+    mprintf("DEBUG: atom offset is %i\n", atomOffset);
     Residue const& currentRes = topIn.Res(ires);
     DataSet_Coords* resTemplate = ResTemplates[ires];
     // For holding bonded atom pairs
@@ -158,6 +159,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     IParray intraResBonds;
     if (resTemplate == 0) {
       // No template. Just add the atoms.
+      ResZmatrices.push_back( 0 );
       for (int itgt = currentRes.FirstAtom(); itgt != currentRes.LastAtom(); ++itgt)
       {
         // Track intra-residue bonds
@@ -249,19 +251,24 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
           mprinterr("Error: Could not set up residue template zmatrix.\n");
           return 1;
         }
-        //zmatrix->print( resTemplate->TopPtr() );
+        zmatrix->print( resTemplate->TopPtr() );
         zmatrix->OffsetIcIndices( atomOffset );
         ResZmatrices.push_back( zmatrix );
-        //zmatrix->print( &topOut );
+        zmatrix->print( &topOut );
+        for (Iarray::const_iterator jres = resConnections[ires].begin();
+                                    jres != resConnections[ires].end(); ++jres)
+        {
+          mprintf("DEBUG:\t\tConnected residue %s\n", topIn.TruncResNameOnumId(*jres).c_str());
+        }
       } else
         ResZmatrices.push_back( 0 );
     } // END template exists
     // Add intra-residue bonds
     for (IParray::const_iterator it = intraResBonds.begin(); it != intraResBonds.end(); ++it)
     {
-      mprintf("DEBUG: Intra-res bond: Res %s atom %s to res %s atom %s\n",
-              topOut.TruncResNameNum(topOut[it->first].ResNum()).c_str(), *(topOut[it->first].Name()),
-              topOut.TruncResNameNum(topOut[it->second].ResNum()).c_str(), *(topOut[it->second].Name()));
+      //mprintf("DEBUG: Intra-res bond: Res %s atom %s to res %s atom %s\n",
+      //        topOut.TruncResNameOnumId(topOut[it->first].ResNum()).c_str(), *(topOut[it->first].Name()),
+      //        topOut.TruncResNameOnumId(topOut[it->second].ResNum()).c_str(), *(topOut[it->second].Name()));
       topOut.AddBond(it->first, it->second);
     }
   } // END loop over source residues
@@ -287,6 +294,10 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     topOut.AddBond(at0, at1);
   }
   mprintf("\t%i template atoms missing in source.\n", nRefAtomsMissing);
+  if (hasPosition.size() != (unsigned int)newNatom) {
+    mprinterr("Internal Error: hasPosition size %zu != newNatom size %i\n", hasPosition.size(), newNatom);
+    return 1;
+  }
 
   // Build using internal coords if needed.
   bool buildFailed = false;
@@ -295,19 +306,19 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     long int ires = it-ResZmatrices.begin();
     Cpptraj::Structure::Zmatrix* zmatrix = *it;
     if (zmatrix != 0) {
-      mprintf("DEBUG: BUILD residue %li %s\n", ires + 1, topOut.TruncResNameNum(ires).c_str());
+      mprintf("DEBUG: BUILD residue %li %s\n", ires + 1, topOut.TruncResNameOnumId(ires).c_str());
       // Update zmatrix seeds
       if (zmatrix->AutoSetSeedsWithPositions( frameOut, topOut, ires, hasPosition )) {
         mprinterr("Error: Could not set up seed atoms for Zmatrix.\n");
         buildFailed = true;
       } else {
         mprintf("DEBUG: Zmatrix for building residue %li %s\n", ires + 1,
-                topOut.TruncResNameNum(ires).c_str());
+                topOut.TruncResNameOnumId(ires).c_str());
         zmatrix->print(&topOut);
         zmatrix->SetDebug( 1 ); // DEBUG
         if (zmatrix->SetToFrame( frameOut, hasPosition )) {
           mprinterr("Error: Building residue %s failed.\n",
-                    topOut.TruncResNameNum(ires).c_str());
+                    topOut.TruncResNameOnumId(ires).c_str());
           buildFailed = true;
         }
       }
