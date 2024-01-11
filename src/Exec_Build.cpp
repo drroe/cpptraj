@@ -247,7 +247,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
         Frame templateFrame = resTemplate->AllocateFrame();
         resTemplate->GetFrame( 0, templateFrame );
         Cpptraj::Structure::Zmatrix* zmatrix = new Cpptraj::Structure::Zmatrix();
-        if (zmatrix->SetFromFrame( templateFrame, resTemplate->Top(), 0 )) {
+        if (zmatrix->SetFromFrameAndBonds( templateFrame, resTemplate->Top(), 0 )) {
           mprinterr("Error: Could not set up residue template zmatrix.\n");
           return 1;
         }
@@ -312,10 +312,10 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     if (zmatrix != 0) {
       mprintf("DEBUG: BUILD residue %li %s\n", ires + 1, topOut.TruncResNameOnumId(ires).c_str());
       // Update zmatrix seeds
-      if (zmatrix->AutoSetSeedsWithPositions( frameOut, topOut, ires, hasPosition )) {
-        mprinterr("Error: Could not set up seed atoms for Zmatrix.\n");
-        buildFailed = true;
-      } else {
+      //if (zmatrix->AutoSetSeedsWithPositions( frameOut, topOut, ires, hasPosition )) {
+      //  mprinterr("Error: Could not set up seed atoms for Zmatrix.\n");
+      //  buildFailed = true;
+      //} else {
         mprintf("DEBUG: Zmatrix for building residue %li %s\n", ires + 1,
                 topOut.TruncResNameOnumId(ires).c_str());
         zmatrix->print(&topOut);
@@ -325,7 +325,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
                     topOut.TruncResNameOnumId(ires).c_str());
           buildFailed = true;
         }
-      }
+      //}
     }
   }
 
