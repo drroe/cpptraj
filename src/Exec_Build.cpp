@@ -298,6 +298,10 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     mprinterr("Internal Error: hasPosition size %zu != newNatom size %i\n", hasPosition.size(), newNatom);
     return 1;
   }
+  if (ResZmatrices.size() != (unsigned int)topOut.Nres()) {
+    mprinterr("Internal Error: ResZmatrices size %zu != newNres size %i\n", ResZmatrices.size(), topOut.Nres());
+    return 1;
+  }
 
   // Build using internal coords if needed.
   bool buildFailed = false;
