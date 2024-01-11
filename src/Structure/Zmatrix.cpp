@@ -214,6 +214,7 @@ int Zmatrix::autoSetSeeds_withPositions(Frame const& frameIn, Topology const& to
     mprinterr("Internal Error: Zmatrix::autoSetSeeds_withPositions() called with start <= end atom.\n");
     return 1;
   }
+  mprintf("DEBUG: autoSetSeeds_withPositions from atoms %s to %s\n", topIn.AtomMaskName(startAtom).c_str(), topIn.AtomMaskName(endAtom-1).c_str());
   // Special cases
   if (numAtoms == 1) {
     seedAt0_ = startAtom;
@@ -1042,7 +1043,7 @@ int Zmatrix::SetToFrame(Frame& frameOut, Barray& hasPosition) const {
   for (unsigned int icIdx = 0; icIdx != IC_.size(); ++icIdx) {
     if (!isUsed[icIdx] && !hasPosition[IC_[icIdx].AtI()]) {
       remainingPositionsToSet++;
-      mprintf("DEBUG:\t\tAtom %i needs its position set.\n", IC_[icIdx].AtI());
+      mprintf("DEBUG:\t\tAtom %i needs its position set.\n", IC_[icIdx].AtI()+1);
     }
   }
   mprintf("DEBUG: %u positions to set.\n", remainingPositionsToSet);
