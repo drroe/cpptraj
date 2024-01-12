@@ -191,6 +191,8 @@ class Parm_Amber : public ParmIO {
     bool writeChamber_;     ///< If true write CHAMBER info
     bool writeEmptyArrays_; ///< If true try to write TREE, IROTATE, JOIN even if not present 
     bool writePdbInfo_;     ///< If true write chain IDs etc
+
+    bool has_valid_nonbond_params_; ///< Will set to false if invalid nonbonds detected on read
 };
 // -----------------------------------------------------------------------------
 class Parm_Amber::FortranData {

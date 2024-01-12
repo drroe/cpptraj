@@ -167,7 +167,8 @@ Parm_Amber::Parm_Amber() :
   N_impTerms_(0),
   writeChamber_(true),
   writeEmptyArrays_(false),
-  writePdbInfo_(true)
+  writePdbInfo_(true),
+  has_valid_nonbond_params_(true)
 {
   UB_count_[0] = 0;
   UB_count_[1] = 0;
@@ -248,6 +249,11 @@ int Parm_Amber::ReadParm(FileName const& fname, Topology& TopIn ) {
   else
     err = ReadNewParm( TopIn );
   if (err != 0) return 1;
+  // If nonbond info is invalid, clear it
+  if (!has_valid_nonbond_params_) {
+    mprintf("Warning: Topology '%s' has invalid nonbond parameters. Clearing.\n", fname.full());
+    TopIn.SetNonbond().Clear();
+  }
   // Determine Atom elements
   if (atomicNums_.empty()) {
     mprintf("\tThis Amber topology does not include atomic numbers.\n"
@@ -737,8 +743,14 @@ int Parm_Amber::ReadAtomicMass(Topology& TopIn, FortranData const& FMT) {
   */
 int Parm_Amber::ReadAtomTypeIndex(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_ATYPEIDX, values_[NATOM], FMT)) return 1;
-  for (int idx = 0; idx != values_[NATOM]; idx++)
-    TopIn.SetAtom(idx).SetTypeIndex( atoi(file_.NextElement()) - 1 );
+  for (int idx = 0; idx != values_[NATOM]; idx++) {
+    int atypeIdx = atoi(file_.NextElement());
+    if (atypeIdx < 1) {
+      mprintf("Warning: Bad atom type index < 1 (%i) for atom %i\n", atypeIdx, idx+1);
+      has_valid_nonbond_params_ = false;
+    }
+    TopIn.SetAtom(idx).SetTypeIndex( atypeIdx - 1 );
+  }
   return 0;
 }
 
