@@ -175,7 +175,7 @@ const
 }
 
 /** LEaP addPdbResMap command. */
-int DataIO_LeapRC::AddPdbResMap(BufferedLine& infile)
+int DataIO_LeapRC::AddPdbResMap(PdbResMapArray& pdbResMap, BufferedLine& infile)
 const
 {
   int bracketCount = 0;
@@ -193,6 +193,25 @@ const
         if (bracketCount == 1) {
           mprintf("DEBUG: addPdbResMap: %s\n", tmp.c_str());
           ArgList aline( tmp );
+          // 3 tokens: terminal type (0=beg 1=end), PDB name, unit name
+          if (aline.Nargs() != 3) {
+            mprinterr("Error: Malformed entry in addPdbResMap: %s\n", tmp.c_str());
+            return 1;
+          }
+          Cpptraj::Structure::TerminalType termType = Cpptraj::Structure::NON_TERMINAL;
+          if (aline[0] == "0")
+            termType = Cpptraj::Structure::BEG_TERMINAL;
+          else if (aline[0] == "1")
+            termType = Cpptraj::Structure::END_TERMINAL;
+          else
+            mprintf("Warning: Unrecognized terminal type in addPdbResMap: %s\n", aline[0].c_str());
+          if (termType != Cpptraj::Structure::NON_TERMINAL) {
+            PdbResMapType prm;
+            prm.termType_ = termType;
+            prm.pdbName_ = aline[1];
+            prm.unitName_ = aline[2];
+            pdbResMap.push_back( prm );
+          }
           tmp.clear();
         }
       } else {
@@ -259,6 +278,7 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
   DataSetList paramDSL;
   DataSetList unitDSL;
   NHarrayType atomHybridizations;
+  PdbResMapArray pdbResMap;
   int err = 0;
   const char* ptr = infile.Line();
   while (ptr != 0) {
@@ -280,7 +300,7 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
       else if (line.Contains("addAtomTypes") || line.Contains("addatomtypes"))
         err = AddAtomTypes(atomHybridizations, infile);
       else if (line.Contains("addPdbResMap") || line.Contains("addpdbresmap"))
-        err = AddPdbResMap(infile);
+        err = AddPdbResMap(pdbResMap, infile);
     }
     if (err != 0) break;
     ptr = infile.Line();
@@ -304,7 +324,13 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
       }
     }
   }
-
+//            // Find the unit in unit DSL
+//            DataSet* ds = unitDSL.CheckForSet( MetaData(dsname, aline[2]) );
+//            if (ds == 0) {
+//             mprintf("Warning: Unit '%s' was not found among loaded units.\n", aline[2].c_str());
+//            } else {
+//              mprintf("DEBUG: Found unit %s\n", ds->legend());
+//            }
   // Add data sets to the main data set list
   if (addSetsToList(dsl, paramDSL)) return err+1;
 

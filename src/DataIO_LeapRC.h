@@ -1,6 +1,7 @@
 #ifndef INC_DATAIO_LEAPRC_H
 #define INC_DATAIO_LEAPRC_H
 #include "DataIO.h"
+#include "Structure/StructureEnum.h"
 #include <map>
 class BufferedLine;
 /// Read parameters and units from a leap rc file 
@@ -19,11 +20,18 @@ class DataIO_LeapRC : public DataIO {
     typedef std::pair<NameType, AtomType::HybridizationType> NHpairType;
     typedef std::map<NameType, AtomType::HybridizationType> NHarrayType;
 
+    struct PdbResMapType {
+      std::string unitName_;
+      NameType pdbName_;
+      Cpptraj::Structure::TerminalType termType_;
+    };
+    typedef std::vector<PdbResMapType> PdbResMapArray;
+
     int LoadAmberParams(std::string const&, DataSetList&, std::string const&) const;
     int LoadOFF(std::string const&, DataSetList&, std::string const&) const;
     int LoadAmberPrep(std::string const&, DataSetList&, std::string const&) const;
     int AddAtomTypes(NHarrayType&, BufferedLine&) const;
-    int AddPdbResMap(BufferedLine&) const;
+    int AddPdbResMap(PdbResMapArray&, BufferedLine&) const;
 
     std::string amberhome_;
 };
