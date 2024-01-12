@@ -23,6 +23,7 @@ class DataIO_LeapRC : public DataIO {
     int LoadOFF(std::string const&, DataSetList&, std::string const&) const;
     int LoadAmberPrep(std::string const&, DataSetList&, std::string const&) const;
     int AddAtomTypes(NHarrayType&, BufferedLine&) const;
+    int AddPdbResMap(BufferedLine&) const;
 
     std::string amberhome_;
 };

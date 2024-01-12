@@ -174,6 +174,49 @@ const
   return 0;
 }
 
+/** LEaP addPdbResMap command. */
+int DataIO_LeapRC::AddPdbResMap(BufferedLine& infile)
+const
+{
+  int bracketCount = 0;
+  // First line should contain the command
+  const char* line = infile.CurrentLine();
+  while (line != 0) {
+    // Process the line
+    std::string tmp;
+    for (const char* ptr = line; *ptr != '\0'; ++ptr)
+    {
+      if (*ptr == '{')
+        bracketCount++;
+      else if (*ptr == '}') {
+        bracketCount--;
+        if (bracketCount == 1) {
+          mprintf("DEBUG: addPdbResMap: %s\n", tmp.c_str());
+          ArgList aline( tmp );
+          tmp.clear();
+        }
+      } else {
+        if (bracketCount == 2)
+          tmp += *ptr;
+      }
+    }
+    if (bracketCount < 0) {
+      mprinterr("Error: Too many close brackets '}' in addPdbResMap command.\n");
+      return 1;
+    } else if (bracketCount == 0) {
+      break;
+    } //else {
+      //mprintf("DEBUG: addPdbResMap: %s\n", tmp.c_str());
+    //}
+    line = infile.Line();
+  }
+  if (bracketCount != 0) {
+    mprinterr("Error: Not enough close brackets '}' in addPdbResMap command.\n");
+    return 1;
+  }
+  return 0;
+}
+
 /// Move sets from paramDSL to dsl
 static inline int addSetsToList(DataSetList& dsl, DataSetList& paramDSL)
 {
@@ -236,6 +279,8 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
         err = LoadAmberPrep( line.GetStringKey("loadamberprep"), unitDSL, dsname );
       else if (line.Contains("addAtomTypes") || line.Contains("addatomtypes"))
         err = AddAtomTypes(atomHybridizations, infile);
+      else if (line.Contains("addPdbResMap") || line.Contains("addpdbresmap"))
+        err = AddPdbResMap(infile);
     }
     if (err != 0) break;
     ptr = infile.Line();
