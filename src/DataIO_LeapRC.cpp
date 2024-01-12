@@ -5,6 +5,7 @@
 #include "DataIO_AmberFrcmod.h"
 #include "DataIO_AmberLib.h"
 #include "DataIO_AmberPrep.h"
+#include "DataSet_Parameters.h"
 #include <cstdlib> //getenv
 
 /// CONSTRUCTOR
@@ -240,6 +241,24 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
     ptr = infile.Line();
   }
   infile.CloseFile();
+
+  // Update hybridizations for parameter atom types
+  for (DataSetList::const_iterator ds = paramDSL.begin(); ds != paramDSL.end(); ++ds)
+  {
+    if ( (*ds)->Type() == DataSet::PARAMETERS ) {
+      DataSet_Parameters& param = static_cast<DataSet_Parameters&>( *(*ds) );
+      mprintf("\tUpdating atom hybridizations in set %s\n", param.legend());
+      for (ParmHolder<AtomType>::iterator it = param.AT().begin();
+                                          it != param.AT().end(); ++it)
+      {
+        NHarrayType::const_iterator ah = atomHybridizations.find( it->first[0] );
+        if (ah == atomHybridizations.end())
+          mprintf("Warning: No hybridization set for atom type '%s'\n", *(it->first[0]));
+        else
+          it->second.SetHybridization( ah->second );
+      }
+    }
+  }
 
   // Add data sets to the main data set list
   if (addSetsToList(dsl, paramDSL)) return err+1;

@@ -46,6 +46,8 @@ class AtomType {
     }
     /// Used to modify LJ params
     LJparmType& SetLJ() { return lj_; }
+    /// Set atom hybridization
+    void SetHybridization(HybridizationType h) { hybrid_ = h; }
     /// \return data size  (2 double for LJparmType)
     static size_t DataSize() { return (4*sizeof(double)) + sizeof(int); }
   private:
