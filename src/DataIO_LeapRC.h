@@ -1,6 +1,7 @@
 #ifndef INC_DATAIO_LEAPRC_H
 #define INC_DATAIO_LEAPRC_H
 #include "DataIO.h"
+class BufferedLine;
 /// Read parameters and units from a leap rc file 
 class DataIO_LeapRC : public DataIO {
   public:
@@ -14,9 +15,13 @@ class DataIO_LeapRC : public DataIO {
     int WriteData(FileName const&, DataSetList const&);
     bool ID_DataFormat(CpptrajFile&);
   private:
+    typedef std::pair<NameType, AtomType::HybridizationType> NHpairType;
+    typedef std::vector<NHpairType> NHarrayType;
+
     int LoadAmberParams(std::string const&, DataSetList&, std::string const&) const;
     int LoadOFF(std::string const&, DataSetList&, std::string const&) const;
     int LoadAmberPrep(std::string const&, DataSetList&, std::string const&) const;
+    int AddAtomTypes(NHarrayType&, BufferedLine&) const;
 
     std::string amberhome_;
 };

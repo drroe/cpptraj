@@ -94,6 +94,73 @@ int DataIO_LeapRC::LoadAmberPrep(std::string const& filename, DataSetList& dsl, 
   return 0;
 }
 
+/** LEaP addAtomTypes command. */
+int DataIO_LeapRC::AddAtomTypes(NHarrayType& atomHybridizations, BufferedLine& infile)
+const
+{
+  int bracketCount = 0;
+  // First line should contain the command
+  const char* line = infile.CurrentLine();
+  while (line != 0) {
+    // Process the line
+    std::string tmp;
+    for (const char* ptr = line; *ptr != '\0'; ++ptr)
+    {
+      if (*ptr == '{')
+        bracketCount++;
+      else if (*ptr == '}') {
+        bracketCount--;
+        if (bracketCount == 1) {
+          mprintf("DEBUG: addAtomTypes: %s\n", tmp.c_str());
+          ArgList aline( tmp );
+          // Some entries (like LP and EP) are not required to have elements.
+          // Set the hybridization index to 1 or 2.
+          int hidx;
+          if (aline.Nargs() == 3)
+            hidx = 2;
+          else if (aline.Nargs() == 2)
+            hidx = 1;
+          else {
+            mprinterr("Error: Malformed addAtomTypes entry %s\n", tmp.c_str());
+            return 1;
+          }
+          AtomType::HybridizationType ht;
+          if (aline[hidx] == "sp3")
+            ht = AtomType::SP3;
+          else if (aline[hidx] == "sp2")
+            ht = AtomType::SP2;
+          else if (aline[hidx] == "sp")
+            ht = AtomType::SP;
+          else {
+            mprintf("Warning: Unknown hybridization in addAtomTypes entry %s\n", tmp.c_str());
+            ht = AtomType::UNKNOWN_HYBRIDIZATION;
+          }
+          atomHybridizations.push_back( NHpairType(aline[0], ht) );
+          tmp.clear();
+        }
+      } else {
+        if (bracketCount == 2)
+          tmp += *ptr;
+      }
+    }
+    if (bracketCount < 0) {
+      mprinterr("Error: Too many close brackets '}' in addAtomTypes command.\n");
+      return 1;
+    } else if (bracketCount == 0) {
+      break;
+    } //else {
+      //mprintf("DEBUG: addAtomTypes: %s\n", tmp.c_str());
+    //}
+    line = infile.Line();
+  }
+  if (bracketCount != 0) {
+    mprinterr("Error: Not enough close brackets '}' in addAtomTypes command.\n");
+    return 1;
+  }
+  mprintf("\tRead %zu atom hybridizations.\n", atomHybridizations.size());
+  return 0;
+}
+
 // DataIO_LeapRC::ReadData()
 int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
@@ -117,6 +184,7 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
     mprinterr("Error: Could not open leaprc file '%s'\n", fname.full());
     return 1;
   }
+  NHarrayType atomHybridizations;
   int err = 0;
   const char* ptr = infile.Line();
   while (ptr != 0) {
@@ -135,6 +203,8 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
         err = LoadAmberPrep( line.GetStringKey("loadAmberPrep"), dsl, dsname );
       else if (line.Contains("loadamberprep"))
         err = LoadAmberPrep( line.GetStringKey("loadamberprep"), dsl, dsname );
+      else if (line.Contains("addAtomTypes") || line.Contains("addatomtypes"))
+        err = AddAtomTypes(atomHybridizations, infile);
     }
     if (err != 0) break;
     ptr = infile.Line();
