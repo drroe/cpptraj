@@ -284,7 +284,6 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
   while (ptr != 0) {
     if (ptr[0] != '\0' && ptr[0] != '#') {
       ArgList line( ptr, " \t" );
-      std::string param_fname;
       if (line.Contains("loadAmberParams"))
         err = LoadAmberParams( line.GetStringKey("loadAmberParams"), paramDSL, dsname );
       else if (line.Contains("loadamberparams"))
@@ -301,6 +300,23 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
         err = AddAtomTypes(atomHybridizations, infile);
       else if (line.Contains("addPdbResMap") || line.Contains("addpdbresmap"))
         err = AddPdbResMap(pdbResMap, infile);
+      else {
+        // Does this line contain an equals sign?
+        bool has_equals = false;
+        for (const char* p = ptr; *p != '\0'; ++p) {
+          if (*p == '=') {
+            has_equals = true;
+            break;
+          }
+        }
+        // See if this is a unit alias
+        if (has_equals) {
+          ArgList equals(ptr, " =\t");
+          if (equals.Nargs() == 2) {
+            mprintf("DEBUG: %s = %s\n", equals[0].c_str(), equals[1].c_str());
+          }
+        }
+      }
     }
     if (err != 0) break;
     ptr = infile.Line();
