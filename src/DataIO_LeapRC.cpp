@@ -173,6 +173,22 @@ const
   return 0;
 }
 
+/// Move sets from paramDSL to dsl
+static inline int addSetsToList(DataSetList& dsl, DataSetList& paramDSL)
+{
+  // Add data sets to the main data set list
+  for (DataSetList::const_iterator ds = paramDSL.begin(); ds != paramDSL.end(); ++ds) {
+    DataSet* dtmp = dsl.CheckForSet( (*ds)->Meta() );
+    if (dtmp != 0) {
+      mprinterr("Error: Set '%s' already exists.\n", (*ds)->legend());
+      return 1;
+    }
+    dsl.AddSet( *ds );
+  }
+  paramDSL.SetHasCopies( true );
+  return 0;
+}
+
 // DataIO_LeapRC::ReadData()
 int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
@@ -196,6 +212,8 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
     mprinterr("Error: Could not open leaprc file '%s'\n", fname.full());
     return 1;
   }
+  DataSetList paramDSL;
+  DataSetList unitDSL;
   NHarrayType atomHybridizations;
   int err = 0;
   const char* ptr = infile.Line();
@@ -204,17 +222,17 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
       ArgList line( ptr, " \t" );
       std::string param_fname;
       if (line.Contains("loadAmberParams"))
-        err = LoadAmberParams( line.GetStringKey("loadAmberParams"), dsl, dsname );
+        err = LoadAmberParams( line.GetStringKey("loadAmberParams"), paramDSL, dsname );
       else if (line.Contains("loadamberparams"))
-        err = LoadAmberParams( line.GetStringKey("loadamberparams"), dsl, dsname );
+        err = LoadAmberParams( line.GetStringKey("loadamberparams"), paramDSL, dsname );
       else if (line.Contains("loadOff"))
-        err = LoadOFF( line.GetStringKey("loadOff"), dsl, dsname );
+        err = LoadOFF( line.GetStringKey("loadOff"), unitDSL, dsname );
       else if (line.Contains("loadoff"))
-        err = LoadOFF( line.GetStringKey("loadoff"), dsl, dsname );
+        err = LoadOFF( line.GetStringKey("loadoff"), unitDSL, dsname );
       else if (line.Contains("loadAmberPrep"))
-        err = LoadAmberPrep( line.GetStringKey("loadAmberPrep"), dsl, dsname );
+        err = LoadAmberPrep( line.GetStringKey("loadAmberPrep"), unitDSL, dsname );
       else if (line.Contains("loadamberprep"))
-        err = LoadAmberPrep( line.GetStringKey("loadamberprep"), dsl, dsname );
+        err = LoadAmberPrep( line.GetStringKey("loadamberprep"), unitDSL, dsname );
       else if (line.Contains("addAtomTypes") || line.Contains("addatomtypes"))
         err = AddAtomTypes(atomHybridizations, infile);
     }
@@ -222,6 +240,12 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
     ptr = infile.Line();
   }
   infile.CloseFile();
+
+  // Add data sets to the main data set list
+  if (addSetsToList(dsl, paramDSL)) return err+1;
+
+  if (addSetsToList(dsl, unitDSL)) return err+1;
+
   return err;
 }
 
