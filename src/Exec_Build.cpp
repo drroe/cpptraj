@@ -49,8 +49,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
                                        Topology const& topIn, Frame const& frameIn)
 {
   // Residue terminal status
-  enum TermType { BEG_TERMINAL = 0, REGULAR, END_TERMINAL };
-
+  
   // Track which residues are terminal
   //typedef std::vector<int> Iarray;
   //typedef std::vector<Iarray> IIarray;
@@ -119,20 +118,19 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     int pres = ires - 1;
     int nres = ires + 1;
     // Determine if this is a terminal residue
-    TermType resTermType;
+    Cpptraj::Structure::TerminalType resTermType;
     if (ires == 0 && topIn.Nres() > 1) {
-      resTermType = BEG_TERMINAL;
+      resTermType = Cpptraj::Structure::BEG_TERMINAL;
     } else if (currentRes.IsTerminal()) {
-      resTermType = END_TERMINAL;
+      resTermType = Cpptraj::Structure::END_TERMINAL;
     } else if (pres > -1 && topIn.Res(pres).IsTerminal()) {
-      resTermType = BEG_TERMINAL;
+      resTermType = Cpptraj::Structure::BEG_TERMINAL;
     } else if (nres < topIn.Nres() && topIn.Res(nres).ChainId() != currentRes.ChainId()) {
-      resTermType = END_TERMINAL;
+      resTermType = Cpptraj::Structure::END_TERMINAL;
     } else {
-      resTermType = REGULAR;
+      resTermType = Cpptraj::Structure::NON_TERMINAL;
     }
-    static const char* TermTypeStr[] = { "Begin", "Regular", "End" };
-    mprintf("DEBUG: Residue type: %s\n", TermTypeStr[resTermType]);
+    mprintf("DEBUG: Residue type: %s\n", Cpptraj::Structure::terminalStr(resTermType));
     // Identify a template based on the residue name.
     DataSet_Coords* resTemplate = IdTemplateFromName(Templates, currentRes.Name());
     if (resTemplate == 0) {
