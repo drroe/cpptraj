@@ -135,7 +135,19 @@ const
             mprintf("Warning: Unknown hybridization in addAtomTypes entry %s\n", tmp.c_str());
             ht = AtomType::UNKNOWN_HYBRIDIZATION;
           }
-          atomHybridizations.push_back( NHpairType(aline[0], ht) );
+          NameType atype(aline[0]);
+          NHarrayType::iterator it = atomHybridizations.lower_bound( atype );
+          if (it == atomHybridizations.end() || it->first != atype) {
+            it = atomHybridizations.insert( it, NHpairType(atype, ht) );
+          } else {
+            mprintf("Warning: Duplicate entry for '%s' in addAtomTypes.", *atype);
+            if (it->second != ht) {
+              mprintf(" Overwriting.\n");
+              mprintf("Warning: Line is %s\n", tmp.c_str());
+              it->second = ht;
+            } else
+              mprintf("\n");
+          }
           tmp.clear();
         }
       } else {
