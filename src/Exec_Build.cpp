@@ -48,10 +48,14 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
                                        Carray const& Templates,
                                        Topology const& topIn, Frame const& frameIn)
 {
-  typedef std::vector<int> Iarray;
-  typedef std::vector<Iarray> IIarray;
-  // Determine which residues are terminal
-  IIarray molTermResidues( topIn.Nmol() );
+  // Residue terminal status
+  enum TermType { BEG_TERMINAL = 0, REGULAR, END_TERMINAL };
+
+  // Track which residues are terminal
+  //typedef std::vector<int> Iarray;
+  //typedef std::vector<Iarray> IIarray;
+  //IIarray molTermResidues;
+/*
   // Track residue connections
   IIarray resConnections( topIn.Nres() );
   for (int ires = 0; ires != topIn.Nres(); ires++)
@@ -85,8 +89,6 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       mprintf(" %s", topIn.TruncResNameOnumId( *it ).c_str());
     mprintf("\n");
   }
-  // Set residue terminal status
-  enum TermType { BEG_TERMINAL = 0, REGULAR, END_TERMINAL };
   typedef std::vector<TermType> Tarray;
   Tarray residueTerminalStatus( topIn.Nres(), REGULAR );
   mprintf("\tTerminal residues:\n");
@@ -103,7 +105,8 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     }
     mprintf("\n");
   }
-
+*/
+  // -----------------------------------
   // Array of templates for each residue
   std::vector<DataSet_Coords*> ResTemplates;
   ResTemplates.reserve( topIn.Nres() );
@@ -111,8 +114,26 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   int newNatom = 0;
   for (int ires = 0; ires != topIn.Nres(); ires++)
   {
-    // Identify a template based on the residue name.
     Residue const& currentRes = topIn.Res(ires);
+    mprintf("DEBUG: ---------- Processing Residue %s ---------- \n", topIn.TruncResNameNum(ires).c_str());
+    int pres = ires - 1;
+    int nres = ires + 1;
+    // Determine if this is a terminal residue
+    TermType resTermType;
+    if (ires == 0 && topIn.Nres() > 1) {
+      resTermType = BEG_TERMINAL;
+    } else if (currentRes.IsTerminal()) {
+      resTermType = END_TERMINAL;
+    } else if (pres > -1 && topIn.Res(pres).IsTerminal()) {
+      resTermType = BEG_TERMINAL;
+    } else if (nres < topIn.Nres() && topIn.Res(nres).ChainId() != currentRes.ChainId()) {
+      resTermType = END_TERMINAL;
+    } else {
+      resTermType = REGULAR;
+    }
+    static const char* TermTypeStr[] = { "Begin", "Regular", "End" };
+    mprintf("DEBUG: Residue type: %s\n", TermTypeStr[resTermType]);
+    // Identify a template based on the residue name.
     DataSet_Coords* resTemplate = IdTemplateFromName(Templates, currentRes.Name());
     if (resTemplate == 0) {
       mprintf("Warning: No template found for residue %s\n", topIn.TruncResNameOnumId(ires).c_str());
@@ -129,6 +150,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   // Clear frame so that AddXYZ can be used
   frameOut.ClearAtoms();
 
+  // -----------------------------------
   // hasPosition - for each atom in topOut, status on whether atom in frameOut needs building
   Cpptraj::Structure::Zmatrix::Barray hasPosition;
   hasPosition.reserve( newNatom );
@@ -255,11 +277,11 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
         zmatrix->OffsetIcIndices( atomOffset );
         ResZmatrices.push_back( zmatrix );
         zmatrix->print( &topOut );
-        for (Iarray::const_iterator jres = resConnections[ires].begin();
-                                    jres != resConnections[ires].end(); ++jres)
-        {
-          mprintf("DEBUG:\t\tConnected residue %s\n", topIn.TruncResNameOnumId(*jres).c_str());
-        }
+        //for (Iarray::const_iterator jres = resConnections[ires].begin();
+        //                            jres != resConnections[ires].end(); ++jres)
+        //{
+        //  mprintf("DEBUG:\t\tConnected residue %s\n", topIn.TruncResNameOnumId(*jres).c_str());
+        //}
       } else
         ResZmatrices.push_back( 0 );
     } // END template exists
@@ -272,6 +294,8 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       topOut.AddBond(it->first, it->second);
     }
   } // END loop over source residues
+
+  // -----------------------------------
   // Add inter-residue bonds
   for (ResAtArray::const_iterator it = interResBonds.begin(); it != interResBonds.end(); ++it)
   {
@@ -303,6 +327,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     return 1;
   }
 
+  // -----------------------------------
   // Build using internal coords if needed.
   bool buildFailed = false;
   for (Zarray::const_iterator it = ResZmatrices.begin(); it != ResZmatrices.end(); ++it)
