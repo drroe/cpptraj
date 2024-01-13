@@ -143,6 +143,7 @@ COMMON_SOURCES= \
         Array1D.cpp \
         AssociatedData_Connect.cpp \
         AssociatedData_NOE.cpp \
+        AssociatedData_ResId.cpp \
         Atom.cpp \
         AtomMap.cpp \
         AtomMask.cpp \

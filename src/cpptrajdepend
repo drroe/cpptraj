@@ -140,6 +140,7 @@ ArgList.o : ArgList.cpp ArgList.h CpptrajStdio.h StringRoutines.h
 Array1D.o : Array1D.cpp ArgList.h Array1D.h AssociatedData.h Atom.h AtomMask.h AtomType.h Box.h Constants.h CoordinateInfo.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSetList.h DataSet_1D.h DataSet_Coords.h DataSet_Coords_REF.h Dimension.h FileIO.h FileName.h Frame.h MaskToken.h Matrix_3x3.h MetaData.h Molecule.h NameType.h Parallel.h ParameterHolders.h ParameterSet.h ParameterTypes.h Range.h ReferenceFrame.h ReplicaDimArray.h Residue.h Segment.h SymbolExporting.h TextFormat.h Timer.h Topology.h TypeNameHolder.h Unit.h Vec3.h
 AssociatedData_Connect.o : AssociatedData_Connect.cpp ArgList.h AssociatedData.h AssociatedData_Connect.h CpptrajStdio.h
 AssociatedData_NOE.o : AssociatedData_NOE.cpp ArgList.h AssociatedData.h AssociatedData_NOE.h CpptrajStdio.h
+AssociatedData_ResId.o : AssociatedData_ResId.cpp AssociatedData.h AssociatedData_ResId.h CpptrajStdio.h NameType.h Structure/StructureEnum.h
 Atom.o : Atom.cpp Atom.h CpptrajStdio.h NameType.h SymbolExporting.h
 AtomMap.o : AtomMap.cpp Atom.h AtomMap.h AtomMask.h AtomType.h Box.h Constants.h CoordinateInfo.h CpptrajStdio.h FileName.h Frame.h MapAtom.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Parallel.h ParameterHolders.h ParameterSet.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h Segment.h SymbolExporting.h Topology.h TypeNameHolder.h Unit.h Vec3.h
 AtomMask.o : AtomMask.cpp Atom.h AtomMask.h CpptrajStdio.h MaskToken.h Molecule.h NameType.h Residue.h Segment.h SymbolExporting.h Unit.h
