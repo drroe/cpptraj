@@ -9,6 +9,9 @@ class AssociatedData_ResId : public AssociatedData {
   public:
     /// CONSTRUCTOR
     AssociatedData_ResId() : AssociatedData(RESID), termType_(Cpptraj::Structure::NON_TERMINAL) {}
+    /// CONSTRUCTOR - Pdb name, terminal type
+    AssociatedData_ResId(NameType const& n, Cpptraj::Structure::TerminalType t) :
+      AssociatedData(RESID), resName_(n), termType_(t) {}
     // ----- Inherited functions -------
     static const char* HelpText;
     int ProcessAdataArgs(ArgList&);

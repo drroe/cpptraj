@@ -1,4 +1,5 @@
 #include "DataIO_LeapRC.h"
+#include "AssociatedData_ResId.h"
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
 #include "DataIO_AmberFF.h"
@@ -370,7 +371,6 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
   //for (DataSetList::const_iterator ds = unitDSL.begin(); ds != paramDSL.end(); ++ds)
   //{
   //  if ( (*ds)->Group() == DataSet::COORDINATES ) {
-  //    DataSet_Coords& crd = static_cast<DataSet_Coords&>( *(*ds) );
   for (PdbResMapArray::const_iterator it = pdbResMap.begin();
                                       it != pdbResMap.end(); ++it)
   {
@@ -379,7 +379,12 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
     if (ds == 0) {
       mprintf("Warning: Unit '%s' was not found among loaded units.\n", it->unitName_.c_str());
     } else {
-      mprintf("DEBUG: Found unit %s\n", ds->legend());
+      DataSet_Coords& crd = static_cast<DataSet_Coords&>( *ds );
+      AssociatedData_ResId resid( it->pdbName_, it->termType_ );
+      crd.AssociateData( &resid );
+      mprintf("DEBUG: Found unit %s", crd.legend());
+      resid.Ainfo();
+      mprintf("\n");
     }
   }
 
