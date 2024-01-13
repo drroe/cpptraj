@@ -4,18 +4,38 @@
 #include "Structure/GenerateConnectivityArrays.h"
 #include "Structure/Zmatrix.h"
 #include "Parm/GB_Params.h"
+#include "AssociatedData_ResId.h"
 
+/** Try to identify residue template DataSet from the given residue
+  * name (from e.g. the PDB/Mol2/etc file).
+  */
 DataSet_Coords* Exec_Build::IdTemplateFromName(Carray const& Templates,
-                                               NameType const& rname)
+                                               NameType const& rname,
+                                               Cpptraj::Structure::TerminalType termType)
 {
   DataSet_Coords* out = 0;
-  // Assume Coords set aspect is what we need
-  for (Carray::const_iterator it = Templates.begin(); it != Templates.end(); ++it) {
-    if ( rname == NameType( (*it)->Meta().Aspect() ) ) {
-      out = *it;
-      break;
+  if (termType == Cpptraj::Structure::NON_TERMINAL) {
+    // Assume Coords set aspect is what we need
+    for (Carray::const_iterator it = Templates.begin(); it != Templates.end(); ++it) {
+      if ( rname == NameType( (*it)->Meta().Aspect() ) ) {
+        out = *it;
+        break;
+      }
+    }
+  } else {
+    // Looking for a terminal residue. Need to get sets with AssociatedData_ResId
+    for (Carray::const_iterator it = Templates.begin(); it != Templates.end(); ++it) {
+      AssociatedData* ad = (*it)->GetAssociatedData( AssociatedData::RESID );
+      if (ad != 0) {
+        AssociatedData_ResId const& resid = static_cast<AssociatedData_ResId const&>( *ad );
+        if (rname == resid.ResName() && termType == resid.TermType()) {
+          out = *it;
+          break;
+        }
+      }
     }
   }
+
   return out;
 }
 
@@ -132,7 +152,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     }
     mprintf("DEBUG: Residue type: %s\n", Cpptraj::Structure::terminalStr(resTermType));
     // Identify a template based on the residue name.
-    DataSet_Coords* resTemplate = IdTemplateFromName(Templates, currentRes.Name());
+    DataSet_Coords* resTemplate = IdTemplateFromName(Templates, currentRes.Name(), resTermType);
     if (resTemplate == 0) {
       mprintf("Warning: No template found for residue %s\n", topIn.TruncResNameOnumId(ires).c_str());
       newNatom += currentRes.NumAtoms();

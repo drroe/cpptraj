@@ -18,6 +18,8 @@ class AssociatedData_ResId : public AssociatedData {
     AssociatedData* Copy() const { return new AssociatedData_ResId(*this); }
     void Ainfo() const;
     // ---------------------------------
+    NameType const& ResName() const { return resName_; }
+    Cpptraj::Structure::TerminalType TermType() const { return termType_; }
   private:
     NameType resName_;                          ///< Target residue name
     Cpptraj::Structure::TerminalType termType_; ///< Target residue terminal type
