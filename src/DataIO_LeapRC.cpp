@@ -366,13 +366,23 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
       }
     }
   }
-//            // Find the unit in unit DSL
-//            DataSet* ds = unitDSL.CheckForSet( MetaData(dsname, aline[2]) );
-//            if (ds == 0) {
-//             mprintf("Warning: Unit '%s' was not found among loaded units.\n", aline[2].c_str());
-//            } else {
-//              mprintf("DEBUG: Found unit %s\n", ds->legend());
-//            }
+  // Update units with pdb residue map info
+  //for (DataSetList::const_iterator ds = unitDSL.begin(); ds != paramDSL.end(); ++ds)
+  //{
+  //  if ( (*ds)->Group() == DataSet::COORDINATES ) {
+  //    DataSet_Coords& crd = static_cast<DataSet_Coords&>( *(*ds) );
+  for (PdbResMapArray::const_iterator it = pdbResMap.begin();
+                                      it != pdbResMap.end(); ++it)
+  {
+    // Find the unit in unit DSL
+    DataSet* ds = unitDSL.CheckForSet( MetaData(dsname, it->unitName_) );
+    if (ds == 0) {
+      mprintf("Warning: Unit '%s' was not found among loaded units.\n", it->unitName_.c_str());
+    } else {
+      mprintf("DEBUG: Found unit %s\n", ds->legend());
+    }
+  }
+
   // Add data sets to the main data set list
   if (addSetsToList(dsl, paramDSL)) return err+1;
 
