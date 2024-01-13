@@ -279,6 +279,9 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
   DataSetList unitDSL;
   NHarrayType atomHybridizations;
   PdbResMapArray pdbResMap;
+  typedef std::pair<std::string, std::string> AUpair;
+  typedef std::vector<AUpair> AUarray;
+  AUarray unitAliases;
   int err = 0;
   const char* ptr = infile.Line();
   while (ptr != 0) {
@@ -309,11 +312,12 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
             break;
           }
         }
-        // See if this is a unit alias
+        // See if this is a unit alias (interpret as 'alias = unit')
         if (has_equals) {
           ArgList equals(ptr, " =\t");
           if (equals.Nargs() == 2) {
             mprintf("DEBUG: %s = %s\n", equals[0].c_str(), equals[1].c_str());
+            unitAliases.push_back( AUpair(equals[0], equals[1]) );
           }
         }
       }
