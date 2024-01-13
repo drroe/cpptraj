@@ -89,6 +89,13 @@ void DataSet::ClearAssociatedData() {
   associatedData_.clear();
 }
 
+/** Copy all assocated data from the given data set. */
+void DataSet::CopyAssociatedDataFrom(DataSet const& dsIn) {
+  for (AdataArray::const_iterator ad = dsIn.associatedData_.begin();
+                                  ad != dsIn.associatedData_.end(); ++ad)
+    associatedData_.push_back( (*ad)->Copy() );
+}
+
 // DESTRUCTOR
 DataSet::~DataSet() { ClearAssociatedData(); }
 

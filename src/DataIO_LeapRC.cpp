@@ -279,9 +279,6 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
   DataSetList unitDSL;
   NHarrayType atomHybridizations;
   PdbResMapArray pdbResMap;
-  typedef std::pair<std::string, std::string> AUpair;
-  typedef std::vector<AUpair> AUarray;
-  AUarray unitAliases;
   int err = 0;
   const char* ptr = infile.Line();
   while (ptr != 0) {
@@ -317,7 +314,32 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
           ArgList equals(ptr, " =\t");
           if (equals.Nargs() == 2) {
             mprintf("DEBUG: %s = %s\n", equals[0].c_str(), equals[1].c_str());
-            unitAliases.push_back( AUpair(equals[0], equals[1]) );
+            // Find the unit to make a copy of
+            DataSet* ds0 = unitDSL.CheckForSet( MetaData(dsname, equals[1]) );
+            if (ds0 == 0) {
+              mprinterr("Error: Could not find unit '%s' to copy to '%s'\n", equals[1].c_str(), equals[0].c_str());
+              return 1;
+            }
+            DataSet_Coords& crd0 = static_cast<DataSet_Coords&>( *ds0 );
+            // Allocate copy
+            DataSet* ds1 = unitDSL.AddSet( DataSet::COORDS, MetaData(dsname, equals[0]) );
+            if (ds1 == 0) {
+              mprinterr("Error: Could not allocate unit '%s' for '%s'\n", equals[0].c_str(), equals[1].c_str());
+              return 1;
+            }
+            DataSet_Coords& crd1 = static_cast<DataSet_Coords&>( *ds1 );
+            if (crd1.CoordsSetup( crd0.Top(), crd0.CoordsInfo() )) {
+              mprinterr("Error: Could not set up unit '%s' for '%s'\n", equals[0].c_str(), equals[1].c_str());
+              return 1;
+            }
+            crd1.Allocate( DataSet::SizeArray(1, 1) );
+            // Copy
+            Frame tmpFrm = crd0.AllocateFrame();
+            crd0.GetFrame(0, tmpFrm);
+            crd1.SetCRD(0, tmpFrm );
+            // Copy associated data
+            crd1.CopyAssociatedDataFrom( crd0 );
+            mprintf("DEBUG: Created unit set %s\n", crd1.legend());
           }
         }
       }

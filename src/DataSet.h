@@ -86,6 +86,8 @@ class DataSet {
     // -----------------------------------------------------
     /// Associate additional data with this set.
     void AssociateData(AssociatedData const* a) { associatedData_.push_back( a->Copy() ); }
+    /// Copy associated data from given set to this set.
+    void CopyAssociatedDataFrom(DataSet const&);
     /// Set DataSet MetaData
     int SetMeta(MetaData const&);
     /// Set DataSet ensemble number.
