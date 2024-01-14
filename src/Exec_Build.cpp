@@ -14,15 +14,7 @@ DataSet_Coords* Exec_Build::IdTemplateFromName(Carray const& Templates,
                                                Cpptraj::Structure::TerminalType termType)
 {
   DataSet_Coords* out = 0;
-  if (termType == Cpptraj::Structure::NON_TERMINAL) {
-    // Assume Coords set aspect is what we need
-    for (Carray::const_iterator it = Templates.begin(); it != Templates.end(); ++it) {
-      if ( rname == NameType( (*it)->Meta().Aspect() ) ) {
-        out = *it;
-        break;
-      }
-    }
-  } else {
+  if (termType != Cpptraj::Structure::NON_TERMINAL) {
     // Looking for a terminal residue. Need to get sets with AssociatedData_ResId
     for (Carray::const_iterator it = Templates.begin(); it != Templates.end(); ++it) {
       AssociatedData* ad = (*it)->GetAssociatedData( AssociatedData::RESID );
@@ -32,6 +24,18 @@ DataSet_Coords* Exec_Build::IdTemplateFromName(Carray const& Templates,
           out = *it;
           break;
         }
+      }
+    }
+  }
+  if (out == 0) {
+    // Terminal residue not found or non-terminal residue.
+    if (termType != Cpptraj::Structure::NON_TERMINAL)
+      mprintf("Warning: No terminal residue found for '%s'\n", *rname);
+    // Assume Coords set aspect is what we need
+    for (Carray::const_iterator it = Templates.begin(); it != Templates.end(); ++it) {
+      if ( rname == NameType( (*it)->Meta().Aspect() ) ) {
+        out = *it;
+        break;
       }
     }
   }
