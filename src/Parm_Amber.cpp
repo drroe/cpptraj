@@ -1630,7 +1630,7 @@ int Parm_Amber::WriteDihedrals(FlagType flag, DihedralArray const& DIH) {
   if (BufferAlloc(flag, DIH.size()*5)) return 1;
   for (DihedralArray::const_iterator it = DIH.begin(); it != DIH.end(); ++it) {
     int dihIdxs[4];
-    if (it->Type() != DihedralType::NORMAL && (it->A3() == 0 || it->A4() == 0)) {
+    if (it->A3() == 0 || it->A4() == 0) {
       mprintf("Warning: Had to turn torsion around to avoid K,L == 0\n");
       mprintf("Warning: Old order (i j k l): %i %i %i %i\n", it->A1(), it->A2(), it->A3(), it->A4());
       dihIdxs[0] = it->A4()*3;
