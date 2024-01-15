@@ -601,6 +601,7 @@ int Zmatrix::UpdateICsFromFrame(Frame const& frameIn, Barray const& hasPosition)
         hasPosition[ic->AtL()])
     {
       mprintf("DEBUG: Updating IC %i %i %i %i\n", ic->AtI()+1, ic->AtJ()+1, ic->AtK()+1, ic->AtL()+1);
+      *ic = calcIc(ic->AtI(), ic->AtJ(), ic->AtK(), ic->AtL(), frameIn.XYZ(ic->AtI()), frameIn.XYZ(ic->AtJ()), frameIn.XYZ(ic->AtK()), frameIn.XYZ(ic->AtL()));
     }
   }
   return 0;
