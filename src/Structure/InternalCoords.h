@@ -43,6 +43,8 @@ class InternalCoords {
     //void RemapIndices(std::vector<int> const&);
     /// Offset internal indices by given offset
     void OffsetIndices(int);
+    /// Set the value of Phi
+    void SetPhi(double p) { val_[2] = p; }
   private:
     int ati_;       ///< Atom I index
     int idx_[3];    ///< Atom indices for distance, angle, torsion

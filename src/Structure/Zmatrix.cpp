@@ -631,11 +631,32 @@ int Zmatrix::UpdateICsFromFrame(Frame const& frameIn, Topology const& topIn, Bar
         InternalCoords frameIc = calcIc(thisIc.AtI(), thisIc.AtJ(), thisIc.AtK(), thisIc.AtL(),
                                         frameIn.XYZ(thisIc.AtI()), frameIn.XYZ(thisIc.AtJ()),
                                         frameIn.XYZ(thisIc.AtK()), frameIn.XYZ(thisIc.AtL()));
-        mprintf("DEBUG:\tdTorsion= %f  dInternalValue= %f\n", frameIc.Phi(), thisIc.Phi());
-        tDiff = frameIc.Phi() - thisIc.Phi();
+        double dTorsion = frameIc.Phi() * Constants::DEGRAD;
+        double dInternalValue = thisIc.Phi() * Constants::DEGRAD;
+        mprintf("DEBUG:\tdTorsion= %f  dInternalValue= %f\n", dTorsion, dInternalValue);
+        tDiff = (dTorsion - dInternalValue) * Constants::RADDEG;
         needsUpdate = true;
       }
-    } // END loop over ICs sharing J-K bond
+    } // END calc loop over ICs sharing J-K bond
+    // If any difference was found, shift all of the torsions
+    if (needsUpdate) {
+      mprintf("DEBUG: Twisting torsions centered on %s - %s by %f degrees\n",
+              topIn.AtomMaskName(IC_[idx].AtJ()).c_str(),
+              topIn.AtomMaskName(IC_[idx].AtK()).c_str(),
+              tDiff);
+      for (Iarray::const_iterator it = bondICs.begin(); it != bondICs.end(); ++it)
+      {
+        InternalCoords& thisIc = IC_[*it];
+        double dNew = thisIc.Phi() + tDiff;
+        mprintf("DEBUG:\tTwisting torsion for atoms: %s-%s-%s-%s\n",
+                topIn.AtomMaskName(thisIc.AtI()).c_str(),
+                topIn.AtomMaskName(thisIc.AtJ()).c_str(),
+                topIn.AtomMaskName(thisIc.AtK()).c_str(),
+                topIn.AtomMaskName(thisIc.AtL()).c_str());
+        mprintf("DEBUG:\t------- From %f to %f\n", thisIc.Phi(), dNew);
+        thisIc.SetPhi( dNew );
+      }
+    }
   } // END loop over ICs
   return 0;
 } 
