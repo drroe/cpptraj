@@ -179,21 +179,24 @@ static inline void MARK(int i, std::vector<bool>& isUsed, unsigned int& Nused) {
   }
 }
 
-/** Calculate and add an internal coordinate given atom indices
+/** Calculate an internal coordinate given atom indices
   * and corresponding Cartesian coordinates.
   */
-void Zmatrix::addIc(int at0, int at1, int at2, int at3,
+static inline InternalCoords calcIc(int at0, int at1, int at2, int at3,
                    const double* xyz0, const double* xyz1,
                    const double* xyz2, const double* xyz3)
 {
-  IC_.push_back( InternalCoords(at0, at1, at2, at3,
+  return InternalCoords(at0, at1, at2, at3,
                                 sqrt(DIST2_NoImage(xyz0, xyz1)),
                                 CalcAngle(xyz0, xyz1, xyz2) * Constants::RADDEG,
-                                Torsion(xyz0, xyz1, xyz2, xyz3) * Constants::RADDEG) );
+                                Torsion(xyz0, xyz1, xyz2, xyz3) * Constants::RADDEG);
 }
 
+/** Calculate and add an internal coordinate given atom indices
+  * and corresponding Cartesian coordinates.
+  */
 void Zmatrix::addIc(int at0, int at1, int at2, int at3, Frame const& frameIn) {
-  addIc(at0, at1, at2, at3, frameIn.XYZ(at0), frameIn.XYZ(at1), frameIn.XYZ(at2), frameIn.XYZ(at3));
+  IC_.push_back( calcIc(at0, at1, at2, at3, frameIn.XYZ(at0), frameIn.XYZ(at1), frameIn.XYZ(at2), frameIn.XYZ(at3)) );
 }
 
 /** Set seeds as 3 consecutive atoms from mol 0 for which positions are known. */
@@ -585,10 +588,28 @@ int Zmatrix::addInternalCoordForAtom(int iat, Frame const& frameIn, Topology con
   return 0;
 }
 
-/** Set up Zmatrix from Cartesian coordinates and topology.
-  * Use torsions based on bonds to create a complete set of ICs.
+/** For existing torsions, see if all coordinates in that torsion
+  * exist. If so, update the IC from the existing coordinates.
   */
-int Zmatrix::SetFromFrameAndBonds(Frame const& frameIn, Topology const& topIn, int molnum)
+int Zmatrix::UpdateICsFromFrame(Frame const& frameIn, Barray const& hasPosition)
+{
+  for (ICarray::iterator ic = IC_.begin(); ic != IC_.end(); ++ic)
+  {
+    if (hasPosition[ic->AtI()] &&
+        hasPosition[ic->AtJ()] &&
+        hasPosition[ic->AtK()] &&
+        hasPosition[ic->AtL()])
+    {
+      mprintf("DEBUG: Updating IC %i %i %i %i\n", ic->AtI()+1, ic->AtJ()+1, ic->AtK()+1, ic->AtL()+1);
+    }
+  }
+  return 0;
+} 
+
+/** Set up Zmatrix from Cartesian coordinates and topology.
+  * Use torsions based on connectivity to create a complete set of ICs.
+  */
+int Zmatrix::SetFromFrameAndConnect(Frame const& frameIn, Topology const& topIn, int molnum)
 {
   if (molnum < 0) {
     mprinterr("Internal Error: Zmatrix::SetFromFrame(): Negative molecule index.\n");

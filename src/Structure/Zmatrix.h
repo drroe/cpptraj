@@ -41,8 +41,10 @@ class Zmatrix {
     /// Set seed atoms as 3 consecutive atoms with known positions for specified residue # TODO deprecate?
     int AutoSetSeedsWithPositions(Frame const&, Topology const&, int, Barray const&);
 
-    /// Try to generate complete ICs from bonds
-    int SetFromFrameAndBonds(Frame const&, Topology const&, int);
+    /// Try to generate complete ICs from atom connectivity
+    int SetFromFrameAndConnect(Frame const&, Topology const&, int);
+    /// Update ICs from existing coords
+    int UpdateICsFromFrame(Frame const&, Barray const&);
     /// Convert specifed molecule of Frame/Topology to internal coordinates array
     int SetFromFrame(Frame const&, Topology const&, int);
     /// Convert molecule 0 of Frame/Topology to internal coordinates array
@@ -80,7 +82,7 @@ class Zmatrix {
     /// Simple version of auto set seeds based on connectivity only
     int autoSetSeeds_simple(Frame const&, Topology const&, Molecule const&);
     /// Calculate and add an internal coordinate given indices and Cartesian coords.
-    inline void addIc(int,int,int,int,const double*,const double*,const double*,const double*);
+    //inline void addIc(int,int,int,int,const double*,const double*,const double*,const double*);
     /// Calculate and add an internal coordinate given indices and Cartesian coords.
     inline void addIc(int,int,int,int,Frame const&);
     /// Add internal coordinates by tracing a molecule
