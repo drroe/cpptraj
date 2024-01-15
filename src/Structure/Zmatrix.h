@@ -44,7 +44,7 @@ class Zmatrix {
     /// Try to generate complete ICs from atom connectivity
     int SetFromFrameAndConnect(Frame const&, Topology const&, int);
     /// Update ICs from existing coords
-    int UpdateICsFromFrame(Frame const&, Barray const&);
+    int UpdateICsFromFrame(Frame const&, Topology const&, Barray const&);
     /// Convert specifed molecule of Frame/Topology to internal coordinates array
     int SetFromFrame(Frame const&, Topology const&, int);
     /// Convert molecule 0 of Frame/Topology to internal coordinates array
