@@ -359,7 +359,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     if (zmatrix != 0) {
       mprintf("DEBUG: BUILD residue %li %s\n", ires + 1, topOut.TruncResNameOnumId(ires).c_str());
       // Update internal coords from known positions
-      if (zmatrix->UpdateICsFromFrame( frameOut, topOut, hasPosition )) {
+      if (zmatrix->UpdateICsFromFrame( frameOut, ires, topOut, hasPosition )) {
         mprinterr("Error: Failed to update Zmatrix with values from existing positions.\n");
         return 1;
       }
