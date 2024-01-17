@@ -70,7 +70,8 @@ std::vector<int> Exec_Build::MapAtomsToTemplate(Topology const& topIn,
 /** Use given templates to construct a final molecule. */
 int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
                                        Carray const& Templates,
-                                       Topology const& topIn, Frame const& frameIn)
+                                       Topology const& topIn, Frame const& frameIn,
+                                       ParameterSet const& mainParmSet)
 {
   // Residue terminal status
   
@@ -358,6 +359,12 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     Cpptraj::Structure::Zmatrix* zmatrix = *it;
     if (zmatrix != 0) {
       mprintf("DEBUG: BUILD residue %li %s\n", ires + 1, topOut.TruncResNameOnumId(ires).c_str());
+      // TEST FIXME
+      Cpptraj::Structure::Zmatrix testZ;
+      if (testZ.BuildZmatrixFromTop(frameOut, topOut, ires, mainParmSet.AT(), hasPosition)) {
+        mprinterr("Error: Failed to create zmatrix from topology.\n");
+        return 1;
+      }
       // Update internal coords from known positions
       if (zmatrix->UpdateICsFromFrame( frameOut, ires, topOut, hasPosition )) {
         mprinterr("Error: Failed to update Zmatrix with values from existing positions.\n");
@@ -519,14 +526,6 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     mprintf("\n");
   }
 
-  // Fill in atoms with templates
-  Topology topOut;
-  Frame frameOut;
-  if (FillAtomsWithTemplates(topOut, frameOut, Templates, topIn, frameIn)) {
-    mprinterr("Error: Could not fill in atoms using templates.\n");
-    return CpptrajState::ERR;
-  }
-
   // Get parameter sets.
   typedef std::vector<DataSet_Parameters*> Parray;
   Parray ParamSets;
@@ -572,6 +571,15 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     for (; it != ParamSets.end(); ++it)
       mainParmSet->UpdateParamSet( *(*it), UC, State.Debug(), State.Debug() ); // FIXME verbose
   }
+
+  // Fill in atoms with templates
+  Topology topOut;
+  Frame frameOut;
+  if (FillAtomsWithTemplates(topOut, frameOut, Templates, topIn, frameIn, *mainParmSet)) {
+    mprinterr("Error: Could not fill in atoms using templates.\n");
+    return CpptrajState::ERR;
+  }
+
 
   // Assign parameters. This will create the bond/angle/dihedral/improper
   // arrays as well.

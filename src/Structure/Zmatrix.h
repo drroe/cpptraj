@@ -6,6 +6,8 @@
 class Frame;
 class Topology;
 class Molecule;
+template <typename T> class ParmHolder;
+class AtomType;
 namespace Cpptraj {
 namespace Structure {
 class BuildAtom;
@@ -43,6 +45,7 @@ class Zmatrix {
 
     /// Try to generate complete ICs from atom connectivity
     int SetFromFrameAndConnect(Frame const&, Topology const&, int);
+    int BuildZmatrixFromTop(Frame const&, Topology const&, int, ParmHolder<AtomType> const&, Barray const&);
     /// Update ICs from existing coords
     int UpdateICsFromFrame(Frame const&, int, Topology const&, Barray const&);
     /// Convert specifed molecule of Frame/Topology to internal coordinates array

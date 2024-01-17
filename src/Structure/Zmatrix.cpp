@@ -730,6 +730,46 @@ int Zmatrix::UpdateICsFromFrame(Frame const& frameIn, int ires, Topology const& 
   return 0;
 } 
 
+/** Set up Zmatrix in a manner similar to leap. */
+int Zmatrix::BuildZmatrixFromTop(Frame const& frameIn, Topology const& topIn, int ires, ParmHolder<AtomType> const& AT,
+                                 Barray const& hasPosition)
+{
+  if (ires < 0) {
+    mprinterr("Internal Error: Zmatrix::BuildZmatrixFromTop(): Negative residue index.\n");
+    return 1;
+  }         
+  //if (topIn.Nmol() < 1) {
+  //  mprinterr("Internal Error: Zmatrix::SetFromFrame(): No molecules.\n");
+  //  return 1;
+  //}
+  clear(); 
+  
+  IC_.clear();
+  //Molecule const& currentMol = topIn.Mol(molnum);
+  //std::vector<Residue> residues;
+  //for (Unit::const_iterator seg = currentMol.MolUnit().segBegin();
+  //                          seg != currentMol.MolUnit().segEnd(); ++seg)
+  //{
+  //  int r0 = topIn[seg->Begin()].ResNum();
+  //  int r1 = topIn[seg->End()].ResNum();
+  //  for (int ridx = r0; ridx <= r1; ridx++)
+  //    residues.push_back( topIn.Res(ridx) );
+  //}
+  BondArray myBonds = GenerateBondArray( std::vector<Residue>(1, topIn.Res(ires)), topIn.Atoms() );
+  for (BondArray::const_iterator bnd = myBonds.begin(); bnd != myBonds.end(); ++bnd)
+  {
+    if (Cpptraj::Structure::Model::AssignPhiAroundBond(IC_, AT, bnd->A1(), bnd->A2(), topIn, frameIn, hasPosition, debug_))
+    {
+      mprinterr("Error: Assigning phi around bond %s - %s failed.\n",
+                topIn.AtomMaskName(bnd->A1()).c_str(),
+                topIn.AtomMaskName(bnd->A2()).c_str());
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
 /** Set up Zmatrix from Cartesian coordinates and topology.
   * Use torsions based on connectivity to create a complete set of ICs.
   */
