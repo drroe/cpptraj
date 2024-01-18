@@ -1,6 +1,7 @@
 #include "Exec_Build.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Parameters.h"
+#include "Structure/Builder.h"
 #include "Structure/GenerateConnectivityArrays.h"
 #include "Structure/Zmatrix.h"
 #include "Parm/GB_Params.h"
@@ -361,6 +362,15 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
 
   // -----------------------------------
   // Build using internal coords if needed.
+  std::vector<bool> resIsBuilt; // TODO is this needed?
+  resIsBuilt.reserve( ResZmatrices.size() );
+  for (Zarray::const_iterator it = ResZmatrices.begin(); it != ResZmatrices.end(); ++it) {
+    if ( *it == 0 )
+      resIsBuilt.push_back( true );
+    else
+      resIsBuilt.push_back( false );
+  }
+  
   bool buildFailed = false;
   TermTypeArray::const_iterator termType = ResTypes.begin();
   for (Zarray::const_iterator it = ResZmatrices.begin(); it != ResZmatrices.end(); ++it, ++termType)
@@ -370,6 +380,25 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     if (zmatrix != 0) {
       mprintf("DEBUG: BUILD residue %li %s\n", ires + 1, topOut.TruncResNameOnumId(ires).c_str());
       mprintf("DEBUG: Residue type: %s terminal\n", Cpptraj::Structure::terminalStr(*termType));
+      // Is this residue connected to an earlier residue?
+      if ( *termType != Cpptraj::Structure::BEG_TERMINAL ) {
+        for (int at = topOut.Res(ires).FirstAtom(); at != topOut.Res(ires).LastAtom(); ++at)
+        {
+          for (Atom::bond_iterator bat = topOut[at].bondbegin(); bat != topOut[at].bondend(); ++bat)
+          {
+            if ((long int)topOut[*bat].ResNum() < ires) {
+              mprintf("DEBUG: Connected to residue %i\n", topOut[*bat].ResNum());
+              Cpptraj::Structure::Builder linkBuilder;
+              linkBuilder.SetDebug( 1 ); // FIXME
+              if (linkBuilder.ModelCoordsAroundBond(frameOut, topOut, at, *bat, hasPosition)) {
+                mprinterr("Error: Model coords around bond failed between %s and %s\n",
+                          topOut.AtomMaskName(at).c_str(), topOut.AtomMaskName(*bat).c_str());
+                return 1;
+              }
+            }
+          }
+        }
+      }
       // TEST FIXME
 //      Cpptraj::Structure::Zmatrix testZ;
 //      if (testZ.BuildZmatrixFromTop(frameOut, topOut, ires, mainParmSet.AT(), hasPosition)) {
@@ -394,7 +423,8 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
           mprinterr("Error: Building residue %s failed.\n",
                     topOut.TruncResNameOnumId(ires).c_str());
           buildFailed = true;
-        }
+        } else
+          resIsBuilt[ires] = true;
       //}
     }
   }

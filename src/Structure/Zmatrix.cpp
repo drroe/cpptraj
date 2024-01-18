@@ -977,7 +977,11 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
   // ---- I J: Set dist, theta, phi for atA atB K L internal coord ---
   if (debug_ > 0)
     mprintf("DEBUG: IC (i j) %i - %i - %i - %i\n", atA+1, atB+1, atk0+1, atl0+1);
-  double newDist = Atom::GetBondLength( topIn[atA].Element(), topIn[atB].Element() );
+  double newDist = 0;
+  if (Cpptraj::Structure::Model::AssignLength(newDist, atA, atB, topIn, frameIn, atomPositionKnown, modelDebug)) {
+    mprinterr("Error: length (i j) assignment failed.\n");
+    return 1;
+  }
   if (debug_ > 0) mprintf("DEBUG:\t\tnewDist= %g\n", newDist);
   double newTheta = 0;
   if (Cpptraj::Structure::Model::AssignTheta(newTheta, atA, atB, atk0, topIn, frameIn, atomPositionKnown, modelDebug)) {
@@ -1008,8 +1012,11 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
   {
     if (*iat != atB) {
       if (ati == -1) ati = *iat;
-      // Use existing dist
-      newDist = sqrt( DIST2_NoImage(frameIn.XYZ(*iat), frameIn.XYZ(atA)) );
+      // Set bond dist
+      if (Cpptraj::Structure::Model::AssignLength(newDist, *iat, atA, topIn, frameIn, atomPositionKnown, modelDebug)) {
+        mprinterr("Error: length (j k) assignment failed.\n");
+        return 1;
+      }
       // Set theta for I atA atB
       newTheta = 0;
       if (Cpptraj::Structure::Model::AssignTheta(newTheta, *iat, atA, atB, topIn, frameIn, atomPositionKnown, modelDebug)) {
@@ -1062,6 +1069,7 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
       } */
     }
   }
+/*
   // Handle remaining atoms.
   if (AJ1.Nbonds() > 1) {
     if (AJ1.Nbonds() == 2) {
@@ -1099,7 +1107,7 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
       }
     }
   }
-
+*/
   return 0;
 }
 

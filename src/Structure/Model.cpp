@@ -4,7 +4,20 @@
 #include "../GuessAtomHybridization.h"
 #include "../Topology.h"
 #include "../TorsionRoutines.h"
+#include "../DistRoutines.h"
 #include "../Constants.h"
+#include <cmath>
+
+/** Assign reasonable value for bond distance. */
+int Cpptraj::Structure::Model::AssignLength(double& dist, int ai, int aj, Topology const& topIn, Frame const& frameIn, std::vector<bool> const& atomPositionKnown, int debug)
+{
+  if (atomPositionKnown[ai] && atomPositionKnown[aj])
+    dist = sqrt( DIST2_NoImage( frameIn.XYZ(ai), frameIn.XYZ(aj) ) );
+  else
+    // One or both positions unknown. Use bond length. TODO use parameters
+    dist = Atom::GetBondLength( topIn[ai].Element(), topIn[aj].Element() );
+  return 0;
+}
 
 /** Attempt to assign a reasonable value for theta internal coordinate for
   * atom i given that atoms j and k have known positions.

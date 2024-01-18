@@ -18,6 +18,7 @@ Builder::Builder() :
 int Builder::Combine(Topology&       frag0Top, Frame&       frag0frm,
                      Topology const& frag1Top, Frame const& frag1frm,
                      int bondAt0, int bondAt1)
+const
 {
   int natom0 = frag0Top.Natom();
   int newNatom = natom0 + frag1Top.Natom();
@@ -107,3 +108,84 @@ int Builder::Combine(Topology&       frag0Top, Frame&       frag0frm,
 
   return 0;
 }
+
+static inline int known_count(int ires, Topology const& topIn, std::vector<bool> const& hasPosition)
+{
+  int count = 0;
+  for (int at = topIn.Res(ires).FirstAtom(); at != topIn.Res(ires).LastAtom(); at++)
+    if (hasPosition[at])
+      count++;
+  return count;
+}
+
+/** Model the coordinates around a bond */
+int Builder::ModelCoordsAroundBond(Frame& frameIn, Topology const& topIn, int bondAt0, int bondAt1, Barray& hasPosition) const {
+  mprintf("DEBUG: Model coords around bond %s - %s\n", topIn.AtomMaskName(bondAt0).c_str(), topIn.AtomMaskName(bondAt1).c_str());
+  int res0 = topIn[bondAt0].ResNum();
+  int res1 = topIn[bondAt1].ResNum();
+  if (res0 == res1) {
+    mprinterr("Internal Error: ModelCoordsAroundBond(): Atoms are in the same residue.\n");
+    return 1;
+  }
+  // Determine which "direction" we will be combining the fragments.
+  // Make atA belong to the less-known fragment. atB fragment will be "known".
+  int known0 = known_count(res0, topIn, hasPosition);
+  int known1 = known_count(res1, topIn, hasPosition);
+  int atA, atB;
+
+  if (known0 < known1) {
+    // Fragment 1 is better-known 
+    atA = bondAt0;
+    atB = bondAt1;
+  } else {
+    // Fragment 0 is better or equally known 
+    atA = bondAt1;
+    atB = bondAt0;
+  }
+
+  mprintf("DEBUG: More well-known atom: %s\n", topIn.AtomMaskName(atB).c_str());
+  mprintf("DEBUG: Less well-known atom: %s\n", topIn.AtomMaskName(atA).c_str());
+
+  int chiralityDebug;
+  if (debug_ < 1)
+    chiralityDebug = 0;
+  else
+    chiralityDebug = debug_ - 1;
+
+  // Get the chirality around each atom before the bond is added.
+  // Determine priorities
+  BuildAtom AtomA;
+  if (topIn[atA].Nbonds() > 2) {
+    AtomA.SetChirality( DetermineChirality(atA, topIn, frameIn, chiralityDebug) );
+    SetPriority(AtomA.ModifyPriority(), atA, topIn, frameIn, chiralityDebug);
+  }
+  if (debug_ > 0)
+    mprintf("DEBUG:\tAtom %4s chirality %6s\n", topIn.AtomMaskName(atA).c_str(), chiralStr(AtomA.Chirality()));
+  BuildAtom AtomB;
+  if (topIn[atB].Nbonds() > 2) {
+    AtomB.SetChirality( DetermineChirality(atB, topIn, frameIn, chiralityDebug) );
+    SetPriority(AtomB.ModifyPriority(), atB, topIn, frameIn, chiralityDebug);
+  }
+  if (debug_ > 0)
+    mprintf("DEBUG:\tAtom %4s chirality %6s\n", topIn.AtomMaskName(atB).c_str(), chiralStr(AtomB.Chirality()));
+
+  // Generate Zmatrix only for ICs involving bonded atoms
+  Zmatrix bondZmatrix;
+
+  bondZmatrix.SetDebug( debug_ );
+  if (bondZmatrix.SetupICsAroundBond(atA, atB, frameIn, topIn, hasPosition, AtomA, AtomB)) {
+    mprinterr("Error: Zmatrix setup for ICs around %s and %s failed.\n",
+              topIn.AtomMaskName(atA).c_str(),
+              topIn.AtomMaskName(atB).c_str());
+    return 1;
+  }
+  if (debug_ > 0)
+    bondZmatrix.print(&topIn);
+  if (bondZmatrix.SetToFrame( frameIn, hasPosition )) {
+    mprinterr("Error: Conversion from bondZmatrix to Cartesian coords failed.\n");
+    return 1;
+  }
+
+  return 0;
+}
+
