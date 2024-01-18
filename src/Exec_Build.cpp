@@ -296,10 +296,10 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
           mprinterr("Error: Could not set up residue template zmatrix.\n");
           return 1;
         }
-        zmatrix->print( resTemplate->TopPtr() );
+//        zmatrix->print( resTemplate->TopPtr() );
         zmatrix->OffsetIcIndices( atomOffset );
         ResZmatrices.push_back( zmatrix );
-        zmatrix->print( &topOut );
+//        zmatrix->print( &topOut );
         //for (Iarray::const_iterator jres = resConnections[ires].begin();
         //                            jres != resConnections[ires].end(); ++jres)
         //{
@@ -360,11 +360,14 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     if (zmatrix != 0) {
       mprintf("DEBUG: BUILD residue %li %s\n", ires + 1, topOut.TruncResNameOnumId(ires).c_str());
       // TEST FIXME
-      Cpptraj::Structure::Zmatrix testZ;
-      if (testZ.BuildZmatrixFromTop(frameOut, topOut, ires, mainParmSet.AT(), hasPosition)) {
-        mprinterr("Error: Failed to create zmatrix from topology.\n");
-        return 1;
-      }
+//      Cpptraj::Structure::Zmatrix testZ;
+//      if (testZ.BuildZmatrixFromTop(frameOut, topOut, ires, mainParmSet.AT(), hasPosition)) {
+//        mprinterr("Error: Failed to create zmatrix from topology.\n");
+//        return 1;
+//      }
+      mprintf("DEBUG: Zmatrix for building residue %li %s\n", ires + 1,
+              topOut.TruncResNameOnumId(ires).c_str());
+      zmatrix->print(&topOut);
       // Update internal coords from known positions
       if (zmatrix->UpdateICsFromFrame( frameOut, ires, topOut, hasPosition )) {
         mprinterr("Error: Failed to update Zmatrix with values from existing positions.\n");
@@ -375,9 +378,6 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       //  mprinterr("Error: Could not set up seed atoms for Zmatrix.\n");
       //  buildFailed = true;
       //} else {
-        mprintf("DEBUG: Zmatrix for building residue %li %s\n", ires + 1,
-                topOut.TruncResNameOnumId(ires).c_str());
-        zmatrix->print(&topOut);
         zmatrix->SetDebug( 1 ); // DEBUG
         if (zmatrix->SetToFrame( frameOut, hasPosition )) {
           mprinterr("Error: Building residue %s failed.\n",
