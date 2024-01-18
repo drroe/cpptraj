@@ -608,7 +608,9 @@ int Zmatrix::UpdateICsFromFrame(Frame const& frameIn, int ires, Topology const& 
       {
         if (!isUsed[idx]) {
           InternalCoords& thisIc = IC_[idx];
-          if (bnd->A1() == thisIc.AtJ() && bnd->A2() == thisIc.AtK()) {
+          if ( (bnd->A1() == thisIc.AtJ() && bnd->A2() == thisIc.AtK()) ||
+               (bnd->A2() == thisIc.AtJ() && bnd->A1() == thisIc.AtK()) )
+          {
             // This IC has this bond at the center
             bondICs.push_back( idx );
             MARK(idx, isUsed, Nused);
@@ -729,46 +731,6 @@ int Zmatrix::UpdateICsFromFrame(Frame const& frameIn, int ires, Topology const& 
   } // END loop over ICs*/
   return 0;
 } 
-
-/** Set up Zmatrix in a manner similar to leap. */
-int Zmatrix::BuildZmatrixFromTop(Frame const& frameIn, Topology const& topIn, int ires, ParmHolder<AtomType> const& AT,
-                                 Barray const& hasPosition)
-{
-  if (ires < 0) {
-    mprinterr("Internal Error: Zmatrix::BuildZmatrixFromTop(): Negative residue index.\n");
-    return 1;
-  }         
-  //if (topIn.Nmol() < 1) {
-  //  mprinterr("Internal Error: Zmatrix::SetFromFrame(): No molecules.\n");
-  //  return 1;
-  //}
-  clear(); 
-  
-  IC_.clear();
-  //Molecule const& currentMol = topIn.Mol(molnum);
-  //std::vector<Residue> residues;
-  //for (Unit::const_iterator seg = currentMol.MolUnit().segBegin();
-  //                          seg != currentMol.MolUnit().segEnd(); ++seg)
-  //{
-  //  int r0 = topIn[seg->Begin()].ResNum();
-  //  int r1 = topIn[seg->End()].ResNum();
-  //  for (int ridx = r0; ridx <= r1; ridx++)
-  //    residues.push_back( topIn.Res(ridx) );
-  //}
-  BondArray myBonds = GenerateBondArray( std::vector<Residue>(1, topIn.Res(ires)), topIn.Atoms() );
-  for (BondArray::const_iterator bnd = myBonds.begin(); bnd != myBonds.end(); ++bnd)
-  {
-    if (Cpptraj::Structure::Model::AssignPhiAroundBond(IC_, AT, bnd->A1(), bnd->A2(), topIn, frameIn, hasPosition, debug_))
-    {
-      mprinterr("Error: Assigning phi around bond %s - %s failed.\n",
-                topIn.AtomMaskName(bnd->A1()).c_str(),
-                topIn.AtomMaskName(bnd->A2()).c_str());
-      return 1;
-    }
-  }
-
-  return 0;
-}
 
 /** Set up Zmatrix from Cartesian coordinates and topology.
   * Use torsions based on connectivity to create a complete set of ICs.
@@ -1329,8 +1291,11 @@ int Zmatrix::SetToFrame(Frame& frameOut, Barray& hasPosition) const {
       }
       continue; // FIXME
     }
-    if (debug_ > 0) mprintf("DEBUG: Next IC to use is %i\n", icIdx+1);
     InternalCoords const& ic = IC_[icIdx];
+    if (debug_ > 0)
+      mprintf("DEBUG: Next IC to use is %i : %i %i %i %i r=%g theta=%g phi=%g\n",
+              icIdx+1, ic.AtI()+1, ic.AtJ()+1, ic.AtK()+1, ic.AtL()+1,
+              ic.Dist(), ic.Theta(), ic.Phi());
     Vec3 posI = AtomIposition(ic, frameOut);
 
     frameOut.SetXYZ( ic.AtI(), posI );
