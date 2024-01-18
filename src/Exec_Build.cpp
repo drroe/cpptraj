@@ -134,7 +134,8 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   // Array of templates for each residue
   std::vector<DataSet_Coords*> ResTemplates;
   ResTemplates.reserve( topIn.Nres() );
-  std::vector<Cpptraj::Structure::TerminalType> ResTypes;
+  typedef std::vector<Cpptraj::Structure::TerminalType> TermTypeArray;
+  TermTypeArray ResTypes;
   ResTypes.reserve( topIn.Nres() );
   // Initial loop to try to match residues to templates
   int newNatom = 0;
@@ -361,12 +362,14 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   // -----------------------------------
   // Build using internal coords if needed.
   bool buildFailed = false;
-  for (Zarray::const_iterator it = ResZmatrices.begin(); it != ResZmatrices.end(); ++it)
+  TermTypeArray::const_iterator termType = ResTypes.begin();
+  for (Zarray::const_iterator it = ResZmatrices.begin(); it != ResZmatrices.end(); ++it, ++termType)
   {
     long int ires = it-ResZmatrices.begin();
     Cpptraj::Structure::Zmatrix* zmatrix = *it;
     if (zmatrix != 0) {
       mprintf("DEBUG: BUILD residue %li %s\n", ires + 1, topOut.TruncResNameOnumId(ires).c_str());
+      mprintf("DEBUG: Residue type: %s terminal\n", Cpptraj::Structure::terminalStr(*termType));
       // TEST FIXME
 //      Cpptraj::Structure::Zmatrix testZ;
 //      if (testZ.BuildZmatrixFromTop(frameOut, topOut, ires, mainParmSet.AT(), hasPosition)) {
