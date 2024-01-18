@@ -134,6 +134,8 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   // Array of templates for each residue
   std::vector<DataSet_Coords*> ResTemplates;
   ResTemplates.reserve( topIn.Nres() );
+  std::vector<Cpptraj::Structure::TerminalType> ResTypes;
+  ResTypes.reserve( topIn.Nres() );
   // Initial loop to try to match residues to templates
   int newNatom = 0;
   for (int ires = 0; ires != topIn.Nres(); ires++)
@@ -156,6 +158,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       resTermType = Cpptraj::Structure::NON_TERMINAL;
     }
     mprintf("DEBUG: Residue type: %s\n", Cpptraj::Structure::terminalStr(resTermType));
+    ResTypes.push_back( resTermType );
     // Identify a template based on the residue name.
     DataSet_Coords* resTemplate = IdTemplateFromName(Templates, currentRes.Name(), resTermType);
     if (resTemplate == 0) {
@@ -203,7 +206,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     typedef std::vector<Ipair> IParray;
     IParray intraResBonds;
     if (resTemplate == 0) {
-      // No template. Just add the atoms.
+      // ----- No template. Just add the atoms. ------------
       ResZmatrices.push_back( 0 );
       for (int itgt = currentRes.FirstAtom(); itgt != currentRes.LastAtom(); ++itgt)
       {
@@ -212,12 +215,14 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
         int at0 = itgt - currentRes.FirstAtom() + atomOffset;
         for (Atom::bond_iterator bat = sourceAtom.bondbegin(); bat != sourceAtom.bondend(); ++bat) {
           if ( topIn[*bat].ResNum() == ires ) {
+            // Intra-residue
             int at1 = *bat - currentRes.FirstAtom() + atomOffset;
             if (at1 > at0) {
-              mprintf("Will add bond between %i and %i (original %i and %i)\n", at0+1, at1+1, itgt+1, *bat + 1);
+              //mprintf("Will add bond between %i and %i (original %i and %i)\n", at0+1, at1+1, itgt+1, *bat + 1);
               intraResBonds.push_back( Ipair(at0, at1) );
             }
           } else {
+            // Inter-residue. Only record if bonding to the next residue.
             if (topIn[*bat].ResNum() > ires) {
               interResBonds.push_back( ResAtPair(ires, sourceAtom.Name()) );
               interResBonds.push_back( ResAtPair(topIn[*bat].ResNum(), topIn[*bat].Name()) );
@@ -230,7 +235,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
         hasPosition.push_back( true );
       }
     } else {
-      // A template exists for this residue.
+      // ----- A template exists for this residue. ---------
       // Map source atoms to template atoms.
       std::vector<int> map = MapAtomsToTemplate( topIn, ires, resTemplate );
       mprintf("\t  Atom map:\n");
@@ -253,13 +258,13 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
           //if ( resTemplate->Top()[*bat].ResNum() == ires ) {
             int at1 = *bat + atomOffset;
             if (at1 > at0) {
-              mprintf("Will add bond between %i and %i (original %i and %i)\n", at0+1, at1+1, iref+1, *bat + 1);
+              //mprintf("Will add bond between %i and %i (original %i and %i)\n", at0+1, at1+1, iref+1, *bat + 1);
               intraResBonds.push_back( Ipair(at0, at1) );
             }
           //}
         }
         // TODO connect atoms for inter-residue connections
-        templateAtom.ClearBonds();
+        templateAtom.ClearBonds(); // FIXME AddTopAtom should clear bonds
         topOut.AddTopAtom( templateAtom, currentRes );
         if (map[iref] == -1) {
           frameOut.AddVec3( Vec3(0.0) );
@@ -317,6 +322,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       topOut.AddBond(it->first, it->second);
     }
   } // END loop over source residues
+  mprintf("\t%i template atoms missing in source.\n", nRefAtomsMissing);
 
   // -----------------------------------
   // Add inter-residue bonds
@@ -340,7 +346,9 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     }
     topOut.AddBond(at0, at1);
   }
-  mprintf("\t%i template atoms missing in source.\n", nRefAtomsMissing);
+
+  // -----------------------------------
+  // Do some error checking
   if (hasPosition.size() != (unsigned int)newNatom) {
     mprinterr("Internal Error: hasPosition size %zu != newNatom size %i\n", hasPosition.size(), newNatom);
     return 1;
