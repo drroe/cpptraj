@@ -178,7 +178,7 @@ const
   std::vector<int> const& priority = AtomJ.Priority();
   if (debug_ > 0) {
     mprintf("DEBUG: Original chirality around J %s is %s\n", topIn.AtomMaskName(aj).c_str(), chiralStr(AtomJ.Chirality()));
-    mprintf("DEBUG:\t\tPriority around J %s(%i):", 
+    mprintf("DEBUG:\t\tPriority around J %s(%i) is", 
             topIn.AtomMaskName(aj).c_str(), (int)atomPositionKnown[aj]);
     for (int idx = 0; idx < AJ.Nbonds(); idx++)
       mprintf(" %s(%i)", topIn.AtomMaskName(priority[idx]).c_str(), (int)atomPositionKnown[priority[idx]]);
@@ -187,6 +187,7 @@ const
 
   // Fill in what values we can for known atoms
   std::vector<double> knownPhi( AJ.Nbonds() );
+  std::vector<bool> isKnown( AJ.Nbonds(), false );
   int knownIdx = -1;
   for (int idx = 0; idx < AJ.Nbonds(); idx++) {
     int atnum = priority[idx];
@@ -199,8 +200,9 @@ const
                               frameIn.XYZ(aj),
                               frameIn.XYZ(ak),
                               frameIn.XYZ(al));
+      isKnown[idx] = true;
       if (debug_ > 0)
-        mprintf("DEBUG:\t\tKnown phi for %s = %g\n", topIn.AtomMaskName(atnum).c_str(), knownPhi[idx]*Constants::RADDEG);
+        mprintf("DEBUG:\t\tKnown phi for %s (pos=%i) = %g\n", topIn.AtomMaskName(atnum).c_str(), idx, knownPhi[idx]*Constants::RADDEG);
       if (knownIdx == -1) knownIdx = idx; // FIXME handle more than 1 known
     }
   }
@@ -211,26 +213,79 @@ const
     // TODO: Ensure bonded atoms are not yet visited?
     visited[aj] = true;
     visited[ak] = true;
-    std::vector<int> depth( AJ.Nbonds() );
+    //std::vector<int> depth( AJ.Nbonds() );
+    int max_depth = 0;
+    int max_idx = -1;
     for (int idx = 0; idx < AJ.Nbonds(); idx++) {
       int atnum = priority[idx];
       if (atnum != ak) {
         int currentDepth = 0;
-        depth[idx] = atom_depth(currentDepth, atnum, topIn, visited, 10);
+        //depth[idx] = atom_depth(currentDepth, atnum, topIn, visited, 10);
+        int depth = atom_depth(currentDepth, atnum, topIn, visited, 10);
         if (debug_ > 0)
           mprintf("DEBUG:\t\tAJ %s depth from %s is %i\n",
-                  topIn.AtomMaskName(aj).c_str(), topIn.AtomMaskName(atnum).c_str(), depth[idx]);
-        if (knownIdx == -1 && depth[idx] < 3) {
-          knownIdx = idx;
-          knownPhi[idx] = 0;
+                  topIn.AtomMaskName(aj).c_str(), topIn.AtomMaskName(atnum).c_str(), depth);
+        //if (knownIdx == -1 && depth[idx] < 3) {
+        //  knownIdx = idx;
+        //  knownPhi[idx] = 0;
+        //}
+        if (max_idx == -1 || depth > max_depth) {
+          max_depth = depth;
+          max_idx = idx;
         }
       }
     }
+    mprintf("DEBUG:\t\tLongest depth is for atom %s (%i)\n", topIn.AtomMaskName(priority[max_idx]).c_str(), max_depth);
+    knownIdx = max_idx;
+    knownPhi[max_idx] = -180 * Constants::DEGRAD;
+    isKnown[max_idx] = true;
+  }
+
+  // Sanity check
+  if (knownIdx < 0) {
+    mprinterr("Internal Error: AssignPhi(): knownIdx is < 0\n");
+    return 1;
   }
 
   // The interval will be 360 / (number of bonds - 1)
   double interval = Constants::TWOPI / (AJ.Nbonds() - 1);
+  if (AtomJ.Chirality() == IS_S || AtomJ.Chirality() == IS_UNKNOWN_CHIRALITY)
+    interval = -interval;
 
+  if (debug_ > 0) {
+    mprintf("DEBUG:\t\tStart phi is %g degrees\n", knownPhi[knownIdx]*Constants::RADDEG);
+    mprintf("DEBUG:\t\tInterval is %g, chirality around J is %s\n", interval*Constants::RADDEG, chiralStr(AtomJ.Chirality()));
+  }
+
+  // Forwards from the known index
+  double currentPhi = knownPhi[knownIdx];
+  for (int idx = knownIdx; idx < AJ.Nbonds(); idx++) {
+    int atnum = priority[idx];
+    if (atnum != ak) {
+      if (isKnown[idx])
+        currentPhi = knownPhi[idx];
+      else
+        currentPhi = wrap360(currentPhi + interval);
+      if (atnum == ai) phi = currentPhi;
+      if (debug_ > 0)
+        mprintf("DEBUG:\t\t\t%s (at# %i) phi= %g\n", topIn.AtomMaskName(atnum).c_str(), atnum+1, currentPhi*Constants::RADDEG);
+    }
+  }
+  // Backwards from the known index
+  currentPhi = knownPhi[knownIdx];
+  for (int idx = knownIdx - 1; idx > -1; idx--) {
+    int atnum = priority[idx];
+    if (atnum != ak) {
+      if (isKnown[idx])
+        currentPhi = knownPhi[idx];
+      else
+        currentPhi = wrap360(currentPhi - interval);
+      if (atnum == ai) phi = currentPhi;
+      if (debug_ > 0)
+        mprintf("DEBUG:\t\t\t%s (at# %i) phi= %g\n", topIn.AtomMaskName(atnum).c_str(), atnum+1, currentPhi*Constants::RADDEG);
+    }
+  }
+/*
   double startPhi;
   if (knownIdx == -1) {
     startPhi = -180*Constants::DEGRAD;
@@ -242,10 +297,6 @@ const
   if (AtomJ.Chirality() == IS_R) {
     startPhi = -startPhi;
     interval = -interval;
-  }
-  if (debug_ > 0) {
-    mprintf("DEBUG:\t\tStart phi is %g degrees\n", startPhi*Constants::RADDEG);
-    mprintf("DEBUG:\t\tInterval is %g degrees\n", interval * Constants::RADDEG);
   }
     
   // Forward direction
@@ -272,10 +323,10 @@ const
       currentPhi = wrap360(currentPhi);
     }
   }
-
+*/
   return 0;
 }
-
+/*
 static inline AtomType::HybridizationType getAtomHybridization(ParmHolder<AtomType> const& AT, Topology const& topIn, int ix)
 {
   AtomType::HybridizationType hx;
@@ -286,9 +337,9 @@ static inline AtomType::HybridizationType getAtomHybridization(ParmHolder<AtomTy
     hx = itx->second.Hybridization();
   return hx;
 }
-
+*/
 /** Assign phi values around a bond. */
-int Cpptraj::Structure::Model::AssignPhiAroundBond(int ix, int iy, Topology const& topIn, Frame const& frameIn,
+/*int Cpptraj::Structure::Model::AssignPhiAroundBond(int ix, int iy, Topology const& topIn, Frame const& frameIn,
                                                    std::vector<bool> const& atomPositionKnown,
                                                    ParmHolder<AtomType> const& AT)
 const
@@ -312,4 +363,4 @@ const
           topIn.AtomMaskName(ay).c_str());
  
   return 0;
-}
+}*/

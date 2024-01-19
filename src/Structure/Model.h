@@ -4,8 +4,8 @@
 //#incl ude "StructureEnum.h"
 class Topology;
 class Frame;
-template <typename T> class ParmHolder;
-class AtomType;
+//template <typename T> class ParmHolder;
+//class AtomType;
 namespace Cpptraj {
 namespace Structure {
 class BuildAtom;
@@ -22,7 +22,7 @@ class Model {
     /// Given atoms J K and L, attempt to assign a reasonable value for phi for atom I
     int AssignPhi(double&, int, int, int, int, Topology const&, Frame const&, std::vector<bool> const&, BuildAtom const&) const;
     /// Assign phi around bond
-    int AssignPhiAroundBond(int, int, Topology const&, Frame const&, std::vector<bool> const&, ParmHolder<AtomType> const&) const;
+    //int AssignPhiAroundBond(int, int, Topology const&, Frame const&, std::vector<bool> const&, ParmHolder<AtomType> const&) const;
   private:
     int debug_;
 };
