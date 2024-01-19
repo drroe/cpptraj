@@ -1117,17 +1117,18 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
             SetPriority(AtomC.ModifyPriority(), *iat, topIn, frameIn, modelDebug);
           }
           newPhi = 0;
+          //model.SetDebug( 1 ); // FIXME
           if (model.AssignPhi(newPhi, *i2at, *iat, atA, atB, topIn, frameIn,
-                                                   atomPositionKnown, AtomC)) // FIXME debug level
+                                                   atomPositionKnown, AtomC))
           {
             mprinterr("Error: phi (k l) assignment failed.\n");
             return 1;
           }
           mprintf("DEBUG: K L Phi = %g\n", newPhi*Constants::RADDEG);
-          //IC_.push_back(InternalCoords( *i2at, *iat, atA, atB, newDist, newTheta*Constants::RADDEG, newPhi*Constants::RADDEG ));
-          //mprintf("DEBUG: MODEL K L IC: ");
-          //IC_.back().printIC(topIn);
-          //MARK( *i2at, hasIC, nHasIC );
+          IC_.push_back(InternalCoords( *i2at, *iat, atA, atB, newDist, newTheta*Constants::RADDEG, newPhi*Constants::RADDEG ));
+          mprintf("DEBUG: MODEL K L IC: ");
+          IC_.back().printIC(topIn);
+          MARK( *i2at, hasIC, nHasIC );
           // Trace from atA *iat *i2at outwards
           //ToTrace.push_back(atA);
           //ToTrace.push_back(*iat);
