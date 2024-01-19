@@ -9,7 +9,7 @@
 #include <cmath>
 
 /** Assign reasonable value for bond distance. */
-int Cpptraj::Structure::Model::AssignLength(double& dist, int ai, int aj, Topology const& topIn, Frame const& frameIn, std::vector<bool> const& atomPositionKnown, int debug)
+int Cpptraj::Structure::Model::AssignLength(double& dist, int ai, int aj, Topology const& topIn, Frame const& frameIn, std::vector<bool> const& atomPositionKnown)
 {
   if (atomPositionKnown[ai] && atomPositionKnown[aj])
     dist = sqrt( DIST2_NoImage( frameIn.XYZ(ai), frameIn.XYZ(aj) ) );
@@ -22,16 +22,16 @@ int Cpptraj::Structure::Model::AssignLength(double& dist, int ai, int aj, Topolo
 /** Attempt to assign a reasonable value for theta internal coordinate for
   * atom i given that atoms j and k have known positions.
   */
-int Cpptraj::Structure::Model::AssignTheta(double& theta, int ai, int aj, int ak, Topology const& topIn, Frame const& frameIn, std::vector<bool> const& atomPositionKnown, int debug)
+int Cpptraj::Structure::Model::AssignTheta(double& theta, int ai, int aj, int ak, Topology const& topIn, Frame const& frameIn, std::vector<bool> const& atomPositionKnown)
 {
   // Figure out hybridization and chirality of atom j.
-  if (debug > 0)
+  if (debug_ > 0)
     mprintf("DEBUG: AssignTheta for atom j : %s\n", topIn.AtomMaskName(aj).c_str());
 
   //enum HybridizationType { SP = 0, SP2, SP3, UNKNOWN_HYBRIDIZATION };
 
   Atom const& AJ = topIn[aj];
-  if (debug > 0) {
+  if (debug_ > 0) {
     mprintf("DEBUG:\t\tI %s Nbonds: %i\n", topIn[ai].ElementName(), topIn[ai].Nbonds());
     mprintf("DEBUG:\t\tJ %s Nbonds: %i\n", AJ.ElementName(), AJ.Nbonds());
     mprintf("DEBUG:\t\tK %s Nbonds: %i\n", topIn[ak].ElementName(), topIn[ak].Nbonds());
@@ -155,17 +155,17 @@ static inline double wrap360(double phi) {
 int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, int al,
                                          Topology const& topIn, Frame const& frameIn,
                                          std::vector<bool> const& atomPositionKnown,
-                                         BuildAtom const& AtomJ, int debug)
+                                         BuildAtom const& AtomJ)
 {
   // Figure out hybridization and chirality of atom j.
-  if (debug > 0)
+  if (debug_ > 0)
     mprintf("DEBUG: AssignPhi for atom j : %s\n", topIn.AtomMaskName(aj).c_str());
 
   Atom const& AJ = topIn[aj];
-  if (debug > 0) mprintf("DEBUG:\t\tNbonds: %i\n", AJ.Nbonds());
+  if (debug_ > 0) mprintf("DEBUG:\t\tNbonds: %i\n", AJ.Nbonds());
   // If atom J only has 2 bonds, ai-aj-ak-al is the only possibility.
   if (AJ.Nbonds() < 3) {
-    if (debug > 0)
+    if (debug_ > 0)
       mprintf("DEBUG:\t\tFewer than 3 bonds. Setting phi to -180.\n");
     phi = -180 * Constants::DEGRAD;
     return 0;
@@ -173,7 +173,7 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
 
   // TODO check that atom i actually ends up on the list?
   std::vector<int> const& priority = AtomJ.Priority();
-  if (debug > 0) {
+  if (debug_ > 0) {
     mprintf("DEBUG: Original chirality around J %s is %s\n", topIn.AtomMaskName(aj).c_str(), chiralStr(AtomJ.Chirality()));
     mprintf("DEBUG:\t\tPriority around J %s(%i):", 
             topIn.AtomMaskName(aj).c_str(), (int)atomPositionKnown[aj]);
@@ -196,7 +196,7 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
                               frameIn.XYZ(aj),
                               frameIn.XYZ(ak),
                               frameIn.XYZ(al));
-      if (debug > 0)
+      if (debug_ > 0)
         mprintf("DEBUG:\t\tKnown phi for %s = %g\n", topIn.AtomMaskName(atnum).c_str(), knownPhi[idx]*Constants::RADDEG);
       if (knownIdx == -1) knownIdx = idx; // FIXME handle more than 1 known
     }
@@ -214,7 +214,7 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
       if (atnum != ak) {
         int currentDepth = 0;
         depth[idx] = atom_depth(currentDepth, atnum, topIn, visited, 10);
-        if (debug > 0)
+        if (debug_ > 0)
           mprintf("DEBUG:\t\tAJ %s depth from %s is %i\n",
                   topIn.AtomMaskName(aj).c_str(), topIn.AtomMaskName(atnum).c_str(), depth[idx]);
         if (knownIdx == -1 && depth[idx] < 3) {
@@ -231,7 +231,7 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
   double startPhi;
   if (knownIdx == -1) {
     startPhi = -180*Constants::DEGRAD;
-    if (debug > 0) mprintf("DEBUG:\t\tNo known phi. Setting to %g.\n", startPhi*Constants::RADDEG);
+    if (debug_ > 0) mprintf("DEBUG:\t\tNo known phi. Setting to %g.\n", startPhi*Constants::RADDEG);
     knownIdx = 0;
   } else
     startPhi = knownPhi[knownIdx];
@@ -240,7 +240,7 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
     startPhi = -startPhi;
     interval = -interval;
   }
-  if (debug > 0) {
+  if (debug_ > 0) {
     mprintf("DEBUG:\t\tStart phi is %g degrees\n", startPhi*Constants::RADDEG);
     mprintf("DEBUG:\t\tInterval is %g degrees\n", interval * Constants::RADDEG);
   }
@@ -251,7 +251,7 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
     int atnum = priority[idx];
     if (atnum != ak) {
       if (atnum == ai) phi = currentPhi;
-      if (debug > 0)
+      if (debug_ > 0)
         mprintf("DEBUG:\t\t\t%s phi= %g\n", topIn.AtomMaskName(atnum).c_str(), currentPhi*Constants::RADDEG);
       currentPhi += interval;
       currentPhi = wrap360(currentPhi);
@@ -263,7 +263,7 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
     int atnum = priority[idx];
     if (atnum != ak) {
       if (atnum == ai) phi = currentPhi;
-      if (debug > 0)
+      if (debug_ > 0)
         mprintf("DEBUG:\t\t\t%s phi= %g\n", topIn.AtomMaskName(atnum).c_str(), currentPhi*Constants::RADDEG);
       currentPhi -= interval;
       currentPhi = wrap360(currentPhi);
