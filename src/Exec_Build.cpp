@@ -299,7 +299,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
         Frame templateFrame = resTemplate->AllocateFrame();
         resTemplate->GetFrame( 0, templateFrame );
         Cpptraj::Structure::Zmatrix* zmatrix = new Cpptraj::Structure::Zmatrix();
-        if (zmatrix->SetFromFrameAndConnect( templateFrame, resTemplate->Top(), 0 )) {
+        if (zmatrix->SetFromFrameAndConnect( templateFrame, resTemplate->Top() )) {
           mprinterr("Error: Could not set up residue template zmatrix.\n");
           return 1;
         }

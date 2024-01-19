@@ -47,7 +47,7 @@ const
   zmatrix.SetDebug( State.Debug() );
   int errStat;
   if (complete_zmatrix)
-    errStat = zmatrix.SetFromFrameAndConnect(frmIn, CRD->Top(), molnum);
+    errStat = zmatrix.SetFromFrameAndConnect(frmIn, CRD->Top());
   else
     errStat = zmatrix.SetFromFrame( frmIn, CRD->Top(), molnum );
   if (debug_ > 0) zmatrix.print(); // DEBUG
