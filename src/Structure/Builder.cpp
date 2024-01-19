@@ -20,6 +20,9 @@ int Builder::Combine(Topology&       frag0Top, Frame&       frag0frm,
                      int bondAt0, int bondAt1)
 const
 {
+  mprintf("DEBUG: Calling COMBINE between %s and %s\n",
+          frag0Top.AtomMaskName(bondAt0).c_str(),
+          frag1Top.AtomMaskName(bondAt1).c_str());
   int natom0 = frag0Top.Natom();
   int newNatom = natom0 + frag1Top.Natom();
 
@@ -28,23 +31,28 @@ const
   // Ensure atB index is what it will be after fragments are combined.
   Barray posKnown( newNatom, false );
   int atA, atB;
+  Zmatrix zmatrixA;
   if (frag0Top.HeavyAtomCount() < frag1Top.HeavyAtomCount()) {
     // Fragment 1 is larger
     atA = bondAt0;
     atB = bondAt1 + natom0;
     for (int at = frag0Top.Natom(); at != newNatom; at++)
       posKnown[at] = true;
+    zmatrixA.SetFromFrameAndConnect( frag0frm, frag0Top );
   } else {
     // Fragment 0 is larger or equal
     atA = bondAt1 + natom0;
     atB = bondAt0;
     for (int at = 0; at != natom0; at++)
      posKnown[at] = true;
+    zmatrixA.SetFromFrameAndConnect( frag1frm, frag1Top );
+    zmatrixA.OffsetIcIndices( natom0 );
   }
 
   // Combine fragment1 into fragment 0 topology
   Topology& combinedTop = frag0Top;
   combinedTop.AppendTop( frag1Top );
+  zmatrixA.print( &combinedTop );
   // Combined fragment1 into fragment 0 coords.
   // Need to save the original coords in frame0 since SetupFrameV does not preserve.
   double* tmpcrd0 = new double[natom0*3];
@@ -92,17 +100,22 @@ const
   // Generate Zmatrix only for ICs involving bonded atoms
   Zmatrix bondZmatrix;
 
-  bondZmatrix.SetDebug( debug_ );
+  //bondZmatrix.SetDebug( debug_ );
+  bondZmatrix.SetDebug( 1 ); // FIXME
   if (bondZmatrix.SetupICsAroundBond(atA, atB, CombinedFrame, combinedTop, posKnown, AtomA, AtomB)) {
     mprinterr("Error: Zmatrix setup for ICs around %s and %s failed.\n",
               combinedTop.AtomMaskName(atA).c_str(),
               combinedTop.AtomMaskName(atB).c_str());
     return 1;
   }
-  if (debug_ > 0)
+  //if (debug_ > 0)
     bondZmatrix.print(&combinedTop);
   if (bondZmatrix.SetToFrame( CombinedFrame, posKnown )) {
     mprinterr("Error: Conversion from bondZmatrix to Cartesian coords failed.\n");
+    return 1;
+  }
+  if (zmatrixA.SetToFrame( CombinedFrame, posKnown )) {
+    mprinterr("Error: Conversion from zmatrixA to Cartesian coords failed.\n");
     return 1;
   }
 
