@@ -42,7 +42,7 @@ class Zmatrix {
     int AutoSetSeedsWithPositions(Frame const&, Topology const&, int, Barray const&);
 
     /// Try to generate complete ICs from atom connectivity
-    int SetFromFrameAndConnect(Frame const&, Topology const&, int);
+    int SetFromFrameAndConnect(Frame const&, Topology const&);//, int);
     /// Update ICs from existing coords
     int UpdateICsFromFrame(Frame const&, int, Topology const&, Barray const&);
     /// Convert specifed molecule of Frame/Topology to internal coordinates array

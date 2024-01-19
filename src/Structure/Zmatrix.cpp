@@ -7,6 +7,7 @@
 #include "BuildAtom.h"
 #include "Model.h"
 #include "GenerateConnectivityArrays.h"
+#include "Chirality.h"
 #include "../Frame.h"
 #include "../CpptrajStdio.h"
 #include "../Constants.h"
@@ -735,25 +736,26 @@ int Zmatrix::UpdateICsFromFrame(Frame const& frameIn, int ires, Topology const& 
 /** Set up Zmatrix from Cartesian coordinates and topology.
   * Use torsions based on connectivity to create a complete set of ICs.
   */
-int Zmatrix::SetFromFrameAndConnect(Frame const& frameIn, Topology const& topIn, int molnum)
+int Zmatrix::SetFromFrameAndConnect(Frame const& frameIn, Topology const& topIn) //, int molnum)
 {
-  if (molnum < 0) {
-    mprinterr("Internal Error: Zmatrix::SetFromFrame(): Negative molecule index.\n");
-    return 1;
-  }
-  if (topIn.Nmol() < 1) {
-    mprinterr("Internal Error: Zmatrix::SetFromFrame(): No molecules.\n");
-    return 1;
-  }
+//  if (molnum < 0) {
+//    mprinterr("Internal Error: Zmatrix::SetFromFrame(): Negative molecule index.\n");
+//    return 1;
+//  }
+//  if (topIn.Nmol() < 1) {
+//    mprinterr("Internal Error: Zmatrix::SetFromFrame(): No molecules.\n");
+//    return 1;
+//  }
   clear();
 
   IC_.clear();
-  Molecule const& currentMol = topIn.Mol(molnum);
+//  Molecule const& currentMol = topIn.Mol(molnum);
 
-  for (Unit::const_iterator seg = currentMol.MolUnit().segBegin();
-                            seg != currentMol.MolUnit().segEnd(); ++seg)
-  {
-    for (int iat1 = seg->Begin(); iat1 != seg->End(); ++iat1)
+//  for (Unit::const_iterator seg = currentMol.MolUnit().segBegin();
+//                            seg != currentMol.MolUnit().segEnd(); ++seg)
+//  {
+//    for (int iat1 = seg->Begin(); iat1 != seg->End(); ++iat1)
+    for (int iat1 = 0; iat1 < topIn.Natom(); iat1++)
     {
       Atom const& At1 = topIn[iat1];
       for (int bidx1 = 0; bidx1 < At1.Nbonds(); bidx1++) {
@@ -776,6 +778,49 @@ int Zmatrix::SetFromFrameAndConnect(Frame const& frameIn, Topology const& topIn,
         }
       }
     }
+  //}
+  if (IC_.empty()) {
+    // Either 4-5 atoms in a tetrahedral configuration or else
+    // some other strange configuration.
+    mprintf("Warning: No ICs created for %s\n", topIn.c_str());
+/*
+    // Create ICs using 1st 3 heaviest atoms.
+    if (topIn.Natom() > 3) {
+      typedef std::pair<double,int> MIpair;
+      // Used to sort mass descending).
+      struct MassCmp {
+        inline bool operator()(MIpair const& lhs, MIpair const& rhs) const {
+          if (lhs.first == rhs.first)
+            return lhs.second < rhs.second;
+          else
+            return lhs.first > rhs.first;
+        }
+      };
+
+      std::vector<MIpair> MassIndices;
+      MassIndices.reserve( topIn.Natom() );
+      for (int iat = 0; iat < topIn.Natom(); iat++)
+        MassIndices.push_back( MIpair(topIn[iat].Mass(), iat) );
+      // Sort by mass
+      std::sort( MassIndices.begin(), MassIndices.end(), MassCmp() );
+      mprintf("Sorted:");
+      for (std::vector<MIpair>::const_iterator it = MassIndices.begin(); it != MassIndices.end(); ++it)
+        mprintf(" %s", topIn.AtomMaskName(it->second).c_str());
+      mprintf("\n");
+      // Set up ICs
+      for (int iat1 = 0; iat1 < topIn.Natom(); iat1++) {
+        std::vector<int> iats;
+        iats.reserve(3);
+        for (std::vector<MIpair>::const_iterator it = MassIndices.begin(); it != MassIndices.end(); ++it)
+        {
+          if (it->second != iat1)
+            iats.push_back( it->second );
+          if (iats.size() == 3) break;
+        }
+        addIc(iat1, iats[0], iats[1], iats[2], frameIn);
+      }
+    }
+*/
   }
 
   return 0;
@@ -1042,31 +1087,53 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
       }
       MARK( *iat, hasIC, nHasIC );
       // ----- K L: Set up ICs for X iat atA atB ---------------------
-      /*Atom const& AJ2 = topIn[*iat];
+      Atom const& AJ2 = topIn[*iat];
       for (Atom::bond_iterator i2at = AJ2.bondbegin(); i2at != AJ2.bondend(); ++i2at)
       {
         if (*i2at != atA && *i2at != atB && !hasIC[*i2at]) {
-          // Use existing dist and theta
-          newDist = sqrt( DIST2_NoImage(frameIn.XYZ(*i2at), frameIn.XYZ(*iat)) );
-          newTheta = CalcAngle( frameIn.XYZ(*i2at), frameIn.XYZ(*iat), frameIn.XYZ(atA) );
+          mprintf("DEBUG: MODEL K L IC: %s %s %s %s %i %i %i %i\n",
+                  topIn.AtomMaskName(*i2at).c_str(),
+                  topIn.AtomMaskName(*iat).c_str(),
+                  topIn.AtomMaskName(atA).c_str(),
+                  topIn.AtomMaskName(atB).c_str(),
+                  *i2at+1, *iat+1, atA+1, atB+1);
+          if (Cpptraj::Structure::Model::AssignLength(newDist, *i2at, *iat, topIn, frameIn, atomPositionKnown, modelDebug)) {
+            mprinterr("Error: length (k l) assignment failed.\n");
+            return 1;
+          }
+          mprintf("DEBUG: K L distance= %g\n", newDist);
+          //newTheta = CalcAngle( frameIn.XYZ(*i2at), frameIn.XYZ(*iat), frameIn.XYZ(atA) );
+          if (Cpptraj::Structure::Model::AssignTheta(newTheta, *iat, atA, atB, topIn, frameIn, atomPositionKnown, modelDebug)) {
+            mprinterr("Error: theta (k l) assignment failed.\n");
+            return 1;
+          }
+          mprintf("DEBUG: K L angle= %g\n", newTheta*Constants::RADDEG);
           // Set phi for X iat atA atB
+          BuildAtom AtomC;
+          if (topIn[*iat].Nbonds() > 2) {
+            AtomC.SetChirality( DetermineChirality(*iat, topIn, frameIn, modelDebug) );
+            SetPriority(AtomC.ModifyPriority(), *iat, topIn, frameIn, modelDebug);
+          }
           newPhi = 0;
-          if (Cpptraj::Structure::Model::AssignPhi(newPhi, *i2at, *iat, atA, atB, topIn, frameIn, atomPositionKnown, atomChirality)) {
+          if (Cpptraj::Structure::Model::AssignPhi(newPhi, *i2at, *iat, atA, atB, topIn, frameIn,
+                                                   atomPositionKnown, AtomC, 1)) // FIXME debug level
+          {
             mprinterr("Error: phi (k l) assignment failed.\n");
             return 1;
           }
-          mprintf("DEBUG:\t\tnewPhi = %g\n", newPhi*Constants::RADDEG);
-          IC_.push_back(InternalCoords( *i2at, *iat, atA, atB, newDist, newTheta*Constants::RADDEG, newPhi*Constants::RADDEG ));
-          mprintf("DEBUG: MODEL K L IC: ");
-          IC_.back().printIC(topIn);
-          MARK( *i2at, hasIC, nHasIC );
+          mprintf("DEBUG: K L Phi = %g\n", newPhi*Constants::RADDEG);
+          //IC_.push_back(InternalCoords( *i2at, *iat, atA, atB, newDist, newTheta*Constants::RADDEG, newPhi*Constants::RADDEG ));
+          //mprintf("DEBUG: MODEL K L IC: ");
+          //IC_.back().printIC(topIn);
+          //MARK( *i2at, hasIC, nHasIC );
           // Trace from atA *iat *i2at outwards
-          ToTrace.push_back(atA);
-          ToTrace.push_back(*iat);
-          ToTrace.push_back(*i2at);
+          //ToTrace.push_back(atA);
+          //ToTrace.push_back(*iat);
+          //ToTrace.push_back(*i2at);
           //if (traceMol(atA, *iat, *i2at, frameIn, topIn, topIn.Natom(), nHasIC, hasIC)) return 1;
+
         }
-      } */
+      } 
     }
   }
 /*
