@@ -185,15 +185,16 @@ const
   // Figure out hybridization and chirality of atom j.
   if (debug_ > 0)
     mprintf("DEBUG: AssignPhi for atom j : %s\n", topIn.AtomMaskName(aj).c_str());
-  std::vector<int> priority;
-  int chiralDebug = debug_;
-  if (chiralDebug > 0)
-    chiralDebug--;
-  ChiralType chirality = SetPriority(priority, aj, topIn, frameIn, chiralDebug);
+//  std::vector<int> priority;
+//  int chiralDebug = debug_;
+//  if (chiralDebug > 0)
+//    chiralDebug--;
+//  ChiralType chirality = SetPriority(priority, aj, topIn, frameIn, chiralDebug);
 
 
   // TODO check that atom i actually ends up on the list?
-  //std::vector<int> const& priority = AtomJ.Priority();
+  std::vector<int> const& priority = AtomJ.Priority();
+  ChiralType chirality = AtomJ.Chirality();
   if (debug_ > 0) {
     mprintf("DEBUG: Original chirality around J %s is %s\n", topIn.AtomMaskName(aj).c_str(), chiralStr(chirality));
     mprintf("DEBUG:\t\tPriority around J %s(%i) is", 
