@@ -208,6 +208,8 @@ const
   std::vector<double> knownPhi( AJ.Nbonds() );
   std::vector<bool> isKnown( AJ.Nbonds(), false );
   int knownIdx = -1;
+  double knownInterval = 0;
+  bool hasKnownInterval = false;
   for (int idx = 0; idx < AJ.Nbonds(); idx++) {
     int atnum = priority[idx];
     if (atnum != ak && atomPositionKnown[atnum] &&
@@ -223,8 +225,14 @@ const
       if (debug_ > 0)
         mprintf("DEBUG:\t\tKnown phi for %s (pos=%i) = %g\n", topIn.AtomMaskName(atnum).c_str(), idx, knownPhi[idx]*Constants::RADDEG);
       if (knownIdx == -1) knownIdx = idx; // FIXME handle more than 1 known
+      if (idx > 0 && isKnown[idx-1] && isKnown[idx]) {
+        knownInterval = wrap360(knownPhi[idx] - knownPhi[idx-1]);
+        hasKnownInterval = true;
+      }
     }
   }
+  if (hasKnownInterval)
+    mprintf("DEBUG:\t\tKnown interval = %g\n", knownInterval * Constants::RADDEG);
 
   // If we have to assign an initial phi, make trans the longer branch
   if (knownIdx == -1) {
@@ -268,8 +276,24 @@ const
 
   // The interval will be 360 / (number of bonds - 1)
   double interval = Constants::TWOPI / (AJ.Nbonds() - 1);
+  if (hasKnownInterval) {
+    if (chirality == IS_UNKNOWN_CHIRALITY) {
+      mprintf("DEBUG: Setting chirality from known interval.\n");
+      if (knownInterval < 0)
+        chirality = IS_S;
+      else
+        chirality = IS_R;
+    } else if (chirality == IS_S) {
+      if (knownInterval > 0)
+        mprinterr("Error: Detected chirality S does not match known interval %g\n", knownInterval*Constants::RADDEG);
+    } else if (chirality == IS_R) {
+      if (knownInterval < 0)
+        mprinterr("Error: Detected chriality R does not match known interval %g\n", knownInterval*Constants::RADDEG);
+    }
+  }
   if (chirality == IS_S || chirality == IS_UNKNOWN_CHIRALITY)
     interval = -interval;
+ 
 
   if (debug_ > 0) {
     mprintf("DEBUG:\t\tStart phi is %g degrees\n", knownPhi[knownIdx]*Constants::RADDEG);
