@@ -167,15 +167,6 @@ const
   // If atom J has only 1 bond this is not needed.
   if (AJ.Nbonds() < 2) return 0;
 
-  // Figure out hybridization and chirality of atom j.
-  if (debug_ > 0)
-    mprintf("DEBUG: AssignPhi for atom j : %s\n", topIn.AtomMaskName(aj).c_str());
-  std::vector<int> priority;
-  int chiralDebug = debug_;
-  if (chiralDebug > 0)
-    chiralDebug--;
-  ChiralType chirality = SetPriority(priority, aj, topIn, frameIn, chiralDebug);
-
   if (debug_ > 0) mprintf("DEBUG:\t\tNbonds: %i\n", AJ.Nbonds());
   // If atom J only has 2 bonds, ai-aj-ak-al is the only possibility.
   if (AJ.Nbonds() < 3) {
@@ -191,6 +182,15 @@ const
     }
     return 0;
   }
+  // Figure out hybridization and chirality of atom j.
+  if (debug_ > 0)
+    mprintf("DEBUG: AssignPhi for atom j : %s\n", topIn.AtomMaskName(aj).c_str());
+  std::vector<int> priority;
+  int chiralDebug = debug_;
+  if (chiralDebug > 0)
+    chiralDebug--;
+  ChiralType chirality = SetPriority(priority, aj, topIn, frameIn, chiralDebug);
+
 
   // TODO check that atom i actually ends up on the list?
   //std::vector<int> const& priority = AtomJ.Priority();
