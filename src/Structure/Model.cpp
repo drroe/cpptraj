@@ -10,6 +10,7 @@
 
 /** Assign reasonable value for bond distance. */
 int Cpptraj::Structure::Model::AssignLength(double& dist, int ai, int aj, Topology const& topIn, Frame const& frameIn, std::vector<bool> const& atomPositionKnown)
+const
 {
   if (atomPositionKnown[ai] && atomPositionKnown[aj])
     dist = sqrt( DIST2_NoImage( frameIn.XYZ(ai), frameIn.XYZ(aj) ) );
@@ -23,6 +24,7 @@ int Cpptraj::Structure::Model::AssignLength(double& dist, int ai, int aj, Topolo
   * atom i given that atoms j and k have known positions.
   */
 int Cpptraj::Structure::Model::AssignTheta(double& theta, int ai, int aj, int ak, Topology const& topIn, Frame const& frameIn, std::vector<bool> const& atomPositionKnown)
+const
 {
   // Figure out hybridization and chirality of atom j.
   if (debug_ > 0)
@@ -156,6 +158,7 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
                                          Topology const& topIn, Frame const& frameIn,
                                          std::vector<bool> const& atomPositionKnown,
                                          BuildAtom const& AtomJ)
+const
 {
   // Figure out hybridization and chirality of atom j.
   if (debug_ > 0)
@@ -270,5 +273,43 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
     }
   }
 
+  return 0;
+}
+
+static inline AtomType::HybridizationType getAtomHybridization(ParmHolder<AtomType> const& AT, Topology const& topIn, int ix)
+{
+  AtomType::HybridizationType hx;
+  ParmHolder<AtomType>::const_iterator itx = AT.GetParam( TypeNameHolder( topIn[ix].Type() ) );
+  if (itx == AT.end())
+    hx = Cpptraj::GuessAtomHybridization(topIn[ix], topIn.Atoms());
+  else
+    hx = itx->second.Hybridization();
+  return hx;
+}
+
+/** Assign phi values around a bond. */
+int Cpptraj::Structure::Model::AssignPhiAroundBond(int ix, int iy, Topology const& topIn, Frame const& frameIn,
+                                                   std::vector<bool> const& atomPositionKnown,
+                                                   ParmHolder<AtomType> const& AT)
+const
+{
+  // Order atoms by hybridization; AX > AY
+  int ax, ay;
+  AtomType::HybridizationType hx = getAtomHybridization(AT, topIn, ix);
+  AtomType::HybridizationType hy = getAtomHybridization(AT, topIn, iy);
+  if (hx < hy) {
+    ax = iy;
+    ay = ix;
+  } else {
+    ax = ix;
+    ay = iy;
+  }
+  mprintf("DEBUG: Assign torsions around %s (%i) - %s (%i)\n",
+          topIn.AtomMaskName(ix).c_str(), (int)hx,
+          topIn.AtomMaskName(iy).c_str(), (int)hy);
+  mprintf("DEBUG: Ordered by hybridization: %s %s\n", 
+          topIn.AtomMaskName(ax).c_str(),
+          topIn.AtomMaskName(ay).c_str());
+ 
   return 0;
 }
