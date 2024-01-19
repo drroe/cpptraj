@@ -9,6 +9,7 @@ class Frame;
 namespace Cpptraj {
 namespace Structure {
 class BuildAtom;
+class InternalCoords;
 /// Routines to create a model for missing bond/angle/torsion parameters
 class Model {
   public:
@@ -20,6 +21,7 @@ class Model {
     /// Given atoms J and K, attempt to assign a reasonable value for theta for atom I
     int AssignTheta(double&, int, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
     /// Given atoms J K and L, attempt to assign a reasonable value for phi for atom I
+    //int AssignPhi(std::vector<InternalCoords>&, int, int, int, Topology const&, Frame const&, std::vector<bool> const&, BuildAtom const&) const;
     int AssignPhi(double&, int, int, int, int, Topology const&, Frame const&, std::vector<bool> const&, BuildAtom const&) const;
     /// Assign phi around bond
     //int AssignPhiAroundBond(int, int, Topology const&, Frame const&, std::vector<bool> const&, ParmHolder<AtomType> const&) const;
