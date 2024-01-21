@@ -36,5 +36,6 @@ class Action_CheckChirality: public Action {
     DataSet* data_D_;     ///< Hold number of times each residue was D
     std::string setname_; ///< Data set name
     ActionInit Init_;     ///< Master DSL/DFL
+//    Topology* top_; // DEBUG
 };
 #endif

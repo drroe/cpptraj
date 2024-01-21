@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "TorsionRoutines.h"
 #include "DataSet_Mesh.h"
+//#inc lude "Structure/Chirality.h" // DEBUG
 
 void Action_CheckChirality::Help() const {
   mprintf("\t[<name>] [<mask1>] [out <filename>]\n"
@@ -48,6 +49,7 @@ Action::RetType Action_CheckChirality::Init(ArgList& actionArgs, ActionInit& ini
 // Action_CheckChirality::Setup()
 /** Set angle up for this parmtop. Get masks etc. */
 Action::RetType Action_CheckChirality::Setup(ActionSetup& setup) {
+//  top_ = setup.TopAddress(); // DEBUG
   if (setup.Top().SetupCharMask(Mask1_)) return Action::ERR;
   if (Mask1_.None()) {
     mprinterr("Warning: Mask '%s' selects no atoms.\n", Mask1_.MaskString());
@@ -139,6 +141,13 @@ Action::RetType Action_CheckChirality::DoAction(int frameNum, ActionFrame& frm) 
       ri->N_L_++;
     else
       ri->N_D_++;
+//    DEBUG
+//    int at = ri->ca_ / 3;
+//    Cpptraj::Structure::ChiralType chirality = Cpptraj::Structure::IS_UNKNOWN_CHIRALITY;
+//    if (top_->Atoms()[at].Nbonds() > 2)
+//      chirality = Cpptraj::Structure::DetermineChirality(at, *top_, frm.Frm(), 0);
+//    mprintf("Chirality around %s is %s\n", top_->AtomMaskName(at).c_str(), Cpptraj::Structure::chiralStr(chirality));
+//    DEBUG
   }
 
   return Action::OK;
