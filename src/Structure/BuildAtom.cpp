@@ -158,20 +158,21 @@ int Cpptraj::Structure::BuildAtom::determineChirality(int atnum, Topology const&
     mprintf("DEBUG: Torsion around '%s' is %f",  topIn.AtomMaskName(atnum).c_str(), tors_*Constants::RADDEG);
 
   ChiralType ret;
-  if (tors_ < 0) {
+  if (tors_ < 0)
     ret = IS_S;
-    if (debugIn > 0) mprintf(" (S)\n");
-  } else {
+  else
     ret = IS_R;
-    if (debugIn > 0) mprintf(" (R)\n");
-  }
+ 
   if (depth_limit_hit) {
     // No real chirality; just store orientation.
+    ctype_ = IS_UNKNOWN_CHIRALITY;
     orientation_ = ret;
+    if (debugIn > 0) mprintf(", orientation is (%s)\n", chiralStr(ret));
   } else {
     // Chirality determined.
     ctype_ = ret;
     orientation_ = ret;
+    if (debugIn > 0) mprintf(", chirality is (%s)\n", chiralStr(ret));
   }
   return 0;
 }
