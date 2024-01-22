@@ -125,8 +125,8 @@ int Cpptraj::Structure::BuildAtom::determineChirality(int atnum, Topology const&
             break;
           }
           if (depth == 10) {
-            mprintf("Warning: Could not determine priority around '%s'\n",
-                      topIn.AtomMaskName(atnum).c_str());
+            if (debugIn > 0) mprintf("DEBUG: Could not determine priority around '%s'\n",
+                                     topIn.AtomMaskName(atnum).c_str());
             depth_limit_hit = true;
             break;
           }
