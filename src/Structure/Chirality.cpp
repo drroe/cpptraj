@@ -1,4 +1,5 @@
 #include "Chirality.h"
+#include "BuildAtom.h"
 #include "../Constants.h"
 #include "../CpptrajStdio.h"
 #include "../Frame.h"
@@ -76,24 +77,24 @@ class priority_element {
   *   1-2-3-0
   * where 0 is the chiral center. Negative is S, positive is R.
   */
-Cpptraj::Structure::ChiralType
-  Cpptraj::Structure::DetermineChirality(double& tors, int* AtomIndices,
+Cpptraj::Structure::BuildAtom
+  Cpptraj::Structure::DetermineChirality(//double& tors, int* AtomIndices,
                                          int atnum,
                                          Topology const& topIn,
                                          Frame const& frameIn, int debugIn)
 {
-  tors = 0.0;
   Atom const& atom = topIn[atnum];
   if (atom.Nbonds() < 3) {
     mprinterr("Error: CalcChiralAtomTorsion called for atom %s with less than 3 bonds.\n",
               topIn.AtomMaskName(atnum).c_str());
-    return CHIRALITY_ERR;
+    return BuildAtom(CHIRALITY_ERR);
   }
   // Calculate a priority score for each bonded atom.
   // First just use the atomic number.
   if (debugIn > 0)
     mprintf("DEBUG: Determining priorities around atom %s\n", topIn.AtomMaskName(atnum).c_str());
   std::vector<priority_element> priority;
+  priority.reserve( atom.Nbonds() );
   for (int idx = 0; idx != atom.Nbonds(); idx++) {
     priority.push_back( priority_element(atom.Bond(idx), topIn[atom.Bond(idx)].AtomicNumber()) );
     if (debugIn > 0)
@@ -144,18 +145,20 @@ Cpptraj::Structure::ChiralType
     mprintf("\n");
   }
 
-  if (AtomIndices != 0) {
+  std::vector<int> AtomIndices( atom.Nbonds() );
+  //if (AtomIndices != 0) {
     for (unsigned int ip = 0; ip != priority.size(); ++ip)
       AtomIndices[ip] = priority[ip].AtNum();
-  }
-  if (depth_limit_hit) return IS_UNKNOWN_CHIRALITY;
+  //}
+  //if (depth_limit_hit) return IS_UNKNOWN_CHIRALITY;
 
-  tors = Torsion( frameIn.XYZ(priority[0].AtNum()),
-                  frameIn.XYZ(priority[1].AtNum()),
-                  frameIn.XYZ(priority[2].AtNum()),
-                  frameIn.XYZ(atnum) );
+  double tors = Torsion( frameIn.XYZ(priority[0].AtNum()),
+                         frameIn.XYZ(priority[1].AtNum()),
+                         frameIn.XYZ(priority[2].AtNum()),
+                         frameIn.XYZ(atnum) );
   if (debugIn > 0)
     mprintf("DEBUG: Torsion around '%s' is %f",  topIn.AtomMaskName(atnum).c_str(), tors*Constants::RADDEG);
+
   ChiralType ret;
   if (tors < 0) {
     ret = IS_S;
@@ -164,21 +167,29 @@ Cpptraj::Structure::ChiralType
     ret = IS_R;
     if (debugIn > 0) mprintf(" (R)\n");
   }
-  return ret;
+  BuildAtom out;
+  if (depth_limit_hit) {
+    // No real chirality; just store orientation.
+    out = BuildAtom(tors, IS_UNKNOWN_CHIRALITY, ret, AtomIndices);
+  } else {
+    // Chirality determined.
+    out = BuildAtom(tors, ret, ret, AtomIndices);
+  }
+  return out;
 }
 
 /** Determine chirality around specified atom. */
-Cpptraj::Structure::ChiralType
+/*Cpptraj::Structure::ChiralType
   Cpptraj::Structure::DetermineChirality(int atnum,
                                          Topology const& topIn,
                                          Frame const& frameIn, int debugIn)
 {
   double tors;
   return DetermineChirality(tors, 0, atnum, topIn, frameIn, debugIn);
-}
+}*/
 
 /** Set priority around a specified atom. */
-Cpptraj::Structure::ChiralType
+/*Cpptraj::Structure::ChiralType
   Cpptraj::Structure::SetPriority(std::vector<int>& priority,
                                   int atnum, Topology const& topIn,
                                   Frame const& frameIn, int debugIn)
@@ -186,4 +197,16 @@ Cpptraj::Structure::ChiralType
   priority.resize( topIn[atnum].Nbonds() );
   double tors;
   return DetermineChirality(tors, &priority[0], atnum, topIn, frameIn, debugIn);
+}*/
+
+/** Only set the priority around a specified atom. */
+int Cpptraj::Structure::UpdatePriority(BuildAtom& atomIn, int atnum, Topology const& topIn, Frame const& frameIn, int debugIn)
+{
+  BuildAtom tmpAtom = DetermineChirality(atnum, topIn, frameIn, debugIn);
+  if (tmpAtom.ChiralError()) {
+    mprinterr("Error: Could not update priority for atom %s\n", topIn.AtomMaskName(atnum).c_str());
+    return 1;
+  }
+  atomIn.SetPriority( tmpAtom.Priority() );
+  return 0;
 }

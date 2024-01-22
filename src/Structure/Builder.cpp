@@ -71,12 +71,12 @@ const
   // Get the chirality around each atom before the bond is added.
   BuildAtom AtomA;
   if (combinedTop[atA].Nbonds() > 2)
-    AtomA.SetChirality( DetermineChirality(atA, combinedTop, CombinedFrame, chiralityDebug) );
+    AtomA = DetermineChirality(atA, combinedTop, CombinedFrame, chiralityDebug);
   if (debug_ > 0)
     mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(atA).c_str(), chiralStr(AtomA.Chirality()));
   BuildAtom AtomB;
   if (combinedTop[atB].Nbonds() > 2)
-    AtomB.SetChirality( DetermineChirality(atB, combinedTop, CombinedFrame, chiralityDebug) );
+    AtomB = DetermineChirality(atB, combinedTop, CombinedFrame, chiralityDebug);
   if (debug_ > 0)
     mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(atB).c_str(), chiralStr(AtomB.Chirality()));
 
@@ -87,7 +87,7 @@ const
   // // Regenerate the molecule info FIXME should Topology just do this?
   if (combinedTop.DetermineMolecules()) return 1;
 
-  // Determine priorities
+  // Determine new priorities around atoms that were just bonded
   if (combinedTop[atA].Nbonds() > 2) {
     //AtomA.SetNbonds(combinedTop[atA].Nbonds());
     SetPriority(AtomA.ModifyPriority(), atA, combinedTop, CombinedFrame, chiralityDebug);
@@ -169,15 +169,13 @@ int Builder::ModelCoordsAroundBond(Frame& frameIn, Topology const& topIn, int bo
   // Determine priorities
   BuildAtom AtomA;
   if (topIn[atA].Nbonds() > 2) {
-    AtomA.SetChirality( DetermineChirality(atA, topIn, frameIn, chiralityDebug) );
-    SetPriority(AtomA.ModifyPriority(), atA, topIn, frameIn, chiralityDebug);
+    AtomA = DetermineChirality(atA, topIn, frameIn, chiralityDebug);
   }
   if (debug_ > 0)
     mprintf("DEBUG:\tAtom %4s chirality %6s\n", topIn.AtomMaskName(atA).c_str(), chiralStr(AtomA.Chirality()));
   BuildAtom AtomB;
   if (topIn[atB].Nbonds() > 2) {
-    AtomB.SetChirality( DetermineChirality(atB, topIn, frameIn, chiralityDebug) );
-    SetPriority(AtomB.ModifyPriority(), atB, topIn, frameIn, chiralityDebug);
+    AtomB = DetermineChirality(atB, topIn, frameIn, chiralityDebug);
   }
   if (debug_ > 0)
     mprintf("DEBUG:\tAtom %4s chirality %6s\n", topIn.AtomMaskName(atB).c_str(), chiralStr(AtomB.Chirality()));
