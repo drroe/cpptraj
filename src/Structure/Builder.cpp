@@ -1,6 +1,5 @@
 #include "Builder.h"
 #include "BuildAtom.h"
-#include "Chirality.h"
 #include "Zmatrix.h"
 #include "../CpptrajStdio.h"
 #include "../Frame.h"
@@ -70,13 +69,15 @@ const
     chiralityDebug = debug_ - 1;
   // Get the chirality around each atom before the bond is added.
   BuildAtom AtomA;
-  if (combinedTop[atA].Nbonds() > 2)
-    AtomA = DetermineChirality(atA, combinedTop, CombinedFrame, chiralityDebug);
+  if (combinedTop[atA].Nbonds() > 2) {
+    if (AtomA.DetermineChirality(atA, combinedTop, CombinedFrame, chiralityDebug)) return 1;
+  }
   if (debug_ > 0)
     mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(atA).c_str(), chiralStr(AtomA.Chirality()));
   BuildAtom AtomB;
-  if (combinedTop[atB].Nbonds() > 2)
-    AtomB = DetermineChirality(atB, combinedTop, CombinedFrame, chiralityDebug);
+  if (combinedTop[atB].Nbonds() > 2) {
+    if (AtomB.DetermineChirality(atB, combinedTop, CombinedFrame, chiralityDebug)) return 1;
+  }
   if (debug_ > 0)
     mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(atB).c_str(), chiralStr(AtomB.Chirality()));
 
@@ -89,12 +90,10 @@ const
 
   // Determine new priorities around atoms that were just bonded
   if (combinedTop[atA].Nbonds() > 2) {
-    //AtomA.SetNbonds(combinedTop[atA].Nbonds());
-    SetPriority(AtomA.ModifyPriority(), atA, combinedTop, CombinedFrame, chiralityDebug);
+    if (AtomA.SetPriority(atA, combinedTop, CombinedFrame, chiralityDebug)) return 1;
   }
   if (combinedTop[atB].Nbonds() > 2) {
-    //AtomB.SetNbonds(combinedTop[atB].Nbonds());
-    SetPriority(AtomB.ModifyPriority(), atB, combinedTop, CombinedFrame, chiralityDebug);
+    if (AtomB.SetPriority(atB, combinedTop, CombinedFrame, chiralityDebug)) return 1;
   }
 
   // Generate Zmatrix only for ICs involving bonded atoms
@@ -169,13 +168,13 @@ int Builder::ModelCoordsAroundBond(Frame& frameIn, Topology const& topIn, int bo
   // Determine priorities
   BuildAtom AtomA;
   if (topIn[atA].Nbonds() > 2) {
-    AtomA = DetermineChirality(atA, topIn, frameIn, chiralityDebug);
+    if (AtomA.DetermineChirality(atA, topIn, frameIn, chiralityDebug)) return 1;
   }
   if (debug_ > 0)
     mprintf("DEBUG:\tAtom %4s chirality %6s\n", topIn.AtomMaskName(atA).c_str(), chiralStr(AtomA.Chirality()));
   BuildAtom AtomB;
   if (topIn[atB].Nbonds() > 2) {
-    AtomB = DetermineChirality(atB, topIn, frameIn, chiralityDebug);
+    if (AtomB.DetermineChirality(atB, topIn, frameIn, chiralityDebug)) return 1;
   }
   if (debug_ > 0)
     mprintf("DEBUG:\tAtom %4s chirality %6s\n", topIn.AtomMaskName(atB).c_str(), chiralStr(AtomB.Chirality()));
