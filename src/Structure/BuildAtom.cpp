@@ -83,8 +83,6 @@ int Cpptraj::Structure::BuildAtom::determineChirality(int atnum, Topology const&
   if (atom.Nbonds() < 3) {
     mprinterr("Error: CalcChiralAtomTorsion called for atom %s with less than 3 bonds.\n",
               topIn.AtomMaskName(atnum).c_str());
-    ctype_ = CHIRALITY_ERR;
-    orientation_ = CHIRALITY_ERR;
     return 1;
   }
 //  ctype_ = IS_UNKNOWN_CHIRALITY;

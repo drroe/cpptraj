@@ -29,8 +29,6 @@ class BuildAtom {
     std::vector<int> const& Priority() const { return priority_; }
     /// \return Value of the orientation torsion around atom (in radians).
     double TorsionVal()                const { return tors_; }
-    /// \return True if an error occurred determining chirality
-    bool ChiralError()                 const { return (ctype_ == CHIRALITY_ERR);}
   private:
     /// Total priority (i.e. sum of atomic numbers) of atoms bonded to given atom.
     static int totalPriority(Topology const&, int, int, int, int, std::vector<bool>&);
