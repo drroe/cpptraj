@@ -1,5 +1,5 @@
 #include "SugarBuilder.h"
-#include "Chirality.h"
+#include "BuildAtom.h"
 #include "FxnGroupBuilder.h"
 #include "ResStatArray.h"
 #include "StructureRoutines.h"
@@ -1113,8 +1113,10 @@ const
     cdebug = 1;
   else
     cdebug = 0;
-  ChiralType ctypeR = DetermineChirality(sugar.HighestStereocenter(), topIn, frameIn, cdebug);
-  if (ctypeR == CHIRALITY_ERR || ctypeR == IS_UNKNOWN_CHIRALITY) {
+  BuildAtom atomR;
+  int cerr = atomR.DetermineChirality(sugar.HighestStereocenter(), topIn, frameIn, cdebug);
+  ChiralType ctypeR = atomR.Chirality();
+  if (cerr != 0 || ctypeR == IS_UNKNOWN_CHIRALITY) {
     mprinterr("Error: Could not determine configuration for furanose.\n"); // TODO warn?
     return 1;
   }
@@ -1123,8 +1125,10 @@ const
   else
     stoken.SetChirality(SugarToken::IS_L);
 
-  ChiralType ctypeA = DetermineChirality(sugar.AnomericAtom(), topIn, frameIn, cdebug);
-  if (ctypeA == CHIRALITY_ERR || ctypeA == IS_UNKNOWN_CHIRALITY) {
+  BuildAtom atomA;
+  cerr = atomA.DetermineChirality(sugar.AnomericAtom(), topIn, frameIn, cdebug);
+  ChiralType ctypeA = atomA.Chirality();
+  if (cerr != 0 || ctypeA == IS_UNKNOWN_CHIRALITY) {
     mprinterr("Error: Could not determine chirality around anomeric atom for furanose.\n"); // TODO warn?
     return 1;
   }
