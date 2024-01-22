@@ -195,6 +195,11 @@ const
   // TODO check that atom i actually ends up on the list?
   std::vector<int> const& priority = AtomJ.Priority();
   ChiralType chirality = AtomJ.Chirality();
+  if (chirality == IS_UNKNOWN_CHIRALITY) {
+    chirality = AtomJ.Orientation();
+    mprintf("Warning: Unknown chirality around %s; using detected orientation of %s\n",
+            topIn.AtomMaskName(aj).c_str(), chiralStr(chirality));
+  }
   if (debug_ > 0) {
     mprintf("DEBUG: Original chirality around J %s is %s\n", topIn.AtomMaskName(aj).c_str(), chiralStr(chirality));
     mprintf("DEBUG:\t\tPriority around J %s(%i) is", 
