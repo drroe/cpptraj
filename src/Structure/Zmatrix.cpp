@@ -7,7 +7,6 @@
 #include "BuildAtom.h"
 #include "Model.h"
 #include "GenerateConnectivityArrays.h"
-#include "Chirality.h"
 #include "../Frame.h"
 #include "../CpptrajStdio.h"
 #include "../Constants.h"
@@ -1113,8 +1112,7 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
           // Set phi for X iat atA atB
           BuildAtom AtomC;
           if (topIn[*iat].Nbonds() > 2) {
-            AtomC.SetChirality( DetermineChirality(*iat, topIn, frameIn, modelDebug) );
-            SetPriority(AtomC.ModifyPriority(), *iat, topIn, frameIn, modelDebug);
+            if (AtomC.DetermineChirality(*iat, topIn, frameIn, modelDebug)) return 1;
           }
           newPhi = 0;
           //model.SetDebug( 1 ); // FIXME
