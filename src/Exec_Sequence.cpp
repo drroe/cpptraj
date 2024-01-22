@@ -92,6 +92,7 @@ const
 
   using namespace Cpptraj::Structure;
   Builder builder;
+  builder.SetDebug( debug_ );
   for (unsigned int idx = 1; idx < Units.size(); idx++) {
     mprintf("\tConnect %s atom %i to %s atom %i\n",
             Units[idx-1]->legend(), connectAt1[idx-1]+1,
