@@ -1019,7 +1019,8 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
     modelDebug = debug_ - 1;
   }
   Cpptraj::Structure::Model model;
-  model.SetDebug( modelDebug );
+  //model.SetDebug( modelDebug ); //FIXME
+  model.SetDebug( 1 );
   // ---- I J: Set dist, theta, phi for atA atB K L internal coord ---
   if (debug_ > 0)
     mprintf("DEBUG: IC (i j) %i - %i - %i - %i\n", atA+1, atB+1, atk0+1, atl0+1);
