@@ -73,13 +73,13 @@ const
     if (AtomA.DetermineChirality(atA, combinedTop, CombinedFrame, chiralityDebug)) return 1;
   }
   if (debug_ > 0)
-    mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(atA).c_str(), chiralStr(AtomA.Chirality()));
+    mprintf("DEBUG:\tAtom %4s chirality before bonding is %6s\n", combinedTop.AtomMaskName(atA).c_str(), chiralStr(AtomA.Chirality()));
   BuildAtom AtomB;
   if (combinedTop[atB].Nbonds() > 2) {
     if (AtomB.DetermineChirality(atB, combinedTop, CombinedFrame, chiralityDebug)) return 1;
   }
   if (debug_ > 0)
-    mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(atB).c_str(), chiralStr(AtomB.Chirality()));
+    mprintf("DEBUG:\tAtom %4s chirality before bonding is %6s\n", combinedTop.AtomMaskName(atB).c_str(), chiralStr(AtomB.Chirality()));
 
   // Create the bond
   if (debug_ > 0)
