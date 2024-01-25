@@ -1,7 +1,6 @@
 #include "Model.h"
 #include "BuildAtom.h"
-//#incl ude "InternalCoords.h"
-//#incl ude "Chirality.h"
+#include "InternalCoords.h"
 #include "../CpptrajStdio.h"
 #include "../GuessAtomHybridization.h"
 #include "../Topology.h"
@@ -31,6 +30,11 @@ const
   // Figure out hybridization and chirality of atom j.
   if (debug_ > 0)
     mprintf("DEBUG: AssignTheta for atom j : %s\n", topIn.AtomMaskName(aj).c_str());
+  if (atomPositionKnown[ai] && atomPositionKnown[aj] && atomPositionKnown[ak])
+  {
+    theta = CalcAngle(frameIn.XYZ(ai), frameIn.XYZ(aj), frameIn.XYZ(ak));
+    return 0;
+  }
 
   //enum HybridizationType { SP = 0, SP2, SP3, UNKNOWN_HYBRIDIZATION };
 
@@ -374,6 +378,63 @@ const
     }
   }
 */
+  return 0;
+}
+
+/** Assign internal coordinates for atoms I for torsions around J-K-L. */
+int Cpptraj::Structure::Model::AssignICsAroundBond(std::vector<InternalCoords>& IC,
+                                                   int aj, int ak, int al,
+                                                   Topology const& topIn, Frame const& frameIn,
+                                                   std::vector<bool> const& atomPositionKnown,
+                                                   BuildAtom const& AtomJ)
+const
+{
+  // Atoms J K and L should be known
+  if (!atomPositionKnown[aj] ||
+      !atomPositionKnown[ak] ||
+      !atomPositionKnown[al])
+  {
+    mprinterr("Internal Error: AssignIcAroundBond(): Not all atom positions known.\n"
+              "Internal Error: %i (%i), %i (%i), %i (%i)\n",
+              aj+1, (int)atomPositionKnown[aj],
+              ak+1, (int)atomPositionKnown[ak],
+              al+1, (int)atomPositionKnown[al]);
+    return 1;
+  }
+  Atom const& AJ = topIn[aj];
+  // If atom J has only 1 bond this is not needed.
+  if (AJ.Nbonds() < 2) return 0;
+  
+
+  if (debug_ > 0) mprintf("DEBUG:\t\tNbonds: %i\n", AJ.Nbonds());
+  // If atom J only has 2 bonds, ai-aj-ak-al is the only possibility.
+  if (AJ.Nbonds() < 3) {
+    if (debug_ > 0)
+      mprintf("DEBUG:\t\tFewer than 3 bonds. Setting phi to -180.\n");
+    double newPhi = -180 * Constants::DEGRAD;
+    for (int idx = 0; idx < AJ.Nbonds(); idx++) {
+      if (AJ.Bond(idx) != ak) {
+        int ai = AJ.Bond(idx);
+        double newDist = 0;
+        if (AssignLength(newDist, ai, aj, topIn, frameIn, atomPositionKnown)) {
+          mprinterr("Error: AssignLength failed for %s - %s \n",
+                    topIn.AtomMaskName(ai).c_str(), topIn.AtomMaskName(aj).c_str());
+          return 1;
+        }
+        double newTheta = 0;
+        if (AssignTheta(newTheta, ai, aj, ak, topIn, frameIn, atomPositionKnown)) {
+          mprinterr("Error: AssignTheta failed for %s - %s - %s\n",
+                    topIn.AtomMaskName(ai).c_str(),
+                    topIn.AtomMaskName(aj).c_str(),
+                    topIn.AtomMaskName(ak).c_str());
+        }
+        IC.push_back( InternalCoords(ai, aj, ak, al, newDist, newTheta, newPhi) );
+        break;
+      }
+    }
+    return 0;
+  } // END only 2 bonds
+
   return 0;
 }
 /*
