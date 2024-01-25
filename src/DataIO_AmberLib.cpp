@@ -252,7 +252,7 @@ const
         ArgList tmpArg( Line );
         if (tmpArg.Nargs() < 1) {
           mprinterr("Error: Could not read residue from residues section.\n");
-          mprinterr("Error: Line: %s\n", Line);
+          mprinterr("Error: Line: %s\n", Line.c_str());
           return 1;
         }
         if (ridx >= top.Nres()) {
