@@ -389,17 +389,22 @@ int Cpptraj::Structure::Model::AssignICsAroundBond(std::vector<InternalCoords>& 
                                                    BuildAtom const& AtomJ)
 const
 {
-  // Atoms J K and L should be known
+  mprintf("DEBUG: AssignICsAroundBond: X - %s - %s - %s  %i - %i - %i\n",
+          topIn.AtomMaskName(aj).c_str(),
+          topIn.AtomMaskName(ak).c_str(),
+          topIn.AtomMaskName(al).c_str(),
+          aj+1, ak+1, al+1);
+  // Ideally, atoms J K and L should be known
   if (!atomPositionKnown[aj] ||
       !atomPositionKnown[ak] ||
       !atomPositionKnown[al])
   {
-    mprinterr("Internal Error: AssignIcAroundBond(): Not all atom positions known.\n"
-              "Internal Error: %i (%i), %i (%i), %i (%i)\n",
+    mprintf("Warning: AssignICsAroundBond(): Not all atom positions known.\n"
+            "Warning: %i (%i), %i (%i), %i (%i)\n",
               aj+1, (int)atomPositionKnown[aj],
               ak+1, (int)atomPositionKnown[ak],
               al+1, (int)atomPositionKnown[al]);
-    return 1;
+    //return 1;
   }
   Atom const& AJ = topIn[aj];
   // If atom J has only 1 bond this is not needed.
@@ -434,6 +439,57 @@ const
     }
     return 0;
   } // END only 2 bonds
+
+  // 3 or more bonds.
+  std::vector<int> const& priority = AtomJ.Priority();
+  ChiralType chirality = AtomJ.Chirality();
+  //if (chirality == IS_UNKNOWN_CHIRALITY) {
+  //  chirality = AtomJ.Orientation();
+  //  mprintf("Warning: Unknown chirality around %s; using detected orientation of %s\n",
+  //          topIn.AtomMaskName(aj).c_str(), chiralStr(chirality));
+  //}
+  if (debug_ > 0) {
+    mprintf("DEBUG: Original chirality around J %s is %s\n", topIn.AtomMaskName(aj).c_str(), chiralStr(chirality));
+    mprintf("DEBUG:\t\tPriority around J %s(%i) is", 
+            topIn.AtomMaskName(aj).c_str(), (int)atomPositionKnown[aj]);
+    for (int idx = 0; idx < AJ.Nbonds(); idx++)
+      mprintf(" %s(%i)", topIn.AtomMaskName(priority[idx]).c_str(), (int)atomPositionKnown[priority[idx]]);
+    mprintf("\n");
+  }
+
+  // Fill in what values we can for known atoms
+  std::vector<double> knownPhi( AJ.Nbonds() );
+  std::vector<bool> isKnown( AJ.Nbonds(), false );
+  int knownIdx = -1;
+  double knownInterval = 0;
+  bool hasKnownInterval = false;
+  for (int idx = 0; idx < AJ.Nbonds(); idx++) {
+    int atnum = priority[idx];
+    if (atnum != ak && atomPositionKnown[atnum] &&
+                       atomPositionKnown[aj] &&
+                       atomPositionKnown[ak] &&
+                       atomPositionKnown[al])
+    {
+      knownPhi[idx] = Torsion(frameIn.XYZ(atnum),
+                              frameIn.XYZ(aj),
+                              frameIn.XYZ(ak),
+                              frameIn.XYZ(al));
+      isKnown[idx] = true;
+      if (debug_ > 0)
+        mprintf("DEBUG:\t\tKnown phi for %s (pos=%i) = %g\n", topIn.AtomMaskName(atnum).c_str(), idx, knownPhi[idx]*Constants::RADDEG);
+      if (knownIdx == -1) knownIdx = idx; // FIXME handle more than 1 known
+      if (idx > 0 && isKnown[idx-1] && isKnown[idx]) {
+        knownInterval = wrap360(knownPhi[idx] - knownPhi[idx-1]);
+        hasKnownInterval = true;
+      }
+    }
+  }
+  if (hasKnownInterval)
+    mprintf("DEBUG:\t\tKnown interval = %g\n", knownInterval * Constants::RADDEG);
+
+//  for (int idx = 0; idx < AJ.Nbonds(); idx++) {
+//    if (AJ.Bond(idx) != ak) {
+//      int ai = AJ.Bond(idx);
 
   return 0;
 }

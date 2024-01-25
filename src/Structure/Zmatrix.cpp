@@ -1021,6 +1021,13 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
   Cpptraj::Structure::Model model;
   //model.SetDebug( modelDebug ); //FIXME
   model.SetDebug( 1 );
+  // FIXME
+  std::vector<InternalCoords> tmpic;
+  if (model.AssignICsAroundBond(tmpic, atB, atk0, atl0, topIn, frameIn, atomPositionKnown, AtomB)) {
+    mprinterr("Error: AssignICsAroundBond failed.\n");
+    return 1;
+  }
+  // FIXME
   // ---- I J: Set dist, theta, phi for atA atB K L internal coord ---
   if (debug_ > 0)
     mprintf("DEBUG: IC (i j) %i - %i - %i - %i\n", atA+1, atB+1, atk0+1, atl0+1);
