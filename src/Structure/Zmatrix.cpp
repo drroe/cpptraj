@@ -1027,6 +1027,9 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
     mprinterr("Error: AssignICsAroundBond failed.\n");
     return 1;
   }
+  for (std::vector<InternalCoords>::const_iterator it = tmpic.begin(); it != tmpic.end(); ++it)
+    it->printIC( topIn );
+  mprintf("DEBUG: END AssignICsAroundBond ------------------------\n");
   // FIXME
   // ---- I J: Set dist, theta, phi for atA atB K L internal coord ---
   if (debug_ > 0)
