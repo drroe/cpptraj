@@ -1023,24 +1023,41 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
   model.SetDebug( 1 );
   // FIXME
   mprintf("DEBUG: ------------------------------------------------\n");
-  std::vector<InternalCoords> tmpic;
+  //std::vector<InternalCoords> tmpic;
   // I J: Set up ICs for X atB K L
-  if (model.AssignICsAroundBond(tmpic, atB, atk0, atl0, topIn, frameIn, atomPositionKnown, AtomB)) {
+  if (model.AssignICsAroundBond(IC_, atB, atk0, atl0, topIn, frameIn, atomPositionKnown, AtomB)) {
     mprinterr("Error: AssignICsAroundBond (I J) failed.\n");
     return 1;
   }
   // J K: Set up ICs for X atA atB K
-  if (model.AssignICsAroundBond(tmpic, atA, atB, atk0, topIn, frameIn, atomPositionKnown, AtomA)) {
+  if (model.AssignICsAroundBond(IC_, atA, atB, atk0, topIn, frameIn, atomPositionKnown, AtomA)) {
     mprinterr("Error: AssignICsAroundBond (J K) failed.\n");
     return 1;
   }
-  // Print ICs
-  for (std::vector<InternalCoords>::const_iterator it = tmpic.begin(); it != tmpic.end(); ++it)
-    it->printIC( topIn );
+  // K L: Set up ICs for X iat atA atB
+  Atom const& AJ1 = topIn[atA];
+  for (Atom::bond_iterator iat = AJ1.bondbegin(); iat != AJ1.bondend(); ++iat)
+  {
+    if (*iat != atB) {
+      BuildAtom AtomC;
+      if (topIn[*iat].Nbonds() > 2) {
+        if (AtomC.DetermineChirality(*iat, topIn, frameIn, modelDebug)) return 1;
+      }
+      if (model.AssignICsAroundBond(IC_, *iat, atA, atB, topIn, frameIn, atomPositionKnown, AtomC)) {
+        mprinterr("Error: AssignICsAroundBond (K L) failed.\n");
+        return 1;
+      }
+    }
+  }
+  // Mark/Print ICs
+  for (std::vector<InternalCoords>::const_iterator it = IC_.begin(); it != IC_.end(); ++it) {
+    it->printIC( topIn ); // DEBUG
+    MARK( it->AtI(), hasIC, nHasIC );
+  }
   mprintf("DEBUG: END AssignICsAroundBond ------------------------\n");
   // FIXME
   // ---- I J: Set dist, theta, phi for atA atB K L internal coord ---
-  if (debug_ > 0)
+/*  if (debug_ > 0)
     mprintf("DEBUG: IC (i j) %i - %i - %i - %i\n", atA+1, atB+1, atk0+1, atl0+1);
   double newDist = 0;
   if (model.AssignLength(newDist, atA, atB, topIn, frameIn, atomPositionKnown)) {
@@ -1067,7 +1084,8 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
     mprintf("DEBUG: MODEL I J IC: ");
     IC_.back().printIC(topIn);
   }
-  MARK( atA, hasIC, nHasIC );
+  MARK( atA, hasIC, nHasIC );*/
+/*
   // ----- J K: Set up ICs for X atA atB K ---------------------------
   Atom const& AJ1 = topIn[atA];
   int ati = -1;
@@ -1077,7 +1095,7 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
   {
     if (*iat != atB) {
       if (ati == -1) ati = *iat;
-      // Set bond dist
+/      // Set bond dist
       if (model.AssignLength(newDist, *iat, atA, topIn, frameIn, atomPositionKnown)) {
         mprinterr("Error: length (j k) assignment failed.\n");
         return 1;
@@ -1156,6 +1174,8 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
       } 
     }
   }
+*/
+
 /*
   // Handle remaining atoms.
   if (AJ1.Nbonds() > 1) {
