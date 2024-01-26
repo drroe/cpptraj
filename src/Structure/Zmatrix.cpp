@@ -1022,11 +1022,19 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
   //model.SetDebug( modelDebug ); //FIXME
   model.SetDebug( 1 );
   // FIXME
+  mprintf("DEBUG: ------------------------------------------------\n");
   std::vector<InternalCoords> tmpic;
+  // I J: Set up ICs for X atB K L
   if (model.AssignICsAroundBond(tmpic, atB, atk0, atl0, topIn, frameIn, atomPositionKnown, AtomB)) {
-    mprinterr("Error: AssignICsAroundBond failed.\n");
+    mprinterr("Error: AssignICsAroundBond (I J) failed.\n");
     return 1;
   }
+  // J K: Set up ICs for X atA atB K
+  if (model.AssignICsAroundBond(tmpic, atA, atB, atk0, topIn, frameIn, atomPositionKnown, AtomA)) {
+    mprinterr("Error: AssignICsAroundBond (J K) failed.\n");
+    return 1;
+  }
+  // Print ICs
   for (std::vector<InternalCoords>::const_iterator it = tmpic.begin(); it != tmpic.end(); ++it)
     it->printIC( topIn );
   mprintf("DEBUG: END AssignICsAroundBond ------------------------\n");
