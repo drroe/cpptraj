@@ -33,6 +33,10 @@ class Model {
                            Topology const&, Frame const&, std::vector<bool> const&,
                            BuildAtom const&) const;
   private:
+    int insertIc(std::vector<InternalCoords>&, int, int, int, int, double,
+                 Topology const&, Frame const&, std::vector<bool> const&) const;
+
+
     int debug_;
     ParameterSet const* params_;
 };

@@ -420,6 +420,34 @@ const
   return 0;
 }
 
+int Cpptraj::Structure::Model::insertIc(std::vector<InternalCoords>& IC,
+                                        int ai, int aj, int ak, int al, double newPhi,
+                                        Topology const& topIn, Frame const& frameIn,
+                                        std::vector<bool> const& atomPositionKnown)
+const
+{
+  if (atomPositionKnown[ai]) {
+    mprintf("DEBUG: Atom position already known for %s, skipping IC.\n", topIn.AtomMaskName(ai).c_str());
+    return 0;
+  }
+  double newDist = 0;
+  if (AssignLength(newDist, ai, aj, topIn, frameIn, atomPositionKnown)) {
+    mprinterr("Error: AssignLength failed for %s - %s \n",
+              topIn.AtomMaskName(ai).c_str(), topIn.AtomMaskName(aj).c_str());
+    return 1;
+  }
+  double newTheta = 0;
+  if (AssignTheta(newTheta, ai, aj, ak, topIn, frameIn, atomPositionKnown)) {
+    mprinterr("Error: AssignTheta failed for %s - %s - %s\n",
+              topIn.AtomMaskName(ai).c_str(),
+              topIn.AtomMaskName(aj).c_str(),
+              topIn.AtomMaskName(ak).c_str());
+    return 1;
+  }
+  IC.push_back( InternalCoords(ai, aj, ak, al, newDist, newTheta*Constants::RADDEG, newPhi*Constants::RADDEG) );
+  return 0;
+}
+
 /** Assign internal coordinates for atoms I for torsions around J-K-L. */
 int Cpptraj::Structure::Model::AssignICsAroundBond(std::vector<InternalCoords>& IC,
                                                    int aj, int ak, int al,
@@ -459,7 +487,8 @@ const
     for (int idx = 0; idx < AJ.Nbonds(); idx++) {
       if (AJ.Bond(idx) != ak) {
         int ai = AJ.Bond(idx);
-        double newDist = 0;
+        if (insertIc(IC, ai, aj, ak, al, newPhi, topIn, frameIn, atomPositionKnown)) return 1;
+/*        double newDist = 0;
         if (AssignLength(newDist, ai, aj, topIn, frameIn, atomPositionKnown)) {
           mprinterr("Error: AssignLength failed for %s - %s \n",
                     topIn.AtomMaskName(ai).c_str(), topIn.AtomMaskName(aj).c_str());
@@ -472,7 +501,7 @@ const
                     topIn.AtomMaskName(aj).c_str(),
                     topIn.AtomMaskName(ak).c_str());
         }
-        IC.push_back( InternalCoords(ai, aj, ak, al, newDist, newTheta, newPhi) );
+        IC.push_back( InternalCoords(ai, aj, ak, al, newDist, newTheta, newPhi) );*/
         break;
       }
     }
@@ -644,6 +673,7 @@ const
         currentPhi = wrap360(currentPhi + interval);
       //if (atnum == ai) phi = currentPhi;
       //IC.push_back( InternalCoords(atnum, aj, ak, al, 0, 0, currentPhi) );
+      if (insertIc(IC, atnum, aj, ak, al, currentPhi, topIn, frameIn, atomPositionKnown)) return 1;
       if (debug_ > 0)
         mprintf("DEBUG:\t\t\t%s (at# %i) phi= %g\n", topIn.AtomMaskName(atnum).c_str(), atnum+1, currentPhi*Constants::RADDEG);
     }
@@ -659,6 +689,7 @@ const
         currentPhi = wrap360(currentPhi - interval);
       //if (atnum == ai) phi = currentPhi;
       //IC.push_back( InternalCoords(atnum, aj, ak, al, 0, 0, currentPhi) );
+      if (insertIc(IC, atnum, aj, ak, al, currentPhi, topIn, frameIn, atomPositionKnown)) return 1;
       if (debug_ > 0)
         mprintf("DEBUG:\t\t\t%s (at# %i) phi= %g\n", topIn.AtomMaskName(atnum).c_str(), atnum+1, currentPhi*Constants::RADDEG);
     }
