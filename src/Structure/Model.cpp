@@ -420,6 +420,7 @@ const
   return 0;
 }
 
+/** Insert internal coordinates with bond i-j, angle i-j-k, and torsion i-j-k-l. */
 int Cpptraj::Structure::Model::insertIc(std::vector<InternalCoords>& IC,
                                         int ai, int aj, int ak, int al, double newPhi,
                                         Topology const& topIn, Frame const& frameIn,
@@ -488,20 +489,6 @@ const
       if (AJ.Bond(idx) != ak) {
         int ai = AJ.Bond(idx);
         if (insertIc(IC, ai, aj, ak, al, newPhi, topIn, frameIn, atomPositionKnown)) return 1;
-/*        double newDist = 0;
-        if (AssignLength(newDist, ai, aj, topIn, frameIn, atomPositionKnown)) {
-          mprinterr("Error: AssignLength failed for %s - %s \n",
-                    topIn.AtomMaskName(ai).c_str(), topIn.AtomMaskName(aj).c_str());
-          return 1;
-        }
-        double newTheta = 0;
-        if (AssignTheta(newTheta, ai, aj, ak, topIn, frameIn, atomPositionKnown)) {
-          mprinterr("Error: AssignTheta failed for %s - %s - %s\n",
-                    topIn.AtomMaskName(ai).c_str(),
-                    topIn.AtomMaskName(aj).c_str(),
-                    topIn.AtomMaskName(ak).c_str());
-        }
-        IC.push_back( InternalCoords(ai, aj, ak, al, newDist, newTheta, newPhi) );*/
         break;
       }
     }
@@ -511,17 +498,15 @@ const
   // 3 or more bonds.
   std::vector<int> const& priority = AtomJ.Priority();
   ChiralType chirality = AtomJ.Chirality();
-  if (chirality == IS_UNKNOWN_CHIRALITY) {
-    chirality = AtomJ.Orientation();
-    mprintf("Warning: Unknown chirality around %s; using detected orientation of %s\n",
-            topIn.AtomMaskName(aj).c_str(), chiralStr(chirality));
-  }
+
   if (debug_ > 0) {
     mprintf("DEBUG:\t\tOriginal chirality around J %s is %s\n", topIn.AtomMaskName(aj).c_str(), chiralStr(chirality));
     mprintf("DEBUG:\t\tPriority around J %s(%i) is", 
             topIn.AtomMaskName(aj).c_str(), (int)atomPositionKnown[aj]);
     for (int idx = 0; idx < AJ.Nbonds(); idx++)
       mprintf(" %s(%i)", topIn.AtomMaskName(priority[idx]).c_str(), (int)atomPositionKnown[priority[idx]]);
+    for (int idx = 0; idx < AJ.Nbonds(); idx++)
+      mprintf(" %i", priority[idx]);
     mprintf("\n");
   }
 
@@ -567,11 +552,10 @@ const
       }
     }
   }
-  if (hasKnownInterval)
-    mprintf("DEBUG:\t\tKnown interval = %g\n", knownInterval * Constants::RADDEG);
 
   // Check known interval if set
   if (hasKnownInterval) {
+    mprintf("DEBUG:\t\tKnown interval = %g\n", knownInterval * Constants::RADDEG);
     if (chirality == IS_UNKNOWN_CHIRALITY) {
       mprintf("DEBUG:\t\tSetting chirality from known interval.\n");
       if (knownInterval < 0)
@@ -585,6 +569,13 @@ const
       if (knownInterval < 0)
         mprinterr("Error: Detected chriality R does not match known interval %g\n", knownInterval*Constants::RADDEG);
     }
+  }
+
+  // If still no chirality use the detected orientation
+  if (chirality == IS_UNKNOWN_CHIRALITY) {
+    chirality = AtomJ.Orientation();
+    mprintf("Warning: Unknown chirality around %s; using detected orientation of %s\n",
+            topIn.AtomMaskName(aj).c_str(), chiralStr(chirality));
   }
 
   // Determine the interval
@@ -607,6 +598,14 @@ const
     // The interval will be 360 / (number of bonds - 1)
     interval = Constants::TWOPI / (AJ.Nbonds() - 1);
     mprintf("DEBUG:\t\tInterval was set from number of bonds.\n");
+  }
+
+  // If there is a known interval, compare it to the determined one.
+  if (hasKnownInterval) {
+    double deltaInterval = fabs(interval - knownInterval);
+    mprintf("DEBUG:\t\tDetermined interval %g, known interval %g, delta %g\n",
+            interval*Constants::RADDEG, knownInterval*Constants::RADDEG, deltaInterval*Constants::RADDEG);
+    interval = fabs(knownInterval);
   }
 
   // If we have to assign an initial phi, make trans the longer branch
