@@ -600,6 +600,14 @@ const
     mprintf("DEBUG:\t\tInterval was set from number of bonds.\n");
   }
 
+  // Adjust interval based on chirality and priority of the k atom
+  if (chirality == IS_S || chirality == IS_UNKNOWN_CHIRALITY)
+    interval = -interval;
+  if ( (kPriorityIdx%2) == 0 ) {
+    mprintf("DEBUG:\t\tFlipping interval based on priority index of %i\n", kPriorityIdx);
+    interval = -interval;
+  }
+
   // If there is a known interval, compare it to the determined one.
   if (hasKnownInterval) {
     double deltaInterval = fabs(interval - knownInterval);
@@ -646,14 +654,6 @@ const
   if (knownIdx < 0) {
     mprinterr("Internal Error: AssignPhi(): knownIdx is < 0\n");
     return 1;
-  }
-
-  // Adjust interval based on chirality and priority of the k atom
-  if (chirality == IS_S || chirality == IS_UNKNOWN_CHIRALITY)
-    interval = -interval;
-  if ( (kPriorityIdx%2) == 0 ) {
-    mprintf("DEBUG:\t\tFlipping interval based on priority index of %i\n", kPriorityIdx);
-    interval = -interval;
   }
 
   if (debug_ > 0) {
