@@ -51,7 +51,8 @@ class Zmatrix {
     int SetFromFrame(Frame const&, Topology const&);
     /// Get internal coordinates around bond in one direction.
     int SetupICsAroundBond(int, int, Frame const&, Topology const&,
-                           std::vector<bool> const&, BuildAtom const&, BuildAtom const&);
+                           std::vector<bool> const&, std::vector<bool> const&,
+                           BuildAtom const&, BuildAtom const&);
 
     /// Set Frame from internal coords
     int SetToFrame(Frame&) const;

@@ -51,7 +51,6 @@ const
   // Combine fragment1 into fragment 0 topology
   Topology& combinedTop = frag0Top;
   combinedTop.AppendTop( frag1Top );
-  zmatrixA.print( &combinedTop );
   // Combined fragment1 into fragment 0 coords.
   // Need to save the original coords in frame0 since SetupFrameV does not preserve.
   double* tmpcrd0 = new double[natom0*3];
@@ -99,20 +98,28 @@ const
   // Generate Zmatrix only for ICs involving bonded atoms
   Zmatrix bondZmatrix;
 
+  // Note which atoms already have an IC in zmatrixA
+  std::vector<bool> hasIC(combinedTop.Natom(), false);
+  for (Zmatrix::const_iterator it = zmatrixA.begin(); it != zmatrixA.end(); ++it)
+    hasIC[it->AtI()] = true;
+
   //bondZmatrix.SetDebug( debug_ );
   bondZmatrix.SetDebug( 1 ); // FIXME
-  if (bondZmatrix.SetupICsAroundBond(atA, atB, CombinedFrame, combinedTop, posKnown, AtomA, AtomB)) {
+  if (bondZmatrix.SetupICsAroundBond(atA, atB, CombinedFrame, combinedTop, posKnown, hasIC, AtomA, AtomB)) {
     mprinterr("Error: Zmatrix setup for ICs around %s and %s failed.\n",
               combinedTop.AtomMaskName(atA).c_str(),
               combinedTop.AtomMaskName(atB).c_str());
     return 1;
   }
+  mprintf("DEBUG: CONVERT WITH bondZmatrix.\n");
   //if (debug_ > 0)
     bondZmatrix.print(&combinedTop);
   if (bondZmatrix.SetToFrame( CombinedFrame, posKnown )) {
     mprinterr("Error: Conversion from bondZmatrix to Cartesian coords failed.\n");
     return 1;
   }
+  mprintf("DEBUG: CONVERT WITH zmatrixA.\n");
+  zmatrixA.print( &combinedTop );
   if (zmatrixA.SetToFrame( CombinedFrame, posKnown )) {
     mprinterr("Error: Conversion from zmatrixA to Cartesian coords failed.\n");
     return 1;
@@ -183,7 +190,8 @@ int Builder::ModelCoordsAroundBond(Frame& frameIn, Topology const& topIn, int bo
   Zmatrix bondZmatrix;
 
   bondZmatrix.SetDebug( debug_ );
-  if (bondZmatrix.SetupICsAroundBond(atA, atB, frameIn, topIn, hasPosition, AtomA, AtomB)) {
+  std::vector<bool> hasIC(topIn.Natom(), false); // FIXME
+  if (bondZmatrix.SetupICsAroundBond(atA, atB, frameIn, topIn, hasPosition, hasIC, AtomA, AtomB)) {
     mprinterr("Error: Zmatrix setup for ICs around %s and %s failed.\n",
               topIn.AtomMaskName(atA).c_str(),
               topIn.AtomMaskName(atB).c_str());

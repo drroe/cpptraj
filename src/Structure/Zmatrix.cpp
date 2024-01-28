@@ -951,6 +951,7 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
   */
 int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology const& topIn,
                                 std::vector<bool> const& atomPositionKnown,
+                                std::vector<bool> const& hasICin,
                                 BuildAtom const& AtomA, BuildAtom const& AtomB)
 {
   if (debug_ > 0)
@@ -960,8 +961,15 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
             topIn.Natom());
   IC_.clear();
 
-  Barray hasIC( topIn.Natom(), false );
+  //Barray hasIC( topIn.Natom(), false );
+  Barray hasIC = hasICin;
   unsigned int nHasIC = 0;
+  for (std::vector<bool>::const_iterator it = hasIC.begin(); it != hasIC.end(); ++it) {
+    if (*it) {
+      nHasIC++;
+      mprintf("DEBUG:\tAtom %s already has an IC.\n", topIn.AtomMaskName(it-hasIC.begin()).c_str());
+    }
+  }
   // Mark known atoms as already having IC
   for (std::vector<bool>::const_iterator it = atomPositionKnown.begin();
                                          it != atomPositionKnown.end(); ++it)
@@ -1043,9 +1051,20 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
       if (topIn[*iat].Nbonds() > 2) {
         if (AtomC.DetermineChirality(*iat, topIn, frameIn, modelDebug)) return 1;
       }
-      if (model.AssignICsAroundBond(IC_, *iat, atA, atB, topIn, frameIn, atomPositionKnown, AtomC)) {
-        mprinterr("Error: AssignICsAroundBond (K L) failed.\n");
-        return 1;
+      // Only do this if one or more of the atoms bonded to iat does not
+      // already have an IC.
+      unsigned int needsKLic = 0;
+      for (Atom::bond_iterator bat = topIn[*iat].bondbegin(); bat != topIn[*iat].bondend(); ++bat)
+        if ( *bat != atA && !hasIC[*bat] )
+          needsKLic++;
+      if (needsKLic > 0) {
+        mprintf("DEBUG: K L IC needed.\n");
+        if (model.AssignICsAroundBond(IC_, *iat, atA, atB, topIn, frameIn, atomPositionKnown, AtomC)) {
+          mprinterr("Error: AssignICsAroundBond (K L) failed.\n");
+          return 1;
+        }
+      } else {
+        mprintf("DEBUG: K L IC not needed.\n");
       }
     }
   }
