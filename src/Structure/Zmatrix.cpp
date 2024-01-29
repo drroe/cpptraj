@@ -1429,7 +1429,7 @@ int Zmatrix::SetToFrame(Frame& frameOut, Barray& hasPosition) const {
       continue; // FIXME
     }
     InternalCoords const& ic = IC_[icIdx];
-    if (debug_ > 0)
+    //if (debug_ > 0)
       mprintf("DEBUG: Next IC to use is %i : %i %i %i %i r=%g theta=%g phi=%g\n",
               icIdx+1, ic.AtI()+1, ic.AtJ()+1, ic.AtK()+1, ic.AtL()+1,
               ic.Dist(), ic.Theta(), ic.Phi());

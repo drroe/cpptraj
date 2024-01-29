@@ -25,7 +25,12 @@ const
     DataSet_Coords* unit = 0;
     if (LibSetNames.empty()) {
       // Look for name
-      unit = (DataSet_Coords*)DSL.FindSetOfGroup( *it, DataSet::COORDINATES );
+      unit = (DataSet_Coords*)DSL.FindSetOfGroup( *it, DataSet::COORDINATES ); // FIXME need new set type
+      if (unit == 0) {
+        // Look for *[name]
+        std::string searchStr("*[" + *it + "]");
+        unit = (DataSet_Coords*)DSL.FindSetOfGroup( searchStr, DataSet::COORDINATES ); // FIXME need new set type
+      }
     } else {
       // Look for name[aspect]
       DataSet* ds = 0;
