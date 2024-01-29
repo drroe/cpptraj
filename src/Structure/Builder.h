@@ -3,6 +3,7 @@
 #include <vector>
 class Topology;
 class Frame;
+class ParameterSet;
 namespace Cpptraj {
 namespace Structure {
 class Zmatrix;
@@ -18,9 +19,12 @@ class Builder {
     int ModelCoordsAroundBond(Frame&, Topology const&, int, int, Zmatrix const*, Zmatrix const*, Barray&) const;
     /// Set debug
     void SetDebug(int d) { debug_ = d; }
+    /// Set optional parameter set
+    void SetParameters(ParameterSet const*);
   private:
 
     int debug_;
+    ParameterSet const* params_;
 };
 }
 }

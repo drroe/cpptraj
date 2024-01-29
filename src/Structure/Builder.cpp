@@ -10,7 +10,8 @@ using namespace Cpptraj::Structure;
 
 /** CONSTRUCTOR */
 Builder::Builder() :
-  debug_(0)
+  debug_(0),
+  params_(0)
 {}
 
 /** Combine two units. Fragment 1 will be merged into Fragment 0 and bonded. */
