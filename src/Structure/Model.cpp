@@ -1,6 +1,6 @@
 #include "Model.h"
 #include "BuildAtom.h"
-#include "InternalCoords.h"
+#include "Zmatrix.h"
 #include "../CpptrajStdio.h"
 #include "../GuessAtomHybridization.h"
 #include "../Topology.h"
@@ -438,7 +438,7 @@ const
 }
 
 /** Insert internal coordinates with bond i-j, angle i-j-k, and torsion i-j-k-l. */
-int Cpptraj::Structure::Model::insertIc(std::vector<InternalCoords>& IC,
+int Cpptraj::Structure::Model::insertIc(Zmatrix& zmatrix,
                                         int ai, int aj, int ak, int al, double newPhi,
                                         Topology const& topIn, Frame const& frameIn,
                                         std::vector<bool> const& atomPositionKnown)
@@ -462,12 +462,12 @@ const
               topIn.AtomMaskName(ak).c_str());
     return 1;
   }
-  IC.push_back( InternalCoords(ai, aj, ak, al, newDist, newTheta*Constants::RADDEG, newPhi*Constants::RADDEG) );
+  zmatrix.AddIC( InternalCoords(ai, aj, ak, al, newDist, newTheta*Constants::RADDEG, newPhi*Constants::RADDEG) );
   return 0;
 }
 
 /** Assign internal coordinates for atoms I for torsions around J-K-L. */
-int Cpptraj::Structure::Model::AssignICsAroundBond(std::vector<InternalCoords>& IC,
+int Cpptraj::Structure::Model::AssignICsAroundBond(Zmatrix& zmatrix,
                                                    int aj, int ak, int al,
                                                    Topology const& topIn, Frame const& frameIn,
                                                    std::vector<bool> const& atomPositionKnown,
@@ -505,7 +505,7 @@ const
     for (int idx = 0; idx < AJ.Nbonds(); idx++) {
       if (AJ.Bond(idx) != ak) {
         int ai = AJ.Bond(idx);
-        if (insertIc(IC, ai, aj, ak, al, newPhi, topIn, frameIn, atomPositionKnown)) return 1;
+        if (insertIc(zmatrix, ai, aj, ak, al, newPhi, topIn, frameIn, atomPositionKnown)) return 1;
         break;
       }
     }
@@ -689,7 +689,7 @@ const
         currentPhi = wrap360(currentPhi + interval);
       //if (atnum == ai) phi = currentPhi;
       //IC.push_back( InternalCoords(atnum, aj, ak, al, 0, 0, currentPhi) );
-      if (insertIc(IC, atnum, aj, ak, al, currentPhi, topIn, frameIn, atomPositionKnown)) return 1;
+      if (insertIc(zmatrix, atnum, aj, ak, al, currentPhi, topIn, frameIn, atomPositionKnown)) return 1;
       if (debug_ > 0)
         mprintf("DEBUG:\t\t\t%s (at# %i) phi= %g\n", topIn.AtomMaskName(atnum).c_str(), atnum+1, currentPhi*Constants::RADDEG);
     }
@@ -705,7 +705,7 @@ const
         currentPhi = wrap360(currentPhi - interval);
       //if (atnum == ai) phi = currentPhi;
       //IC.push_back( InternalCoords(atnum, aj, ak, al, 0, 0, currentPhi) );
-      if (insertIc(IC, atnum, aj, ak, al, currentPhi, topIn, frameIn, atomPositionKnown)) return 1;
+      if (insertIc(zmatrix, atnum, aj, ak, al, currentPhi, topIn, frameIn, atomPositionKnown)) return 1;
       if (debug_ > 0)
         mprintf("DEBUG:\t\t\t%s (at# %i) phi= %g\n", topIn.AtomMaskName(atnum).c_str(), atnum+1, currentPhi*Constants::RADDEG);
     }

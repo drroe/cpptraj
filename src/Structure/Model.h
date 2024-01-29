@@ -10,7 +10,7 @@ class ParameterSet;
 namespace Cpptraj {
 namespace Structure {
 class BuildAtom;
-class InternalCoords;
+class Zmatrix; 
 /// Routines to create a model for missing bond/angle/torsion parameters
 class Model {
   public:
@@ -29,11 +29,11 @@ class Model {
     /// Given atoms I J K and L, attempt to assign a reasonable value for phi for atom I
     int AssignPhi(double&, int, int, int, int, Topology const&, Frame const&, std::vector<bool> const&, BuildAtom const&) const;
     /// Assign internal coordinates for atoms I for torsions around J-K-L.
-    int AssignICsAroundBond(std::vector<InternalCoords>&, int, int, int,
+    int AssignICsAroundBond(Zmatrix&, int, int, int,
                            Topology const&, Frame const&, std::vector<bool> const&,
                            BuildAtom const&) const;
   private:
-    int insertIc(std::vector<InternalCoords>&, int, int, int, int, double,
+    int insertIc(Zmatrix&, int, int, int, int, double,
                  Topology const&, Frame const&, std::vector<bool> const&) const;
 
 

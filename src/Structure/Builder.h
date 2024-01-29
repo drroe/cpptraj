@@ -6,6 +6,7 @@ class Frame;
 class ParameterSet;
 namespace Cpptraj {
 namespace Structure {
+class BuildAtom;
 class Zmatrix;
 /// Used to attach different topology/frame combos using internal coordinates
 class Builder {
@@ -22,6 +23,9 @@ class Builder {
     /// Set optional parameter set
     void SetParameters(ParameterSet const*);
   private:
+    int SetupICsAroundBond(Zmatrix&, int, int, Frame const&, Topology const&,
+                           std::vector<bool> const&, std::vector<bool> const&,
+                           BuildAtom const&, BuildAtom const&) const;
 
     int debug_;
     ParameterSet const* params_;
