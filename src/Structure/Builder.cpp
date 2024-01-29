@@ -169,6 +169,308 @@ const
 
   return 0;
 }
+/** Insert internal coordinates with bond i-j, angle i-j-k, and torsion i-j-k-l. */
+int Cpptraj::Structure::Builder::insertIc(Zmatrix& zmatrix,
+                                        int ai, int aj, int ak, int al, double newPhi,
+                                        Topology const& topIn, Frame const& frameIn,
+                                        std::vector<bool> const& atomPositionKnown)
+const
+{
+  if (atomPositionKnown[ai]) {
+    mprintf("DEBUG:\tAtom position already known for %s, skipping IC.\n", topIn.AtomMaskName(ai).c_str());
+    return 0;
+  }
+  double newDist = 0;
+  if (AssignLength(newDist, ai, aj, topIn, frameIn, atomPositionKnown)) {
+    mprinterr("Error: AssignLength failed for %s - %s \n",
+              topIn.AtomMaskName(ai).c_str(), topIn.AtomMaskName(aj).c_str());
+    return 1;
+  }
+  double newTheta = 0;
+  if (AssignTheta(newTheta, ai, aj, ak, topIn, frameIn, atomPositionKnown)) {
+    mprinterr("Error: AssignTheta failed for %s - %s - %s\n",
+              topIn.AtomMaskName(ai).c_str(),
+              topIn.AtomMaskName(aj).c_str(),
+              topIn.AtomMaskName(ak).c_str());
+    return 1;
+  }
+  zmatrix.AddIC( InternalCoords(ai, aj, ak, al, newDist, newTheta*Constants::RADDEG, newPhi*Constants::RADDEG) );
+  return 0;
+}
+
+/// Recursive function to return depth from an atom along bonds
+static int atom_depth(int& depth,
+                      int at, Topology const& topIn, std::vector<bool>& visited, int maxdepth)
+{
+  if (depth == maxdepth) return 0;
+  depth++;
+  visited[at] = true;
+  int depthFromHere = 1;
+  for (Atom::bond_iterator bat = topIn[at].bondbegin(); bat != topIn[at].bondend(); ++bat)
+  {
+    if (!visited[*bat])
+      depthFromHere += atom_depth( depth, *bat, topIn, visited, maxdepth );
+  }
+  return depthFromHere;
+}
+
+/// Wrap given value between -PI and PI
+static inline double wrap360(double phi) {
+  if (phi > Constants::PI)
+    return phi - Constants::TWOPI;
+  else if (phi < -Constants::PI)
+    return phi + Constants::TWOPI;
+  else
+    return phi;
+}
+
+/** Assign internal coordinates for atoms I for torsions around J-K-L. */
+int Cpptraj::Structure::Builder::AssignICsAroundBond(Zmatrix& zmatrix,
+                                                   int aj, int ak, int al,
+                                                   Topology const& topIn, Frame const& frameIn,
+                                                   std::vector<bool> const& atomPositionKnown,
+                                                   BuildAtom const& AtomJ)
+const
+{
+  mprintf("DEBUG: AssignICsAroundBond: X - %s - %s - %s  %i - %i - %i\n",
+          topIn.AtomMaskName(aj).c_str(),
+          topIn.AtomMaskName(ak).c_str(),
+          topIn.AtomMaskName(al).c_str(),
+          aj+1, ak+1, al+1);
+  // Ideally, atoms J K and L should be known
+  if (!atomPositionKnown[aj] ||
+      !atomPositionKnown[ak] ||
+      !atomPositionKnown[al])
+  {
+    mprintf("Warning: AssignICsAroundBond(): Not all atom positions known.\n"
+            "Warning: %i %s (%i) - %i %s (%i) - %i %s (%i)\n",
+              aj+1, topIn.AtomMaskName(aj).c_str(), (int)atomPositionKnown[aj],
+              ak+1, topIn.AtomMaskName(ak).c_str(), (int)atomPositionKnown[ak],
+              al+1, topIn.AtomMaskName(al).c_str(), (int)atomPositionKnown[al]);
+    //return 1;
+  }
+  Atom const& AJ = topIn[aj];
+  // If atom J has only 1 bond this is not needed.
+  if (AJ.Nbonds() < 2) return 0;
+  
+
+  if (debug_ > 0) mprintf("DEBUG:\t\tNbonds: %i\n", AJ.Nbonds());
+  // If atom J only has 2 bonds, ai-aj-ak-al is the only possibility.
+  if (AJ.Nbonds() < 3) {
+    if (debug_ > 0)
+      mprintf("DEBUG:\t\tFewer than 3 bonds. Setting phi to -180.\n");
+    double newPhi = -180 * Constants::DEGRAD;
+    for (int idx = 0; idx < AJ.Nbonds(); idx++) {
+      if (AJ.Bond(idx) != ak) {
+        int ai = AJ.Bond(idx);
+        if (insertIc(zmatrix, ai, aj, ak, al, newPhi, topIn, frameIn, atomPositionKnown)) return 1;
+        break;
+      }
+    }
+    return 0;
+  } // END only 2 bonds
+
+  // 3 or more bonds.
+  std::vector<int> const& priority = AtomJ.Priority();
+  ChiralType chirality = AtomJ.Chirality();
+
+  if (debug_ > 0) {
+    mprintf("DEBUG:\t\tOriginal chirality around J %s is %s\n", topIn.AtomMaskName(aj).c_str(), chiralStr(chirality));
+    mprintf("DEBUG:\t\tPriority around J %s(%i) is", 
+            topIn.AtomMaskName(aj).c_str(), (int)atomPositionKnown[aj]);
+    for (int idx = 0; idx < AJ.Nbonds(); idx++)
+      mprintf(" %s(%i)", topIn.AtomMaskName(priority[idx]).c_str(), (int)atomPositionKnown[priority[idx]]);
+    for (int idx = 0; idx < AJ.Nbonds(); idx++)
+      mprintf(" %i", priority[idx]);
+    mprintf("\n");
+  }
+
+  // Get index of atom K in the priority list, starting from least priority.
+  int kPriorityIdx = -1;
+  for (int idx = AJ.Nbonds()-1; idx > -1; idx--) {
+    if (priority[idx] == ak) {
+      kPriorityIdx = AJ.Nbonds() - 1 - idx;
+      break;
+    }
+  }
+  mprintf("DEBUG:\t\tK priority index is %i\n", kPriorityIdx);
+  if (kPriorityIdx < 0) {
+    mprinterr("Error: Could not find atom K %s in atom J %s bond list.\n",
+              topIn.AtomMaskName(ak).c_str(), topIn.AtomMaskName(aj).c_str());
+    return 1;
+  }
+
+  // Fill in what values we can for known atoms
+  std::vector<double> knownPhi( AJ.Nbonds() );
+  std::vector<bool> isKnown( AJ.Nbonds(), false );
+  int knownIdx = -1;
+  double knownInterval = 0;
+  bool hasKnownInterval = false;
+  for (int idx = 0; idx < AJ.Nbonds(); idx++) {
+    int atnum = priority[idx];
+    if (atnum != ak && atomPositionKnown[atnum] &&
+                       atomPositionKnown[aj] &&
+                       atomPositionKnown[ak] &&
+                       atomPositionKnown[al])
+    {
+      knownPhi[idx] = Torsion(frameIn.XYZ(atnum),
+                              frameIn.XYZ(aj),
+                              frameIn.XYZ(ak),
+                              frameIn.XYZ(al));
+      isKnown[idx] = true;
+      if (debug_ > 0)
+        mprintf("DEBUG:\t\tKnown phi for %s (pos=%i) = %g\n", topIn.AtomMaskName(atnum).c_str(), idx, knownPhi[idx]*Constants::RADDEG);
+      if (knownIdx == -1) knownIdx = idx; // FIXME handle more than 1 known
+      if (idx > 0 && isKnown[idx-1] && isKnown[idx]) {
+        knownInterval = wrap360(knownPhi[idx] - knownPhi[idx-1]);
+        hasKnownInterval = true;
+      }
+    }
+  }
+
+  // Check known interval if set
+  if (hasKnownInterval) {
+    mprintf("DEBUG:\t\tKnown interval = %g\n", knownInterval * Constants::RADDEG);
+    if (chirality == IS_UNKNOWN_CHIRALITY) {
+      mprintf("DEBUG:\t\tSetting chirality from known interval.\n");
+      if (knownInterval < 0)
+        chirality = IS_S;
+      else
+        chirality = IS_R;
+    } else if (chirality == IS_S) {
+      if (knownInterval > 0)
+        mprinterr("Error: Detected chirality S does not match known interval %g\n", knownInterval*Constants::RADDEG);
+    } else if (chirality == IS_R) {
+      if (knownInterval < 0)
+        mprinterr("Error: Detected chriality R does not match known interval %g\n", knownInterval*Constants::RADDEG);
+    }
+  }
+
+  // If still no chirality use the detected orientation
+  if (chirality == IS_UNKNOWN_CHIRALITY) {
+    chirality = AtomJ.Orientation();
+    mprintf("Warning: Unknown chirality around %s; using detected orientation of %s\n",
+            topIn.AtomMaskName(aj).c_str(), chiralStr(chirality));
+  }
+
+  // Determine the interval
+  bool intervalIsSet = false;
+  double interval = 0;
+  if (params_ != 0) {
+    ParmHolder<AtomType>::const_iterator it = params_->AT().GetParam( TypeNameHolder(AJ.Type()) );
+    if (it != params_->AT().end()) {
+      if (it->second.Hybridization() == AtomType::SP2) {
+        interval = 180 * Constants::DEGRAD;
+        intervalIsSet = true;
+      } else if (it->second.Hybridization() == AtomType::SP3) {
+        interval = 120 * Constants::DEGRAD;
+        intervalIsSet = true;
+      }
+    }
+    if (intervalIsSet) mprintf("DEBUG:\t\tInterval was set from atom J hybridization.\n");
+  }
+  if (!intervalIsSet) {
+    // The interval will be 360 / (number of bonds - 1)
+    interval = Constants::TWOPI / (AJ.Nbonds() - 1);
+    mprintf("DEBUG:\t\tInterval was set from number of bonds.\n");
+  }
+
+  // Adjust interval based on chirality and priority of the k atom
+  if (chirality == IS_S || chirality == IS_UNKNOWN_CHIRALITY)
+    interval = -interval;
+  if ( (kPriorityIdx%2) == 0 ) {
+    mprintf("DEBUG:\t\tFlipping interval based on priority index of %i\n", kPriorityIdx);
+    interval = -interval;
+  }
+
+  // If there is a known interval, compare it to the determined one.
+  if (hasKnownInterval) {
+    double deltaInterval = fabs(interval - knownInterval);
+    mprintf("DEBUG:\t\tDetermined interval %g, known interval %g, delta %g\n",
+            interval*Constants::RADDEG, knownInterval*Constants::RADDEG, deltaInterval*Constants::RADDEG);
+    interval = fabs(knownInterval);
+  }
+
+  // If we have to assign an initial phi, make trans the longer branch
+  if (knownIdx == -1) {
+    std::vector<bool> visited = atomPositionKnown;
+    // TODO: Ensure bonded atoms are not yet visited?
+    visited[aj] = true;
+    visited[ak] = true;
+    //std::vector<int> depth( AJ.Nbonds() );
+    int max_depth = 0;
+    int max_idx = -1;
+    for (int idx = 0; idx < AJ.Nbonds(); idx++) {
+      int atnum = priority[idx];
+      if (atnum != ak) {
+        int currentDepth = 0;
+        //depth[idx] = atom_depth(currentDepth, atnum, topIn, visited, 10);
+        int depth = atom_depth(currentDepth, atnum, topIn, visited, 10);
+        if (debug_ > 0)
+          mprintf("DEBUG:\t\tAJ %s depth from %s is %i\n",
+                  topIn.AtomMaskName(aj).c_str(), topIn.AtomMaskName(atnum).c_str(), depth);
+        //if (knownIdx == -1 && depth[idx] < 3) {
+        //  knownIdx = idx;
+        //  knownPhi[idx] = 0;
+        //}
+        if (max_idx == -1 || depth > max_depth) {
+          max_depth = depth;
+          max_idx = idx;
+        }
+      }
+    }
+    mprintf("DEBUG:\t\tLongest depth is for atom %s (%i)\n", topIn.AtomMaskName(priority[max_idx]).c_str(), max_depth);
+    knownIdx = max_idx;
+    knownPhi[max_idx] = interval;// -180 * Constants::DEGRAD;
+    isKnown[max_idx] = true;
+  }
+
+  // Sanity check
+  if (knownIdx < 0) {
+    mprinterr("Internal Error: AssignPhi(): knownIdx is < 0\n");
+    return 1;
+  }
+
+  if (debug_ > 0) {
+    mprintf("DEBUG:\t\tStart phi is %g degrees\n", knownPhi[knownIdx]*Constants::RADDEG);
+    mprintf("DEBUG:\t\tInterval is %g, chirality around J is %s\n", interval*Constants::RADDEG, chiralStr(chirality));
+  }
+
+  // Forwards from the known index
+  double currentPhi = knownPhi[knownIdx];
+  for (int idx = knownIdx; idx < AJ.Nbonds(); idx++) {
+    int atnum = priority[idx];
+    if (atnum != ak) {
+      if (isKnown[idx])
+        currentPhi = knownPhi[idx];
+      else
+        currentPhi = wrap360(currentPhi + interval);
+      //if (atnum == ai) phi = currentPhi;
+      //IC.push_back( InternalCoords(atnum, aj, ak, al, 0, 0, currentPhi) );
+      if (insertIc(zmatrix, atnum, aj, ak, al, currentPhi, topIn, frameIn, atomPositionKnown)) return 1;
+      if (debug_ > 0)
+        mprintf("DEBUG:\t\t\t%s (at# %i) phi= %g\n", topIn.AtomMaskName(atnum).c_str(), atnum+1, currentPhi*Constants::RADDEG);
+    }
+  }
+  // Backwards from the known index
+  currentPhi = knownPhi[knownIdx];
+  for (int idx = knownIdx - 1; idx > -1; idx--) {
+    int atnum = priority[idx];
+    if (atnum != ak) {
+      if (isKnown[idx])
+        currentPhi = knownPhi[idx];
+      else
+        currentPhi = wrap360(currentPhi - interval);
+      //if (atnum == ai) phi = currentPhi;
+      //IC.push_back( InternalCoords(atnum, aj, ak, al, 0, 0, currentPhi) );
+      if (insertIc(zmatrix, atnum, aj, ak, al, currentPhi, topIn, frameIn, atomPositionKnown)) return 1;
+      if (debug_ > 0)
+        mprintf("DEBUG:\t\t\t%s (at# %i) phi= %g\n", topIn.AtomMaskName(atnum).c_str(), atnum+1, currentPhi*Constants::RADDEG);
+    }
+  }
+
+  return 0;
+}
 
 // -----------------------------------------------------------------------------
 /** Combine two units. Fragment 1 will be merged into Fragment 0 and bonded. */

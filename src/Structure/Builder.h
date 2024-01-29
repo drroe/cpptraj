@@ -28,6 +28,13 @@ class Builder {
     int AssignLength(double&, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
     /// Given atoms J and K, attempt to assign a reasonable value for theta for atom I
     int AssignTheta(double&, int, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
+    /// Insert an internal coord into a zmatrix
+    int insertIc(Zmatrix&, int, int, int, int, double,
+                 Topology const&, Frame const&, std::vector<bool> const&) const;
+    /// Assign internal coordinates for atoms I for torsions around J-K-L.
+    int AssignICsAroundBond(Zmatrix&, int, int, int,
+                           Topology const&, Frame const&, std::vector<bool> const&,
+                           BuildAtom const&) const;
 
     /// Model coordinates around a bond
     int SetupICsAroundBond(Zmatrix&, int, int, Frame const&, Topology const&,
