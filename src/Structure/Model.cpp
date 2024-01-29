@@ -31,9 +31,26 @@ const
 {
   if (atomPositionKnown[ai] && atomPositionKnown[aj])
     dist = sqrt( DIST2_NoImage( frameIn.XYZ(ai), frameIn.XYZ(aj) ) );
-  else
-    // One or both positions unknown. Use bond length. TODO use parameters
-    dist = Atom::GetBondLength( topIn[ai].Element(), topIn[aj].Element() );
+  else {
+    // One or both positions unknown. Use estimated bond length or parameters.
+    bool foundParam = false;
+    if (params_ != 0 && topIn[ai].HasType() && topIn[aj].HasType()) {
+      TypeNameHolder btypes(2);
+      btypes.AddName( topIn[ai].Type() );
+      btypes.AddName( topIn[aj].Type() );
+      ParmHolder<BondParmType>::const_iterator it = params_->BP().GetParam( btypes );
+      if (it != params_->BP().end()) {
+        dist = it->second.Req();
+        foundParam = true;
+        mprintf("DEBUG: Found bond parameter for %s (%s) - %s (%s): req=%g rk=%g\n",
+                topIn.AtomMaskName(ai).c_str(), *(topIn[ai].Type()),
+                topIn.AtomMaskName(aj).c_str(), *(topIn[aj].Type()),
+                it->second.Req(), it->second.Rk());
+      }
+    }
+    if (!foundParam)
+      dist = Atom::GetBondLength( topIn[ai].Element(), topIn[aj].Element() );
+  }
   return 0;
 }
 

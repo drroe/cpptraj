@@ -1047,10 +1047,6 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
   for (Atom::bond_iterator iat = AJ1.bondbegin(); iat != AJ1.bondend(); ++iat)
   {
     if (*iat != atB) {
-      BuildAtom AtomC;
-      if (topIn[*iat].Nbonds() > 2) {
-        if (AtomC.DetermineChirality(*iat, topIn, frameIn, modelDebug)) return 1;
-      }
       // Only do this if one or more of the atoms bonded to iat does not
       // already have an IC.
       unsigned int needsKLic = 0;
@@ -1061,6 +1057,10 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
         }
       }
       if (needsKLic > 0) {
+        BuildAtom AtomC;
+        if (topIn[*iat].Nbonds() > 2) {
+          if (AtomC.DetermineChirality(*iat, topIn, frameIn, modelDebug)) return 1;
+        }
         mprintf("DEBUG: K L IC needed for %s.\n", topIn.AtomMaskName(*iat).c_str());
         if (model.AssignICsAroundBond(IC_, *iat, atA, atB, topIn, frameIn, atomPositionKnown, AtomC)) {
           mprinterr("Error: AssignICsAroundBond (K L) failed.\n");
