@@ -24,6 +24,9 @@ class Builder {
     /// Model the coordinates around a bond given only some coordinates are known
     int ModelCoordsAroundBond(Frame&, Topology const&, int, int, Zmatrix const*, Zmatrix const*, Barray&) const;
   private:
+    /// Assign a reasonable value for bond distance given 2 atoms whose position may or may not be known
+    int AssignLength(double&, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
+
     int SetupICsAroundBond(Zmatrix&, int, int, Frame const&, Topology const&,
                            std::vector<bool> const&, std::vector<bool> const&,
                            BuildAtom const&, BuildAtom const&) const;

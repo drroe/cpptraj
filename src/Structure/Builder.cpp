@@ -3,6 +3,7 @@
 #include "Model.h"
 #include "Zmatrix.h"
 #include "../CpptrajStdio.h"
+#include "../DistRoutines.h"
 #include "../Frame.h"
 #include "../Topology.h"
 #include <algorithm> // std::copy
@@ -24,6 +25,37 @@ void Cpptraj::Structure::Builder::SetParameters(ParameterSet const* paramsIn) {
   params_ = paramsIn;
 }
 
+// -----------------------------------------------------------------------------
+/** Assign reasonable value for bond distance. */
+int Cpptraj::Structure::Builder::AssignLength(double& dist, int ai, int aj, Topology const& topIn, Frame const& frameIn, std::vector<bool> const& atomPositionKnown)
+const
+{
+  if (atomPositionKnown[ai] && atomPositionKnown[aj])
+    dist = sqrt( DIST2_NoImage( frameIn.XYZ(ai), frameIn.XYZ(aj) ) );
+  else {
+    // One or both positions unknown. Use estimated bond length or parameters.
+    bool foundParam = false;
+    if (params_ != 0 && topIn[ai].HasType() && topIn[aj].HasType()) {
+      TypeNameHolder btypes(2);
+      btypes.AddName( topIn[ai].Type() );
+      btypes.AddName( topIn[aj].Type() );
+      ParmHolder<BondParmType>::const_iterator it = params_->BP().GetParam( btypes );
+      if (it != params_->BP().end()) {
+        dist = it->second.Req();
+        foundParam = true;
+        mprintf("DEBUG: Found bond parameter for %s (%s) - %s (%s): req=%g rk=%g\n",
+                topIn.AtomMaskName(ai).c_str(), *(topIn[ai].Type()),
+                topIn.AtomMaskName(aj).c_str(), *(topIn[aj].Type()),
+                it->second.Req(), it->second.Rk());
+      }
+    }
+    if (!foundParam)
+      dist = Atom::GetBondLength( topIn[ai].Element(), topIn[aj].Element() );
+  }
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
 /** Combine two units. Fragment 1 will be merged into Fragment 0 and bonded. */
 int Builder::Combine(Topology&       frag0Top, Frame&       frag0frm,
                      Topology const& frag1Top, Frame const& frag1frm,
