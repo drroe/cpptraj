@@ -2174,7 +2174,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   // Check that atoms actually have a type.
   int NemptyTypes = 0;
   for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm) {
-    if (atm->Type().len() < 1) ++NemptyTypes;
+    if (!atm->HasType()) ++NemptyTypes;
     file_.CharToBuffer( *(atm->Type()) );
   }
   file_.FlushBuffer();

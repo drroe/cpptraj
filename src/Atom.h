@@ -81,6 +81,7 @@ class Atom {
     inline double ElementRadius()      const { return AtomicElementRadius_[element_]; }
     inline const NameType& Name()      const { return aname_; }
     inline const NameType& Type()      const { return atype_; }
+    inline bool HasType()              const { return (atype_.len() > 0); }
     inline int TypeIndex()             const { return atype_index_; }
     inline int MolNum()                const { return mol_; }
     inline int Nbonds()                const { return (int)bonds_.size(); }

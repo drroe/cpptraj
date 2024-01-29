@@ -53,7 +53,7 @@ unsigned int Topology::NuniqueAtomTypes() const {
   ParmHolder<int> currentAtomTypes;
   for (std::vector<Atom>::const_iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
   {
-    if (atm->Type().len() > 0) {
+    if (atm->HasType()) {
       TypeNameHolder atype( atm->Type() );
       // Find in currentAtomTypes.
       bool found;
@@ -2310,7 +2310,7 @@ static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<N
     mprintf("DEBUG: Topology does not have nonbond parameters.\n");
     // No nonbonded parameters. Just save mass/polarizability.
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
-      if (atm->Type().len() > 0)
+      if (atm->HasType() > 0)
         atomTypes.AddParm( TypeNameHolder(atm->Type()), AtomType(atm->Mass(), atm->Polar()), true );
   }
 }
@@ -3022,7 +3022,7 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
   ParmHolder<AtomType> currentAtomTypes;
   for (std::vector<Atom>::const_iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
   {
-    if (atm->Type().len() > 0) {
+    if (atm->HasType()) {
       TypeNameHolder types(1);
       types.AddName(atm->Type());
       // Find in newTypes.
