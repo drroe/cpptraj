@@ -26,7 +26,10 @@ class Builder {
   private:
     /// Assign a reasonable value for bond distance given 2 atoms whose position may or may not be known
     int AssignLength(double&, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
+    /// Given atoms J and K, attempt to assign a reasonable value for theta for atom I
+    int AssignTheta(double&, int, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
 
+    /// Model coordinates around a bond
     int SetupICsAroundBond(Zmatrix&, int, int, Frame const&, Topology const&,
                            std::vector<bool> const&, std::vector<bool> const&,
                            BuildAtom const&, BuildAtom const&) const;
