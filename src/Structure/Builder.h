@@ -14,14 +14,15 @@ class Builder {
   public:
     /// CONSTRUCTOR
     Builder();
-    /// Combine second fragment into first fragment and bond
-    int Combine(Topology&, Frame&, Topology const&, Frame const&, int, int) const;
-    /// Model the coordinates around a bond given only some coordinates are known
-    int ModelCoordsAroundBond(Frame&, Topology const&, int, int, Zmatrix const*, Zmatrix const*, Barray&) const;
     /// Set debug
     void SetDebug(int d) { debug_ = d; }
     /// Set optional parameter set
     void SetParameters(ParameterSet const*);
+
+    /// Combine second fragment into first fragment and bond
+    int Combine(Topology&, Frame&, Topology const&, Frame const&, int, int) const;
+    /// Model the coordinates around a bond given only some coordinates are known
+    int ModelCoordsAroundBond(Frame&, Topology const&, int, int, Zmatrix const*, Zmatrix const*, Barray&) const;
   private:
     int SetupICsAroundBond(Zmatrix&, int, int, Frame const&, Topology const&,
                            std::vector<bool> const&, std::vector<bool> const&,

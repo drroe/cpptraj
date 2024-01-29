@@ -15,6 +15,15 @@ Builder::Builder() :
   params_(0)
 {}
 
+/** Set optional parameter set. */
+void Cpptraj::Structure::Builder::SetParameters(ParameterSet const* paramsIn) {
+  if (paramsIn == 0) {
+    mprinterr("Internal Error: Builder::SetParmaters called with null set.\n");
+    return;
+  }
+  params_ = paramsIn;
+}
+
 /** Combine two units. Fragment 1 will be merged into Fragment 0 and bonded. */
 int Builder::Combine(Topology&       frag0Top, Frame&       frag0frm,
                      Topology const& frag1Top, Frame const& frag1frm,
