@@ -428,7 +428,7 @@ int Cpptraj::Structure::Model::insertIc(std::vector<InternalCoords>& IC,
 const
 {
   if (atomPositionKnown[ai]) {
-    mprintf("DEBUG: Atom position already known for %s, skipping IC.\n", topIn.AtomMaskName(ai).c_str());
+    mprintf("DEBUG:\tAtom position already known for %s, skipping IC.\n", topIn.AtomMaskName(ai).c_str());
     return 0;
   }
   double newDist = 0;

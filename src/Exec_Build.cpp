@@ -380,17 +380,23 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     if (zmatrix != 0) {
       mprintf("DEBUG: BUILD residue %li %s\n", ires + 1, topOut.TruncResNameOnumId(ires).c_str());
       mprintf("DEBUG: Residue type: %s terminal\n", Cpptraj::Structure::terminalStr(*termType));
+      mprintf("DEBUG: Zmatrix for building residue %li %s\n", ires + 1,
+              topOut.TruncResNameOnumId(ires).c_str());
+      zmatrix->print(&topOut);
       // Is this residue connected to an earlier residue?
       if ( *termType != Cpptraj::Structure::BEG_TERMINAL ) {
         for (int at = topOut.Res(ires).FirstAtom(); at != topOut.Res(ires).LastAtom(); ++at)
         {
           for (Atom::bond_iterator bat = topOut[at].bondbegin(); bat != topOut[at].bondend(); ++bat)
           {
-            if ((long int)topOut[*bat].ResNum() < ires) {
-              mprintf("DEBUG: Connected to residue %i\n", topOut[*bat].ResNum());
+            long int jres = (long int)topOut[*bat].ResNum();
+            if (jres < ires) {
+              mprintf("DEBUG: Connected to residue %s\n", topOut.TruncResNameNum(jres).c_str());
               Cpptraj::Structure::Builder linkBuilder;
               linkBuilder.SetDebug( 1 ); // FIXME
-              if (linkBuilder.ModelCoordsAroundBond(frameOut, topOut, at, *bat, hasPosition)) {
+              if (linkBuilder.ModelCoordsAroundBond(frameOut, topOut, at, *bat,
+                                                    zmatrix, ResZmatrices[jres], hasPosition))
+              {
                 mprinterr("Error: Model coords around bond failed between %s and %s\n",
                           topOut.AtomMaskName(at).c_str(), topOut.AtomMaskName(*bat).c_str());
                 return 1;
@@ -405,9 +411,6 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
 //        mprinterr("Error: Failed to create zmatrix from topology.\n");
 //        return 1;
 //      }
-      mprintf("DEBUG: Zmatrix for building residue %li %s\n", ires + 1,
-              topOut.TruncResNameOnumId(ires).c_str());
-      zmatrix->print(&topOut);
       // Update internal coords from known positions
       if (zmatrix->UpdateICsFromFrame( frameOut, ires, topOut, hasPosition )) {
         mprinterr("Error: Failed to update Zmatrix with values from existing positions.\n");

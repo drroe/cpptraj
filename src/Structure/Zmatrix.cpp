@@ -1054,17 +1054,20 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
       // Only do this if one or more of the atoms bonded to iat does not
       // already have an IC.
       unsigned int needsKLic = 0;
-      for (Atom::bond_iterator bat = topIn[*iat].bondbegin(); bat != topIn[*iat].bondend(); ++bat)
-        if ( *bat != atA && !hasIC[*bat] )
+      for (Atom::bond_iterator bat = topIn[*iat].bondbegin(); bat != topIn[*iat].bondend(); ++bat) {
+        if ( *bat != atA && !hasIC[*bat] ) {
+          mprintf("DEBUG:\tAtom %s around %s has no IC.\n", topIn.AtomMaskName(*bat).c_str(), topIn.AtomMaskName(*iat).c_str());
           needsKLic++;
+        }
+      }
       if (needsKLic > 0) {
-        mprintf("DEBUG: K L IC needed.\n");
+        mprintf("DEBUG: K L IC needed for %s.\n", topIn.AtomMaskName(*iat).c_str());
         if (model.AssignICsAroundBond(IC_, *iat, atA, atB, topIn, frameIn, atomPositionKnown, AtomC)) {
           mprinterr("Error: AssignICsAroundBond (K L) failed.\n");
           return 1;
         }
       } else {
-        mprintf("DEBUG: K L IC not needed.\n");
+        mprintf("DEBUG: K L IC not needed for %s.\n", topIn.AtomMaskName(*iat).c_str());
       }
     }
   }

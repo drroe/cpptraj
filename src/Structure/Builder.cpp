@@ -128,6 +128,7 @@ const
   return 0;
 }
 
+/// \return The total number of atoms whose position is known for the specified residue
 static inline int known_count(int ires, Topology const& topIn, std::vector<bool> const& hasPosition)
 {
   int count = 0;
@@ -138,7 +139,10 @@ static inline int known_count(int ires, Topology const& topIn, std::vector<bool>
 }
 
 /** Model the coordinates around a bond */
-int Builder::ModelCoordsAroundBond(Frame& frameIn, Topology const& topIn, int bondAt0, int bondAt1, Barray& hasPosition) const {
+int Builder::ModelCoordsAroundBond(Frame& frameIn, Topology const& topIn, int bondAt0, int bondAt1,
+                                   Zmatrix const* zmatrix0, Zmatrix const* zmatrix1, Barray& hasPosition)
+const
+{
   mprintf("DEBUG: Model coords around bond %s - %s\n", topIn.AtomMaskName(bondAt0).c_str(), topIn.AtomMaskName(bondAt1).c_str());
   int res0 = topIn[bondAt0].ResNum();
   int res1 = topIn[bondAt1].ResNum();
@@ -151,19 +155,23 @@ int Builder::ModelCoordsAroundBond(Frame& frameIn, Topology const& topIn, int bo
   int known0 = known_count(res0, topIn, hasPosition);
   int known1 = known_count(res1, topIn, hasPosition);
   int atA, atB;
-
+  Zmatrix const* zA;
   if (known0 < known1) {
     // Fragment 1 is better-known 
     atA = bondAt0;
     atB = bondAt1;
+    zA  = zmatrix0;
+    //zB  = zmatrix1;
   } else {
     // Fragment 0 is better or equally known 
     atA = bondAt1;
     atB = bondAt0;
+    zA  = zmatrix1;
+    //zB  = zmatrix0;
   }
 
   mprintf("DEBUG: More well-known atom: %s\n", topIn.AtomMaskName(atB).c_str());
-  mprintf("DEBUG: Less well-known atom: %s\n", topIn.AtomMaskName(atA).c_str());
+  mprintf("DEBUG: Less well-known atom: %s  has zmatrix= %i\n", topIn.AtomMaskName(atA).c_str(), (int)(zA != 0));
 
   int chiralityDebug;
   if (debug_ < 1)
@@ -189,8 +197,14 @@ int Builder::ModelCoordsAroundBond(Frame& frameIn, Topology const& topIn, int bo
   // Generate Zmatrix only for ICs involving bonded atoms
   Zmatrix bondZmatrix;
 
+  // Note which atoms already have an IC in zmatrix A
+  std::vector<bool> hasIC(topIn.Natom(), false);
+  if (zA != 0) {
+    for (Zmatrix::const_iterator it = zA->begin(); it != zA->end(); ++it)
+      hasIC[it->AtI()] = true;
+  }
+
   bondZmatrix.SetDebug( debug_ );
-  std::vector<bool> hasIC(topIn.Natom(), false); // FIXME
   if (bondZmatrix.SetupICsAroundBond(atA, atB, frameIn, topIn, hasPosition, hasIC, AtomA, AtomB)) {
     mprinterr("Error: Zmatrix setup for ICs around %s and %s failed.\n",
               topIn.AtomMaskName(atA).c_str(),
