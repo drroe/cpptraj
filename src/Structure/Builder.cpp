@@ -1,6 +1,5 @@
 #include "Builder.h"
 #include "BuildAtom.h"
-#include "Model.h"
 #include "Zmatrix.h"
 #include "../Constants.h"
 #include "../CpptrajStdio.h"
@@ -769,19 +768,19 @@ const
               topIn.AtomMaskName(atl0).c_str());
     modelDebug = debug_ - 1;
   }
-  Cpptraj::Structure::Model model;
+  //Cpptraj::Structure::Model model;
   //model.SetDebug( modelDebug ); //FIXME
-  model.SetDebug( 1 );
+  //model.SetDebug( 1 );
   // FIXME
   mprintf("DEBUG: ------------------------------------------------\n");
   //std::vector<InternalCoords> tmpic;
   // I J: Set up ICs for X atB K L
-  if (model.AssignICsAroundBond(zmatrix, atB, atk0, atl0, topIn, frameIn, atomPositionKnown, AtomB)) {
+  if (AssignICsAroundBond(zmatrix, atB, atk0, atl0, topIn, frameIn, atomPositionKnown, AtomB)) {
     mprinterr("Error: AssignICsAroundBond (I J) failed.\n");
     return 1;
   }
   // J K: Set up ICs for X atA atB K
-  if (model.AssignICsAroundBond(zmatrix, atA, atB, atk0, topIn, frameIn, atomPositionKnown, AtomA)) {
+  if (AssignICsAroundBond(zmatrix, atA, atB, atk0, topIn, frameIn, atomPositionKnown, AtomA)) {
     mprinterr("Error: AssignICsAroundBond (J K) failed.\n");
     return 1;
   }
@@ -805,7 +804,7 @@ const
           if (AtomC.DetermineChirality(*iat, topIn, frameIn, modelDebug)) return 1;
         }
         mprintf("DEBUG: K L IC needed for %s.\n", topIn.AtomMaskName(*iat).c_str());
-        if (model.AssignICsAroundBond(zmatrix, *iat, atA, atB, topIn, frameIn, atomPositionKnown, AtomC)) {
+        if (AssignICsAroundBond(zmatrix, *iat, atA, atB, topIn, frameIn, atomPositionKnown, AtomC)) {
           mprinterr("Error: AssignICsAroundBond (K L) failed.\n");
           return 1;
         }

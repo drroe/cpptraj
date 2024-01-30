@@ -8,7 +8,6 @@ target_sources(cpptraj_common_obj PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}/GenerateConnectivityArrays.cpp
   ${CMAKE_CURRENT_LIST_DIR}/HisProt.cpp
   ${CMAKE_CURRENT_LIST_DIR}/InternalCoords.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/Model.cpp
   ${CMAKE_CURRENT_LIST_DIR}/StructureEnum.cpp
   ${CMAKE_CURRENT_LIST_DIR}/StructureRoutines.cpp
   ${CMAKE_CURRENT_LIST_DIR}/SugarBuilder.cpp

@@ -8,7 +8,6 @@ STRUCTURE_SOURCES= \
   GenerateConnectivityArrays.cpp \
   HisProt.cpp \
   InternalCoords.cpp \
-  Model.cpp \
   StructureEnum.cpp \
   StructureRoutines.cpp \
   SugarBuilder.cpp \
