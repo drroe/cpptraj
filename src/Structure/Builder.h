@@ -32,6 +32,8 @@ class Builder {
     int getLengthParam(double&, int, int, Topology const&) const;
     /// Assign a reasonable value for bond distance given 2 atoms whose position may or may not be known
     int AssignLength(double&, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
+    /// Get angle parameter for atoms.
+    int getAngleParam(double&, int, int, int, Topology const&) const;
     /// Given atoms J and K, attempt to assign a reasonable value for theta for atom I
     int AssignTheta(double&, int, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
     /// Calculate an internal coordinate for known atoms

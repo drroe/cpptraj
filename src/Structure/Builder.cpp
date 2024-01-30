@@ -83,6 +83,35 @@ const
   return 0;
 }
 
+/** Get angle parameter if present.
+  * \return 1 if parameter found.
+  */
+int Cpptraj::Structure::Builder::getAngleParam(double& theta, int ai, int aj, int ak, Topology const& topIn)
+const
+{
+  if (params_ != 0 &&
+      topIn[ai].HasType() &&
+      topIn[aj].HasType() &&
+      topIn[ak].HasType())
+  {
+    TypeNameHolder atypes(3);
+    atypes.AddName( topIn[ai].Type() );
+    atypes.AddName( topIn[aj].Type() );
+    atypes.AddName( topIn[ak].Type() );
+    ParmHolder<AngleParmType>::const_iterator it = params_->AP().GetParam( atypes );
+    if (it != params_->AP().end()) {
+      theta = it->second.Teq();
+      mprintf("DEBUG: Found angle parameter for %s (%s) - %s (%s) - %s (%s): teq=%g tk=%g\n",
+                topIn.AtomMaskName(ai).c_str(), *(topIn[ai].Type()),
+                topIn.AtomMaskName(aj).c_str(), *(topIn[aj].Type()),
+                topIn.AtomMaskName(ak).c_str(), *(topIn[ak].Type()),
+                it->second.Teq()*Constants::RADDEG, it->second.Tk());
+      return 1;
+    }
+  }
+  return 0;
+}
+
 /** Attempt to assign a reasonable value for theta internal coordinate for
   * atom i given that atoms j and k have known positions.
   */
@@ -97,6 +126,8 @@ const
     return 0;
   }
 
+  if (getAngleParam(theta, ai, aj, ak, topIn)) return 0;
+/*
   if (params_ != 0 &&
       topIn[ai].HasType() &&
       topIn[aj].HasType() &&
@@ -117,7 +148,7 @@ const
       return 0;
     }
   }
-
+*/
   // Figure out hybridization and chirality of atom j.
   Atom const& AJ = topIn[aj];
   if (debug_ > 0) {
