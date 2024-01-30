@@ -63,7 +63,6 @@ const
 int Cpptraj::Structure::Builder::AssignTheta(double& theta, int ai, int aj, int ak, Topology const& topIn, Frame const& frameIn, std::vector<bool> const& atomPositionKnown)
 const
 {
-  // Figure out hybridization and chirality of atom j.
   if (debug_ > 0)
     mprintf("DEBUG: AssignTheta for atom j : %s\n", topIn.AtomMaskName(aj).c_str());
   if (atomPositionKnown[ai] && atomPositionKnown[aj] && atomPositionKnown[ak])
@@ -72,6 +71,28 @@ const
     return 0;
   }
 
+  if (params_ != 0 &&
+      topIn[ai].HasType() &&
+      topIn[aj].HasType() &&
+      topIn[ak].HasType())
+  {
+    TypeNameHolder atypes(3);
+    atypes.AddName( topIn[ai].Type() );
+    atypes.AddName( topIn[aj].Type() );
+    atypes.AddName( topIn[ak].Type() );
+    ParmHolder<AngleParmType>::const_iterator it = params_->AP().GetParam( atypes );
+    if (it != params_->AP().end()) {
+      theta = it->second.Teq();
+      mprintf("DEBUG: Found angle parameter for %s (%s) - %s (%s) - %s (%s): teq=%g tk=%g\n",
+                topIn.AtomMaskName(ai).c_str(), *(topIn[ai].Type()),
+                topIn.AtomMaskName(aj).c_str(), *(topIn[aj].Type()),
+                topIn.AtomMaskName(ak).c_str(), *(topIn[ak].Type()),
+                it->second.Teq()*Constants::RADDEG, it->second.Tk());
+      return 0;
+    }
+  }
+
+  // Figure out hybridization and chirality of atom j.
   Atom const& AJ = topIn[aj];
   if (debug_ > 0) {
     mprintf("DEBUG:\t\tI %s Nbonds: %i\n", topIn[ai].ElementName(), topIn[ai].Nbonds());
@@ -91,46 +112,7 @@ const
   }
   if (hybrid == AtomType::UNKNOWN_HYBRIDIZATION)
     hybrid = GuessAtomHybridization(AJ, topIn.Atoms());
-/*
-  HybridizationType hybrid = UNKNOWN_HYBRIDIZATION;
-  // Handle specific elements
-  switch (AJ.Element()) {
-    case Atom::CARBON :
-      switch (AJ.Nbonds()) {
-        case 2 : hybrid = SP; break;
-        case 3 : hybrid = SP2; break;
-        case 4 : hybrid = SP3; break;
-      }
-      break;
-    case Atom::NITROGEN :
-      switch (AJ.Nbonds()) {
-        case 2 : hybrid = SP2; break;
-        case 3 :
-          // Check for potential SP2. If only 1 of the bonded atoms is
-          // hydrogen, assume SP2. TODO actually check for aromaticity.
-          int n_hydrogens = 0;
-          for (Atom::bond_iterator bat = AJ.bondbegin(); bat != AJ.bondend(); ++bat)
-            if (topIn[*bat].Element() == Atom::HYDROGEN)
-              n_hydrogens++;
-          if (n_hydrogens == 1)
-            hybrid = SP2;
-          else
-            hybrid = SP3;
-          break;
-      }
-      break;
-    case Atom::OXYGEN :
-      switch (AJ.Nbonds()) {
-        case 2 : hybrid = SP3; break;
-      }
-      break;
-    case Atom::SULFUR :
-      switch (AJ.Nbonds()) {
-        case 2 : hybrid = SP3; break;
-      }
-      break;
-    default: hybrid = UNKNOWN_HYBRIDIZATION; break;
-  }*/
+
   // Fill in what values we can for known atoms
 /*  std::vector<double> knownTheta( AJ.Nbonds() );
   int knownIdx = -1;
@@ -168,6 +150,7 @@ const
 
   return 0;
 }
+
 /** Insert internal coordinates with bond i-j, angle i-j-k, and torsion i-j-k-l. */
 int Cpptraj::Structure::Builder::insertIc(Zmatrix& zmatrix,
                                         int ai, int aj, int ak, int al, double newPhi,
