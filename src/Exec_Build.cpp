@@ -394,6 +394,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
               mprintf("DEBUG: Connected to residue %s\n", topOut.TruncResNameNum(jres).c_str());
               Cpptraj::Structure::Builder linkBuilder;
               linkBuilder.SetDebug( 1 ); // FIXME
+              linkBuilder.SetParameters( &mainParmSet );
               if (linkBuilder.ModelCoordsAroundBond(frameOut, topOut, at, *bat,
                                                     zmatrix, ResZmatrices[jres], hasPosition))
               {
