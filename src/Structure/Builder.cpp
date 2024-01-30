@@ -1043,9 +1043,30 @@ int Builder::UpdateICsFromFrame(Zmatrix& zmatrix, Frame const& frameIn, int ires
 const
 {
   // Update bond/angle values for atoms with no position.
-/*  for (unsigned int idx = 0; idx != zmatrix.N_IC(); idx++)
-  {
-    InternalCoords& thisIc = zmatrix.ModifyIC(idx);
+//  for (unsigned int idx = 0; idx != zmatrix.N_IC(); idx++)
+//  {
+/*    InternalCoords& thisIc = zmatrix.ModifyIC(idx);
+    if (hasPosition[thisIc.AtI()] && hasPosition[thisIc.AtJ()]) {
+      // Bond exists.
+      double dist = DIST2_NoImage( frameIn.XYZ(thisIc.AtI()), frameIn.XYZ(thisIc.AtJ()) );
+      mprintf("DEBUG: Replacing existing bond length %g for %s - %s with existing length %g\n",
+              thisIc.Dist(), topIn.AtomMaskName(thisIc.AtI()).c_str(),
+              topIn.AtomMaskName(thisIc.AtJ()).c_str(), dist);
+      thisIc.SetDist( dist );
+      if (hasPosition[thisIc.AtK()]) {
+        // Angle also exists
+        double theta = CalcAngle(frameIn.XYZ(thisIc.AtI()),
+                                 frameIn.XYZ(thisIc.AtJ()),
+                                 frameIn.XYZ(thisIc.AtK()));
+        theta *= Constants::RADDEG;
+        mprintf("DEBUG: Replacing existing angle %g for %s - %s - %s with existing angle %g\n",
+                thisIc.Theta(), topIn.AtomMaskName(thisIc.AtI()).c_str(),
+                topIn.AtomMaskName(thisIc.AtJ()).c_str(), topIn.AtomMaskName(thisIc.AtK()).c_str(),
+                theta);
+        thisIc.SetTheta( theta );
+    }
+  }*/
+/*
     if (!hasPosition[thisIc.AtI()]) {
       double dist = 0;
       if (getLengthParam( dist, thisIc.AtI(), thisIc.AtJ(), topIn )) {
@@ -1064,7 +1085,8 @@ const
         thisIc.SetTheta( theta );
       }
     }
-  }*/
+*/
+//  } // END loop over zmatrix ICs
   // Update torsions
   Barray isUsed( zmatrix.N_IC(), false );
   //unsigned int Nused = 0;
