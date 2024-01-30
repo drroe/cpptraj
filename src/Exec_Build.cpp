@@ -370,7 +370,10 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     else
       resIsBuilt.push_back( false );
   }
-  
+
+  Cpptraj::Structure::Builder linkBuilder;
+  linkBuilder.SetDebug( 1 ); // FIXME
+  linkBuilder.SetParameters( &mainParmSet );
   bool buildFailed = false;
   TermTypeArray::const_iterator termType = ResTypes.begin();
   for (Zarray::const_iterator it = ResZmatrices.begin(); it != ResZmatrices.end(); ++it, ++termType)
@@ -392,9 +395,6 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
             long int jres = (long int)topOut[*bat].ResNum();
             if (jres < ires) {
               mprintf("DEBUG: Connected to residue %s\n", topOut.TruncResNameNum(jres).c_str());
-              Cpptraj::Structure::Builder linkBuilder;
-              linkBuilder.SetDebug( 1 ); // FIXME
-              linkBuilder.SetParameters( &mainParmSet );
               if (linkBuilder.ModelCoordsAroundBond(frameOut, topOut, at, *bat,
                                                     zmatrix, ResZmatrices[jres], hasPosition))
               {
@@ -413,7 +413,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
 //        return 1;
 //      }
       // Update internal coords from known positions
-      if (zmatrix->UpdateICsFromFrame( frameOut, ires, topOut, hasPosition )) {
+      if (linkBuilder.UpdateICsFromFrame( *zmatrix, frameOut, ires, topOut, hasPosition )) {
         mprinterr("Error: Failed to update Zmatrix with values from existing positions.\n");
         return 1;
       }

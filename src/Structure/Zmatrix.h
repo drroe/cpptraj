@@ -41,12 +41,12 @@ class Zmatrix {
 
     /// Try to generate complete ICs from atom connectivity
     int SetFromFrameAndConnect(Frame const&, Topology const&);//, int);
-    /// Update ICs from existing coords
-    int UpdateICsFromFrame(Frame const&, int, Topology const&, Barray const&);
     /// Convert specifed molecule of Frame/Topology to internal coordinates array
     int SetFromFrame(Frame const&, Topology const&, int);
     /// Convert molecule 0 of Frame/Topology to internal coordinates array
     int SetFromFrame(Frame const&, Topology const&);
+    /// \return Modifable reference to specified IC
+    InternalCoords& ModifyIC(unsigned int idx) { return IC_[idx]; }
 
     /// Set Frame from internal coords
     int SetToFrame(Frame&) const;

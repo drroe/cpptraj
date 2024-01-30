@@ -8,6 +8,7 @@ namespace Cpptraj {
 namespace Structure {
 class BuildAtom;
 class Zmatrix;
+class InternalCoords;
 /// Used to attach different topology/frame combos using internal coordinates
 class Builder {
     typedef std::vector<bool> Barray;
@@ -23,11 +24,16 @@ class Builder {
     int Combine(Topology&, Frame&, Topology const&, Frame const&, int, int) const;
     /// Model the coordinates around a bond given only some coordinates are known
     int ModelCoordsAroundBond(Frame&, Topology const&, int, int, Zmatrix const*, Zmatrix const*, Barray&) const;
+    /// Update the internal coordinates in given Zmatrix with values from Frame/Parameters
+    int UpdateICsFromFrame(Zmatrix&, Frame const&, int, Topology const&, Barray const&) const;
   private:
+    typedef std::vector<int> Iarray;
     /// Assign a reasonable value for bond distance given 2 atoms whose position may or may not be known
     int AssignLength(double&, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
     /// Given atoms J and K, attempt to assign a reasonable value for theta for atom I
     int AssignTheta(double&, int, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
+    /// Calculate an internal coordinate for known atoms
+    static inline InternalCoords calcKnownAtomIc(int, int, int, int, Frame const&);
     /// Insert an internal coord into a zmatrix
     int insertIc(Zmatrix&, int, int, int, int, double,
                  Topology const&, Frame const&, std::vector<bool> const&) const;

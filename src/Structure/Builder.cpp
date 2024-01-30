@@ -1,5 +1,6 @@
 #include "Builder.h"
 #include "BuildAtom.h"
+#include "GenerateConnectivityArrays.h"
 #include "Zmatrix.h"
 #include "../Constants.h"
 #include "../CpptrajStdio.h"
@@ -149,6 +150,20 @@ const
   }*/
 
   return 0;
+}
+
+/** Calculate internal coordinate for atoms i j k l with known positions. */
+Cpptraj::Structure::InternalCoords Builder::calcKnownAtomIc(int ai, int aj, int ak, int al, Frame const& frameIn)
+{
+  double newDist = DIST2_NoImage(frameIn.XYZ(ai), frameIn.XYZ(aj));
+
+  double newTheta = CalcAngle( frameIn.XYZ(ai), frameIn.XYZ(aj), frameIn.XYZ(ak) );
+
+  double newPhi = Torsion( frameIn.XYZ(ai),
+                           frameIn.XYZ(aj),
+                           frameIn.XYZ(ak),
+                           frameIn.XYZ(al) );
+  return InternalCoords(ai, aj, ak, al, newDist, newTheta*Constants::RADDEG, newPhi*Constants::RADDEG);
 }
 
 /** Insert internal coordinates with bond i-j, angle i-j-k, and torsion i-j-k-l. */
@@ -965,3 +980,145 @@ const
   return 0;
 }
 
+/** For existing torsions, see if all coordinates in that torsion
+  * exist. If so, update the IC from the existing coordinates.
+  */
+int Builder::UpdateICsFromFrame(Zmatrix& zmatrix, Frame const& frameIn, int ires, Topology const& topIn, Barray const& hasPosition)
+const
+{
+  Barray isUsed( zmatrix.N_IC(), false );
+  //unsigned int Nused = 0;
+  // Get list of bonds 
+  BondArray myBonds = GenerateBondArray( std::vector<Residue>(1, topIn.Res(ires)), topIn.Atoms() );
+  for (BondArray::const_iterator bnd = myBonds.begin(); bnd != myBonds.end(); ++bnd) {
+    if (topIn[bnd->A1()].ResNum() == ires && topIn[bnd->A2()].ResNum() == ires) {
+      mprintf("DEBUG: Looking at torsions around: %s - %s\n", topIn.AtomMaskName(bnd->A1()).c_str(), topIn.AtomMaskName(bnd->A2()).c_str());    // Find all ICs that share atoms 1 and 2 (J and K)
+      Iarray bondICs;
+      bool needsUpdate = false;
+      double tDiff = 0;
+      for (unsigned int idx = 0; idx != zmatrix.N_IC(); idx++)
+      {
+        if (!isUsed[idx]) {
+          InternalCoords& thisIc = zmatrix.ModifyIC(idx);
+          if ( (bnd->A1() == thisIc.AtJ() && bnd->A2() == thisIc.AtK()) ||
+               (bnd->A2() == thisIc.AtJ() && bnd->A1() == thisIc.AtK()) )
+          {
+            // This IC has this bond at the center
+            bondICs.push_back( idx );
+            isUsed[idx] = true;
+            //MARK(idx, isUsed, Nused);
+            if (hasPosition[thisIc.AtI()] &&
+                hasPosition[thisIc.AtJ()] &&
+                hasPosition[thisIc.AtK()] &&
+                hasPosition[thisIc.AtL()])
+            {
+              mprintf("DEBUG:\tMeasuring torsion of fixed atoms: %s - %s - %s - %s\n",
+                      topIn.AtomMaskName(thisIc.AtI()).c_str(),
+                      topIn.AtomMaskName(thisIc.AtJ()).c_str(),
+                      topIn.AtomMaskName(thisIc.AtK()).c_str(),
+                      topIn.AtomMaskName(thisIc.AtL()).c_str());
+              InternalCoords frameIc = calcKnownAtomIc(thisIc.AtI(), thisIc.AtJ(), thisIc.AtK(), thisIc.AtL(), frameIn);
+              double dTorsion = frameIc.Phi() * Constants::DEGRAD;
+              double dInternalValue = thisIc.Phi() * Constants::DEGRAD;
+              tDiff = (dTorsion - dInternalValue) * Constants::RADDEG;
+              mprintf("DEBUG:\tdTorsion= %f  dInternalValue= %f\n", dTorsion, dInternalValue);
+              thisIc = frameIc;
+              needsUpdate = true;
+            } // END all IC coords present
+          } // END this IC matches current bond
+        } // END IC is not used
+      } // END loop searching for ICs matching current bond
+      // If any difference was found, shift all of the torsions
+      if (needsUpdate) {
+        mprintf("DEBUG: Twisting torsions centered on %s - %s by %f degrees\n",
+                topIn.AtomMaskName(bnd->A1()).c_str(),
+                topIn.AtomMaskName(bnd->A2()).c_str(),
+                tDiff);
+        for (Iarray::const_iterator it = bondICs.begin(); it != bondICs.end(); ++it)
+        {
+          InternalCoords& thisIc = zmatrix.ModifyIC(*it);
+          double dNew = thisIc.Phi() + tDiff;
+          mprintf("DEBUG:\tTwisting torsion for atoms: %s-%s-%s-%s\n",
+                  topIn.AtomMaskName(thisIc.AtI()).c_str(),
+                  topIn.AtomMaskName(thisIc.AtJ()).c_str(),
+                  topIn.AtomMaskName(thisIc.AtK()).c_str(),
+                  topIn.AtomMaskName(thisIc.AtL()).c_str());
+          mprintf("DEBUG:\t------- From %f to %f\n", thisIc.Phi(), dNew);
+          thisIc.SetPhi( dNew );
+        }
+      } // END ICs need update
+    } // END both bond atoms belong to this residue
+  } // END loop over bonds
+/*
+  Barray isUsed( IC_.size(), false );
+  unsigned int Nused = 0;
+  while (Nused < IC_.size()) {
+    unsigned int idx = 0;
+    while (idx < IC_.size() && isUsed[idx]) idx++;
+    if (idx >= IC_.size()) break;
+    // Unused IC. Find all other ICs that share atoms J-K
+    MARK(idx, isUsed, Nused);
+    Iarray bondICs(1, idx);
+    for (unsigned int jdx = idx + 1; jdx < IC_.size(); jdx++) {
+      if ( IC_[idx].AtJ() == IC_[jdx].AtJ() &&
+           IC_[idx].AtK() == IC_[jdx].AtK() )
+      {
+        bondICs.push_back( jdx );
+        MARK(jdx, isUsed, Nused);
+      }
+    }
+    mprintf("DEBUG: Looking at %zu ICs involving %s - %s\n", bondICs.size(),
+            topIn.AtomMaskName(IC_[idx].AtJ()).c_str(),
+            topIn.AtomMaskName(IC_[idx].AtK()).c_str());
+    bool needsUpdate = false;
+    Iarray toUpdate;
+    toUpdate.reserve( bondICs.size() );
+    double tDiff = 0;
+    for (Iarray::iterator it = bondICs.begin(); it != bondICs.end(); ++it)
+    {
+      InternalCoords& thisIc = IC_[*it];
+      if (hasPosition[thisIc.AtI()] &&
+          hasPosition[thisIc.AtJ()] &&
+          hasPosition[thisIc.AtK()] &&
+          hasPosition[thisIc.AtL()])
+      {
+        mprintf("DEBUG:\tMeasuring torsion of fixed atoms: %s - %s - %s - %s\n",
+                topIn.AtomMaskName(thisIc.AtI()).c_str(),
+                topIn.AtomMaskName(thisIc.AtJ()).c_str(),
+                topIn.AtomMaskName(thisIc.AtK()).c_str(),
+                topIn.AtomMaskName(thisIc.AtL()).c_str());
+        InternalCoords frameIc = calcIc(thisIc.AtI(), thisIc.AtJ(), thisIc.AtK(), thisIc.AtL(),
+                                        frameIn.XYZ(thisIc.AtI()), frameIn.XYZ(thisIc.AtJ()),
+                                        frameIn.XYZ(thisIc.AtK()), frameIn.XYZ(thisIc.AtL()));
+        double dTorsion = frameIc.Phi() * Constants::DEGRAD;
+        double dInternalValue = thisIc.Phi() * Constants::DEGRAD;
+        tDiff = (dTorsion - dInternalValue) * Constants::RADDEG;
+        mprintf("DEBUG:\tdTorsion= %f  dInternalValue= %f\n", dTorsion, dInternalValue);
+        thisIc = frameIc;
+        needsUpdate = true;
+      } else {
+        toUpdate.push_back( *it );
+      }
+    } // END calc loop over ICs sharing J-K bond
+    // If any difference was found, shift all of the torsions
+    if (needsUpdate) {
+      mprintf("DEBUG: Twisting torsions centered on %s - %s by %f degrees\n",
+              topIn.AtomMaskName(IC_[idx].AtJ()).c_str(),
+              topIn.AtomMaskName(IC_[idx].AtK()).c_str(),
+              tDiff);
+      for (Iarray::const_iterator it = toUpdate.begin(); it != toUpdate.end(); ++it)
+      {
+        InternalCoords& thisIc = IC_[*it];
+        double dNew = thisIc.Phi() + tDiff;
+        mprintf("DEBUG:\tTwisting torsion for atoms: %s-%s-%s-%s\n",
+                topIn.AtomMaskName(thisIc.AtI()).c_str(),
+                topIn.AtomMaskName(thisIc.AtJ()).c_str(),
+                topIn.AtomMaskName(thisIc.AtK()).c_str(),
+                topIn.AtomMaskName(thisIc.AtL()).c_str());
+        mprintf("DEBUG:\t------- From %f to %f\n", thisIc.Phi(), dNew);
+        thisIc.SetPhi( dNew );
+      }
+    }
+  } // END loop over ICs*/
+  return 0;
+} 
