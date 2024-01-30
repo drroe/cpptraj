@@ -1043,7 +1043,28 @@ int Builder::UpdateICsFromFrame(Zmatrix& zmatrix, Frame const& frameIn, int ires
 const
 {
   // Update bond/angle values for atoms with no position.
-  
+/*  for (unsigned int idx = 0; idx != zmatrix.N_IC(); idx++)
+  {
+    InternalCoords& thisIc = zmatrix.ModifyIC(idx);
+    if (!hasPosition[thisIc.AtI()]) {
+      double dist = 0;
+      if (getLengthParam( dist, thisIc.AtI(), thisIc.AtJ(), topIn )) {
+        mprintf("DEBUG: Replacing existing bond length %g for %s - %s with parameter %g\n",
+                thisIc.Dist(), topIn.AtomMaskName(thisIc.AtI()).c_str(),
+                topIn.AtomMaskName(thisIc.AtJ()).c_str(), dist);
+        thisIc.SetDist( dist );
+      }
+      double theta = 0;
+      if (getAngleParam( theta, thisIc.AtI(), thisIc.AtJ(), thisIc.AtK(), topIn)) {
+        theta *= Constants::RADDEG;
+        mprintf("DEBUG: Replacing existing angle %g for %s - %s - %s with parameter %g\n",
+                thisIc.Theta(), topIn.AtomMaskName(thisIc.AtI()).c_str(),
+                topIn.AtomMaskName(thisIc.AtJ()).c_str(), topIn.AtomMaskName(thisIc.AtK()).c_str(),
+                theta);
+        thisIc.SetTheta( theta );
+      }
+    }
+  }*/
   // Update torsions
   Barray isUsed( zmatrix.N_IC(), false );
   //unsigned int Nused = 0;

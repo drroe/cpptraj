@@ -45,6 +45,10 @@ class InternalCoords {
     void OffsetIndices(int);
     /// Set the value of Phi
     void SetPhi(double p) { val_[2] = p; }
+    /// Set the value of theta
+    void SetTheta(double t) { val_[1] = t; }
+    /// Set the value of distance
+    void SetDist(double d) { val_[0] = d; }
   private:
     int ati_;       ///< Atom I index
     int idx_[3];    ///< Atom indices for distance, angle, torsion
