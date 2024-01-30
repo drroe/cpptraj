@@ -29,32 +29,57 @@ void Cpptraj::Structure::Builder::SetParameters(ParameterSet const* paramsIn) {
 }
 
 // -----------------------------------------------------------------------------
+/** Get length from parameter set if present.
+  * \return 1 if a length parameter was found.
+  */
+int Cpptraj::Structure::Builder::getLengthParam(double& dist, int ai, int aj, Topology const& topIn)
+const
+{
+  if (params_ != 0 && topIn[ai].HasType() && topIn[aj].HasType()) {
+    TypeNameHolder btypes(2);
+    btypes.AddName( topIn[ai].Type() );
+    btypes.AddName( topIn[aj].Type() );
+    ParmHolder<BondParmType>::const_iterator it = params_->BP().GetParam( btypes );
+    if (it != params_->BP().end()) {
+      dist = it->second.Req();
+      mprintf("DEBUG: Found bond parameter for %s (%s) - %s (%s): req=%g rk=%g\n",
+              topIn.AtomMaskName(ai).c_str(), *(topIn[ai].Type()),
+              topIn.AtomMaskName(aj).c_str(), *(topIn[aj].Type()),
+              it->second.Req(), it->second.Rk());
+      return 1;
+    }
+  }
+  return 0;
+}
+
 /** Assign reasonable value for bond distance. */
 int Cpptraj::Structure::Builder::AssignLength(double& dist, int ai, int aj, Topology const& topIn, Frame const& frameIn, std::vector<bool> const& atomPositionKnown)
 const
 {
-  if (atomPositionKnown[ai] && atomPositionKnown[aj])
+  if (atomPositionKnown[ai] && atomPositionKnown[aj]) {
     dist = sqrt( DIST2_NoImage( frameIn.XYZ(ai), frameIn.XYZ(aj) ) );
-  else {
-    // One or both positions unknown. Use estimated bond length or parameters.
-    bool foundParam = false;
-    if (params_ != 0 && topIn[ai].HasType() && topIn[aj].HasType()) {
-      TypeNameHolder btypes(2);
-      btypes.AddName( topIn[ai].Type() );
-      btypes.AddName( topIn[aj].Type() );
-      ParmHolder<BondParmType>::const_iterator it = params_->BP().GetParam( btypes );
-      if (it != params_->BP().end()) {
-        dist = it->second.Req();
-        foundParam = true;
-        mprintf("DEBUG: Found bond parameter for %s (%s) - %s (%s): req=%g rk=%g\n",
-                topIn.AtomMaskName(ai).c_str(), *(topIn[ai].Type()),
-                topIn.AtomMaskName(aj).c_str(), *(topIn[aj].Type()),
-                it->second.Req(), it->second.Rk());
-      }
-    }
-    if (!foundParam)
-      dist = Atom::GetBondLength( topIn[ai].Element(), topIn[aj].Element() );
+    return 0;
   }
+
+  // One or both positions unknown. Use estimated bond length or parameters.
+  if (getLengthParam(dist, ai, aj, topIn)) return 0;
+/*  if (params_ != 0 && topIn[ai].HasType() && topIn[aj].HasType()) {
+    TypeNameHolder btypes(2);
+    btypes.AddName( topIn[ai].Type() );
+    btypes.AddName( topIn[aj].Type() );
+    ParmHolder<BondParmType>::const_iterator it = params_->BP().GetParam( btypes );
+    if (it != params_->BP().end()) {
+      dist = it->second.Req();
+      mprintf("DEBUG: Found bond parameter for %s (%s) - %s (%s): req=%g rk=%g\n",
+              topIn.AtomMaskName(ai).c_str(), *(topIn[ai].Type()),
+              topIn.AtomMaskName(aj).c_str(), *(topIn[aj].Type()),
+              it->second.Req(), it->second.Rk());
+      return 0;
+    }
+  }*/
+
+  // Default to bond length based on elements
+  dist = Atom::GetBondLength( topIn[ai].Element(), topIn[aj].Element() );
   return 0;
 }
 
@@ -986,6 +1011,9 @@ const
 int Builder::UpdateICsFromFrame(Zmatrix& zmatrix, Frame const& frameIn, int ires, Topology const& topIn, Barray const& hasPosition)
 const
 {
+  // Update bond/angle values for atoms with no position.
+  
+  // Update torsions
   Barray isUsed( zmatrix.N_IC(), false );
   //unsigned int Nused = 0;
   // Get list of bonds 
