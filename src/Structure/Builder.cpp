@@ -1115,10 +1115,10 @@ const
                 hasPosition[thisIc.AtL()])
             {
               mprintf("DEBUG:\tMeasuring torsion of fixed atoms: %s - %s - %s - %s\n",
-                      topIn.AtomMaskName(thisIc.AtI()).c_str(),
-                      topIn.AtomMaskName(thisIc.AtJ()).c_str(),
-                      topIn.AtomMaskName(thisIc.AtK()).c_str(),
-                      topIn.AtomMaskName(thisIc.AtL()).c_str());
+                      topIn.LeapName(thisIc.AtI()).c_str(),
+                      topIn.LeapName(thisIc.AtJ()).c_str(),
+                      topIn.LeapName(thisIc.AtK()).c_str(),
+                      topIn.LeapName(thisIc.AtL()).c_str());
               InternalCoords frameIc = calcKnownAtomIc(thisIc.AtI(), thisIc.AtJ(), thisIc.AtK(), thisIc.AtL(), frameIn);
               double dTorsion = frameIc.Phi() * Constants::DEGRAD;
               double dInternalValue = thisIc.Phi() * Constants::DEGRAD;
@@ -1133,8 +1133,8 @@ const
       // If any difference was found, shift all of the torsions
       if (needsUpdate) {
         mprintf("DEBUG: Twisting torsions centered on %s - %s by %f degrees\n",
-                topIn.AtomMaskName(bnd->A1()).c_str(),
-                topIn.AtomMaskName(bnd->A2()).c_str(),
+                topIn.LeapName(bnd->A1()).c_str(),
+                topIn.LeapName(bnd->A2()).c_str(),
                 tDiff);
         for (Iarray::const_iterator it = bondICs.begin(); it != bondICs.end(); ++it)
         {

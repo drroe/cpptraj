@@ -671,7 +671,7 @@ int Zmatrix::GenerateInternals(Frame const& frameIn, Topology const& topIn)
           //double dval = Torsion(frameIn.XYZ(*ai), frameIn.XYZ(aj), frameIn.XYZ(ak), frameIn.XYZ(*al));
           addIc(*ai, aj, ak, *al, frameIn);
           mprintf("++++Torsion INTERNAL: %f to %s - %s - %s - %s\n",
-                  IC_.back().Phi() * Constants::RADDEG,
+                  IC_.back().Phi(),
                   topIn.LeapName(*ai).c_str(),
                   topIn.LeapName(aj).c_str(),
                   topIn.LeapName(ak).c_str(),
