@@ -638,6 +638,7 @@ static inline std::vector<int> SortBondedAtomsLikeLeap(Atom const& At, Topology 
   */
 int Zmatrix::GenerateInternals(Frame const& frameIn, Topology const& topIn)
 {
+  clear();
   // First generate the bond array
   BondArray bonds = GenerateBondArray( topIn.Residues(), topIn.Atoms() );
   // Loop over bonds
@@ -662,7 +663,22 @@ int Zmatrix::GenerateInternals(Frame const& frameIn, Topology const& topIn)
       mprintf("}\n");
       for (Iarray::const_iterator it = sorted_a3.begin(); it != sorted_a3.end(); ++it)
         mprintf("Atom %li: %s\n", it - sorted_a3.begin(), *(topIn[*it].Name()));
-
+      // Build the torsions
+      int aj = bnd->A1();
+      int ak = bnd->A2();
+      for (Iarray::const_iterator ai = sorted_a2.begin(); ai != sorted_a2.end(); ++ai) {
+        for (Iarray::const_iterator al = sorted_a3.begin(); al != sorted_a3.end(); ++al) {
+          //double dval = Torsion(frameIn.XYZ(*ai), frameIn.XYZ(aj), frameIn.XYZ(ak), frameIn.XYZ(*al));
+          addIc(*ai, aj, ak, *al, frameIn);
+          mprintf("++++Torsion INTERNAL: %f to %s - %s - %s - %s\n",
+                  IC_.back().Phi() * Constants::RADDEG,
+                  topIn.LeapName(*ai).c_str(),
+                  topIn.LeapName(aj).c_str(),
+                  topIn.LeapName(ak).c_str(),
+                  topIn.LeapName(*al).c_str());
+          addIc(*al, ak, aj, *ai, frameIn);
+        }
+      }
     }
   }
   return 0;
@@ -675,9 +691,7 @@ int Zmatrix::GenerateInternals(Frame const& frameIn, Topology const& topIn)
 int Zmatrix::SetFromFrameAndConnect(Frame const& frameIn, Topology const& topIn) //, int molnum)
 {
   clear();
-  // DEBUG
-  GenerateInternals(frameIn, topIn);
-  // DEBUG
+
   for (int iat1 = 0; iat1 < topIn.Natom(); iat1++)
   {
     Atom const& At1 = topIn[iat1];
