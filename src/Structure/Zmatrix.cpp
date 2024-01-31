@@ -590,47 +590,30 @@ int Zmatrix::addInternalCoordForAtom(int iat, Frame const& frameIn, Topology con
   */
 int Zmatrix::SetFromFrameAndConnect(Frame const& frameIn, Topology const& topIn) //, int molnum)
 {
-//  if (molnum < 0) {
-//    mprinterr("Internal Error: Zmatrix::SetFromFrame(): Negative molecule index.\n");
-//    return 1;
-//  }
-//  if (topIn.Nmol() < 1) {
-//    mprinterr("Internal Error: Zmatrix::SetFromFrame(): No molecules.\n");
-//    return 1;
-//  }
   clear();
-
-  IC_.clear();
-//  Molecule const& currentMol = topIn.Mol(molnum);
-
-//  for (Unit::const_iterator seg = currentMol.MolUnit().segBegin();
-//                            seg != currentMol.MolUnit().segEnd(); ++seg)
-//  {
-//    for (int iat1 = seg->Begin(); iat1 != seg->End(); ++iat1)
-    for (int iat1 = 0; iat1 < topIn.Natom(); iat1++)
-    {
-      Atom const& At1 = topIn[iat1];
-      for (int bidx1 = 0; bidx1 < At1.Nbonds(); bidx1++) {
-        int iat2 = At1.Bond(bidx1);
-        Atom const& At2 = topIn[iat2];
-        for (int bidx2 = 0; bidx2 < At2.Nbonds(); bidx2++) {
-          int iat3 = At2.Bond(bidx2);
-          if (iat3 != iat1) {
-            Atom const& At3 = topIn[iat3];
-            for (int bidx3 = 0; bidx3 < At3.Nbonds(); bidx3++) {
-              int iat4 = At3.Bond(bidx3);
-              if (iat4 != iat2 && iat1 < iat4) {
-                //mprintf("DEBUG: DIHEDRAL  %i - %i - %i - %i (%i %i %i %i)\n", iat1+1, iat2+1, iat3+1, iat4+1, iat1*3, iat2*3, iat3*3, iat4*3);
-                //out.push_back( DihedralType( iat1, iat2, iat3, iat4, -1 ) );
-                addIc(iat1, iat2, iat3, iat4, frameIn);
-                addIc(iat4, iat3, iat2, iat1, frameIn); // FIXME should the reverse one be put in?
-              }
+  for (int iat1 = 0; iat1 < topIn.Natom(); iat1++)
+  {
+    Atom const& At1 = topIn[iat1];
+    for (int bidx1 = 0; bidx1 < At1.Nbonds(); bidx1++) {
+      int iat2 = At1.Bond(bidx1);
+      Atom const& At2 = topIn[iat2];
+      for (int bidx2 = 0; bidx2 < At2.Nbonds(); bidx2++) {
+        int iat3 = At2.Bond(bidx2);
+        if (iat3 != iat1) {
+          Atom const& At3 = topIn[iat3];
+          for (int bidx3 = 0; bidx3 < At3.Nbonds(); bidx3++) {
+            int iat4 = At3.Bond(bidx3);
+            if (iat4 != iat2 && iat1 < iat4) {
+              //mprintf("DEBUG: DIHEDRAL  %i - %i - %i - %i (%i %i %i %i)\n", iat1+1, iat2+1, iat3+1, iat4+1, iat1*3, iat2*3, iat3*3, iat4*3);
+              //out.push_back( DihedralType( iat1, iat2, iat3, iat4, -1 ) );
+              addIc(iat1, iat2, iat3, iat4, frameIn);
+              addIc(iat4, iat3, iat2, iat1, frameIn); // FIXME should the reverse one be put in?
             }
           }
         }
       }
     }
-  //}
+  }
   if (IC_.empty()) {
     // Either 4-5 atoms in a tetrahedral configuration or else
     // some other strange configuration.
