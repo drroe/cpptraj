@@ -89,6 +89,7 @@ class Topology {
     inline res_iterator ResEnd()   const { return residues_.end();   }
     const Residue& Res(int idx)    const { return residues_[idx];    }
     Residue& SetRes(int idx)             { return residues_[idx];    }
+    std::vector<Residue> const& Residues() const { return residues_; }
     Range SoluteResidues() const;
     /// Merge residues in given range
     int MergeResidues(int, int);

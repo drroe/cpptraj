@@ -3,6 +3,7 @@
 #include <stack>
 #include <cmath> // cos
 #include "Zmatrix.h"
+#include "GenerateConnectivityArrays.h"
 #include "../Frame.h"
 #include "../CpptrajStdio.h"
 #include "../Constants.h"
@@ -591,6 +592,9 @@ int Zmatrix::addInternalCoordForAtom(int iat, Frame const& frameIn, Topology con
 int Zmatrix::SetFromFrameAndConnect(Frame const& frameIn, Topology const& topIn) //, int molnum)
 {
   clear();
+  // DEBUG
+  DihedralArray internals = GenerateInternals(topIn.Residues(), topIn.Atoms());
+  // DEBUG
   for (int iat1 = 0; iat1 < topIn.Natom(); iat1++)
   {
     Atom const& At1 = topIn[iat1];
