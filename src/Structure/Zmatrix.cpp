@@ -646,11 +646,10 @@ int Zmatrix::GenerateInternals(Frame const& frameIn, Topology const& topIn)
     Atom const& A2 = topIn[bnd->A1()];
     Atom const& A3 = topIn[bnd->A2()];
     if (A2.Nbonds() > 1 && A3.Nbonds() > 1) {
-      Residue const& R2 = topIn.Res(A2.ResNum());
-      Residue const& R3 = topIn.Res(A3.ResNum());
-      mprintf("Building torsion INTERNALs around: .R<%s %i>.A<%s %i> - .R<%s %i>.A<%s %i>\n",
-              *(R2.Name()), A2.ResNum()+1, *(A2.Name()), bnd->A1()+1, 
-              *(R3.Name()), A3.ResNum()+1, *(A3.Name()), bnd->A2()+1 );
+      //Residue const& R2 = topIn.Res(A2.ResNum());
+      //Residue const& R3 = topIn.Res(A3.ResNum());
+      mprintf("Building torsion INTERNALs around: %s - %s\n",
+              topIn.LeapName(bnd->A1()).c_str(), topIn.LeapName(bnd->A2()).c_str());
       Iarray sorted_a2 = SortBondedAtomsLikeLeap(A2, topIn, bnd->A2());
       Iarray sorted_a3 = SortBondedAtomsLikeLeap(A3, topIn, bnd->A1());
       mprintf("Orientation around: %s {", *(A2.Name()));

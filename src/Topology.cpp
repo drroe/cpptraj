@@ -334,6 +334,14 @@ std::string Topology::TruncAtomNameNum(int atom) const {
   return atom_name;
 }
 
+/** Given an atom number, return a string in LEaP-style format. */
+std::string Topology::LeapName(int at) const {
+  int rnum = atoms_[at].ResNum();
+  std::string out( ".R<" + residues_[rnum].Name().Truncated() + " " + integerToString(rnum+1) +
+                  ">.A<" + atoms_[at].Name().Truncated()      + " " + integerToString(at+1) + ">");
+  return out;
+}
+
 // Topology::TruncResNameNum()
 /** Given a residue index (starting from 0), return a string containing 
   * residue name and number (starting from 1) with format: 

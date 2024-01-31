@@ -196,6 +196,8 @@ class Topology {
     std::string AtomMaskName(int) const;
     /// Format: <atom name>_<atom num>
     std::string TruncAtomNameNum(int) const;
+    /// LEaP Format: R<res #>.A<at #>
+    std::string LeapName(int) const;
     /// Format: <res name>:<res num> 
     std::string TruncResNameNum(int) const;
     /// Format: <res name>_<onum>[_<id>]
