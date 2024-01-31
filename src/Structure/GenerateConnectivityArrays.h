@@ -22,8 +22,6 @@ DihedralArray GenerateDihedralArray(std::vector<Residue> const&, std::vector<Ato
 DihedralArray GenerateImproperArray(std::vector<Residue> const&, std::vector<Atom> const&);
 /// Generate angle and torsion arrays from bonds
 void GenerateAngleAndTorsionArraysFromBonds(AngleArray&, DihedralArray&, std::vector<Atom> const&, BondArray const&);
-/// Generate array of dihedrals to be used as internal coordinates
-DihedralArray GenerateInternals(std::vector<Residue> const&, std::vector<Atom> const&);
 }
 }
 #endif

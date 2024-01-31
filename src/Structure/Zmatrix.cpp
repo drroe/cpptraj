@@ -1,5 +1,5 @@
 #include <vector>
-#include <algorithm> // std::sort, std::min, std::max, std::find
+#include <algorithm> // std::sort, std::min, std::max, std::find, std::swap
 #include <stack>
 #include <cmath> // cos
 #include "Zmatrix.h"
@@ -586,6 +586,90 @@ int Zmatrix::addInternalCoordForAtom(int iat, Frame const& frameIn, Topology con
   return 0;
 }
 
+// -----------------------------------------------
+/** \return the LEaP 'weight' of an atom.
+  * Originally used to force the 'heaviest' atoms around a torsion trans to
+  * each other. The 'weight' of an atom is defined as its element number,
+  * unless the atom is CARBON, then it is 1000, making it the 'heaviest' atom.
+  */
+static int LeapAtomWeight(Atom const& At)
+{
+  if ( At.Element() == Atom::CARBON )
+    return 1000;
+  return At.AtomicNumber();
+}
+
+/** Order atoms bonded to the given atom in a manner similar to LEaP's
+  * zModelOrderAtoms. In that routine, first atoms were sorted into
+  * known position > unknown position. Then the heaviest atom in each
+  * subgroup was swapped with the first element of that list. Since at this
+  * point we assume all positions are known, we are just shifting the
+  * heaviest atom to the front of the list.
+  * The ignore atom is the index of the atom this atom is bonded to that
+  * forms the torsion we are interested in.
+  */
+static inline std::vector<int> SortBondedAtomsLikeLeap(Atom const& At, Topology const& topIn, int ignoreAtom)
+{
+  std::vector<int> out;
+  out.reserve( At.Nbonds() );
+  // Find the index of the heaviest atom
+  int iHighest = 0;
+  int iPos = 0;
+  for (int idx = 0; idx < At.Nbonds(); idx++) {
+    int bat = At.Bond(idx);
+    if (bat != ignoreAtom) {
+      out.push_back( bat );
+      int iWeight = LeapAtomWeight( topIn[bat] );
+      if ( iHighest < iWeight ) {
+        iHighest = iWeight;
+        iPos = (int)out.size()-1;
+      }
+    }
+  }
+  // If highest weight atom not already in front, swap it there.
+  if (iPos != 0) std::swap( out[0], out[iPos] );
+
+  return out;
+}
+
+/** Set up Zmatrix from Cartesian coordinates and topology in the same
+  * manner as LEaP's BuildInternalsForContainer/ModelAssignTorsionsAround.
+  * Currently assumes all positions are known.
+  */
+int Zmatrix::GenerateInternals(Frame const& frameIn, Topology const& topIn)
+{
+  // First generate the bond array
+  BondArray bonds = GenerateBondArray( topIn.Residues(), topIn.Atoms() );
+  // Loop over bonds
+  for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
+  {
+    Atom const& A2 = topIn[bnd->A1()];
+    Atom const& A3 = topIn[bnd->A2()];
+    if (A2.Nbonds() > 1 && A3.Nbonds() > 1) {
+      Residue const& R2 = topIn.Res(A2.ResNum());
+      Residue const& R3 = topIn.Res(A3.ResNum());
+      mprintf("Building torsion INTERNALs around: .R<%s %i>.A<%s %i> - .R<%s %i>.A<%s %i>\n",
+              *(R2.Name()), A2.ResNum()+1, *(A2.Name()), bnd->A1()+1, 
+              *(R3.Name()), A3.ResNum()+1, *(A3.Name()), bnd->A2()+1 );
+      Iarray sorted_a2 = SortBondedAtomsLikeLeap(A2, topIn, bnd->A2());
+      Iarray sorted_a3 = SortBondedAtomsLikeLeap(A3, topIn, bnd->A1());
+      mprintf("Orientation around: %s {", *(A2.Name()));
+      for (Atom::bond_iterator bat = A2.bondbegin(); bat != A2.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
+      mprintf("}\n");
+      for (Iarray::const_iterator it = sorted_a2.begin(); it != sorted_a2.end(); ++it)
+        mprintf("Atom %li: %s\n", it - sorted_a2.begin(), *(topIn[*it].Name()));
+      mprintf("Orientation around: %s {", *(A3.Name()));
+      for (Atom::bond_iterator bat = A3.bondbegin(); bat != A3.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
+      mprintf("}\n");
+      for (Iarray::const_iterator it = sorted_a3.begin(); it != sorted_a3.end(); ++it)
+        mprintf("Atom %li: %s\n", it - sorted_a3.begin(), *(topIn[*it].Name()));
+
+    }
+  }
+  return 0;
+}
+
+// -----------------------------------------------
 /** Set up Zmatrix from Cartesian coordinates and topology.
   * Use torsions based on connectivity to create a complete set of ICs.
   */
@@ -593,7 +677,7 @@ int Zmatrix::SetFromFrameAndConnect(Frame const& frameIn, Topology const& topIn)
 {
   clear();
   // DEBUG
-  DihedralArray internals = GenerateInternals(topIn.Residues(), topIn.Atoms());
+  GenerateInternals(frameIn, topIn);
   // DEBUG
   for (int iat1 = 0; iat1 < topIn.Natom(); iat1++)
   {

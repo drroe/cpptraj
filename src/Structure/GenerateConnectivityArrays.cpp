@@ -252,29 +252,3 @@ void Cpptraj::Structure::GenerateAngleAndTorsionArraysFromBonds(AngleArray& angl
     enumerateDihedrals( dihedrals, it->A1(), it->A2(), atoms );
   }
 }
-
-/** Generate dihedral array in the same order as LEaP's
-  * BuildInternalsForContainer/ModelAssignTorsionsAround.
-  */
-DihedralArray Cpptraj::Structure::GenerateInternals(std::vector<Residue> const& residues,
-                                                    std::vector<Atom> const& atoms)
-{
-  // First generate the bond array
-  BondArray bonds = GenerateBondArray( residues, atoms );
-  // Loop over bonds
-  for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
-  {
-    Atom const& A2 = atoms[bnd->A1()];
-    Atom const& A3 = atoms[bnd->A2()];
-    if (A2.Nbonds() > 1 && A3.Nbonds() > 1) {
-      Residue const& R2 = residues[A2.ResNum()];
-      Residue const& R3 = residues[A3.ResNum()];
-      mprintf("Building torsion INTERNALs around: .R<%s %i>.A<%s %i> - .R<%s %i>.A<%s %i>\n",
-              *(R2.Name()), A2.ResNum()+1, *(A2.Name()), bnd->A1()+1, 
-              *(R3.Name()), A3.ResNum()+1, *(A3.Name()), bnd->A2()+1 );
-    }
-  }
-
-  DihedralArray out;
-  return out;
-}

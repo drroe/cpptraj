@@ -39,6 +39,8 @@ class Zmatrix {
     /// Set seed atoms as 3 consecutive atoms with known positions for specified residue # TODO deprecate?
     int AutoSetSeedsWithPositions(Frame const&, Topology const&, int, Barray const&);
 
+    /// Try to generate complete ICs in same manner as LEaP
+    int GenerateInternals(Frame const&, Topology const&);
     /// Try to generate complete ICs from atom connectivity
     int SetFromFrameAndConnect(Frame const&, Topology const&);//, int);
     /// Convert specifed molecule of Frame/Topology to internal coordinates array
