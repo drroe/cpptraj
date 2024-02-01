@@ -16,7 +16,8 @@ using namespace Cpptraj::Structure;
 /** CONSTRUCTOR */
 Builder::Builder() :
   debug_(0),
-  params_(0)
+  params_(0),
+  currentZmatrix_(0)
 {}
 
 /** Set optional parameter set. */
@@ -26,6 +27,15 @@ void Cpptraj::Structure::Builder::SetParameters(ParameterSet const* paramsIn) {
     return;
   }
   params_ = paramsIn;
+}
+
+/** Set optional Zmatrix. */
+void Cpptraj::Structure::Builder::SetZmatrix(Zmatrix const* zmatrixIn) {
+  if (zmatrixIn == 0) {
+    mprinterr("Internal Error: Builder::SetZmatrix called with null set.\n");
+    return;
+  }
+  currentZmatrix_ = zmatrixIn;
 }
 
 // -----------------------------------------------------------------------------
@@ -63,20 +73,6 @@ const
 
   // One or both positions unknown. Use estimated bond length or parameters.
   if (getLengthParam(dist, ai, aj, topIn)) return 0;
-/*  if (params_ != 0 && topIn[ai].HasType() && topIn[aj].HasType()) {
-    TypeNameHolder btypes(2);
-    btypes.AddName( topIn[ai].Type() );
-    btypes.AddName( topIn[aj].Type() );
-    ParmHolder<BondParmType>::const_iterator it = params_->BP().GetParam( btypes );
-    if (it != params_->BP().end()) {
-      dist = it->second.Req();
-      mprintf("DEBUG: Found bond parameter for %s (%s) - %s (%s): req=%g rk=%g\n",
-              topIn.AtomMaskName(ai).c_str(), *(topIn[ai].Type()),
-              topIn.AtomMaskName(aj).c_str(), *(topIn[aj].Type()),
-              it->second.Req(), it->second.Rk());
-      return 0;
-    }
-  }*/
 
   // Default to bond length based on elements
   dist = Atom::GetBondLength( topIn[ai].Element(), topIn[aj].Element() );
@@ -120,73 +116,107 @@ const
 {
   if (debug_ > 0)
     mprintf("DEBUG: AssignTheta for atom j : %s\n", topIn.AtomMaskName(aj).c_str());
+  Atom const& AJ = topIn[aj];
+
+  // Sanity check
+  if (AJ.Nbonds() < 2) {
+    mprinterr("Internal Error: AssignTheta() called for atom J %s with fewer than 2 bonds.\n", topIn.AtomMaskName(aj).c_str());
+    return 1;
+  }
+
+  // Check if all positions are already known
   if (atomPositionKnown[ai] && atomPositionKnown[aj] && atomPositionKnown[ak])
   {
     theta = CalcAngle(frameIn.XYZ(ai), frameIn.XYZ(aj), frameIn.XYZ(ak));
     return 0;
   }
 
-  if (getAngleParam(theta, ai, aj, ak, topIn)) return 0;
-/*
-  if (params_ != 0 &&
-      topIn[ai].HasType() &&
-      topIn[aj].HasType() &&
-      topIn[ak].HasType())
-  {
-    TypeNameHolder atypes(3);
-    atypes.AddName( topIn[ai].Type() );
-    atypes.AddName( topIn[aj].Type() );
-    atypes.AddName( topIn[ak].Type() );
-    ParmHolder<AngleParmType>::const_iterator it = params_->AP().GetParam( atypes );
-    if (it != params_->AP().end()) {
-      theta = it->second.Teq();
-      mprintf("DEBUG: Found angle parameter for %s (%s) - %s (%s) - %s (%s): teq=%g tk=%g\n",
-                topIn.AtomMaskName(ai).c_str(), *(topIn[ai].Type()),
-                topIn.AtomMaskName(aj).c_str(), *(topIn[aj].Type()),
-                topIn.AtomMaskName(ak).c_str(), *(topIn[ak].Type()),
-                it->second.Teq()*Constants::RADDEG, it->second.Tk());
+  // Figure out angles from known atoms + ICs
+  int nAngles = (AJ.Nbonds() * (AJ.Nbonds()-1)) / 2;
+  if (nAngles == 3) {
+    mprintf("DEBUG: Expect %i angles around AJ.\n", nAngles);
+    std::vector<double> thetaVals;
+    int tgtIdx = -1;
+    int numKnown = 0;
+    for (int idx0 = 0; idx0 < AJ.Nbonds(); idx0++) {
+      int atomi = AJ.Bond(idx0);
+      for (int idx1 = idx0 + 1; idx1 < AJ.Nbonds(); idx1++) {
+        int atomk = AJ.Bond(idx1);
+        mprintf("DEBUG: AssignTheta(): Angle %zu atoms %i - %i - %i\n", thetaVals.size(), atomi+1, aj+1, atomk+1);
+        if (ai == atomi && ak == atomk)
+          tgtIdx = (int)thetaVals.size();
+        double ajTheta = 0;
+        if (atomPositionKnown[atomi] && atomPositionKnown[aj] && atomPositionKnown[atomk]) {
+          ajTheta = CalcAngle(frameIn.XYZ(atomi), frameIn.XYZ(aj), frameIn.XYZ(atomk));
+          numKnown++;
+          mprintf("DEBUG: AssignTheta(): Known angle centered on atom J: %s - %s - %s = %g\n",
+                  topIn.LeapName(atomi).c_str(), 
+                  topIn.LeapName(aj).c_str(), 
+                  topIn.LeapName(atomk).c_str(),
+                  ajTheta * Constants::RADDEG);
+        } else if (currentZmatrix_ != 0) { // FIXME faster search?
+          for (Zmatrix::const_iterator ic = currentZmatrix_->begin(); ic != currentZmatrix_->end(); ++ic) {
+            if (ic->AtI() == atomi && ic->AtJ() == aj && ic->AtK() == atomk) {
+              // TODO: Check that repeats are equal?
+              ajTheta = ic->Theta() * Constants::DEGRAD;
+              numKnown++;
+              mprintf("DEBUG: AssignTheta(): IC angle centered on atomJ: %s - %s - %s = %g\n",
+                      topIn.LeapName(atomi).c_str(), 
+                      topIn.LeapName(aj).c_str(), 
+                      topIn.LeapName(atomk).c_str(),
+                      ic->Theta());
+              break;
+            }
+          }
+        }
+        thetaVals.push_back( ajTheta );
+      } // END inner loop over bonds to AJ
+    } // END outer loop over bonds to AJ
+    mprintf("DEBUG: AssignTheta(): thetaVals=");
+    for (std::vector<double>::const_iterator it = thetaVals.begin(); it != thetaVals.end(); ++it) {
+      mprintf(" %g", *it * Constants::RADDEG);
+      if (tgtIdx == it - thetaVals.begin()) mprintf("*");
+    }
+    mprintf("\n");
+    if (tgtIdx != -1 && numKnown >= 2) {
+      double sumTheta = 0;
+      for (std::vector<double>::const_iterator it = thetaVals.begin(); it != thetaVals.end(); ++it) {
+        if (it - thetaVals.begin() != tgtIdx) {
+          double tval = *it;
+          if (tval < 0)
+            tval += Constants::TWOPI;
+          else if (tval > Constants::TWOPI)
+            tval -= Constants::TWOPI;
+          sumTheta += tval;
+        }
+      }
+      theta = Constants::TWOPI - sumTheta;
+      mprintf("DEBUG: AssignTheta(): Setting from existing atoms/ICs: %g\n", theta * Constants::RADDEG);
       return 0;
     }
   }
-*/
+
+  // See if a parameter is defined for these atom types
+  if (getAngleParam(theta, ai, aj, ak, topIn)) return 0;
+
   // Figure out hybridization and chirality of atom j.
-  Atom const& AJ = topIn[aj];
   if (debug_ > 0) {
     mprintf("DEBUG:\t\tI %s Nbonds: %i\n", topIn[ai].ElementName(), topIn[ai].Nbonds());
     mprintf("DEBUG:\t\tJ %s Nbonds: %i\n", AJ.ElementName(), AJ.Nbonds());
     mprintf("DEBUG:\t\tK %s Nbonds: %i\n", topIn[ak].ElementName(), topIn[ak].Nbonds());
   }
-  // Sanity check
-  if (AJ.Nbonds() < 2) {
-    mprinterr("Internal Error: AssignTheta() called for atom J %s with fewer than 2 bonds.\n", topIn.AtomMaskName(aj).c_str());
-    return 1;
-  }
   AtomType::HybridizationType hybrid = AtomType::UNKNOWN_HYBRIDIZATION;
+  // Check params for hybrid
   if (params_ != 0) {
     ParmHolder<AtomType>::const_iterator it = params_->AT().GetParam( TypeNameHolder(AJ.Type()) );
     if (it != params_->AT().end())
       hybrid = it->second.Hybridization();
   }
+  // Guess hybrid if needed
   if (hybrid == AtomType::UNKNOWN_HYBRIDIZATION)
     hybrid = GuessAtomHybridization(AJ, topIn.Atoms());
-
-  // Fill in what values we can for known atoms
-/*  std::vector<double> knownTheta( AJ.Nbonds() );
-  int knownIdx = -1;
-  for (int idx = 0; idx < AJ.Nbonds(); idx++) {
-    int atnum = AJ.Bond(idx);
-    if (atnum != ak && atomPositionKnown[atnum]) {
-      knownTheta[idx] = CalcAngle(frameIn.XYZ(atnum),
-                                  frameIn.XYZ(aj),
-                                  frameIn.XYZ(ak));
-      mprintf("DEBUG:\t\tKnown theta for %s = %g\n", topIn.AtomMaskName(atnum).c_str(), knownTheta[idx]*Constants::RADDEG);
-      if (knownIdx == -1) knownIdx = idx; // FIXME handle more than 1 known
-    }
-  }
-  if (knownIdx == -1) {*/
-    //mprintf("DEBUG:\t\tNo known theta.\n");
+  // Set from number of bonds if still unknown. This is a pretty crude guess.
   if (hybrid == AtomType::UNKNOWN_HYBRIDIZATION) {
-    // Assign a theta based on number of bonds 
     switch (AJ.Nbonds()) {
       case 4 : hybrid = AtomType::SP3; break;
       case 3 : hybrid = AtomType::SP2; break;
@@ -194,16 +224,14 @@ const
       default : mprinterr("Internal Error: AssignTheta(): Unhandled # bonds for %s (%i)\n", topIn.AtomMaskName(aj).c_str(), AJ.Nbonds()); return 1;
     }
   }
+
   // Assign a theta based on hybridization
   switch (hybrid) {
     case AtomType::SP3 : theta = 109.5 * Constants::DEGRAD; break;
     case AtomType::SP2 : theta = 120.0 * Constants::DEGRAD; break;
     case AtomType::SP  : theta = 180.0 * Constants::DEGRAD; break;
     default : mprinterr("Internal Error: AssignTheta(): Unhandled hybridization for %s (%i)\n", topIn.AtomMaskName(aj).c_str(), AJ.Nbonds()); return 1;
-  }/*
-  } else {
-    theta = knownTheta[knownIdx]; // TODO just use above guess via hybrid?
-  }*/
+  }
 
   return 0;
 }

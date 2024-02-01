@@ -387,6 +387,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       mprintf("DEBUG: Zmatrix for building residue %li %s\n", ires + 1,
               topOut.TruncResNameOnumId(ires).c_str());
       zmatrix->print(&topOut);
+      linkBuilder.SetZmatrix( zmatrix );
       // Is this residue connected to an earlier residue?
       if ( *termType != Cpptraj::Structure::BEG_TERMINAL ) {
         for (int at = topOut.Res(ires).FirstAtom(); at != topOut.Res(ires).LastAtom(); ++at)

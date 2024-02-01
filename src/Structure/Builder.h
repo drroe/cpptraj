@@ -19,6 +19,8 @@ class Builder {
     void SetDebug(int d) { debug_ = d; }
     /// Set optional parameter set
     void SetParameters(ParameterSet const*);
+    /// Set optional Zmatrix with current ICs
+    void SetZmatrix(Zmatrix const*);
 
     /// Combine second fragment into first fragment and bond
     int Combine(Topology&, Frame&, Topology const&, Frame const&, int, int) const;
@@ -53,6 +55,7 @@ class Builder {
 
     int debug_;
     ParameterSet const* params_;
+    Zmatrix const* currentZmatrix_; ///< Any existing internal coordinates
 };
 }
 }
