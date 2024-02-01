@@ -41,6 +41,11 @@ void Zmatrix::clear() {
   seedAt2_ = InternalCoords::NO_ATOM;
 }
 
+/** Sort ICs. */
+void Zmatrix::sort() {
+  std::sort( IC_.begin(), IC_.end() );
+}
+
 /// Error message for seed already set
 static inline int seed_err(int iseed) {
   mprinterr("Internal Error: Internal coord seed %i is already set.\n", iseed);

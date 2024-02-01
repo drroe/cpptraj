@@ -397,7 +397,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
             if (jres < ires) {
               mprintf("DEBUG: Connected to residue %s\n", topOut.TruncResNameNum(jres).c_str());
               if (linkBuilder.ModelCoordsAroundBond(frameOut, topOut, at, *bat,
-                                                    zmatrix, ResZmatrices[jres], hasPosition))
+                                                    *zmatrix, hasPosition))
               {
                 mprinterr("Error: Model coords around bond failed between %s and %s\n",
                           topOut.AtomMaskName(at).c_str(), topOut.AtomMaskName(*bat).c_str());

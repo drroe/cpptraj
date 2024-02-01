@@ -23,7 +23,7 @@ class Builder {
     /// Combine second fragment into first fragment and bond
     int Combine(Topology&, Frame&, Topology const&, Frame const&, int, int) const;
     /// Model the coordinates around a bond given only some coordinates are known
-    int ModelCoordsAroundBond(Frame&, Topology const&, int, int, Zmatrix const*, Zmatrix const*, Barray&) const;
+    int ModelCoordsAroundBond(Frame const&, Topology const&, int, int, Zmatrix&, Barray const&) const;
     /// Update the internal coordinates in given Zmatrix with values from Frame/Parameters
     int UpdateICsFromFrame(Zmatrix&, Frame const&, int, Topology const&, Barray const&) const;
   private:

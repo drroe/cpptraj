@@ -25,6 +25,8 @@ class Zmatrix {
     void reserve(unsigned int n) { IC_.reserve( n ); }
     /// Clear the Zmatrix
     void clear();
+    /// Sort ICs by atom index (I < L < K < J)
+    void sort();
     /// Add internal coordinate
     int AddIC(InternalCoords const&);
     /// Set specified IC

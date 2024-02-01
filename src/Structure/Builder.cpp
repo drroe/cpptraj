@@ -642,18 +642,21 @@ const
 }
 
 /// \return The total number of atoms whose position is known for the specified residue
-static inline int known_count(int ires, Topology const& topIn, std::vector<bool> const& hasPosition)
+/*static inline int known_count(int ires, Topology const& topIn, std::vector<bool> const& hasPosition)
 {
   int count = 0;
   for (int at = topIn.Res(ires).FirstAtom(); at != topIn.Res(ires).LastAtom(); at++)
     if (hasPosition[at])
       count++;
   return count;
-}
+}*/
 
-/** Model the coordinates around a bond */
-int Builder::ModelCoordsAroundBond(Frame& frameIn, Topology const& topIn, int bondAt0, int bondAt1,
-                                   Zmatrix const* zmatrix0, Zmatrix const* zmatrix1, Barray& hasPosition)
+/** Model the internal coordinates around a bond between two residues defined
+  * by bondAt0 (in residue0) and bondAt1 in (residue1).
+  *
+  */
+int Builder::ModelCoordsAroundBond(Frame const& frameIn, Topology const& topIn, int bondAt0, int bondAt1,
+                                   Zmatrix& zmatrix0, Barray const& hasPosition)
 const
 {
   mprintf("DEBUG: Model coords around bond %s - %s\n", topIn.AtomMaskName(bondAt0).c_str(), topIn.AtomMaskName(bondAt1).c_str());
@@ -664,24 +667,33 @@ const
     return 1;
   }
   // Determine which "direction" we will be combining the fragments.
-  // Make atA belong to the less-known fragment. atB fragment will be "known".
-  int known0 = known_count(res0, topIn, hasPosition);
-  int known1 = known_count(res1, topIn, hasPosition);
-  int atA, atB;
-  Zmatrix const* zA;
-  if (known0 < known1) {
-    // Fragment 1 is better-known 
-    atA = bondAt0;
-    atB = bondAt1;
-    zA  = zmatrix0;
-    //zB  = zmatrix1;
-  } else {
-    // Fragment 0 is better or equally known 
-    atA = bondAt1;
-    atB = bondAt0;
-    zA  = zmatrix1;
-    //zB  = zmatrix0;
-  }
+  // Ensure atA belongs to the less-known fragment. atB fragment will be "known".
+//  int known0 = known_count(res0, topIn, hasPosition);
+//  int known1 = known_count(res1, topIn, hasPosition);
+////  int atA, atB;
+//  if (known0 > known1) {
+//    mprinterr("Internal Error: ModelCoordsAroundBond(): Residue0 '%s' is more well-known than Residue1 '%s'\n",
+//              topIn.TruncResNameNum( topIn[bondAt0].ResNum() ).c_str(),
+//              topIn.TruncResNameNum( topIn[bondAt1].ResNum() ).c_str());
+//    return 1;
+//  }
+  int atA = bondAt0;
+  int atB = bondAt1;
+  Zmatrix* zA = &zmatrix0; // FIXME
+//  Zmatrix const* zA;
+//  if (known0 < known1) {
+//    // Fragment 1 is better-known 
+//    atA = bondAt0;
+//    atB = bondAt1;
+//    zA  = zmatrix0;
+//    //zB  = zmatrix1;
+//  } else {
+//    // Fragment 0 is better or equally known 
+//    atA = bondAt1;
+//    atB = bondAt0;
+//    zA  = zmatrix1;
+//    //zB  = zmatrix0;
+//  }
 
   mprintf("DEBUG: More well-known atom: %s\n", topIn.AtomMaskName(atB).c_str());
   mprintf("DEBUG: Less well-known atom: %s  has zmatrix= %i\n", topIn.AtomMaskName(atA).c_str(), (int)(zA != 0));
@@ -724,12 +736,16 @@ const
               topIn.AtomMaskName(atB).c_str());
     return 1;
   }
+  // Add the remaining ICs FIXME check for duplicates
+  for (Zmatrix::const_iterator it = zmatrix0.begin(); it != zmatrix0.end(); ++it)
+    bondZmatrix.AddIC( *it );
   if (debug_ > 0)
     bondZmatrix.print(&topIn);
-  if (bondZmatrix.SetToFrame( frameIn, hasPosition )) {
-    mprinterr("Error: Conversion from bondZmatrix to Cartesian coords failed.\n");
-    return 1;
-  }
+  zmatrix0 = bondZmatrix;
+//  if (bondZmatrix.SetToFrame( frameIn, hasPosition )) {
+//    mprinterr("Error: Conversion from bondZmatrix to Cartesian coords failed.\n");
+//    return 1;
+//  }
 
   return 0;
 }
@@ -752,7 +768,7 @@ const
             topIn.AtomMaskName(atA).c_str(), atA+1,
             topIn.AtomMaskName(atB).c_str(), atB+1,
             topIn.Natom());
-  zmatrix.clear();
+//  zmatrix.clear();
 
   //Barray hasIC( topIn.Natom(), false );
   Barray hasIC = hasICin;
