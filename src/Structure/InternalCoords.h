@@ -24,7 +24,41 @@ class InternalCoords {
     InternalCoords(InternalCoords const&);
     /// ASSIGNMENT
     InternalCoords& operator=(InternalCoords const&);
-
+    /// Less than another IC using AI < AL < AK < AJ
+    bool operator<(InternalCoords const& rhs) const {
+      if (ati_ == rhs.ati_) {
+        if (idx_[2] == rhs.idx_[2]) { // Atom L
+          if (idx_[1] == rhs.idx_[1]) { // Atom K
+            if (idx_[0] == rhs.idx_[0]) { // Atom J
+              return false; // Equal
+            } else {
+              return (idx_[0] < rhs.idx_[0]);
+            }
+          } else {
+            return (idx_[1] < rhs.idx_[1]);
+          }
+        } else {
+          return (idx_[2] < rhs.idx_[2]);
+        }
+      } else {
+        return (ati_ < rhs.ati_);
+      }
+    }
+    /// \return True if all indices are equal
+    bool operator==(InternalCoords const& rhs) const {
+      return ( ati_ == rhs.ati_ &&
+               idx_[0] == rhs.idx_[0] &&
+               idx_[1] == rhs.idx_[1] &&
+               idx_[2] == rhs.idx_[2] );
+    }
+    /// \return True if any index is not equal
+    bool operator!=(InternalCoords const& rhs) const {
+      return ( ati_ != rhs.ati_ ||
+               idx_[0] != rhs.idx_[0] ||
+               idx_[1] != rhs.idx_[1] ||
+               idx_[2] != rhs.idx_[2] );
+    }
+    /// Indictaes no atom set
     static const int NO_ATOM;
 
     double Dist() const { return val_[0]; }
