@@ -1243,17 +1243,83 @@ static inline std::vector<int> SortBondedAtomsLikeLeap(Atom const& At, Topology 
   return out;
 }
 
+/** Assign torsions around bonded atoms in manner similar to LEaP's ModelAssignTorsionsAround. */
+int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
+{
+  // No need to do this if either atom only has 1 bond.
+  if (topIn[a1].Nbonds() < 2 || topIn[a2].Nbonds() < 2)
+    return 0;
+  // Get atom hybridizations
+  AtomType::HybridizationType H1 = AtomType::UNKNOWN_HYBRIDIZATION;
+  AtomType::HybridizationType H2 = AtomType::UNKNOWN_HYBRIDIZATION;
+  if (params_ != 0) {
+    ParmHolder<AtomType>::const_iterator it;
+    if (topIn[a1].HasType()) {
+      it = params_->AT().GetParam( TypeNameHolder(topIn[a1].Type()) );
+      if (it != params_->AT().end())
+        H1 = it->second.Hybridization();
+    }
+    if (topIn[a2].HasType()) {
+      it = params_->AT().GetParam( TypeNameHolder(topIn[a2].Type()) );
+      if (it != params_->AT().end())
+        H2 = it->second.Hybridization();
+    }
+  }
+  if (H1 == AtomType::UNKNOWN_HYBRIDIZATION)
+    H1 = GuessAtomHybridization(topIn[a1], topIn.Atoms());
+  if (H2 == AtomType::UNKNOWN_HYBRIDIZATION)
+    H2 = GuessAtomHybridization(topIn[a2], topIn.Atoms());
+  if (H1 == AtomType::UNKNOWN_HYBRIDIZATION)
+    mprintf("Warning: No hybridization set for atom %s\n", topIn.AtomMaskName(a1).c_str());
+  if (H2 == AtomType::UNKNOWN_HYBRIDIZATION)
+    mprintf("Warning: No hybridization set for atom %s\n", topIn.AtomMaskName(a2).c_str());
+  // Ensure the hybridization of ax is > ay
+  int ax, ay;
+  AtomType::HybridizationType Hx, Hy; // DEBUG
+  if (H1 == AtomType::UNKNOWN_HYBRIDIZATION || H2 == AtomType::UNKNOWN_HYBRIDIZATION) {
+    // Do not try to sort.
+    ax = a1;
+    ay = a2;
+    Hx = H1;
+    Hy = H2;
+  } else if (H1 < H2) {
+    ax = a2;
+    ay = a1;
+    Hx = H2;
+    Hy = H1;
+  } else {
+    ax = a1;
+    ay = a2;
+    Hx = H1;
+    Hy = H2;
+  }
+  static const char* hstr[] = { "SP", "SP2", "SP3", "Unknown" };
+  mprintf("DEBUG: assignTorsionsAroundBond: AX= %s (%s)  AY= %s (%s)\n",
+          topIn.AtomMaskName(ax).c_str(), hstr[Hx],
+          topIn.AtomMaskName(ay).c_str(), hstr[Hy]);
+
+  return 0;
+}
+
 /** Generate internal coordinates in the same
   * manner as LEaP's BuildInternalsForContainer/ModelAssignTorsionsAround.
   */
 int Builder::GenerateInternals(Zmatrix& zmatrix, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
 {
+  mprintf("DEBUG: ----- Entering Builder::GenerateInternals. -----\n");
   zmatrix.clear();
   // First generate the bond array
   BondArray bonds = GenerateBondArray( topIn.Residues(), topIn.Atoms() );
   // Loop over bonds
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
   {
+    if (assignTorsionsAroundBond( bnd->A1(), bnd->A2(), frameIn, topIn, hasPosition )) {
+      mprinterr("Error Assign torsions around bond %s - %s failed.\n",
+                topIn.AtomMaskName(bnd->A1()).c_str(),
+                topIn.AtomMaskName(bnd->A2()).c_str());
+      return 1;
+    }
+/*
     Atom const& A2 = topIn[bnd->A1()];
     Atom const& A3 = topIn[bnd->A2()];
     if (A2.Nbonds() > 1 && A3.Nbonds() > 1) {
@@ -1289,8 +1355,9 @@ int Builder::GenerateInternals(Zmatrix& zmatrix, Frame const& frameIn, Topology 
           zmatrix.AddIC(*al, ak, aj, *ai, frameIn);
         }
       }
-    }
+    }*/
   }
+  mprintf("DEBUG: ----- Leaving Builder::GenerateInternals. ------\n");
   return 0;
 }
  

@@ -28,6 +28,10 @@ class Builder {
     int ModelCoordsAroundBond(Frame const&, Topology const&, int, int, Zmatrix&, Barray const&) const;
     /// Update the internal coordinates in given Zmatrix with values from Frame/Parameters
     int UpdateICsFromFrame(Zmatrix&, Frame const&, int, Topology const&, Barray const&) const;
+
+    /// Generate internal coordinates in the same manner as LEaP
+    int GenerateInternals(Zmatrix&, Frame const&, Topology const&, Barray const&);
+
   private:
     typedef std::vector<int> Iarray;
     /// Get length parameter for atoms
@@ -52,8 +56,9 @@ class Builder {
     int SetupICsAroundBond(Zmatrix&, int, int, Frame const&, Topology const&,
                            Barray const&, Barray const&,
                            BuildAtom const&, BuildAtom const&) const;
-    /// Generate internal coordinates in the same manner as LEaP
-    int GenerateInternals(Zmatrix&, Frame const&, Topology const&, Barray const&);
+
+    /// Model torsions around a bond in the same manner as LEaP
+    int assignTorsionsAroundBond(int, int, Frame const&, Topology const&, Barray const&);
 
     int debug_;
     ParameterSet const* params_;

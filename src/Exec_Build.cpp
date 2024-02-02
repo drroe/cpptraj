@@ -194,6 +194,10 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   typedef std::vector<ResAtPair> ResAtArray;
   ResAtArray interResBonds;
 
+  Cpptraj::Structure::Builder structureBuilder;
+  structureBuilder.SetDebug( 1 );
+  structureBuilder.SetParameters( &mainParmSet );
+
   // Loop for setting up atoms in the topology from residues or residue templates.
   int nRefAtomsMissing = 0;
   for (int ires = 0; ires != topIn.Nres(); ires++)
@@ -307,6 +311,12 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
 //        zmatrix->print( resTemplate->TopPtr() );
         zmatrix->OffsetIcIndices( atomOffset );
         ResZmatrices.push_back( zmatrix );
+        // FIXME DEBUG
+        Cpptraj::Structure::Zmatrix tmpz;
+        if (structureBuilder.GenerateInternals( tmpz, templateFrame, resTemplate->Top(), std::vector<bool>(resTemplate->Top().Natom(), true) )) {
+          mprinterr("Error: Generate internals for template failed.\n");
+          return 1;
+        }
 //        zmatrix->print( &topOut );
         //for (Iarray::const_iterator jres = resConnections[ires].begin();
         //                            jres != resConnections[ires].end(); ++jres)
