@@ -1538,7 +1538,18 @@ void Builder::createSp3Sp2Torsions(TorsionModel const& MT, Frame const& frameIn,
   return;
 }
 
-void Builder::createSp2Sp2Torsions() {
+void Builder::createSp2Sp2Torsions(TorsionModel const& MT, Frame const& frameIn, Barray const& hasPosition) {
+  // First twist the torsion so that the AD torsion has
+  // the same absolute angle that is measured
+  // and twist all the others with it.
+  double dADOffset = MT.Absolute() - Constants::PI;
+  double d180      = Constants::PI + dADOffset;
+  double d0        =                 dADOffset;
+
+  ModelTorsion( MT, 0, 0, d180, frameIn, hasPosition );
+  ModelTorsion( MT, 0, 1, d0, frameIn, hasPosition );
+  ModelTorsion( MT, 1, 0, d0, frameIn, hasPosition );
+  ModelTorsion( MT, 1, 1, d180, frameIn, hasPosition );
   return;
 }
 
@@ -1640,7 +1651,7 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
       createSp3Sp2Torsions(mT, frameIn, hasPosition);
     } else if (Hx == AtomType::SP2 && Hy == AtomType::SP2) {
       mprintf("SP2 SP2\n");
-      createSp2Sp2Torsions();
+      createSp2Sp2Torsions(mT, frameIn, hasPosition);
     } else {
       mprinterr("Error: Currently only Sp3-Sp3/Sp3-Sp2/Sp2-Sp2 are supported\n"
                 "Error: ---Tried to superimpose torsions for: *-%s-%s-*\n"

@@ -68,7 +68,7 @@ class Builder {
 
     void createSp3Sp3Torsions(TorsionModel const&, Frame const&, Barray const&);
     void createSp3Sp2Torsions(TorsionModel const&, Frame const&, Barray const&);
-    void createSp2Sp2Torsions();
+    void createSp2Sp2Torsions(TorsionModel const&, Frame const&, Barray const&);
 
     int debug_;
     ParameterSet const* params_;
