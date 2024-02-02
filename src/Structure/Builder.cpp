@@ -1264,6 +1264,47 @@ static inline std::vector<int> SortBondedAtomsLikeLeap(unsigned int& firstUnknow
   return out;
 }
 
+/** LEaP routine for determining atom chirality.
+  * This is done by crossing A to B and then dotting the
+  * result with C. TODO use Chirality in BuildAtom?
+  * The chirality of the vectors is determined by the sign of
+  * the result, which is determined by whether or not C has
+  * a component in the direction AxB or in the opposite direction.
+  */
+static inline double VectorAtomChirality(Vec3 const& Center, Vec3 const& A, Vec3 const& B, Vec3 const& C)
+{
+  Vec3 vA = A - Center;
+  Vec3 vB = B - Center;
+  Vec3 vC = C - Center;
+  Vec3 vCross = vA.Cross( vB );
+  double dot = vCross * vC;
+  if (dot > 0)
+    return 1.0;
+  else if (dot < 0)
+    return -1.0;
+  return 0.0;
+}
+
+/** Assuming atoms have been ordered with SortBondedAtomsLikeLeap,
+  * calculate the orientation of the iB atom with respect to the
+  * triangle (iA, iX, iY). This orientation will be used by the
+  * CreateSpXSpX routines to determine which torsion values to use.
+  */
+static inline double calculateOrientation(int iX, int iA, int iY, int iB, Frame const& frameIn, std::vector<bool> const& hasPosition)
+{
+  double dOrientation = 1.0;
+  if (hasPosition[iX] &&
+      hasPosition[iA] &&
+      hasPosition[iY] &&
+      hasPosition[iB])
+  {
+    dOrientation = VectorAtomChirality( frameIn.XYZ(iX), frameIn.XYZ(iA), frameIn.XYZ(iY), frameIn.XYZ(iB) );
+  } else {
+    mprinterr("Internal Error: Builder::calculateOrientation not yet set up for unknown positions.\n");
+  }
+  return dOrientation;
+}
+
 /** Assign torsions around bonded atoms in manner similar to LEaP's ModelAssignTorsionsAround. */
 int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
 {
@@ -1347,17 +1388,28 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
     // Sort AX bonds
     unsigned int firstUnknownIdxX = 0;
     Iarray sorted_ax = SortBondedAtomsLikeLeap(firstUnknownIdxX, AX, topIn, ay, hasPosition);
-    mprintf("Orientation around: %s {", *(AX.Name()));
-    for (Atom::bond_iterator bat = AX.bondbegin(); bat != AX.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
-    mprintf("}\n");
-    for (Iarray::const_iterator it = sorted_ax.begin(); it != sorted_ax.end(); ++it)
-        mprintf("Atom %li: %s\n", it - sorted_ax.begin(), *(topIn[*it].Name()));
     // Sort AY bonds
     unsigned int firstUnknownIdxY = 0;
     Iarray sorted_ay = SortBondedAtomsLikeLeap(firstUnknownIdxY, AY, topIn, ax, hasPosition);
-    mprintf("Orientation around: %s {", *(AY.Name()));
-    for (Atom::bond_iterator bat = AY.bondbegin(); bat != AY.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
-    mprintf("}\n");
+    // Calculate the chirality around atom X
+    double Xorientation = 0;
+    if (Hx == AtomType::SP3) {
+      Xorientation = calculateOrientation( ax, sorted_ax[0], ay, sorted_ax[1], frameIn, hasPosition );
+    }
+    // Calculate the chirality around atom Y
+    double Yorientation = 0;
+    if (Hy == AtomType::SP3) {
+      Yorientation = calculateOrientation( ay, sorted_ay[0], ax, sorted_ay[1], frameIn, hasPosition );
+    }
+    // DEBUG
+    mprintf("Orientation around: %s = %f\n", *(AX.Name()), Xorientation);
+    //for (Atom::bond_iterator bat = AX.bondbegin(); bat != AX.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
+    //mprintf("}\n");
+    for (Iarray::const_iterator it = sorted_ax.begin(); it != sorted_ax.end(); ++it)
+        mprintf("Atom %li: %s\n", it - sorted_ax.begin(), *(topIn[*it].Name()));
+    mprintf("Orientation around: %s = %f\n", *(AY.Name()), Yorientation);
+    //for (Atom::bond_iterator bat = AY.bondbegin(); bat != AY.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
+    //mprintf("}\n");
     for (Iarray::const_iterator it = sorted_ay.begin(); it != sorted_ay.end(); ++it)
         mprintf("Atom %li: %s\n", it - sorted_ay.begin(), *(topIn[*it].Name()));
 
