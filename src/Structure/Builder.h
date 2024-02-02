@@ -33,26 +33,27 @@ class Builder {
     /// Get length parameter for atoms
     int getLengthParam(double&, int, int, Topology const&) const;
     /// Assign a reasonable value for bond distance given 2 atoms whose position may or may not be known
-    int AssignLength(double&, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
+    int AssignLength(double&, int, int, Topology const&, Frame const&, Barray const&) const;
     /// Get angle parameter for atoms.
     int getAngleParam(double&, int, int, int, Topology const&) const;
     /// Given atoms J and K, attempt to assign a reasonable value for theta for atom I
-    int AssignTheta(double&, int, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
+    int AssignTheta(double&, int, int, int, Topology const&, Frame const&, Barray const&) const;
     /// Calculate an internal coordinate for known atoms
     static inline InternalCoords calcKnownAtomIc(int, int, int, int, Frame const&);
     /// Insert an internal coord into a zmatrix
     int insertIc(Zmatrix&, int, int, int, int, double,
-                 Topology const&, Frame const&, std::vector<bool> const&) const;
+                 Topology const&, Frame const&, Barray const&) const;
     /// Assign internal coordinates for atoms I for torsions around J-K-L.
     int AssignICsAroundBond(Zmatrix&, int, int, int,
-                           Topology const&, Frame const&, std::vector<bool> const&,
+                           Topology const&, Frame const&, Barray const&,
                            BuildAtom const&) const;
 
     /// Model coordinates around a bond
     int SetupICsAroundBond(Zmatrix&, int, int, Frame const&, Topology const&,
-                           std::vector<bool> const&, std::vector<bool> const&,
+                           Barray const&, Barray const&,
                            BuildAtom const&, BuildAtom const&) const;
-
+    /// Generate internal coordinates in the same manner as LEaP
+    int GenerateInternals(Zmatrix&, Frame const&, Topology const&, Barray const&);
     int debug_;
     ParameterSet const* params_;
     Zmatrix const* currentZmatrix_; ///< Any existing internal coordinates

@@ -63,7 +63,7 @@ const
 }
 
 /** Assign reasonable value for bond distance. */
-int Cpptraj::Structure::Builder::AssignLength(double& dist, int ai, int aj, Topology const& topIn, Frame const& frameIn, std::vector<bool> const& atomPositionKnown)
+int Cpptraj::Structure::Builder::AssignLength(double& dist, int ai, int aj, Topology const& topIn, Frame const& frameIn, Barray const& atomPositionKnown)
 const
 {
   if (atomPositionKnown[ai] && atomPositionKnown[aj]) {
@@ -111,7 +111,7 @@ const
 /** Attempt to assign a reasonable value for theta internal coordinate for
   * atom i given that atoms j and k have known positions.
   */
-int Cpptraj::Structure::Builder::AssignTheta(double& theta, int ai, int aj, int ak, Topology const& topIn, Frame const& frameIn, std::vector<bool> const& atomPositionKnown)
+int Cpptraj::Structure::Builder::AssignTheta(double& theta, int ai, int aj, int ak, Topology const& topIn, Frame const& frameIn, Barray const& atomPositionKnown)
 const
 {
   if (debug_ > 0)
@@ -254,7 +254,7 @@ Cpptraj::Structure::InternalCoords Builder::calcKnownAtomIc(int ai, int aj, int 
 int Cpptraj::Structure::Builder::insertIc(Zmatrix& zmatrix,
                                         int ai, int aj, int ak, int al, double newPhi,
                                         Topology const& topIn, Frame const& frameIn,
-                                        std::vector<bool> const& atomPositionKnown)
+                                        Barray const& atomPositionKnown)
 const
 {
   if (atomPositionKnown[ai]) {
@@ -309,7 +309,7 @@ static inline double wrap360(double phi) {
 int Cpptraj::Structure::Builder::AssignICsAroundBond(Zmatrix& zmatrix,
                                                    int aj, int ak, int al,
                                                    Topology const& topIn, Frame const& frameIn,
-                                                   std::vector<bool> const& atomPositionKnown,
+                                                   Barray const& atomPositionKnown,
                                                    BuildAtom const& AtomJ)
 const
 {
@@ -383,7 +383,7 @@ const
 
   // Fill in what values we can for known atoms
   std::vector<double> knownPhi( AJ.Nbonds() );
-  std::vector<bool> isKnown( AJ.Nbonds(), false );
+  Barray isKnown( AJ.Nbonds(), false );
   int knownIdx = -1;
   double knownInterval = 0;
   bool hasKnownInterval = false;
@@ -474,7 +474,7 @@ const
 
   // If we have to assign an initial phi, make trans the longer branch
   if (knownIdx == -1) {
-    std::vector<bool> visited = atomPositionKnown;
+    Barray visited = atomPositionKnown;
     // TODO: Ensure bonded atoms are not yet visited?
     visited[aj] = true;
     visited[ak] = true;
@@ -640,7 +640,7 @@ const
   Zmatrix bondZmatrix;
 
   // Note which atoms already have an IC in zmatrixA
-  std::vector<bool> hasIC(combinedTop.Natom(), false);
+  Barray hasIC(combinedTop.Natom(), false);
   for (Zmatrix::const_iterator it = zmatrixA.begin(); it != zmatrixA.end(); ++it)
     hasIC[it->AtI()] = true;
 
@@ -751,7 +751,7 @@ const
   Zmatrix bondZmatrix;
 
   // Note which atoms already have an IC in zmatrix A
-  std::vector<bool> hasIC(topIn.Natom(), false);
+  Barray hasIC(topIn.Natom(), false);
   if (zA != 0) {
     for (Zmatrix::const_iterator it = zA->begin(); it != zA->end(); ++it)
       hasIC[it->AtI()] = true;
@@ -786,8 +786,8 @@ const
   */
 int Builder::SetupICsAroundBond(Zmatrix& zmatrix,
                                 int atA, int atB, Frame const& frameIn, Topology const& topIn,
-                                std::vector<bool> const& atomPositionKnown,
-                                std::vector<bool> const& hasICin,
+                                Barray const& atomPositionKnown,
+                                Barray const& hasICin,
                                 BuildAtom const& AtomA, BuildAtom const& AtomB)
 const
 {
@@ -801,14 +801,14 @@ const
   //Barray hasIC( topIn.Natom(), false );
   Barray hasIC = hasICin;
   unsigned int nHasIC = 0;
-  for (std::vector<bool>::const_iterator it = hasIC.begin(); it != hasIC.end(); ++it) {
+  for (Barray::const_iterator it = hasIC.begin(); it != hasIC.end(); ++it) {
     if (*it) {
       nHasIC++;
       mprintf("DEBUG:\tAtom %s already has an IC.\n", topIn.AtomMaskName(it-hasIC.begin()).c_str());
     }
   }
   // Mark known atoms as already having IC
-  for (std::vector<bool>::const_iterator it = atomPositionKnown.begin();
+  for (Barray::const_iterator it = atomPositionKnown.begin();
                                          it != atomPositionKnown.end(); ++it)
   {
     //mprintf("DEBUG: MARKING KNOWN ATOMS. %li\n", it - atomPositionKnown.begin());
@@ -1196,4 +1196,101 @@ const
     } // END both bond atoms belong to this residue
   } // END loop over bonds
   return 0;
-} 
+}
+// -----------------------------------------------
+/** \return the LEaP 'weight' of an atom.
+  * Originally used to force the 'heaviest' atoms around a torsion trans to
+  * each other. The 'weight' of an atom is defined as its element number,
+  * unless the atom is CARBON, then it is 1000, making it the 'heaviest' atom.
+  */
+static int LeapAtomWeight(Atom const& At)
+{
+  if ( At.Element() == Atom::CARBON )
+    return 1000;
+  return At.AtomicNumber();
+}
+
+/** Order atoms bonded to the given atom in a manner similar to LEaP's
+  * zModelOrderAtoms. In that routine, first atoms were sorted into
+  * known position > unknown position. Then the heaviest atom in each
+  * subgroup was swapped with the first element of that list. Since at this
+  * point we assume all positions are known, we are just shifting the
+  * heaviest atom to the front of the list.
+  * The ignore atom is the index of the atom this atom is bonded to that
+  * forms the torsion we are interested in.
+  */
+static inline std::vector<int> SortBondedAtomsLikeLeap(Atom const& At, Topology const& topIn, int ignoreAtom)
+{
+  std::vector<int> out;
+  out.reserve( At.Nbonds() );
+  // Find the index of the heaviest atom
+  int iHighest = 0;
+  int iPos = 0;
+  for (int idx = 0; idx < At.Nbonds(); idx++) {
+    int bat = At.Bond(idx);
+    if (bat != ignoreAtom) {
+      out.push_back( bat );
+      int iWeight = LeapAtomWeight( topIn[bat] );
+      if ( iHighest < iWeight ) {
+        iHighest = iWeight;
+        iPos = (int)out.size()-1;
+      }
+    }
+  }
+  // If highest weight atom not already in front, swap it there.
+  if (iPos != 0) std::swap( out[0], out[iPos] );
+
+  return out;
+}
+
+/** Generate internal coordinates in the same
+  * manner as LEaP's BuildInternalsForContainer/ModelAssignTorsionsAround.
+  */
+int Builder::GenerateInternals(Zmatrix& zmatrix, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
+{
+  zmatrix.clear();
+  // First generate the bond array
+  BondArray bonds = GenerateBondArray( topIn.Residues(), topIn.Atoms() );
+  // Loop over bonds
+  for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
+  {
+    Atom const& A2 = topIn[bnd->A1()];
+    Atom const& A3 = topIn[bnd->A2()];
+    if (A2.Nbonds() > 1 && A3.Nbonds() > 1) {
+      //Residue const& R2 = topIn.Res(A2.ResNum());
+      //Residue const& R3 = topIn.Res(A3.ResNum());
+      mprintf("Building torsion INTERNALs around: %s - %s\n",
+              topIn.LeapName(bnd->A1()).c_str(), topIn.LeapName(bnd->A2()).c_str());
+      Iarray sorted_a2 = SortBondedAtomsLikeLeap(A2, topIn, bnd->A2());
+      Iarray sorted_a3 = SortBondedAtomsLikeLeap(A3, topIn, bnd->A1());
+      mprintf("Orientation around: %s {", *(A2.Name()));
+      for (Atom::bond_iterator bat = A2.bondbegin(); bat != A2.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
+      mprintf("}\n");
+      for (Iarray::const_iterator it = sorted_a2.begin(); it != sorted_a2.end(); ++it)
+        mprintf("Atom %li: %s\n", it - sorted_a2.begin(), *(topIn[*it].Name()));
+      mprintf("Orientation around: %s {", *(A3.Name()));
+      for (Atom::bond_iterator bat = A3.bondbegin(); bat != A3.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
+      mprintf("}\n");
+      for (Iarray::const_iterator it = sorted_a3.begin(); it != sorted_a3.end(); ++it)
+        mprintf("Atom %li: %s\n", it - sorted_a3.begin(), *(topIn[*it].Name()));
+      // Build the torsions
+      int aj = bnd->A1();
+      int ak = bnd->A2();
+      for (Iarray::const_iterator ai = sorted_a2.begin(); ai != sorted_a2.end(); ++ai) {
+        for (Iarray::const_iterator al = sorted_a3.begin(); al != sorted_a3.end(); ++al) {
+          //double dval = Torsion(frameIn.XYZ(*ai), frameIn.XYZ(aj), frameIn.XYZ(ak), frameIn.XYZ(*al));
+          addIc(*ai, aj, ak, *al, frameIn);
+          mprintf("++++Torsion INTERNAL: %f to %s - %s - %s - %s\n",
+                  IC_.back().Phi(),
+                  topIn.LeapName(*ai).c_str(),
+                  topIn.LeapName(aj).c_str(),
+                  topIn.LeapName(ak).c_str(),
+                  topIn.LeapName(*al).c_str());
+          addIc(*al, ak, aj, *ai, frameIn);
+        }
+      }
+    }
+  }
+  return 0;
+}
+ 
