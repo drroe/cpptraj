@@ -36,7 +36,7 @@ class Builder {
     typedef std::vector<int> Iarray;
 
     /// Used to hold parameters for modeling a torsion
-    class ModelTorsion;
+    class TorsionModel;
 
     /// Get length parameter for atoms
     int getLengthParam(double&, int, int, Topology const&) const;
@@ -64,7 +64,9 @@ class Builder {
     /// Model torsions around a bond in the same manner as LEaP
     int assignTorsionsAroundBond(int, int, Frame const&, Topology const&, Barray const&);
 
-    void createSp3Sp3Torsions();
+    void ModelTorsion(TorsionModel const&, unsigned int, unsigned int, double);
+
+    void createSp3Sp3Torsions(TorsionModel const&);
     void createSp3Sp2Torsions();
     void createSp2Sp2Torsions();
 

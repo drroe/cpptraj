@@ -1200,14 +1200,24 @@ const
 
 // ------------------------------------------------------------------------------
 /** Store info for modelling torsions around X-Y */
-class Cpptraj::Structure::Builder::ModelTorsion {
+class Cpptraj::Structure::Builder::TorsionModel {
   public:
     /// CONSTRUCTOR
-    ModelTorsion() : ax_(-1), ay_(-1), dAbsolute_(0), Xorientation_(0), Yorientation_(0) {}
+    TorsionModel() : ax_(-1), ay_(-1), dAbsolute_(0), Xorientation_(0), Yorientation_(0) {}
     /// Set up torsions around bonded atoms
     int SetupTorsion(int, int, AtomType::HybridizationType, AtomType::HybridizationType,
                      Frame const&, Topology const&, std::vector<bool> const&);
 
+    /// \return Value of A-X-Y-D torsion in radians
+    double Absolute() const { return dAbsolute_; }
+    /// \return Value of orientation around X
+    double XOrientation() const { return Xorientation_; }
+    /// \return Value of orientation around Y
+    double YOrientation() const { return Yorientation_; }
+    /// \return Sorted atoms bonded to X excluding Y
+    std::vector<int> const& SortedAx() const { return sorted_ax_; }
+    /// \return Sorted atoms bonded to Y excluding X
+    std::vector<int> const& SortedAy() const { return sorted_ay_; }
   private:
     static int LeapAtomWeight(Atom const&);
     static inline std::vector<int> SiftBondedAtomsLikeLeap(unsigned int&, Atom const&, std::vector<bool> const&);
@@ -1229,7 +1239,7 @@ class Cpptraj::Structure::Builder::ModelTorsion {
   * each other. The 'weight' of an atom is defined as its element number,
   * unless the atom is CARBON, then it is 1000, making it the 'heaviest' atom.
   */
-int Cpptraj::Structure::Builder::ModelTorsion::LeapAtomWeight(Atom const& At)
+int Cpptraj::Structure::Builder::TorsionModel::LeapAtomWeight(Atom const& At)
 {
   if ( At.Element() == Atom::CARBON )
     return 1000;
@@ -1242,7 +1252,7 @@ int Cpptraj::Structure::Builder::ModelTorsion::LeapAtomWeight(Atom const& At)
   * \param hasPosition Array indicating whether atoms have position.
   */
 std::vector<int> 
-  Cpptraj::Structure::Builder::ModelTorsion::SiftBondedAtomsLikeLeap(unsigned int& firstUnknownIdx,
+  Cpptraj::Structure::Builder::TorsionModel::SiftBondedAtomsLikeLeap(unsigned int& firstUnknownIdx,
                                                                      Atom const& At,
                                                                      std::vector<bool> const& hasPosition)
 {
@@ -1266,7 +1276,7 @@ std::vector<int>
   * forms the torsion we are interested in.
   */
 std::vector<int>
-  Cpptraj::Structure::Builder::ModelTorsion::SortBondedAtomsLikeLeap(unsigned int& firstUnknownIdx,
+  Cpptraj::Structure::Builder::TorsionModel::SortBondedAtomsLikeLeap(unsigned int& firstUnknownIdx,
                                                                      Atom const& At, Topology const& topIn,
                                                                      int ignoreAtom,
                                                                      std::vector<bool> const& hasPosition)
@@ -1337,7 +1347,7 @@ static inline double calculateOrientation(int iX, int iA, int iY, int iB, Frame 
 }
 
 /** Set up model torsion for bonded atoms. */
-int Cpptraj::Structure::Builder::ModelTorsion::SetupTorsion(int ax, int ay,
+int Cpptraj::Structure::Builder::TorsionModel::SetupTorsion(int ax, int ay,
                                                             AtomType::HybridizationType Hx,
                                                             AtomType::HybridizationType Hy,
                                                             Frame const& frameIn,
@@ -1346,7 +1356,7 @@ int Cpptraj::Structure::Builder::ModelTorsion::SetupTorsion(int ax, int ay,
 {
   if (Hx != AtomType::UNKNOWN_HYBRIDIZATION && Hy != AtomType::UNKNOWN_HYBRIDIZATION) {
     if (Hy > Hx) {
-      mprinterr("Internal Error: :ModelTorsion::SetupTorsion() called with AX hybrid > AY hybrid.\n");
+      mprinterr("Internal Error: TorsionModel::SetupTorsion() called with AX hybrid > AY hybrid.\n");
       return 1;
     }
   }
@@ -1399,8 +1409,77 @@ int Cpptraj::Structure::Builder::ModelTorsion::SetupTorsion(int ax, int ay,
 }
 
 // -----------------------------------------------
+/** Model torsion */
+void Builder::ModelTorsion(TorsionModel const& MT, unsigned int iBondX, unsigned int iBondY, double dval)
+{
+  if (iBondX >= MT.SortedAx().size()) {
+    mprinterr("Internal Error: Builder::ModelTorsion: iBondX %u is >= # sorted bonds %zu\n", iBondX, MT.SortedAx().size());
+    return;
+  }
+  if (iBondY >= MT.SortedAy().size()) {
+    mprinterr("Internal Error: Builder::ModelTorsion: iBondY %u is >= # sorted bonds %zu\n", iBondY, MT.SortedAy().size());
+    return;
+  }
+
+}
+
 /** Create torsions around SP3-SP3. */
-void Builder::createSp3Sp3Torsions() {
+void Builder::createSp3Sp3Torsions(TorsionModel const& MT) {
+  // First twist the torsion so that the AD torsion has
+  // the same absolute angle that is measured
+  // and twist all the others with it.
+  static const double PIOVER3 = Constants::PI / 3.0;
+  double dADOffset = MT.Absolute() - Constants::PI;
+  double d180      = Constants::PI + dADOffset;
+  double dm60      = -PIOVER3      + dADOffset;
+  double d60       =  PIOVER3      + dADOffset;
+
+  if ( MT.XOrientation() > 0.0 ) {
+    if ( MT.YOrientation() > 0.0 ) {
+      ModelTorsion( MT, 0, 0, d180 );
+      ModelTorsion( MT, 0, 1, dm60 );
+      ModelTorsion( MT, 0, 2, d60 );
+      ModelTorsion( MT, 1, 0, dm60 );
+      ModelTorsion( MT, 1, 1, d60 );
+      ModelTorsion( MT, 1, 2, d180 );
+      ModelTorsion( MT, 2, 0, d60 );
+      ModelTorsion( MT, 2, 1, d180 );
+      ModelTorsion( MT, 2, 2, dm60 );
+    } else {
+      ModelTorsion( MT, 0, 0,  d180 );
+      ModelTorsion( MT, 0, 1,  d60 );
+      ModelTorsion( MT, 0, 2,  dm60 );
+      ModelTorsion( MT, 1, 0,  dm60 );
+      ModelTorsion( MT, 1, 1,  d180 );
+      ModelTorsion( MT, 1, 2,  d60 );
+      ModelTorsion( MT, 2, 0,  d60 );
+      ModelTorsion( MT, 2, 1,  dm60 );
+      ModelTorsion( MT, 2, 2,  d180 );
+    }
+  } else {
+    if ( MT.YOrientation() > 0.0 ) {
+      ModelTorsion( MT, 0, 0, d180 );
+      ModelTorsion( MT, 0, 1, dm60 );
+      ModelTorsion( MT, 0, 2, d60 );
+      ModelTorsion( MT, 1, 0, d60 );
+      ModelTorsion( MT, 1, 1, d180 );
+      ModelTorsion( MT, 1, 2, dm60 );
+      ModelTorsion( MT, 2, 0, dm60 );
+      ModelTorsion( MT, 2, 1, d60 );
+      ModelTorsion( MT, 2, 2, d180 );
+    } else {
+      ModelTorsion( MT, 0, 0, d180 );
+      ModelTorsion( MT, 0, 1, d60 );
+      ModelTorsion( MT, 0, 2, dm60 );
+      ModelTorsion( MT, 1, 0, d60 );
+      ModelTorsion( MT, 1, 1, dm60 );
+      ModelTorsion( MT, 1, 2, d180 );
+      ModelTorsion( MT, 2, 0, dm60 );
+      ModelTorsion( MT, 2, 1, d180 );
+      ModelTorsion( MT, 2, 2, d60 );
+    }
+  }
+
   return;
 }
 
@@ -1493,7 +1572,7 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
             topIn.LeapName(ax).c_str(),
             topIn.LeapName(ay).c_str());
 
-    ModelTorsion mT;
+    TorsionModel mT;
     if (mT.SetupTorsion(ax, ay, Hx, Hy, frameIn, topIn, hasPosition)) {
       mprinterr("Error: Could not set up torsions around %s - %s\n",
                 topIn.LeapName(ax).c_str(),
@@ -1504,7 +1583,7 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
     // Build the new internals
     if (Hx == AtomType::SP3 && Hy == AtomType::SP3) {
       mprintf("SP3 SP3\n");
-      createSp3Sp3Torsions();
+      createSp3Sp3Torsions(mT);
     } else if (Hx == AtomType::SP3 && Hy == AtomType::SP2) {
       mprintf("SP3 SP2\n");
       createSp3Sp2Torsions();
