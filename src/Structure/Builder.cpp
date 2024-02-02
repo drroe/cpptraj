@@ -1305,6 +1305,18 @@ static inline double calculateOrientation(int iX, int iA, int iY, int iB, Frame 
   return dOrientation;
 }
 
+void Builder::createSp3Sp3Torsions() {
+  return;
+}
+
+void Builder::createSp3Sp2Torsions() {
+  return;
+}
+
+void Builder::createSp2Sp2Torsions() {
+  return;
+}
+
 /** Assign torsions around bonded atoms in manner similar to LEaP's ModelAssignTorsionsAround. */
 int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
 {
@@ -1427,6 +1439,26 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
       dAbsolute = 180.0 * Constants::DEGRAD;
     }
     mprintf("DABSOLUTE= %g\n", dAbsolute);
+    // Build the new internals
+    if (Hx == AtomType::SP3 && Hy == AtomType::SP3) {
+      mprintf("SP3 SP3\n");
+      createSp3Sp3Torsions();
+    } else if (Hx == AtomType::SP3 && Hy == AtomType::SP2) {
+      mprintf("SP3 SP2\n");
+      createSp3Sp2Torsions();
+    } else if (Hx == AtomType::SP2 && Hy == AtomType::SP2) {
+      mprintf("SP2 SP2\n");
+      createSp2Sp2Torsions();
+    } else {
+      mprinterr("Error: Currently only Sp3-Sp3/Sp3-Sp2/Sp2-Sp2 are supported\n"
+                "Error: ---Tried to superimpose torsions for: *-%s-%s-*\n"
+                "Error: --- With %s - %s\n"
+                "Error: --- Sp0 probably means a new atom type is involved\n"
+                "Error: --- which needs to be defined prior to this routine.\n",
+                topIn.AtomMaskName(ax).c_str(), topIn.AtomMaskName(ay).c_str(),
+                hstr[Hx], hstr[Hy]);
+     return 1;
+    }
   }
 
   return 0;

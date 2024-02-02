@@ -60,6 +60,10 @@ class Builder {
     /// Model torsions around a bond in the same manner as LEaP
     int assignTorsionsAroundBond(int, int, Frame const&, Topology const&, Barray const&);
 
+    void createSp3Sp3Torsions();
+    void createSp3Sp2Torsions();
+    void createSp2Sp2Torsions();
+
     int debug_;
     ParameterSet const* params_;
     Zmatrix const* currentZmatrix_; ///< Any existing internal coordinates
