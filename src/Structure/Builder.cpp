@@ -1412,7 +1412,21 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
     //mprintf("}\n");
     for (Iarray::const_iterator it = sorted_ay.begin(); it != sorted_ay.end(); ++it)
         mprintf("Atom %li: %s\n", it - sorted_ay.begin(), *(topIn[*it].Name()));
-
+    // Calculate the actual torsion angle between A-X-Y-D
+    double dAbsolute;
+    if (hasPosition[sorted_ax[0]] &&
+        hasPosition[ax] &&
+        hasPosition[ay] &&
+        hasPosition[sorted_ay[0]])
+    {
+      dAbsolute = Torsion( frameIn.XYZ(sorted_ax[0]),
+                           frameIn.XYZ(ax),
+                           frameIn.XYZ(ay),
+                           frameIn.XYZ(sorted_ay[0]) );
+    } else {
+      dAbsolute = 180.0 * Constants::DEGRAD;
+    }
+    mprintf("DABSOLUTE= %g\n", dAbsolute);
   }
 
   return 0;
