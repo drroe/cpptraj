@@ -1210,24 +1210,45 @@ static int LeapAtomWeight(Atom const& At)
   return At.AtomicNumber();
 }
 
-/** Order atoms bonded to the given atom in a manner similar to LEaP's
-  * zModelOrderAtoms. In that routine, first atoms were sorted into
-  * known position > unknown position. Then the heaviest atom in each
-  * subgroup was swapped with the first element of that list. Since at this
-  * point we assume all positions are known, we are just shifting the
-  * heaviest atom to the front of the list.
-  * The ignore atom is the index of the atom this atom is bonded to that
-  * forms the torsion we are interested in.
+/** Place atoms with known position ahead of atoms with no known position.
+  * \param firstUnknownIdx Position in output array of the first unknown atom.
+  * \param At The atom to sift.
+  * \param hasPosition Array indicating whether atoms have position.
   */
-static inline std::vector<int> SortBondedAtomsLikeLeap(Atom const& At, Topology const& topIn, int ignoreAtom)
+static inline std::vector<int> SiftBondedAtomsLikeLeap(unsigned int& firstUnknownIdx, Atom const& At, std::vector<bool> const& hasPosition)
 {
   std::vector<int> out;
   out.reserve( At.Nbonds() );
+  for (Atom::bond_iterator bat = At.bondbegin(); bat != At.bondend(); ++bat)
+    if (hasPosition[*bat])
+      out.push_back( *bat );
+  firstUnknownIdx = out.size();
+  for (Atom::bond_iterator bat = At.bondbegin(); bat != At.bondend(); ++bat)
+    if (!hasPosition[*bat])
+      out.push_back( *bat );
+  return out;
+}
+
+/** Order atoms bonded to the given atom in a manner similar to LEaP's
+  * zModelOrderAtoms. In that routine, first atoms were sorted into
+  * known position > unknown position. Then the heaviest atom in each
+  * subgroup was swapped with the first element of that list. 
+  * The ignore atom is the index of the atom this atom is bonded to that
+  * forms the torsion we are interested in.
+  */
+static inline std::vector<int> SortBondedAtomsLikeLeap(unsigned int& firstUnknownIdx,
+                                                       Atom const& At, Topology const& topIn,
+                                                       int ignoreAtom, std::vector<bool> const& hasPosition)
+{
+  std::vector<int> out;
+  out.reserve( At.Nbonds() );
+  // Sift so that atoms with known position are at the front
+  std::vector<int> bondedAtoms = SiftBondedAtomsLikeLeap(firstUnknownIdx, At, hasPosition);
   // Find the index of the heaviest atom
   int iHighest = 0;
   int iPos = 0;
-  for (int idx = 0; idx < At.Nbonds(); idx++) {
-    int bat = At.Bond(idx);
+  for (unsigned int idx = 0; idx < bondedAtoms.size(); idx++) {
+    int bat = bondedAtoms[idx];
     if (bat != ignoreAtom) {
       out.push_back( bat );
       int iWeight = LeapAtomWeight( topIn[bat] );
@@ -1297,6 +1318,50 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
   mprintf("DEBUG: assignTorsionsAroundBond: AX= %s (%s)  AY= %s (%s)\n",
           topIn.AtomMaskName(ax).c_str(), hstr[Hx],
           topIn.AtomMaskName(ay).c_str(), hstr[Hy]);
+  // Check if there is at least one atom on either side of the ax-ay pair
+  // whose position is known.
+  Atom const& AX = topIn[ax];
+  Atom const& AY = topIn[ay];
+  bool axHasKnownAtoms = false;
+  for (Atom::bond_iterator bat = AX.bondbegin(); bat != AX.bondend(); ++bat) {
+    if (*bat != ay && hasPosition[*bat]) {
+      axHasKnownAtoms = true;
+      break;
+    }
+  }
+  bool ayHasKnownAtoms = false;
+  for (Atom::bond_iterator bat = AY.bondbegin(); bat != AY.bondend(); ++bat) {
+    if (*bat != ax && hasPosition[*bat]) {
+      ayHasKnownAtoms = true;
+      break;
+    }
+  }
+
+  if (!axHasKnownAtoms && !ayHasKnownAtoms) {
+    mprinterr("Internal Error: assignTorsionsAroundBond both not known not yet implemented.\n");
+    return 1;
+  } else {
+    mprintf("DEBUG: Using externals to fit new torsions around: %s - %s\n",
+            topIn.LeapName(ax).c_str(),
+            topIn.LeapName(ay).c_str());
+    // Sort AX bonds
+    unsigned int firstUnknownIdxX = 0;
+    Iarray sorted_ax = SortBondedAtomsLikeLeap(firstUnknownIdxX, AX, topIn, ay, hasPosition);
+    mprintf("Orientation around: %s {", *(AX.Name()));
+    for (Atom::bond_iterator bat = AX.bondbegin(); bat != AX.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
+    mprintf("}\n");
+    for (Iarray::const_iterator it = sorted_ax.begin(); it != sorted_ax.end(); ++it)
+        mprintf("Atom %li: %s\n", it - sorted_ax.begin(), *(topIn[*it].Name()));
+    // Sort AY bonds
+    unsigned int firstUnknownIdxY = 0;
+    Iarray sorted_ay = SortBondedAtomsLikeLeap(firstUnknownIdxY, AY, topIn, ax, hasPosition);
+    mprintf("Orientation around: %s {", *(AY.Name()));
+    for (Atom::bond_iterator bat = AY.bondbegin(); bat != AY.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
+    mprintf("}\n");
+    for (Iarray::const_iterator it = sorted_ay.begin(); it != sorted_ay.end(); ++it)
+        mprintf("Atom %li: %s\n", it - sorted_ay.begin(), *(topIn[*it].Name()));
+
+  }
 
   return 0;
 }
