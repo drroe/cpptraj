@@ -1197,6 +1197,18 @@ const
   } // END loop over bonds
   return 0;
 }
+
+// ------------------------------------------------------------------------------
+/** Store info for modelling torsions around X-Y */
+class Cpptraj::Structure::Builder::ModelTorsion {
+  public:
+    int ax_; ///< Atom X
+    int ay_; ///< Atom Y
+    Iarray sorted_ax_; ///< Hold the leap-sorted bonds for atom X
+    Iarray sorted_ay_; ///< Hold the leap-sorted bonds for atom Y
+    double dAbsolute_; ///< Hold the value of the A-X-Y-D torsion in radians
+};
+    
 // -----------------------------------------------
 /** \return the LEaP 'weight' of an atom.
   * Originally used to force the 'heaviest' atoms around a torsion trans to
@@ -1305,6 +1317,7 @@ static inline double calculateOrientation(int iX, int iA, int iY, int iB, Frame 
   return dOrientation;
 }
 
+/** Create torsions around SP3-SP3. */
 void Builder::createSp3Sp3Torsions() {
   return;
 }
@@ -1397,48 +1410,50 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
     mprintf("DEBUG: Using externals to fit new torsions around: %s - %s\n",
             topIn.LeapName(ax).c_str(),
             topIn.LeapName(ay).c_str());
+    ModelTorsion mT;
+    mT.ax_ = ax;
+    mT.ay_ = ay;
     // Sort AX bonds
     unsigned int firstUnknownIdxX = 0;
-    Iarray sorted_ax = SortBondedAtomsLikeLeap(firstUnknownIdxX, AX, topIn, ay, hasPosition);
+    mT.sorted_ax_ = SortBondedAtomsLikeLeap(firstUnknownIdxX, AX, topIn, ay, hasPosition);
     // Sort AY bonds
     unsigned int firstUnknownIdxY = 0;
-    Iarray sorted_ay = SortBondedAtomsLikeLeap(firstUnknownIdxY, AY, topIn, ax, hasPosition);
+    mT.sorted_ay_ = SortBondedAtomsLikeLeap(firstUnknownIdxY, AY, topIn, ax, hasPosition);
     // Calculate the chirality around atom X
     double Xorientation = 0;
     if (Hx == AtomType::SP3) {
-      Xorientation = calculateOrientation( ax, sorted_ax[0], ay, sorted_ax[1], frameIn, hasPosition );
+      Xorientation = calculateOrientation( ax, mT.sorted_ax_[0], ay, mT.sorted_ax_[1], frameIn, hasPosition );
     }
     // Calculate the chirality around atom Y
     double Yorientation = 0;
     if (Hy == AtomType::SP3) {
-      Yorientation = calculateOrientation( ay, sorted_ay[0], ax, sorted_ay[1], frameIn, hasPosition );
+      Yorientation = calculateOrientation( ay, mT.sorted_ay_[0], ax, mT.sorted_ay_[1], frameIn, hasPosition );
     }
     // DEBUG
     mprintf("Orientation around: %s = %f\n", *(AX.Name()), Xorientation);
     //for (Atom::bond_iterator bat = AX.bondbegin(); bat != AX.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
     //mprintf("}\n");
-    for (Iarray::const_iterator it = sorted_ax.begin(); it != sorted_ax.end(); ++it)
-        mprintf("Atom %li: %s\n", it - sorted_ax.begin(), *(topIn[*it].Name()));
+    for (Iarray::const_iterator it = mT.sorted_ax_.begin(); it != mT.sorted_ax_.end(); ++it)
+        mprintf("Atom %li: %s\n", it - mT.sorted_ax_.begin(), *(topIn[*it].Name()));
     mprintf("Orientation around: %s = %f\n", *(AY.Name()), Yorientation);
     //for (Atom::bond_iterator bat = AY.bondbegin(); bat != AY.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
     //mprintf("}\n");
-    for (Iarray::const_iterator it = sorted_ay.begin(); it != sorted_ay.end(); ++it)
-        mprintf("Atom %li: %s\n", it - sorted_ay.begin(), *(topIn[*it].Name()));
+    for (Iarray::const_iterator it = mT.sorted_ay_.begin(); it != mT.sorted_ay_.end(); ++it)
+        mprintf("Atom %li: %s\n", it - mT.sorted_ay_.begin(), *(topIn[*it].Name()));
     // Calculate the actual torsion angle between A-X-Y-D
-    double dAbsolute;
-    if (hasPosition[sorted_ax[0]] &&
+    if (hasPosition[mT.sorted_ax_[0]] &&
         hasPosition[ax] &&
         hasPosition[ay] &&
-        hasPosition[sorted_ay[0]])
+        hasPosition[mT.sorted_ay_[0]])
     {
-      dAbsolute = Torsion( frameIn.XYZ(sorted_ax[0]),
-                           frameIn.XYZ(ax),
-                           frameIn.XYZ(ay),
-                           frameIn.XYZ(sorted_ay[0]) );
+      mT.dAbsolute_ = Torsion( frameIn.XYZ(mT.sorted_ax_[0]),
+                               frameIn.XYZ(ax),
+                               frameIn.XYZ(ay),
+                               frameIn.XYZ(mT.sorted_ay_[0]) );
     } else {
-      dAbsolute = 180.0 * Constants::DEGRAD;
+      mT.dAbsolute_ = 180.0 * Constants::DEGRAD;
     }
-    mprintf("DABSOLUTE= %g\n", dAbsolute);
+    mprintf("DABSOLUTE= %g\n", mT.dAbsolute_);
     // Build the new internals
     if (Hx == AtomType::SP3 && Hy == AtomType::SP3) {
       mprintf("SP3 SP3\n");

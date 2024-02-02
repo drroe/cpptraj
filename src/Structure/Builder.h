@@ -34,6 +34,10 @@ class Builder {
 
   private:
     typedef std::vector<int> Iarray;
+
+    /// Used to hold parameters for modeling a torsion
+    class ModelTorsion;
+
     /// Get length parameter for atoms
     int getLengthParam(double&, int, int, Topology const&) const;
     /// Assign a reasonable value for bond distance given 2 atoms whose position may or may not be known
