@@ -64,10 +64,10 @@ class Builder {
     /// Model torsions around a bond in the same manner as LEaP
     int assignTorsionsAroundBond(int, int, Frame const&, Topology const&, Barray const&);
 
-    void ModelTorsion(TorsionModel const&, unsigned int, unsigned int, double);
+    void ModelTorsion(TorsionModel const&, unsigned int, unsigned int, double, Frame const&, Barray const&);
 
-    void createSp3Sp3Torsions(TorsionModel const&);
-    void createSp3Sp2Torsions();
+    void createSp3Sp3Torsions(TorsionModel const&, Frame const&, Barray const&);
+    void createSp3Sp2Torsions(TorsionModel const&, Frame const&, Barray const&);
     void createSp2Sp2Torsions();
 
     int debug_;

@@ -1218,6 +1218,10 @@ class Cpptraj::Structure::Builder::TorsionModel {
     std::vector<int> const& SortedAx() const { return sorted_ax_; }
     /// \return Sorted atoms bonded to Y excluding X
     std::vector<int> const& SortedAy() const { return sorted_ay_; }
+    /// \return Index of atom X
+    int AtX() const { return ax_; }
+    /// \return Index of atom Y
+    int AtY() const { return ay_; }
   private:
     static int LeapAtomWeight(Atom const&);
     static inline std::vector<int> SiftBondedAtomsLikeLeap(unsigned int&, Atom const&, std::vector<bool> const&);
@@ -1410,21 +1414,38 @@ int Cpptraj::Structure::Builder::TorsionModel::SetupTorsion(int ax, int ay,
 
 // -----------------------------------------------
 /** Model torsion */
-void Builder::ModelTorsion(TorsionModel const& MT, unsigned int iBondX, unsigned int iBondY, double dval)
+void Builder::ModelTorsion(TorsionModel const& MT, unsigned int iBondX, unsigned int iBondY, double dvalIn, Frame const& frameIn, Barray const& hasPosition)
 {
-  if (iBondX >= MT.SortedAx().size()) {
-    mprinterr("Internal Error: Builder::ModelTorsion: iBondX %u is >= # sorted bonds %zu\n", iBondX, MT.SortedAx().size());
+  if (iBondX >= MT.SortedAx().size() ||
+      iBondY >= MT.SortedAy().size())
     return;
+
+  int aa = MT.SortedAx()[iBondX];
+  int ax = MT.AtX();
+  int ay = MT.AtY();
+  int ad = MT.SortedAy()[iBondY];
+  // If the coordinates for the atoms are defined then
+  // measure the torsion angle between them and use that for
+  // the internal.
+  double dval = dvalIn;
+  if (hasPosition[aa] &&
+      hasPosition[ax] &&
+      hasPosition[ay] &&
+      hasPosition[ad])
+  {
+    dval = Torsion( frameIn.XYZ(aa),
+                    frameIn.XYZ(ax),
+                    frameIn.XYZ(ay),
+                    frameIn.XYZ(ad) );
+  } else {
+    mprinterr("Internal Error: Need to implement torsion lookup.\n");
   }
-  if (iBondY >= MT.SortedAy().size()) {
-    mprinterr("Internal Error: Builder::ModelTorsion: iBondY %u is >= # sorted bonds %zu\n", iBondY, MT.SortedAy().size());
-    return;
-  }
+  mprintf( "++++Torsion INTERNAL: %f to %i - %i - %i - %i\n", dval*Constants::RADDEG, aa+1, ax+1, ay+1, ad+1);
 
 }
 
 /** Create torsions around SP3-SP3. */
-void Builder::createSp3Sp3Torsions(TorsionModel const& MT) {
+void Builder::createSp3Sp3Torsions(TorsionModel const& MT, Frame const& frameIn, Barray const& hasPosition) {
   // First twist the torsion so that the AD torsion has
   // the same absolute angle that is measured
   // and twist all the others with it.
@@ -1436,54 +1457,84 @@ void Builder::createSp3Sp3Torsions(TorsionModel const& MT) {
 
   if ( MT.XOrientation() > 0.0 ) {
     if ( MT.YOrientation() > 0.0 ) {
-      ModelTorsion( MT, 0, 0, d180 );
-      ModelTorsion( MT, 0, 1, dm60 );
-      ModelTorsion( MT, 0, 2, d60 );
-      ModelTorsion( MT, 1, 0, dm60 );
-      ModelTorsion( MT, 1, 1, d60 );
-      ModelTorsion( MT, 1, 2, d180 );
-      ModelTorsion( MT, 2, 0, d60 );
-      ModelTorsion( MT, 2, 1, d180 );
-      ModelTorsion( MT, 2, 2, dm60 );
+      ModelTorsion( MT, 0, 0, d180, frameIn, hasPosition);
+      ModelTorsion( MT, 0, 1, dm60, frameIn, hasPosition);
+      ModelTorsion( MT, 0, 2, d60, frameIn, hasPosition);
+      ModelTorsion( MT, 1, 0, dm60, frameIn, hasPosition);
+      ModelTorsion( MT, 1, 1, d60, frameIn, hasPosition);
+      ModelTorsion( MT, 1, 2, d180, frameIn, hasPosition);
+      ModelTorsion( MT, 2, 0, d60, frameIn, hasPosition);
+      ModelTorsion( MT, 2, 1, d180, frameIn, hasPosition);
+      ModelTorsion( MT, 2, 2, dm60, frameIn, hasPosition);
     } else {
-      ModelTorsion( MT, 0, 0,  d180 );
-      ModelTorsion( MT, 0, 1,  d60 );
-      ModelTorsion( MT, 0, 2,  dm60 );
-      ModelTorsion( MT, 1, 0,  dm60 );
-      ModelTorsion( MT, 1, 1,  d180 );
-      ModelTorsion( MT, 1, 2,  d60 );
-      ModelTorsion( MT, 2, 0,  d60 );
-      ModelTorsion( MT, 2, 1,  dm60 );
-      ModelTorsion( MT, 2, 2,  d180 );
+      ModelTorsion( MT, 0, 0,  d180, frameIn, hasPosition);
+      ModelTorsion( MT, 0, 1,  d60, frameIn, hasPosition);
+      ModelTorsion( MT, 0, 2,  dm60, frameIn, hasPosition);
+      ModelTorsion( MT, 1, 0,  dm60, frameIn, hasPosition);
+      ModelTorsion( MT, 1, 1,  d180, frameIn, hasPosition);
+      ModelTorsion( MT, 1, 2,  d60, frameIn, hasPosition);
+      ModelTorsion( MT, 2, 0,  d60, frameIn, hasPosition);
+      ModelTorsion( MT, 2, 1,  dm60, frameIn, hasPosition);
+      ModelTorsion( MT, 2, 2,  d180, frameIn, hasPosition);
     }
   } else {
     if ( MT.YOrientation() > 0.0 ) {
-      ModelTorsion( MT, 0, 0, d180 );
-      ModelTorsion( MT, 0, 1, dm60 );
-      ModelTorsion( MT, 0, 2, d60 );
-      ModelTorsion( MT, 1, 0, d60 );
-      ModelTorsion( MT, 1, 1, d180 );
-      ModelTorsion( MT, 1, 2, dm60 );
-      ModelTorsion( MT, 2, 0, dm60 );
-      ModelTorsion( MT, 2, 1, d60 );
-      ModelTorsion( MT, 2, 2, d180 );
+      ModelTorsion( MT, 0, 0, d180, frameIn, hasPosition);
+      ModelTorsion( MT, 0, 1, dm60, frameIn, hasPosition);
+      ModelTorsion( MT, 0, 2, d60, frameIn, hasPosition);
+      ModelTorsion( MT, 1, 0, d60, frameIn, hasPosition);
+      ModelTorsion( MT, 1, 1, d180, frameIn, hasPosition);
+      ModelTorsion( MT, 1, 2, dm60, frameIn, hasPosition);
+      ModelTorsion( MT, 2, 0, dm60, frameIn, hasPosition);
+      ModelTorsion( MT, 2, 1, d60, frameIn, hasPosition);
+      ModelTorsion( MT, 2, 2, d180, frameIn, hasPosition);
     } else {
-      ModelTorsion( MT, 0, 0, d180 );
-      ModelTorsion( MT, 0, 1, d60 );
-      ModelTorsion( MT, 0, 2, dm60 );
-      ModelTorsion( MT, 1, 0, d60 );
-      ModelTorsion( MT, 1, 1, dm60 );
-      ModelTorsion( MT, 1, 2, d180 );
-      ModelTorsion( MT, 2, 0, dm60 );
-      ModelTorsion( MT, 2, 1, d180 );
-      ModelTorsion( MT, 2, 2, d60 );
+      ModelTorsion( MT, 0, 0, d180, frameIn, hasPosition);
+      ModelTorsion( MT, 0, 1, d60, frameIn, hasPosition);
+      ModelTorsion( MT, 0, 2, dm60, frameIn, hasPosition);
+      ModelTorsion( MT, 1, 0, d60, frameIn, hasPosition);
+      ModelTorsion( MT, 1, 1, dm60, frameIn, hasPosition);
+      ModelTorsion( MT, 1, 2, d180, frameIn, hasPosition);
+      ModelTorsion( MT, 2, 0, dm60, frameIn, hasPosition);
+      ModelTorsion( MT, 2, 1, d180, frameIn, hasPosition);
+      ModelTorsion( MT, 2, 2, d60, frameIn, hasPosition);
     }
   }
 
   return;
 }
 
-void Builder::createSp3Sp2Torsions() {
+/** Create torsions around SP3-SP2. */
+void Builder::createSp3Sp2Torsions(TorsionModel const& MT, Frame const& frameIn, Barray const& hasPosition) {
+  // First twist the torsion so that the AD torsion has
+  // the same absolute angle that is measured
+  // and twist all the others with it.
+  static const double PIOVER3   = Constants::PI / 3.0;
+  static const double PIOVER3x2 = PIOVER3 * 2.0;
+  double dADOffset = MT.Absolute() - Constants::PI;
+  double   d180    = Constants::PI + dADOffset;
+  double   dm60    = -PIOVER3      + dADOffset;
+  double   d60     =  PIOVER3      + dADOffset;
+  double  dm120    = -PIOVER3x2    + dADOffset;
+  double  d120     =  PIOVER3x2    + dADOffset;
+  double  d0       =                 dADOffset;
+
+  if ( MT.XOrientation() > 0.0 ) {
+    ModelTorsion( MT, 0, 0, d180, frameIn, hasPosition);
+    ModelTorsion( MT, 0, 1, d0, frameIn, hasPosition);
+    ModelTorsion( MT, 1, 0, dm60, frameIn, hasPosition);
+    ModelTorsion( MT, 1, 1, d120, frameIn, hasPosition);
+    ModelTorsion( MT, 2, 0, d60, frameIn, hasPosition);
+    ModelTorsion( MT, 2, 1, dm120, frameIn, hasPosition);
+  } else {
+    ModelTorsion( MT, 0, 0, d180, frameIn, hasPosition);
+    ModelTorsion( MT, 0, 1, d0, frameIn, hasPosition);
+    ModelTorsion( MT, 1, 0, d60, frameIn, hasPosition);
+    ModelTorsion( MT, 1, 1, dm120, frameIn, hasPosition);
+    ModelTorsion( MT, 2, 0, dm60, frameIn, hasPosition);
+    ModelTorsion( MT, 2, 1, d120, frameIn, hasPosition);
+  }
+
   return;
 }
 
@@ -1583,10 +1634,10 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
     // Build the new internals
     if (Hx == AtomType::SP3 && Hy == AtomType::SP3) {
       mprintf("SP3 SP3\n");
-      createSp3Sp3Torsions(mT);
+      createSp3Sp3Torsions(mT, frameIn, hasPosition);
     } else if (Hx == AtomType::SP3 && Hy == AtomType::SP2) {
       mprintf("SP3 SP2\n");
-      createSp3Sp2Torsions();
+      createSp3Sp2Torsions(mT, frameIn, hasPosition);
     } else if (Hx == AtomType::SP2 && Hy == AtomType::SP2) {
       mprintf("SP2 SP2\n");
       createSp2Sp2Torsions();
