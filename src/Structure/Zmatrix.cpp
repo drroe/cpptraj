@@ -80,6 +80,12 @@ int Zmatrix::AddIC(InternalCoords const& ic) {
   return 0;
 }
 
+/** Calculate and add internal coordinate from frame. */
+int Zmatrix::AddIC(int ai, int aj, int ak, int al, Frame const& frameIn) {
+  addIc(ai, aj, ak, al, frameIn);
+  return 0;
+}
+
 /** Set IC at specified position. */ // TODO check if seed?
 void Zmatrix::SetIC(unsigned int idx, InternalCoords const& ic) {
   IC_[idx] = ic;
@@ -122,12 +128,6 @@ void Zmatrix::print(Topology const* topIn) const {
               it->Dist(), it->Theta(), it->Phi());
   }
 }
-
-/** Remap internal coordinate indices according to the given atom map. */
-/*void Zmatrix::RemapIcIndices(std::vector<int> const& map) {
-  for (ICarray::iterator it = IC_.begin(); it != IC_.end(); ++it)
-    it->RemapIndices(map);
-}*/
 
 /** Increment IC indices by given offset */
 void Zmatrix::OffsetIcIndices(int offset) {

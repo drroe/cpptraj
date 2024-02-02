@@ -1279,14 +1279,14 @@ int Builder::GenerateInternals(Zmatrix& zmatrix, Frame const& frameIn, Topology 
       for (Iarray::const_iterator ai = sorted_a2.begin(); ai != sorted_a2.end(); ++ai) {
         for (Iarray::const_iterator al = sorted_a3.begin(); al != sorted_a3.end(); ++al) {
           //double dval = Torsion(frameIn.XYZ(*ai), frameIn.XYZ(aj), frameIn.XYZ(ak), frameIn.XYZ(*al));
-          addIc(*ai, aj, ak, *al, frameIn);
+          zmatrix.AddIC(*ai, aj, ak, *al, frameIn);
           mprintf("++++Torsion INTERNAL: %f to %s - %s - %s - %s\n",
-                  IC_.back().Phi(),
+                  zmatrix.back().Phi(),
                   topIn.LeapName(*ai).c_str(),
                   topIn.LeapName(aj).c_str(),
                   topIn.LeapName(ak).c_str(),
                   topIn.LeapName(*al).c_str());
-          addIc(*al, ak, aj, *ai, frameIn);
+          zmatrix.AddIC(*al, ak, aj, *ai, frameIn);
         }
       }
     }

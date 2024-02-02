@@ -54,6 +54,7 @@ class Builder {
                            BuildAtom const&, BuildAtom const&) const;
     /// Generate internal coordinates in the same manner as LEaP
     int GenerateInternals(Zmatrix&, Frame const&, Topology const&, Barray const&);
+
     int debug_;
     ParameterSet const* params_;
     Zmatrix const* currentZmatrix_; ///< Any existing internal coordinates

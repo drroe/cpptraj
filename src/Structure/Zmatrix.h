@@ -27,12 +27,14 @@ class Zmatrix {
     void clear();
     /// Sort ICs by atom index (I < L < K < J)
     void sort();
+    /// \return the last added IC
+    InternalCoords const& back() const { return IC_.back(); }
     /// Add internal coordinate
     int AddIC(InternalCoords const&);
+    /// Calculate and add internal coordinate for specified atoms
+    int AddIC(int,int,int,int,Frame const&);
     /// Set specified IC
     void SetIC(unsigned int, InternalCoords const&);
-    /// Remap IC indices according to given map
-    //void RemapIcIndices(std::vector<int> const&);
     /// Offset IC indices by given value
     void OffsetIcIndices(int);
 
