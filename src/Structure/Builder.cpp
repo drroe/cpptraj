@@ -30,7 +30,7 @@ void Cpptraj::Structure::Builder::SetParameters(ParameterSet const* paramsIn) {
 }
 
 /** Set optional Zmatrix. */
-void Cpptraj::Structure::Builder::SetZmatrix(Zmatrix const* zmatrixIn) {
+void Cpptraj::Structure::Builder::SetZmatrix(Zmatrix* zmatrixIn) {
   if (zmatrixIn == 0) {
     mprinterr("Internal Error: Builder::SetZmatrix called with null set.\n");
     return;
@@ -1424,27 +1424,59 @@ void Builder::ModelTorsion(TorsionModel const& MT, unsigned int iBondX, unsigned
   int ax = MT.AtX();
   int ay = MT.AtY();
   int ad = MT.SortedAy()[iBondY];
+  // Get bond lengths
+  double l0, l1;
+  if (AssignLength(l0, aa, ax, *currentTop_, *currentFrm_, *hasPosition_)) {
+    mprinterr("Error: Could not assign length between %s and %s\n",
+              currentTop_->AtomMaskName(aa).c_str(),
+              currentTop_->AtomMaskName(ax).c_str());
+    return;
+  }
+  if (AssignLength(l1, ad, ay, *currentTop_, *currentFrm_, *hasPosition_)) {
+    mprinterr("Error: Could not assign length between %s and %s\n",
+              currentTop_->AtomMaskName(ad).c_str(),
+              currentTop_->AtomMaskName(ay).c_str());
+    return;
+  }
+  // Get angles
+  double t0, t1;
+  if (AssignTheta(t0, aa, ax, ay, *currentTop_, *currentFrm_, *hasPosition_)) {
+    mprinterr("Error: Could not assign angle between %s and %s and %s\n",
+              currentTop_->AtomMaskName(aa).c_str(),
+              currentTop_->AtomMaskName(ax).c_str(),
+              currentTop_->AtomMaskName(ay).c_str());
+    return;
+  }
+  if (AssignTheta(t1, ad, ay, ax, *currentTop_, *currentFrm_, *hasPosition_)) {
+    mprinterr("Error: Could not assign angle between %s and %s and %s\n",
+              currentTop_->AtomMaskName(ad).c_str(),
+              currentTop_->AtomMaskName(ay).c_str(),
+              currentTop_->AtomMaskName(ax).c_str());
+    return;
+  }
   // If the coordinates for the atoms are defined then
   // measure the torsion angle between them and use that for
   // the internal.
-  double dval = dvalIn;
+  double phiVal = dvalIn;
   if ((*hasPosition_)[aa] &&
       (*hasPosition_)[ax] &&
       (*hasPosition_)[ay] &&
       (*hasPosition_)[ad])
   {
-    dval = Torsion( currentFrm_->XYZ(aa),
-                    currentFrm_->XYZ(ax),
-                    currentFrm_->XYZ(ay),
-                    currentFrm_->XYZ(ad) );
+    phiVal = Torsion( currentFrm_->XYZ(aa),
+                      currentFrm_->XYZ(ax),
+                      currentFrm_->XYZ(ay),
+                      currentFrm_->XYZ(ad) );
   } else {
     mprinterr("Internal Error: Need to implement torsion lookup.\n");
   }
-  mprintf("++++Torsion INTERNAL: %f to %s - %s - %s - %s\n", dval*Constants::RADDEG,
+  mprintf("++++Torsion INTERNAL: %f to %s - %s - %s - %s\n", phiVal*Constants::RADDEG,
           currentTop_->LeapName(aa).c_str(),
           currentTop_->LeapName(ax).c_str(),
           currentTop_->LeapName(ay).c_str(),
           currentTop_->LeapName(ad).c_str());
+  currentZmatrix_->AddIC( InternalCoords(aa, ax, ay, ad, l0, t0*Constants::RADDEG, phiVal*Constants::RADDEG) );
+  currentZmatrix_->AddIC( InternalCoords(ad, ay, ax, aa, l1, t1*Constants::RADDEG, phiVal*Constants::RADDEG) );
 }
 
 /** Create torsions around SP3-SP3. */
@@ -1695,6 +1727,7 @@ int Builder::GenerateInternals(Zmatrix& zmatrix, Frame const& frameIn, Topology 
       return 1;
     }
   }
+  zmatrix.print( &topIn );
   mprintf("DEBUG: ----- Leaving Builder::GenerateInternals. ------\n");
   return 0;
 }
