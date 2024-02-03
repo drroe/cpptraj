@@ -1727,7 +1727,7 @@ int Builder::GenerateInternals(Zmatrix& zmatrix, Frame const& frameIn, Topology 
       return 1;
     }
   }
-  zmatrix.print( &topIn );
+  //zmatrix.print( &topIn );
   mprintf("DEBUG: ----- Leaving Builder::GenerateInternals. ------\n");
   return 0;
 }

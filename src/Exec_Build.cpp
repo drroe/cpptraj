@@ -304,19 +304,19 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
         resTemplate->GetFrame( 0, templateFrame );
         Cpptraj::Structure::Zmatrix* zmatrix = new Cpptraj::Structure::Zmatrix();
         //if (zmatrix->SetFromFrameAndConnect( templateFrame, resTemplate->Top() )) {
-        if (zmatrix->GenerateInternals( templateFrame, resTemplate->Top() )) {
-          mprinterr("Error: Could not set up residue template zmatrix.\n");
+//        if (zmatrix->GenerateInternals( templateFrame, resTemplate->Top() )) {
+//          mprinterr("Error: Could not set up residue template zmatrix.\n");
+//          return 1;
+//        }
+        if (structureBuilder.GenerateInternals(*zmatrix, templateFrame, resTemplate->Top(),
+                                               std::vector<bool>(resTemplate->Top().Natom(), true)))
+        {
+          mprinterr("Error: Generate internals for residue template failed.\n");
           return 1;
         }
 //        zmatrix->print( resTemplate->TopPtr() );
         zmatrix->OffsetIcIndices( atomOffset );
         ResZmatrices.push_back( zmatrix );
-        // FIXME DEBUG
-        Cpptraj::Structure::Zmatrix tmpz;
-        if (structureBuilder.GenerateInternals( tmpz, templateFrame, resTemplate->Top(), std::vector<bool>(resTemplate->Top().Natom(), true) )) {
-          mprinterr("Error: Generate internals for template failed.\n");
-          return 1;
-        }
 //        zmatrix->print( &topOut );
         //for (Iarray::const_iterator jres = resConnections[ires].begin();
         //                            jres != resConnections[ires].end(); ++jres)
