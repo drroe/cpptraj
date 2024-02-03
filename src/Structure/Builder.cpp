@@ -1485,10 +1485,10 @@ void Builder::createSp3Sp3Torsions(TorsionModel const& MT) {
   // the same absolute angle that is measured
   // and twist all the others with it.
   static const double PIOVER3 = Constants::PI / 3.0;
-  double dADOffset = MT.Absolute() - Constants::PI;
-  double d180      = Constants::PI + dADOffset;
-  double dm60      = -PIOVER3      + dADOffset;
-  double d60       =  PIOVER3      + dADOffset;
+  double dADOffset = wrap360(MT.Absolute() - Constants::PI);
+  double d180      = wrap360(Constants::PI + dADOffset    );
+  double dm60      = wrap360(-PIOVER3      + dADOffset    );
+  double d60       = wrap360( PIOVER3      + dADOffset    );
 
   if ( MT.XOrientation() > 0.0 ) {
     if ( MT.YOrientation() > 0.0 ) {
@@ -1546,13 +1546,13 @@ void Builder::createSp3Sp2Torsions(TorsionModel const& MT) {
   // and twist all the others with it.
   static const double PIOVER3   = Constants::PI / 3.0;
   static const double PIOVER3x2 = PIOVER3 * 2.0;
-  double dADOffset = MT.Absolute() - Constants::PI;
-  double   d180    = Constants::PI + dADOffset;
-  double   dm60    = -PIOVER3      + dADOffset;
-  double   d60     =  PIOVER3      + dADOffset;
-  double  dm120    = -PIOVER3x2    + dADOffset;
-  double  d120     =  PIOVER3x2    + dADOffset;
-  double  d0       =                 dADOffset;
+  double dADOffset = wrap360(MT.Absolute() - Constants::PI);
+  double   d180    = wrap360(Constants::PI + dADOffset    );
+  double   dm60    = wrap360(-PIOVER3      + dADOffset    );
+  double   d60     = wrap360( PIOVER3      + dADOffset    );
+  double  dm120    = wrap360(-PIOVER3x2    + dADOffset    );
+  double  d120     = wrap360( PIOVER3x2    + dADOffset    );
+  double  d0       =                         dADOffset     ;
 
   if ( MT.XOrientation() > 0.0 ) {
     ModelTorsion( MT, 0, 0, d180);
@@ -1577,9 +1577,9 @@ void Builder::createSp2Sp2Torsions(TorsionModel const& MT) {
   // First twist the torsion so that the AD torsion has
   // the same absolute angle that is measured
   // and twist all the others with it.
-  double dADOffset = MT.Absolute() - Constants::PI;
-  double d180      = Constants::PI + dADOffset;
-  double d0        =                 dADOffset;
+  double dADOffset = wrap360(MT.Absolute() - Constants::PI);
+  double d180      = wrap360(Constants::PI + dADOffset    );
+  double d0        =                 dADOffset             ;
 
   ModelTorsion( MT, 0, 0, d180 );
   ModelTorsion( MT, 0, 1, d0 );
@@ -1589,10 +1589,10 @@ void Builder::createSp2Sp2Torsions(TorsionModel const& MT) {
 }
 
 /** Assign torsions around bonded atoms in manner similar to LEaP's ModelAssignTorsionsAround. */
-int Builder::assignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
+int Builder::AssignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
 {
   // Save addresses of zmatrix, frame, topology, and hasPosition.
-  // These are required for the createSpXSpX routines.
+  // These are required for the createSpXSpX routines. TODO zero them at the end?
   currentZmatrix_ = &zmatrix;
   currentFrm_ = &frameIn;
   currentTop_ = &topIn;
@@ -1645,7 +1645,7 @@ int Builder::assignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame co
     Hy = H2;
   }
   static const char* hstr[] = { "SP", "SP2", "SP3", "Unknown" };
-  mprintf("DEBUG: assignTorsionsAroundBond: AX= %s (%s)  AY= %s (%s)\n",
+  mprintf("DEBUG: AssignTorsionsAroundBond: AX= %s (%s)  AY= %s (%s)\n",
           topIn.AtomMaskName(ax).c_str(), hstr[Hx],
           topIn.AtomMaskName(ay).c_str(), hstr[Hy]);
   // Check if there is at least one atom on either side of the ax-ay pair
@@ -1668,7 +1668,7 @@ int Builder::assignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame co
   }
 
   if (!axHasKnownAtoms && !ayHasKnownAtoms) {
-    mprinterr("Internal Error: assignTorsionsAroundBond both not known not yet implemented.\n");
+    mprinterr("Internal Error: AssignTorsionsAroundBond both not known not yet implemented.\n");
     return 1;
   } else {
     mprintf("DEBUG: Using externals to fit new torsions around: %s - %s\n",
@@ -1720,7 +1720,7 @@ int Builder::GenerateInternals(Zmatrix& zmatrix, Frame const& frameIn, Topology 
   // Loop over bonds
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
   {
-    if (assignTorsionsAroundBond( zmatrix, bnd->A1(), bnd->A2(), frameIn, topIn, hasPosition )) {
+    if (AssignTorsionsAroundBond( zmatrix, bnd->A1(), bnd->A2(), frameIn, topIn, hasPosition )) {
       mprinterr("Error Assign torsions around bond %s - %s failed.\n",
                 topIn.AtomMaskName(bnd->A1()).c_str(),
                 topIn.AtomMaskName(bnd->A2()).c_str());

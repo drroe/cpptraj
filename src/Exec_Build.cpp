@@ -414,6 +414,16 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
                           topOut.AtomMaskName(at).c_str(), topOut.AtomMaskName(*bat).c_str());
                 return 1;
               }
+              // FIXME DEBUG
+              Cpptraj::Structure::Zmatrix tmpz;
+              if (structureBuilder.AssignTorsionsAroundBond(tmpz, at, *bat, frameOut, topOut,
+                                                            hasPosition))
+              {
+                mprinterr("Error: Assign torsions around inter-residue bond %s - %s failed.\n",
+                          topOut.AtomMaskName(at).c_str(), topOut.AtomMaskName(*bat).c_str());
+                return 1;
+              }
+              tmpz.print(&topOut);
             }
           }
         }

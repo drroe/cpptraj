@@ -31,6 +31,8 @@ class Builder {
 
     /// Generate internal coordinates in the same manner as LEaP
     int GenerateInternals(Zmatrix&, Frame const&, Topology const&, Barray const&);
+    /// Model torsions around a bond in the same manner as LEaP
+    int AssignTorsionsAroundBond(Zmatrix&, int, int, Frame const&, Topology const&, Barray const&);
 
   private:
     typedef std::vector<int> Iarray;
@@ -61,9 +63,7 @@ class Builder {
                            Barray const&, Barray const&,
                            BuildAtom const&, BuildAtom const&) const;
 
-    /// Model torsions around a bond in the same manner as LEaP
-    int assignTorsionsAroundBond(Zmatrix&, int, int, Frame const&, Topology const&, Barray const&);
-
+    /// Create IC for a torsion
     void ModelTorsion(TorsionModel const&, unsigned int, unsigned int, double);
 
     void createSp3Sp3Torsions(TorsionModel const&);
