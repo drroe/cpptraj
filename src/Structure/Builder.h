@@ -64,7 +64,7 @@ class Builder {
     /// Model torsions around a bond in the same manner as LEaP
     int assignTorsionsAroundBond(int, int, Frame const&, Topology const&, Barray const&);
 
-    void ModelTorsion(TorsionModel const&, unsigned int, unsigned int, double, Frame const&, Barray const&);
+    void ModelTorsion(TorsionModel const&, unsigned int, unsigned int, double);
 
     void createSp3Sp3Torsions(TorsionModel const&, Frame const&, Barray const&);
     void createSp3Sp2Torsions(TorsionModel const&, Frame const&, Barray const&);
@@ -73,6 +73,10 @@ class Builder {
     int debug_;
     ParameterSet const* params_;
     Zmatrix const* currentZmatrix_; ///< Any existing internal coordinates
+
+    Topology const* currentTop_; ///< Topology for the createSpXSpXTorsions/ModelTorsion routines
+    Frame const* currentFrm_;    ///< Frame for the createSpXSpXTorsions routines
+    Barray const* hasPosition_;  ///< Array indicating which atoms have position for createSpXSpXTorsions/ModelTorsion routines
 };
 }
 }

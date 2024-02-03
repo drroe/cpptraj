@@ -1414,7 +1414,7 @@ int Cpptraj::Structure::Builder::TorsionModel::SetupTorsion(int ax, int ay,
 
 // -----------------------------------------------
 /** Model torsion */
-void Builder::ModelTorsion(TorsionModel const& MT, unsigned int iBondX, unsigned int iBondY, double dvalIn, Frame const& frameIn, Barray const& hasPosition)
+void Builder::ModelTorsion(TorsionModel const& MT, unsigned int iBondX, unsigned int iBondY, double dvalIn)
 {
   if (iBondX >= MT.SortedAx().size() ||
       iBondY >= MT.SortedAy().size())
@@ -1428,20 +1428,23 @@ void Builder::ModelTorsion(TorsionModel const& MT, unsigned int iBondX, unsigned
   // measure the torsion angle between them and use that for
   // the internal.
   double dval = dvalIn;
-  if (hasPosition[aa] &&
-      hasPosition[ax] &&
-      hasPosition[ay] &&
-      hasPosition[ad])
+  if ((*hasPosition_)[aa] &&
+      (*hasPosition_)[ax] &&
+      (*hasPosition_)[ay] &&
+      (*hasPosition_)[ad])
   {
-    dval = Torsion( frameIn.XYZ(aa),
-                    frameIn.XYZ(ax),
-                    frameIn.XYZ(ay),
-                    frameIn.XYZ(ad) );
+    dval = Torsion( currentFrm_->XYZ(aa),
+                    currentFrm_->XYZ(ax),
+                    currentFrm_->XYZ(ay),
+                    currentFrm_->XYZ(ad) );
   } else {
     mprinterr("Internal Error: Need to implement torsion lookup.\n");
   }
-  mprintf( "++++Torsion INTERNAL: %f to %i - %i - %i - %i\n", dval*Constants::RADDEG, aa+1, ax+1, ay+1, ad+1);
-
+  mprintf("++++Torsion INTERNAL: %f to %s - %s - %s - %s\n", dval*Constants::RADDEG,
+          currentTop_->LeapName(aa).c_str(),
+          currentTop_->LeapName(ax).c_str(),
+          currentTop_->LeapName(ay).c_str(),
+          currentTop_->LeapName(ad).c_str());
 }
 
 /** Create torsions around SP3-SP3. */
@@ -1457,47 +1460,47 @@ void Builder::createSp3Sp3Torsions(TorsionModel const& MT, Frame const& frameIn,
 
   if ( MT.XOrientation() > 0.0 ) {
     if ( MT.YOrientation() > 0.0 ) {
-      ModelTorsion( MT, 0, 0, d180, frameIn, hasPosition);
-      ModelTorsion( MT, 0, 1, dm60, frameIn, hasPosition);
-      ModelTorsion( MT, 0, 2, d60, frameIn, hasPosition);
-      ModelTorsion( MT, 1, 0, dm60, frameIn, hasPosition);
-      ModelTorsion( MT, 1, 1, d60, frameIn, hasPosition);
-      ModelTorsion( MT, 1, 2, d180, frameIn, hasPosition);
-      ModelTorsion( MT, 2, 0, d60, frameIn, hasPosition);
-      ModelTorsion( MT, 2, 1, d180, frameIn, hasPosition);
-      ModelTorsion( MT, 2, 2, dm60, frameIn, hasPosition);
+      ModelTorsion( MT, 0, 0, d180);
+      ModelTorsion( MT, 0, 1, dm60);
+      ModelTorsion( MT, 0, 2, d60);
+      ModelTorsion( MT, 1, 0, dm60);
+      ModelTorsion( MT, 1, 1, d60);
+      ModelTorsion( MT, 1, 2, d180);
+      ModelTorsion( MT, 2, 0, d60);
+      ModelTorsion( MT, 2, 1, d180);
+      ModelTorsion( MT, 2, 2, dm60);
     } else {
-      ModelTorsion( MT, 0, 0,  d180, frameIn, hasPosition);
-      ModelTorsion( MT, 0, 1,  d60, frameIn, hasPosition);
-      ModelTorsion( MT, 0, 2,  dm60, frameIn, hasPosition);
-      ModelTorsion( MT, 1, 0,  dm60, frameIn, hasPosition);
-      ModelTorsion( MT, 1, 1,  d180, frameIn, hasPosition);
-      ModelTorsion( MT, 1, 2,  d60, frameIn, hasPosition);
-      ModelTorsion( MT, 2, 0,  d60, frameIn, hasPosition);
-      ModelTorsion( MT, 2, 1,  dm60, frameIn, hasPosition);
-      ModelTorsion( MT, 2, 2,  d180, frameIn, hasPosition);
+      ModelTorsion( MT, 0, 0,  d180);
+      ModelTorsion( MT, 0, 1,  d60);
+      ModelTorsion( MT, 0, 2,  dm60);
+      ModelTorsion( MT, 1, 0,  dm60);
+      ModelTorsion( MT, 1, 1,  d180);
+      ModelTorsion( MT, 1, 2,  d60);
+      ModelTorsion( MT, 2, 0,  d60);
+      ModelTorsion( MT, 2, 1,  dm60);
+      ModelTorsion( MT, 2, 2,  d180);
     }
   } else {
     if ( MT.YOrientation() > 0.0 ) {
-      ModelTorsion( MT, 0, 0, d180, frameIn, hasPosition);
-      ModelTorsion( MT, 0, 1, dm60, frameIn, hasPosition);
-      ModelTorsion( MT, 0, 2, d60, frameIn, hasPosition);
-      ModelTorsion( MT, 1, 0, d60, frameIn, hasPosition);
-      ModelTorsion( MT, 1, 1, d180, frameIn, hasPosition);
-      ModelTorsion( MT, 1, 2, dm60, frameIn, hasPosition);
-      ModelTorsion( MT, 2, 0, dm60, frameIn, hasPosition);
-      ModelTorsion( MT, 2, 1, d60, frameIn, hasPosition);
-      ModelTorsion( MT, 2, 2, d180, frameIn, hasPosition);
+      ModelTorsion( MT, 0, 0, d180);
+      ModelTorsion( MT, 0, 1, dm60);
+      ModelTorsion( MT, 0, 2, d60);
+      ModelTorsion( MT, 1, 0, d60);
+      ModelTorsion( MT, 1, 1, d180);
+      ModelTorsion( MT, 1, 2, dm60);
+      ModelTorsion( MT, 2, 0, dm60);
+      ModelTorsion( MT, 2, 1, d60);
+      ModelTorsion( MT, 2, 2, d180);
     } else {
-      ModelTorsion( MT, 0, 0, d180, frameIn, hasPosition);
-      ModelTorsion( MT, 0, 1, d60, frameIn, hasPosition);
-      ModelTorsion( MT, 0, 2, dm60, frameIn, hasPosition);
-      ModelTorsion( MT, 1, 0, d60, frameIn, hasPosition);
-      ModelTorsion( MT, 1, 1, dm60, frameIn, hasPosition);
-      ModelTorsion( MT, 1, 2, d180, frameIn, hasPosition);
-      ModelTorsion( MT, 2, 0, dm60, frameIn, hasPosition);
-      ModelTorsion( MT, 2, 1, d180, frameIn, hasPosition);
-      ModelTorsion( MT, 2, 2, d60, frameIn, hasPosition);
+      ModelTorsion( MT, 0, 0, d180);
+      ModelTorsion( MT, 0, 1, d60);
+      ModelTorsion( MT, 0, 2, dm60);
+      ModelTorsion( MT, 1, 0, d60);
+      ModelTorsion( MT, 1, 1, dm60);
+      ModelTorsion( MT, 1, 2, d180);
+      ModelTorsion( MT, 2, 0, dm60);
+      ModelTorsion( MT, 2, 1, d180);
+      ModelTorsion( MT, 2, 2, d60);
     }
   }
 
@@ -1520,19 +1523,19 @@ void Builder::createSp3Sp2Torsions(TorsionModel const& MT, Frame const& frameIn,
   double  d0       =                 dADOffset;
 
   if ( MT.XOrientation() > 0.0 ) {
-    ModelTorsion( MT, 0, 0, d180, frameIn, hasPosition);
-    ModelTorsion( MT, 0, 1, d0, frameIn, hasPosition);
-    ModelTorsion( MT, 1, 0, dm60, frameIn, hasPosition);
-    ModelTorsion( MT, 1, 1, d120, frameIn, hasPosition);
-    ModelTorsion( MT, 2, 0, d60, frameIn, hasPosition);
-    ModelTorsion( MT, 2, 1, dm120, frameIn, hasPosition);
+    ModelTorsion( MT, 0, 0, d180);
+    ModelTorsion( MT, 0, 1, d0);
+    ModelTorsion( MT, 1, 0, dm60);
+    ModelTorsion( MT, 1, 1, d120);
+    ModelTorsion( MT, 2, 0, d60);
+    ModelTorsion( MT, 2, 1, dm120);
   } else {
-    ModelTorsion( MT, 0, 0, d180, frameIn, hasPosition);
-    ModelTorsion( MT, 0, 1, d0, frameIn, hasPosition);
-    ModelTorsion( MT, 1, 0, d60, frameIn, hasPosition);
-    ModelTorsion( MT, 1, 1, dm120, frameIn, hasPosition);
-    ModelTorsion( MT, 2, 0, dm60, frameIn, hasPosition);
-    ModelTorsion( MT, 2, 1, d120, frameIn, hasPosition);
+    ModelTorsion( MT, 0, 0, d180);
+    ModelTorsion( MT, 0, 1, d0);
+    ModelTorsion( MT, 1, 0, d60);
+    ModelTorsion( MT, 1, 1, dm120);
+    ModelTorsion( MT, 2, 0, dm60);
+    ModelTorsion( MT, 2, 1, d120);
   }
 
   return;
@@ -1546,16 +1549,20 @@ void Builder::createSp2Sp2Torsions(TorsionModel const& MT, Frame const& frameIn,
   double d180      = Constants::PI + dADOffset;
   double d0        =                 dADOffset;
 
-  ModelTorsion( MT, 0, 0, d180, frameIn, hasPosition );
-  ModelTorsion( MT, 0, 1, d0, frameIn, hasPosition );
-  ModelTorsion( MT, 1, 0, d0, frameIn, hasPosition );
-  ModelTorsion( MT, 1, 1, d180, frameIn, hasPosition );
+  ModelTorsion( MT, 0, 0, d180 );
+  ModelTorsion( MT, 0, 1, d0 );
+  ModelTorsion( MT, 1, 0, d0 );
+  ModelTorsion( MT, 1, 1, d180 );
   return;
 }
 
 /** Assign torsions around bonded atoms in manner similar to LEaP's ModelAssignTorsionsAround. */
 int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
 {
+  // Save addresses of frame, topology, and hasPosition
+  currentFrm_ = &frameIn;
+  currentTop_ = &topIn;
+  hasPosition_ = &hasPosition;
   // No need to do this if either atom only has 1 bond.
   if (topIn[a1].Nbonds() < 2 || topIn[a2].Nbonds() < 2)
     return 0;
