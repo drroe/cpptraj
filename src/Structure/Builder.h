@@ -62,13 +62,13 @@ class Builder {
                            BuildAtom const&, BuildAtom const&) const;
 
     /// Model torsions around a bond in the same manner as LEaP
-    int assignTorsionsAroundBond(int, int, Frame const&, Topology const&, Barray const&);
+    int assignTorsionsAroundBond(Zmatrix&, int, int, Frame const&, Topology const&, Barray const&);
 
     void ModelTorsion(TorsionModel const&, unsigned int, unsigned int, double);
 
-    void createSp3Sp3Torsions(TorsionModel const&, Frame const&, Barray const&);
-    void createSp3Sp2Torsions(TorsionModel const&, Frame const&, Barray const&);
-    void createSp2Sp2Torsions(TorsionModel const&, Frame const&, Barray const&);
+    void createSp3Sp3Torsions(TorsionModel const&);
+    void createSp3Sp2Torsions(TorsionModel const&);
+    void createSp2Sp2Torsions(TorsionModel const&);
 
     int debug_;
     ParameterSet const* params_;

@@ -1448,7 +1448,7 @@ void Builder::ModelTorsion(TorsionModel const& MT, unsigned int iBondX, unsigned
 }
 
 /** Create torsions around SP3-SP3. */
-void Builder::createSp3Sp3Torsions(TorsionModel const& MT, Frame const& frameIn, Barray const& hasPosition) {
+void Builder::createSp3Sp3Torsions(TorsionModel const& MT) {
   // First twist the torsion so that the AD torsion has
   // the same absolute angle that is measured
   // and twist all the others with it.
@@ -1508,7 +1508,7 @@ void Builder::createSp3Sp3Torsions(TorsionModel const& MT, Frame const& frameIn,
 }
 
 /** Create torsions around SP3-SP2. */
-void Builder::createSp3Sp2Torsions(TorsionModel const& MT, Frame const& frameIn, Barray const& hasPosition) {
+void Builder::createSp3Sp2Torsions(TorsionModel const& MT) {
   // First twist the torsion so that the AD torsion has
   // the same absolute angle that is measured
   // and twist all the others with it.
@@ -1541,7 +1541,7 @@ void Builder::createSp3Sp2Torsions(TorsionModel const& MT, Frame const& frameIn,
   return;
 }
 
-void Builder::createSp2Sp2Torsions(TorsionModel const& MT, Frame const& frameIn, Barray const& hasPosition) {
+void Builder::createSp2Sp2Torsions(TorsionModel const& MT) {
   // First twist the torsion so that the AD torsion has
   // the same absolute angle that is measured
   // and twist all the others with it.
@@ -1557,9 +1557,11 @@ void Builder::createSp2Sp2Torsions(TorsionModel const& MT, Frame const& frameIn,
 }
 
 /** Assign torsions around bonded atoms in manner similar to LEaP's ModelAssignTorsionsAround. */
-int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
+int Builder::assignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
 {
-  // Save addresses of frame, topology, and hasPosition
+  // Save addresses of zmatrix, frame, topology, and hasPosition.
+  // These are required for the createSpXSpX routines.
+  currentZmatrix_ = &zmatrix;
   currentFrm_ = &frameIn;
   currentTop_ = &topIn;
   hasPosition_ = &hasPosition;
@@ -1652,13 +1654,13 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
     // Build the new internals
     if (Hx == AtomType::SP3 && Hy == AtomType::SP3) {
       mprintf("SP3 SP3\n");
-      createSp3Sp3Torsions(mT, frameIn, hasPosition);
+      createSp3Sp3Torsions(mT);
     } else if (Hx == AtomType::SP3 && Hy == AtomType::SP2) {
       mprintf("SP3 SP2\n");
-      createSp3Sp2Torsions(mT, frameIn, hasPosition);
+      createSp3Sp2Torsions(mT);
     } else if (Hx == AtomType::SP2 && Hy == AtomType::SP2) {
       mprintf("SP2 SP2\n");
-      createSp2Sp2Torsions(mT, frameIn, hasPosition);
+      createSp2Sp2Torsions(mT);
     } else {
       mprinterr("Error: Currently only Sp3-Sp3/Sp3-Sp2/Sp2-Sp2 are supported\n"
                 "Error: ---Tried to superimpose torsions for: *-%s-%s-*\n"
@@ -1686,49 +1688,12 @@ int Builder::GenerateInternals(Zmatrix& zmatrix, Frame const& frameIn, Topology 
   // Loop over bonds
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
   {
-    if (assignTorsionsAroundBond( bnd->A1(), bnd->A2(), frameIn, topIn, hasPosition )) {
+    if (assignTorsionsAroundBond( zmatrix, bnd->A1(), bnd->A2(), frameIn, topIn, hasPosition )) {
       mprinterr("Error Assign torsions around bond %s - %s failed.\n",
                 topIn.AtomMaskName(bnd->A1()).c_str(),
                 topIn.AtomMaskName(bnd->A2()).c_str());
       return 1;
     }
-/*
-    Atom const& A2 = topIn[bnd->A1()];
-    Atom const& A3 = topIn[bnd->A2()];
-    if (A2.Nbonds() > 1 && A3.Nbonds() > 1) {
-      //Residue const& R2 = topIn.Res(A2.ResNum());
-      //Residue const& R3 = topIn.Res(A3.ResNum());
-      mprintf("Building torsion INTERNALs around: %s - %s\n",
-              topIn.LeapName(bnd->A1()).c_str(), topIn.LeapName(bnd->A2()).c_str());
-      Iarray sorted_a2 = SortBondedAtomsLikeLeap(A2, topIn, bnd->A2());
-      Iarray sorted_a3 = SortBondedAtomsLikeLeap(A3, topIn, bnd->A1());
-      mprintf("Orientation around: %s {", *(A2.Name()));
-      for (Atom::bond_iterator bat = A2.bondbegin(); bat != A2.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
-      mprintf("}\n");
-      for (Iarray::const_iterator it = sorted_a2.begin(); it != sorted_a2.end(); ++it)
-        mprintf("Atom %li: %s\n", it - sorted_a2.begin(), *(topIn[*it].Name()));
-      mprintf("Orientation around: %s {", *(A3.Name()));
-      for (Atom::bond_iterator bat = A3.bondbegin(); bat != A3.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
-      mprintf("}\n");
-      for (Iarray::const_iterator it = sorted_a3.begin(); it != sorted_a3.end(); ++it)
-        mprintf("Atom %li: %s\n", it - sorted_a3.begin(), *(topIn[*it].Name()));
-      // Build the torsions
-      int aj = bnd->A1();
-      int ak = bnd->A2();
-      for (Iarray::const_iterator ai = sorted_a2.begin(); ai != sorted_a2.end(); ++ai) {
-        for (Iarray::const_iterator al = sorted_a3.begin(); al != sorted_a3.end(); ++al) {
-          //double dval = Torsion(frameIn.XYZ(*ai), frameIn.XYZ(aj), frameIn.XYZ(ak), frameIn.XYZ(*al));
-          zmatrix.AddIC(*ai, aj, ak, *al, frameIn);
-          mprintf("++++Torsion INTERNAL: %f to %s - %s - %s - %s\n",
-                  zmatrix.back().Phi(),
-                  topIn.LeapName(*ai).c_str(),
-                  topIn.LeapName(aj).c_str(),
-                  topIn.LeapName(ak).c_str(),
-                  topIn.LeapName(*al).c_str());
-          zmatrix.AddIC(*al, ak, aj, *ai, frameIn);
-        }
-      }
-    }*/
   }
   mprintf("DEBUG: ----- Leaving Builder::GenerateInternals. ------\n");
   return 0;
