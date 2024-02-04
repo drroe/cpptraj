@@ -416,6 +416,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
               }
               // FIXME DEBUG
               Cpptraj::Structure::Zmatrix tmpz;
+              structureBuilder.SetZmatrix( zmatrix );
               if (structureBuilder.AssignTorsionsAroundBond(tmpz, at, *bat, frameOut, topOut,
                                                             hasPosition))
               {

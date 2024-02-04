@@ -20,7 +20,7 @@ class Builder {
     /// Set optional parameter set
     void SetParameters(ParameterSet const*);
     /// Set optional Zmatrix with current ICs
-    void SetZmatrix(Zmatrix*);
+    void SetZmatrix(Zmatrix const*);
 
     /// Combine second fragment into first fragment and bond
     int Combine(Topology&, Frame&, Topology const&, Frame const&, int, int) const;
@@ -72,11 +72,12 @@ class Builder {
 
     int debug_;
     ParameterSet const* params_;
-    Zmatrix* currentZmatrix_; ///< Any existing internal coordinates
+    Zmatrix const* currentZmatrix_; ///< Any existing internal coordinates
 
     Topology const* currentTop_; ///< Topology for the createSpXSpXTorsions/ModelTorsion routines
     Frame const* currentFrm_;    ///< Frame for the createSpXSpXTorsions routines
     Barray const* hasPosition_;  ///< Array indicating which atoms have position for createSpXSpXTorsions/ModelTorsion routines
+    Zmatrix* newZmatrix_;        ///< Hold output ICs from AssignTorsionsAroundBond
 };
 }
 }

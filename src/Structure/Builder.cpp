@@ -17,7 +17,11 @@ using namespace Cpptraj::Structure;
 Builder::Builder() :
   debug_(0),
   params_(0),
-  currentZmatrix_(0)
+  currentZmatrix_(0),
+  currentTop_(0),
+  currentFrm_(0),
+  hasPosition_(0),
+  newZmatrix_(0)
 {}
 
 /** Set optional parameter set. */
@@ -30,7 +34,7 @@ void Cpptraj::Structure::Builder::SetParameters(ParameterSet const* paramsIn) {
 }
 
 /** Set optional Zmatrix. */
-void Cpptraj::Structure::Builder::SetZmatrix(Zmatrix* zmatrixIn) {
+void Cpptraj::Structure::Builder::SetZmatrix(Zmatrix const* zmatrixIn) {
   if (zmatrixIn == 0) {
     mprinterr("Internal Error: Builder::SetZmatrix called with null set.\n");
     return;
@@ -1475,8 +1479,8 @@ void Builder::ModelTorsion(TorsionModel const& MT, unsigned int iBondX, unsigned
           currentTop_->LeapName(ax).c_str(),
           currentTop_->LeapName(ay).c_str(),
           currentTop_->LeapName(ad).c_str());
-  currentZmatrix_->AddIC( InternalCoords(aa, ax, ay, ad, l0, t0*Constants::RADDEG, phiVal*Constants::RADDEG) );
-  currentZmatrix_->AddIC( InternalCoords(ad, ay, ax, aa, l1, t1*Constants::RADDEG, phiVal*Constants::RADDEG) );
+  newZmatrix_->AddIC( InternalCoords(aa, ax, ay, ad, l0, t0*Constants::RADDEG, phiVal*Constants::RADDEG) );
+  newZmatrix_->AddIC( InternalCoords(ad, ay, ax, aa, l1, t1*Constants::RADDEG, phiVal*Constants::RADDEG) );
 }
 
 /** Create torsions around SP3-SP3. */
@@ -1593,7 +1597,7 @@ int Builder::AssignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame co
 {
   // Save addresses of zmatrix, frame, topology, and hasPosition.
   // These are required for the createSpXSpX routines. TODO zero them at the end?
-  currentZmatrix_ = &zmatrix;
+  newZmatrix_ = &zmatrix;
   currentFrm_ = &frameIn;
   currentTop_ = &topIn;
   hasPosition_ = &hasPosition;
