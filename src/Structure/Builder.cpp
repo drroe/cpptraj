@@ -1667,7 +1667,7 @@ int Builder::AssignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame co
     }
   }
 
-  if (!axHasKnownAtoms && !ayHasKnownAtoms) {
+  if (!(axHasKnownAtoms && ayHasKnownAtoms)) {
     mprinterr("Internal Error: AssignTorsionsAroundBond both not known not yet implemented.\n");
     return 1;
   } else {
