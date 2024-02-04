@@ -1670,11 +1670,27 @@ int Builder::AssignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame co
       break;
     }
   }
-
+  mprintf("bKnownX=%i  bKnownY=%i\n", (int)axHasKnownAtoms, (int)ayHasKnownAtoms);
   if (!(axHasKnownAtoms && ayHasKnownAtoms)) {
-    mprinterr("Internal Error: AssignTorsionsAroundBond both not known not yet implemented.\n");
-    return 1;
+    // Find any existing internal coords around ax-ay
+    std::vector<InternalCoords> iTorsions;
+    if (currentZmatrix_ != 0) {
+      for (Zmatrix::const_iterator it = currentZmatrix_->begin(); it != currentZmatrix_->end(); ++it)
+      {
+        if (it->AtJ() == ax && it->AtK() == ay) {
+          iTorsions.push_back( *it );
+        }
+      }
+    }
+    if (!iTorsions.empty()) {
+      mprintf("Using INTERNALs to fit new torsions around: %s - %s\n",
+              topIn.LeapName(ax).c_str(), topIn.LeapName(ay).c_str());
+    } else {
+      mprintf("Completely free in assigning new torsions for: %s - %s\n",
+              topIn.LeapName(ax).c_str(), topIn.LeapName(ay).c_str());
+    }
   } else {
+    // Use existing atoms to determine torsions
     mprintf("DEBUG: Using externals to fit new torsions around: %s - %s\n",
             topIn.LeapName(ax).c_str(),
             topIn.LeapName(ay).c_str());
