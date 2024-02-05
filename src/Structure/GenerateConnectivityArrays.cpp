@@ -37,7 +37,7 @@ BondArray Cpptraj::Structure::GenerateBondArray(std::vector<Residue> const& resi
 {
   BondArray out;
   // BONDS
-  int bidx = 0;
+  //int bidx = 0; // DEBUG
   for (std::vector<Residue>::const_iterator res = residues.begin(); res != residues.end(); ++res)
   {
     int start, end, offset;
@@ -49,7 +49,7 @@ BondArray Cpptraj::Structure::GenerateBondArray(std::vector<Residue> const& resi
       for (Atom::bond_iterator bat = At.bondbegin(); bat != At.bondend(); ++bat)
       {
         if (iat < *bat) {
-          mprintf("DEBUG: BOND  i= %i  %i - %i (%i %i)\n",  bidx++, iat+1, *bat+1, iat*3, *bat*3);
+          //mprintf("DEBUG: BOND  i= %i  %i - %i (%i %i)\n",  bidx++, iat+1, *bat+1, iat*3, *bat*3);
           out.push_back( BondType(iat, *bat, -1) );
         }
         //else
