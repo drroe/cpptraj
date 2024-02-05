@@ -198,6 +198,10 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   structureBuilder.SetDebug( 1 );
   structureBuilder.SetParameters( &mainParmSet );
 
+  // For holding bonded atom pairs
+  typedef std::pair<int,int> Ipair;
+  typedef std::vector<Ipair> IParray;
+
   // Loop for setting up atoms in the topology from residues or residue templates.
   int nRefAtomsMissing = 0;
   for (int ires = 0; ires != topIn.Nres(); ires++)
@@ -207,9 +211,6 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     mprintf("DEBUG: atom offset is %i\n", atomOffset);
     Residue const& currentRes = topIn.Res(ires);
     DataSet_Coords* resTemplate = ResTemplates[ires];
-    // For holding bonded atom pairs
-    typedef std::pair<int,int> Ipair;
-    typedef std::vector<Ipair> IParray;
     IParray intraResBonds;
     if (resTemplate == 0) {
       // ----- No template. Just add the atoms. ------------
@@ -339,6 +340,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
 
   // -----------------------------------
   // Add inter-residue bonds
+  std::vector<IParray> resBondingAtoms(topOut.Nres());
   for (ResAtArray::const_iterator it = interResBonds.begin(); it != interResBonds.end(); ++it)
   {
     ResAtPair const& ra0 = *it;
@@ -358,6 +360,17 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       return 1;
     }
     topOut.AddBond(at0, at1);
+    // Save bonding atoms
+    resBondingAtoms[ra0.first].push_back( Ipair(at0, at1) );
+    resBondingAtoms[ra1.first].push_back( Ipair(at1, at0) );
+  }
+  // DEBUG print residue bonding atoms
+  for (std::vector<IParray>::const_iterator rit = resBondingAtoms.begin();
+                                            rit != resBondingAtoms.end(); ++rit)
+  {
+    mprintf("\tResidue %s bonding atoms.\n", topOut.TruncResNameNum(rit-resBondingAtoms.begin()).c_str());
+    for (IParray::const_iterator it = rit->begin(); it != rit->end(); ++it)
+      mprintf("\t\t%s - %s\n", topOut.AtomMaskName(it->first).c_str(), topOut.AtomMaskName(it->second).c_str());
   }
 
   // -----------------------------------
