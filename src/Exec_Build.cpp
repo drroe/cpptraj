@@ -399,7 +399,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   linkBuilder.SetDebug( 1 ); // FIXME
   linkBuilder.SetParameters( &mainParmSet );
   bool buildFailed = false;
-  TermTypeArray::const_iterator termType = ResTypes.begin();
+  TermTypeArray::const_iterator termType = ResTypes.begin(); // FIXME is termType needed?
   for (Zarray::const_iterator it = ResZmatrices.begin(); it != ResZmatrices.end(); ++it, ++termType)
   {
     long int ires = it-ResZmatrices.begin();
@@ -413,6 +413,15 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       zmatrix->print(&topOut);
       linkBuilder.SetZmatrix( zmatrix );
       // Is this residue connected to an earlier residue?
+      for (IParray::const_iterator resBonds = resBondingAtoms[ires].begin();
+                                   resBonds != resBondingAtoms[ires].end(); ++resBonds)
+      {
+        if (resBonds->second < resBonds->first) {
+          mprintf("\t\tResidue connection: %s - %s\n",
+                  topOut.AtomMaskName(resBonds->first).c_str(),
+                  topOut.AtomMaskName(resBonds->second).c_str());
+        }
+      }
       if ( *termType != Cpptraj::Structure::BEG_TERMINAL ) {
         for (int at = topOut.Res(ires).FirstAtom(); at != topOut.Res(ires).LastAtom(); ++at)
         {
