@@ -392,7 +392,8 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     long int ires = it-ResZmatrices.begin();
     Cpptraj::Structure::Zmatrix* zmatrix = *it;
     if (zmatrix != 0) {
-      mprintf("DEBUG: BUILD residue %li %s\n", ires + 1, topOut.TruncResNameOnumId(ires).c_str());
+      mprintf("DEBUG: ***** BUILD residue %li %s *****\n", ires + 1,
+              topOut.TruncResNameOnumId(ires).c_str());
       mprintf("DEBUG: Residue type: %s terminal\n", Cpptraj::Structure::terminalStr(*termType));
       mprintf("DEBUG: Zmatrix for building residue %li %s\n", ires + 1,
               topOut.TruncResNameOnumId(ires).c_str());
@@ -417,8 +418,8 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
               // FIXME DEBUG
               Cpptraj::Structure::Zmatrix tmpz;
               structureBuilder.SetZmatrix( zmatrix );
-              if (structureBuilder.AssignTorsionsAroundBond(tmpz, at, *bat, frameOut, topOut,
-                                                            hasPosition))
+              if (structureBuilder.GenerateInternalsAroundLink(tmpz, at, *bat, frameOut, topOut,
+                                                               hasPosition))
               {
                 mprinterr("Error: Assign torsions around inter-residue bond %s - %s failed.\n",
                           topOut.AtomMaskName(at).c_str(), topOut.AtomMaskName(*bat).c_str());

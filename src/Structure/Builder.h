@@ -31,8 +31,8 @@ class Builder {
 
     /// Generate internal coordinates in the same manner as LEaP
     int GenerateInternals(Zmatrix&, Frame const&, Topology const&, Barray const&);
-    /// Model torsions around a bond in the same manner as LEaP
-    int AssignTorsionsAroundBond(Zmatrix&, int, int, Frame const&, Topology const&, Barray const&);
+    /// Generate internal coordinates around a link between residues in same manner as LEaP
+    int GenerateInternalsAroundLink(Zmatrix&, int, int, Frame const&, Topology const&, Barray const&);
 
   private:
     typedef std::vector<int> Iarray;
@@ -65,10 +65,14 @@ class Builder {
 
     /// Create IC for a torsion
     void ModelTorsion(TorsionModel const&, unsigned int, unsigned int, double);
-
+    /// Create ICs around SP3-SP3 linkage
     void createSp3Sp3Torsions(TorsionModel const&);
+    /// Create ICs around SP3-SP2 linkage
     void createSp3Sp2Torsions(TorsionModel const&);
+    /// Create ICs around SP2-SP2 linkage
     void createSp2Sp2Torsions(TorsionModel const&);
+    /// Model torsions around a bond in the same manner as LEaP
+    int assignTorsionsAroundBond(Zmatrix&, int, int, Frame const&, Topology const&, Barray const&);
 
     int debug_;
     ParameterSet const* params_;
@@ -77,7 +81,7 @@ class Builder {
     Topology const* currentTop_; ///< Topology for the createSpXSpXTorsions/ModelTorsion routines
     Frame const* currentFrm_;    ///< Frame for the createSpXSpXTorsions routines
     Barray const* hasPosition_;  ///< Array indicating which atoms have position for createSpXSpXTorsions/ModelTorsion routines
-    Zmatrix* newZmatrix_;        ///< Hold output ICs from AssignTorsionsAroundBond
+    Zmatrix* newZmatrix_;        ///< Hold output ICs from assignTorsionsAroundBond
 };
 }
 }
