@@ -1597,6 +1597,20 @@ void Builder::createSp2Sp2Torsions(TorsionModel const& MT) {
   return;
 }
 
+/** Find any existing internal coords around ax-ay. */
+std::vector<InternalCoords> Builder::getExistingInternals(int ax, int ay) const {
+  std::vector<InternalCoords> iTorsions;
+  if (currentZmatrix_ != 0) {
+    for (Zmatrix::const_iterator it = currentZmatrix_->begin(); it != currentZmatrix_->end(); ++it)
+    {
+      if (it->AtJ() == ax && it->AtK() == ay) {
+        iTorsions.push_back( *it );
+      }
+    }
+  }
+  return iTorsions;
+}
+
 /** Assign torsions around bonded atoms in manner similar to LEaP's ModelAssignTorsionsAround. */
 int Builder::assignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
 {
@@ -1678,15 +1692,15 @@ int Builder::assignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame co
   mprintf("bKnownX=%i  bKnownY=%i\n", (int)axHasKnownAtoms, (int)ayHasKnownAtoms);
   if (!(axHasKnownAtoms && ayHasKnownAtoms)) {
     // Find any existing internal coords around ax-ay
-    std::vector<InternalCoords> iTorsions;
-    if (currentZmatrix_ != 0) {
+    std::vector<InternalCoords> iTorsions = getExistingInternals(ax, ay);
+/*    if (currentZmatrix_ != 0) {
       for (Zmatrix::const_iterator it = currentZmatrix_->begin(); it != currentZmatrix_->end(); ++it)
       {
         if (it->AtJ() == ax && it->AtK() == ay) {
           iTorsions.push_back( *it );
         }
       }
-    }
+    }*/
     if (!iTorsions.empty()) {
       mprintf("Using INTERNALs to fit new torsions around: %s - %s\n",
               topIn.LeapName(ax).c_str(), topIn.LeapName(ay).c_str());
@@ -1758,6 +1772,34 @@ int Builder::GenerateInternals(Zmatrix& zmatrix, Frame const& frameIn, Topology 
   mprintf("DEBUG: ----- Leaving Builder::GenerateInternals. ------\n");
   return 0;
 }
+
+/** Build internal coordinates around an atom. */
+int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
+{
+  mprintf( "Building internals for: %s\n", topIn.LeapName(at).c_str());
+  Atom const& AtA = topIn[at];
+  for (Atom::bond_iterator bat = AtA.bondbegin(); bat != AtA.bondend(); ++bat) {
+    Atom const& AtB = topIn[*bat];
+    for (Atom::bond_iterator cat = AtB.bondbegin(); cat != AtB.bondend(); ++cat) {
+      if (*cat != at) {
+        Atom const& AtC = topIn[*cat];
+        mprintf("Building torsion INTERNALs for: %s  around: %s - %s\n",
+               topIn.LeapName(at).c_str(),
+               topIn.LeapName(*bat).c_str(),
+               topIn.LeapName(*cat).c_str());
+        std::vector<InternalCoords> iTorsions = getExistingInternals(*bat, *cat);
+        int iShouldBe = (AtB.Nbonds() - 1) * (AtC.Nbonds() - 1);
+        mprintf("ISHOULDBE= %i ITORSIONS= %zu\n", iShouldBe, iTorsions.size());
+        if (iShouldBe != (int)iTorsions.size()) {
+          Zmatrix tmpz; // FIXME
+          assignTorsionsAroundBond(tmpz, *bat, *cat, frameIn, topIn, hasPosition);
+        }
+      }
+    }
+  }
+
+  return 0;
+}
  
 /** Generate internal coordinates around a bond linking two residues
   * in the same manner as LEaP.
@@ -1781,7 +1823,10 @@ int Builder::GenerateInternalsAroundLink(Zmatrix& zmatrix, int at0, int at1,
   std::vector<int> span_atoms = GenerateSpanningTree(at0, at1, 4, topIn.Atoms());
   for (std::vector<int>::const_iterator it = span_atoms.begin(); 
                                         it != span_atoms.end(); ++it)
-    mprintf("SPANNING TREE ATOM: %s\n", topIn.LeapName(*it).c_str());
+  {
+    //mprintf("SPANNING TREE ATOM: %s\n", topIn.LeapName(*it).c_str());
+    generateAtomInternals(*it, frameIn, topIn, hasPosition);
+  }
   // Create a temporary has position array marking atoms in at0 residue
   // (except at0) as unknown.
   //Residue const& R0 = topIn.Res(A0.ResNum());

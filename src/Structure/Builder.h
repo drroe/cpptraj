@@ -74,6 +74,9 @@ class Builder {
     /// Model torsions around a bond in the same manner as LEaP
     int assignTorsionsAroundBond(Zmatrix&, int, int, Frame const&, Topology const&, Barray const&);
 
+    std::vector<InternalCoords> getExistingInternals(int, int) const;
+    int generateAtomInternals(int, Frame const&, Topology const&, Barray const&);
+
     int debug_;
     ParameterSet const* params_;
     Zmatrix const* currentZmatrix_; ///< Any existing internal coordinates
