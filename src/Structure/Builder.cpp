@@ -1777,6 +1777,11 @@ int Builder::GenerateInternalsAroundLink(Zmatrix& zmatrix, int at0, int at1,
     mprinterr("Internal Error: Builder::GenerateInternalsAroundLink(): Atoms are in the same residue.\n");
     return 1;
   }
+  // Create spanning tree across the link
+  std::vector<int> span_atoms = GenerateSpanningTree(at0, at1, 4, topIn.Atoms());
+  for (std::vector<int>::const_iterator it = span_atoms.begin(); 
+                                        it != span_atoms.end(); ++it)
+    mprintf("SPANNING TREE ATOM: %s\n", topIn.LeapName(*it).c_str());
   // Create a temporary has position array marking atoms in at0 residue
   // (except at0) as unknown.
   //Residue const& R0 = topIn.Res(A0.ResNum());

@@ -14,6 +14,8 @@ enum AtomScanDirectionType { SCAN_ATOMS_BACKWARDS = 0, SCAN_ATOMS_FORWARDS };
 void SetAtomScanDirection(AtomScanDirectionType);
 /// Generate bond array in same order as leap
 BondArray GenerateBondArray(std::vector<Residue> const&, std::vector<Atom> const&);
+/// Generate a spanning tree
+std::vector<int> GenerateSpanningTree(int, int, int, std::vector<Atom> const&);
 /// Generate angle array in same order as leap
 AngleArray GenerateAngleArray(std::vector<Residue> const&, std::vector<Atom> const&);
 /// Generate proper dihedral array in same order as leap

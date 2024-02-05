@@ -60,6 +60,46 @@ BondArray Cpptraj::Structure::GenerateBondArray(std::vector<Residue> const& resi
   return out;
 }
 
+static inline void visit_tree_atom(std::vector<int>& out,
+                                   int at, int targetDepth, int currentDepth,
+                                   std::vector<bool>& atomSeen,
+                                   std::vector<Atom> const& atoms)
+{
+  if (currentDepth == targetDepth) return;
+  if (!atomSeen[at]) {
+    out.push_back( at );
+    atomSeen[at] = true;
+  }
+  for (Atom::bond_iterator bat = atoms[at].bondbegin();
+                           bat != atoms[at].bondend();
+                         ++bat)
+  {
+    if (!atomSeen[*bat]) {
+      out.push_back( *bat );
+      atomSeen[*bat] = true;
+    }
+  }
+  for (Atom::bond_iterator bat = atoms[at].bondbegin();
+                           bat != atoms[at].bondend();
+                         ++bat)
+  {
+    if (atoms[*bat].Nbonds() > 1)
+      visit_tree_atom(out, *bat, targetDepth, currentDepth+1, atomSeen, atoms);
+  }
+}
+
+std::vector<int> Cpptraj::Structure::GenerateSpanningTree(int at0, int at1, int targetDepth,
+                                                          std::vector<Atom> const& atoms)
+{
+  std::vector<int> out;
+
+  std::vector<bool> atomSeen(atoms.size(), false);
+
+  visit_tree_atom(out, at0, targetDepth, 0, atomSeen, atoms);
+
+  return out;
+}
+
 /** From atom connectiviy, generate an angle array in the same order as LEaP. */ // TODO use in GenerateBAT
 AngleArray Cpptraj::Structure::GenerateAngleArray(std::vector<Residue> const& residues,
                                                   std::vector<Atom> const& atoms)
