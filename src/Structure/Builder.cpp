@@ -1865,7 +1865,7 @@ std::vector<InternalCoords> Builder::getExistingInternals(int ax, int ay) const 
 
 
 /** Assign torsions around bonded atoms in manner similar to LEaP's ModelAssignTorsionsAround. */
-int Builder::assignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
+int Builder::assignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition, int aAtomIdx)
 {
   // Save addresses of zmatrix, frame, topology, and hasPosition.
   // These are required for the createSpXSpX routines. TODO zero them at the end?
@@ -1921,9 +1921,9 @@ int Builder::assignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame co
     Hy = H2;
   }
   static const char* hstr[] = { "SP", "SP2", "SP3", "Unknown" };
-  mprintf("DEBUG: assignTorsionsAroundBond: AX= %s (%s)  AY= %s (%s)\n",
+  mprintf("DEBUG: assignTorsionsAroundBond: AX= %s (%s)  AY= %s (%s), aAtomIdx= %i\n",
           topIn.AtomMaskName(ax).c_str(), hstr[Hx],
-          topIn.AtomMaskName(ay).c_str(), hstr[Hy]);
+          topIn.AtomMaskName(ay).c_str(), hstr[Hy], aAtomIdx);
   TorsionModel mT;
   if (mT.InitTorsion( ax, ay, frameIn, topIn, hasPosition )) {
     mprinterr("Error: Could not init model torsion.\n");
@@ -2003,7 +2003,7 @@ int Builder::GenerateInternals(Zmatrix& zmatrix, Frame const& frameIn, Topology 
   // Loop over bonds
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
   {
-    if (assignTorsionsAroundBond( zmatrix, bnd->A1(), bnd->A2(), frameIn, topIn, hasPosition )) {
+    if (assignTorsionsAroundBond( zmatrix, bnd->A1(), bnd->A2(), frameIn, topIn, hasPosition, -1 )) {
       mprinterr("Error Assign torsions around bond %s - %s failed.\n",
                 topIn.AtomMaskName(bnd->A1()).c_str(),
                 topIn.AtomMaskName(bnd->A2()).c_str());
@@ -2034,7 +2034,7 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
         mprintf("ISHOULDBE= %i ITORSIONS= %zu\n", iShouldBe, iTorsions.size());
         if (iShouldBe != (int)iTorsions.size()) {
           Zmatrix tmpz; // FIXME
-          assignTorsionsAroundBond(tmpz, *bat, *cat, frameIn, topIn, hasPosition);
+          assignTorsionsAroundBond(tmpz, *bat, *cat, frameIn, topIn, hasPosition, at);
         }
       }
     }

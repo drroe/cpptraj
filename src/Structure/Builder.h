@@ -72,7 +72,7 @@ class Builder {
     /// Create ICs around SP2-SP2 linkage
     void createSp2Sp2Torsions(TorsionModel const&);
     /// Model torsions around a bond in the same manner as LEaP
-    int assignTorsionsAroundBond(Zmatrix&, int, int, Frame const&, Topology const&, Barray const&);
+    int assignTorsionsAroundBond(Zmatrix&, int, int, Frame const&, Topology const&, Barray const&, int);
     /// Get any existing internal coords from currentZmatrix around specified atoms
     std::vector<InternalCoords> getExistingInternals(int, int) const;
     /// Build mock coordinates around given torsion
