@@ -1208,6 +1208,8 @@ class Cpptraj::Structure::Builder::TorsionModel {
   public:
     /// CONSTRUCTOR
     TorsionModel() : ax_(-1), ay_(-1), dAbsolute_(0), Xorientation_(0), Yorientation_(0) {}
+    /// CONSTRUCTOR - AX and AY atom indices
+    TorsionModel(int ax, int ay) : ax_(ax), ay_(ay),  dAbsolute_(0), Xorientation_(0), Yorientation_(0) {}
     /// Set up torsions around bonded atoms
     int SetupTorsion(int, int, AtomType::HybridizationType, AtomType::HybridizationType,
                      Frame const&, Topology const&, std::vector<bool> const&);
@@ -1611,6 +1613,22 @@ std::vector<InternalCoords> Builder::getExistingInternals(int ax, int ay) const 
   return iTorsions;
 }
 
+/** Build mock external coordinates around the given torsion using 
+  * the given internal coordinates.
+  */
+int Builder::buildMockExternals(TorsionModel& mT, std::vector<InternalCoords> const& iaTorsions)
+const
+{
+  if (iaTorsions.empty()) {
+    mprinterr("Internal Error: Builder::buildMockExternals() called with no internal torsions.\n");
+    return 1;
+  }
+  InternalCoords const& iInt = iaTorsions.front();
+  mprintf("=======  Started mock coords from: %s\n", currentTop_->LeapName(iInt.AtI()).c_str());
+
+  return 0;
+}
+
 /** Assign torsions around bonded atoms in manner similar to LEaP's ModelAssignTorsionsAround. */
 int Builder::assignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
 {
@@ -1706,6 +1724,12 @@ int Builder::assignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame co
               topIn.LeapName(ax).c_str(), topIn.LeapName(ay).c_str());
       for (std::vector<InternalCoords>::const_iterator ic = iTorsions.begin(); ic != iTorsions.end(); ++ic)
         ic->printIC( topIn );
+      TorsionModel mT(ax, ay);
+      if (buildMockExternals(mT, iTorsions)) {
+        mprinterr("Error: Building mock externals around %s - %s failed.\n",
+                  topIn.AtomMaskName(ax).c_str(), topIn.AtomMaskName(ay).c_str());
+        return 1;
+      }
     } else {
       mprintf("Completely free in assigning new torsions for: %s - %s\n",
               topIn.LeapName(ax).c_str(), topIn.LeapName(ay).c_str());
@@ -1838,7 +1862,10 @@ int Builder::GenerateInternalsAroundLink(Zmatrix& zmatrix, int at0, int at1,
                                         it != span_atoms.end(); ++it)
   {
     //mprintf("SPANNING TREE ATOM: %s\n", topIn.LeapName(*it).c_str());
-    generateAtomInternals(*it, frameIn, topIn, tmpHasPosition);
+    if (generateAtomInternals(*it, frameIn, topIn, tmpHasPosition)) {
+      mprinterr("Error: Could not generate internals for atom %s\n", topIn.AtomMaskName(*it).c_str());
+      return 1;
+    }
   }
   // Create torsions around the link
   //if (assignTorsionsAroundBond( zmatrix, at0, at1, frameIn, topIn, hasPosition )) {
