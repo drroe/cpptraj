@@ -1203,16 +1203,51 @@ const
 }
 
 // ------------------------------------------------------------------------------
+/// Used to track atoms for mock externals
+class MockAtom {
+  public:
+    /// CONSTRUCTOR
+    MockAtom() : idx_(-1), pos_(0.0), known_(false) {}
+    /// CONSTRUCTOR - index, position
+    MockAtom(int idx, Vec3 const& pos) : idx_(idx), pos_(pos), known_(true) {}
+    /// CONSTRUCTOR - index, unknown position
+    MockAtom(int idx) : idx_(idx), pos_(0.0), known_(false) {}
+    /// Set position
+    void SetPos(Vec3 const& p) { pos_ = p; known_ = true; }
+
+    int Idx()         const { return idx_; }
+    Vec3 const& Pos() const { return pos_; }
+    bool Known()      const { return known_; }
+  private:
+    int idx_;    ///< Atom index
+    Vec3 pos_;   ///< Atom position
+    bool known_; ///< True if atom position is known
+};
+
+/// Used to find mock atom
+static inline std::vector<MockAtom>::iterator find_mock_atom(std::vector<MockAtom>& outerAtoms, int idx)
+{
+  std::vector<MockAtom>::iterator it = outerAtoms.begin();
+  for (; it != outerAtoms.end(); ++it)
+    if (it->Idx() == idx) return it;
+  return outerAtoms.end();
+}
+
+// -----------------------------------------------
 /** Store info for modelling torsions around X-Y */
 class Cpptraj::Structure::Builder::TorsionModel {
   public:
+    typedef std::vector<MockAtom> Marray;
     /// CONSTRUCTOR
-    TorsionModel() : ax_(-1), ay_(-1), dAbsolute_(0), Xorientation_(0), Yorientation_(0) {}
+    TorsionModel() : dAbsolute_(0), Xorientation_(0), Yorientation_(0), axHasKnownAtoms_(false), ayHasKnownAtoms_(false) {}
     /// CONSTRUCTOR - AX and AY atom indices
-    TorsionModel(int ax, int ay) : ax_(ax), ay_(ay),  dAbsolute_(0), Xorientation_(0), Yorientation_(0) {}
+    //TorsionModel(int ax, int ay) : ax_(ax), ay_(ay),  dAbsolute_(0), Xorientation_(0), Yorientation_(0) {}
+    /// Initialize torsions around bonded atoms
+    int InitTorsion(int, int, Frame const&, Topology const&, std::vector<bool> const&);
     /// Set up torsions around bonded atoms
-    int SetupTorsion(int, int, AtomType::HybridizationType, AtomType::HybridizationType,
-                     Frame const&, Topology const&, std::vector<bool> const&);
+    int SetupTorsion(AtomType::HybridizationType, AtomType::HybridizationType, Topology const& topIn);
+    /// Build mock externals from given internals
+    int BuildMockExternals(std::vector<InternalCoords> const&, Topology const&);
 
     /// \return Value of A-X-Y-D torsion in radians
     double Absolute() const { return dAbsolute_; }
@@ -1221,27 +1256,32 @@ class Cpptraj::Structure::Builder::TorsionModel {
     /// \return Value of orientation around Y
     double YOrientation() const { return Yorientation_; }
     /// \return Sorted atoms bonded to X excluding Y
-    std::vector<int> const& SortedAx() const { return sorted_ax_; }
+    Marray const& SortedAx() const { return sorted_ax_; }
     /// \return Sorted atoms bonded to Y excluding X
-    std::vector<int> const& SortedAy() const { return sorted_ay_; }
-    /// \return Index of atom X
-    int AtX() const { return ax_; }
-    /// \return Index of atom Y
-    int AtY() const { return ay_; }
+    Marray const& SortedAy() const { return sorted_ay_; }
+    /// \return Atom X
+    MockAtom const& AtX() const { return atX_; }
+    /// \return Atom Y
+    MockAtom const& AtY() const { return atY_; }
+    /// \return True if AX has known bonded atoms
+    bool AxHasKnownAtoms() const { return axHasKnownAtoms_; }
+    /// \return True if AY has known bonded atoms
+    bool AyHasKnownAtoms() const { return ayHasKnownAtoms_; }
   private:
     static int LeapAtomWeight(Atom const&);
-    static inline std::vector<int> SiftBondedAtomsLikeLeap(unsigned int&, Atom const&, std::vector<bool> const&);
-    static inline std::vector<int> SortBondedAtomsLikeLeap(unsigned int&, Atom const&,
-                                                           Topology const& topIn, int ignoreAtom,
-                                                           std::vector<bool> const& hasPosition);
+    //static inline std::vector<int> SiftBondedAtomsLikeLeap(unsigned int&, Atom const&, std::vector<bool> const&);
+    static inline Marray SortBondedAtomsLikeLeap(unsigned int&, Topology const& topIn, Marray const&);
+    static inline void swap_heaviest(Marray&, Topology const&);
 
-    int ax_;              ///< Atom X
-    int ay_;              ///< Atom Y
-    Iarray sorted_ax_;    ///< Hold the leap-sorted bonds for atom X
-    Iarray sorted_ay_;    ///< Hold the leap-sorted bonds for atom Y
+    MockAtom atX_;              ///< Atom X
+    MockAtom atY_;              ///< Atom Y
+    Marray sorted_ax_;    ///< Hold the leap-sorted bonded atoms for atom X
+    Marray sorted_ay_;    ///< Hold the leap-sorted bonded atoms for atom Y
     double dAbsolute_;    ///< Hold the value of the A-X-Y-D torsion in radians
     double Xorientation_; ///< Orientation around the X atom TODO make an enum?
     double Yorientation_; ///< Orientation around the Y atoms
+    bool axHasKnownAtoms_; ///< True if any atom around ax (other than ay) is known
+    bool ayHasKnownAtoms_; ///< True if any atom around ay (other than ax) is known
 };
     
 /** \return the LEaP 'weight' of an atom.
@@ -1261,7 +1301,7 @@ int Cpptraj::Structure::Builder::TorsionModel::LeapAtomWeight(Atom const& At)
   * \param At The atom to sift.
   * \param hasPosition Array indicating whether atoms have position.
   */
-std::vector<int> 
+/*std::vector<int> 
   Cpptraj::Structure::Builder::TorsionModel::SiftBondedAtomsLikeLeap(unsigned int& firstUnknownIdx,
                                                                      Atom const& At,
                                                                      std::vector<bool> const& hasPosition)
@@ -1276,6 +1316,29 @@ std::vector<int>
     if (!hasPosition[*bat])
       out.push_back( *bat );
   return out;
+}*/
+
+static inline void swap_mock_atom(MockAtom& lhs, MockAtom& rhs) {
+  MockAtom tmp = lhs;
+  lhs = rhs;
+  rhs = tmp;
+}
+
+void Cpptraj::Structure::Builder::TorsionModel::swap_heaviest(Marray& bondedAtoms, Topology const& topIn)
+{
+  // Find the index of the heaviest atom
+  int iHighest = 0;
+  int iPos = 0;
+  for (Marray::const_iterator it = bondedAtoms.begin(); it != bondedAtoms.end(); ++it)
+  {
+    int iWeight = LeapAtomWeight( topIn[it->Idx()] );
+    if ( iHighest < iWeight ) {
+      iHighest = iWeight;
+      iPos = (int)(it - bondedAtoms.begin());
+    }
+  }
+  // If highest weight atom not already in front, swap it there.
+  if (iPos != 0) swap_mock_atom( bondedAtoms[0], bondedAtoms[iPos] );
 }
 
 /** Order atoms bonded to the given atom in a manner similar to LEaP's
@@ -1285,34 +1348,32 @@ std::vector<int>
   * The ignore atom is the index of the atom this atom is bonded to that
   * forms the torsion we are interested in.
   */
-std::vector<int>
+std::vector<MockAtom>
   Cpptraj::Structure::Builder::TorsionModel::SortBondedAtomsLikeLeap(unsigned int& firstUnknownIdx,
-                                                                     Atom const& At, Topology const& topIn,
-                                                                     int ignoreAtom,
-                                                                     std::vector<bool> const& hasPosition)
+                                                                     Topology const& topIn,
+                                                                     std::vector<MockAtom> const& bondedAtoms)
 {
-  std::vector<int> out;
-  out.reserve( At.Nbonds() );
+  typedef std::vector<MockAtom> Marray;
+  Marray known_out;
+  known_out.reserve( bondedAtoms.size() );
   // Sift so that atoms with known position are at the front
-  std::vector<int> bondedAtoms = SiftBondedAtomsLikeLeap(firstUnknownIdx, At, hasPosition);
-  // Find the index of the heaviest atom
-  int iHighest = 0;
-  int iPos = 0;
-  for (unsigned int idx = 0; idx < bondedAtoms.size(); idx++) {
-    int bat = bondedAtoms[idx];
-    if (bat != ignoreAtom) {
-      out.push_back( bat );
-      int iWeight = LeapAtomWeight( topIn[bat] );
-      if ( iHighest < iWeight ) {
-        iHighest = iWeight;
-        iPos = (int)out.size()-1;
-      }
-    }
-  }
-  // If highest weight atom not already in front, swap it there.
-  if (iPos != 0) std::swap( out[0], out[iPos] );
+  for (Marray::const_iterator it = bondedAtoms.begin(); it != bondedAtoms.end(); ++it)
+    if (it->Known())
+      known_out.push_back( *it );
+  firstUnknownIdx = known_out.size();
+  swap_heaviest(known_out, topIn);
+  // Unknown atoms go at the back
+  Marray unknown_out;
+  unknown_out.reserve(bondedAtoms.size() - known_out.size() + 1);
+  for (Marray::const_iterator it = bondedAtoms.begin(); it != bondedAtoms.end(); ++it)
+    if (!it->Known())
+      unknown_out.push_back( *it );
+  swap_heaviest(unknown_out, topIn);
 
-  return out;
+  for (Marray::const_iterator it = unknown_out.begin(); it != unknown_out.end(); ++it)
+    known_out.push_back( *it );
+
+  return known_out;
 }
 
 /** LEaP routine for determining atom chirality.
@@ -1341,28 +1402,70 @@ static inline double VectorAtomChirality(Vec3 const& Center, Vec3 const& A, Vec3
   * triangle (iA, iX, iY). This orientation will be used by the
   * CreateSpXSpX routines to determine which torsion values to use.
   */
-static inline double calculateOrientation(int iX, int iA, int iY, int iB, Frame const& frameIn, std::vector<bool> const& hasPosition)
+static inline double calculateOrientation(MockAtom const& iX, MockAtom const& iA, MockAtom const& iY, MockAtom const& iB)
 {
   double dOrientation = 1.0;
-  if (hasPosition[iX] &&
-      hasPosition[iA] &&
-      hasPosition[iY] &&
-      hasPosition[iB])
+  if (iX.Known() &&
+      iA.Known() &&
+      iY.Known() &&
+      iB.Known())
   {
-    dOrientation = VectorAtomChirality( frameIn.XYZ(iX), frameIn.XYZ(iA), frameIn.XYZ(iY), frameIn.XYZ(iB) );
+    dOrientation = VectorAtomChirality( iX.Pos(), iA.Pos(), iY.Pos(), iB.Pos() );
   } else {
     mprinterr("Internal Error: Builder::calculateOrientation not yet set up for unknown positions.\n");
   }
   return dOrientation;
 }
 
+/** Initialize model torsion for bonded atoms. */
+int Cpptraj::Structure::Builder::TorsionModel::InitTorsion(int ax, int ay,
+                                                           Frame const& frameIn,
+                                                           Topology const& topIn,
+                                                           std::vector<bool> const& hasPosition)
+{
+  if (hasPosition[ax])
+    atX_ = MockAtom(ax, frameIn.XYZ(ax));
+  else
+    atX_ = MockAtom(ax);
+  if (hasPosition[ay])
+    atY_ = MockAtom(ay, frameIn.XYZ(ay));
+  else
+    atY_ = MockAtom(ay);
+  Atom const& AX = topIn[ax];
+  Atom const& AY = topIn[ay];
+  // Create array of AX bonded atoms
+  axHasKnownAtoms_ = false;
+  sorted_ax_.clear();
+  sorted_ax_.reserve( AX.Nbonds() - 1 );
+  for (Atom::bond_iterator bat = AX.bondbegin(); bat != AX.bondend(); ++bat) {
+    if (*bat != ay) {
+      if (hasPosition[*bat]) {
+        axHasKnownAtoms_ = true;
+        sorted_ax_.push_back( MockAtom(*bat, frameIn.XYZ(*bat)) );
+      } else
+        sorted_ax_.push_back( MockAtom(*bat) );
+    }
+  }
+  // Create array of AY bonded atoms
+  ayHasKnownAtoms_ = false;
+  sorted_ay_.clear();
+  sorted_ay_.reserve( AY.Nbonds() - 1 );
+  for (Atom::bond_iterator bat = AY.bondbegin(); bat != AY.bondend(); ++bat) {
+    if (*bat != ax) {
+      if (hasPosition[*bat]) {
+        ayHasKnownAtoms_ = true;
+        sorted_ay_.push_back( MockAtom(*bat, frameIn.XYZ(*bat)) );
+      } else
+        sorted_ay_.push_back( MockAtom(*bat) );
+    }
+  }
+  return 0;
+}
+
 /** Set up model torsion for bonded atoms. */
-int Cpptraj::Structure::Builder::TorsionModel::SetupTorsion(int ax, int ay,
-                                                            AtomType::HybridizationType Hx,
+int Cpptraj::Structure::Builder::TorsionModel::SetupTorsion(AtomType::HybridizationType Hx,
                                                             AtomType::HybridizationType Hy,
-                                                            Frame const& frameIn,
-                                                            Topology const& topIn,
-                                                            std::vector<bool> const& hasPosition)
+                                                            Topology const& topIn)
 {
   if (Hx != AtomType::UNKNOWN_HYBRIDIZATION && Hy != AtomType::UNKNOWN_HYBRIDIZATION) {
     if (Hy > Hx) {
@@ -1370,47 +1473,45 @@ int Cpptraj::Structure::Builder::TorsionModel::SetupTorsion(int ax, int ay,
       return 1;
     }
   }
-  ax_ = ax;
-  ay_ = ay;
-  Atom const& AX = topIn[ax];
-  Atom const& AY = topIn[ay];
   // Sort AX bonds
   unsigned int firstUnknownIdxX = 0;
-  sorted_ax_ = SortBondedAtomsLikeLeap(firstUnknownIdxX, AX, topIn, ay, hasPosition);
+  sorted_ax_ = SortBondedAtomsLikeLeap(firstUnknownIdxX, topIn, sorted_ax_);
   // Sort AY bonds
   unsigned int firstUnknownIdxY = 0;
-  sorted_ay_ = SortBondedAtomsLikeLeap(firstUnknownIdxY, AY, topIn, ax, hasPosition);
+  sorted_ay_ = SortBondedAtomsLikeLeap(firstUnknownIdxY, topIn, sorted_ay_);
   // Calculate the chirality around atom X
   Xorientation_ = 0;
   if (Hx == AtomType::SP3) {
-    Xorientation_ = calculateOrientation( ax, sorted_ax_[0], ay, sorted_ax_[1], frameIn, hasPosition );
+    Xorientation_ = calculateOrientation( atX_, sorted_ax_[0], atY_, sorted_ax_[1] );
   }
   // Calculate the chirality around atom Y
   Yorientation_ = 0;
   if (Hy == AtomType::SP3) {
-    Yorientation_ = calculateOrientation( ay, sorted_ay_[0], ax, sorted_ay_[1], frameIn, hasPosition );
+    Yorientation_ = calculateOrientation( atY_, sorted_ay_[0], atX_, sorted_ay_[1] );
   }
   // DEBUG
+  Atom const& AX = topIn[atX_.Idx()];
+  Atom const& AY = topIn[atY_.Idx()];
   mprintf("Orientation around: %s = %f\n", *(AX.Name()), Xorientation_);
   //for (Atom::bond_iterator bat = AX.bondbegin(); bat != AX.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
   //mprintf("}\n");
-  for (Iarray::const_iterator it = sorted_ax_.begin(); it != sorted_ax_.end(); ++it)
-      mprintf("Atom %li: %s\n", it - sorted_ax_.begin(), *(topIn[*it].Name()));
+  for (Marray::const_iterator it = sorted_ax_.begin(); it != sorted_ax_.end(); ++it)
+      mprintf("Atom %li: %s\n", it - sorted_ax_.begin(), *(topIn[it->Idx()].Name()));
   mprintf("Orientation around: %s = %f\n", *(AY.Name()), Yorientation_);
   //for (Atom::bond_iterator bat = AY.bondbegin(); bat != AY.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
   //mprintf("}\n");
-  for (Iarray::const_iterator it = sorted_ay_.begin(); it != sorted_ay_.end(); ++it)
-      mprintf("Atom %li: %s\n", it - sorted_ay_.begin(), *(topIn[*it].Name()));
+  for (Marray::const_iterator it = sorted_ay_.begin(); it != sorted_ay_.end(); ++it)
+      mprintf("Atom %li: %s\n", it - sorted_ay_.begin(), *(topIn[it->Idx()].Name()));
   // Calculate the actual torsion angle between A-X-Y-D
-  if (hasPosition[sorted_ax_[0]] &&
-      hasPosition[ax] &&
-      hasPosition[ay] &&
-      hasPosition[sorted_ay_[0]])
+  if (sorted_ax_[0].Known() &&
+      atX_.Known() &&
+      atY_.Known() &&
+      sorted_ay_[0].Known())
   {
-    dAbsolute_ = Torsion( frameIn.XYZ(sorted_ax_[0]),
-                          frameIn.XYZ(ax),
-                          frameIn.XYZ(ay),
-                          frameIn.XYZ(sorted_ay_[0]) );
+    dAbsolute_ = Torsion( sorted_ax_[0].Pos().Dptr(),
+                          atX_.Pos().Dptr(),
+                          atY_.Pos().Dptr(),
+                          sorted_ay_[0].Pos().Dptr() );
   } else {
     dAbsolute_ = 180.0 * Constants::DEGRAD;
   }
@@ -1418,7 +1519,121 @@ int Cpptraj::Structure::Builder::TorsionModel::SetupTorsion(int ax, int ay,
   return 0;
 }
 
-// -----------------------------------------------
+/** Build mock external coordinates around the given torsion using 
+  * the given internal coordinates.
+  * By definition, the two central atoms will be the same for each
+  * IC in iaTorsions.
+  */
+int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(std::vector<InternalCoords> const& iaTorsions,
+                                                                  Topology const& topIn) // DEBUG topIn for debug only
+{
+  if (iaTorsions.empty()) {
+    mprinterr("Internal Error: Builder::buildMockExternals() called with no internal torsions.\n");
+    return 1;
+  }
+  mprintf("=======  Started mock coords from: %s\n", topIn.LeapName(iaTorsions.front().AtI()).c_str());
+
+  for (std::vector<InternalCoords>::const_iterator ic = iaTorsions.begin();
+                                                   ic != iaTorsions.end(); ++ic)
+    mprintf("------- Known torsion: %s - %s - %s - %s  %f\n",
+            topIn.LeapName(ic->AtI()).c_str(),
+            topIn.LeapName(ic->AtJ()).c_str(),
+            topIn.LeapName(ic->AtK()).c_str(),
+            topIn.LeapName(ic->AtL()).c_str(),
+            ic->Phi());
+
+  // Define coordinates for the central atoms.
+  Vec3 posX(0, 0, 0);
+  Vec3 posY(1, 0, 0);
+
+  // Hold info on X-Y outer atoms
+  typedef std::vector<MockAtom> Marray;
+  Marray outerAtoms;
+
+  // Define outer atoms
+  for (std::vector<InternalCoords>::const_iterator ic = iaTorsions.begin();
+                                                   ic != iaTorsions.end(); ++ic)
+  {
+    if (ic == iaTorsions.begin()) {
+      // Define first outer atom as being in the XY plane
+      outerAtoms.push_back( MockAtom(ic->AtI(), Vec3(1, 1, 0)) );
+    } else {
+      Marray::iterator mi = find_mock_atom( outerAtoms, ic->AtI() );
+      if (mi == outerAtoms.end())
+        outerAtoms.push_back( MockAtom(ic->AtI()) );
+    }
+    Marray::iterator ml = find_mock_atom( outerAtoms, ic->AtL() );
+    if (ml == outerAtoms.end())
+      outerAtoms.push_back( MockAtom(ic->AtL()) );
+  }
+  mprintf("DEBUG: Outer atoms:\n");
+  for (Marray::const_iterator it = outerAtoms.begin(); it != outerAtoms.end(); ++it)
+    mprintf("DEBUG:\t\t%i %4s (%i) {%f %f %f}\n", it->Idx()+1, topIn.AtomMaskName(it->Idx()).c_str(),
+            (int)it->Known(), it->Pos()[0], it->Pos()[1], it->Pos()[2]);
+
+  // Loop through the known torsions looking for those that
+  // have one position defined, then build coords for the
+  // other atom and mark the torsion as used.
+  std::vector<bool> used( iaTorsions.size(), false );
+  unsigned int nused = 0;
+  for (unsigned int idx = 0; idx != iaTorsions.size(); idx++) {
+    //bool gotOne = false;
+    for (unsigned int jdx = 0; jdx != iaTorsions.size(); jdx++) {
+      if (!used[jdx]) {
+        InternalCoords const& iInt = iaTorsions[jdx];
+        Marray::iterator tmpAt1 = find_mock_atom(outerAtoms, iInt.AtI());
+        Marray::iterator tmpAt4 = find_mock_atom(outerAtoms, iInt.AtL());
+        if (tmpAt1 == outerAtoms.end()) {
+          mprinterr("Internal Error: Builder::buildMockExternals(): Outer atom I %i not found.\n", iInt.AtI()+1);
+          return 1;
+        }
+        if (tmpAt4 == outerAtoms.end()) {
+          mprinterr("Internal Error: Builder::buildMockExternals(): Outer atom L %i not found.\n", iInt.AtL()+1);
+          return 1;
+        }
+        Vec3 maPC1, maPC2;
+        Marray::iterator tgt = outerAtoms.end();
+        Marray::iterator knownAt = outerAtoms.end();
+        if (tmpAt4->Known()) {
+          tgt     = tmpAt1;
+          maPC1   = posX;
+          maPC2   = posY;
+          knownAt = tmpAt4;
+        } else if (tmpAt1->Known()) {
+          //gotOne = true; // FIXME needed?
+          tgt     = tmpAt4;
+          maPC1   = posY;
+          maPC2   = posX;
+          knownAt = tmpAt1;
+        }
+        if (tgt != outerAtoms.end()) {
+          //gotOne = true;
+          mprintf("======= Building mock coord for: %s\n", topIn.LeapName(tgt->Idx()).c_str());
+          mprintf("======= Using torsion: %s - %s - %s - %s (p1known= %i, p4known= %i)\n",
+                   topIn.LeapName(iInt.AtI()).c_str(),
+                   topIn.LeapName(iInt.AtJ()).c_str(),
+                   topIn.LeapName(iInt.AtK()).c_str(),
+                   topIn.LeapName(iInt.AtL()).c_str(),
+                   (int)tmpAt1->Known(), (int)tmpAt4->Known());
+          // Now build the coordinate for the target atom
+          tgt->SetPos( Zmatrix::AtomIposition(maPC1, maPC2, knownAt->Pos(), 1.0, 90.0, iInt.Phi()) );
+          mprintf("ZMatrixAll:  %f,%f,%f\n", tgt->Pos()[0], tgt->Pos()[1], tgt->Pos()[2]);
+          used[jdx] = true;
+          nused++;
+          break;
+        }
+      } // END IC not yet used
+    } // END inner loop over ICs
+  } // END outer loop over ICs
+  if (nused < used.size()) {
+    mprinterr("Error: There are %u torsions left over for mock coords.\n", used.size() - nused);
+    return 1;
+  }
+
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
 /** Model torsion */
 void Builder::ModelTorsion(TorsionModel const& MT, unsigned int iBondX, unsigned int iBondY, double dvalIn)
 {
@@ -1426,11 +1641,11 @@ void Builder::ModelTorsion(TorsionModel const& MT, unsigned int iBondX, unsigned
       iBondY >= MT.SortedAy().size())
     return;
   mprintf("CALLING ModelTorsion for iBondX=%u iBondY=%u dVal=%g\n",iBondX,iBondY,dvalIn*Constants::RADDEG);
-  int aa = MT.SortedAx()[iBondX];
-  int ax = MT.AtX();
-  int ay = MT.AtY();
-  int ad = MT.SortedAy()[iBondY];
-  // Get bond lengths
+  int aa = MT.SortedAx()[iBondX].Idx();
+  int ax = MT.AtX().Idx();
+  int ay = MT.AtY().Idx();
+  int ad = MT.SortedAy()[iBondY].Idx();
+  // Get bond lengths FIXME deal with unknown positions
   double l0, l1;
   if (AssignLength(l0, aa, ax, *currentTop_, *currentFrm_, *hasPosition_)) {
     mprinterr("Error: Could not assign length between %s and %s\n",
@@ -1463,16 +1678,21 @@ void Builder::ModelTorsion(TorsionModel const& MT, unsigned int iBondX, unsigned
   // If the coordinates for the atoms are defined then
   // measure the torsion angle between them and use that for
   // the internal.
+  MockAtom const& AA = MT.SortedAx()[iBondX];
+  MockAtom const& AX = MT.AtX();
+  MockAtom const& AY = MT.AtY();
+  MockAtom const& AD = MT.SortedAy()[iBondY];
+
   double phiVal = dvalIn;
-  if ((*hasPosition_)[aa] &&
-      (*hasPosition_)[ax] &&
-      (*hasPosition_)[ay] &&
-      (*hasPosition_)[ad])
+  if (AA.Known() &&
+      AX.Known() &&
+      AY.Known() &&
+      AD.Known())
   {
-    phiVal = Torsion( currentFrm_->XYZ(aa),
-                      currentFrm_->XYZ(ax),
-                      currentFrm_->XYZ(ay),
-                      currentFrm_->XYZ(ad) );
+    phiVal = Torsion( AA.Pos().Dptr(),
+                      AX.Pos().Dptr(),
+                      AY.Pos().Dptr(),
+                      AD.Pos().Dptr() );
   } else {
     mprinterr("Internal Error: Need to implement torsion lookup.\n");
   }
@@ -1613,147 +1833,6 @@ std::vector<InternalCoords> Builder::getExistingInternals(int ax, int ay) const 
   return iTorsions;
 }
 
-/// Used to track atoms for mock externals
-class MockAtom {
-  public:
-    /// CONSTRUCTOR - index, position
-    MockAtom(int idx, Vec3 const& pos) : idx_(idx), pos_(pos), known_(true) {}
-    /// CONSTRUCTOR - index, unknown position
-    MockAtom(int idx) : idx_(idx), pos_(0.0), known_(false) {}
-    /// Set position
-    void SetPos(Vec3 const& p) { pos_ = p; known_ = true; }
-
-    int Idx() const { return idx_; }
-    Vec3 const& Pos() const { return pos_; }
-    bool Known() const { return known_; }
-  private:
-    int idx_; ///< Atom index
-    Vec3 pos_; ///< Atom mock position
-    bool known_; ///< True if atom position is known
-};
-
-/// Used to find mock atom
-static inline std::vector<MockAtom>::iterator find_mock_atom(std::vector<MockAtom>& outerAtoms, int idx)
-{
-  std::vector<MockAtom>::iterator it = outerAtoms.begin();
-  for (; it != outerAtoms.end(); ++it)
-    if (it->Idx() == idx) return it;
-  return outerAtoms.end();
-}
-
-/** Build mock external coordinates around the given torsion using 
-  * the given internal coordinates.
-  * By definition, the two central atoms will be the same for each
-  * IC in iaTorsions.
-  */
-int Builder::buildMockExternals(TorsionModel& mT, std::vector<InternalCoords> const& iaTorsions)
-const
-{
-  if (iaTorsions.empty()) {
-    mprinterr("Internal Error: Builder::buildMockExternals() called with no internal torsions.\n");
-    return 1;
-  }
-  mprintf("=======  Started mock coords from: %s\n", currentTop_->LeapName(iaTorsions.front().AtI()).c_str());
-
-  for (std::vector<InternalCoords>::const_iterator ic = iaTorsions.begin();
-                                                   ic != iaTorsions.end(); ++ic)
-    mprintf("------- Known torsion: %s - %s - %s - %s  %f\n",
-            currentTop_->LeapName(ic->AtI()).c_str(),
-            currentTop_->LeapName(ic->AtJ()).c_str(),
-            currentTop_->LeapName(ic->AtK()).c_str(),
-            currentTop_->LeapName(ic->AtL()).c_str(),
-            ic->Phi());
-
-  // Define coordinates for the central atoms.
-  Vec3 posX(0, 0, 0);
-  Vec3 posY(1, 0, 0);
-
-  // Hold info on X-Y outer atoms
-  typedef std::vector<MockAtom> Marray;
-  Marray outerAtoms;
-
-  // Define outer atoms
-  for (std::vector<InternalCoords>::const_iterator ic = iaTorsions.begin();
-                                                   ic != iaTorsions.end(); ++ic)
-  {
-    if (ic == iaTorsions.begin()) {
-      // Define first outer atom as being in the XY plane
-      outerAtoms.push_back( MockAtom(ic->AtI(), Vec3(1, 1, 0)) );
-    } else {
-      Marray::iterator mi = find_mock_atom( outerAtoms, ic->AtI() );
-      if (mi == outerAtoms.end())
-        outerAtoms.push_back( MockAtom(ic->AtI()) );
-    }
-    Marray::iterator ml = find_mock_atom( outerAtoms, ic->AtL() );
-    if (ml == outerAtoms.end())
-      outerAtoms.push_back( MockAtom(ic->AtL()) );
-  }
-  mprintf("DEBUG: Outer atoms:\n");
-  for (Marray::const_iterator it = outerAtoms.begin(); it != outerAtoms.end(); ++it)
-    mprintf("DEBUG:\t\t%i %4s (%i) {%f %f %f}\n", it->Idx()+1, currentTop_->AtomMaskName(it->Idx()).c_str(),
-            (int)it->Known(), it->Pos()[0], it->Pos()[1], it->Pos()[2]);
-
-  // Loop through the known torsions looking for those that
-  // have one position defined, then build coords for the
-  // other atom and mark the torsion as used.
-  std::vector<bool> used( iaTorsions.size(), false );
-  unsigned int nused = 0;
-  for (unsigned int idx = 0; idx != iaTorsions.size(); idx++) {
-    //bool gotOne = false;
-    for (unsigned int jdx = 0; jdx != iaTorsions.size(); jdx++) {
-      if (!used[jdx]) {
-        InternalCoords const& iInt = iaTorsions[jdx];
-        Marray::iterator tmpAt1 = find_mock_atom(outerAtoms, iInt.AtI());
-        Marray::iterator tmpAt4 = find_mock_atom(outerAtoms, iInt.AtL());
-        if (tmpAt1 == outerAtoms.end()) {
-          mprinterr("Internal Error: Builder::buildMockExternals(): Outer atom I %i not found.\n", iInt.AtI()+1);
-          return 1;
-        }
-        if (tmpAt4 == outerAtoms.end()) {
-          mprinterr("Internal Error: Builder::buildMockExternals(): Outer atom L %i not found.\n", iInt.AtL()+1);
-          return 1;
-        }
-        Vec3 maPC1, maPC2;
-        Marray::iterator tgt = outerAtoms.end();
-        Marray::iterator knownAt = outerAtoms.end();
-        if (tmpAt4->Known()) {
-          tgt     = tmpAt1;
-          maPC1   = posX;
-          maPC2   = posY;
-          knownAt = tmpAt4;
-        } else if (tmpAt1->Known()) {
-          //gotOne = true; // FIXME needed?
-          tgt     = tmpAt4;
-          maPC1   = posY;
-          maPC2   = posX;
-          knownAt = tmpAt1;
-        }
-        if (tgt != outerAtoms.end()) {
-          //gotOne = true;
-          mprintf("======= Building mock coord for: %s\n", currentTop_->LeapName(tgt->Idx()).c_str());
-          mprintf("======= Using torsion: %s - %s - %s - %s (p1known= %i, p4known= %i)\n",
-                   currentTop_->LeapName(iInt.AtI()).c_str(),
-                   currentTop_->LeapName(iInt.AtJ()).c_str(),
-                   currentTop_->LeapName(iInt.AtK()).c_str(),
-                   currentTop_->LeapName(iInt.AtL()).c_str(),
-                   (int)tmpAt1->Known(), (int)tmpAt4->Known());
-          // Now build the coordinate for the target atom
-          tgt->SetPos( Zmatrix::AtomIposition(maPC1, maPC2, knownAt->Pos(), 1.0, 90.0, iInt.Phi()) );
-          mprintf("ZMatrixAll:  %f,%f,%f\n", tgt->Pos()[0], tgt->Pos()[1], tgt->Pos()[2]);
-          used[jdx] = true;
-          nused++;
-          break;
-        }
-      } // END IC not yet used
-    } // END inner loop over ICs
-  } // END outer loop over ICs
-  if (nused < used.size()) {
-    mprinterr("Error: There are %u torsions left over for mock coords.\n", used.size() - nused);
-    return 1;
-  }
-
-  return 0;
-}
 
 /** Assign torsions around bonded atoms in manner similar to LEaP's ModelAssignTorsionsAround. */
 int Builder::assignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
@@ -1815,26 +1894,17 @@ int Builder::assignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame co
   mprintf("DEBUG: assignTorsionsAroundBond: AX= %s (%s)  AY= %s (%s)\n",
           topIn.AtomMaskName(ax).c_str(), hstr[Hx],
           topIn.AtomMaskName(ay).c_str(), hstr[Hy]);
+  TorsionModel mT;
+  if (mT.InitTorsion( ax, ay, frameIn, topIn, hasPosition )) {
+    mprinterr("Error: Could not init model torsion.\n");
+    return 1;
+  }
   // Check if there is at least one atom on either side of the ax-ay pair
   // whose position is known.
-  Atom const& AX = topIn[ax];
-  Atom const& AY = topIn[ay];
-  bool axHasKnownAtoms = false;
-  for (Atom::bond_iterator bat = AX.bondbegin(); bat != AX.bondend(); ++bat) {
-    if (*bat != ay && hasPosition[*bat]) {
-      axHasKnownAtoms = true;
-      break;
-    }
-  }
-  bool ayHasKnownAtoms = false;
-  for (Atom::bond_iterator bat = AY.bondbegin(); bat != AY.bondend(); ++bat) {
-    if (*bat != ax && hasPosition[*bat]) {
-      ayHasKnownAtoms = true;
-      break;
-    }
-  }
-  mprintf("bKnownX=%i  bKnownY=%i\n", (int)axHasKnownAtoms, (int)ayHasKnownAtoms);
-  if (!(axHasKnownAtoms && ayHasKnownAtoms)) {
+  //Atom const& AX = topIn[ax];
+  //Atom const& AY = topIn[ay];
+  mprintf("bKnownX=%i  bKnownY=%i\n", (int)mT.AxHasKnownAtoms(), (int)mT.AyHasKnownAtoms());
+  if (!(mT.AxHasKnownAtoms() && mT.AyHasKnownAtoms())) {
     // Find any existing internal coords around ax-ay
     std::vector<InternalCoords> iTorsions = getExistingInternals(ax, ay);
     if (!iTorsions.empty()) {
@@ -1842,50 +1912,50 @@ int Builder::assignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame co
               topIn.LeapName(ax).c_str(), topIn.LeapName(ay).c_str());
       //for (std::vector<InternalCoords>::const_iterator ic = iTorsions.begin(); ic != iTorsions.end(); ++ic)
       //  ic->printIC( topIn );
-      TorsionModel mT(ax, ay);
-      if (buildMockExternals(mT, iTorsions)) {
+      if (mT.BuildMockExternals(iTorsions, topIn)) {
         mprinterr("Error: Building mock externals around %s - %s failed.\n",
                   topIn.AtomMaskName(ax).c_str(), topIn.AtomMaskName(ay).c_str());
         return 1;
       }
+      return 0; // FIXME DEBUG 
     } else {
       mprintf("Completely free in assigning new torsions for: %s - %s\n",
               topIn.LeapName(ax).c_str(), topIn.LeapName(ay).c_str());
+      return 0; // FIXME DEBUG 
     }
   } else {
     // Use existing atoms to determine torsions
     mprintf("DEBUG: Using externals to fit new torsions around: %s - %s\n",
             topIn.LeapName(ax).c_str(),
             topIn.LeapName(ay).c_str());
+  }
 
-    TorsionModel mT;
-    if (mT.SetupTorsion(ax, ay, Hx, Hy, frameIn, topIn, hasPosition)) {
-      mprinterr("Error: Could not set up torsions around %s - %s\n",
-                topIn.LeapName(ax).c_str(),
-                topIn.LeapName(ay).c_str());
-      return 1;
-    } 
+  if (mT.SetupTorsion(Hx, Hy, topIn)) {
+    mprinterr("Error: Could not set up torsions around %s - %s\n",
+              topIn.LeapName(ax).c_str(),
+              topIn.LeapName(ay).c_str());
+    return 1;
+  } 
 
-    // Build the new internals
-    if (Hx == AtomType::SP3 && Hy == AtomType::SP3) {
-      mprintf("SP3 SP3\n");
-      createSp3Sp3Torsions(mT);
-    } else if (Hx == AtomType::SP3 && Hy == AtomType::SP2) {
-      mprintf("SP3 SP2\n");
-      createSp3Sp2Torsions(mT);
-    } else if (Hx == AtomType::SP2 && Hy == AtomType::SP2) {
-      mprintf("SP2 SP2\n");
-      createSp2Sp2Torsions(mT);
-    } else {
-      mprinterr("Error: Currently only Sp3-Sp3/Sp3-Sp2/Sp2-Sp2 are supported\n"
-                "Error: ---Tried to superimpose torsions for: *-%s-%s-*\n"
-                "Error: --- With %s - %s\n"
-                "Error: --- Sp0 probably means a new atom type is involved\n"
-                "Error: --- which needs to be defined prior to this routine.\n",
-                topIn.AtomMaskName(ax).c_str(), topIn.AtomMaskName(ay).c_str(),
-                hstr[Hx], hstr[Hy]);
-     return 1;
-    }
+  // Build the new internals
+  if (Hx == AtomType::SP3 && Hy == AtomType::SP3) {
+    mprintf("SP3 SP3\n");
+    createSp3Sp3Torsions(mT);
+  } else if (Hx == AtomType::SP3 && Hy == AtomType::SP2) {
+    mprintf("SP3 SP2\n");
+    createSp3Sp2Torsions(mT);
+  } else if (Hx == AtomType::SP2 && Hy == AtomType::SP2) {
+    mprintf("SP2 SP2\n");
+    createSp2Sp2Torsions(mT);
+  } else {
+    mprinterr("Error: Currently only Sp3-Sp3/Sp3-Sp2/Sp2-Sp2 are supported\n"
+              "Error: ---Tried to superimpose torsions for: *-%s-%s-*\n"
+              "Error: --- With %s - %s\n"
+              "Error: --- Sp0 probably means a new atom type is involved\n"
+              "Error: --- which needs to be defined prior to this routine.\n",
+              topIn.AtomMaskName(ax).c_str(), topIn.AtomMaskName(ay).c_str(),
+              hstr[Hx], hstr[Hy]);
+   return 1;
   }
 
   return 0;
