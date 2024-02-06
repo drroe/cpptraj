@@ -886,12 +886,16 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
 }
 
 // -----------------------------------------------------------------------------
-/** \return Position of atom I from given internal coordinate. */
-Vec3 Zmatrix::AtomIposition(InternalCoords const& ic, Frame const& frameOut)
+/** \return Position of atom I from positions of atoms J, K, and L,
+  *         and corresponding distance (in Ang) and angle/torsion
+  *         values (in degrees).
+  */
+Vec3 Zmatrix::AtomIposition(Vec3 const& posJ, Vec3 const& posK, Vec3 const& posL,
+                            double rdist, double theta, double phi)
 {
-    double rdist = ic.Dist();
-    double theta = ic.Theta();
-    double phi   = ic.Phi();
+//    double rdist = ic.Dist();
+//    double theta = ic.Theta();
+//    double phi   = ic.Phi();
 
     double sinTheta = sin(theta * Constants::DEGRAD);
     double cosTheta = cos(theta * Constants::DEGRAD);
@@ -903,9 +907,9 @@ Vec3 Zmatrix::AtomIposition(InternalCoords const& ic, Frame const& frameOut)
                 rdist * cosPhi * sinTheta,
                 rdist * sinPhi * sinTheta );
 
-    Vec3 posL = Vec3( frameOut.XYZ( ic.AtL()) );
-    Vec3 posK = Vec3( frameOut.XYZ( ic.AtK()) );
-    Vec3 posJ = Vec3( frameOut.XYZ( ic.AtJ()) );
+//    Vec3 posL = Vec3( frameOut.XYZ( ic.AtL()) );
+//    Vec3 posK = Vec3( frameOut.XYZ( ic.AtK()) );
+//    Vec3 posJ = Vec3( frameOut.XYZ( ic.AtJ()) );
 
     Vec3 LK = posK - posL;
     Vec3 KJ = posJ - posK;
@@ -922,6 +926,21 @@ Vec3 Zmatrix::AtomIposition(InternalCoords const& ic, Frame const& frameOut)
 
   return posI;
 }
+
+/** \return Position of atom I from given internal coordinate and Frame. */
+Vec3 Zmatrix::AtomIposition(InternalCoords const& ic, Frame const& frameOut)
+{
+    double rdist = ic.Dist();
+    double theta = ic.Theta();
+    double phi   = ic.Phi();
+
+    Vec3 posJ = Vec3( frameOut.XYZ( ic.AtJ()) );
+    Vec3 posK = Vec3( frameOut.XYZ( ic.AtK()) );
+    Vec3 posL = Vec3( frameOut.XYZ( ic.AtL()) );
+
+    return AtomIposition(posJ, posK, posL, rdist, theta, phi);
+}
+
 
 /** Set Cartesian coordinates in Frame from internal coordinates.
   * Assume none of the positions in frameOut can be used initially.

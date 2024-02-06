@@ -1613,8 +1613,38 @@ std::vector<InternalCoords> Builder::getExistingInternals(int ax, int ay) const 
   return iTorsions;
 }
 
+/// Used to track atoms for mock externals
+class MockAtom {
+  public:
+    /// CONSTRUCTOR - index, position
+    MockAtom(int idx, Vec3 const& pos) : idx_(idx), pos_(pos), known_(true) {}
+    /// CONSTRUCTOR - index, unknown position
+    MockAtom(int idx) : idx_(idx), pos_(0.0), known_(false) {}
+    /// Set position
+    void SetPos(Vec3 const& p) { pos_ = p; known_ = true; }
+
+    int Idx() const { return idx_; }
+    Vec3 const& Pos() const { return pos_; }
+    bool Known() const { return known_; }
+  private:
+    int idx_; ///< Atom index
+    Vec3 pos_; ///< Atom mock position
+    bool known_; ///< True if atom position is known
+};
+
+/// Used to find mock atom
+static inline std::vector<MockAtom>::iterator find_mock_atom(std::vector<MockAtom>& outerAtoms, int idx)
+{
+  std::vector<MockAtom>::iterator it = outerAtoms.begin();
+  for (; it != outerAtoms.end(); ++it)
+    if (it->Idx() == idx) return it;
+  return outerAtoms.end();
+}
+
 /** Build mock external coordinates around the given torsion using 
   * the given internal coordinates.
+  * By definition, the two central atoms will be the same for each
+  * IC in iaTorsions.
   */
 int Builder::buildMockExternals(TorsionModel& mT, std::vector<InternalCoords> const& iaTorsions)
 const
@@ -1623,8 +1653,104 @@ const
     mprinterr("Internal Error: Builder::buildMockExternals() called with no internal torsions.\n");
     return 1;
   }
-  InternalCoords const& iInt = iaTorsions.front();
-  mprintf("=======  Started mock coords from: %s\n", currentTop_->LeapName(iInt.AtI()).c_str());
+  mprintf("=======  Started mock coords from: %s\n", currentTop_->LeapName(iaTorsions.front().AtI()).c_str());
+
+  for (std::vector<InternalCoords>::const_iterator ic = iaTorsions.begin();
+                                                   ic != iaTorsions.end(); ++ic)
+    mprintf("------- Known torsion: %s - %s - %s - %s  %f\n",
+            currentTop_->LeapName(ic->AtI()).c_str(),
+            currentTop_->LeapName(ic->AtJ()).c_str(),
+            currentTop_->LeapName(ic->AtK()).c_str(),
+            currentTop_->LeapName(ic->AtL()).c_str(),
+            ic->Phi());
+
+  // Define coordinates for the central atoms.
+  Vec3 posX(0, 0, 0);
+  Vec3 posY(1, 0, 0);
+
+  // Hold info on X-Y outer atoms
+  typedef std::vector<MockAtom> Marray;
+  Marray outerAtoms;
+
+  // Define outer atoms
+  for (std::vector<InternalCoords>::const_iterator ic = iaTorsions.begin();
+                                                   ic != iaTorsions.end(); ++ic)
+  {
+    if (ic == iaTorsions.begin()) {
+      // Define first outer atom as being in the XY plane
+      outerAtoms.push_back( MockAtom(ic->AtI(), Vec3(1, 1, 0)) );
+    } else {
+      Marray::iterator mi = find_mock_atom( outerAtoms, ic->AtI() );
+      if (mi == outerAtoms.end())
+        outerAtoms.push_back( MockAtom(ic->AtI()) );
+    }
+    Marray::iterator ml = find_mock_atom( outerAtoms, ic->AtL() );
+    if (ml == outerAtoms.end())
+      outerAtoms.push_back( MockAtom(ic->AtL()) );
+  }
+  mprintf("DEBUG: Outer atoms:\n");
+  for (Marray::const_iterator it = outerAtoms.begin(); it != outerAtoms.end(); ++it)
+    mprintf("DEBUG:\t\t%i %4s (%i) {%f %f %f}\n", it->Idx()+1, currentTop_->AtomMaskName(it->Idx()).c_str(),
+            (int)it->Known(), it->Pos()[0], it->Pos()[1], it->Pos()[2]);
+
+  // Loop through the known torsions looking for those that
+  // have one position defined, then build coords for the
+  // other atom and mark the torsion as used.
+  std::vector<bool> used( iaTorsions.size(), false );
+  unsigned int nused = 0;
+  for (unsigned int idx = 0; idx != iaTorsions.size(); idx++) {
+    //bool gotOne = false;
+    for (unsigned int jdx = 0; jdx != iaTorsions.size(); jdx++) {
+      if (!used[jdx]) {
+        InternalCoords const& iInt = iaTorsions[jdx];
+        Marray::iterator tmpAt1 = find_mock_atom(outerAtoms, iInt.AtI());
+        Marray::iterator tmpAt4 = find_mock_atom(outerAtoms, iInt.AtL());
+        if (tmpAt1 == outerAtoms.end()) {
+          mprinterr("Internal Error: Builder::buildMockExternals(): Outer atom I %i not found.\n", iInt.AtI()+1);
+          return 1;
+        }
+        if (tmpAt4 == outerAtoms.end()) {
+          mprinterr("Internal Error: Builder::buildMockExternals(): Outer atom L %i not found.\n", iInt.AtL()+1);
+          return 1;
+        }
+        Vec3 maPC1, maPC2;
+        Marray::iterator tgt = outerAtoms.end();
+        Marray::iterator knownAt = outerAtoms.end();
+        if (tmpAt4->Known()) {
+          tgt     = tmpAt1;
+          maPC1   = posX;
+          maPC2   = posY;
+          knownAt = tmpAt4;
+        } else if (tmpAt1->Known()) {
+          //gotOne = true; // FIXME needed?
+          tgt     = tmpAt4;
+          maPC1   = posY;
+          maPC2   = posX;
+          knownAt = tmpAt1;
+        }
+        if (tgt != outerAtoms.end()) {
+          //gotOne = true;
+          mprintf("======= Building mock coord for: %s\n", currentTop_->LeapName(tgt->Idx()).c_str());
+          mprintf("======= Using torsion: %s - %s - %s - %s (p1known= %i, p4known= %i)\n",
+                   currentTop_->LeapName(iInt.AtI()).c_str(),
+                   currentTop_->LeapName(iInt.AtJ()).c_str(),
+                   currentTop_->LeapName(iInt.AtK()).c_str(),
+                   currentTop_->LeapName(iInt.AtL()).c_str(),
+                   (int)tmpAt1->Known(), (int)tmpAt4->Known());
+          // Now build the coordinate for the target atom
+          tgt->SetPos( Zmatrix::AtomIposition(maPC1, maPC2, knownAt->Pos(), 1.0, 90.0, iInt.Phi()) );
+          mprintf("ZMatrixAll:  %f,%f,%f\n", tgt->Pos()[0], tgt->Pos()[1], tgt->Pos()[2]);
+          used[jdx] = true;
+          nused++;
+          break;
+        }
+      } // END IC not yet used
+    } // END inner loop over ICs
+  } // END outer loop over ICs
+  if (nused < used.size()) {
+    mprinterr("Error: There are %u torsions left over for mock coords.\n", used.size() - nused);
+    return 1;
+  }
 
   return 0;
 }
@@ -1711,19 +1837,11 @@ int Builder::assignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame co
   if (!(axHasKnownAtoms && ayHasKnownAtoms)) {
     // Find any existing internal coords around ax-ay
     std::vector<InternalCoords> iTorsions = getExistingInternals(ax, ay);
-/*    if (currentZmatrix_ != 0) {
-      for (Zmatrix::const_iterator it = currentZmatrix_->begin(); it != currentZmatrix_->end(); ++it)
-      {
-        if (it->AtJ() == ax && it->AtK() == ay) {
-          iTorsions.push_back( *it );
-        }
-      }
-    }*/
     if (!iTorsions.empty()) {
       mprintf("Using INTERNALs to fit new torsions around: %s - %s\n",
               topIn.LeapName(ax).c_str(), topIn.LeapName(ay).c_str());
-      for (std::vector<InternalCoords>::const_iterator ic = iTorsions.begin(); ic != iTorsions.end(); ++ic)
-        ic->printIC( topIn );
+      //for (std::vector<InternalCoords>::const_iterator ic = iTorsions.begin(); ic != iTorsions.end(); ++ic)
+      //  ic->printIC( topIn );
       TorsionModel mT(ax, ay);
       if (buildMockExternals(mT, iTorsions)) {
         mprinterr("Error: Building mock externals around %s - %s failed.\n",
