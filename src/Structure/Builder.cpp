@@ -1214,6 +1214,8 @@ class MockAtom {
     MockAtom(int idx) : idx_(idx), pos_(0.0), known_(false) {}
     /// Set position
     void SetPos(Vec3 const& p) { pos_ = p; known_ = true; }
+    /// Set unknown
+    void SetUnknown() { pos_ = Vec3(0.0); known_ = false; }
 
     int Idx()         const { return idx_; }
     Vec3 const& Pos() const { return pos_; }
@@ -1223,15 +1225,6 @@ class MockAtom {
     Vec3 pos_;   ///< Atom position
     bool known_; ///< True if atom position is known
 };
-
-/// Used to find mock atom
-static inline std::vector<MockAtom>::iterator find_mock_atom(std::vector<MockAtom>& outerAtoms, int idx)
-{
-  std::vector<MockAtom>::iterator it = outerAtoms.begin();
-  for (; it != outerAtoms.end(); ++it)
-    if (it->Idx() == idx) return it;
-  return outerAtoms.end();
-}
 
 // -----------------------------------------------
 /** Store info for modelling torsions around X-Y */
@@ -1519,6 +1512,15 @@ int Cpptraj::Structure::Builder::TorsionModel::SetupTorsion(AtomType::Hybridizat
   return 0;
 }
 
+/// Used to find mock atom
+static inline std::vector<MockAtom>::iterator find_mock_atom(std::vector<MockAtom>& outerAtoms, int idx)
+{
+  std::vector<MockAtom>::iterator it = outerAtoms.begin();
+  for (; it != outerAtoms.end(); ++it)
+    if (it->Idx() == idx) return it;
+  return outerAtoms.end();
+}
+
 /** Build mock external coordinates around the given torsion using 
   * the given internal coordinates.
   * By definition, the two central atoms will be the same for each
@@ -1543,10 +1545,20 @@ int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(std::vector<In
             ic->Phi());
 
   // Define coordinates for the central atoms.
-  Vec3 posX(0, 0, 0);
-  Vec3 posY(1, 0, 0);
+  //Vec3 posX(0, 0, 0);
+  //Vec3 posY(1, 0, 0);
+  atX_.SetPos( Vec3(0, 0, 0) );
+  atY_.SetPos( Vec3(1, 0, 0) );
+  Vec3 const& posX = atX_.Pos();
+  Vec3 const& posY = atY_.Pos();
 
-  // Hold info on X-Y outer atoms
+  // Tell the outer atoms they do not have defined positions.
+  for (Marray::iterator it = sorted_ax_.begin(); it != sorted_ax_.end(); ++it)
+    it->SetUnknown();
+  for (Marray::iterator it = sorted_ay_.begin(); it != sorted_ay_.end(); ++it)
+    it->SetUnknown();
+
+//  // Hold info on X-Y outer atoms
   typedef std::vector<MockAtom> Marray;
   Marray outerAtoms;
 
