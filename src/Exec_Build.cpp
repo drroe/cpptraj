@@ -359,7 +359,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       mprinterr("Error: Atom %s not found in residue %i\n", *(ra1.second), ra1.first);
       return 1;
     }
-    topOut.AddBond(at0, at1);
+    //topOut.AddBond(at0, at1);
     // Save bonding atoms
     resBondingAtoms[ra0.first].push_back( Ipair(at0, at1) );
     resBondingAtoms[ra1.first].push_back( Ipair(at1, at0) );
@@ -420,8 +420,21 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
           mprintf("\t\tResidue connection: %s - %s\n",
                   topOut.AtomMaskName(resBonds->first).c_str(),
                   topOut.AtomMaskName(resBonds->second).c_str());
+          topOut.AddBond(resBonds->first, resBonds->second);
+          // FIXME DEBUG
+          structureBuilder.SetZmatrix( zmatrix );
+          if (structureBuilder.GenerateInternalsAroundLink(*zmatrix, resBonds->first, resBonds->second,
+                                                           frameOut, topOut, hasPosition))
+          {
+            mprinterr("Error: Assign torsions around inter-residue link %s - %s failed.\n",
+                      topOut.AtomMaskName(resBonds->first).c_str(),
+                      topOut.AtomMaskName(resBonds->second).c_str());
+            return 1;
+          }
+          //tmpz.print(&topOut);
         }
       }
+/*
       if ( *termType != Cpptraj::Structure::BEG_TERMINAL ) {
         for (int at = topOut.Res(ires).FirstAtom(); at != topOut.Res(ires).LastAtom(); ++at)
         {
@@ -437,21 +450,12 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
                           topOut.AtomMaskName(at).c_str(), topOut.AtomMaskName(*bat).c_str());
                 return 1;
               }
-              // FIXME DEBUG
-              Cpptraj::Structure::Zmatrix tmpz;
-              structureBuilder.SetZmatrix( zmatrix );
-              if (structureBuilder.GenerateInternalsAroundLink(tmpz, at, *bat, frameOut, topOut,
-                                                               hasPosition))
-              {
-                mprinterr("Error: Assign torsions around inter-residue bond %s - %s failed.\n",
-                          topOut.AtomMaskName(at).c_str(), topOut.AtomMaskName(*bat).c_str());
-                return 1;
-              }
-              tmpz.print(&topOut);
+              
             }
           }
         }
       }
+*/
       // TEST FIXME
 //      Cpptraj::Structure::Zmatrix testZ;
 //      if (testZ.BuildZmatrixFromTop(frameOut, topOut, ires, mainParmSet.AT(), hasPosition)) {

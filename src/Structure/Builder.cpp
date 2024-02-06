@@ -1804,7 +1804,7 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
 /** Generate internal coordinates around a bond linking two residues
   * in the same manner as LEaP.
   * \param zmatrix Hold output ICs
-  * \param at0 Atom in residue we are linking to.
+  * \param at0 Atom in residue we are linking to (i.e. the current residue).
   * \param at1 Atom in resiude we are linking from.
   */
 int Builder::GenerateInternalsAroundLink(Zmatrix& zmatrix, int at0, int at1,
@@ -1819,30 +1819,34 @@ int Builder::GenerateInternalsAroundLink(Zmatrix& zmatrix, int at0, int at1,
     mprinterr("Internal Error: Builder::GenerateInternalsAroundLink(): Atoms are in the same residue.\n");
     return 1;
   }
+  // In order to mimic the way LEaP does things, mark all atoms before
+  // this residue as having position, the first known atom of this residue
+  // has having position, and all other atoms as not having position.
+  Residue const& R0 = topIn.Res(A0.ResNum());
+  Barray tmpHasPosition( topIn.Natom(), false );
+  for (int at = 0; at < R0.FirstAtom(); at++)
+    tmpHasPosition[at] = true;
+  for (int at = R0.FirstAtom(); at != R0.LastAtom(); at++) {
+    if (hasPosition[at]) {
+      tmpHasPosition[at] = true;
+      break;
+    }
+  }
   // Create spanning tree across the link
   std::vector<int> span_atoms = GenerateSpanningTree(at0, at1, 4, topIn.Atoms());
   for (std::vector<int>::const_iterator it = span_atoms.begin(); 
                                         it != span_atoms.end(); ++it)
   {
     //mprintf("SPANNING TREE ATOM: %s\n", topIn.LeapName(*it).c_str());
-    generateAtomInternals(*it, frameIn, topIn, hasPosition);
+    generateAtomInternals(*it, frameIn, topIn, tmpHasPosition);
   }
-  // Create a temporary has position array marking atoms in at0 residue
-  // (except at0) as unknown.
-  //Residue const& R0 = topIn.Res(A0.ResNum());
-  //Barray tmpHasPosition = hasPosition;
-  //for (int at = R0.FirstAtom(); at != R0.LastAtom(); at++)
-  //{
-  //  if (at != at0)
-  //    tmpHasPosition[at] = false;
-  //}
   // Create torsions around the link
-  if (assignTorsionsAroundBond( zmatrix, at0, at1, frameIn, topIn, hasPosition )) {
-    mprinterr("Error Assign torsions around link %s - %s failed.\n",
-              topIn.AtomMaskName(at0).c_str(),
-              topIn.AtomMaskName(at1).c_str());
-    return 1;
-  }
+  //if (assignTorsionsAroundBond( zmatrix, at0, at1, frameIn, topIn, hasPosition )) {
+  //  mprinterr("Error Assign torsions around link %s - %s failed.\n",
+  //            topIn.AtomMaskName(at0).c_str(),
+  //            topIn.AtomMaskName(at1).c_str());
+  //  return 1;
+  //}
   mprintf("DEBUG: ----- Leaving Builder::GenerateInternalsAroundLink. -----\n");
   return 0;
 }
