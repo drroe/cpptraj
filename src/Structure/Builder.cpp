@@ -1641,6 +1641,24 @@ int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(std::vector<In
     mprinterr("Error: There are %u torsions left over for mock coords.\n", used.size() - nused);
     return 1;
   }
+  // Update the outer atoms for this torsion
+  mprintf("DEBUG: Final outer atoms:\n");
+  for (Marray::const_iterator it = outerAtoms.begin(); it != outerAtoms.end(); ++it) {
+    mprintf("DEBUG:\t\t%i %4s (%i) {%f %f %f}\n", it->Idx()+1, topIn.AtomMaskName(it->Idx()).c_str(),
+            (int)it->Known(), it->Pos()[0], it->Pos()[1], it->Pos()[2]);
+    Marray::iterator itx = find_mock_atom(sorted_ax_, it->Idx());
+    if (itx != sorted_ax_.end()) {
+      *itx = *it;
+    } else {
+      itx = find_mock_atom(sorted_ay_, it->Idx());
+      if (itx != sorted_ay_.end()) {
+        *itx = *it;
+      } else {
+        mprinterr("Internal Error: TorsionModel::BuildMockExternals(): Could not update mock atom.\n");
+        return 1;
+      }
+    }
+  }
 
   return 0;
 }
