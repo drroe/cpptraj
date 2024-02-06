@@ -1947,7 +1947,7 @@ int Builder::assignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame co
                   topIn.AtomMaskName(ax).c_str(), topIn.AtomMaskName(ay).c_str());
         return 1;
       }
-      return 0; // FIXME DEBUG 
+      //return 0; // FIXME DEBUG 
     } else {
       mprintf("Completely free in assigning new torsions for: %s - %s\n",
               topIn.LeapName(ax).c_str(), topIn.LeapName(ay).c_str());
