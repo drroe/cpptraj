@@ -1075,6 +1075,7 @@ const
   return 0;
 }
 
+// ==============================================================================
 /** For existing torsions, see if all coordinates in that torsion
   * exist. If so, update the IC from the existing coordinates.
   */
@@ -1137,7 +1138,6 @@ int Builder::UpdateICsFromFrame(Frame const& frameIn, int ires, Topology const& 
   return 0;
 }
 
-// ------------------------------------------------------------------------------
 /// Used to track atoms for mock externals
 class MockAtom {
   public:
@@ -1639,7 +1639,60 @@ int Builder::getExistingTorsionIdx(int ai, int aj, int ak, int al) const {
   return idx;
 }
 
-/** Mode angle */
+/** Model bond */
+double Builder::ModelBondLength(int ai, int aj, Topology const& topIn) const {
+  // First look up parameter
+  double dist = 0;
+  if (getLengthParam(dist, ai, aj, topIn)) {
+    return dist;
+  }
+  Atom const& AI = topIn[ai];
+  Atom const& AJ = topIn[aj];
+  AtomType::HybridizationType hybridI = AtomType::UNKNOWN_HYBRIDIZATION;
+  AtomType::HybridizationType hybridJ = AtomType::UNKNOWN_HYBRIDIZATION;
+  // Check params for hybrid
+  if (params_ != 0) {
+    ParmHolder<AtomType>::const_iterator it = params_->AT().GetParam( TypeNameHolder(AI.Type()) );
+    if (it != params_->AT().end())
+      hybridI = it->second.Hybridization();
+    it = params_->AT().GetParam( TypeNameHolder(AJ.Type()) );
+    if (it != params_->AT().end())
+      hybridJ = it->second.Hybridization();
+  }
+  if (hybridI == AtomType::UNKNOWN_HYBRIDIZATION ||
+      hybridJ == AtomType::UNKNOWN_HYBRIDIZATION)
+  {
+    // Default to bond length based on elements
+    dist = Atom::GetBondLength( AI.Element(), AJ.Element() );
+  } else {
+    // Use leap method based on atom hybridization
+    AtomType::HybridizationType hybrid1, hybrid2;
+    if (hybridI < hybridJ) {
+      hybrid1 = hybridI;
+      hybrid2 = hybridJ;
+    } else {
+      hybrid1 = hybridJ;
+      hybrid2 = hybridI;
+    }
+    if (hybrid1 == AtomType::SP3 && hybrid2 == AtomType::SP3)
+      dist = 1.5;
+    else if (hybrid1 == AtomType::SP2 && hybrid2 == AtomType::SP3)
+      dist = 1.4;
+    else if (hybrid1 == AtomType::SP && hybrid2 == AtomType::SP3)
+      dist = 1.3;
+    else if (hybrid1 == AtomType::SP2 && hybrid2 == AtomType::SP2)
+      dist = 1.35;
+    else if (hybrid1 == AtomType::SP && hybrid2 == AtomType::SP2)
+      dist = 1.3;
+    else if (hybrid1 == AtomType::SP && hybrid2 == AtomType::SP)
+      dist = 1.1;
+    else
+      dist =  Atom::GetBondLength( AI.Element(), AJ.Element() );
+  }
+  return dist;
+}
+
+/** Model angle */
 double Builder::ModelBondAngle(int ai, int aj, int ak, Topology const& topIn) const {
   // First look up parameter
   double theta = 0;
@@ -2044,6 +2097,23 @@ int Builder::GenerateInternals(Frame const& frameIn, Topology const& topIn, Barr
             topIn.LeapName(ang->A2()).c_str(),
             topIn.LeapName(ang->A3()).c_str());
   }
+  // Loop over bonds
+  for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
+  {
+    double dValue = 0;
+    if (hasPosition[bnd->A1()] &&
+        hasPosition[bnd->A2()])
+    {
+      dValue = sqrt(DIST2_NoImage( frameIn.XYZ(bnd->A1()), frameIn.XYZ(bnd->A2()) ) );
+    } else {
+      dValue = ModelBondLength( bnd->A1(), bnd->A2(), topIn );
+    }
+    internalBonds_.push_back( InternalBond(bnd->A1(), bnd->A2(), dValue) );
+    mprintf("++++Bond INTERNAL: %f  for %s - %s\n", dValue,
+            topIn.LeapName(bnd->A1()).c_str(),
+            topIn.LeapName(bnd->A2()).c_str());
+  }
+
   //zmatrix.print( &topIn );
   mprintf("DEBUG: ----- Leaving Builder::GenerateInternals. ------\n");
   return 0;

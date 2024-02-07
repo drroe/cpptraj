@@ -43,9 +43,12 @@ class Builder {
     class InternalTorsion;
     /// Hold angle
     class InternalAngle;
+    /// Hold bond
+    class InternalBond;
 
     typedef std::vector<InternalTorsion> Tarray;
     typedef std::vector<InternalAngle> Aarray;
+    typedef std::vector<InternalBond> Larray;
 
     /// Get length parameter for atoms
     int getLengthParam(double&, int, int, Topology const&) const;
@@ -74,6 +77,8 @@ class Builder {
     void ModelTorsion(TorsionModel const&, unsigned int, unsigned int, double);
     /// Get angle value
     double ModelBondAngle(int, int, int, Topology const&) const;
+    /// Get bond length
+    double ModelBondLength(int, int, Topology const&) const;
     /// Create ICs around SP3-SP3 linkage
     void createSp3Sp3Torsions(TorsionModel const&);
     /// Create ICs around SP3-SP2 linkage
@@ -99,6 +104,7 @@ class Builder {
     Barray const* hasPosition_;  ///< Array indicating which atoms have position for createSpXSpXTorsions/ModelTorsion routines
     Tarray internalTorsions_;
     Aarray internalAngles_;
+    Larray internalBonds_;
 };
 /// ----- Hold torsion internal ------------------
 class Cpptraj::Structure::Builder::InternalTorsion {
@@ -157,6 +163,31 @@ class Cpptraj::Structure::Builder::InternalAngle {
     int ak_;
     double theta_;
 };
+// ----- Hold bond internal ----------------------
+class Cpptraj::Structure::Builder::InternalBond {
+  public:
+    /// CONSTRUCTOR
+    InternalBond() : ai_(-1), aj_(-1), dist_(0) {}
+    /// CONSTRUCTOR
+    InternalBond(int i, int j, double d) :
+      ai_(i), aj_(j), dist_(d) {}
+    /// Set the distance value in angstroms
+    void SetDistVal(double d) { dist_ = d; }
+    /// Offset indices by given value
+    void OffsetIndices(int o) {
+      ai_ += 0;
+      aj_ += 0;
+    }
+
+    int AtI() const { return ai_; }
+    int AtJ() const { return aj_; }
+    double DistVal() const { return dist_; }
+  private:
+    int ai_;
+    int aj_;
+    double dist_;
+};
+
 }
 }
 #endif
