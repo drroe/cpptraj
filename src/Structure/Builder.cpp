@@ -1620,7 +1620,7 @@ Builder::Tarray Builder::getExistingTorsions(int ax, int ay) const {
   for (Tarray::const_iterator it = internalTorsions_.begin(); it != internalTorsions_.end(); ++it)
   {
     if ((it->AtJ() == ax && it->AtK() == ay) ||
-        (it->AtJ() == ay && it->AtJ() == ax))
+        (it->AtJ() == ay && it->AtK() == ax))
     {
       iTorsions.push_back( *it );
     }
@@ -1630,13 +1630,16 @@ Builder::Tarray Builder::getExistingTorsions(int ax, int ay) const {
 
 /** \return index of existing torsion matching the 4 given atoms, -1 for no match. */
 int Builder::getExistingTorsionIdx(int ai, int aj, int ak, int al) const {
+  //mprintf("SEARCHING FOR %i %i %i %i\n", ai, aj, ak, al);
   int idx = -1;
   for (Tarray::const_iterator it = internalTorsions_.begin(); it != internalTorsions_.end(); ++it)
   {
+    //mprintf("\t\t%i %i %i %i\n", it->AtI(), it->AtJ(), it->AtK(), it->AtL());
     if ( (it->AtI() == ai && it->AtJ() == aj && it->AtK() == ak && it->AtL() == al) ||
          (it->AtI() == al && it->AtJ() == ak && it->AtK() == aj && it->AtL() == ai) )
     {
-      idx = (int)(internalTorsions_.begin() - it);
+      idx = (int)(it - internalTorsions_.begin());
+      //mprintf("FOUND at index %i\n", idx);
       break;
     }
   }
@@ -2140,6 +2143,15 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
         Tarray iTorsions = getExistingTorsions(*bat, *cat);
         int iShouldBe = (AtB.Nbonds() - 1) * (AtC.Nbonds() - 1);
         mprintf("ISHOULDBE= %i ITORSIONS= %zu\n", iShouldBe, iTorsions.size());
+        if (iShouldBe == 6 && iTorsions.size() == 6) { // FIXME DEBUG
+          for (Tarray::const_iterator it = iTorsions.begin(); it != iTorsions.end(); ++it)
+            mprintf("*** %s - %s - %s - %s : %f\n",
+                    topIn.LeapName(it->AtI()).c_str(),
+                    topIn.LeapName(it->AtJ()).c_str(),
+                    topIn.LeapName(it->AtK()).c_str(),
+                    topIn.LeapName(it->AtL()).c_str(),
+                    it->PhiVal()*Constants::RADDEG);
+        }
         if (iShouldBe != (int)iTorsions.size()) {
           assignTorsionsAroundBond(*bat, *cat, frameIn, topIn, hasPosition, at);
         }
