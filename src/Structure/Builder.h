@@ -118,10 +118,10 @@ class Cpptraj::Structure::Builder::InternalTorsion {
     void SetPhiVal(double p) { phi_ = p; }
     /// Offset indices by given value
     void OffsetIndices(int o) {
-      ai_ += 0;
-      aj_ += 0;
-      ak_ += 0;
-      al_ += 0;
+      ai_ += o;
+      aj_ += o;
+      ak_ += o;
+      al_ += o;
     }
 
     int AtI() const { return ai_; }
@@ -148,9 +148,9 @@ class Cpptraj::Structure::Builder::InternalAngle {
     void SetThetaVal(double t) { theta_ = t; }
     /// Offset indices by given value
     void OffsetIndices(int o) {
-      ai_ += 0;
-      aj_ += 0;
-      ak_ += 0;
+      ai_ += o;
+      aj_ += o;
+      ak_ += o;
     }
 
     int AtI() const { return ai_; }
@@ -175,8 +175,8 @@ class Cpptraj::Structure::Builder::InternalBond {
     void SetDistVal(double d) { dist_ = d; }
     /// Offset indices by given value
     void OffsetIndices(int o) {
-      ai_ += 0;
-      aj_ += 0;
+      ai_ += o;
+      aj_ += o;
     }
 
     int AtI() const { return ai_; }

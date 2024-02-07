@@ -1608,6 +1608,10 @@ int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(Tarray const& 
 void Builder::UpdateIndicesWithOffset(int atomOffset) {
   for (Tarray::iterator it = internalTorsions_.begin(); it != internalTorsions_.end(); ++it)
     it->OffsetIndices( atomOffset );
+  for (Aarray::iterator it = internalAngles_.begin(); it != internalAngles_.end(); ++it)
+    it->OffsetIndices( atomOffset );
+  for (Larray::iterator it = internalBonds_.begin(); it != internalBonds_.end(); ++it)
+    it->OffsetIndices( atomOffset );
 }
 
 /** Find any existing torsions around ax-ay. */
