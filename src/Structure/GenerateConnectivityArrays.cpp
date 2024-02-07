@@ -60,34 +60,7 @@ BondArray Cpptraj::Structure::GenerateBondArray(std::vector<Residue> const& resi
   return out;
 }
 
-static inline void visit_tree_atom(std::vector<int>& out,
-                                   int at, int targetDepth, int currentDepth,
-                                   std::vector<bool>& atomSeen,
-                                   std::vector<Atom> const& atoms)
-{
-  if (currentDepth == targetDepth) return;
-  if (!atomSeen[at]) {
-    out.push_back( at );
-    atomSeen[at] = true;
-  }
-  for (Atom::bond_iterator bat = atoms[at].bondbegin();
-                           bat != atoms[at].bondend();
-                         ++bat)
-  {
-    if (!atomSeen[*bat]) {
-      out.push_back( *bat );
-      atomSeen[*bat] = true;
-    }
-  }
-  for (Atom::bond_iterator bat = atoms[at].bondbegin();
-                           bat != atoms[at].bondend();
-                         ++bat)
-  {
-    if (atoms[*bat].Nbonds() > 1)
-      visit_tree_atom(out, *bat, targetDepth, currentDepth+1, atomSeen, atoms);
-  }
-}
-
+/** Generate a spanning tree around two atoms in the same manner as LEaP. */ // FIXME at1 not strictly needed
 std::vector<int> Cpptraj::Structure::GenerateSpanningTree(int at0, int at1, int targetDepth,
                                                           std::vector<Atom> const& atoms)
 {
@@ -95,7 +68,29 @@ std::vector<int> Cpptraj::Structure::GenerateSpanningTree(int at0, int at1, int 
 
   std::vector<bool> atomSeen(atoms.size(), false);
 
-  visit_tree_atom(out, at0, targetDepth, 0, atomSeen, atoms);
+  std::vector<int> queue;
+  std::vector<int> depth;
+
+  out.push_back( at0 );
+  queue.push_back( at0 );
+  depth.push_back( 0 );
+  atomSeen[at0] = true;
+  unsigned int idx = 0;
+  while (idx < queue.size()) {
+    Atom const& currentAt = atoms[queue[idx]];
+    for (Atom::bond_iterator bat = currentAt.bondbegin(); bat != currentAt.bondend(); ++bat)
+    {
+      if (!atomSeen[*bat]) {
+        out.push_back( *bat );
+        atomSeen[*bat] = true;
+        if (depth[idx] + 1 < targetDepth && atoms[*bat].Nbonds() > 1) {
+          queue.push_back( *bat );
+          depth.push_back( depth[idx]+1 );
+        }
+      }
+    }
+    idx++;
+  }
 
   return out;
 }
