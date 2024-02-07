@@ -75,6 +75,8 @@ class Builder {
     int assignTorsionsAroundBond(Zmatrix&, int, int, Frame const&, Topology const&, Barray const&, int);
     /// Get any existing internal coords from currentZmatrix around specified atoms
     std::vector<InternalCoords> getExistingInternals(int, int) const;
+    /// Get specific internal coords from currentZmatrix
+    int getExistingInternalIdx(int, int, int, int) const;
     /// Build mock coordinates around given torsion
     int buildMockExternals(TorsionModel& MT, std::vector<InternalCoords> const& iaTorsions) const;
     /// Generate internal coords for a given atom
