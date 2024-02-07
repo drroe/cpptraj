@@ -41,8 +41,11 @@ class Builder {
     class TorsionModel;
     /// Hold torsion
     class InternalTorsion;
+    /// Hold angle
+    class InternalAngle;
 
     typedef std::vector<InternalTorsion> Tarray;
+    typedef std::vector<InternalAngle> Aarray;
 
     /// Get length parameter for atoms
     int getLengthParam(double&, int, int, Topology const&) const;
@@ -69,6 +72,8 @@ class Builder {
 
     /// Create IC for a torsion
     void ModelTorsion(TorsionModel const&, unsigned int, unsigned int, double);
+    /// Get angle value
+    double ModelBondAngle(int, int, int, Topology const&) const;
     /// Create ICs around SP3-SP3 linkage
     void createSp3Sp3Torsions(TorsionModel const&);
     /// Create ICs around SP3-SP2 linkage
@@ -93,6 +98,7 @@ class Builder {
     Frame const* currentFrm_;    ///< Frame for the createSpXSpXTorsions routines
     Barray const* hasPosition_;  ///< Array indicating which atoms have position for createSpXSpXTorsions/ModelTorsion routines
     Tarray internalTorsions_;
+    Aarray internalAngles_;
 };
 /// ----- Hold torsion internal ------------------
 class Cpptraj::Structure::Builder::InternalTorsion {
@@ -123,6 +129,33 @@ class Cpptraj::Structure::Builder::InternalTorsion {
     int ak_;
     int al_;
     double phi_;
+};
+// ----- Hold angle internal ---------------------
+class Cpptraj::Structure::Builder::InternalAngle {
+  public:
+    /// CONSTRUCTOR
+    InternalAngle() : ai_(-1), aj_(-1), ak_(-1), theta_(0) {}
+    /// CONSTRUCTOR
+    InternalAngle(int i, int j, int k, double t) :
+      ai_(i), aj_(j), ak_(k), theta_(t) {}
+    /// Set the phi value in radians
+    void SetThetaVal(double t) { theta_ = t; }
+    /// Offset indices by given value
+    void OffsetIndices(int o) {
+      ai_ += 0;
+      aj_ += 0;
+      ak_ += 0;
+    }
+
+    int AtI() const { return ai_; }
+    int AtJ() const { return aj_; }
+    int AtK() const { return ak_; }
+    double ThetaVal() const { return theta_; }
+  private:
+    int ai_;
+    int aj_;
+    int ak_;
+    double theta_;
 };
 }
 }

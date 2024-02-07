@@ -101,7 +101,7 @@ AngleArray Cpptraj::Structure::GenerateAngleArray(std::vector<Residue> const& re
 {
   AngleArray out;
   // ANGLES TODO combine above
-  int aidx = 0;
+//  int aidx = 0;
   for (std::vector<Residue>::const_iterator res = residues.begin(); res != residues.end(); ++res)
   {
     int start, end, offset;
@@ -116,7 +116,7 @@ AngleArray Cpptraj::Structure::GenerateAngleArray(std::vector<Residue> const& re
         for (int bidx2 = 0; bidx2 < At2.Nbonds(); bidx2++) {
           int iat3 = At2.Bond(bidx2);
           if (iat1 < iat3) {
-            mprintf("DEBUG: ANGLE  i= %i  %i - %i - %i (%i %i %i)\n", aidx++, iat1+1, iat2+1, iat3+1, iat1*3, iat2*3, iat3*3);
+            //mprintf("DEBUG: ANGLE  i= %i  %i - %i - %i (%i %i %i)\n", aidx++, iat1+1, iat2+1, iat3+1, iat1*3, iat2*3, iat3*3);
             out.push_back( AngleType(iat1, iat2, iat3, -1) );
           }
         }
@@ -132,7 +132,7 @@ DihedralArray Cpptraj::Structure::GenerateDihedralArray(std::vector<Residue> con
 {
   DihedralArray out;
   // TORSIONS TODO combine above
-  int didx = 0;
+//  int didx = 0;
   for (std::vector<Residue>::const_iterator res = residues.begin(); res != residues.end(); ++res)
   {
     int start, end, offset;
@@ -151,7 +151,7 @@ DihedralArray Cpptraj::Structure::GenerateDihedralArray(std::vector<Residue> con
             for (int bidx3 = 0; bidx3 < At3.Nbonds(); bidx3++) {
               int iat4 = At3.Bond(bidx3);
               if (iat4 != iat2 && iat1 < iat4) {
-                mprintf("DEBUG: DIHEDRAL  i= %i  %i - %i - %i - %i (%i %i %i %i)\n", didx++, iat1+1, iat2+1, iat3+1, iat4+1, iat1*3, iat2*3, iat3*3, iat4*3);
+                //mprintf("DEBUG: DIHEDRAL  i= %i  %i - %i - %i - %i (%i %i %i %i)\n", didx++, iat1+1, iat2+1, iat3+1, iat4+1, iat1*3, iat2*3, iat3*3, iat4*3);
                 out.push_back( DihedralType( iat1, iat2, iat3, iat4, -1 ) );
               }
             }
@@ -188,7 +188,7 @@ DihedralArray Cpptraj::Structure::GenerateImproperArray(std::vector<Residue> con
                                                         std::vector<Atom> const& atoms)
 {
   DihedralArray out;
-  int iidx = 0;
+//  int iidx = 0;
   for (std::vector<Residue>::const_iterator res = residues.begin(); res != residues.end(); ++res)
   {
     int start, end, offset;
@@ -204,7 +204,7 @@ DihedralArray Cpptraj::Structure::GenerateImproperArray(std::vector<Residue> con
               int iat1 = AJ.BondIdxArray()[bidx0];
               int iat2 = AJ.BondIdxArray()[bidx1];
               int iat4 = AJ.BondIdxArray()[bidx2];
-              mprintf("DEBUG: IMPROPER  i= %i  %i - %i - %i - %i (%i %i %i %i)\n", iidx++, iat1+1, iat2+1, iat3+1, iat4+1, iat1*3, iat2*3, iat3*3, iat4*3);
+              //mprintf("DEBUG: IMPROPER  i= %i  %i - %i - %i - %i (%i %i %i %i)\n", iidx++, iat1+1, iat2+1, iat3+1, iat4+1, iat1*3, iat2*3, iat3*3, iat4*3);
               int indices[3];
               indices[0] = iat1;
               indices[1] = iat2;

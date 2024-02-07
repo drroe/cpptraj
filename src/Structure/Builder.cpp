@@ -1639,6 +1639,50 @@ int Builder::getExistingTorsionIdx(int ai, int aj, int ak, int al) const {
   return idx;
 }
 
+/** Mode angle */
+double Builder::ModelBondAngle(int ai, int aj, int ak, Topology const& topIn) const {
+  // First look up parameter
+  double theta = 0;
+  if (getAngleParam(theta, ai, aj, ak, topIn)) {
+    return theta;
+  }
+  Atom const& AJ = topIn[aj];
+  // Figure out hybridization and chirality of atom j.
+  if (debug_ > 0) {
+    mprintf("DEBUG:\t\tI %s Nbonds: %i\n", topIn[ai].ElementName(), topIn[ai].Nbonds());
+    mprintf("DEBUG:\t\tJ %s Nbonds: %i\n", AJ.ElementName(), AJ.Nbonds());
+    mprintf("DEBUG:\t\tK %s Nbonds: %i\n", topIn[ak].ElementName(), topIn[ak].Nbonds());
+  }
+  AtomType::HybridizationType hybrid = AtomType::UNKNOWN_HYBRIDIZATION;
+  // Check params for hybrid
+  if (params_ != 0) {
+    ParmHolder<AtomType>::const_iterator it = params_->AT().GetParam( TypeNameHolder(AJ.Type()) );
+    if (it != params_->AT().end())
+      hybrid = it->second.Hybridization();
+  }
+  // Guess hybrid if needed
+  if (hybrid == AtomType::UNKNOWN_HYBRIDIZATION)
+    hybrid = GuessAtomHybridization(AJ, topIn.Atoms());
+  // Set from number of bonds if still unknown. This is a pretty crude guess.
+  if (hybrid == AtomType::UNKNOWN_HYBRIDIZATION) {
+    switch (AJ.Nbonds()) {
+      case 4 : hybrid = AtomType::SP3; break;
+      case 3 : hybrid = AtomType::SP2; break;
+      case 2 : hybrid = AtomType::SP; break;
+      default : mprinterr("Internal Error: AssignTheta(): Unhandled # bonds for %s (%i)\n", topIn.AtomMaskName(aj).c_str(), AJ.Nbonds()); return 1;
+    }
+  }
+
+  // Assign a theta based on hybridization
+  switch (hybrid) {
+    case AtomType::SP3 : theta = 109.5 * Constants::DEGRAD; break;
+    case AtomType::SP2 : theta = 120.0 * Constants::DEGRAD; break;
+    case AtomType::SP  : theta = 180.0 * Constants::DEGRAD; break;
+    default : mprinterr("Internal Error: AssignTheta(): Unhandled hybridization for %s (%i)\n", topIn.AtomMaskName(aj).c_str(), AJ.Nbonds()); return 1;
+  }
+  return theta;
+}
+
 /** Model torsion */
 void Builder::ModelTorsion(TorsionModel const& MT, unsigned int iBondX, unsigned int iBondY, double dvalIn)
 {
@@ -1980,6 +2024,25 @@ int Builder::GenerateInternals(Frame const& frameIn, Topology const& topIn, Barr
                 topIn.AtomMaskName(bnd->A2()).c_str());
       return 1;
     }
+  }
+  // Loop over angles
+  AngleArray angles = GenerateAngleArray( topIn.Residues(), topIn.Atoms() );
+  for (AngleArray::const_iterator ang = angles.begin(); ang != angles.end(); ++ang)
+  {
+    double dValue = 0;
+    if (hasPosition[ang->A1()] &&
+        hasPosition[ang->A2()] &&
+        hasPosition[ang->A3()])
+    {
+      dValue = CalcAngle( frameIn.XYZ(ang->A1()), frameIn.XYZ(ang->A2()), frameIn.XYZ(ang->A3()) );
+    } else {
+      dValue = ModelBondAngle( ang->A1(), ang->A2(), ang->A3(), topIn );
+    }
+    internalAngles_.push_back( InternalAngle(ang->A1(), ang->A2(), ang->A3(), dValue) );
+    mprintf("++++Angle INTERNAL: %f  for %s - %s - %s\n", dValue*Constants::RADDEG,
+            topIn.LeapName(ang->A1()).c_str(),
+            topIn.LeapName(ang->A2()).c_str(),
+            topIn.LeapName(ang->A3()).c_str());
   }
   //zmatrix.print( &topIn );
   mprintf("DEBUG: ----- Leaving Builder::GenerateInternals. ------\n");
