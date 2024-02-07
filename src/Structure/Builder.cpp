@@ -1778,7 +1778,7 @@ void Builder::ModelTorsion(TorsionModel const& MT, unsigned int iBondX, unsigned
     newZmatrix_->AddIC( InternalCoords(aa, ax, ay, ad, l0, t0*Constants::RADDEG, phiVal*Constants::RADDEG) );
     newZmatrix_->AddIC( InternalCoords(ad, ay, ax, aa, l1, t1*Constants::RADDEG, phiVal*Constants::RADDEG) );
   } else {
-    mprintf( "Torsional INTERNAL already exists\n" );
+    mprintf( "Torsional INTERNAL already exists: %f\n", (*currentZmatrix_)[icIdx].Phi() );
   }
 }
 
@@ -1985,7 +1985,7 @@ int Builder::assignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame co
     } else {
       mprintf("Completely free in assigning new torsions for: %s - %s\n",
               topIn.LeapName(ax).c_str(), topIn.LeapName(ay).c_str());
-      return 0; // FIXME DEBUG 
+      //return 0; // FIXME DEBUG 
     }
   } else {
     // Use existing atoms to determine torsions
