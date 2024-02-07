@@ -1681,6 +1681,24 @@ std::vector<InternalCoords> Builder::getExistingInternals(int ax, int ay) const 
         iTorsions.push_back( *it );
       }
     }
+    for (Zmatrix::const_iterator it = currentZmatrix_->begin(); it != currentZmatrix_->end(); ++it)
+    {
+      if (it->AtJ() == ay && it->AtK() == ax) {
+        // Avoid duplicates FIXME just track torsions eventually not the whole zmatrix
+        bool duplicate = false;
+        for (std::vector<InternalCoords>::const_iterator jt = iTorsions.begin(); jt != iTorsions.end(); ++jt) {
+          if (jt->AtI() == it->AtL() &&
+              jt->AtJ() == it->AtK() &&
+              jt->AtK() == it->AtJ() &&
+              jt->AtL() == it->AtI())
+          {
+            duplicate = true;
+            break;
+          }
+        }
+        if (!duplicate) iTorsions.push_back( *it );
+      }
+    }
   }
   return iTorsions;
 }
@@ -2050,7 +2068,7 @@ int Builder::GenerateInternals(Zmatrix& zmatrix, Frame const& frameIn, Topology 
 }
 
 /** Build internal coordinates around an atom. */
-int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
+int Builder::generateAtomInternals(Zmatrix& zmatrix, int at, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
 {
   mprintf( "Building internals for: %s\n", topIn.LeapName(at).c_str());
   Atom const& AtA = topIn[at];
@@ -2067,8 +2085,7 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
         int iShouldBe = (AtB.Nbonds() - 1) * (AtC.Nbonds() - 1);
         mprintf("ISHOULDBE= %i ITORSIONS= %zu\n", iShouldBe, iTorsions.size());
         if (iShouldBe != (int)iTorsions.size()) {
-          Zmatrix tmpz; // FIXME
-          assignTorsionsAroundBond(tmpz, *bat, *cat, frameIn, topIn, hasPosition, at);
+          assignTorsionsAroundBond(zmatrix, *bat, *cat, frameIn, topIn, hasPosition, at);
         }
       }
     }
@@ -2108,7 +2125,7 @@ int Builder::GenerateInternalsAroundLink(Zmatrix& zmatrix, int at0, int at1,
                                         it != span_atoms.end(); ++it)
   {
     //mprintf("SPANNING TREE ATOM: %s\n", topIn.LeapName(*it).c_str());
-    if (generateAtomInternals(*it, frameIn, topIn, tmpHasPosition)) {
+    if (generateAtomInternals(zmatrix, *it, frameIn, topIn, tmpHasPosition)) {
       mprinterr("Error: Could not generate internals for atom %s\n", topIn.AtomMaskName(*it).c_str());
       return 1;
     }

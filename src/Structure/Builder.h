@@ -80,7 +80,7 @@ class Builder {
     /// Build mock coordinates around given torsion
     int buildMockExternals(TorsionModel& MT, std::vector<InternalCoords> const& iaTorsions) const;
     /// Generate internal coords for a given atom
-    int generateAtomInternals(int, Frame const&, Topology const&, Barray const&);
+    int generateAtomInternals(Zmatrix&, int, Frame const&, Topology const&, Barray const&);
 
     int debug_;
     ParameterSet const* params_;
