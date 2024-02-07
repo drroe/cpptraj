@@ -184,7 +184,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   hasPosition.reserve( newNatom );
 
   // Hold Z-matrices for residues that have missing atoms
-  typedef std::vector<Cpptraj::Structure::Zmatrix*> Zarray;
+  typedef std::vector<Cpptraj::Structure::Builder*> Zarray;
   Zarray ResZmatrices;
   ResZmatrices.reserve( topIn.Nres() );
 
@@ -194,9 +194,9 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   typedef std::vector<ResAtPair> ResAtArray;
   ResAtArray interResBonds;
 
-  Cpptraj::Structure::Builder structureBuilder;
-  structureBuilder.SetDebug( 1 );
-  structureBuilder.SetParameters( &mainParmSet );
+  //Cpptraj::Structure::Builder structureBuilder;
+  //structureBuilder.SetDebug( 1 );
+  //structureBuilder.SetParameters( &mainParmSet );
 
   // For holding bonded atom pairs
   typedef std::pair<int,int> Ipair;
@@ -303,21 +303,23 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       if (atomsNeedBuilding) {
         Frame templateFrame = resTemplate->AllocateFrame();
         resTemplate->GetFrame( 0, templateFrame );
-        Cpptraj::Structure::Zmatrix* zmatrix = new Cpptraj::Structure::Zmatrix();
+        Cpptraj::Structure::Builder* structureBuilder = new Cpptraj::Structure::Builder();
+        structureBuilder->SetDebug( 1 ); // DEBUG FIXME
+        structureBuilder->SetParameters( &mainParmSet );
         //if (zmatrix->SetFromFrameAndConnect( templateFrame, resTemplate->Top() )) {
 //        if (zmatrix->GenerateInternals( templateFrame, resTemplate->Top() )) {
 //          mprinterr("Error: Could not set up residue template zmatrix.\n");
 //          return 1;
 //        }
-        if (structureBuilder.GenerateInternals(*zmatrix, templateFrame, resTemplate->Top(),
+        if (structureBuilder->GenerateInternals(templateFrame, resTemplate->Top(),
                                                std::vector<bool>(resTemplate->Top().Natom(), true)))
         {
           mprinterr("Error: Generate internals for residue template failed.\n");
           return 1;
         }
 //        zmatrix->print( resTemplate->TopPtr() );
-        zmatrix->OffsetIcIndices( atomOffset );
-        ResZmatrices.push_back( zmatrix );
+        structureBuilder->UpdateIndicesWithOffset( atomOffset );
+        ResZmatrices.push_back( structureBuilder );
 //        zmatrix->print( &topOut );
         //for (Iarray::const_iterator jres = resConnections[ires].begin();
         //                            jres != resConnections[ires].end(); ++jres)
@@ -403,14 +405,14 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   for (Zarray::const_iterator it = ResZmatrices.begin(); it != ResZmatrices.end(); ++it, ++termType)
   {
     long int ires = it-ResZmatrices.begin();
-    Cpptraj::Structure::Zmatrix* zmatrix = *it;
-    if (zmatrix != 0) {
+    Cpptraj::Structure::Builder* structureBuilder = *it;
+    if (structureBuilder != 0) {
       mprintf("DEBUG: ***** BUILD residue %li %s *****\n", ires + 1,
               topOut.TruncResNameOnumId(ires).c_str());
       mprintf("DEBUG: Residue type: %s terminal\n", Cpptraj::Structure::terminalStr(*termType));
-      mprintf("DEBUG: Zmatrix for building residue %li %s\n", ires + 1,
-              topOut.TruncResNameOnumId(ires).c_str());
-      zmatrix->print(&topOut);
+      //mprintf("DEBUG: Zmatrix for building residue %li %s\n", ires + 1,
+      //        topOut.TruncResNameOnumId(ires).c_str());
+      //zmatrix->print(&topOut);
 //      linkBuilder.SetZmatrix( zmatrix );
       // Is this residue connected to an earlier residue?
       for (IParray::const_iterator resBonds = resBondingAtoms[ires].begin();
@@ -422,8 +424,8 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
                   topOut.AtomMaskName(resBonds->second).c_str());
           topOut.AddBond(resBonds->first, resBonds->second);
           // FIXME DEBUG
-          structureBuilder.SetZmatrix( zmatrix );
-          if (structureBuilder.GenerateInternalsAroundLink(*zmatrix, resBonds->first, resBonds->second,
+          //structureBuilder.SetZmatrix( zmatrix );
+          if (structureBuilder->GenerateInternalsAroundLink(resBonds->first, resBonds->second,
                                                            frameOut, topOut, hasPosition))
           {
             mprinterr("Error: Assign torsions around inter-residue link %s - %s failed.\n",
@@ -463,7 +465,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
 //        return 1;
 //      }
       // Update internal coords from known positions
-      if (structureBuilder.UpdateICsFromFrame( *zmatrix, frameOut, ires, topOut, hasPosition )) {
+      if (structureBuilder->UpdateICsFromFrame( frameOut, ires, topOut, hasPosition )) {
         mprinterr("Error: Failed to update Zmatrix with values from existing positions.\n");
         return 1;
       }
@@ -472,8 +474,9 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       //  mprinterr("Error: Could not set up seed atoms for Zmatrix.\n");
       //  buildFailed = true;
       //} else {
-        zmatrix->SetDebug( 1 ); // DEBUG
-        if (zmatrix->SetToFrame( frameOut, hasPosition )) {
+        Cpptraj::Structure::Zmatrix tmpz; // FIXME
+        tmpz.SetDebug( 1 ); // DEBUG
+        if (tmpz.SetToFrame( frameOut, hasPosition )) {
           mprinterr("Error: Building residue %s failed.\n",
                     topOut.TruncResNameOnumId(ires).c_str());
           buildFailed = true;

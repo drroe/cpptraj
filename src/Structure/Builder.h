@@ -19,26 +19,30 @@ class Builder {
     void SetDebug(int d) { debug_ = d; }
     /// Set optional parameter set
     void SetParameters(ParameterSet const*);
-    /// Set optional Zmatrix with current ICs
-    void SetZmatrix(Zmatrix const*);
 
     /// Combine second fragment into first fragment and bond
     int Combine(Topology&, Frame&, Topology const&, Frame const&, int, int) const;
     /// Model the coordinates around a bond given only some coordinates are known
     int ModelCoordsAroundBond(Frame const&, Topology const&, int, int, Zmatrix&, Barray const&) const;
+
+
     /// Update the internal coordinates in given Zmatrix with values from Frame/Parameters
-    int UpdateICsFromFrame(Zmatrix&, Frame const&, int, Topology const&, Barray const&) const;
-
+    int UpdateICsFromFrame(Frame const&, int, Topology const&, Barray const&);
     /// Generate internal coordinates in the same manner as LEaP
-    int GenerateInternals(Zmatrix&, Frame const&, Topology const&, Barray const&);
+    int GenerateInternals(Frame const&, Topology const&, Barray const&);
     /// Generate internal coordinates around a link between residues in same manner as LEaP
-    int GenerateInternalsAroundLink(Zmatrix&, int, int, Frame const&, Topology const&, Barray const&);
-
+    int GenerateInternalsAroundLink(int, int, Frame const&, Topology const&, Barray const&);
+    /// Update existing indices with given offset
+    void UpdateIndicesWithOffset(int);
   private:
     typedef std::vector<int> Iarray;
 
     /// Used to hold parameters for modeling a torsion
     class TorsionModel;
+    /// Hold torsion
+    class InternalTorsion;
+
+    typedef std::vector<InternalTorsion> Tarray;
 
     /// Get length parameter for atoms
     int getLengthParam(double&, int, int, Topology const&) const;
@@ -72,24 +76,53 @@ class Builder {
     /// Create ICs around SP2-SP2 linkage
     void createSp2Sp2Torsions(TorsionModel const&);
     /// Model torsions around a bond in the same manner as LEaP
-    int assignTorsionsAroundBond(Zmatrix&, int, int, Frame const&, Topology const&, Barray const&, int);
-    /// Get any existing internal coords from currentZmatrix around specified atoms
-    std::vector<InternalCoords> getExistingInternals(int, int) const;
-    /// Get specific internal coords from currentZmatrix
-    int getExistingInternalIdx(int, int, int, int) const;
+    int assignTorsionsAroundBond(int, int, Frame const&, Topology const&, Barray const&, int);
+    /// Get any existing internal coords from internalTorsions_ around specified atoms
+    Tarray getExistingTorsions(int, int) const;
+    /// Get specific internal coords from internalTorsions_
+    int getExistingTorsionIdx(int, int, int, int) const;
     /// Build mock coordinates around given torsion
     int buildMockExternals(TorsionModel& MT, std::vector<InternalCoords> const& iaTorsions) const;
     /// Generate internal coords for a given atom
-    int generateAtomInternals(Zmatrix&, int, Frame const&, Topology const&, Barray const&);
+    int generateAtomInternals(int, Frame const&, Topology const&, Barray const&);
 
     int debug_;
     ParameterSet const* params_;
-    Zmatrix const* currentZmatrix_; ///< Any existing internal coordinates
 
     Topology const* currentTop_; ///< Topology for the createSpXSpXTorsions/ModelTorsion routines
     Frame const* currentFrm_;    ///< Frame for the createSpXSpXTorsions routines
     Barray const* hasPosition_;  ///< Array indicating which atoms have position for createSpXSpXTorsions/ModelTorsion routines
-    Zmatrix* newZmatrix_;        ///< Hold output ICs from assignTorsionsAroundBond
+    Tarray internalTorsions_;
+};
+/// ----- Hold torsion internal ------------------
+class Cpptraj::Structure::Builder::InternalTorsion {
+  public:
+    /// CONSTRUCTOR
+    InternalTorsion() : ai_(-1), aj_(-1), ak_(-1), al_(-1), phi_(0) {}
+    /// CONSTRUCTOR
+    InternalTorsion(int i, int j, int k, int l, double p) :
+      ai_(i), aj_(j), ak_(k), al_(l), phi_(p) {}
+    /// Set the phi value in radians
+    void SetPhiVal(double p) { phi_ = p; }
+    /// Offset indices by given value
+    void OffsetIndices(int o) {
+      ai_ += 0;
+      aj_ += 0;
+      ak_ += 0;
+      al_ += 0;
+    }
+
+    int AtI() const { return ai_; }
+    int AtJ() const { return aj_; }
+    int AtK() const { return ak_; }
+    int AtL() const { return al_; }
+    double PhiVal() const { return phi_; }
+  private:
+    int ai_;
+    int aj_;
+    int ak_;
+    int al_;
+    double phi_;
 };
 }
 }

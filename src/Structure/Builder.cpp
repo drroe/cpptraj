@@ -17,11 +17,9 @@ using namespace Cpptraj::Structure;
 Builder::Builder() :
   debug_(0),
   params_(0),
-  currentZmatrix_(0),
   currentTop_(0),
   currentFrm_(0),
-  hasPosition_(0),
-  newZmatrix_(0)
+  hasPosition_(0)
 {}
 
 /** Set optional parameter set. */
@@ -31,15 +29,6 @@ void Cpptraj::Structure::Builder::SetParameters(ParameterSet const* paramsIn) {
     return;
   }
   params_ = paramsIn;
-}
-
-/** Set optional Zmatrix. */
-void Cpptraj::Structure::Builder::SetZmatrix(Zmatrix const* zmatrixIn) {
-  if (zmatrixIn == 0) {
-    mprinterr("Internal Error: Builder::SetZmatrix called with null set.\n");
-    return;
-  }
-  currentZmatrix_ = zmatrixIn;
 }
 
 // -----------------------------------------------------------------------------
@@ -158,7 +147,9 @@ const
                   topIn.LeapName(aj).c_str(), 
                   topIn.LeapName(atomk).c_str(),
                   ajTheta * Constants::RADDEG);
-        } else if (currentZmatrix_ != 0) { // FIXME faster search?
+         } else {
+           mprinterr("Internal Error: Implement angle lookup.\n");
+        /*} else if (currentZmatrix_ != 0) { // FIXME faster search?
           for (Zmatrix::const_iterator ic = currentZmatrix_->begin(); ic != currentZmatrix_->end(); ++ic) {
             if (ic->AtI() == atomi && ic->AtJ() == aj && ic->AtK() == atomk) {
               // TODO: Check that repeats are equal?
@@ -171,7 +162,7 @@ const
                       ic->Theta());
               break;
             }
-          }
+          }*/
         }
         thetaVals.push_back( ajTheta );
       } // END inner loop over bonds to AJ
@@ -1087,114 +1078,58 @@ const
 /** For existing torsions, see if all coordinates in that torsion
   * exist. If so, update the IC from the existing coordinates.
   */
-int Builder::UpdateICsFromFrame(Zmatrix& zmatrix, Frame const& frameIn, int ires, Topology const& topIn, Barray const& hasPosition)
-const
+int Builder::UpdateICsFromFrame(Frame const& frameIn, int ires, Topology const& topIn, Barray const& hasPosition)
 {
-  // Update bond/angle values for atoms with no position.
-//  for (unsigned int idx = 0; idx != zmatrix.N_IC(); idx++)
-//  {
-/*    InternalCoords& thisIc = zmatrix.ModifyIC(idx);
-    if (hasPosition[thisIc.AtI()] && hasPosition[thisIc.AtJ()]) {
-      // Bond exists.
-      double dist = DIST2_NoImage( frameIn.XYZ(thisIc.AtI()), frameIn.XYZ(thisIc.AtJ()) );
-      mprintf("DEBUG: Replacing existing bond length %g for %s - %s with existing length %g\n",
-              thisIc.Dist(), topIn.AtomMaskName(thisIc.AtI()).c_str(),
-              topIn.AtomMaskName(thisIc.AtJ()).c_str(), dist);
-      thisIc.SetDist( dist );
-      if (hasPosition[thisIc.AtK()]) {
-        // Angle also exists
-        double theta = CalcAngle(frameIn.XYZ(thisIc.AtI()),
-                                 frameIn.XYZ(thisIc.AtJ()),
-                                 frameIn.XYZ(thisIc.AtK()));
-        theta *= Constants::RADDEG;
-        mprintf("DEBUG: Replacing existing angle %g for %s - %s - %s with existing angle %g\n",
-                thisIc.Theta(), topIn.AtomMaskName(thisIc.AtI()).c_str(),
-                topIn.AtomMaskName(thisIc.AtJ()).c_str(), topIn.AtomMaskName(thisIc.AtK()).c_str(),
-                theta);
-        thisIc.SetTheta( theta );
-    }
-  }*/
-/*
-    if (!hasPosition[thisIc.AtI()]) {
-      double dist = 0;
-      if (getLengthParam( dist, thisIc.AtI(), thisIc.AtJ(), topIn )) {
-        mprintf("DEBUG: Replacing existing bond length %g for %s - %s with parameter %g\n",
-                thisIc.Dist(), topIn.AtomMaskName(thisIc.AtI()).c_str(),
-                topIn.AtomMaskName(thisIc.AtJ()).c_str(), dist);
-        thisIc.SetDist( dist );
-      }
-      double theta = 0;
-      if (getAngleParam( theta, thisIc.AtI(), thisIc.AtJ(), thisIc.AtK(), topIn)) {
-        theta *= Constants::RADDEG;
-        mprintf("DEBUG: Replacing existing angle %g for %s - %s - %s with parameter %g\n",
-                thisIc.Theta(), topIn.AtomMaskName(thisIc.AtI()).c_str(),
-                topIn.AtomMaskName(thisIc.AtJ()).c_str(), topIn.AtomMaskName(thisIc.AtK()).c_str(),
-                theta);
-        thisIc.SetTheta( theta );
-      }
-    }
-*/
-//  } // END loop over zmatrix ICs
-  // Update torsions
-  Barray isUsed( zmatrix.N_IC(), false );
-  //unsigned int Nused = 0;
-  // Get list of bonds 
+  // Update torsions.
+  // Get list of bonds.
   BondArray myBonds = GenerateBondArray( std::vector<Residue>(1, topIn.Res(ires)), topIn.Atoms() );
   for (BondArray::const_iterator bnd = myBonds.begin(); bnd != myBonds.end(); ++bnd) {
     if (topIn[bnd->A1()].ResNum() == ires && topIn[bnd->A2()].ResNum() == ires) {
-      mprintf("DEBUG: Looking at torsions around: %s - %s\n", topIn.AtomMaskName(bnd->A1()).c_str(), topIn.AtomMaskName(bnd->A2()).c_str());    // Find all ICs that share atoms 1 and 2 (J and K)
-      Iarray bondICs;
+      mprintf("DEBUG: Looking at torsions around: %s - %s\n", topIn.AtomMaskName(bnd->A1()).c_str(), topIn.AtomMaskName(bnd->A2()).c_str());
+      // Find all ICs that share atoms 1 and 2 (J and K)
       bool needsUpdate = false;
       double tDiff = 0;
-      for (unsigned int idx = 0; idx != zmatrix.N_IC(); idx++)
+      Tarray iTorsions = getExistingTorsions(bnd->A1(), bnd->A2());
+      for (unsigned int idx = 0; idx != iTorsions.size(); idx++)
       {
-        if (!isUsed[idx]) {
-          InternalCoords& thisIc = zmatrix.ModifyIC(idx);
-          if ( (bnd->A1() == thisIc.AtJ() && bnd->A2() == thisIc.AtK()) ||
-               (bnd->A2() == thisIc.AtJ() && bnd->A1() == thisIc.AtK()) )
-          {
-            // This IC has this bond at the center
-            bondICs.push_back( idx );
-            isUsed[idx] = true;
-            //MARK(idx, isUsed, Nused);
-            if (hasPosition[thisIc.AtI()] &&
-                hasPosition[thisIc.AtJ()] &&
-                hasPosition[thisIc.AtK()] &&
-                hasPosition[thisIc.AtL()])
-            {
-              mprintf("DEBUG:\tMeasuring torsion of fixed atoms: %s - %s - %s - %s\n",
-                      topIn.LeapName(thisIc.AtI()).c_str(),
-                      topIn.LeapName(thisIc.AtJ()).c_str(),
-                      topIn.LeapName(thisIc.AtK()).c_str(),
-                      topIn.LeapName(thisIc.AtL()).c_str());
-              InternalCoords frameIc = calcKnownAtomIc(thisIc.AtI(), thisIc.AtJ(), thisIc.AtK(), thisIc.AtL(), frameIn);
-              double dTorsion = frameIc.Phi() * Constants::DEGRAD;
-              double dInternalValue = thisIc.Phi() * Constants::DEGRAD;
-              tDiff = (dTorsion - dInternalValue) * Constants::RADDEG;
-              mprintf("DEBUG:\tdTorsion= %f  dInternalValue= %f\n", dTorsion, dInternalValue);
-              thisIc = frameIc;
-              needsUpdate = true;
-            } // END all IC coords present
-          } // END this IC matches current bond
-        } // END IC is not used
-      } // END loop searching for ICs matching current bond
+        InternalTorsion const& thisIc = internalTorsions_[idx];
+        if (hasPosition[thisIc.AtI()] &&
+            hasPosition[thisIc.AtJ()] &&
+            hasPosition[thisIc.AtK()] &&
+            hasPosition[thisIc.AtL()])
+        {
+          mprintf("DEBUG:\tMeasuring torsion of fixed atoms: %s - %s - %s - %s\n",
+                  topIn.LeapName(thisIc.AtI()).c_str(),
+                  topIn.LeapName(thisIc.AtJ()).c_str(),
+                  topIn.LeapName(thisIc.AtK()).c_str(),
+                  topIn.LeapName(thisIc.AtL()).c_str());
+          double dTorsion = Torsion(frameIn.XYZ(thisIc.AtI()),
+                                    frameIn.XYZ(thisIc.AtJ()),
+                                    frameIn.XYZ(thisIc.AtK()),
+                                    frameIn.XYZ(thisIc.AtL()));
+          double dInternalValue = thisIc.PhiVal();
+          tDiff = (dTorsion - dInternalValue);
+          mprintf("DEBUG:\tdTorsion= %f  dInternalValue= %f\n", dTorsion*Constants::RADDEG, dInternalValue*Constants::RADDEG);
+          needsUpdate = true;
+        } // END all coords present
+      } // END loop over torsions matching current bond
       // If any difference was found, shift all of the torsions
       if (needsUpdate) {
         mprintf("DEBUG: Twisting torsions centered on %s - %s by %f degrees\n",
                 topIn.LeapName(bnd->A1()).c_str(),
                 topIn.LeapName(bnd->A2()).c_str(),
                 tDiff);
-        for (Iarray::const_iterator it = bondICs.begin(); it != bondICs.end(); ++it)
-        {
-          InternalCoords& thisIc = zmatrix.ModifyIC(*it);
-          double dNew = thisIc.Phi() + tDiff;
-          mprintf("DEBUG:\tTwisting torsion for atoms: %s-%s-%s-%s\n",
-                  topIn.AtomMaskName(thisIc.AtI()).c_str(),
-                  topIn.AtomMaskName(thisIc.AtJ()).c_str(),
-                  topIn.AtomMaskName(thisIc.AtK()).c_str(),
-                  topIn.AtomMaskName(thisIc.AtL()).c_str());
-          mprintf("DEBUG:\t------- From %f to %f\n", thisIc.Phi(), dNew);
-          thisIc.SetPhi( dNew );
+      for (unsigned int idx = 0; idx != iTorsions.size(); idx++)
+      {
+        InternalTorsion& thisIc = internalTorsions_[idx];
+        double dNew = thisIc.PhiVal() + tDiff;
+        mprintf("DEBUG:\tTwisting torsion for atoms: %s-%s-%s-%s\n",
+                topIn.AtomMaskName(thisIc.AtI()).c_str(),
+                topIn.AtomMaskName(thisIc.AtJ()).c_str(),
+                topIn.AtomMaskName(thisIc.AtK()).c_str(),
+                topIn.AtomMaskName(thisIc.AtL()).c_str());
+          mprintf("DEBUG:\t------- From %f to %f\n", thisIc.PhiVal()*Constants::RADDEG, dNew*Constants::RADDEG);
+          thisIc.SetPhiVal( dNew );
         }
       } // END ICs need update
     } // END both bond atoms belong to this residue
@@ -1244,7 +1179,7 @@ class Cpptraj::Structure::Builder::TorsionModel {
     /// Set up torsions around bonded atoms
     int SetupTorsion(AtomType::HybridizationType, AtomType::HybridizationType, Topology const& topIn);
     /// Build mock externals from given internals
-    int BuildMockExternals(std::vector<InternalCoords> const&, Topology const&);
+    int BuildMockExternals(Tarray const&, Topology const&);
 
     /// \return Value of A-X-Y-D torsion in radians
     double Absolute() const { return dAbsolute_; }
@@ -1533,7 +1468,7 @@ static inline std::vector<MockAtom>::iterator find_mock_atom(std::vector<MockAto
   * By definition, the two central atoms will be the same for each
   * IC in iaTorsions.
   */
-int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(std::vector<InternalCoords> const& iaTorsions,
+int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(Tarray const& iaTorsions,
                                                                   Topology const& topIn) // DEBUG topIn for debug only
 {
   if (iaTorsions.empty()) {
@@ -1542,14 +1477,13 @@ int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(std::vector<In
   }
   mprintf("=======  Started mock coords from: %s\n", topIn.LeapName(iaTorsions.front().AtI()).c_str());
 
-  for (std::vector<InternalCoords>::const_iterator ic = iaTorsions.begin();
-                                                   ic != iaTorsions.end(); ++ic)
+  for (Tarray::const_iterator ic = iaTorsions.begin(); ic != iaTorsions.end(); ++ic)
     mprintf("------- Known torsion: %s - %s - %s - %s  %f\n",
             topIn.LeapName(ic->AtI()).c_str(),
             topIn.LeapName(ic->AtJ()).c_str(),
             topIn.LeapName(ic->AtK()).c_str(),
             topIn.LeapName(ic->AtL()).c_str(),
-            ic->Phi());
+            ic->PhiVal()*Constants::RADDEG);
 
   // Define coordinates for the central atoms.
   //Vec3 posX(0, 0, 0);
@@ -1570,8 +1504,7 @@ int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(std::vector<In
   Marray outerAtoms;
 
   // Define outer atoms
-  for (std::vector<InternalCoords>::const_iterator ic = iaTorsions.begin();
-                                                   ic != iaTorsions.end(); ++ic)
+  for (Tarray::const_iterator ic = iaTorsions.begin(); ic != iaTorsions.end(); ++ic)
   {
     if (ic == iaTorsions.begin()) {
       // Define first outer atom as being in the XY plane
@@ -1599,7 +1532,7 @@ int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(std::vector<In
     //bool gotOne = false;
     for (unsigned int jdx = 0; jdx != iaTorsions.size(); jdx++) {
       if (!used[jdx]) {
-        InternalCoords const& iInt = iaTorsions[jdx];
+        InternalTorsion const& iInt = iaTorsions[jdx];
         Marray::iterator tmpAt1 = find_mock_atom(outerAtoms, iInt.AtI());
         Marray::iterator tmpAt4 = find_mock_atom(outerAtoms, iInt.AtL());
         if (tmpAt1 == outerAtoms.end()) {
@@ -1635,7 +1568,7 @@ int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(std::vector<In
                    topIn.LeapName(iInt.AtL()).c_str(),
                    (int)tmpAt1->Known(), (int)tmpAt4->Known());
           // Now build the coordinate for the target atom
-          tgt->SetPos( Zmatrix::AtomIposition(maPC1, maPC2, knownAt->Pos(), 1.0, 90.0, iInt.Phi()) );
+          tgt->SetPos( Zmatrix::AtomIposition(maPC1, maPC2, knownAt->Pos(), 1.0, 90.0, iInt.PhiVal()*Constants::RADDEG) );
           mprintf("ZMatrixAll:  %f,%f,%f\n", tgt->Pos()[0], tgt->Pos()[1], tgt->Pos()[2]);
           used[jdx] = true;
           nused++;
@@ -1671,50 +1604,36 @@ int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(std::vector<In
 }
 
 // -----------------------------------------------------------------------------
-/** Find any existing internal coords around ax-ay. */ // TODO put in Zmatrix?
-std::vector<InternalCoords> Builder::getExistingInternals(int ax, int ay) const {
-  std::vector<InternalCoords> iTorsions;
-  if (currentZmatrix_ != 0) {
-    for (Zmatrix::const_iterator it = currentZmatrix_->begin(); it != currentZmatrix_->end(); ++it)
+/** Update all indices in internals according to the given offset. */
+void Builder::UpdateIndicesWithOffset(int atomOffset) {
+  for (Tarray::iterator it = internalTorsions_.begin(); it != internalTorsions_.end(); ++it)
+    it->OffsetIndices( atomOffset );
+}
+
+/** Find any existing torsions around ax-ay. */
+Builder::Tarray Builder::getExistingTorsions(int ax, int ay) const {
+  Tarray iTorsions;
+  for (Tarray::const_iterator it = internalTorsions_.begin(); it != internalTorsions_.end(); ++it)
+  {
+    if ((it->AtJ() == ax && it->AtK() == ay) ||
+        (it->AtJ() == ay && it->AtJ() == ax))
     {
-      if (it->AtJ() == ax && it->AtK() == ay) {
-        iTorsions.push_back( *it );
-      }
-    }
-    for (Zmatrix::const_iterator it = currentZmatrix_->begin(); it != currentZmatrix_->end(); ++it)
-    {
-      if (it->AtJ() == ay && it->AtK() == ax) {
-        // Avoid duplicates FIXME just track torsions eventually not the whole zmatrix
-        bool duplicate = false;
-        for (std::vector<InternalCoords>::const_iterator jt = iTorsions.begin(); jt != iTorsions.end(); ++jt) {
-          if (jt->AtI() == it->AtL() &&
-              jt->AtJ() == it->AtK() &&
-              jt->AtK() == it->AtJ() &&
-              jt->AtL() == it->AtI())
-          {
-            duplicate = true;
-            break;
-          }
-        }
-        if (!duplicate) iTorsions.push_back( *it );
-      }
+      iTorsions.push_back( *it );
     }
   }
   return iTorsions;
 }
 
-/** \return index of internal coords matching the 4 given atoms, -1 for no match. */ // TODO put in Zmatrix?
-int Builder::getExistingInternalIdx(int ai, int aj, int ak, int al) const {
+/** \return index of existing torsion matching the 4 given atoms, -1 for no match. */
+int Builder::getExistingTorsionIdx(int ai, int aj, int ak, int al) const {
   int idx = -1;
-  if (currentZmatrix_ != 0) {
-    for (Zmatrix::const_iterator it = currentZmatrix_->begin(); it != currentZmatrix_->end(); ++it)
+  for (Tarray::const_iterator it = internalTorsions_.begin(); it != internalTorsions_.end(); ++it)
+  {
+    if ( (it->AtI() == ai && it->AtJ() == aj && it->AtK() == ak && it->AtL() == al) ||
+         (it->AtI() == al && it->AtJ() == ak && it->AtK() == aj && it->AtL() == ai) )
     {
-      if ( (it->AtI() == ai && it->AtJ() == aj && it->AtK() == ak && it->AtL() == al) ||
-           (it->AtI() == al && it->AtJ() == ak && it->AtK() == aj && it->AtL() == ai) )
-      {
-        idx = (int)(currentZmatrix_->begin() - it);
-        break;
-      }
+      idx = (int)(internalTorsions_.begin() - it);
+      break;
     }
   }
   return idx;
@@ -1755,9 +1674,9 @@ void Builder::ModelTorsion(TorsionModel const& MT, unsigned int iBondX, unsigned
     mprintf(" %s replacing dval with %f\n", currentTop_->LeapName(aa).c_str(), phiVal*Constants::RADDEG);
   }
   // Look for an existing internal
-  int icIdx = getExistingInternalIdx( aa, ax, ay, ad );
+  int icIdx = getExistingTorsionIdx( aa, ax, ay, ad );
   if (icIdx < 0) {
-    // Get bond lengths FIXME deal with unknown positions
+/*    // Get bond lengths FIXME deal with unknown positions
     double l0, l1;
     if (AssignLength(l0, aa, ax, *currentTop_, *currentFrm_, *hasPosition_)) {
       mprinterr("Error: Could not assign length between %s and %s\n",
@@ -1786,17 +1705,18 @@ void Builder::ModelTorsion(TorsionModel const& MT, unsigned int iBondX, unsigned
                 currentTop_->AtomMaskName(ay).c_str(),
                 currentTop_->AtomMaskName(ax).c_str());
       return;
-    }
+    }*/
 
     mprintf("++++Torsion INTERNAL: %f to %s - %s - %s - %s\n", phiVal*Constants::RADDEG,
             currentTop_->LeapName(aa).c_str(),
             currentTop_->LeapName(ax).c_str(),
             currentTop_->LeapName(ay).c_str(),
             currentTop_->LeapName(ad).c_str());
-    newZmatrix_->AddIC( InternalCoords(aa, ax, ay, ad, l0, t0*Constants::RADDEG, phiVal*Constants::RADDEG) );
-    newZmatrix_->AddIC( InternalCoords(ad, ay, ax, aa, l1, t1*Constants::RADDEG, phiVal*Constants::RADDEG) );
+    internalTorsions_.push_back( InternalTorsion(aa, ax, ay, ad, phiVal) );
+    //newZmatrix_->AddIC( InternalCoords(aa, ax, ay, ad, l0, t0*Constants::RADDEG, phiVal*Constants::RADDEG) );
+    //newZmatrix_->AddIC( InternalCoords(ad, ay, ax, aa, l1, t1*Constants::RADDEG, phiVal*Constants::RADDEG) );
   } else {
-    mprintf( "Torsional INTERNAL already exists: %f\n", (*currentZmatrix_)[icIdx].Phi() );
+    mprintf( "Torsional INTERNAL already exists: %f\n", internalTorsions_[icIdx].PhiVal()*Constants::RADDEG );
   }
 }
 
@@ -1915,11 +1835,10 @@ void Builder::createSp2Sp2Torsions(TorsionModel const& MT) {
 }
 
 /** Assign torsions around bonded atoms in manner similar to LEaP's ModelAssignTorsionsAround. */
-int Builder::assignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition, int aAtomIdx)
+int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition, int aAtomIdx)
 {
   // Save addresses of zmatrix, frame, topology, and hasPosition.
   // These are required for the createSpXSpX routines. TODO zero them at the end?
-  newZmatrix_ = &zmatrix;
   currentFrm_ = &frameIn;
   currentTop_ = &topIn;
   hasPosition_ = &hasPosition;
@@ -1988,7 +1907,7 @@ int Builder::assignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame co
   mprintf("bKnownX=%i  bKnownY=%i\n", (int)mT.AxHasKnownAtoms(), (int)mT.AyHasKnownAtoms());
   if (!(mT.AxHasKnownAtoms() && mT.AyHasKnownAtoms())) {
     // Find any existing internal coords around ax-ay
-    std::vector<InternalCoords> iTorsions = getExistingInternals(ax, ay);
+    Tarray iTorsions = getExistingTorsions(ax, ay);
     if (!iTorsions.empty()) {
       mprintf("Using INTERNALs to fit new torsions around: %s - %s\n",
               topIn.LeapName(ax).c_str(), topIn.LeapName(ay).c_str());
@@ -2046,16 +1965,16 @@ int Builder::assignTorsionsAroundBond(Zmatrix& zmatrix, int a1, int a2, Frame co
 /** Generate internal coordinates in the same
   * manner as LEaP's BuildInternalsForContainer/ModelAssignTorsionsAround.
   */
-int Builder::GenerateInternals(Zmatrix& zmatrix, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
+int Builder::GenerateInternals(Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
 {
   mprintf("DEBUG: ----- Entering Builder::GenerateInternals. -----\n");
-  zmatrix.clear();
+//  zmatrix.clear();
   // First generate the bond array
   BondArray bonds = GenerateBondArray( topIn.Residues(), topIn.Atoms() );
   // Loop over bonds
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
   {
-    if (assignTorsionsAroundBond( zmatrix, bnd->A1(), bnd->A2(), frameIn, topIn, hasPosition, -1 )) {
+    if (assignTorsionsAroundBond( bnd->A1(), bnd->A2(), frameIn, topIn, hasPosition, -1 )) {
       mprinterr("Error Assign torsions around bond %s - %s failed.\n",
                 topIn.AtomMaskName(bnd->A1()).c_str(),
                 topIn.AtomMaskName(bnd->A2()).c_str());
@@ -2068,7 +1987,7 @@ int Builder::GenerateInternals(Zmatrix& zmatrix, Frame const& frameIn, Topology 
 }
 
 /** Build internal coordinates around an atom. */
-int Builder::generateAtomInternals(Zmatrix& zmatrix, int at, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
+int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
 {
   mprintf( "Building internals for: %s\n", topIn.LeapName(at).c_str());
   Atom const& AtA = topIn[at];
@@ -2081,11 +2000,11 @@ int Builder::generateAtomInternals(Zmatrix& zmatrix, int at, Frame const& frameI
                topIn.LeapName(at).c_str(),
                topIn.LeapName(*bat).c_str(),
                topIn.LeapName(*cat).c_str());
-        std::vector<InternalCoords> iTorsions = getExistingInternals(*bat, *cat);
+        Tarray iTorsions = getExistingTorsions(*bat, *cat);
         int iShouldBe = (AtB.Nbonds() - 1) * (AtC.Nbonds() - 1);
         mprintf("ISHOULDBE= %i ITORSIONS= %zu\n", iShouldBe, iTorsions.size());
         if (iShouldBe != (int)iTorsions.size()) {
-          assignTorsionsAroundBond(zmatrix, *bat, *cat, frameIn, topIn, hasPosition, at);
+          assignTorsionsAroundBond(*bat, *cat, frameIn, topIn, hasPosition, at);
         }
       }
     }
@@ -2100,7 +2019,7 @@ int Builder::generateAtomInternals(Zmatrix& zmatrix, int at, Frame const& frameI
   * \param at0 Atom in residue we are linking to (i.e. the current residue).
   * \param at1 Atom in resiude we are linking from.
   */
-int Builder::GenerateInternalsAroundLink(Zmatrix& zmatrix, int at0, int at1,
+int Builder::GenerateInternalsAroundLink(int at0, int at1,
                                          Frame const& frameIn, Topology const& topIn,
                                          Barray const& hasPosition)
 {
@@ -2125,7 +2044,7 @@ int Builder::GenerateInternalsAroundLink(Zmatrix& zmatrix, int at0, int at1,
                                         it != span_atoms.end(); ++it)
   {
     //mprintf("SPANNING TREE ATOM: %s\n", topIn.LeapName(*it).c_str());
-    if (generateAtomInternals(zmatrix, *it, frameIn, topIn, tmpHasPosition)) {
+    if (generateAtomInternals(*it, frameIn, topIn, tmpHasPosition)) {
       mprinterr("Error: Could not generate internals for atom %s\n", topIn.AtomMaskName(*it).c_str());
       return 1;
     }
