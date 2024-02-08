@@ -474,8 +474,12 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       //  mprinterr("Error: Could not set up seed atoms for Zmatrix.\n");
       //  buildFailed = true;
       //} else {
-        Cpptraj::Structure::Zmatrix tmpz; // FIXME
+        Cpptraj::Structure::Zmatrix tmpz;
         tmpz.SetDebug( 1 ); // DEBUG
+        if (structureBuilder->GetZmatrixFromInternals(tmpz, topOut)) {
+          mprinterr("Error: Could not get Zmatrix from internals.\n");
+          return 1;
+        }
         if (tmpz.SetToFrame( frameOut, hasPosition )) {
           mprinterr("Error: Building residue %s failed.\n",
                     topOut.TruncResNameOnumId(ires).c_str());

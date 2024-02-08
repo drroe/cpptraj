@@ -101,6 +101,10 @@ class Builder {
     int getExistingBondIdx(int, int) const;
     /// Build mock coordinates around given torsion
     int buildMockExternals(TorsionModel& MT, std::vector<InternalCoords> const& iaTorsions) const;
+    /// Build angle internal
+    void buildAngleInternal(int, int, int, Frame const&, Topology const&, Barray const&);
+    /// Build bond internal
+    void buildBondInternal(int, int, Frame const&, Topology const&, Barray const&);
     /// Generate internal coords for a given atom
     int generateAtomInternals(int, Frame const&, Topology const&, Barray const&);
 

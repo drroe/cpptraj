@@ -2096,6 +2096,45 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
   return 0;
 }
 
+/** Build angle internal. */
+void Builder::buildAngleInternal(int a1, int a2, int a3, Frame const& frameIn, Topology const& topIn,
+                                 Barray const& hasPosition)
+{
+    double dValue = 0;
+    if (hasPosition[a1] &&
+        hasPosition[a2] &&
+        hasPosition[a3])
+    {
+      dValue = CalcAngle( frameIn.XYZ(a1), frameIn.XYZ(a2), frameIn.XYZ(a3) );
+    } else {
+      dValue = ModelBondAngle( a1, a2, a3, topIn );
+    }
+    internalAngles_.push_back( InternalAngle(a1, a2, a3, dValue) );
+    mprintf("++++Angle INTERNAL: %f  for %s - %s - %s\n", dValue*Constants::RADDEG,
+            topIn.LeapName(a1).c_str(),
+            topIn.LeapName(a2).c_str(),
+            topIn.LeapName(a3).c_str());
+}
+
+/** Build bond internal. */
+void Builder::buildBondInternal(int a1, int a2, Frame const& frameIn, Topology const& topIn,
+                                Barray const& hasPosition)
+{
+    double dValue = 0;
+    if (hasPosition[a1] &&
+        hasPosition[a2])
+    {
+      dValue = sqrt(DIST2_NoImage( frameIn.XYZ(a1), frameIn.XYZ(a2) ) );
+    } else {
+      dValue = ModelBondLength( a1, a2, topIn );
+    }
+    internalBonds_.push_back( InternalBond(a1, a2, dValue) );
+    mprintf("++++Bond INTERNAL: %f  for %s - %s\n", dValue,
+            topIn.LeapName(a1).c_str(),
+            topIn.LeapName(a2).c_str());
+}
+
+
 /** Generate internal coordinates in the same manner as LEaP's
   * BuildInternalsForContainer.
   */
@@ -2295,12 +2334,26 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
   //            topIn.AtomMaskName(at1).c_str());
   //  return 1;
   //}
+  // FIXME this is a hack to make certain we have all the angle/bond terms we need
+  for (Tarray::const_iterator dih = internalTorsions_.begin(); dih != internalTorsions_.end(); ++dih)
+  {
+    int idx = getExistingAngleIdx(dih->AtI(), dih->AtJ(), dih->AtK());
+    if (idx < 0) buildAngleInternal( dih->AtI(), dih->AtJ(), dih->AtK(), frameIn, topIn, hasPosition );
+    idx = getExistingAngleIdx(dih->AtJ(), dih->AtK(), dih->AtL());
+    if (idx < 0) buildAngleInternal( dih->AtJ(), dih->AtK(), dih->AtL(), frameIn, topIn, hasPosition );
+    idx = getExistingBondIdx(dih->AtI(), dih->AtJ());
+    if (idx < 0) buildBondInternal( dih->AtI(), dih->AtJ(), frameIn, topIn, hasPosition );
+    idx = getExistingBondIdx(dih->AtK(), dih->AtL());
+    if (idx < 0) buildBondInternal( dih->AtK(), dih->AtL(), frameIn, topIn, hasPosition );
+  }
+
   mprintf("DEBUG: ----- Leaving Builder::GenerateInternalsAroundLink. -----\n");
   return 0;
 }
 
 /** Generate a Zmatrix from the current internals. TODO only for atoms that need it? */
 int Builder::GetZmatrixFromInternals(Zmatrix& zmatrix, Topology const& topIn) const {
+  mprintf("DEBUG: ----- Enter GetZmatrixFromInternals -----\n");
   zmatrix.clear();
 
   for (Tarray::const_iterator dih = internalTorsions_.begin(); dih != internalTorsions_.end(); ++dih)
@@ -2309,14 +2362,14 @@ int Builder::GetZmatrixFromInternals(Zmatrix& zmatrix, Topology const& topIn) co
     int aidx0 = getExistingAngleIdx(dih->AtI(), dih->AtJ(), dih->AtK());
     int aidx1 = getExistingAngleIdx(dih->AtJ(), dih->AtK(), dih->AtL());
     if (aidx0 < 0) {
-      mprinterr("Error: Missing angle internal for %s - %s - %s\n",
+      mprinterr("Error: Missing angle0 internal for %s - %s - %s\n",
                 topIn.AtomMaskName(dih->AtI()).c_str(),
                 topIn.AtomMaskName(dih->AtJ()).c_str(),
                 topIn.AtomMaskName(dih->AtK()).c_str());
       return 1;
     }
     if (aidx1 < 0) {
-      mprinterr("Error: Missing angle internal for %s - %s - %s\n",
+      mprinterr("Error: Missing angle1 internal for %s - %s - %s\n",
                 topIn.AtomMaskName(dih->AtJ()).c_str(),
                 topIn.AtomMaskName(dih->AtK()).c_str(),
                 topIn.AtomMaskName(dih->AtL()).c_str());
@@ -2326,12 +2379,17 @@ int Builder::GetZmatrixFromInternals(Zmatrix& zmatrix, Topology const& topIn) co
     int bidx0 = getExistingBondIdx(dih->AtI(), dih->AtJ());
     int bidx1 = getExistingBondIdx(dih->AtK(), dih->AtL());
     if (bidx0 < 0) {
-      mprinterr("Error: Missing bond internal for %s - %s\n",
-                topIn.AtomMaskName(dih->AtI()).c_str(),
-                topIn.AtomMaskName(dih->AtJ()).c_str());
+      mprinterr("Error: Missing bond0 internal for %s - %s\n",
+                topIn.LeapName(dih->AtI()).c_str(),
+                topIn.LeapName(dih->AtJ()).c_str());
+      //mprintf("DEBUG: Internal %s - %s - %s - %s\n",
+      //        topIn.LeapName(dih->AtI()).c_str(),
+      //        topIn.LeapName(dih->AtJ()).c_str(),
+      //        topIn.LeapName(dih->AtK()).c_str(),
+      //        topIn.LeapName(dih->AtL()).c_str());
     }
     if (bidx1 < 0) {
-    mprinterr("Error: Missing bond internal for %s - %s\n",
+    mprinterr("Error: Missing bond1 internal for %s - %s\n",
                 topIn.AtomMaskName(dih->AtK()).c_str(),
                 topIn.AtomMaskName(dih->AtL()).c_str());
     }
@@ -2343,5 +2401,6 @@ int Builder::GetZmatrixFromInternals(Zmatrix& zmatrix, Topology const& topIn) co
                                   internalAngles_[aidx1].ThetaVal()*Constants::RADDEG,
                                   internalBonds_[bidx1].DistVal()) );
   } // END loop over internal torsions
+  mprintf("DEBUG: ----- Exit GetZmatrixFromInternals -----\n");
   return 0;
 }
