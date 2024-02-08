@@ -2330,6 +2330,7 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
   //  return 1;
   //}
   // FIXME this is a hack to make certain we have all the angle/bond terms we need
+  mprintf("DEBUG: LOOKING FOR MISSING ANGLE/BOND PARAMS.\n");
   for (Tarray::const_iterator dih = internalTorsions_.begin(); dih != internalTorsions_.end(); ++dih)
   {
     int idx = getExistingAngleIdx(dih->AtI(), dih->AtJ(), dih->AtK());
