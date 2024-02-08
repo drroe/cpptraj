@@ -2137,6 +2137,35 @@ void Builder::buildBondInternal(int a1, int a2, Frame const& frameIn, Topology c
             topIn.LeapName(a2).c_str());
 }
 
+/** Determine chirality around a single atom. */
+int Builder::determineChirality(int at, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
+{
+  BuildAtom bldAt;
+  if (topIn[at].Nbonds() > 2 && hasPosition[at]) {
+    // All bonded atoms must have position
+    bool bonded_atoms_have_position = true;
+    for (Atom::bond_iterator bat = topIn[at].bondbegin(); bat != topIn[at].bondend(); ++bat)
+    {
+      if (!hasPosition[*bat]) {
+        bonded_atoms_have_position = false;
+        break;
+      }
+    }
+    if (bonded_atoms_have_position) {
+      if (bldAt.DetermineChirality(at, topIn, frameIn, 0)) {// FIXME debug level
+        mprinterr("Error: Problem determining chirality of atom %s\n",
+                  topIn.AtomMaskName(at).c_str());
+        return 1;
+      }
+    }
+    mprintf("Got chirality from external coordinates\n" );
+    mprintf("++++Chirality INTERNAL: %f  for %s\n", bldAt.TorsionVal()*Constants::RADDEG,
+            topIn.LeapName(at).c_str());
+  } else {
+    mprintf("Left chirality undefined for %s\n",topIn.LeapName(at).c_str() );
+  }
+  return 0;
+}
 
 /** Generate internal coordinates in the same manner as LEaP's
   * BuildInternalsForContainer.
@@ -2194,7 +2223,11 @@ int Builder::GenerateInternals(Frame const& frameIn, Topology const& topIn, Barr
             topIn.LeapName(bnd->A1()).c_str(),
             topIn.LeapName(bnd->A2()).c_str());*/
   }
-  // FIXME do chirality
+  // Chirality
+  for (int at = 0; at != topIn.Natom(); ++at) {
+    if (determineChirality(at, frameIn, topIn, hasPosition))
+      return 1;
+  }
   //zmatrix.print( &topIn );
   mprintf("DEBUG: ----- Leaving Builder::GenerateInternals. ------\n");
   return 0;

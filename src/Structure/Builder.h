@@ -105,6 +105,8 @@ class Builder {
     void buildAngleInternal(int, int, int, Frame const&, Topology const&, Barray const&);
     /// Build bond internal
     void buildBondInternal(int, int, Frame const&, Topology const&, Barray const&);
+    /// Determine chirality around an atom
+    int determineChirality(int, Frame const&, Topology const&, Barray const&);
     /// Generate internal coords for a given atom
     int generateAtomInternals(int, Frame const&, Topology const&, Barray const&);
 
