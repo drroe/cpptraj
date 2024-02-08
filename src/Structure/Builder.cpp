@@ -1646,6 +1646,21 @@ int Builder::getExistingTorsionIdx(int ai, int aj, int ak, int al) const {
   return idx;
 }
 
+/** \return Index of existing angle matching the 3 given atoms, -1 for no match. */
+int Builder::getExistingAngleIdx(int ai, int aj, int ak) const {
+  int idx = -1;
+  for (Aarray::const_iterator it = internalAngles_.begin(); it != internalAngles_.end(); ++it)
+  {
+    if ((it->AtI() == ai && it->AtJ() == aj && it->AtK() == ak) ||
+        (it->AtI() == ak && it->AtJ() == aj && it->AtK() == ai))
+    {
+      idx = (int)(it - internalAngles_.begin());
+      break;
+    }
+  }
+  return idx;
+}
+
 /** Model bond */
 double Builder::ModelBondLength(int ai, int aj, Topology const& topIn) const {
   // First look up parameter
@@ -2130,6 +2145,7 @@ int Builder::GenerateInternals(Frame const& frameIn, Topology const& topIn, Barr
 int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
 {
   mprintf( "Building internals for: %s\n", topIn.LeapName(at).c_str());
+  // Torsions
   Atom const& AtA = topIn[at];
   for (Atom::bond_iterator bat = AtA.bondbegin(); bat != AtA.bondend(); ++bat) {
     Atom const& AtB = topIn[*bat];
@@ -2158,6 +2174,39 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
       }
     }
   }
+  // Angles
+  for (Atom::bond_iterator bat = AtA.bondbegin(); bat != AtA.bondend(); ++bat) {
+    Atom const& AtB = topIn[*bat];
+    for (Atom::bond_iterator cat = AtB.bondbegin(); cat != AtB.bondend(); ++cat) {
+      if (*cat != at) {
+        mprintf("Building angle INTERNAL for: %s - %s - %s\n",
+                topIn.LeapName(at).c_str(),
+                topIn.LeapName(*bat).c_str(),
+                topIn.LeapName(*cat).c_str());
+        int aidx = getExistingAngleIdx(at, *bat, *cat);
+        if (aidx < 0) {
+          double dValue = 0;
+          if (hasPosition[at] &&
+              hasPosition[*bat] &&
+              hasPosition[*cat])
+          {
+            mprintf("Got bond angle from externals\n");
+            dValue = CalcAngle(frameIn.XYZ(at), frameIn.XYZ(*bat), frameIn.XYZ(*cat));
+          } else {
+            mprintf("Got bond angle from model builder\n");
+            dValue = ModelBondAngle(at, *bat, *cat, topIn);
+          }
+          mprintf("++++Angle INTERNAL: %f  for %s - %s - %s\n", dValue*Constants::RADDEG,
+                  topIn.LeapName(at).c_str(),
+                  topIn.LeapName(*bat).c_str(),
+                  topIn.LeapName(*cat).c_str());
+          internalAngles_.push_back(InternalAngle(at, *bat, *cat, dValue));
+        } else {
+          mprintf("Angle INTERNAL was already defined\n");
+        }
+      }
+    } // END loop over atoms bonded to B
+  } // END loop over atoms bonded to A
 
   return 0;
 }

@@ -52,10 +52,12 @@ class Builder {
 
     /// Get length parameter for atoms
     int getLengthParam(double&, int, int, Topology const&) const;
-    /// Assign a reasonable value for bond distance given 2 atoms whose position may or may not be known
-    int AssignLength(double&, int, int, Topology const&, Frame const&, Barray const&) const;
     /// Get angle parameter for atoms.
     int getAngleParam(double&, int, int, int, Topology const&) const;
+
+    // ===========================================
+    /// Assign a reasonable value for bond distance given 2 atoms whose position may or may not be known
+    int AssignLength(double&, int, int, Topology const&, Frame const&, Barray const&) const;
     /// Given atoms J and K, attempt to assign a reasonable value for theta for atom I
     int AssignTheta(double&, int, int, int, Topology const&, Frame const&, Barray const&) const;
     /// Calculate an internal coordinate for known atoms
@@ -72,25 +74,27 @@ class Builder {
     int SetupICsAroundBond(Zmatrix&, int, int, Frame const&, Topology const&,
                            Barray const&, Barray const&,
                            BuildAtom const&, BuildAtom const&) const;
-
-    /// Create IC for a torsion
+    // ===========================================
+    /// Calculte phi value for a torsion in a TorsionModel
     void ModelTorsion(TorsionModel const&, unsigned int, unsigned int, double);
-    /// Get angle value
+    /// Get angle parameter/model an angle value
     double ModelBondAngle(int, int, int, Topology const&) const;
-    /// Get bond length
+    /// Get bond parameter/model a bond length
     double ModelBondLength(int, int, Topology const&) const;
-    /// Create ICs around SP3-SP3 linkage
+    /// Create torsion around SP3-SP3 linkage
     void createSp3Sp3Torsions(TorsionModel const&);
-    /// Create ICs around SP3-SP2 linkage
+    /// Create torsion around SP3-SP2 linkage
     void createSp3Sp2Torsions(TorsionModel const&);
-    /// Create ICs around SP2-SP2 linkage
+    /// Create torsion around SP2-SP2 linkage
     void createSp2Sp2Torsions(TorsionModel const&);
     /// Model torsions around a bond in the same manner as LEaP
     int assignTorsionsAroundBond(int, int, Frame const&, Topology const&, Barray const&, int);
-    /// Get any existing internal coords from internalTorsions_ around specified atoms
+    /// Get any existing internal torsion around specified atoms
     Tarray getExistingTorsions(int, int) const;
-    /// Get specific internal coords from internalTorsions_
+    /// Get specific internal torsion
     int getExistingTorsionIdx(int, int, int, int) const;
+    /// Get specific internal angle
+    int getExistingAngleIdx(int, int, int) const;
     /// Build mock coordinates around given torsion
     int buildMockExternals(TorsionModel& MT, std::vector<InternalCoords> const& iaTorsions) const;
     /// Generate internal coords for a given atom
