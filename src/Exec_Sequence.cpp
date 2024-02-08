@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "AssociatedData_Connect.h"
 #include "Structure/Builder.h"
+#include "Structure/Zmatrix.h"
 
 /** Generate and build the specified sequence. */
 int Exec_Sequence::generate_sequence(DataSet_Coords* OUT,
@@ -84,6 +85,74 @@ const
   }
   for (unsigned int idx = 0; idx < Units.size(); idx++)
     mprintf("\tUnit %s HEAD %i TAIL %i\n", Units[idx]->legend(), connectAt0[idx]+1, connectAt1[idx]+1);
+
+  Topology topOut;
+  Frame frameOut;
+  mprintf("\tFinal structure should have %i atoms.\n", total_natom);
+  frameOut.SetupFrame( total_natom );
+  // Clear frame so that AddXYZ can be used
+  frameOut.ClearAtoms();
+
+  // hasPosition - for each atom in topOut, status on whether atom in frameOut needs building
+  Cpptraj::Structure::Zmatrix::Barray hasPosition;
+  hasPosition.reserve( total_natom );
+
+  // Hold atom offsets needed when building residues
+  typedef std::vector<int> Iarray;
+  Iarray AtomOffsets;
+  AtomOffsets.reserve( Units.size() ); // FIXME assuming 1 residue per unit
+
+  // For holding bonded atom pairs
+  typedef std::pair<int,int> Ipair;
+  typedef std::vector<Ipair> IParray;
+
+  // Loop for setting up atoms in the topology from units
+  for (unsigned int idx = 0; idx < Units.size(); idx++)
+  {
+    DataSet_Coords* unit = Units[idx];
+    mprintf("\tAdding atoms for unit %s\n", unit->legend());
+    Residue const& currentRes = unit->Top().Res(0); // FIXME assuming 1 unit
+    int atomOffset = topOut.Natom();
+    mprintf("DEBUG: atom offset is %i\n", atomOffset);
+    // Add the unit atoms. Only the first unit has known position.
+    bool atomPosKnown = (idx == 0);
+    Frame unitFrm = unit->AllocateFrame();
+    unit->GetFrame(0, unitFrm);
+    IParray intraResBonds;
+    for (int itgt = 0; itgt < unit->Top().Natom(); itgt++)
+    {
+      Atom sourceAtom = unit->Top()[itgt];
+      // Save the bonds
+      int at0 = itgt + atomOffset;
+      for (Atom::bond_iterator bat = sourceAtom.bondbegin(); bat != sourceAtom.bondend(); ++bat) {
+        int at1 = *bat + atomOffset;
+        if (at1 > at0) {
+          mprintf("Will add bond between %i and %i (original %i and %i)\n", at0+1, at1+1, itgt+1, *bat + 1);
+          intraResBonds.push_back( Ipair(at0, at1) );
+        }
+      }
+      sourceAtom.ClearBonds(); // FIXME AddTopAtom should clear bonds
+      topOut.AddTopAtom( sourceAtom, currentRes );
+      frameOut.AddVec3( Vec3(unitFrm.XYZ(itgt)) );
+      hasPosition.push_back( atomPosKnown );
+    }
+    // Add the bonds
+    // Add intra-residue bonds
+    for (IParray::const_iterator it = intraResBonds.begin(); it != intraResBonds.end(); ++it)
+    {
+      //mprintf("DEBUG: Intra-res bond: Res %s atom %s to res %s atom %s\n",
+      //        topOut.TruncResNameOnumId(topOut[it->first].ResNum()).c_str(), *(topOut[it->first].Name()),
+      //        topOut.TruncResNameOnumId(topOut[it->second].ResNum()).c_str(), *(topOut[it->second].Name()));
+      topOut.AddBond(it->first, it->second);
+    }
+
+    // All units after the first need building
+    if (atomPosKnown)
+      AtomOffsets.push_back( -1 );
+    else
+      AtomOffsets.push_back( atomOffset );
+  } // END loop over units
+
 
   Topology combinedTop;
   combinedTop.SetDebug( debug_ );
