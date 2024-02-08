@@ -34,6 +34,8 @@ class Builder {
     int GenerateInternalsAroundLink(int, int, Frame const&, Topology const&, Barray const&);
     /// Update existing indices with given offset
     void UpdateIndicesWithOffset(int);
+    /// \return Zmatrix from current internals
+    int GetZmatrixFromInternals(Zmatrix&, Topology const&) const;
   private:
     typedef std::vector<int> Iarray;
 
