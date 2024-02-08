@@ -91,8 +91,8 @@ class Builder {
     void createSp2Sp2Torsions(TorsionModel const&);
     /// Model torsions around a bond in the same manner as LEaP
     int assignTorsionsAroundBond(int, int, Frame const&, Topology const&, Barray const&, int);
-    /// Get any existing internal torsion around specified atoms
-    Tarray getExistingTorsions(int, int) const;
+    /// Get any existing internal torsion indices around specified atoms
+    Iarray getExistingTorsionIdxs(int, int) const;
     /// Get specific internal torsion
     int getExistingTorsionIdx(int, int, int, int) const;
     /// Get specific internal angle
