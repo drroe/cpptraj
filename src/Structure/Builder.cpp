@@ -1661,6 +1661,21 @@ int Builder::getExistingAngleIdx(int ai, int aj, int ak) const {
   return idx;
 }
 
+/** \return Index of existing bond matching the 2 given atoms, -1 for no match. */
+int Builder::getExistingBondIdx(int ai, int aj) const {
+  int idx = -1;
+  for (Larray::const_iterator it = internalBonds_.begin(); it != internalBonds_.end(); ++it)
+  {
+    if ((it->AtI() == ai && it->AtJ() == aj) ||
+        (it->AtI() == aj && it->AtJ() == ai))
+    {
+      idx = (int)(it - internalBonds_.begin());
+      break;
+    }
+  }
+  return idx;
+}
+
 /** Model bond */
 double Builder::ModelBondLength(int ai, int aj, Topology const& topIn) const {
   // First look up parameter
@@ -2206,6 +2221,31 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
         }
       }
     } // END loop over atoms bonded to B
+  } // END loop over atoms bonded to A
+  // Bonds
+  for (Atom::bond_iterator bat = AtA.bondbegin(); bat != AtA.bondend(); ++bat) {
+    mprintf("Building bond INTERNAL for: %s - %s\n",
+            topIn.LeapName(at).c_str(),
+            topIn.LeapName(*bat).c_str());
+    int bidx = getExistingBondIdx(at, *bat);
+    if (bidx < 0) {
+      double dValue = 0;
+      if (hasPosition[at] &&
+          hasPosition[*bat])
+      {
+        mprintf("Got bond length from externals\n");
+        dValue = sqrt(DIST2_NoImage(frameIn.XYZ(at), frameIn.XYZ(*bat)));
+      } else {
+        mprintf("Got bond length from the model builder\n");
+        dValue = ModelBondLength(at, *bat, topIn);
+      }
+      mprintf("++++Bond INTERNAL: %f  for %s - %s\n", dValue,
+              topIn.LeapName(at).c_str(),
+              topIn.LeapName(*bat).c_str());
+      internalBonds_.push_back(InternalBond(at, *bat, dValue));
+    } else {
+      mprintf( "Bond length INTERNAL already defined\n" );
+    }
   } // END loop over atoms bonded to A
 
   return 0;

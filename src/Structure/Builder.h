@@ -95,6 +95,8 @@ class Builder {
     int getExistingTorsionIdx(int, int, int, int) const;
     /// Get specific internal angle
     int getExistingAngleIdx(int, int, int) const;
+    /// Get specific internal bond
+    int getExistingBondIdx(int, int) const;
     /// Build mock coordinates around given torsion
     int buildMockExternals(TorsionModel& MT, std::vector<InternalCoords> const& iaTorsions) const;
     /// Generate internal coords for a given atom
