@@ -101,6 +101,7 @@ const
   return 0;
 }
 
+// -----------------------------------------------------------------------------
 /** Attempt to assign a reasonable value for theta internal coordinate for
   * atom i given that atoms j and k have known positions.
   */
