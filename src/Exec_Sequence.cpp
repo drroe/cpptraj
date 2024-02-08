@@ -107,6 +107,7 @@ const
   typedef std::vector<Ipair> IParray;
 
   // Loop for setting up atoms in the topology from units
+  IParray interResBonds;
   int prevTailAtom = -1;
   for (unsigned int idx = 0; idx < Units.size(); idx++)
   {
@@ -130,7 +131,7 @@ const
     mprintf("DEBUG: atom offset is %i\n", atomOffset);
     // Add the unit atoms. Only the first unit has known position.
     bool atomPosKnown = (idx == 0);
-    Frame unitFrm = unit->AllocateFrame();
+    Frame unitFrm = unit->AllocateFrame(); // FIXME only first res
     unit->GetFrame(0, unitFrm);
     IParray intraResBonds;
     for (int itgt = 0; itgt < unit->Top().Natom(); itgt++)
@@ -166,8 +167,10 @@ const
         return 1;
       }
       mprintf("Will add bond between %i and %i\n", prevTailAtom+1, headAtom+1);
-      topOut.AddBond(prevTailAtom, headAtom);
-    }
+      interResBonds.push_back( Ipair(prevTailAtom, headAtom) );
+    } else
+      // Placeholder
+      interResBonds.push_back( Ipair(-1, -1) );
     prevTailAtom = tailAtom;
 
     // All units after the first need building
@@ -176,6 +179,64 @@ const
     else
       AtomOffsets.push_back( atomOffset );
   } // END loop over units
+
+  // Build
+  bool buildFailed = false;
+  for (Iarray::const_iterator it = AtomOffsets.begin(); it != AtomOffsets.end(); ++it)
+  {
+    long int ires = it-AtomOffsets.begin();
+    if (*it > -1) {
+      // Residue has atom offset which indicates it needs something built.
+      Cpptraj::Structure::Builder* structureBuilder = new Cpptraj::Structure::Builder();
+      structureBuilder->SetDebug( 1 ); // DEBUG FIXME
+      //structureBuilder->SetParameters( &mainParmSet ); TODO import parameters?
+      // Generate internals from the template, update indices to this topology.
+      DataSet_Coords* unit = Units[ires];
+      Frame unitFrm = unit->AllocateFrame();
+      unit->GetFrame(0, unitFrm);
+      if (structureBuilder->GenerateInternals(unitFrm, unit->Top(),
+                                              std::vector<bool>(unit->Top().Natom(), true)))
+      {
+        mprinterr("Error: Generate internals for unit failed.\n");
+        return 1;
+      }
+      structureBuilder->UpdateIndicesWithOffset( *it );
+
+      mprintf("DEBUG: ***** BUILD unit %li %s *****\n", ires + 1,
+              topOut.TruncResNameOnumId(ires).c_str());
+
+      // Connect unit
+      topOut.AddBond( interResBonds[ires].first, interResBonds[ires].second );
+      // Generate internals around the link
+      if (structureBuilder->GenerateInternalsAroundLink(interResBonds[ires].first, interResBonds[ires].second,
+                                                        frameOut, topOut, hasPosition))
+      {
+        mprinterr("Error: Assign torsions around inter-unit link %s - %s failed.\n",
+                  topOut.AtomMaskName(interResBonds[ires].first).c_str(),
+                  topOut.AtomMaskName(interResBonds[ires].second).c_str());
+        return 1;
+      }
+      // Update internal coords from known positions
+      if (structureBuilder->UpdateICsFromFrame( frameOut, ires, topOut, hasPosition )) {
+        mprinterr("Error: Failed to update Zmatrix with values from existing positions.\n");
+        return 1;
+      }
+      // Convert to Zmatrix and assign missing atom positions
+      Cpptraj::Structure::Zmatrix tmpz;
+      tmpz.SetDebug( 1 ); // DEBUG
+      if (structureBuilder->GetZmatrixFromInternals(tmpz, topOut)) {
+        mprinterr("Error: Could not get Zmatrix from internals.\n");
+        return 1;
+      }
+      if (tmpz.SetToFrame( frameOut, hasPosition )) {
+        mprinterr("Error: Building residue %s failed.\n",
+                  topOut.TruncResNameOnumId(ires).c_str());
+        buildFailed = true;
+      }
+      delete structureBuilder;
+    }
+  }
+
 
 
   Topology combinedTop;
