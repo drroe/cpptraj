@@ -206,6 +206,9 @@ const
               topOut.TruncResNameOnumId(ires).c_str());
 
       // Connect unit
+      mprintf("DEBUG: Linking atoms %s and %s\n",
+              topOut.AtomMaskName(interResBonds[ires].first).c_str(),
+              topOut.AtomMaskName(interResBonds[ires].second).c_str());
       topOut.AddBond( interResBonds[ires].first, interResBonds[ires].second );
       // Generate internals around the link
       if (structureBuilder->GenerateInternalsAroundLink(interResBonds[ires].first, interResBonds[ires].second,
