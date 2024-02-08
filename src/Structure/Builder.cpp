@@ -2158,7 +2158,8 @@ int Builder::GenerateInternals(Frame const& frameIn, Topology const& topIn, Barr
   AngleArray angles = GenerateAngleArray( topIn.Residues(), topIn.Atoms() );
   for (AngleArray::const_iterator ang = angles.begin(); ang != angles.end(); ++ang)
   {
-    double dValue = 0;
+    buildAngleInternal(ang->A1(), ang->A2(), ang->A3(), frameIn, topIn, hasPosition);
+/*    double dValue = 0;
     if (hasPosition[ang->A1()] &&
         hasPosition[ang->A2()] &&
         hasPosition[ang->A3()])
@@ -2171,12 +2172,13 @@ int Builder::GenerateInternals(Frame const& frameIn, Topology const& topIn, Barr
     mprintf("++++Angle INTERNAL: %f  for %s - %s - %s\n", dValue*Constants::RADDEG,
             topIn.LeapName(ang->A1()).c_str(),
             topIn.LeapName(ang->A2()).c_str(),
-            topIn.LeapName(ang->A3()).c_str());
+            topIn.LeapName(ang->A3()).c_str());*/
   }
   // Loop over bonds
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
   {
-    double dValue = 0;
+    buildBondInternal(bnd->A1(), bnd->A2(), frameIn, topIn, hasPosition);
+/*    double dValue = 0;
     if (hasPosition[bnd->A1()] &&
         hasPosition[bnd->A2()])
     {
@@ -2187,7 +2189,7 @@ int Builder::GenerateInternals(Frame const& frameIn, Topology const& topIn, Barr
     internalBonds_.push_back( InternalBond(bnd->A1(), bnd->A2(), dValue) );
     mprintf("++++Bond INTERNAL: %f  for %s - %s\n", dValue,
             topIn.LeapName(bnd->A1()).c_str(),
-            topIn.LeapName(bnd->A2()).c_str());
+            topIn.LeapName(bnd->A2()).c_str());*/
   }
   // FIXME do chirality
   //zmatrix.print( &topIn );
