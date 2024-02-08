@@ -107,12 +107,26 @@ const
   typedef std::vector<Ipair> IParray;
 
   // Loop for setting up atoms in the topology from units
+  int prevTailAtom = -1;
   for (unsigned int idx = 0; idx < Units.size(); idx++)
   {
-    DataSet_Coords* unit = Units[idx];
-    mprintf("\tAdding atoms for unit %s\n", unit->legend());
-    Residue const& currentRes = unit->Top().Res(0); // FIXME assuming 1 unit
     int atomOffset = topOut.Natom();
+    DataSet_Coords* unit = Units[idx];
+    // Needs to have connect associated data
+    AssociatedData* ad = unit->GetAssociatedData(AssociatedData::CONNECT);
+    if (ad == 0) {
+      mprinterr("Error: Unit '%s' does not have CONNECT data.\n", unit->legend());
+      return 1;
+    }
+    AssociatedData_Connect const& CONN = static_cast<AssociatedData_Connect const&>( *ad );
+    if (CONN.NconnectAtoms() < 2) {
+      mprinterr("Error: Not enough connect atoms in unit '%s'\n", unit->legend());
+      return 1;
+    }
+    int headAtom = CONN.Connect()[0] + atomOffset;
+    int tailAtom = CONN.Connect()[1] + atomOffset;
+    mprintf("\tAdding atoms for unit %s (head %i tail %i)\n", unit->legend(), headAtom+1, tailAtom+1);
+    Residue const& currentRes = unit->Top().Res(0); // FIXME assuming 1 unit
     mprintf("DEBUG: atom offset is %i\n", atomOffset);
     // Add the unit atoms. Only the first unit has known position.
     bool atomPosKnown = (idx == 0);
@@ -144,6 +158,17 @@ const
       //        topOut.TruncResNameOnumId(topOut[it->second].ResNum()).c_str(), *(topOut[it->second].Name()));
       topOut.AddBond(it->first, it->second);
     }
+    // Connect HEAD atom of this residue to TAIL of previous residue
+    if (idx > 0) {
+      if (prevTailAtom < 0 || headAtom < 0) {
+        mprinterr("Error: Could not find connect atoms for previous residue (%i) and/or this residue (%i)\n",
+                  prevTailAtom+1, headAtom+1);
+        return 1;
+      }
+      mprintf("Will add bond between %i and %i\n", prevTailAtom+1, headAtom+1);
+      topOut.AddBond(prevTailAtom, headAtom);
+    }
+    prevTailAtom = tailAtom;
 
     // All units after the first need building
     if (atomPosKnown)
