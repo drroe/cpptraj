@@ -1097,6 +1097,9 @@ int Zmatrix::SetToFrame(Frame& frameOut, Barray& hasPosition) const {
       mprintf("DEBUG: Next IC to use is %i : %i %i %i %i r=%g theta=%g phi=%g\n",
               icIdx+1, ic.AtI()+1, ic.AtJ()+1, ic.AtK()+1, ic.AtL()+1,
               ic.Dist(), ic.Theta(), ic.Phi());
+    mprintf( "Torsion = %f\n", ic.Phi() );
+    mprintf( "Angle   = %f\n", ic.Theta() );
+    mprintf( "Bond    = %f\n", ic.Dist() );
     Vec3 posI = AtomIposition(ic, frameOut);
 
     frameOut.SetXYZ( ic.AtI(), posI );
