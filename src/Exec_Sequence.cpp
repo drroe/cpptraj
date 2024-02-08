@@ -122,7 +122,7 @@ const
     for (int itgt = 0; itgt < unit->Top().Natom(); itgt++)
     {
       Atom sourceAtom = unit->Top()[itgt];
-      // Save the bonds
+      // Save the intra-residue bonds
       int at0 = itgt + atomOffset;
       for (Atom::bond_iterator bat = sourceAtom.bondbegin(); bat != sourceAtom.bondend(); ++bat) {
         int at1 = *bat + atomOffset;
@@ -136,7 +136,6 @@ const
       frameOut.AddVec3( Vec3(unitFrm.XYZ(itgt)) );
       hasPosition.push_back( atomPosKnown );
     }
-    // Add the bonds
     // Add intra-residue bonds
     for (IParray::const_iterator it = intraResBonds.begin(); it != intraResBonds.end(); ++it)
     {
