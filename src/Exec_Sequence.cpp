@@ -240,8 +240,15 @@ const
     }
   }
 
+  // Finalize topology - determine molecules, dont renumber residues, assign default bond params
+  topOut.CommonSetup(true, false, true);
+  topOut.Summary();
 
+  OUT->CoordsSetup(topOut, frameOut.CoordsInfo());
+  OUT->AddFrame( frameOut );
 
+  if (buildFailed) return 1;
+/*
   Topology combinedTop;
   combinedTop.SetDebug( debug_ );
   combinedTop.SetParmName( OUT->Meta().Name(), FileName() );
@@ -285,7 +292,7 @@ const
   //}
 
   OUT->CoordsSetup(combinedTop, CombinedFrame.CoordsInfo());
-  OUT->AddFrame( CombinedFrame );
+  OUT->AddFrame( CombinedFrame );*/
 
   return 0;
 }

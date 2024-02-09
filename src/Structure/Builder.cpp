@@ -1508,12 +1508,14 @@ static inline double calculateOrientation(MockAtom const& iX, double chiX, Atom 
       iB.Known())
   {
     dOrientation = VectorAtomChirality( iX.Pos(), iA.Pos(), iY.Pos(), iB.Pos() );
+    mprintf("ORIENTATION: known = %f\n", dOrientation);
   } else {
     double dChi = chiX;
     if (fabs(dChi) < Constants::SMALL) {
       mprintf("default chirality on\n");
       dChi = 1.0;
     }
+    mprintf("ORIENTATION: Chirality %f\n", dChi);
     dOrientation = chiralityToOrientation(dChi, AX, iA.Idx(), iY.Idx(), iB.Idx(), -1);
   }
   return dOrientation;
@@ -1588,12 +1590,18 @@ int Cpptraj::Structure::Builder::TorsionModel::SetupTorsion(AtomType::Hybridizat
   // Calculate the chirality around atom X
   Xorientation_ = 0;
   if (Hx == AtomType::SP3) {
-    Xorientation_ = calculateOrientation( atX_, chiX, topIn[atX_.Idx()], sorted_ax_[0], atY_, sorted_ax_[1] );
+    if (sorted_ax_.size() < 2)
+      Xorientation_ = 1.0;
+    else
+      Xorientation_ = calculateOrientation( atX_, chiX, topIn[atX_.Idx()], sorted_ax_[0], atY_, sorted_ax_[1] );
   }
   // Calculate the chirality around atom Y
   Yorientation_ = 0;
   if (Hy == AtomType::SP3) {
-    Yorientation_ = calculateOrientation( atY_, chiY, topIn[atY_.Idx()], sorted_ay_[0], atX_, sorted_ay_[1] );
+    if (sorted_ay_.size() < 2)
+      Yorientation_ = 1.0;
+    else
+      Yorientation_ = calculateOrientation( atY_, chiY, topIn[atY_.Idx()], sorted_ay_[0], atX_, sorted_ay_[1] );
   }
   // DEBUG
   Atom const& AX = topIn[atX_.Idx()];
