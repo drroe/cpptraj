@@ -1667,6 +1667,8 @@ void Builder::UpdateIndicesWithOffset(int atomOffset) {
     it->OffsetIndices( atomOffset );
   for (Larray::iterator it = internalBonds_.begin(); it != internalBonds_.end(); ++it)
     it->OffsetIndices( atomOffset );
+  for (Carray::iterator it = internalChirality_.begin(); it != internalChirality_.end(); ++it)
+    it->OffsetIndices( atomOffset );
 }
 
 /** Find any existing torsions around ax-ay. */
@@ -1725,6 +1727,19 @@ int Builder::getExistingBondIdx(int ai, int aj) const {
         (it->AtI() == aj && it->AtJ() == ai))
     {
       idx = (int)(it - internalBonds_.begin());
+      break;
+    }
+  }
+  return idx;
+}
+
+/** \return Index of existing chirality value matching given atom, 1 for no match. */
+int Builder::getExistingChiralityIdx(int ai) const {
+  int idx = -1;
+  for (Carray::const_iterator it = internalChirality_.begin(); it != internalChirality_.end(); ++it)
+  {
+    if (it->AtI() == ai) {
+      idx = (int)(it - internalChirality_.begin());
       break;
     }
   }
@@ -2308,10 +2323,9 @@ int Builder::determineChirality(double& dChi, int at, Frame const& frameIn, Topo
 int Builder::GenerateInternals(Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
 {
   mprintf("DEBUG: ----- Entering Builder::GenerateInternals. -----\n");
-//  zmatrix.clear();
-  // First generate the bond array
+  // First generate the bond array for use in determining torsions.
   BondArray bonds = GenerateBondArray( topIn.Residues(), topIn.Atoms() );
-  // Loop over bonds
+  // Loop over bonds to determine torsions.
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
   {
     if (assignTorsionsAroundBond( bnd->A1(), bnd->A2(), frameIn, topIn, hasPosition, -1 )) {
@@ -2321,42 +2335,16 @@ int Builder::GenerateInternals(Frame const& frameIn, Topology const& topIn, Barr
       return 1;
     }
   }
-  // Loop over angles
+  // Loop over angles.
   AngleArray angles = GenerateAngleArray( topIn.Residues(), topIn.Atoms() );
   for (AngleArray::const_iterator ang = angles.begin(); ang != angles.end(); ++ang)
   {
     buildAngleInternal(ang->A1(), ang->A2(), ang->A3(), frameIn, topIn, hasPosition);
-/*    double dValue = 0;
-    if (hasPosition[ang->A1()] &&
-        hasPosition[ang->A2()] &&
-        hasPosition[ang->A3()])
-    {
-      dValue = CalcAngle( frameIn.XYZ(ang->A1()), frameIn.XYZ(ang->A2()), frameIn.XYZ(ang->A3()) );
-    } else {
-      dValue = ModelBondAngle( ang->A1(), ang->A2(), ang->A3(), topIn );
-    }
-    internalAngles_.push_back( InternalAngle(ang->A1(), ang->A2(), ang->A3(), dValue) );
-    mprintf("++++Angle INTERNAL: %f  for %s - %s - %s\n", dValue*Constants::RADDEG,
-            topIn.LeapName(ang->A1()).c_str(),
-            topIn.LeapName(ang->A2()).c_str(),
-            topIn.LeapName(ang->A3()).c_str());*/
   }
   // Loop over bonds
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
   {
     buildBondInternal(bnd->A1(), bnd->A2(), frameIn, topIn, hasPosition);
-/*    double dValue = 0;
-    if (hasPosition[bnd->A1()] &&
-        hasPosition[bnd->A2()])
-    {
-      dValue = sqrt(DIST2_NoImage( frameIn.XYZ(bnd->A1()), frameIn.XYZ(bnd->A2()) ) );
-    } else {
-      dValue = ModelBondLength( bnd->A1(), bnd->A2(), topIn );
-    }
-    internalBonds_.push_back( InternalBond(bnd->A1(), bnd->A2(), dValue) );
-    mprintf("++++Bond INTERNAL: %f  for %s - %s\n", dValue,
-            topIn.LeapName(bnd->A1()).c_str(),
-            topIn.LeapName(bnd->A2()).c_str());*/
   }
   // Chirality
   for (int at = 0; at != topIn.Natom(); ++at) {
@@ -2368,8 +2356,8 @@ int Builder::GenerateInternals(Frame const& frameIn, Topology const& topIn, Barr
     } else {
       mprintf("Left chirality undefined for %s\n",topIn.LeapName(at).c_str() );
     }
+    internalChirality_.push_back( InternalChirality(at, dValue) );
   }
-  //zmatrix.print( &topIn );
   mprintf("DEBUG: ----- Leaving Builder::GenerateInternals. ------\n");
   return 0;
 }
@@ -2456,7 +2444,27 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
       mprintf( "Bond length INTERNAL already defined\n" );
     }
   } // END loop over atoms bonded to A
-  // FIXME do chirality
+  // Chirality
+  double dChi = 0;
+  int cidx = getExistingChiralityIdx(at);
+  if (determineChirality(dChi, at, frameIn, topIn, hasPosition)) {
+    mprintf("Got chirality from external coordinates\n" );
+    mprintf("++++Chirality INTERNAL: %f  for %s\n", dChi,
+              topIn.LeapName(at).c_str());
+    if (cidx == -1)
+      internalChirality_.push_back( InternalChirality(at, dChi) );
+    else {
+      // Check that this chirality matches previously determine chirality
+      if (!internalChirality_[cidx].ChiralityMatches(dChi))
+        mprintf("Warning: Atom %s chirality (%f) does not match previous chirality (%f)\n",
+                topIn.AtomMaskName(at).c_str(), dChi, internalChirality_[cidx].ChiralVal());
+    }
+  } else {
+    if (cidx == -1)
+      mprintf("Left chirality undefined for %s\n",topIn.LeapName(at).c_str() );
+    else
+      mprintf("Using already-defined chirality (%f).\n", internalChirality_[cidx].ChiralVal());
+  }
 
   return 0;
 }

@@ -48,10 +48,13 @@ class Builder {
     class InternalAngle;
     /// Hold bond
     class InternalBond;
+    /// Hold chirality
+    class InternalChirality;
 
     typedef std::vector<InternalTorsion> Tarray;
     typedef std::vector<InternalAngle> Aarray;
     typedef std::vector<InternalBond> Larray;
+    typedef std::vector<InternalChirality> Carray;
 
     /// Get length parameter for atoms
     int getLengthParam(double&, int, int, Topology const&) const;
@@ -100,6 +103,8 @@ class Builder {
     int getExistingAngleIdx(int, int, int) const;
     /// Get specific internal bond
     int getExistingBondIdx(int, int) const;
+    /// Get specific chirality
+    int getExistingChiralityIdx(int) const;
     /// Build mock coordinates around given torsion
     int buildMockExternals(TorsionModel& MT, std::vector<InternalCoords> const& iaTorsions) const;
     /// Build angle internal
@@ -126,6 +131,7 @@ class Builder {
     Tarray internalTorsions_;
     Aarray internalAngles_;
     Larray internalBonds_;
+    Carray internalChirality_;
 };
 /// ----- Hold torsion internal ------------------
 class Cpptraj::Structure::Builder::InternalTorsion {
@@ -208,7 +214,39 @@ class Cpptraj::Structure::Builder::InternalBond {
     int aj_;
     double dist_;
 };
+// ----- Hold chirality value --------------------
+class Cpptraj::Structure::Builder::InternalChirality {
+  public:
+    /// CONSTRUCTOR
+    InternalChirality() : ai_(-1), dChi_(0) {}
+    /// CONSTRUCTOR
+    InternalChirality(int i, double d) : ai_(i), dChi_(d) {}
+    /// Set the chirality value TODO use enum?
+    void SetChiralVal(double d) { dChi_ = d; }
+    /// Offset indices by given value
+    void OffsetIndices(int o) { ai_ += o; }
 
+    /// \return true if given chirality matches this one
+    bool ChiralityMatches(double d) const {
+      int thisC = 0;
+      if (dChi_ > 0)
+        thisC = 1;
+      else if (dChi_ < 0)
+        thisC = -1;
+      int otherC = 0;
+      if (d > 0)
+        otherC = 1;
+      else if (d < 0)
+        otherC = -1;
+      return (thisC == otherC);
+    }
+
+    int AtI() const { return ai_; }
+    double ChiralVal() const { return dChi_; }
+  private:
+    int ai_;
+    double dChi_;
+};
 }
 }
 #endif
