@@ -1385,7 +1385,7 @@ static inline double VectorAtomNormalizedChirality(Vec3 const& Center,
   * triangle (iA, iX, iY). This orientation will be used by the
   * CreateSpXSpX routines to determine which torsion values to use.
   */
-static inline double calculateOrientation(MockAtom const& iX, MockAtom const& iA, MockAtom const& iY, MockAtom const& iB)
+static inline double calculateOrientation(MockAtom const& iX, double chiX, MockAtom const& iA, MockAtom const& iY, MockAtom const& iB)
 {
   double dOrientation = 1.0;
   if (iX.Known() &&
@@ -1469,12 +1469,12 @@ int Cpptraj::Structure::Builder::TorsionModel::SetupTorsion(AtomType::Hybridizat
   // Calculate the chirality around atom X
   Xorientation_ = 0;
   if (Hx == AtomType::SP3) {
-    Xorientation_ = calculateOrientation( atX_, sorted_ax_[0], atY_, sorted_ax_[1] );
+    Xorientation_ = calculateOrientation( atX_, chiX, sorted_ax_[0], atY_, sorted_ax_[1] );
   }
   // Calculate the chirality around atom Y
   Yorientation_ = 0;
   if (Hy == AtomType::SP3) {
-    Yorientation_ = calculateOrientation( atY_, sorted_ay_[0], atX_, sorted_ay_[1] );
+    Yorientation_ = calculateOrientation( atY_, chiY, sorted_ay_[0], atX_, sorted_ay_[1] );
   }
   // DEBUG
   Atom const& AX = topIn[atX_.Idx()];
