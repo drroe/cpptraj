@@ -1311,7 +1311,7 @@ std::vector<MockAtom>
 
 /** LEaP routine for determining atom chirality.
   * This is done by crossing A to B and then dotting the
-  * result with C. TODO use Chirality in BuildAtom?
+  * result with C. TODO use Chirality in BuildAtom? Use an Enum?
   * The chirality of the vectors is determined by the sign of
   * the result, which is determined by whether or not C has
   * a component in the direction AxB or in the opposite direction.
@@ -1328,6 +1328,56 @@ static inline double VectorAtomChirality(Vec3 const& Center, Vec3 const& A, Vec3
   else if (dot < 0)
     return -1.0;
   return 0.0;
+}
+
+/** LEaP routine for determining atom chirality when positions may or
+  * may not be defined. Currently the criteria for chirality is 
+  * absolute orientation of the vectors joining this atom to its neighbors.
+  * The neighbors are passed as vPA, vPB, vPC, vPD and bA, bB, bC, bD
+  * define whether or not the position is defined.
+  *
+  * This routine calculates the chirality using the defined vectors and
+  * then flips the sign depending on which vectors were used to calculate
+  * the chirality. If the ATOMs have (fKnown) set then their coordinate
+  * is considered to be known.
+  */
+static inline double VectorAtomNormalizedChirality(Vec3 const& Center,
+                                                   Vec3 const& vPA, bool bA,
+                                                   Vec3 const& vPB, bool bB,
+                                                   Vec3 const& vPC, bool bC,
+                                                   Vec3 const& vPD, bool bD)
+{
+  double dChi = 0;
+  
+  if (!bA) {
+    // If A is not known then use B,C,D to calc chirality.
+    // The chirality calculated will be negative w.r.t. the
+    // correct chirality.
+    if (!bB || !bC || !bD) return dChi;
+    dChi = -VectorAtomChirality( Center, vPB, vPC, vPD );
+    return dChi;
+  }
+
+  if (!bB) {
+    // If B is not known then use A,C,D to calc chirality.
+    // The chirality calculated will be correct.
+    if (!bB || !bD) return dChi;
+    dChi = VectorAtomChirality( Center, vPA, vPC, vPD );
+    return dChi;
+  }
+
+  if (!bC) {
+    // If C is not known then use A,B,D to calc chirality.
+    // The chirality calculated will be negative w.r.t. the
+    // correct chirality.
+    if (!bD) return dChi;
+    dChi = -VectorAtomChirality( Center, vPA, vPB, vPD );
+    return dChi;
+  }
+
+  dChi = VectorAtomChirality( Center, vPA, vPB, vPC );
+
+  return dChi;
 }
 
 /** Assuming atoms have been ordered with SortBondedAtomsLikeLeap,
@@ -2137,9 +2187,94 @@ void Builder::buildBondInternal(int a1, int a2, Frame const& frameIn, Topology c
             topIn.LeapName(a2).c_str());
 }
 
-/** Determine chirality around a single atom. */
-int Builder::determineChirality(int at, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
+/** \return index of atom less than all others but larger than aLast */
+int Builder::findLeastLargerThan(Atom const& aAtom, int aLast)
 {
+  int aSmall = -1;
+  for (Atom::bond_iterator aCur = aAtom.bondbegin(); aCur != aAtom.bondend(); ++aCur)
+  {
+    if (aLast != -1) {
+      if (aLast >= *aCur) continue;
+    }
+    if (aSmall == -1)
+      aSmall = *aCur;
+    else if ( *aCur < aSmall )
+      aSmall = *aCur;
+  }
+  return aSmall;
+}
+
+/** Sort neighbors of given atom in the same manner as LEaP. */
+void Builder::chiralityOrderNeighbors(Atom const& aAtom,
+                                      int& aPAtomA, int& aPAtomB,
+                                      int& aPAtomC, int& aPAtomD)
+{
+  aPAtomA = -1;
+  aPAtomB = -1;
+  aPAtomC = -1;
+  aPAtomD = -1;
+
+  if (aAtom.Nbonds() < 1) return;
+
+  aPAtomA = findLeastLargerThan(aAtom, -1);
+  if (aAtom.Nbonds() < 2) return;
+
+  aPAtomB = findLeastLargerThan(aAtom, aPAtomA);
+  if (aAtom.Nbonds() < 3) return;
+
+  aPAtomC = findLeastLargerThan(aAtom, aPAtomB);
+  if (aAtom.Nbonds() < 4) return;
+
+  aPAtomD = findLeastLargerThan(aAtom, aPAtomC);
+}
+
+/** Determine chirality around a single atom.
+  * \return 1 if chirality was determined, 0 if left undefined.
+  */
+int Builder::determineChirality(double& dChi, int at, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
+{
+  dChi = 0.0;
+  if (!hasPosition[at]) {
+    return 0;
+  }
+  // Only check atoms with 3 or 4 bonds
+  Atom const& A0 = topIn[at];
+  mprintf("CHIRALITY CALCULATION FOR %s (nbonds= %i)\n", *(A0.Name()), A0.Nbonds());
+  for (Atom::bond_iterator bat = A0.bondbegin(); bat != A0.bondend(); ++bat)
+    mprintf("\tneighbor %s (id= %i) [%i]\n", *(topIn[*bat].Name()), *bat, (int)hasPosition[*bat]);
+  if ( A0.Nbonds() == 3 ||
+       A0.Nbonds() == 4 )
+  {
+    int aAtomA = -1;
+    int aAtomB = -1;
+    int aAtomC = -1;
+    int aAtomD = -1;
+    chiralityOrderNeighbors(A0, aAtomA, aAtomB, aAtomC, aAtomD);
+
+    bool knowA = (aAtomA != -1 && hasPosition[aAtomA]);
+    bool knowB = (aAtomB != -1 && hasPosition[aAtomB]);
+    bool knowC = (aAtomC != -1 && hasPosition[aAtomC]);
+    bool knowD = (aAtomD != -1 && hasPosition[aAtomD]);
+
+    if (knowA) mprintf("Chirality order A %s %i\n", *(topIn[aAtomA].Name()), aAtomA);
+    if (knowB) mprintf("Chirality order B %s %i\n", *(topIn[aAtomB].Name()), aAtomB);
+    if (knowC) mprintf("Chirality order C %s %i\n", *(topIn[aAtomC].Name()), aAtomC);
+    if (knowD) mprintf("Chirality order D %s %i\n", *(topIn[aAtomD].Name()), aAtomD);
+
+    Vec3 vPA, vPB, vPC, vPD;
+    if (knowA) vPA = Vec3(frameIn.XYZ(aAtomA));
+    if (knowB) vPB = Vec3(frameIn.XYZ(aAtomB));
+    if (knowC) vPC = Vec3(frameIn.XYZ(aAtomC));
+    if (knowD) vPD = Vec3(frameIn.XYZ(aAtomD));
+
+    dChi = VectorAtomNormalizedChirality( Vec3(frameIn.XYZ(at)),
+                                          vPA, knowA,
+                                          vPB, knowB,
+                                          vPC, knowC,
+                                          vPD, knowD );
+    return 1;
+  }
+/*
   BuildAtom bldAt;
   if (topIn[at].Nbonds() > 2 && hasPosition[at]) {
     // All bonded atoms must have position
@@ -2163,7 +2298,7 @@ int Builder::determineChirality(int at, Frame const& frameIn, Topology const& to
             topIn.LeapName(at).c_str());
   } else {
     mprintf("Left chirality undefined for %s\n",topIn.LeapName(at).c_str() );
-  }
+  }*/
   return 0;
 }
 
@@ -2225,8 +2360,14 @@ int Builder::GenerateInternals(Frame const& frameIn, Topology const& topIn, Barr
   }
   // Chirality
   for (int at = 0; at != topIn.Natom(); ++at) {
-    if (determineChirality(at, frameIn, topIn, hasPosition))
-      return 1;
+    double dValue = 0;
+    if (determineChirality(dValue, at, frameIn, topIn, hasPosition)) {
+      mprintf("Got chirality from external coordinates\n" );
+      mprintf("++++Chirality INTERNAL: %f  for %s\n", dValue,
+              topIn.LeapName(at).c_str());
+    } else {
+      mprintf("Left chirality undefined for %s\n",topIn.LeapName(at).c_str() );
+    }
   }
   //zmatrix.print( &topIn );
   mprintf("DEBUG: ----- Leaving Builder::GenerateInternals. ------\n");
