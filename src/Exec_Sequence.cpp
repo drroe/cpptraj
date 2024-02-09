@@ -167,7 +167,8 @@ const
         return 1;
       }
       mprintf("Will add bond between %i and %i\n", prevTailAtom+1, headAtom+1);
-      interResBonds.push_back( Ipair(prevTailAtom, headAtom) );
+      // To preserve compat. with LEaP, make first atom the head atom.
+      interResBonds.push_back( Ipair(headAtom, prevTailAtom) );
     } else
       // Placeholder
       interResBonds.push_back( Ipair(-1, -1) );

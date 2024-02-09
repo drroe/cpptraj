@@ -1874,6 +1874,40 @@ int Builder::getExistingChiralityIdx(int ai) const {
   return idx;
 }
 
+/** Determine hybridization in the same manner as leap */
+AtomType::HybridizationType Builder::getAtomHybridization(Atom const& aAtom) const {
+  AtomType::HybridizationType H1 = AtomType::UNKNOWN_HYBRIDIZATION;
+  if (params_ != 0) {
+    ParmHolder<AtomType>::const_iterator it;
+    if (aAtom.HasType()) {
+      it = params_->AT().GetParam( TypeNameHolder(aAtom.Type()) );
+      if (it != params_->AT().end())
+        H1 = it->second.Hybridization();
+    }
+  }
+  if (H1 == AtomType::UNKNOWN_HYBRIDIZATION) {
+    // TODO bond orders?
+    int iSingle = 0;
+    int iDouble = 0;
+    int iTriple = 0;
+    int iAromatic = 0;
+    for (int i = 0; i < aAtom.Nbonds(); i++)
+      iSingle++;
+    //printf("iAtomHybridization: %s isingle=%i\n", iSingle);
+    if ( iAromatic != 0 )       H1 = AtomType::SP2;
+                // one or more triple bonds makes the atom SP1
+    else if ( iTriple != 0 )    H1 = AtomType::SP;
+                // Two or more double bonds makes the atom linear, SP1
+    else if ( iDouble >= 2 )    H1 = AtomType::SP;
+                // One double bond makes the atom SP2
+    else if ( iDouble != 0 )    H1 = AtomType::SP2;
+                // Otherwise the atom is SP3
+    else                        H1 = AtomType::SP3;
+  }
+
+  return H1;
+}
+
 /** Model bond */
 double Builder::ModelBondLength(int ai, int aj, Topology const& topIn) const {
   // First look up parameter
@@ -1883,17 +1917,9 @@ double Builder::ModelBondLength(int ai, int aj, Topology const& topIn) const {
   }
   Atom const& AI = topIn[ai];
   Atom const& AJ = topIn[aj];
-  AtomType::HybridizationType hybridI = AtomType::UNKNOWN_HYBRIDIZATION;
-  AtomType::HybridizationType hybridJ = AtomType::UNKNOWN_HYBRIDIZATION;
-  // Check params for hybrid
-  if (params_ != 0) {
-    ParmHolder<AtomType>::const_iterator it = params_->AT().GetParam( TypeNameHolder(AI.Type()) );
-    if (it != params_->AT().end())
-      hybridI = it->second.Hybridization();
-    it = params_->AT().GetParam( TypeNameHolder(AJ.Type()) );
-    if (it != params_->AT().end())
-      hybridJ = it->second.Hybridization();
-  }
+  AtomType::HybridizationType hybridI = getAtomHybridization( AI );
+  AtomType::HybridizationType hybridJ = getAtomHybridization( AJ );
+
   if (hybridI == AtomType::UNKNOWN_HYBRIDIZATION ||
       hybridJ == AtomType::UNKNOWN_HYBRIDIZATION)
   {
@@ -1941,16 +1967,11 @@ double Builder::ModelBondAngle(int ai, int aj, int ak, Topology const& topIn) co
     mprintf("DEBUG:\t\tJ %s Nbonds: %i\n", AJ.ElementName(), AJ.Nbonds());
     mprintf("DEBUG:\t\tK %s Nbonds: %i\n", topIn[ak].ElementName(), topIn[ak].Nbonds());
   }
-  AtomType::HybridizationType hybrid = AtomType::UNKNOWN_HYBRIDIZATION;
-  // Check params for hybrid
-  if (params_ != 0) {
-    ParmHolder<AtomType>::const_iterator it = params_->AT().GetParam( TypeNameHolder(AJ.Type()) );
-    if (it != params_->AT().end())
-      hybrid = it->second.Hybridization();
-  }
+  AtomType::HybridizationType hybrid = getAtomHybridization( AJ );
+
   // Guess hybrid if needed
-  if (hybrid == AtomType::UNKNOWN_HYBRIDIZATION)
-    hybrid = GuessAtomHybridization(AJ, topIn.Atoms());
+  //if (hybrid == AtomType::UNKNOWN_HYBRIDIZATION)
+  //  hybrid = GuessAtomHybridization(AJ, topIn.Atoms());
   // Set from number of bonds if still unknown. This is a pretty crude guess.
   if (hybrid == AtomType::UNKNOWN_HYBRIDIZATION) {
     switch (AJ.Nbonds()) {
@@ -2166,40 +2187,6 @@ void Builder::createSp2Sp2Torsions(TorsionModel const& MT) {
   return;
 }
 
-/** Determine hybridization in the same manner as leap */
-AtomType::HybridizationType Builder::getAtomHybridization(Atom const& aAtom) const {
-  AtomType::HybridizationType H1 = AtomType::UNKNOWN_HYBRIDIZATION;
-  if (params_ != 0) {
-    ParmHolder<AtomType>::const_iterator it;
-    if (aAtom.HasType()) {
-      it = params_->AT().GetParam( TypeNameHolder(aAtom.Type()) );
-      if (it != params_->AT().end())
-        H1 = it->second.Hybridization();
-    }
-  }
-  if (H1 == AtomType::UNKNOWN_HYBRIDIZATION) {
-    // TODO bond orders?
-    int iSingle = 0;
-    int iDouble = 0;
-    int iTriple = 0;
-    int iAromatic = 0;
-    for (int i = 0; i < aAtom.Nbonds(); i++)
-      iSingle++;
-    //printf("iAtomHybridization: %s isingle=%i\n", iSingle);
-    if ( iAromatic != 0 )       H1 = AtomType::SP2;
-                // one or more triple bonds makes the atom SP1
-    else if ( iTriple != 0 )    H1 = AtomType::SP;
-                // Two or more double bonds makes the atom linear, SP1
-    else if ( iDouble >= 2 )    H1 = AtomType::SP;
-                // One double bond makes the atom SP2
-    else if ( iDouble != 0 )    H1 = AtomType::SP2;
-                // Otherwise the atom is SP3
-    else                        H1 = AtomType::SP3;
-  }
-
-  return H1;
-}
-
 /** Assign torsions around bonded atoms in manner similar to LEaP's ModelAssignTorsionsAround. */
 int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition, int aAtomIdx)
 {
@@ -2214,23 +2201,6 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
   // Get atom hybridizations
   AtomType::HybridizationType H1 = getAtomHybridization( topIn[a1] );
   AtomType::HybridizationType H2 = getAtomHybridization( topIn[a2] );//AtomType::UNKNOWN_HYBRIDIZATION;
-/*  if (params_ != 0) {
-    ParmHolder<AtomType>::const_iterator it;
-    if (topIn[a1].HasType()) {
-      it = params_->AT().GetParam( TypeNameHolder(topIn[a1].Type()) );
-      if (it != params_->AT().end())
-        H1 = it->second.Hybridization();
-    }
-    if (topIn[a2].HasType()) {
-      it = params_->AT().GetParam( TypeNameHolder(topIn[a2].Type()) );
-      if (it != params_->AT().end())
-        H2 = it->second.Hybridization();
-    }
-  }
-  if (H1 == AtomType::UNKNOWN_HYBRIDIZATION)
-    H1 = GuessAtomHybridization(topIn[a1], topIn.Atoms());
-  if (H2 == AtomType::UNKNOWN_HYBRIDIZATION)
-    H2 = GuessAtomHybridization(topIn[a2], topIn.Atoms());*/
   if (H1 == AtomType::UNKNOWN_HYBRIDIZATION)
     mprintf("Warning: No hybridization set for atom %s\n", topIn.AtomMaskName(a1).c_str());
   if (H2 == AtomType::UNKNOWN_HYBRIDIZATION)
