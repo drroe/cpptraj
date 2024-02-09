@@ -1178,7 +1178,7 @@ class Cpptraj::Structure::Builder::TorsionModel {
     /// Initialize torsions around bonded atoms
     int InitTorsion(int, int, Frame const&, Topology const&, std::vector<bool> const&, int);
     /// Set up torsions around bonded atoms
-    int SetupTorsion(AtomType::HybridizationType, AtomType::HybridizationType, Topology const& topIn);
+    int SetupTorsion(AtomType::HybridizationType, AtomType::HybridizationType, Topology const& topIn, double, double);
     /// Build mock externals from given internals
     int BuildMockExternals(Iarray const&, Tarray const&, Topology const&);
 
@@ -1451,7 +1451,8 @@ int Cpptraj::Structure::Builder::TorsionModel::InitTorsion(int ax, int ay,
 /** Set up model torsion for bonded atoms. */
 int Cpptraj::Structure::Builder::TorsionModel::SetupTorsion(AtomType::HybridizationType Hx,
                                                             AtomType::HybridizationType Hy,
-                                                            Topology const& topIn)
+                                                            Topology const& topIn,
+                                                            double chiX, double chiY)
 {
   if (Hx != AtomType::UNKNOWN_HYBRIDIZATION && Hy != AtomType::UNKNOWN_HYBRIDIZATION) {
     if (Hy > Hx) {
@@ -2132,8 +2133,15 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
             topIn.LeapName(ax).c_str(),
             topIn.LeapName(ay).c_str());
   }
-
-  if (mT.SetupTorsion(Hx, Hy, topIn)) {
+  // Get chiralities around X and Y if they exist
+  double chiX = 0;
+  int Xcidx = getExistingChiralityIdx( ax );
+  if (Xcidx != -1) chiX = internalChirality_[Xcidx].ChiralVal();
+  double chiY = 0;
+  int Ycidx = getExistingChiralityIdx( ay );
+  if (Ycidx != -1) chiY = internalChirality_[Ycidx].ChiralVal();
+  // Set up the torsion model
+  if (mT.SetupTorsion(Hx, Hy, topIn, chiX, chiY)) {
     mprinterr("Error: Could not set up torsions around %s - %s\n",
               topIn.LeapName(ax).c_str(),
               topIn.LeapName(ay).c_str());
