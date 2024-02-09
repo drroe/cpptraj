@@ -1380,6 +1380,47 @@ static inline double VectorAtomNormalizedChirality(Vec3 const& Center,
   return dChi;
 }
 
+/** \return index of atom less than all others but larger than aLast */
+static inline int findLeastLargerThan(Atom const& aAtom, int aLast)
+{
+  int aSmall = -1;
+  for (Atom::bond_iterator aCur = aAtom.bondbegin(); aCur != aAtom.bondend(); ++aCur)
+  {
+    if (aLast != -1) {
+      if (aLast >= *aCur) continue;
+    }
+    if (aSmall == -1)
+      aSmall = *aCur;
+    else if ( *aCur < aSmall )
+      aSmall = *aCur;
+  }
+  return aSmall;
+}
+
+/** Sort neighbors of given atom in the same manner as LEaP. */
+static inline void chiralityOrderNeighbors(Atom const& aAtom,
+                                      int& aPAtomA, int& aPAtomB,
+                                      int& aPAtomC, int& aPAtomD)
+{
+  aPAtomA = -1;
+  aPAtomB = -1;
+  aPAtomC = -1;
+  aPAtomD = -1;
+
+  if (aAtom.Nbonds() < 1) return;
+
+  aPAtomA = findLeastLargerThan(aAtom, -1);
+  if (aAtom.Nbonds() < 2) return;
+
+  aPAtomB = findLeastLargerThan(aAtom, aPAtomA);
+  if (aAtom.Nbonds() < 3) return;
+
+  aPAtomC = findLeastLargerThan(aAtom, aPAtomB);
+  if (aAtom.Nbonds() < 4) return;
+
+  aPAtomD = findLeastLargerThan(aAtom, aPAtomC);
+}
+
 /** Assuming atoms have been ordered with SortBondedAtomsLikeLeap,
   * calculate the orientation of the iB atom with respect to the
   * triangle (iA, iX, iY). This orientation will be used by the
@@ -2210,46 +2251,6 @@ void Builder::buildBondInternal(int a1, int a2, Frame const& frameIn, Topology c
             topIn.LeapName(a2).c_str());
 }
 
-/** \return index of atom less than all others but larger than aLast */
-int Builder::findLeastLargerThan(Atom const& aAtom, int aLast)
-{
-  int aSmall = -1;
-  for (Atom::bond_iterator aCur = aAtom.bondbegin(); aCur != aAtom.bondend(); ++aCur)
-  {
-    if (aLast != -1) {
-      if (aLast >= *aCur) continue;
-    }
-    if (aSmall == -1)
-      aSmall = *aCur;
-    else if ( *aCur < aSmall )
-      aSmall = *aCur;
-  }
-  return aSmall;
-}
-
-/** Sort neighbors of given atom in the same manner as LEaP. */
-void Builder::chiralityOrderNeighbors(Atom const& aAtom,
-                                      int& aPAtomA, int& aPAtomB,
-                                      int& aPAtomC, int& aPAtomD)
-{
-  aPAtomA = -1;
-  aPAtomB = -1;
-  aPAtomC = -1;
-  aPAtomD = -1;
-
-  if (aAtom.Nbonds() < 1) return;
-
-  aPAtomA = findLeastLargerThan(aAtom, -1);
-  if (aAtom.Nbonds() < 2) return;
-
-  aPAtomB = findLeastLargerThan(aAtom, aPAtomA);
-  if (aAtom.Nbonds() < 3) return;
-
-  aPAtomC = findLeastLargerThan(aAtom, aPAtomB);
-  if (aAtom.Nbonds() < 4) return;
-
-  aPAtomD = findLeastLargerThan(aAtom, aPAtomC);
-}
 
 /** Determine chirality around a single atom.
   * \return 1 if chirality was determined, 0 if left undefined.
