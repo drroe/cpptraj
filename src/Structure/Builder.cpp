@@ -2158,6 +2158,40 @@ void Builder::createSp2Sp2Torsions(TorsionModel const& MT) {
   return;
 }
 
+/** Determine hybridization in the same manner as leap */
+AtomType::HybridizationType Builder::getAtomHybridization(Atom const& aAtom) const {
+  AtomType::HybridizationType H1 = AtomType::UNKNOWN_HYBRIDIZATION;
+  if (params_ != 0) {
+    ParmHolder<AtomType>::const_iterator it;
+    if (aAtom.HasType()) {
+      it = params_->AT().GetParam( TypeNameHolder(aAtom.Type()) );
+      if (it != params_->AT().end())
+        H1 = it->second.Hybridization();
+    }
+  }
+  if (H1 == AtomType::UNKNOWN_HYBRIDIZATION) {
+    // TODO bond orders?
+    int iSingle = 0;
+    int iDouble = 0;
+    int iTriple = 0;
+    int iAromatic = 0;
+    for (int i = 0; i < aAtom.Nbonds(); i++)
+      iSingle++;
+    //printf("iAtomHybridization: %s isingle=%i\n", iSingle);
+    if ( iAromatic != 0 )       H1 = AtomType::SP2;
+                // one or more triple bonds makes the atom SP1
+    else if ( iTriple != 0 )    H1 = AtomType::SP;
+                // Two or more double bonds makes the atom linear, SP1
+    else if ( iDouble >= 2 )    H1 = AtomType::SP;
+                // One double bond makes the atom SP2
+    else if ( iDouble != 0 )    H1 = AtomType::SP2;
+                // Otherwise the atom is SP3
+    else                        H1 = AtomType::SP3;
+  }
+
+  return H1;
+}
+
 /** Assign torsions around bonded atoms in manner similar to LEaP's ModelAssignTorsionsAround. */
 int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition, int aAtomIdx)
 {
@@ -2170,9 +2204,9 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
   if (topIn[a1].Nbonds() < 2 || topIn[a2].Nbonds() < 2)
     return 0;
   // Get atom hybridizations
-  AtomType::HybridizationType H1 = AtomType::UNKNOWN_HYBRIDIZATION;
-  AtomType::HybridizationType H2 = AtomType::UNKNOWN_HYBRIDIZATION;
-  if (params_ != 0) {
+  AtomType::HybridizationType H1 = getAtomHybridization( topIn[a1] );
+  AtomType::HybridizationType H2 = getAtomHybridization( topIn[a2] );//AtomType::UNKNOWN_HYBRIDIZATION;
+/*  if (params_ != 0) {
     ParmHolder<AtomType>::const_iterator it;
     if (topIn[a1].HasType()) {
       it = params_->AT().GetParam( TypeNameHolder(topIn[a1].Type()) );
@@ -2188,7 +2222,7 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
   if (H1 == AtomType::UNKNOWN_HYBRIDIZATION)
     H1 = GuessAtomHybridization(topIn[a1], topIn.Atoms());
   if (H2 == AtomType::UNKNOWN_HYBRIDIZATION)
-    H2 = GuessAtomHybridization(topIn[a2], topIn.Atoms());
+    H2 = GuessAtomHybridization(topIn[a2], topIn.Atoms());*/
   if (H1 == AtomType::UNKNOWN_HYBRIDIZATION)
     mprintf("Warning: No hybridization set for atom %s\n", topIn.AtomMaskName(a1).c_str());
   if (H2 == AtomType::UNKNOWN_HYBRIDIZATION)
@@ -2248,7 +2282,7 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
     }
   } else {
     // Use existing atoms to determine torsions
-    mprintf("DEBUG: Using externals to fit new torsions around: %s - %s\n",
+    mprintf("Using externals to fit new torsions around: %s - %s\n",
             topIn.LeapName(ax).c_str(),
             topIn.LeapName(ay).c_str());
   }
