@@ -1479,12 +1479,12 @@ int Cpptraj::Structure::Builder::TorsionModel::SetupTorsion(AtomType::Hybridizat
   // DEBUG
   Atom const& AX = topIn[atX_.Idx()];
   Atom const& AY = topIn[atY_.Idx()];
-  mprintf("Orientation around: %s = %f\n", *(AX.Name()), Xorientation_);
+  mprintf("Orientation around: %s = %f (chiX= %f)\n", *(AX.Name()), Xorientation_, chiX);
   //for (Atom::bond_iterator bat = AX.bondbegin(); bat != AX.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
   //mprintf("}\n");
   for (Marray::const_iterator it = sorted_ax_.begin(); it != sorted_ax_.end(); ++it)
       mprintf("Atom %li: %s (%i) (build=%i)\n", it - sorted_ax_.begin(), *(topIn[it->Idx()].Name()), (int)it->Known(), (int)it->BuildInternals());
-  mprintf("Orientation around: %s = %f\n", *(AY.Name()), Yorientation_);
+  mprintf("Orientation around: %s = %f (chiY= %f)\n", *(AY.Name()), Yorientation_, chiY);
   //for (Atom::bond_iterator bat = AY.bondbegin(); bat != AY.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
   //mprintf("}\n");
   for (Marray::const_iterator it = sorted_ay_.begin(); it != sorted_ay_.end(); ++it)
