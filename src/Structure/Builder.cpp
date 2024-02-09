@@ -10,6 +10,7 @@
 #include "../Topology.h"
 #include "../TorsionRoutines.h"
 #include <algorithm> // std::copy
+#include <cmath> // fabs
 
 using namespace Cpptraj::Structure;
 
@@ -1419,6 +1420,78 @@ static inline void chiralityOrderNeighbors(Atom const& aAtom,
   if (aAtom.Nbonds() < 4) return;
 
   aPAtomD = findLeastLargerThan(aAtom, aPAtomC);
+}
+
+/** Transform the orientation that has been measured with 
+ *      respect to the ordering in aaOrig[4] to the ordering
+ *      in aaNew[4].  Return the result.
+ *
+ *      The transformation is done by swapping ATOMs in aaOrig until
+ *      the order matches that of aaNew, each time two ATOMs are swapped,
+ *      flip the sign of the orientation.
+ *
+ *      SIDE EFFECT:   The order in aaOrig is changed.
+  */
+static inline void chiralityTransformOrientation(double dOrig, int* aaOrig, double& dPNew, const int* aaNew)
+{
+  dPNew = dOrig;
+  for (int i=0; i<4; i++ ) {
+    int j = i;
+    for ( ; j<4; j++ ) {
+      if ( aaOrig[j] == aaNew[i] )
+        break;
+    }
+    if ( j >= 4 ) {
+      mprinterr("Error: Comparing atoms %i %i %i aand %i to atoms %i %i %i and %i.\n",
+                aaOrig[0]+1, aaOrig[1]+1, aaOrig[2]+1, aaOrig[3]+1,
+                aaNew[0]+1, aaNew[1]+1, aaNew[2]+1, aaNew[3]+1);
+      mprinterr("Error: This error may be due to faulty Connection atoms.\n");
+      // TODO fatal
+    }
+    // Swap elements and flip sign
+    if ( j != i ) {
+      std::swap( aaOrig[j], aaOrig[i] );
+      dPNew = -dPNew;
+    }
+  }
+}
+
+/** Transform the chirality which has been measured with
+ *  respect to ATOM ID ordering to an arbitrary ordering.
+ */
+static inline double chiralityToOrientation(double dChirality, Atom const& aCenter,
+                                            int aAtomA, int aAtomB, int aAtomC, int aAtomD)
+{
+  if (fabs(dChirality) < Constants::SMALL) return 0.0;
+
+  int aaOrig[4];
+  chiralityOrderNeighbors( aCenter, aaOrig[0], aaOrig[1], aaOrig[2], aaOrig[3] );
+
+  int aaNew[4];
+  aaNew[0] = aAtomA;
+  aaNew[1] = aAtomB;
+  aaNew[2] = aAtomC;
+  aaNew[3] = aAtomD;
+
+  bool newNull = (aaNew[3] == -1);
+  bool origNull = (aaOrig[3] == -1);
+  if (newNull && !origNull) {
+    for (int i = 0; i < 4; i++) {
+      bool found = false;
+      for (int j=0; j<3; j++) found |= (aaOrig[i] == aaNew[j]);
+      if ( !found ) {
+        aaNew[3] = aaOrig[i];
+        break;
+      }
+    }
+  } else if (!newNull && origNull) {
+    mprinterr("Error: Only three neighbors around: aCenter, but orientation has 4\n");
+  }
+
+  double dOrient;
+  chiralityTransformOrientation( dChirality, aaOrig, dOrient, aaNew );
+
+  return dOrient;
 }
 
 /** Assuming atoms have been ordered with SortBondedAtomsLikeLeap,
