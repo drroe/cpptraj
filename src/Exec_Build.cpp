@@ -315,20 +315,20 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     long int ires = it-AtomOffsets.begin();
     if (*it > -1) {
       // Residue has atom offset which indicates it needs something built.
-      Cpptraj::Structure::Builder* structureBuilder = new Cpptraj::Structure::Builder();
-      structureBuilder->SetDebug( 1 ); // DEBUG FIXME
-      structureBuilder->SetParameters( &mainParmSet );
+      Cpptraj::Structure::Builder structureBuilder;// = new Cpptraj::Structure::Builder();
+      structureBuilder.SetDebug( 1 ); // DEBUG FIXME
+      structureBuilder.SetParameters( &mainParmSet );
       // Generate internals from the template, update indices to this topology.
       DataSet_Coords* resTemplate = ResTemplates[ires];
       Frame templateFrame = resTemplate->AllocateFrame();
       resTemplate->GetFrame( 0, templateFrame );
-      if (structureBuilder->GenerateInternals(templateFrame, resTemplate->Top(),
+      if (structureBuilder.GenerateInternals(templateFrame, resTemplate->Top(),
                                              std::vector<bool>(resTemplate->Top().Natom(), true)))
       {
         mprinterr("Error: Generate internals for residue template failed.\n");
         return 1;
       }
-      structureBuilder->UpdateIndicesWithOffset( *it );
+      structureBuilder.UpdateIndicesWithOffset( *it );
 
       mprintf("DEBUG: ***** BUILD residue %li %s *****\n", ires + 1,
               topOut.TruncResNameOnumId(ires).c_str());
@@ -343,7 +343,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
                   topOut.AtomMaskName(resBonds->second).c_str());
           topOut.AddBond(resBonds->first, resBonds->second);
           // Generate internals around the link
-          if (structureBuilder->GenerateInternalsAroundLink(resBonds->first, resBonds->second,
+          if (structureBuilder.GenerateInternalsAroundLink(resBonds->first, resBonds->second,
                                                             frameOut, topOut, hasPosition))
           {
             mprinterr("Error: Assign torsions around inter-residue link %s - %s failed.\n",
@@ -354,14 +354,14 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
         }
       }
       // Update internal coords from known positions
-      if (structureBuilder->UpdateICsFromFrame( frameOut, ires, topOut, hasPosition )) {
+      if (structureBuilder.UpdateICsFromFrame( frameOut, ires, topOut, hasPosition )) {
         mprinterr("Error: Failed to update Zmatrix with values from existing positions.\n");
         return 1;
       }
       // Convert to Zmatrix and assign missing atom positions
       Cpptraj::Structure::Zmatrix tmpz;
       tmpz.SetDebug( 1 ); // DEBUG
-      if (structureBuilder->GetZmatrixFromInternals(tmpz, topOut)) {
+      if (structureBuilder.GetZmatrixFromInternals(tmpz, topOut)) {
         mprinterr("Error: Could not get Zmatrix from internals.\n");
         return 1;
       }
@@ -371,7 +371,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
         buildFailed = true;
       }// else
        // resIsBuilt[ires] = true;
-      delete structureBuilder;
+      //delete structureBuilder;
     }
   } // END loop over atom offsets
 
