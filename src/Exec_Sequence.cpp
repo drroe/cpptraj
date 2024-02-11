@@ -15,10 +15,10 @@ const
   typedef std::vector<DataSet_Coords*> Uarray;
   Uarray Units;
   Units.reserve( main_sequence.size() );
-  typedef std::vector<int> Iarray;
-  Iarray connectAt0, connectAt1;
-  connectAt0.reserve( Units.size() );
-  connectAt1.reserve( Units.size() );
+//  typedef std::vector<int> Iarray;
+//  Iarray connectAt0, connectAt1;
+//  connectAt0.reserve( Units.size() );
+//  connectAt1.reserve( Units.size() );
   int total_natom = 0;
 
   for (Sarray::const_iterator it = main_sequence.begin(); it != main_sequence.end(); ++it)
@@ -61,20 +61,20 @@ const
       mprintf("Warning: Unit '%s' has more than 1 frame. Only using first frame.\n", unit->legend());
     }
     // Needs to have connect associated data
-    AssociatedData* ad = unit->GetAssociatedData(AssociatedData::CONNECT);
-    if (ad == 0) {
-      mprinterr("Error: Unit '%s' does not have CONNECT data.\n", unit->legend());
-      return 1;
-    }
-    AssociatedData_Connect const& C = static_cast<AssociatedData_Connect const&>( *ad );
-    if (C.NconnectAtoms() < 2) {
-      mprinterr("Error: Not enough connect atoms in unit '%s'\n", unit->legend());
-      return 1;
-    }
-    // Update connect atom 1 indices based on their position in the sequence.
-    // Do not update connect atom 0 indices since they will not yet be connected.
-    connectAt0.push_back( C.Connect()[0] );
-    connectAt1.push_back( C.Connect()[1] + total_natom );
+//    AssociatedData* ad = unit->GetAssociatedData(AssociatedData::CONNECT);
+//    if (ad == 0) {
+//      mprinterr("Error: Unit '%s' does not have CONNECT data.\n", unit->legend());
+//      return 1;
+//    }
+//    AssociatedData_Connect const& C = static_cast<AssociatedData_Connect const&>( *ad );
+//    if (C.NconnectAtoms() < 2) {
+//      mprinterr("Error: Not enough connect atoms in unit '%s'\n", unit->legend());
+//      return 1;
+//    }
+//    // Update connect atom 1 indices based on their position in the sequence.
+//    // Do not update connect atom 0 indices since they will not yet be connected.
+//    connectAt0.push_back( C.Connect()[0] );
+//    connectAt1.push_back( C.Connect()[1] + total_natom );
     Units.push_back( unit );
     total_natom += unit->Top().Natom();
   } // END loop over sequence
@@ -83,8 +83,8 @@ const
     mprinterr("Error: No units.\n");
     return 1;
   }
-  for (unsigned int idx = 0; idx < Units.size(); idx++)
-    mprintf("\tUnit %s HEAD %i TAIL %i\n", Units[idx]->legend(), connectAt0[idx]+1, connectAt1[idx]+1);
+//  for (unsigned int idx = 0; idx < Units.size(); idx++)
+//    mprintf("\tUnit %s HEAD %i TAIL %i\n", Units[idx]->legend(), connectAt0[idx]+1, connectAt1[idx]+1);
 
   Topology topOut;
   Frame frameOut;
@@ -188,20 +188,20 @@ const
     long int ires = it-AtomOffsets.begin();
     if (*it > -1) {
       // Residue has atom offset which indicates it needs something built.
-      Cpptraj::Structure::Builder* structureBuilder = new Cpptraj::Structure::Builder();
-      structureBuilder->SetDebug( 1 ); // DEBUG FIXME
+      Cpptraj::Structure::Builder structureBuilder;// = new Cpptraj::Structure::Builder();
+      structureBuilder.SetDebug( 1 ); // DEBUG FIXME
       //structureBuilder->SetParameters( &mainParmSet ); TODO import parameters?
       // Generate internals from the template, update indices to this topology.
       DataSet_Coords* unit = Units[ires];
       Frame unitFrm = unit->AllocateFrame();
       unit->GetFrame(0, unitFrm);
-      if (structureBuilder->GenerateInternals(unitFrm, unit->Top(),
+      if (structureBuilder.GenerateInternals(unitFrm, unit->Top(),
                                               std::vector<bool>(unit->Top().Natom(), true)))
       {
         mprinterr("Error: Generate internals for unit failed.\n");
         return 1;
       }
-      structureBuilder->UpdateIndicesWithOffset( *it );
+      structureBuilder.UpdateIndicesWithOffset( *it );
 
       mprintf("DEBUG: ***** BUILD unit %li %s *****\n", ires + 1,
               topOut.TruncResNameOnumId(ires).c_str());
@@ -212,7 +212,7 @@ const
               topOut.AtomMaskName(interResBonds[ires].second).c_str());
       topOut.AddBond( interResBonds[ires].first, interResBonds[ires].second );
       // Generate internals around the link
-      if (structureBuilder->GenerateInternalsAroundLink(interResBonds[ires].first, interResBonds[ires].second,
+      if (structureBuilder.GenerateInternalsAroundLink(interResBonds[ires].first, interResBonds[ires].second,
                                                         frameOut, topOut, hasPosition))
       {
         mprinterr("Error: Assign torsions around inter-unit link %s - %s failed.\n",
@@ -221,14 +221,14 @@ const
         return 1;
       }
       // Update internal coords from known positions
-      if (structureBuilder->UpdateICsFromFrame( frameOut, ires, topOut, hasPosition )) {
+      if (structureBuilder.UpdateICsFromFrame( frameOut, ires, topOut, hasPosition )) {
         mprinterr("Error: Failed to update Zmatrix with values from existing positions.\n");
         return 1;
       }
       // Convert to Zmatrix and assign missing atom positions
       Cpptraj::Structure::Zmatrix tmpz;
       tmpz.SetDebug( 1 ); // DEBUG
-      if (structureBuilder->GetZmatrixFromInternals(tmpz, topOut)) {
+      if (structureBuilder.GetZmatrixFromInternals(tmpz, topOut)) {
         mprinterr("Error: Could not get Zmatrix from internals.\n");
         return 1;
       }
@@ -237,7 +237,7 @@ const
                   topOut.TruncResNameOnumId(ires).c_str());
         buildFailed = true;
       }
-      delete structureBuilder;
+      //delete structureBuilder;
     }
   }
 
