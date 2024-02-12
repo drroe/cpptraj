@@ -31,6 +31,21 @@ static inline void set_indices(int& start, int& end, int& offset, int firstatom,
   }
 }
 
+/** Generate atom array in same order as LEaP. */
+std::vector<int> Cpptraj::Structure::GenerateAtomArray(std::vector<Residue> const& residues,
+                                                       std::vector<Atom> const& atoms)
+{
+  std::vector<int> out;
+  for (std::vector<Residue>::const_iterator res = residues.begin(); res != residues.end(); ++res)
+  {
+    int start, end, offset;
+    set_indices(start, end, offset, res->FirstAtom(), res->LastAtom());
+    for (int iat = start; iat != end; iat += offset)
+      out.push_back( iat );
+  }
+  return out;
+}
+
 /** From atom connectivity, generate a bond array in the same order as LEaP. */ // TODO use in GenerateBAT
 BondArray Cpptraj::Structure::GenerateBondArray(std::vector<Residue> const& residues,
                                                 std::vector<Atom> const& atoms)

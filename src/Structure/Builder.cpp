@@ -1710,11 +1710,16 @@ const
   mprintf("DEBUG: %u atoms need positions in residue %s\n", nAtomsThatNeedPositions, topIn.TruncResNameNum(ires).c_str());
   if (nAtomsThatNeedPositions == 0) return 0;
 
+  // Generate array over residue in same order that leap would do
+  std::vector<int> resIndices = GenerateAtomArray(std::vector<Residue>(1, topIn.Res(ires)), topIn.Atoms());
+
   // Loop over residue atoms
   while (nAtomsThatNeedPositions > 0) {
     unsigned int nAtomsBuilt = 0;
-    for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); ++at)
+    for (std::vector<int>::const_iterator idx = resIndices.begin();
+                                          idx != resIndices.end(); ++idx)
     {
+      int at = *idx;
       int atToBuildAround = -1;
       if (!hasPosition[at]) {
         // Position of atom is not known.
@@ -1742,6 +1747,10 @@ const
             InternalCoords ic;
             if (getIcFromInternals(ic, *bat, hasPosition)) {
               mprintf("Building atom %s using torsion/angle/bond\n", topIn.LeapName(*bat).c_str());
+              mprintf("Using - %s - %s - %s\n",
+                      topIn.LeapName(ic.AtJ()).c_str(),
+                      topIn.LeapName(ic.AtK()).c_str(),
+                      topIn.LeapName(ic.AtL()).c_str());
               mprintf( "Torsion = %f\n", ic.Phi() );
               mprintf( "Angle   = %f\n", ic.Theta() );
               mprintf( "Bond    = %f\n", ic.Dist() );

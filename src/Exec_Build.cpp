@@ -359,13 +359,14 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
         return 1;
       }
       // Convert to Zmatrix and assign missing atom positions
-      Cpptraj::Structure::Zmatrix tmpz;
-      tmpz.SetDebug( 1 ); // DEBUG
-      if (structureBuilder.GetZmatrixFromInternals(tmpz, topOut)) {
-        mprinterr("Error: Could not get Zmatrix from internals.\n");
-        return 1;
-      }
-      if (tmpz.SetToFrame( frameOut, hasPosition )) {
+      //Cpptraj::Structure::Zmatrix tmpz;
+      //tmpz.SetDebug( 1 ); // DEBUG
+      //if (structureBuilder.GetZmatrixFromInternals(tmpz, topOut)) {
+      //  mprinterr("Error: Could not get Zmatrix from internals.\n");
+      //  return 1;
+      //}
+      //if (tmpz.SetToFrame( frameOut, hasPosition )) {
+      if (structureBuilder.BuildFromInternals(frameOut, ires, topOut, hasPosition)) {
         mprinterr("Error: Building residue %s failed.\n",
                   topOut.TruncResNameOnumId(ires).c_str());
         buildFailed = true;

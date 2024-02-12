@@ -12,6 +12,8 @@ namespace Structure {
 enum AtomScanDirectionType { SCAN_ATOMS_BACKWARDS = 0, SCAN_ATOMS_FORWARDS };
 /// Set default atom scan direction
 void SetAtomScanDirection(AtomScanDirectionType);
+/// Generate array of atom indices in same order as leap
+std::vector<int> GenerateAtomArray(std::vector<Residue> const&, std::vector<Atom> const&);
 /// Generate bond array in same order as leap
 BondArray GenerateBondArray(std::vector<Residue> const&, std::vector<Atom> const&);
 /// Generate a spanning tree
