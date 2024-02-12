@@ -23,9 +23,9 @@ class Builder {
     void SetParameters(ParameterSet const*);
 
     /// Combine second fragment into first fragment and bond
-    int Combine(Topology&, Frame&, Topology const&, Frame const&, int, int) const;
+//    int Combine(Topology&, Frame&, Topology const&, Frame const&, int, int) const;
     /// Model the coordinates around a bond given only some coordinates are known
-    int ModelCoordsAroundBond(Frame const&, Topology const&, int, int, Zmatrix&, Barray const&) const;
+//    int ModelCoordsAroundBond(Frame const&, Topology const&, int, int, Zmatrix&, Barray const&) const;
 
 
     /// Update the internal coordinates in given Zmatrix with values from Frame/Parameters
@@ -64,23 +64,23 @@ class Builder {
 
     // ===========================================
     /// Assign a reasonable value for bond distance given 2 atoms whose position may or may not be known
-    int AssignLength(double&, int, int, Topology const&, Frame const&, Barray const&) const;
+//    int AssignLength(double&, int, int, Topology const&, Frame const&, Barray const&) const;
     /// Given atoms J and K, attempt to assign a reasonable value for theta for atom I
-    int AssignTheta(double&, int, int, int, Topology const&, Frame const&, Barray const&) const;
+//    int AssignTheta(double&, int, int, int, Topology const&, Frame const&, Barray const&) const;
     /// Calculate an internal coordinate for known atoms
-    static inline InternalCoords calcKnownAtomIc(int, int, int, int, Frame const&);
+//    static inline InternalCoords calcKnownAtomIc(int, int, int, int, Frame const&);
     /// Insert an internal coord into a zmatrix
-    int insertIc(Zmatrix&, int, int, int, int, double,
-                 Topology const&, Frame const&, Barray const&) const;
+//    int insertIc(Zmatrix&, int, int, int, int, double,
+//                 Topology const&, Frame const&, Barray const&) const;
     /// Assign internal coordinates for atoms I for torsions around J-K-L.
-    int AssignICsAroundBond(Zmatrix&, int, int, int,
-                           Topology const&, Frame const&, Barray const&,
-                           BuildAtom const&) const;
+//    int AssignICsAroundBond(Zmatrix&, int, int, int,
+//                           Topology const&, Frame const&, Barray const&,
+//                           BuildAtom const&) const;
 
     /// Model coordinates around a bond
-    int SetupICsAroundBond(Zmatrix&, int, int, Frame const&, Topology const&,
-                           Barray const&, Barray const&,
-                           BuildAtom const&, BuildAtom const&) const;
+//    int SetupICsAroundBond(Zmatrix&, int, int, Frame const&, Topology const&,
+//                           Barray const&, Barray const&,
+//                           BuildAtom const&, BuildAtom const&) const;
     // ===========================================
     /// Calculte phi value for a torsion in a TorsionModel
     void ModelTorsion(TorsionModel const&, unsigned int, unsigned int, double);
