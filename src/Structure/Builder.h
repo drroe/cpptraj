@@ -108,8 +108,6 @@ class Builder {
     ParameterSet const* params_;
 
     Topology const* currentTop_; ///< Topology for the createSpXSpXTorsions/ModelTorsion routines
-    Frame const* currentFrm_;    ///< Frame for the createSpXSpXTorsions routines
-    Barray const* hasPosition_;  ///< Array indicating which atoms have position for createSpXSpXTorsions/ModelTorsion routines
     Tarray internalTorsions_;
     Aarray internalAngles_;
     Larray internalBonds_;

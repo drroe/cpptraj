@@ -17,9 +17,7 @@ using namespace Cpptraj::Structure;
 Builder::Builder() :
   debug_(0),
   params_(0),
-  currentTop_(0),
-  currentFrm_(0),
-  hasPosition_(0)
+  currentTop_(0)
 {}
 
 /** Set optional parameter set. */
@@ -1044,37 +1042,6 @@ void Builder::ModelTorsion(TorsionModel const& MT, unsigned int iBondX, unsigned
   // Look for an existing internal
   int icIdx = getExistingTorsionIdx( aa, ax, ay, ad );
   if (icIdx < 0) {
-/*    // Get bond lengths FIXME deal with unknown positions
-    double l0, l1;
-    if (AssignLength(l0, aa, ax, *currentTop_, *currentFrm_, *hasPosition_)) {
-      mprinterr("Error: Could not assign length between %s and %s\n",
-                currentTop_->AtomMaskName(aa).c_str(),
-                currentTop_->AtomMaskName(ax).c_str());
-      return;
-    }
-    if (AssignLength(l1, ad, ay, *currentTop_, *currentFrm_, *hasPosition_)) {
-      mprinterr("Error: Could not assign length between %s and %s\n",
-                currentTop_->AtomMaskName(ad).c_str(),
-                currentTop_->AtomMaskName(ay).c_str());
-      return;
-    }
-    // Get angles
-    double t0, t1;
-    if (AssignTheta(t0, aa, ax, ay, *currentTop_, *currentFrm_, *hasPosition_)) {
-      mprinterr("Error: Could not assign angle between %s and %s and %s\n",
-                currentTop_->AtomMaskName(aa).c_str(),
-                currentTop_->AtomMaskName(ax).c_str(),
-                currentTop_->AtomMaskName(ay).c_str());
-      return;
-    }
-    if (AssignTheta(t1, ad, ay, ax, *currentTop_, *currentFrm_, *hasPosition_)) {
-      mprinterr("Error: Could not assign angle between %s and %s and %s\n",
-                currentTop_->AtomMaskName(ad).c_str(),
-                currentTop_->AtomMaskName(ay).c_str(),
-                currentTop_->AtomMaskName(ax).c_str());
-      return;
-    }*/
-
     mprintf("++++Torsion INTERNAL: %f to %s - %s - %s - %s\n", phiVal*Constants::RADDEG,
             currentTop_->LeapName(aa).c_str(),
             currentTop_->LeapName(ax).c_str(),
@@ -1205,11 +1172,9 @@ void Builder::createSp2Sp2Torsions(TorsionModel const& MT) {
 /** Assign torsions around bonded atoms in manner similar to LEaP's ModelAssignTorsionsAround. */
 int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition, int aAtomIdx)
 {
-  // Save addresses of zmatrix, frame, topology, and hasPosition.
-  // These are required for the createSpXSpX routines. TODO zero them at the end?
-  currentFrm_ = &frameIn;
+  // Save address of current topology.
+  // These are required for the ModelTorsion routine. TODO zero at the end?
   currentTop_ = &topIn;
-  hasPosition_ = &hasPosition;
   // No need to do this if either atom only has 1 bond.
   if (topIn[a1].Nbonds() < 2 || topIn[a2].Nbonds() < 2)
     return 0;
