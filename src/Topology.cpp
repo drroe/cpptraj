@@ -337,8 +337,9 @@ std::string Topology::TruncAtomNameNum(int atom) const {
 /** Given an atom number, return a string in LEaP-style format. */
 std::string Topology::LeapName(int at) const {
   int rnum = atoms_[at].ResNum();
+  int idx = at - residues_[rnum].FirstAtom() + 1;
   std::string out( ".R<" + residues_[rnum].Name().Truncated() + " " + integerToString(rnum+1) +
-                  ">.A<" + atoms_[at].Name().Truncated()      + " " + integerToString(at+1) + ">");
+                  ">.A<" + atoms_[at].Name().Truncated()      + " " + integerToString(idx) + ">");
   return out;
 }
 

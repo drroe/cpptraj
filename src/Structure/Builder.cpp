@@ -1645,6 +1645,37 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
   return 0;
 }
 
+void Builder::printAllInternalsForAtom(int at, Topology const& topIn, Barray const& hasPosition) const
+{
+  mprintf("DEBUG: All internals for atom %s\n", topIn.LeapName(at).c_str());
+  for (Tarray::const_iterator dih = internalTorsions_.begin(); dih != internalTorsions_.end(); ++dih)
+  {
+    if (at == dih->AtI()) {
+      if (hasPosition[dih->AtJ()] &&
+          hasPosition[dih->AtK()] &&
+          hasPosition[dih->AtL()])
+      {
+        mprintf("DEBUG:\t\t%s - %s - %s Phi= %f\n",
+                topIn.LeapName(dih->AtJ()).c_str(),
+                topIn.LeapName(dih->AtK()).c_str(),
+                topIn.LeapName(dih->AtL()).c_str(),
+                dih->PhiVal()*Constants::RADDEG);
+      }
+    } else if (at == dih->AtL()) {
+      if (hasPosition[dih->AtK()] &&
+          hasPosition[dih->AtJ()] &&
+          hasPosition[dih->AtI()])
+      {
+        mprintf("DEBUG:\t\t%s - %s - %s Phi= %f\n",
+                topIn.LeapName(dih->AtK()).c_str(),
+                topIn.LeapName(dih->AtJ()).c_str(),
+                topIn.LeapName(dih->AtI()).c_str(),
+                dih->PhiVal()*Constants::RADDEG);
+      }
+    }
+  }
+}
+
 /** Find internal coordinates for given atom.
   * Find torsion that contains this atom as one of the end atoms. The other
   * three atoms must have known position.
@@ -1769,6 +1800,8 @@ const
             // Find an internal coordinate.
             InternalCoords ic;
             if (getIcFromInternals(ic, *bat, hasPosition)) {
+              printAllInternalsForAtom(*bat, topIn, hasPosition); // DEBUG
+
               mprintf("Building atom %s using torsion/angle/bond\n", topIn.LeapName(*bat).c_str());
               mprintf("Using - %s - %s - %s\n",
                       topIn.LeapName(ic.AtJ()).c_str(),

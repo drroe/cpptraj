@@ -101,6 +101,8 @@ class Builder {
     int generateAtomInternals(int, Frame const&, Topology const&, Barray const&);
     /// Get complete internal coords that can be used to construct specified atom
     int getIcFromInternals(InternalCoords&, int, Barray const&) const;
+    // For debug
+    void printAllInternalsForAtom(int, Topology const&, Barray const&) const;
 
     int debug_;
     ParameterSet const* params_;
