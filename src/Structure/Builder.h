@@ -8,7 +8,6 @@ class Frame;
 class ParameterSet;
 namespace Cpptraj {
 namespace Structure {
-class BuildAtom;
 class Zmatrix;
 class InternalCoords;
 /// Used to attach different topology/frame combos using internal coordinates
@@ -21,13 +20,6 @@ class Builder {
     void SetDebug(int d) { debug_ = d; }
     /// Set optional parameter set
     void SetParameters(ParameterSet const*);
-
-    /// Combine second fragment into first fragment and bond
-//    int Combine(Topology&, Frame&, Topology const&, Frame const&, int, int) const;
-    /// Model the coordinates around a bond given only some coordinates are known
-//    int ModelCoordsAroundBond(Frame const&, Topology const&, int, int, Zmatrix&, Barray const&) const;
-
-
     /// Update the internal coordinates in given Zmatrix with values from Frame/Parameters
     int UpdateICsFromFrame(Frame const&, int, Topology const&, Barray const&);
     /// Generate internal coordinates in the same manner as LEaP
@@ -36,6 +28,7 @@ class Builder {
     int GenerateInternalsAroundLink(int, int, Frame const&, Topology const&, Barray const&);
     /// Update existing indices with given offset
     void UpdateIndicesWithOffset(int);
+
     /// \return Zmatrix from current internals
     int GetZmatrixFromInternals(Zmatrix&, Topology const&) const;
   private:
@@ -61,27 +54,6 @@ class Builder {
     int getLengthParam(double&, int, int, Topology const&) const;
     /// Get angle parameter for atoms.
     int getAngleParam(double&, int, int, int, Topology const&) const;
-
-    // ===========================================
-    /// Assign a reasonable value for bond distance given 2 atoms whose position may or may not be known
-//    int AssignLength(double&, int, int, Topology const&, Frame const&, Barray const&) const;
-    /// Given atoms J and K, attempt to assign a reasonable value for theta for atom I
-//    int AssignTheta(double&, int, int, int, Topology const&, Frame const&, Barray const&) const;
-    /// Calculate an internal coordinate for known atoms
-//    static inline InternalCoords calcKnownAtomIc(int, int, int, int, Frame const&);
-    /// Insert an internal coord into a zmatrix
-//    int insertIc(Zmatrix&, int, int, int, int, double,
-//                 Topology const&, Frame const&, Barray const&) const;
-    /// Assign internal coordinates for atoms I for torsions around J-K-L.
-//    int AssignICsAroundBond(Zmatrix&, int, int, int,
-//                           Topology const&, Frame const&, Barray const&,
-//                           BuildAtom const&) const;
-
-    /// Model coordinates around a bond
-//    int SetupICsAroundBond(Zmatrix&, int, int, Frame const&, Topology const&,
-//                           Barray const&, Barray const&,
-//                           BuildAtom const&, BuildAtom const&) const;
-    // ===========================================
     /// Calculte phi value for a torsion in a TorsionModel
     void ModelTorsion(TorsionModel const&, unsigned int, unsigned int, double);
     /// Get angle parameter/model an angle value
