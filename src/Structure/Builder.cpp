@@ -82,15 +82,34 @@ const
 }
 
 /** For existing torsions, see if all coordinates in that torsion
-  * exist. If so, update the IC from the existing coordinates.
+  * exist. If so, update the torsion from the existing coordinates.
   */
-int Builder::UpdateICsFromFrame(Frame const& frameIn, int ires, Topology const& topIn, Barray const& hasPosition)
+int Builder::UpdateICsFromFrame(Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
 {
-  // Update torsions.
+  // Create a list of residues that have atoms with internals 
+  std::vector<Residue> residues;
+  std::vector<int> Rnums;
+  for (Tarray::const_iterator dih = internalTorsions_.begin();
+                              dih != internalTorsions_.end(); ++dih)
+  {
+    int rnum = topIn[dih->AtI()].ResNum();
+    bool has_rnum = false;
+    for (std::vector<int>::const_iterator it = Rnums.begin(); it != Rnums.end(); ++it) {
+      if (*it == rnum) {
+        has_rnum = true;
+        break;
+      }
+    }
+    if (!has_rnum) {
+      mprintf("DEBUG: Residue %s has internals.\n", topIn.TruncResNameNum(rnum).c_str());
+      residues.push_back( topIn.Res(rnum) );
+      Rnums.push_back(rnum);
+    }
+  }
   // Get list of bonds.
-  BondArray myBonds = GenerateBondArray( std::vector<Residue>(1, topIn.Res(ires)), topIn.Atoms() );
+  BondArray myBonds = GenerateBondArray( residues, topIn.Atoms() );
   for (BondArray::const_iterator bnd = myBonds.begin(); bnd != myBonds.end(); ++bnd) {
-    if (topIn[bnd->A1()].ResNum() == ires && topIn[bnd->A2()].ResNum() == ires) {
+    //if (topIn[bnd->A1()].ResNum() == ires && topIn[bnd->A2()].ResNum() == ires) {
       mprintf("Looking at torsions around: %s - %s\n", topIn.LeapName(bnd->A1()).c_str(), topIn.LeapName(bnd->A2()).c_str());
       // Find all ICs that share atoms 1 and 2 (J and K)
       bool needsUpdate = false;
@@ -138,7 +157,7 @@ int Builder::UpdateICsFromFrame(Frame const& frameIn, int ires, Topology const& 
           dih.SetPhiVal( dNew );
         }
       } // END ICs need update
-    } // END both bond atoms belong to this residue
+    //} // END both bond atoms belong to this residue
   } // END loop over bonds
   return 0;
 }
@@ -1048,8 +1067,6 @@ void Builder::ModelTorsion(TorsionModel const& MT, unsigned int iBondX, unsigned
             currentTop_->LeapName(ay).c_str(),
             currentTop_->LeapName(ad).c_str());
     internalTorsions_.push_back( InternalTorsion(aa, ax, ay, ad, phiVal) );
-    //newZmatrix_->AddIC( InternalCoords(aa, ax, ay, ad, l0, t0*Constants::RADDEG, phiVal*Constants::RADDEG) );
-    //newZmatrix_->AddIC( InternalCoords(ad, ay, ax, aa, l1, t1*Constants::RADDEG, phiVal*Constants::RADDEG) );
   } else {
     mprintf( "Torsional INTERNAL already exists: %f\n", internalTorsions_[icIdx].PhiVal()*Constants::RADDEG );
   }
@@ -1795,6 +1812,7 @@ const
 }
 
 /** Generate a Zmatrix from the current internals. TODO only for atoms that need it? */
+/*
 int Builder::GetZmatrixFromInternals(Zmatrix& zmatrix, Topology const& topIn) const {
   mprintf("DEBUG: ----- Enter GetZmatrixFromInternals -----\n");
   zmatrix.clear();
@@ -1848,4 +1866,4 @@ int Builder::GetZmatrixFromInternals(Zmatrix& zmatrix, Topology const& topIn) co
   } // END loop over internal torsions
   mprintf("DEBUG: ----- Exit GetZmatrixFromInternals -----\n");
   return 0;
-}
+}*/

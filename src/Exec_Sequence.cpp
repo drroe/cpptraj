@@ -221,7 +221,7 @@ const
         return 1;
       }
       // Update internal coords from known positions
-      if (structureBuilder.UpdateICsFromFrame( frameOut, ires, topOut, hasPosition )) {
+      if (structureBuilder.UpdateICsFromFrame( frameOut, topOut, hasPosition )) {
         mprinterr("Error: Failed to update Zmatrix with values from existing positions.\n");
         return 1;
       }

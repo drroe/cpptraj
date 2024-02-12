@@ -20,8 +20,8 @@ class Builder {
     void SetDebug(int d) { debug_ = d; }
     /// Set optional parameter set
     void SetParameters(ParameterSet const*);
-    /// Update the internal coordinates in given Zmatrix with values from Frame/Parameters
-    int UpdateICsFromFrame(Frame const&, int, Topology const&, Barray const&);
+    /// Update the internal coordinates in given Zmatrix with values from Frame/Parameters TODO combine into BuildFromInternals?
+    int UpdateICsFromFrame(Frame const&, Topology const&, Barray const&);
     /// Generate internal coordinates in the same manner as LEaP
     int GenerateInternals(Frame const&, Topology const&, Barray const&);
     /// Generate internal coordinates around a link between residues in same manner as LEaP
@@ -33,7 +33,7 @@ class Builder {
     int BuildFromInternals(Frame&, Topology const&, Barray&) const;
 
     /// \return Zmatrix from current internals
-    int GetZmatrixFromInternals(Zmatrix&, Topology const&) const;
+    //int GetZmatrixFromInternals(Zmatrix&, Topology const&) const;
   private:
     typedef std::vector<int> Iarray;
 
@@ -112,6 +112,7 @@ class Builder {
     Aarray internalAngles_;
     Larray internalBonds_;
     Carray internalChirality_;
+    Iarray Rnums_;               ///< Hold residue indices pertaining to current internals
 };
 /// ----- Hold torsion internal ------------------
 class Cpptraj::Structure::Builder::InternalTorsion {
