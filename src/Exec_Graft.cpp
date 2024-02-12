@@ -2,7 +2,9 @@
 #include "CpptrajStdio.h"
 #include "DataSet_Coords.h"
 #include "Structure/Builder.h"
+#include "Structure/Zmatrix.h"
 #include <algorithm> // std::copy
+#include <utility> // std::pair
 
 using namespace Cpptraj::Structure;
 
@@ -297,7 +299,119 @@ const
     return 1;
   }
 
-  // Combine topologies.
+  for (int at = 0; at != mol0Top.Natom(); at++)
+    mprintf("\t%6i %s %s\n", at+1, mol0Top.AtomMaskName(at).c_str(), *(mol0Top.Res(mol0Top[at].ResNum()).Name()));
+  mprintf("BOND ATOM 0 %i\n", bondat0+1);
+  for (int at = 0; at != mol1Top.Natom(); at++)
+    mprintf("\t%6i %s %s\n", at+1, mol1Top.AtomMaskName(at).c_str(), *(mol1Top.Res(mol1Top[at].ResNum()).Name()));
+  mprintf("BOND ATOM 1 %i\n", bondat1+1);
+
+  // Combine topologies. TODO save original chiralities
+  Topology topOut;
+  Frame frameOut;
+  int total_natom = mol0Top.Natom() + mol1Top.Natom();
+  frameOut.SetupFrame( total_natom );
+  // Clear frame so that AddXYZ can be used
+  frameOut.ClearAtoms();
+  // hasPosition - for each atom in topOut, status on whether atom in frameOut needs building
+  Cpptraj::Structure::Zmatrix::Barray hasPosition;
+  hasPosition.reserve( total_natom );
+  // For saving intra-res bonds
+  typedef std::pair<int,int> Ipair;
+  typedef std::vector<Ipair> IParray;
+  IParray intraResBonds;
+  // Add mol0 atoms to topology
+  topOut.SetDebug( debug_ );
+  topOut.SetParmName( outCoords->Meta().Name(), FileName() );
+  topOut.SetParmBox( mol0frm.BoxCrd() );
+  for (int at = 0; at < mol0Top.Natom(); at++) {
+    Atom sourceAtom = mol0Top[at];
+    for (Atom::bond_iterator bat = sourceAtom.bondbegin(); bat != sourceAtom.bondend(); ++bat) {
+      if (*bat > at) {
+        mprintf("Will add bond between %i and %i\n", at+1, *bat+1);
+        intraResBonds.push_back( Ipair(at, *bat) );
+      }
+    }
+    sourceAtom.ClearBonds(); // FIXME AddTopAtom should clear bonds
+    topOut.AddTopAtom( sourceAtom, mol0Top.Res(mol0Top[at].ResNum()) );
+    frameOut.AddVec3( Vec3(mol0frm.XYZ(at)) );
+    hasPosition.push_back( true );
+  }
+  // Add mol1 atoms
+  int atomOffset = mol0Top.Natom();
+  mprintf("DEBUG: Atom offset is %i\n", atomOffset);
+  for (int itgt = 0; itgt < mol1Top.Natom(); itgt++) {
+    Atom sourceAtom = mol1Top[itgt];
+    int at0 = itgt + atomOffset;
+    for (Atom::bond_iterator bat = sourceAtom.bondbegin(); bat != sourceAtom.bondend(); ++bat) {
+      int at1 = *bat + atomOffset;
+      if (at1 > at0) {
+        mprintf("Will add bond between %i and %i (original %i and %i)\n", at0+1, at1+1, itgt+1, *bat + 1);
+        intraResBonds.push_back( Ipair(at0, at1) );
+      }
+    }
+    sourceAtom.ClearBonds(); // FIXME AddTopAtom should clear bonds
+    topOut.AddTopAtom( sourceAtom, mol1Top.Res(mol1Top[itgt].ResNum()) );
+    frameOut.AddVec3( Vec3(mol1frm.XYZ(itgt)) );
+    hasPosition.push_back( false );
+  }
+  //Add intra-residue bonds
+  for (IParray::const_iterator it = intraResBonds.begin(); it != intraResBonds.end(); ++it)
+  {
+    //mprintf("DEBUG: Intra-res bond: Res %s atom %s to res %s atom %s\n",
+    //        topOut.TruncResNameOnumId(topOut[it->first].ResNum()).c_str(), *(topOut[it->first].Name()),
+    //        topOut.TruncResNameOnumId(topOut[it->second].ResNum()).c_str(), *(topOut[it->second].Name()));
+    topOut.AddBond(it->first, it->second);
+  }
+  // FIXME
+  for (int at = 0; at != topOut.Natom(); at++)
+    mprintf("\t%6i %s %s\n", at+1, topOut.AtomMaskName(at).c_str(), *(topOut.Res(topOut[at].ResNum()).Name()));
+  // Build
+  Cpptraj::Structure::Builder structureBuilder;
+  structureBuilder.SetDebug( 1 ); // DEBUG FIXME
+  if (structureBuilder.GenerateInternals( mol1frm, mol1Top,
+                                          std::vector<bool>(mol1Top.Natom(), true) ))
+  {
+    mprinterr("Error: Generate internals for %s failed.\n", mol1Top.c_str());
+    return 1;
+  }
+  structureBuilder.UpdateIndicesWithOffset( atomOffset );
+  // Connect unit. Head atom of second unit comes first to match LEaP.
+  mprintf("\tConnect %s (%i) and %s (%i, original %s and %s)\n",
+          topOut.AtomMaskName(bondat1+atomOffset).c_str(), bondat1+atomOffset+1,
+          topOut.AtomMaskName(bondat0).c_str(), bondat0+1,
+          mol1Top.AtomMaskName(bondat1).c_str(),
+          mol0Top.AtomMaskName(bondat0).c_str());
+  topOut.AddBond( bondat1 + atomOffset, bondat0 );
+  // Generate internals around the link
+  if (structureBuilder.GenerateInternalsAroundLink( bondat1 + atomOffset,
+                                                    bondat0,
+                                                    frameOut, topOut, hasPosition ) )
+  {
+    mprinterr("Error: Assign torsions around graft bond atoms %s - %s failed.\n",
+              topOut.AtomMaskName(bondat1 + atomOffset).c_str(),
+              topOut.AtomMaskName(bondat0).c_str());
+    return 1;
+  }
+  // Convert to Zmatrix and assign missing atom positions
+  Cpptraj::Structure::Zmatrix tmpz;
+  tmpz.SetDebug( 1 ); // DEBUG
+  if (structureBuilder.GetZmatrixFromInternals(tmpz, topOut)) {
+    mprinterr("Error: Could not get Zmatrix from internals.\n");
+    return 1;
+  }
+  if (tmpz.SetToFrame( frameOut, hasPosition )) {
+    mprinterr("Error: Grafting %s with %s build from internals failed.\n",
+              mol0Top.c_str(), mol1Top.c_str());
+    return 1;
+  }
+  // Finalize topology - determine molecules, dont renumber residues, assign default bond params
+  topOut.CommonSetup(true, false, true);
+  topOut.Summary();
+  // Add to output data set
+  if (outCoords->CoordsSetup(topOut, frameOut.CoordsInfo())) return 1;
+  outCoords->AddFrame( frameOut );
+/*
   Topology combinedTop;
   combinedTop.SetDebug( debug_ );
   combinedTop.SetParmName( outCoords->Meta().Name(), FileName() );
@@ -318,7 +432,7 @@ const
   if (outCoords->CoordsSetup(combinedTop, CombinedFrame.CoordsInfo())) return 1;
 
   // Add frame to the output data set
-  outCoords->AddFrame( CombinedFrame );
+  outCoords->AddFrame( CombinedFrame );*/
 
   return 0;
 }
