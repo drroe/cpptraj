@@ -67,7 +67,7 @@ class Builder {
     /// Create torsion around SP2-SP2 linkage
     void createSp2Sp2Torsions(TorsionModel const&);
     /// Dtermine atom hybridization in the same way as leap
-    AtomType::HybridizationType getAtomHybridization(Atom const&) const;
+    AtomType::HybridizationType getAtomHybridization(Atom const&, std::vector<Atom> const&) const;
     /// Model torsions around a bond in the same manner as LEaP
     int assignTorsionsAroundBond(int, int, Frame const&, Topology const&, Barray const&, int);
     /// Get any existing internal torsion indices around specified atoms

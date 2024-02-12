@@ -881,8 +881,9 @@ int Builder::getExistingChiralityIdx(int ai) const {
 }
 
 /** Determine hybridization in the same manner as leap */
-AtomType::HybridizationType Builder::getAtomHybridization(Atom const& aAtom) const {
+AtomType::HybridizationType Builder::getAtomHybridization(Atom const& aAtom, std::vector<Atom> const& atoms) const {
   AtomType::HybridizationType H1 = AtomType::UNKNOWN_HYBRIDIZATION;
+  // Check if hybridization is defined in the parameter set.
   if (params_ != 0) {
     ParmHolder<AtomType>::const_iterator it;
     if (aAtom.HasType()) {
@@ -891,6 +892,14 @@ AtomType::HybridizationType Builder::getAtomHybridization(Atom const& aAtom) con
         H1 = it->second.Hybridization();
     }
   }
+  // Use the cpptraj guess.
+  H1 = GuessAtomHybridization(aAtom, atoms);
+  // FIXME this is a bit of a hack. If we get an SP type here its likely we
+  //       are generating internals for a fragment that has not been bonded
+  //       yet. Do SP2 instead.
+  if (H1 == AtomType::SP)
+    H1 = AtomType::SP2;
+  // Guess in the same way leap does
   if (H1 == AtomType::UNKNOWN_HYBRIDIZATION) {
     // TODO bond orders?
     int iSingle = 0;
@@ -923,8 +932,8 @@ double Builder::ModelBondLength(int ai, int aj, Topology const& topIn) const {
   }
   Atom const& AI = topIn[ai];
   Atom const& AJ = topIn[aj];
-  AtomType::HybridizationType hybridI = getAtomHybridization( AI );
-  AtomType::HybridizationType hybridJ = getAtomHybridization( AJ );
+  AtomType::HybridizationType hybridI = getAtomHybridization( AI, topIn.Atoms() );
+  AtomType::HybridizationType hybridJ = getAtomHybridization( AJ, topIn.Atoms() );
 
   if (hybridI == AtomType::UNKNOWN_HYBRIDIZATION ||
       hybridJ == AtomType::UNKNOWN_HYBRIDIZATION)
@@ -973,7 +982,7 @@ double Builder::ModelBondAngle(int ai, int aj, int ak, Topology const& topIn) co
     mprintf("DEBUG:\t\tJ %s Nbonds: %i\n", AJ.ElementName(), AJ.Nbonds());
     mprintf("DEBUG:\t\tK %s Nbonds: %i\n", topIn[ak].ElementName(), topIn[ak].Nbonds());
   }
-  AtomType::HybridizationType hybrid = getAtomHybridization( AJ );
+  AtomType::HybridizationType hybrid = getAtomHybridization( AJ, topIn.Atoms() );
 
   // Guess hybrid if needed
   //if (hybrid == AtomType::UNKNOWN_HYBRIDIZATION)
@@ -1205,8 +1214,8 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
   if (topIn[a1].Nbonds() < 2 || topIn[a2].Nbonds() < 2)
     return 0;
   // Get atom hybridizations
-  AtomType::HybridizationType H1 = getAtomHybridization( topIn[a1] );
-  AtomType::HybridizationType H2 = getAtomHybridization( topIn[a2] );//AtomType::UNKNOWN_HYBRIDIZATION;
+  AtomType::HybridizationType H1 = getAtomHybridization( topIn[a1], topIn.Atoms() );
+  AtomType::HybridizationType H2 = getAtomHybridization( topIn[a2], topIn.Atoms() );//AtomType::UNKNOWN_HYBRIDIZATION;
   if (H1 == AtomType::UNKNOWN_HYBRIDIZATION)
     mprintf("Warning: No hybridization set for atom %s\n", topIn.AtomMaskName(a1).c_str());
   if (H2 == AtomType::UNKNOWN_HYBRIDIZATION)
@@ -1231,7 +1240,7 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
     Hx = H1;
     Hy = H2;
   }
-  static const char* hstr[] = { "SP", "SP2", "SP3", "Unknown" };
+  static const char* hstr[] = { "SP1", "SP2", "SP3", "Unknown" };
   mprintf("DEBUG: assignTorsionsAroundBond: AX= %s (%s)  AY= %s (%s), aAtomIdx= %i",
           topIn.AtomMaskName(ax).c_str(), hstr[Hx],
           topIn.AtomMaskName(ay).c_str(), hstr[Hy], aAtomIdx+1);
