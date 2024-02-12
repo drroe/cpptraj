@@ -1442,7 +1442,7 @@ static inline void chiralityTransformOrientation(double dOrig, int* aaOrig, doub
         break;
     }
     if ( j >= 4 ) {
-      mprinterr("Error: Comparing atoms %i %i %i aand %i to atoms %i %i %i and %i.\n",
+      mprinterr("Error: Comparing atoms %i %i %i and %i to atoms %i %i %i and %i.\n",
                 aaOrig[0]+1, aaOrig[1]+1, aaOrig[2]+1, aaOrig[3]+1,
                 aaNew[0]+1, aaNew[1]+1, aaNew[2]+1, aaNew[3]+1);
       mprinterr("Error: This error may be due to faulty Connection atoms.\n");
@@ -2579,12 +2579,13 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
                                          Barray const& hasPosition)
 {
   mprintf("DEBUG: ----- Entering Builder::GenerateInternalsAroundLink. -----\n");
+  mprintf("DEBUG: Link: %s to %s\n", topIn.AtomMaskName(at0).c_str(), topIn.AtomMaskName(at1).c_str());
   // Sanity check
   Atom const& A0 = topIn[at0];
   Atom const& A1 = topIn[at1];
   if (A0.ResNum() == A1.ResNum()) {
-    mprinterr("Internal Error: Builder::GenerateInternalsAroundLink(): Atoms are in the same residue.\n");
-    return 1;
+    mprintf("Warning: Builder::GenerateInternalsAroundLink(): Atoms are in the same residue.\n");
+    //return 1;
   }
   // In order to mimic the way LEaP does things, mark all atoms before
   // this residue as having position, and all other atoms as not having
