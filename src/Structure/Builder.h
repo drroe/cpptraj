@@ -29,8 +29,8 @@ class Builder {
     /// Update existing indices with given offset
     void UpdateIndicesWithOffset(int);
 
-    /// Build position from internals for any atom in residue with unset position
-    int BuildFromInternals(Frame&, int, Topology const&, Barray&) const;
+    /// Build position from internals for any atom with unset position
+    int BuildFromInternals(Frame&, Topology const&, Barray&) const;
 
     /// \return Zmatrix from current internals
     int GetZmatrixFromInternals(Zmatrix&, Topology const&) const;

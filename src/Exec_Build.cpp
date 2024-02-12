@@ -366,7 +366,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       //  return 1;
       //}
       //if (tmpz.SetToFrame( frameOut, hasPosition )) {
-      if (structureBuilder.BuildFromInternals(frameOut, ires, topOut, hasPosition)) {
+      if (structureBuilder.BuildFromInternals(frameOut, topOut, hasPosition)) {
         mprinterr("Error: Building residue %s failed.\n",
                   topOut.TruncResNameOnumId(ires).c_str());
         buildFailed = true;

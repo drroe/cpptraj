@@ -394,17 +394,22 @@ const
     return 1;
   }
   // Convert to Zmatrix and assign missing atom positions
-  Cpptraj::Structure::Zmatrix tmpz;
-  tmpz.SetDebug( 1 ); // DEBUG
-  if (structureBuilder.GetZmatrixFromInternals(tmpz, topOut)) {
-    mprinterr("Error: Could not get Zmatrix from internals.\n");
-    return 1;
-  }
-  if (tmpz.SetToFrame( frameOut, hasPosition )) {
+  if (structureBuilder.BuildFromInternals(frameOut, topOut, hasPosition)) {
     mprinterr("Error: Grafting %s with %s build from internals failed.\n",
               mol0Top.c_str(), mol1Top.c_str());
     return 1;
   }
+//  Cpptraj::Structure::Zmatrix tmpz;
+//  tmpz.SetDebug( 1 ); // DEBUG
+//  if (structureBuilder.GetZmatrixFromInternals(tmpz, topOut)) {
+//    mprinterr("Error: Could not get Zmatrix from internals.\n");
+//    return 1;
+//  }
+//  if (tmpz.SetToFrame( frameOut, hasPosition )) {
+//    mprinterr("Error: Grafting %s with %s build from internals failed.\n",
+//              mol0Top.c_str(), mol1Top.c_str());
+//    return 1;
+//  }
   // Finalize topology - determine molecules, dont renumber residues, assign default bond params
   topOut.CommonSetup(true, false, true);
   topOut.Summary();

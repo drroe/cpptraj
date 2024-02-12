@@ -1695,29 +1695,52 @@ int Builder::getIcFromInternals(InternalCoords& icOut, int at, Barray const& has
   return 0;
 }
 
-/** Build coordinates for any atom of the specified residue that does
+/** Build coordinates for any atom with an internal that does
   * not have its position set.
   */ 
-int Builder::BuildFromInternals(Frame& frameOut, int ires, Topology const& topIn, Barray& hasPosition)
+int Builder::BuildFromInternals(Frame& frameOut, Topology const& topIn, Barray& hasPosition)
 const
 {
-  Residue const& currentRes = topIn.Res(ires);
+  // Create a list of residues that have atoms that need positions
+  std::vector<Residue> residues;
+  std::vector<int> Rnums;
+  for (Tarray::const_iterator dih = internalTorsions_.begin();
+                              dih != internalTorsions_.end(); ++dih)
+  {
+    if (!hasPosition[dih->AtI()]) {
+      int rnum = topIn[dih->AtI()].ResNum();
+      bool has_rnum = false;
+      for (std::vector<int>::const_iterator it = Rnums.begin(); it != Rnums.end(); ++it) {
+        if (*it == rnum) {
+          has_rnum = true;
+          break;
+        }
+      }
+      if (!has_rnum) {
+        mprintf("DEBUG: Need to build for residue %s\n", topIn.TruncResNameNum(rnum).c_str());
+        residues.push_back( topIn.Res(rnum) );
+        Rnums.push_back(rnum);
+      }
+    }
+  }
+  // Generate array over residue in same order that leap would do
+  std::vector<int> atomIndices = GenerateAtomArray(residues, topIn.Atoms());
+  residues.clear();
+  Rnums.clear();
   // Count how many atoms need their positions set
   unsigned int nAtomsThatNeedPositions = 0;
-  for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); ++at)
-    if (!hasPosition[at])
+  for (std::vector<int>::const_iterator it = atomIndices.begin();
+                                        it != atomIndices.end(); ++it)
+    if (!hasPosition[*it])
       nAtomsThatNeedPositions++;
-  mprintf("DEBUG: %u atoms need positions in residue %s\n", nAtomsThatNeedPositions, topIn.TruncResNameNum(ires).c_str());
+  mprintf("DEBUG: %u atoms need positions.\n", nAtomsThatNeedPositions);
   if (nAtomsThatNeedPositions == 0) return 0;
-
-  // Generate array over residue in same order that leap would do
-  std::vector<int> resIndices = GenerateAtomArray(std::vector<Residue>(1, topIn.Res(ires)), topIn.Atoms());
 
   // Loop over residue atoms
   while (nAtomsThatNeedPositions > 0) {
     unsigned int nAtomsBuilt = 0;
-    for (std::vector<int>::const_iterator idx = resIndices.begin();
-                                          idx != resIndices.end(); ++idx)
+    for (std::vector<int>::const_iterator idx = atomIndices.begin();
+                                          idx != atomIndices.end(); ++idx)
     {
       int at = *idx;
       int atToBuildAround = -1;
@@ -1766,7 +1789,7 @@ const
     } // END loop over residue atoms
     // If we built no atoms this is a problem
     if (nAtomsBuilt < 1) {
-      mprinterr("Error: No more atoms could be built for residue %s\n", topIn.TruncResNameNum(ires).c_str());
+      mprinterr("Error: No more atoms could be built for %s\n", topIn.c_str());
       return 1;
     }
   } // END loop while atoms need position
