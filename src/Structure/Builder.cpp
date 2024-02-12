@@ -1645,6 +1645,59 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
   return 0;
 }
 
+/** Find internal coordinates for given atom.
+  * Find torsion that contains this atom as one of the end atoms. The other
+  * three atoms must have known position.
+  * There must be a bond and angle that lie on the torsion and include
+  * the given atom as a terminal atom.
+  * \return 1 if complete internal coords were found, 0 if not.
+  */
+int Builder::getIcFromInternals(InternalCoords& icOut, int at, Barray const& hasPosition) const
+{
+  for (Tarray::const_iterator dih = internalTorsions_.begin(); dih != internalTorsions_.end(); ++dih)
+  {
+    if (at == dih->AtI()) {
+      if (hasPosition[dih->AtJ()] &&
+          hasPosition[dih->AtK()] &&
+          hasPosition[dih->AtL()])
+      {
+        int bidx = getExistingBondIdx(dih->AtI(), dih->AtJ());
+        if (bidx > -1) {
+          int aidx = getExistingAngleIdx(dih->AtI(), dih->AtJ(), dih->AtK());
+          if (aidx > -1) {
+            icOut = InternalCoords(dih->AtI(), dih->AtJ(), dih->AtK(), dih->AtL(),
+                                   internalBonds_[bidx].DistVal(),
+                                   internalAngles_[aidx].ThetaVal()*Constants::RADDEG,
+                                   dih->PhiVal()*Constants::RADDEG);
+            return 1;
+          }
+        }
+      }
+    } else if (at == dih->AtL()) {
+      if (hasPosition[dih->AtK()] &&
+          hasPosition[dih->AtJ()] &&
+          hasPosition[dih->AtI()])
+      {
+        int bidx = getExistingBondIdx(dih->AtL(), dih->AtK());
+        if (bidx > -1) {
+          int aidx = getExistingAngleIdx(dih->AtL(), dih->AtK(), dih->AtJ());
+          if (aidx > -1) {
+            icOut = InternalCoords(dih->AtL(), dih->AtK(), dih->AtJ(), dih->AtI(),
+                                   internalBonds_[bidx].DistVal(),
+                                   internalAngles_[aidx].ThetaVal()*Constants::RADDEG,
+                                   dih->PhiVal()*Constants::RADDEG);
+            return 1;
+          }
+        }
+      }
+    }
+  } // END loop over internal torsions
+  return 0;
+}
+ 
+
+//int Builder::BuildFromInternals
+
 /** Generate a Zmatrix from the current internals. TODO only for atoms that need it? */
 int Builder::GetZmatrixFromInternals(Zmatrix& zmatrix, Topology const& topIn) const {
   mprintf("DEBUG: ----- Enter GetZmatrixFromInternals -----\n");
