@@ -1694,9 +1694,75 @@ int Builder::getIcFromInternals(InternalCoords& icOut, int at, Barray const& has
   } // END loop over internal torsions
   return 0;
 }
- 
 
-//int Builder::BuildFromInternals
+/** Build coordinates for any atom of the specified residue that does
+  * not have its position set.
+  */ 
+int Builder::BuildFromInternals(Frame& frameOut, int ires, Topology const& topIn, Barray& hasPosition)
+const
+{
+  Residue const& currentRes = topIn.Res(ires);
+  // Count how many atoms need their positions set
+  unsigned int nAtomsThatNeedPositions = 0;
+  for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); ++at)
+    if (!hasPosition[at])
+      nAtomsThatNeedPositions++;
+  mprintf("DEBUG: %u atoms need positions in residue %s\n", nAtomsThatNeedPositions, topIn.TruncResNameNum(ires).c_str());
+  if (nAtomsThatNeedPositions == 0) return 0;
+
+  // Loop over residue atoms
+  while (nAtomsThatNeedPositions > 0) {
+    unsigned int nAtomsBuilt = 0;
+    for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); ++at)
+    {
+      int atToBuildAround = -1;
+      if (!hasPosition[at]) {
+        // Position of atom is not known.
+        mprintf("BUILD: Position of %s is not known.\n", *(topIn[at].Name()));
+        // Is this bonded to an atom with known position?
+        for (Atom::bond_iterator bat = topIn[at].bondbegin(); bat != topIn[at].bondend(); ++bat) {
+          if (hasPosition[*bat]) {
+            atToBuildAround = *bat;
+            break;
+          }
+        }
+      } else {
+        // Position of atom is known.
+        mprintf("BUILD: Position of %s is known.\n", *(topIn[at].Name()));
+        atToBuildAround = at;
+      }
+      // Build unknown positions around known atom
+      if (atToBuildAround != -1) {
+        mprintf("Building externals from %s\n", topIn.LeapName(atToBuildAround).c_str());
+        Atom const& bAtom = topIn[atToBuildAround];
+        for (Atom::bond_iterator bat = bAtom.bondbegin(); bat != bAtom.bondend(); ++bat)
+        {
+          if (!hasPosition[*bat]) {
+            // Find an internal coordinate.
+            InternalCoords ic;
+            if (getIcFromInternals(ic, *bat, hasPosition)) {
+              mprintf("Building atom %s using torsion/angle/bond\n", topIn.LeapName(*bat).c_str());
+              mprintf( "Torsion = %f\n", ic.Phi() );
+              mprintf( "Angle   = %f\n", ic.Theta() );
+              mprintf( "Bond    = %f\n", ic.Dist() );
+              Vec3 posI = Zmatrix::AtomIposition(ic, frameOut);
+              frameOut.SetXYZ( ic.AtI(), posI );
+              hasPosition[ ic.AtI() ] = true;
+              nAtomsBuilt++;
+              nAtomsThatNeedPositions--;
+            }
+          }
+        } // END loop over atoms bonded to atom with known position
+      }
+    } // END loop over residue atoms
+    // If we built no atoms this is a problem
+    if (nAtomsBuilt < 1) {
+      mprinterr("Error: No more atoms could be built for residue %s\n", topIn.TruncResNameNum(ires).c_str());
+      return 1;
+    }
+  } // END loop while atoms need position
+  return 0;
+}
 
 /** Generate a Zmatrix from the current internals. TODO only for atoms that need it? */
 int Builder::GetZmatrixFromInternals(Zmatrix& zmatrix, Topology const& topIn) const {
