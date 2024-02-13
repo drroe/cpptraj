@@ -1146,6 +1146,11 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
   double chiY = 0;
   int Ycidx = getExistingChiralityIdx( ay );
   if (Ycidx != -1) chiY = internalChirality_[Ycidx].ChiralVal();
+  // See if orientations exist
+  int Xoidx = getExistingOrientationIdx( ax );
+  if (Xoidx != -1) mprintf("DEBUG: Existing orientation for %s : %f\n", topIn.LeapName(ax).c_str(), internalOrientation_[Xoidx].ChiralVal());
+  int Yoidx = getExistingOrientationIdx( ay );
+  if (Yoidx != -1) mprintf("DEBUG: Existing orientation for %s : %f\n", topIn.LeapName(ay).c_str(), internalOrientation_[Yoidx].ChiralVal());
   // Set up the torsion model
   if (mT.SetupTorsion(Hx, Hy, topIn, chiX, chiY)) {
     mprinterr("Error: Could not set up torsions around %s - %s\n",
