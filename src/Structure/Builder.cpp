@@ -30,6 +30,18 @@ void Cpptraj::Structure::Builder::SetParameters(ParameterSet const* paramsIn) {
   params_ = paramsIn;
 }
 
+/** Set an atoms orientation */
+void Cpptraj::Structure::Builder::SetAtomOrientation(int at, double orient) {
+  int oidx = getExistingOrientationIdx(at);
+  if (oidx == -1) {
+    internalOrientation_.push_back( InternalChirality(at, orient) );
+  } else {
+    mprintf("Warning: Overriding existing orientation %f for atom %i with %f\n",
+            internalOrientation_[oidx].ChiralVal(), at+1, orient);
+    internalOrientation_[oidx].SetChiralVal( orient );
+  }
+}
+
 /** Get length from parameter set if present.
   * \return 1 if a length parameter was found.
   */
@@ -742,6 +754,19 @@ int Builder::getExistingChiralityIdx(int ai) const {
   {
     if (it->AtI() == ai) {
       idx = (int)(it - internalChirality_.begin());
+      break;
+    }
+  }
+  return idx;
+}
+
+/** \return Index of existing orientation value matching given atom, 1 for no match. */
+int Builder::getExistingOrientationIdx(int ai) const {
+  int idx = -1;
+  for (Carray::const_iterator it = internalOrientation_.begin(); it != internalOrientation_.end(); ++it)
+  {
+    if (it->AtI() == ai) {
+      idx = (int)(it - internalOrientation_.begin());
       break;
     }
   }
