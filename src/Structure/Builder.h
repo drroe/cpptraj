@@ -21,7 +21,9 @@ class Builder {
     /// Set optional parameter set
     void SetParameters(ParameterSet const*);
     /// Set atom orientation
-    void SetAtomOrientation(int, double);
+//    void SetAtomOrientation(int, double);
+    /// Set atom chirality
+    void SetAtomChirality(int, double);
     /// Update the internal coordinates in given Zmatrix with values from Frame/Parameters TODO combine into BuildFromInternals?
     int UpdateICsFromFrame(Frame const&, Topology const&, Barray const&);
     /// Generate internal coordinates in the same manner as LEaP
@@ -31,7 +33,8 @@ class Builder {
     /// Update existing indices with given offset
     void UpdateIndicesWithOffset(int);
 
-    static double CalculateOrientationAroundAtom(int, int, Frame const&, Topology const&); // TODO const?
+//    static double CalculateOrientationAroundAtom(int, int, Frame const&, Topology const&); // TODO const?
+    static double DetermineChiralityAroundAtom(int, Frame const&, Topology const&);
 
     /// Build position from internals for any atom with unset position
     int BuildFromInternals(Frame&, Topology const&, Barray&) const;
@@ -88,7 +91,7 @@ class Builder {
     /// Get specific chirality
     int getExistingChiralityIdx(int) const;
     /// Get specific orientation
-    int getExistingOrientationIdx(int) const;
+//    int getExistingOrientationIdx(int) const;
     /// Build mock coordinates around given torsion
     int buildMockExternals(TorsionModel& MT, std::vector<InternalCoords> const& iaTorsions) const;
     /// Build angle internal
@@ -114,7 +117,7 @@ class Builder {
     Aarray internalAngles_;
     Larray internalBonds_;
     Carray internalChirality_;
-    Carray internalOrientation_;
+//    Carray internalOrientation_;
     Iarray Rnums_;               ///< Hold residue indices pertaining to current internals
 };
 /// ----- Hold torsion internal ------------------

@@ -3,6 +3,7 @@
 #include "DataSet_Coords.h"
 #include "Structure/Builder.h"
 #include "Structure/Zmatrix.h"
+#include "CharMask.h"
 #include <algorithm> // std::copy
 #include <utility> // std::pair
 
@@ -13,7 +14,13 @@ Exec_Graft::Exec_Graft() :
   Exec(COORDS),
   debug_(0),
   newMol0Top_(0),
-  newMol1Top_(0)
+  newMol1Top_(0),
+  hasOrient0_(false),
+  hasOrient1_(false),
+//  orient0_(0),
+//  orient1_(0),
+  chi0_(0),
+  chi1_(0)
 {}
 
 /** DESTRUCTOR */
@@ -224,6 +231,12 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
     mol1frm.Trans_Rot_Trans( Trans, Rot, refTrans );
   }
 
+  if (use_ic) {
+    // Get internals for both topologies before they are modified.
+    get_original_orientations(mol0crd->Top(), mol0frm, mol1crd->Top(), mol1frm,
+                              mol0Mask, mol1Mask, bond0ArgStrings, bond1ArgStrings);
+  }
+
   // Modify the target (mol0) topology
   if (newMol0Top_ != 0) delete newMol0Top_;
   newMol0Top_ = 0;
@@ -269,6 +282,70 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
       return CpptrajState::ERR;
   }
   return CpptrajState::OK;
+}
+
+/** Get internals for molecules before modification. */
+int Exec_Graft::get_original_orientations(Topology const& mol0Top, Frame const& mol0frm,
+                                          Topology const& mol1Top, Frame const& mol1frm,
+                                          AtomMask const& mol0mask, AtomMask const& mol1mask,
+                                          Sarray const& bond0Atoms, Sarray const& bond1Atoms)
+{
+  // Get bonding atom masks
+  if (bond0Atoms.size() != 1 || bond1Atoms.size() != 1) {
+    mprinterr("Error: Graft with internal coordinates only works with 1 bond.\n");
+    return 1;
+  }
+  std::string const& tgtbondmask = bond0Atoms[0];
+  std::string const& srcbondmask = bond1Atoms[0];
+
+  // Select bond atom indices
+  int bondat0 = select_bond_idx(tgtbondmask, mol0Top);
+  if (bondat0 < 0) {
+    mprinterr("Error: Could not select target bond atom '%s'\n", tgtbondmask.c_str());
+    return 1;
+  }
+  int bondat1 = select_bond_idx(srcbondmask, mol1Top);
+  if (bondat1 < 0) {
+    mprinterr("Error: Could not select source bond atom '%s'\n", srcbondmask.c_str());
+    return 1;
+  }
+
+  // Will an atom bonded to this atom disappear?
+//  orient0_ = 0.0;
+  Atom const& At0 = mol0Top[bondat0];
+  CharMask cmask0( mol0mask.ConvertToCharMask(), mol0mask.Nselected() );
+  int vanish0idx = -1;
+  for (Atom::bond_iterator bat = At0.bondbegin(); bat != At0.bondend(); ++bat) {
+    if (!cmask0.AtomInCharMask( *bat )) { // TODO check multiple disappearing atoms
+      mprintf("DEBUG: Atom0 %s will vanish.\n", mol0Top.AtomMaskName(*bat).c_str());
+      if (vanish0idx == -1) vanish0idx = *bat;
+    }
+  }
+  if (vanish0idx != -1) {
+    hasOrient0_ = true;
+    chi0_    = Builder::DetermineChiralityAroundAtom(bondat0, mol0frm, mol0Top);
+    mprintf("DEBUG: Chirality around %s is %f\n", mol0Top.LeapName(bondat0).c_str(), chi0_);
+//    orient0_ = Builder::CalculateOrientationAroundAtom(bondat0, vanish0idx, mol0frm, mol0Top);
+  }
+
+//  orient1_ = 0.0;
+  Atom const& At1 = mol1Top[bondat1];
+  CharMask cmask1( mol1mask.ConvertToCharMask(), mol1mask.Nselected() );
+  int vanish1idx = -1;
+  for (Atom::bond_iterator bat = At1.bondbegin(); bat != At1.bondend(); ++bat) {
+    if (!cmask1.AtomInCharMask( *bat )) { // TODO check multiple disappearing atoms
+      mprintf("DEBUG: Atom1 %s will vanish.\n", mol1Top.AtomMaskName(*bat).c_str());
+      if (vanish1idx == -1) vanish1idx = *bat;
+    }
+  }
+  if (vanish1idx != -1) {
+    hasOrient1_ = true;
+    chi1_    = Builder::DetermineChiralityAroundAtom(bondat1, mol1frm, mol1Top);
+    mprintf("DEBUG: Chirality around %s is %f\n", mol1Top.LeapName(bondat1).c_str(), chi1_);
+//    orient1_ = Builder::CalculateOrientationAroundAtom(bondat1, vanish1idx, mol1frm, mol1Top);
+  }
+
+  return 0;
 }
 
 
@@ -383,6 +460,13 @@ const
           mol1Top.AtomMaskName(bondat1).c_str(),
           mol0Top.AtomMaskName(bondat0).c_str());
   topOut.AddBond( bondat1 + atomOffset, bondat0 );
+  // Set any saved orientations
+  if (hasOrient0_ && hasOrient1_) {
+//    structureBuilder.SetAtomOrientation(bondat0, orient0_);
+    structureBuilder.SetAtomChirality(bondat0, chi0_);
+//    structureBuilder.SetAtomOrientation(bondat1 + atomOffset, orient1_);
+    structureBuilder.SetAtomChirality(bondat1 + atomOffset, chi1_);
+  }
   // Generate internals around the link
   if (structureBuilder.GenerateInternalsAroundLink( bondat1 + atomOffset,
                                                     bondat0,
