@@ -108,7 +108,10 @@ const
     std::string tmp;
     for (const char* ptr = line; *ptr != '\0'; ++ptr)
     {
-      if (*ptr == '{')
+      if (*ptr == '#') {
+        // Comment - skip everything else
+        break;
+      } else if (*ptr == '{')
         bracketCount++;
       else if (*ptr == '}') {
         bracketCount--;
@@ -187,7 +190,10 @@ const
     std::string tmp;
     for (const char* ptr = line; *ptr != '\0'; ++ptr)
     {
-      if (*ptr == '{')
+      if (*ptr == '#') {
+        // Comment - skip everything else
+        break;
+      } else if (*ptr == '{')
         bracketCount++;
       else if (*ptr == '}') {
         bracketCount--;
@@ -195,24 +201,30 @@ const
           mprintf("DEBUG: addPdbResMap: %s\n", tmp.c_str());
           ArgList aline( tmp );
           // 3 tokens: terminal type (0=beg 1=end), PDB name, unit name
-          if (aline.Nargs() != 3) {
+          if (aline.Nargs() < 2 || aline.Nargs() > 3) {
             mprinterr("Error: Malformed entry in addPdbResMap: %s\n", tmp.c_str());
             return 1;
           }
           Cpptraj::Structure::TerminalType termType = Cpptraj::Structure::NON_TERMINAL;
-          if (aline[0] == "0")
-            termType = Cpptraj::Structure::BEG_TERMINAL;
-          else if (aline[0] == "1")
-            termType = Cpptraj::Structure::END_TERMINAL;
-          else
-            mprintf("Warning: Unrecognized terminal type in addPdbResMap: %s\n", aline[0].c_str());
-          if (termType != Cpptraj::Structure::NON_TERMINAL) {
+          int pdbidx = 0;
+          int unitidx = 1;
+          if (aline.Nargs() == 3) {
+            if (aline[0] == "0")
+              termType = Cpptraj::Structure::BEG_TERMINAL;
+            else if (aline[0] == "1")
+              termType = Cpptraj::Structure::END_TERMINAL;
+            else
+              mprintf("Warning: Unrecognized terminal type in addPdbResMap: %s\n", aline[0].c_str());
+            pdbidx = 1;
+            unitidx = 2;
+          }
+          //if (termType != Cpptraj::Structure::NON_TERMINAL) {
             PdbResMapType prm;
             prm.termType_ = termType;
-            prm.pdbName_ = aline[1];
-            prm.unitName_ = aline[2];
+            prm.pdbName_ = aline[pdbidx];
+            prm.unitName_ = aline[unitidx];
             pdbResMap.push_back( prm );
-          }
+          //}
           tmp.clear();
         }
       } else {
@@ -226,7 +238,7 @@ const
     } else if (bracketCount == 0) {
       break;
     } //else {
-      //mprintf("DEBUG: addPdbResMap: %s\n", tmp.c_str());
+    //mprintf("DEBUG: END OF LINE: addPdbResMap: %s\n", tmp.c_str());
     //}
     line = infile.Line();
   }
