@@ -225,10 +225,11 @@ class Cpptraj::Structure::Builder::TorsionModel {
     bool AxHasKnownAtoms() const { return axHasKnownAtoms_; }
     /// \return True if AY has known bonded atoms
     bool AyHasKnownAtoms() const { return ayHasKnownAtoms_; }
+    /// Sort an array of MockAtoms the way that LEaP does
+    static Marray SortBondedAtomsLikeLeap(unsigned int&, Topology const& topIn, Marray const&);
   private:
     static int LeapAtomWeight(Atom const&);
     //static inline std::vector<int> SiftBondedAtomsLikeLeap(unsigned int&, Atom const&, std::vector<bool> const&);
-    static inline Marray SortBondedAtomsLikeLeap(unsigned int&, Topology const& topIn, Marray const&);
     static inline void swap_heaviest(Marray&, Topology const&);
 
     MockAtom atX_;              ///< Atom X
@@ -628,6 +629,37 @@ int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(Iarray const& 
 }
 
 // -----------------------------------------------------------------------------
+/** Calculate the orientation around a single atom. Assume all positions are known. */
+void Builder::CalculateOrientationAroundAtom(int ax, int ay, Frame const& frameIn, Topology const& topIn) {
+  using namespace Cpptraj::Structure::Chirality;
+
+  Vec3 iXPos( frameIn.XYZ(ax) );
+  Vec3 iYPos( frameIn.XYZ(ay) );
+  // Create array of AX bonded atoms
+  Atom const& AX = topIn[ax];
+  std::vector<MockAtom> sorted_ax;
+  sorted_ax.reserve( AX.Nbonds() - 1 );
+  for (Atom::bond_iterator bat = AX.bondbegin(); bat != AX.bondend(); ++bat) {
+    if (*bat != ay) {
+      sorted_ax.push_back( MockAtom(*bat, frameIn.XYZ(*bat)) );
+      sorted_ax.back().SetBuildInternals( true );
+    }
+  }
+  // Sort AX bonds
+  unsigned int firstUnknownIdxX = 0;
+  sorted_ax = TorsionModel::SortBondedAtomsLikeLeap(firstUnknownIdxX, topIn, sorted_ax);
+  // Calculate the chirality around atom X
+  double Xorientation = 0;
+  if (sorted_ax.size() < 2)
+    Xorientation = 1.0;
+  else
+    Xorientation = VectorAtomChirality( iXPos, sorted_ax[0].Pos(), iYPos, sorted_ax[1].Pos() );
+  mprintf("ORIENTATION: around atom %s (- %s) = %f\n",
+          topIn.LeapName(ax).c_str(),
+          topIn.LeapName(ay).c_str(),
+          Xorientation);
+}
+
 /** Update all indices in internals according to the given offset. */
 void Builder::UpdateIndicesWithOffset(int atomOffset) {
   for (Tarray::iterator it = internalTorsions_.begin(); it != internalTorsions_.end(); ++it)
