@@ -728,13 +728,15 @@ AtomType::HybridizationType Builder::getAtomHybridization(Atom const& aAtom, std
     }
   }
   // Use the cpptraj guess.
-  H1 = GuessAtomHybridization(aAtom, atoms);
-  // FIXME this is a bit of a hack. If we get an SP type here its likely we
-  //       are generating internals for a fragment that has not been bonded
-  //       yet. Do SP2 instead.
-  if (H1 == AtomType::SP)
-    H1 = AtomType::SP2;
-  // Guess in the same way leap does
+  if (H1 == AtomType::UNKNOWN_HYBRIDIZATION) {
+    H1 = GuessAtomHybridization(aAtom, atoms);
+    // FIXME this is a bit of a hack. If we get an SP type here its likely we
+    //       are generating internals for a fragment that has not been bonded
+    //       yet. Do SP2 instead.
+    if (H1 == AtomType::SP)
+      H1 = AtomType::SP2;
+  }
+  // If still unknown, guess in the same way leap does.
   if (H1 == AtomType::UNKNOWN_HYBRIDIZATION) {
     // TODO bond orders?
     int iSingle = 0;
