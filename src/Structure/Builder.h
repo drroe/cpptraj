@@ -92,12 +92,8 @@ class Builder {
     /// Build bond internal
     void buildBondInternal(int, int, Frame const&, Topology const&, Barray const&);
 
-    /// Find index of bonded atom less than all others but larger than last
-    //static inline int findLeastLargerThan(Atom const&, int);
-    /// Sort neighbors of atom. Used in determineChirality
-    //static void chiralityOrderNeighbors(Atom const&, int&, int&, int&, int&);
     /// Determine chirality around an atom
-    int determineChirality(double&, int, Frame const&, Topology const&, Barray const&);
+    static int determineChirality(double&, int, Frame const&, Topology const&, Barray const&);
 
     /// Generate internal coords for a given atom
     int generateAtomInternals(int, Frame const&, Topology const&, Barray const&);
