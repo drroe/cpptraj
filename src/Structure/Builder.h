@@ -29,7 +29,7 @@ class Builder {
     /// Update existing indices with given offset
     void UpdateIndicesWithOffset(int);
 
-    void CalculateOrientationAroundAtom(int, int, Frame const&, Topology const&); // TODO const?
+    static double CalculateOrientationAroundAtom(int, int, Frame const&, Topology const&); // TODO const?
 
     /// Build position from internals for any atom with unset position
     int BuildFromInternals(Frame&, Topology const&, Barray&) const;

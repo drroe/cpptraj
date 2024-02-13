@@ -630,7 +630,7 @@ int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(Iarray const& 
 
 // -----------------------------------------------------------------------------
 /** Calculate the orientation around a single atom. Assume all positions are known. */
-void Builder::CalculateOrientationAroundAtom(int ax, int ay, Frame const& frameIn, Topology const& topIn) {
+double Builder::CalculateOrientationAroundAtom(int ax, int ay, Frame const& frameIn, Topology const& topIn) {
   using namespace Cpptraj::Structure::Chirality;
 
   Vec3 iXPos( frameIn.XYZ(ax) );
@@ -658,6 +658,7 @@ void Builder::CalculateOrientationAroundAtom(int ax, int ay, Frame const& frameI
           topIn.LeapName(ax).c_str(),
           topIn.LeapName(ay).c_str(),
           Xorientation);
+  return Xorientation;
 }
 
 /** Update all indices in internals according to the given offset. */
