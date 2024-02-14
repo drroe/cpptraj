@@ -105,6 +105,8 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       resTermType = Cpptraj::Structure::BEG_TERMINAL;
     } else if (nres < topIn.Nres() && topIn.Res(nres).ChainId() != currentRes.ChainId()) {
       resTermType = Cpptraj::Structure::END_TERMINAL;
+    } else if (nres == topIn.Nres()) {
+      resTermType = Cpptraj::Structure::END_TERMINAL;
     } else {
       resTermType = Cpptraj::Structure::NON_TERMINAL;
     }
