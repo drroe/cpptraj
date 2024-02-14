@@ -311,6 +311,36 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     resBondingAtoms[ra0.first].push_back( Ipair(at0, at1) );
     resBondingAtoms[ra1.first].push_back( Ipair(at1, at0) );
   }
+  // For each residue bonding atom pair, check that they match expected
+  // head/tail atoms.
+  for (std::vector<IParray>::const_iterator rit = resBondingAtoms.begin();
+                                            rit != resBondingAtoms.end(); ++rit)
+  {
+    long int ires = rit - resBondingAtoms.begin();
+    for (IParray::const_iterator atPair = rit->begin(); atPair != rit->end(); ++atPair)
+    {
+      long int jres = topOut[atPair->second].ResNum();
+      if (atPair->first == resHeadAtoms[ires]) {
+        // HEAD atom. Should connect to other residue TAIL atom.
+        if (atPair->second != resTailAtoms[jres]) {
+          mprintf("Warning: Detected inter-res bond %s - %s HEAD does not match TAIL.\n",
+                  topOut.AtomMaskName(atPair->first).c_str(),
+                  topOut.AtomMaskName(atPair->second).c_str());
+        }
+      } else if (atPair->first == resTailAtoms[ires]) {
+        // TAIL atom. Should connect to other residue HEAD atom.
+        if (atPair->second != resHeadAtoms[jres]) {
+          mprintf("Warning: Detected inter-res bond %s - %s TAIL does not match HEAD.\n",
+                  topOut.AtomMaskName(atPair->first).c_str(),
+                  topOut.AtomMaskName(atPair->second).c_str());
+        }
+      } else {
+        mprintf("Warning: Atom %s is not a HEAD or TAIL atom.\n",
+                topOut.AtomMaskName(atPair->first).c_str());
+      }
+    } // END loop over inter-residue bond pairs for this residue
+  } // END loop over residues
+
   // DEBUG print residue bonding atoms
   for (std::vector<IParray>::const_iterator rit = resBondingAtoms.begin();
                                             rit != resBondingAtoms.end(); ++rit)
