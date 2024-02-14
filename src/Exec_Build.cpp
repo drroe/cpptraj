@@ -6,6 +6,7 @@
 #include "Structure/Zmatrix.h"
 #include "Parm/GB_Params.h"
 #include "AssociatedData_ResId.h"
+#include "AssociatedData_Connect.h"
 
 /** Try to identify residue template DataSet from the given residue
   * name (from e.g. the PDB/Mol2/etc file).
@@ -74,6 +75,12 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
                                        Topology const& topIn, Frame const& frameIn,
                                        ParameterSet const& mainParmSet)
 {
+  // Array of head/tail connect atoms for each residue
+  typedef std::vector<int> Iarray;
+  Iarray resHeadAtoms;
+  Iarray resTailAtoms;
+  resHeadAtoms.reserve( topIn.Nres() );
+  resTailAtoms.reserve( topIn.Nres() );
   // Array of templates for each residue
   std::vector<DataSet_Coords*> ResTemplates;
   ResTemplates.reserve( topIn.Nres() );
@@ -107,9 +114,26 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     if (resTemplate == 0) {
       mprintf("Warning: No template found for residue %s\n", topIn.TruncResNameOnumId(ires).c_str());
       newNatom += currentRes.NumAtoms();
+      // Head and tail atoms are blank
+      resHeadAtoms.push_back( -1 );
+      resTailAtoms.push_back( -1 );
     } else {
       mprintf("\tTemplate %s being used for residue %s\n",
               resTemplate->legend(), topIn.TruncResNameOnumId(ires).c_str());
+      // Save the head and tail atoms
+      AssociatedData* ad = resTemplate->GetAssociatedData(AssociatedData::CONNECT);
+      if (ad == 0) {
+        mprintf("Warning: Unit '%s' does not have CONNECT data.\n", resTemplate->legend());
+      } else {
+        AssociatedData_Connect const& CONN = static_cast<AssociatedData_Connect const&>( *ad );
+        if (CONN.NconnectAtoms() < 2) {
+          mprinterr("Error: Not enough connect atoms in unit '%s'\n", resTemplate->legend());
+          return 1;
+        }
+        resHeadAtoms.push_back( CONN.Connect()[0] + newNatom );
+        resTailAtoms.push_back( CONN.Connect()[1] + newNatom );
+      }
+      // Update # of atoms
       newNatom += resTemplate->Top().Natom();
     }
     ResTemplates.push_back( resTemplate );
@@ -125,7 +149,6 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   hasPosition.reserve( newNatom );
 
   // Hold atom offsets needed when building residues
-  typedef std::vector<int> Iarray;
   Iarray AtomOffsets;
   AtomOffsets.reserve( topIn.Nres() );
 
@@ -254,6 +277,14 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   mprintf("\t%i template atoms missing in source.\n", nRefAtomsMissing);
 
   // -----------------------------------
+  for (unsigned int idx = 0; idx != ResTemplates.size(); idx++) {
+    if (ResTemplates[idx] != 0) {
+      mprintf("DEBUG: Template %s", ResTemplates[idx]->legend());
+      if (resHeadAtoms[idx] > -1) mprintf(" head %s", topOut.AtomMaskName(resHeadAtoms[idx]).c_str());
+      if (resTailAtoms[idx] > -1) mprintf(" tail %s", topOut.AtomMaskName(resTailAtoms[idx]).c_str());
+      mprintf("\n");
+    }
+  }
   // Check inter-residue bonds
   std::vector<IParray> resBondingAtoms(topOut.Nres());
   for (ResAtArray::const_iterator it = interResBonds.begin(); it != interResBonds.end(); ++it)
