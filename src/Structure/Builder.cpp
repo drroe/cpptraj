@@ -94,6 +94,98 @@ const
   return 0;
 }
 
+/// Recursive function to return depth from an atom along bonds
+static int atom_depth(int& depth,
+                      int at, Topology const& topIn, std::vector<bool>& visited, int maxdepth)
+{
+  if (depth == maxdepth) return 0;
+  depth++;
+  visited[at] = true;
+  int depthFromHere = 1;
+  for (Atom::bond_iterator bat = topIn[at].bondbegin(); bat != topIn[at].bondend(); ++bat)
+  {
+    if (!visited[*bat])
+      depthFromHere += atom_depth( depth, *bat, topIn, visited, maxdepth );
+  }
+  return depthFromHere;
+}
+
+/** \return Index of atom with longest 'depth' around an atom, ignoring one bonded atom. */
+int Builder::get_depths_around_atom(int at0, int at1, Topology const& topIn) {
+  int largest_depth = 0;
+  int largest_depth_idx = -1;
+  Atom const& Atm0 = topIn[at0];
+  mprintf("DEBUG: Depths around %s\n", topIn.AtomMaskName(at0).c_str());
+  for (Atom::bond_iterator bat = Atm0.bondbegin(); bat != Atm0.bondend(); ++bat)
+  {
+    if (*bat != at1) {
+      Barray visited(topIn.Natom(), false);
+      visited[at0] = true;
+      visited[at1] = true;
+      // Get depth from here
+      int currentDepth = 0;
+      int depth = atom_depth(currentDepth, *bat, topIn, visited, 10);
+      mprintf("DEBUG:\t\t%s = %i\n", topIn.AtomMaskName(*bat).c_str(), depth);
+      if (depth > largest_depth) {
+        largest_depth = depth;
+        largest_depth_idx = *bat;
+      }
+    }
+  }
+  return largest_depth_idx;
+}
+
+/** Adjust internals around a link so that atoms with longest 'depth' are trans. */
+int Builder::AdjustIcAroundLink(int at0, int at1, Frame const& frameIn, Topology const& topIn)
+{
+  int atA = get_depths_around_atom(at0, at1, topIn);
+  int atD = get_depths_around_atom(at1, at0, topIn);
+  if (atA < 0 || atD < 0) return 0;
+  mprintf("DEBUG: Highest depth torsion is %s - %s - %s - %s\n",
+          topIn.AtomMaskName(atA).c_str(),
+          topIn.AtomMaskName(at0).c_str(),
+          topIn.AtomMaskName(at1).c_str(),
+          topIn.AtomMaskName(atD).c_str());
+  // Get that torsion
+  int tidx = getExistingTorsionIdx(atA, at0, at1, atD);
+  if (tidx < 0) {
+    mprintf("Warning: Could not adjust internal torsion %s - %s - %s - %s, not present.\n",
+          topIn.AtomMaskName(atA).c_str(),
+          topIn.AtomMaskName(at0).c_str(),
+          topIn.AtomMaskName(at1).c_str(),
+          topIn.AtomMaskName(atD).c_str());
+    return 0;
+  }
+  // Figure out the delta from 180
+  double dTorsion = 180.0 * Constants::DEGRAD;
+  double dInternalValue = internalTorsions_[tidx].PhiVal();
+  double tDiff = (dTorsion - dInternalValue);
+  mprintf("\tdTorsion= %f  dInternalValue= %f  tDiff= %f\n",
+          dTorsion*Constants::RADDEG, dInternalValue*Constants::RADDEG, tDiff*Constants::RADDEG);
+  if (fabs(tDiff) > Constants::SMALL) {
+    // Find all ICs that share atoms 1 and 2 (J and K)
+    Iarray iTorsions = getExistingTorsionIdxs(at0, at1);
+    mprintf("Twisting torsions centered on %s - %s by %f degrees\n",
+            topIn.LeapName(at0).c_str(),
+            topIn.LeapName(at1).c_str(),
+            tDiff*Constants::RADDEG);
+    for (Iarray::const_iterator idx = iTorsions.begin(); idx != iTorsions.end(); ++idx)
+    {
+      InternalTorsion& dih = internalTorsions_[*idx];
+      double dNew = dih.PhiVal() + tDiff;
+      mprintf("Twisting torsion for atoms: %s-%s-%s-%s\n",
+              *(topIn[dih.AtI()].Name()),
+              *(topIn[dih.AtJ()].Name()),
+              *(topIn[dih.AtK()].Name()),
+              *(topIn[dih.AtL()].Name()));
+      mprintf("------- From %f to %f\n", dih.PhiVal()*Constants::RADDEG, dNew*Constants::RADDEG);
+      dih.SetPhiVal( dNew );
+    }
+  }
+
+  return 0;
+}
+
 /** For existing torsions, see if all coordinates in that torsion
   * exist. If so, update the torsion from the existing coordinates.
   */

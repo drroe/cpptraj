@@ -461,12 +461,10 @@ const
           mol0Top.AtomMaskName(bondat0).c_str());
   topOut.AddBond( bondat1 + atomOffset, bondat0 );
   // Set any saved orientations
-  if (hasOrient0_ && hasOrient1_) {
-//    structureBuilder.SetAtomOrientation(bondat0, orient0_);
+  if (hasOrient0_)
     structureBuilder.SetAtomChirality(bondat0, chi0_);
-//    structureBuilder.SetAtomOrientation(bondat1 + atomOffset, orient1_);
+  if (hasOrient1_)
     structureBuilder.SetAtomChirality(bondat1 + atomOffset, chi1_);
-  }
   // Generate internals around the link
   if (structureBuilder.GenerateInternalsAroundLink( bondat1 + atomOffset,
                                                     bondat0,
@@ -475,6 +473,12 @@ const
     mprinterr("Error: Assign torsions around graft bond atoms %s - %s failed.\n",
               topOut.AtomMaskName(bondat1 + atomOffset).c_str(),
               topOut.AtomMaskName(bondat0).c_str());
+    return 1;
+  }
+  // Adjust torsions around link so that longest 'path' is trans
+  if (structureBuilder.AdjustIcAroundLink(bondat0, bondat1 + atomOffset, frameOut, topOut))
+  {
+    mprinterr("Error: Failed to adjust internal coords around the link.\n");
     return 1;
   }
   // Update internal coords from known positions

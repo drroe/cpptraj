@@ -37,6 +37,8 @@ class Builder {
     int BuildFromInternals(Frame&, Topology const&, Barray&) const;
     /// \return Zmatrix from current internals
     //int GetZmatrixFromInternals(Zmatrix&, Topology const&) const;
+    /// Adjust torsion around a bond so that atoms with longest 'depth' are trans
+    int AdjustIcAroundLink(int, int, Frame const&, Topology const&);
   private:
     typedef std::vector<int> Iarray;
 
@@ -98,8 +100,10 @@ class Builder {
     int generateAtomInternals(int, Frame const&, Topology const&, Barray const&);
     /// Get complete internal coords that can be used to construct specified atom
     int getIcFromInternals(InternalCoords&, int, Barray const&) const;
-    // For debug
+    /// For debug, print all valid internals associated with an atom
     void printAllInternalsForAtom(int, Topology const&, Barray const&) const;
+    /// \\return index of atom with longest 'depth' bonded to a given atom (ignoring one bonded atom).
+    static int get_depths_around_atom(int, int, Topology const&);
 
     int debug_;
     ParameterSet const* params_;
