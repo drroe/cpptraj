@@ -30,18 +30,6 @@ void Cpptraj::Structure::Builder::SetParameters(ParameterSet const* paramsIn) {
   params_ = paramsIn;
 }
 
-/** Set an atoms orientation */
-/*void Cpptraj::Structure::Builder::SetAtomOrientation(int at, double orient) {
-  int oidx = getExistingOrientationIdx(at);
-  if (oidx == -1) {
-    internalOrientation_.push_back( InternalChirality(at, orient) );
-  } else {
-    mprintf("Warning: Overriding existing orientation %f for atom %i with %f\n",
-            internalOrientation_[oidx].ChiralVal(), at+1, orient);
-    internalOrientation_[oidx].SetChiralVal( orient );
-  }
-}*/
-
 /** Set an atoms chirality */
 void Cpptraj::Structure::Builder::SetAtomChirality(int at, double chi) {
   int cidx = getExistingChiralityIdx(at);
@@ -222,13 +210,10 @@ class Cpptraj::Structure::Builder::TorsionModel {
     typedef std::vector<MockAtom> Marray;
     /// CONSTRUCTOR
     TorsionModel() : dAbsolute_(0), Xorientation_(0), Yorientation_(0), axHasKnownAtoms_(false), ayHasKnownAtoms_(false) {}
-    /// CONSTRUCTOR - AX and AY atom indices
-    //TorsionModel(int ax, int ay) : ax_(ax), ay_(ay),  dAbsolute_(0), Xorientation_(0), Yorientation_(0) {}
     /// Initialize torsions around bonded atoms
     int InitTorsion(int, int, Frame const&, Topology const&, std::vector<bool> const&, int);
     /// Set up torsions around bonded atoms
     int SetupTorsion(AtomType::HybridizationType, AtomType::HybridizationType, Topology const& topIn, double, double);
-    //int SetupTorsion(AtomType::HybridizationType, AtomType::HybridizationType, Topology const& topIn, double, double, double, double);
     /// Build mock externals from given internals
     int BuildMockExternals(Iarray const&, Tarray const&, Topology const&);
 
@@ -455,31 +440,22 @@ int Cpptraj::Structure::Builder::TorsionModel::SetupTorsion(AtomType::Hybridizat
   // Sort AY bonds
   unsigned int firstUnknownIdxY = 0;
   sorted_ay_ = SortBondedAtomsLikeLeap(firstUnknownIdxY, topIn, sorted_ay_);
-  // If both orientations exist, use those. Otherwise calculate.
-//  bool existingOrientationX = (orientX > 0 || orientX < 0);
-//  bool existingOrientationY = (orientY > 0 || orientY < 0);
-//  if (existingOrientationX && existingOrientationY) {
-//    //Xorientation_ = orientX;
-//    //Yorientation_ = orientY;
-//    mprintf("DEBUG: ExistingOrientationX= %f  ExistingOrientationY= %f\n", orientX, orientY);
-//  }// else {
-    // Calculate the chirality around atom X
-    Xorientation_ = 0;
-    if (Hx == AtomType::SP3) {
-      if (sorted_ax_.size() < 2)
-        Xorientation_ = 1.0;
-      else
-        Xorientation_ = calculateOrientation( atX_, chiX, topIn[atX_.Idx()], sorted_ax_[0], atY_, sorted_ax_[1] );
-    }
-    // Calculate the chirality around atom Y
-    Yorientation_ = 0;
-    if (Hy == AtomType::SP3) {
-      if (sorted_ay_.size() < 2)
-        Yorientation_ = 1.0;
-      else
-        Yorientation_ = calculateOrientation( atY_, chiY, topIn[atY_.Idx()], sorted_ay_[0], atX_, sorted_ay_[1] );
-    }
-  //}
+  // Calculate the chirality around atom X
+  Xorientation_ = 0;
+  if (Hx == AtomType::SP3) {
+    if (sorted_ax_.size() < 2)
+      Xorientation_ = 1.0;
+    else
+      Xorientation_ = calculateOrientation( atX_, chiX, topIn[atX_.Idx()], sorted_ax_[0], atY_, sorted_ax_[1] );
+  }
+  // Calculate the chirality around atom Y
+  Yorientation_ = 0;
+  if (Hy == AtomType::SP3) {
+    if (sorted_ay_.size() < 2)
+      Yorientation_ = 1.0;
+    else
+      Yorientation_ = calculateOrientation( atY_, chiY, topIn[atY_.Idx()], sorted_ay_[0], atX_, sorted_ay_[1] );
+  }
   // DEBUG
   Atom const& AX = topIn[atX_.Idx()];
   Atom const& AY = topIn[atY_.Idx()];
@@ -529,7 +505,7 @@ int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(Iarray const& 
                                                                   Topology const& topIn) // DEBUG topIn for debug only
 {
   if (iaTorsions.empty()) {
-    mprinterr("Internal Error: Builder::buildMockExternals() called with no internal torsions.\n");
+    mprinterr("Internal Error: TorsionModel::BuildMockExternals() called with no internal torsions.\n");
     return 1;
   }
   mprintf("=======  Started mock coords from: %s\n", topIn.LeapName(internalTorsionsIn[iaTorsions.front()].AtI()).c_str());
@@ -596,11 +572,11 @@ int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(Iarray const& 
         Marray::iterator tmpAt1 = find_mock_atom(outerAtoms, iInt.AtI());
         Marray::iterator tmpAt4 = find_mock_atom(outerAtoms, iInt.AtL());
         if (tmpAt1 == outerAtoms.end()) {
-          mprinterr("Internal Error: Builder::buildMockExternals(): Outer atom I %i not found.\n", iInt.AtI()+1);
+          mprinterr("Internal Error: TorsionModel::BuildMockExternals(): Outer atom I %i not found.\n", iInt.AtI()+1);
           return 1;
         }
         if (tmpAt4 == outerAtoms.end()) {
-          mprinterr("Internal Error: Builder::buildMockExternals(): Outer atom L %i not found.\n", iInt.AtL()+1);
+          mprinterr("Internal Error: TorsionModel::BuildMockExternals(): Outer atom L %i not found.\n", iInt.AtL()+1);
           return 1;
         }
         Vec3 maPC1, maPC2;
@@ -664,38 +640,6 @@ int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(Iarray const& 
 }
 
 // -----------------------------------------------------------------------------
-/** Calculate the orientation around a single atom. Assume all positions are known. */
-/*double Builder::CalculateOrientationAroundAtom(int ax, int ay, Frame const& frameIn, Topology const& topIn) {
-  using namespace Cpptraj::Structure::Chirality;
-
-  Vec3 iXPos( frameIn.XYZ(ax) );
-  Vec3 iYPos( frameIn.XYZ(ay) );
-  // Create array of AX bonded atoms
-  Atom const& AX = topIn[ax];
-  std::vector<MockAtom> sorted_ax;
-  sorted_ax.reserve( AX.Nbonds() - 1 );
-  for (Atom::bond_iterator bat = AX.bondbegin(); bat != AX.bondend(); ++bat) {
-    if (*bat != ay) {
-      sorted_ax.push_back( MockAtom(*bat, frameIn.XYZ(*bat)) );
-      sorted_ax.back().SetBuildInternals( true );
-    }
-  }
-  // Sort AX bonds
-  unsigned int firstUnknownIdxX = 0;
-  sorted_ax = TorsionModel::SortBondedAtomsLikeLeap(firstUnknownIdxX, topIn, sorted_ax);
-  // Calculate the chirality around atom X
-  double Xorientation = 0;
-  if (sorted_ax.size() < 2)
-    Xorientation = 1.0;
-  else
-    Xorientation = VectorAtomChirality( iXPos, sorted_ax[0].Pos(), iYPos, sorted_ax[1].Pos() );
-  mprintf("ORIENTATION: around atom %s (- %s) = %f\n",
-          topIn.LeapName(ax).c_str(),
-          topIn.LeapName(ay).c_str(),
-          Xorientation);
-  return Xorientation;
-}*/
-
 /** Determine the chirality around a single atom. Assume all positions are known. */
 double Builder::DetermineChiralityAroundAtom(int at, Frame const& frameIn, Topology const& topIn)
 {
@@ -790,19 +734,6 @@ int Builder::getExistingChiralityIdx(int ai) const {
   }
   return idx;
 }
-
-/** \return Index of existing orientation value matching given atom, 1 for no match. */
-/*int Builder::getExistingOrientationIdx(int ai) const {
-  int idx = -1;
-  for (Carray::const_iterator it = internalOrientation_.begin(); it != internalOrientation_.end(); ++it)
-  {
-    if (it->AtI() == ai) {
-      idx = (int)(it - internalOrientation_.begin());
-      break;
-    }
-  }
-  return idx;
-}*/
 
 /** Determine hybridization in the same manner as leap */
 AtomType::HybridizationType Builder::getAtomHybridization(Atom const& aAtom, std::vector<Atom> const& atoms) const {
@@ -1177,21 +1108,7 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
   double chiY = 0;
   int Ycidx = getExistingChiralityIdx( ay );
   if (Ycidx != -1) chiY = internalChirality_[Ycidx].ChiralVal();
-  // See if orientations exist
-//  double orientX = 0;
-//  int Xoidx = getExistingOrientationIdx( ax );
-//  if (Xoidx != -1) {
-//    orientX = internalOrientation_[Xoidx].ChiralVal();
-//    mprintf("DEBUG: Existing orientation for %s : %f\n", topIn.LeapName(ax).c_str(), orientX);
-//  }
-//  double orientY = 0;
-//  int Yoidx = getExistingOrientationIdx( ay );
-//  if (Yoidx != -1) {
-//    orientY = internalOrientation_[Yoidx].ChiralVal();
-//    mprintf("DEBUG: Existing orientation for %s : %f\n", topIn.LeapName(ay).c_str(), orientY);
-//  }
   // Set up the torsion model
-  //if (mT.SetupTorsion(Hx, Hy, topIn, chiX, chiY, orientX, orientY))
   if (mT.SetupTorsion(Hx, Hy, topIn, chiX, chiY))
   {
     mprinterr("Error: Could not set up torsions around %s - %s\n",
@@ -1552,6 +1469,7 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
   return 0;
 }
 
+/** For debugging, print all the complete internals associated with the given atom. */
 void Builder::printAllInternalsForAtom(int at, Topology const& topIn, Barray const& hasPosition) const
 {
   mprintf("DEBUG: All internals for atom %s\n", topIn.LeapName(at).c_str());
