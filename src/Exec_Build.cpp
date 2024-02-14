@@ -132,8 +132,14 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
           mprinterr("Error: Not enough connect atoms in unit '%s'\n", resTemplate->legend());
           return 1;
         }
-        resHeadAtoms.push_back( CONN.Connect()[0] + newNatom );
-        resTailAtoms.push_back( CONN.Connect()[1] + newNatom );
+        if (CONN.Connect()[0] > -1)
+          resHeadAtoms.push_back( CONN.Connect()[0] + newNatom );
+        else
+          resHeadAtoms.push_back( -1 );
+        if (CONN.Connect()[1] > -1)
+          resTailAtoms.push_back( CONN.Connect()[1] + newNatom );
+        else
+          resTailAtoms.push_back( -1 );
       }
       // Update # of atoms
       newNatom += resTemplate->Top().Natom();
@@ -340,6 +346,28 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       }
     } // END loop over inter-residue bond pairs for this residue
   } // END loop over residues
+
+  // Mark used HEAD/TAIL atoms
+  for (std::vector<IParray>::const_iterator rit = resBondingAtoms.begin();
+                                            rit != resBondingAtoms.end(); ++rit)
+  {
+    long int ires = rit - resBondingAtoms.begin();
+    for (IParray::const_iterator atPair = rit->begin(); atPair != rit->end(); ++atPair)
+    {
+      if (atPair->first == resHeadAtoms[ires])
+        resHeadAtoms[ires] = -1;
+      else if (atPair->first == resTailAtoms[ires])
+        resTailAtoms[ires] = -1;
+    }
+  }
+
+  // Report unused HEAD/TAIL atoms
+  for (int ires = 0; ires != topOut.Nres(); ires++) { // TODO should be topIn?
+    if (resHeadAtoms[ires] != -1)
+      mprintf("Warning: Unused head atom %s\n", topOut.AtomMaskName(resHeadAtoms[ires]).c_str());
+    if (resTailAtoms[ires] != -1)
+      mprintf("Warning: Unused tail atom %s\n", topOut.AtomMaskName(resTailAtoms[ires]).c_str());
+  }
 
   // DEBUG print residue bonding atoms
   for (std::vector<IParray>::const_iterator rit = resBondingAtoms.begin();
