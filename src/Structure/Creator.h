@@ -19,15 +19,17 @@ class Creator {
     ~Creator();
     /// Associated parameter keywords for InitCreator
     static const char* parm_keywords_;
-    /// Associated templtae keywords for InitCreator
+    /// Associated template keywords for InitCreator
     static const char* template_keywords_;
+    /// Other keywords for InitCreator
+    static const char* other_keywords_;
     /// Initialize the Creator
     int InitCreator(ArgList&, DataSetList const&, int);
 
     /// \return True if a parameter set is defined
     bool HasMainParmSet() const { return (mainParmSet_ != 0); }
     /// \return Main parm set
-    DataSet_Parameters const& MainParmSet() const { return *mainParmSet_; }
+    DataSet_Parameters const* MainParmSetPtr() const { return mainParmSet_; }
     /// \return True if there are templates
     bool HasTemplates() const { return (!Templates_.empty()); }
     /// Identify residue template from residue name

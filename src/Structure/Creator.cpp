@@ -1,4 +1,5 @@
 #include "Creator.h"
+#include "GenerateConnectivityArrays.h" // For setting atom scan direction
 #include "../ArgList.h"
 #include "../AssociatedData_ResId.h"
 #include "../CpptrajStdio.h"
@@ -25,10 +26,26 @@ const char* Creator::parm_keywords_ = "parmset <parameter setname>";
 
 const char* Creator::template_keywords_ = "lib <template setname>";
 
+const char* Creator::other_keywords_ = "atomscandir {f|b}";
+
 /** Initialize */
 int Creator::InitCreator(ArgList& argIn, DataSetList const& DSL, int debugIn)
 {
   debug_ = debugIn;
+
+  // Atom scan direction
+  std::string atomscandir = argIn.GetStringKey("atomscandir");
+  if (!atomscandir.empty()) {
+    if (atomscandir == "f")
+      Cpptraj::Structure::SetAtomScanDirection(Cpptraj::Structure::SCAN_ATOMS_FORWARDS);
+    else if (atomscandir == "b")
+      Cpptraj::Structure::SetAtomScanDirection(Cpptraj::Structure::SCAN_ATOMS_BACKWARDS);
+    else {
+      mprinterr("Error: Unrecognized keyword for 'atomscandir' : %s\n", atomscandir.c_str());
+      return 1;
+    }
+  }
+
   if (getTemplates(argIn, DSL)) return 1;
   if (getParameterSets(argIn, DSL)) return 1;
 
