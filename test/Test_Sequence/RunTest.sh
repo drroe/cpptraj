@@ -17,7 +17,7 @@ list
 sequence CAPS[MOC] A15[CNALA] name Mol
 crdout Mol Mol.mol2
 
-sequence libset A15 libset CAPS MOC CNALA name Mol2
+sequence MOC CNALA name Mol2
 crdout Mol2 Mol2.mol2
 
 crdout CAPS[MOC] MOC.mol2
