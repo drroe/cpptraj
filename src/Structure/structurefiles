@@ -3,6 +3,7 @@ STRUCTURE_SOURCES= \
   BuildAtom.cpp \
   Builder.cpp \
   Chirality.cpp \
+  Creator.cpp \
   Disulfide.cpp \
   FunctionalGroup.cpp \
   FxnGroupBuilder.cpp \
