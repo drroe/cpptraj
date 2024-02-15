@@ -12,8 +12,8 @@ class Zmatrix;
 class InternalCoords;
 /// Used to attach different topology/frame combos using internal coordinates
 class Builder {
-    typedef std::vector<bool> Barray;
   public:
+    typedef std::vector<bool> Barray;
     /// CONSTRUCTOR
     Builder();
     /// Set debug level

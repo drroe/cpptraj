@@ -3,7 +3,6 @@
 #include "DataSet_Parameters.h"
 #include "Structure/Builder.h"
 #include "Structure/GenerateConnectivityArrays.h"
-#include "Structure/Zmatrix.h"
 #include "Parm/GB_Params.h"
 #include "AssociatedData_ResId.h"
 #include "AssociatedData_Connect.h"
@@ -153,7 +152,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
 
   // -----------------------------------
   // hasPosition - for each atom in topOut, status on whether atom in frameOut needs building
-  Cpptraj::Structure::Zmatrix::Barray hasPosition;
+  Cpptraj::Structure::Builder::Barray hasPosition;
   hasPosition.reserve( newNatom );
 
   // Hold atom offsets needed when building residues
@@ -446,24 +445,14 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       }
       // Update internal coords from known positions
       if (structureBuilder.UpdateICsFromFrame( frameOut, topOut, hasPosition )) {
-        mprinterr("Error: Failed to update Zmatrix with values from existing positions.\n");
+        mprinterr("Error: Failed to update internals with values from existing positions.\n");
         return 1;
       }
-      // Convert to Zmatrix and assign missing atom positions
-      //Cpptraj::Structure::Zmatrix tmpz;
-      //tmpz.SetDebug( 1 ); // DEBUG
-      //if (structureBuilder.GetZmatrixFromInternals(tmpz, topOut)) {
-      //  mprinterr("Error: Could not get Zmatrix from internals.\n");
-      //  return 1;
-      //}
-      //if (tmpz.SetToFrame( frameOut, hasPosition )) {
       if (structureBuilder.BuildFromInternals(frameOut, topOut, hasPosition)) {
         mprinterr("Error: Building residue %s failed.\n",
                   topOut.TruncResNameOnumId(ires).c_str());
         buildFailed = true;
-      }// else
-       // resIsBuilt[ires] = true;
-      //delete structureBuilder;
+      }
     }
   } // END loop over atom offsets
 
