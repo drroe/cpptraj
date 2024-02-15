@@ -25,7 +25,20 @@ const char* Creator::keywords_ = "parmset <parameter set>";
 int Creator::InitCreator(ArgList& argIn, DataSetList const& DSL, int debugIn)
 {
   debug_ = debugIn;
-  // Get parameter sets.
+  if (getParameterSets(argIn, DSL)) return 1;
+
+  return 0;
+}
+
+/** Get parameter sets. */
+int Creator::getParameterSets(ArgList& argIn, DataSetList const& DSL) {
+  // Clear any existing set
+  if (mainParmSet_ != 0) {
+    if (free_parmset_mem_) delete mainParmSet_;
+  }
+  mainParmSet_ = 0;
+  free_parmset_mem_ = false;
+  // Look for parmset args
   typedef std::vector<DataSet_Parameters*> Parray;
   Parray ParamSets;
   std::string parmset = argIn.GetStringKey("parmset");
@@ -57,11 +70,7 @@ int Creator::InitCreator(ArgList& argIn, DataSetList const& DSL, int debugIn)
       mprintf("\t  %s\n", (*it)->legend());
 
     // Combine parameters if needed
-    if (mainParmSet_ != 0) {
-      if (free_parmset_mem_) delete mainParmSet_;
-    }
-    mainParmSet_ = 0;
-    free_parmset_mem_ = false;
+
     if (ParamSets.size() == 1)
       mainParmSet_ = ParamSets.front();
     else {

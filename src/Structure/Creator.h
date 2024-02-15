@@ -16,7 +16,13 @@ class Creator {
     static const char* keywords_;
     /// Initialize the Creator
     int InitCreator(ArgList&, DataSetList const&, int);
+
+    /// \return True if a parameter set is defined
+    bool HasMainParmSet() const { return (mainParmSet_ != 0); }
   private:
+    /// Get parameter sets
+    int getParameterSets(ArgList&, DataSetList const&);
+
     DataSet_Parameters* mainParmSet_; ///< Hold optional parameter set.
     int debug_;                       ///< Debug level
     bool free_parmset_mem_;           ///< True if main parm set is combined and should be freed
