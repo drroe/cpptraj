@@ -1,5 +1,6 @@
 #include "Creator.h"
 #include "../ArgList.h"
+#include "../AssociatedData_ResId.h"
 #include "../CpptrajStdio.h"
 #include "../DataSet_Coords.h" // TODO new coords type
 #include "../DataSet_Parameters.h"
@@ -32,6 +33,43 @@ int Creator::InitCreator(ArgList& argIn, DataSetList const& DSL, int debugIn)
   if (getParameterSets(argIn, DSL)) return 1;
 
   return 0;
+}
+
+/** Try to identify residue template DataSet from the given residue
+  * name (from e.g. the PDB/Mol2/etc file).
+  */
+DataSet_Coords* Creator::IdTemplateFromName(NameType const& rname,
+                                            TerminalType termType)
+const
+{
+  DataSet_Coords* out = 0;
+  if (termType != Cpptraj::Structure::NON_TERMINAL) {
+    // Looking for a terminal residue. Need to get sets with AssociatedData_ResId
+    for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it) {
+      AssociatedData* ad = (*it)->GetAssociatedData( AssociatedData::RESID );
+      if (ad != 0) {
+        AssociatedData_ResId const& resid = static_cast<AssociatedData_ResId const&>( *ad );
+        if (rname == resid.ResName() && termType == resid.TermType()) {
+          out = *it;
+          break;
+        }
+      }
+    }
+  }
+  if (out == 0) {
+    // Terminal residue not found or non-terminal residue.
+    if (termType != Cpptraj::Structure::NON_TERMINAL)
+      mprintf("Warning: No terminal residue found for '%s'\n", *rname);
+    // Assume Coords set aspect is what we need
+    for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it) {
+      if ( rname == NameType( (*it)->Meta().Aspect() ) ) {
+        out = *it;
+        break;
+      }
+    }
+  }
+
+  return out;
 }
 
 /** Get templates */

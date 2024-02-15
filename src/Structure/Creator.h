@@ -1,10 +1,12 @@
 #ifndef INC_STRUCTURE_CREATOR_H
 #define INC_STRUCTURE_CREATOR_H
 #include <vector>
+#include "StructureEnum.h" // TerminalType
 class ArgList;
 class DataSet_Coords;
 class DataSet_Parameters;
 class DataSetList;
+class NameType;
 namespace Cpptraj {
 namespace Structure {
 /// Used to create a system from individual units
@@ -28,6 +30,8 @@ class Creator {
     DataSet_Parameters const& MainParmSet() const { return *mainParmSet_; }
     /// \return True if there are templates
     bool HasTemplates() const { return (!Templates_.empty()); }
+    /// Identify residue template from residue name
+    DataSet_Coords* IdTemplateFromName(NameType const&, TerminalType) const;
   private:
     /// Get templates
     int getTemplates(ArgList&, DataSetList const&);
