@@ -28,6 +28,7 @@ const char* Creator::template_keywords_ = "lib <template setname>";
 int Creator::InitCreator(ArgList& argIn, DataSetList const& DSL, int debugIn)
 {
   debug_ = debugIn;
+  if (getTemplates(argIn, DSL)) return 1;
   if (getParameterSets(argIn, DSL)) return 1;
 
   return 0;
