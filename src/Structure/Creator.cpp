@@ -1,6 +1,7 @@
 #include "Creator.h"
 #include "../ArgList.h"
 #include "../CpptrajStdio.h"
+#include "../DataSet_Coords.h" // TODO new coords type
 #include "../DataSet_Parameters.h"
 #include "../DataSetList.h"
 
@@ -19,13 +20,57 @@ Creator::~Creator() {
     delete mainParmSet_;
 }
 
-const char* Creator::keywords_ = "parmset <parameter set>";
+const char* Creator::parm_keywords_ = "parmset <parameter setname>";
+
+const char* Creator::template_keywords_ = "lib <template setname>";
 
 /** Initialize */
 int Creator::InitCreator(ArgList& argIn, DataSetList const& DSL, int debugIn)
 {
   debug_ = debugIn;
   if (getParameterSets(argIn, DSL)) return 1;
+
+  return 0;
+}
+
+/** Get templates */
+int Creator::getTemplates(ArgList& argIn, DataSetList const& DSL) {
+  // Clear existing templates
+  Templates_.clear();
+  std::string lib = argIn.GetStringKey("lib");
+  if (lib.empty()) {
+    mprintf("\tNo template(s) specified with 'lib'; using any loaded templates.\n");
+    DataSetList sets = DSL.SelectGroupSets( "*", DataSet::COORDINATES ); // TODO specific set type for units?
+    for (DataSetList::const_iterator it = sets.begin(); it != sets.end(); ++it)
+    {
+      // Should only be a single residue FIXME need new set type
+      DataSet_Coords const& ds = static_cast<DataSet_Coords const&>( *(*it) );
+      if ( ds.Top().Nres() == 1 )
+        Templates_.push_back( (DataSet_Coords*)(*it) );
+    }
+  } else {
+    while (!lib.empty()) {
+      DataSetList sets = DSL.SelectGroupSets( lib, DataSet::COORDINATES ); // TODO specific set type for units?
+      if (sets.empty()) {
+        mprintf("Warning: No sets corresponding to '%s'\n", lib.c_str());
+      } else {
+        for (DataSetList::const_iterator it = sets.begin(); it != sets.end(); ++it)
+        {
+          // Should only be a single residue FIXME need new set type
+          //DataSet_Coords const& ds = static_cast<DataSet_Coords const&>( *(*it) );
+          //if ( ds.Top().Nres() == 1 )
+            Templates_.push_back( (DataSet_Coords*)(*it) );
+        }
+      }
+      lib = argIn.GetStringKey("lib");
+    }
+  }
+  if (!Templates_.empty()) {
+    mprintf("\t%zu residue templates found:", Templates_.size());
+    for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it)
+      mprintf(" %s", (*it)->legend());
+    mprintf("\n");
+  }
 
   return 0;
 }
