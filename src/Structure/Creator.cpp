@@ -52,11 +52,28 @@ int Creator::InitCreator(ArgList& argIn, DataSetList const& DSL, int debugIn)
   return 0;
 }
 
+/** Try to identify residue template DataSet from the given name;
+  * could be data set name or residue name.
+  */
+DataSet_Coords* Creator::IdTemplateFromName(std::string const& nameIn)
+const
+{
+  MetaData::SearchString search( nameIn );
+  for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it) {
+    if ((*it)->Meta().Match_WildCard(search)) {
+      return *it;
+    }
+  }
+  // No aspect. Convert to NameType TODO check for truncation
+  NameType rname( nameIn );
+  return IdTemplateFromResname( NameType(nameIn), Cpptraj::Structure::NON_TERMINAL );
+}
+
 /** Try to identify residue template DataSet from the given residue
   * name (from e.g. the PDB/Mol2/etc file).
   */
-DataSet_Coords* Creator::IdTemplateFromName(NameType const& rname,
-                                            TerminalType termType)
+DataSet_Coords* Creator::IdTemplateFromResname(NameType const& rname,
+                                              TerminalType termType)
 const
 {
   DataSet_Coords* out = 0;

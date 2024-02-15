@@ -1,6 +1,7 @@
 #ifndef INC_STRUCTURE_CREATOR_H
 #define INC_STRUCTURE_CREATOR_H
 #include <vector>
+#include <string>
 #include "StructureEnum.h" // TerminalType
 class ArgList;
 class DataSet_Coords;
@@ -32,8 +33,10 @@ class Creator {
     DataSet_Parameters const* MainParmSetPtr() const { return mainParmSet_; }
     /// \return True if there are templates
     bool HasTemplates() const { return (!Templates_.empty()); }
+    /// Identify residue template from name
+    DataSet_Coords* IdTemplateFromName(std::string const&) const;
     /// Identify residue template from residue name
-    DataSet_Coords* IdTemplateFromName(NameType const&, TerminalType) const;
+    DataSet_Coords* IdTemplateFromResname(NameType const&, TerminalType) const;
   private:
     /// Get templates
     int getTemplates(ArgList&, DataSetList const&);
