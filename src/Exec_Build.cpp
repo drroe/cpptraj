@@ -292,7 +292,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       mprintf("\n");
     }
   }
-  // Check inter-residue bonds
+  // Check detected inter-residue bonds
   std::vector<IParray> resBondingAtoms(topOut.Nres());
   for (ResAtArray::const_iterator it = interResBonds.begin(); it != interResBonds.end(); ++it)
   {
@@ -312,11 +312,13 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       mprinterr("Error: Atom %s not found in residue %i\n", *(ra1.second), ra1.first);
       return 1;
     }
-    // Save bonding atoms
+    // Save inter-residue bonding atoms; convention is atom belonging to
+    // the residue is first.
     resBondingAtoms[ra0.first].push_back( Ipair(at0, at1) );
     resBondingAtoms[ra1.first].push_back( Ipair(at1, at0) );
   }
-  // For each residue bonding atom pair, check that they match expected
+
+  // For each inter-residue bonding atom pair, check that they match expected
   // head/tail atoms.
   for (std::vector<IParray>::const_iterator rit = resBondingAtoms.begin();
                                             rit != resBondingAtoms.end(); ++rit)
@@ -346,7 +348,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     } // END loop over inter-residue bond pairs for this residue
   } // END loop over residues
 
-  // Mark used HEAD/TAIL atoms
+  // Mark used HEAD/TAIL atoms in existing inter-residue bonds.
   for (std::vector<IParray>::const_iterator rit = resBondingAtoms.begin();
                                             rit != resBondingAtoms.end(); ++rit)
   {
@@ -360,6 +362,22 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     }
   }
 
+  // Try to connect unused HEAD atoms to previous unused TAIL atoms
+  for (int ires = 1; ires < topOut.Nres(); ires++) {
+    int pres = ires - 1;
+    if (resHeadAtoms[ires] != -1) {
+      if (resTailAtoms[pres] != -1) {
+        mprintf("DEBUG: Connecting unused HEAD atom %s to unused tail atom %s\n",
+                topOut.AtomMaskName(resHeadAtoms[ires]).c_str(),
+                topOut.AtomMaskName(resTailAtoms[pres]).c_str());
+        resBondingAtoms[ires].push_back( Ipair(resHeadAtoms[ires], resTailAtoms[pres]) );
+        resBondingAtoms[pres].push_back( Ipair(resTailAtoms[pres], resHeadAtoms[ires]) );
+        resHeadAtoms[ires] = -1;
+        resTailAtoms[pres] = -1;
+      }
+    }
+  }
+
   // Report unused HEAD/TAIL atoms
   for (int ires = 0; ires != topOut.Nres(); ires++) { // TODO should be topIn?
     if (resHeadAtoms[ires] != -1)
@@ -368,7 +386,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       mprintf("Warning: Unused tail atom %s\n", topOut.AtomMaskName(resTailAtoms[ires]).c_str());
   }
 
-  // DEBUG print residue bonding atoms
+  // DEBUG print inter-residue bonding atoms
   for (std::vector<IParray>::const_iterator rit = resBondingAtoms.begin();
                                             rit != resBondingAtoms.end(); ++rit)
   {
