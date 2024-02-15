@@ -72,7 +72,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     }
     mprintf("DEBUG: Residue type: %s terminal\n", Cpptraj::Structure::terminalStr(resTermType));
     // Identify a template based on the residue name.
-    DataSet_Coords* resTemplate = creator.IdTemplateFromName(currentRes.Name(), resTermType);
+    DataSet_Coords* resTemplate = creator.IdTemplateFromResname(currentRes.Name(), resTermType);
     if (resTemplate == 0) {
       mprintf("Warning: No template found for residue %s\n", topIn.TruncResNameOnumId(ires).c_str());
       newNatom += currentRes.NumAtoms();

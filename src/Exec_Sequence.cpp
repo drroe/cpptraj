@@ -1,54 +1,28 @@
 #include "Exec_Sequence.h"
-#include "CpptrajStdio.h"
 #include "AssociatedData_Connect.h"
+#include "CpptrajStdio.h"
+#include "DataSet_Parameters.h" // For casting DataSet_Parameters to ParameterSet
 #include "Structure/Builder.h"
-#include "Structure/Zmatrix.h"
+#include "Structure/Creator.h"
 
 /** Generate and build the specified sequence. */
 int Exec_Sequence::generate_sequence(DataSet_Coords* OUT,
                                      DataSetList const& DSL,
                                      Sarray const& main_sequence,
-                                     Sarray const& LibSetNames)
+                                     Cpptraj::Structure::Creator const& creator)
 const
 {
   // First, get all units in order.
   typedef std::vector<DataSet_Coords*> Uarray;
   Uarray Units;
   Units.reserve( main_sequence.size() );
-//  typedef std::vector<int> Iarray;
-//  Iarray connectAt0, connectAt1;
-//  connectAt0.reserve( Units.size() );
-//  connectAt1.reserve( Units.size() );
+
   int total_natom = 0;
 
   for (Sarray::const_iterator it = main_sequence.begin(); it != main_sequence.end(); ++it)
   {
-    DataSet_Coords* unit = 0;
-    if (LibSetNames.empty()) {
-      // Look for name
-      unit = (DataSet_Coords*)DSL.FindSetOfGroup( *it, DataSet::COORDINATES ); // FIXME need new set type
-      if (unit == 0) {
-        // Look for *[name]
-        std::string searchStr("*[" + *it + "]");
-        unit = (DataSet_Coords*)DSL.FindSetOfGroup( searchStr, DataSet::COORDINATES ); // FIXME need new set type
-      }
-    } else {
-      // Look for name[aspect]
-      DataSet* ds = 0;
-      for (Sarray::const_iterator name = LibSetNames.begin(); name != LibSetNames.end(); ++name)
-      {
-        MetaData meta(*name, *it);
-        ds = DSL.CheckForSet( meta );
-        if (ds != 0) break;
-      }
-      if (ds != 0) {
-        if (ds->Group() != DataSet::COORDINATES) {
-          mprinterr("Error: Set '%s' is not of type Coordinates.\n", ds->legend());
-          return 1;
-        }
-        unit = (DataSet_Coords*)ds;
-      }
-    }
+    DataSet_Coords* unit = creator.IdTemplateFromName( *it );
+
     if (unit == 0) {
       mprinterr("Error: Unit '%s' not found.\n", it->c_str());
       return 1;
@@ -60,21 +34,6 @@ const
     if (unit->Size() > 1) {
       mprintf("Warning: Unit '%s' has more than 1 frame. Only using first frame.\n", unit->legend());
     }
-    // Needs to have connect associated data
-//    AssociatedData* ad = unit->GetAssociatedData(AssociatedData::CONNECT);
-//    if (ad == 0) {
-//      mprinterr("Error: Unit '%s' does not have CONNECT data.\n", unit->legend());
-//      return 1;
-//    }
-//    AssociatedData_Connect const& C = static_cast<AssociatedData_Connect const&>( *ad );
-//    if (C.NconnectAtoms() < 2) {
-//      mprinterr("Error: Not enough connect atoms in unit '%s'\n", unit->legend());
-//      return 1;
-//    }
-//    // Update connect atom 1 indices based on their position in the sequence.
-//    // Do not update connect atom 0 indices since they will not yet be connected.
-//    connectAt0.push_back( C.Connect()[0] );
-//    connectAt1.push_back( C.Connect()[1] + total_natom );
     Units.push_back( unit );
     total_natom += unit->Top().Natom();
   } // END loop over sequence
@@ -94,7 +53,7 @@ const
   frameOut.ClearAtoms();
 
   // hasPosition - for each atom in topOut, status on whether atom in frameOut needs building
-  Cpptraj::Structure::Zmatrix::Barray hasPosition;
+  Cpptraj::Structure::Builder::Barray hasPosition;
   hasPosition.reserve( total_natom );
 
   // Hold atom offsets needed when building residues
@@ -190,7 +149,8 @@ const
       // Residue has atom offset which indicates it needs something built.
       Cpptraj::Structure::Builder structureBuilder;// = new Cpptraj::Structure::Builder();
       structureBuilder.SetDebug( 1 ); // DEBUG FIXME
-      //structureBuilder->SetParameters( &mainParmSet ); TODO import parameters?
+      if (creator.HasMainParmSet())
+        structureBuilder.SetParameters( creator.MainParmSetPtr() );
       // Generate internals from the template, update indices to this topology.
       DataSet_Coords* unit = Units[ires];
       Frame unitFrm = unit->AllocateFrame();
@@ -312,26 +272,20 @@ void Exec_Sequence::Help() const
 Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
 {
   debug_ = State.Debug();
-  // Atom scan direction TODO add to help
-/*    Cpptraj::Structure::SetAtomScanDirection(Cpptraj::Structure::SCAN_ATOMS_FORWARDS);
-  std::string atomscandir = argIn.GetStringKey("atomscandir");
-  if (!atomscandir.empty()) {
-    if (atomscandir == "f")
-      Cpptraj::Structure::SetAtomScanDirection(Cpptraj::Structure::SCAN_ATOMS_FORWARDS);
-    else if (atomscandir == "b")
-      Cpptraj::Structure::SetAtomScanDirection(Cpptraj::Structure::SCAN_ATOMS_BACKWARDS);
-    else {
-      mprinterr("Error: Unrecognized keyword for 'atomscandir' : %s\n", atomscandir.c_str());
-      return CpptrajState::ERR;
-    }
-  }*/
+
   // Args
+  Cpptraj::Structure::Creator creator;
+  if (creator.InitCreator(argIn, State.DSL(), debug_)) {
+    return CpptrajState::ERR;
+  }
+
+/*
   Sarray LibSetNames;
   std::string libsetname = argIn.GetStringKey("libset");
   while (!libsetname.empty()) {
     LibSetNames.push_back( libsetname );
     libsetname = argIn.GetStringKey("libset");
-  }
+  } */
   std::string dsname = argIn.GetStringKey("name");
   if (dsname.empty()) {
     mprinterr("Error: No output set name specified with 'name'\n");
@@ -357,12 +311,12 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // Info
-  if (!LibSetNames.empty()) {
+/*  if (!LibSetNames.empty()) {
     mprintf("\tLibrary set names:");
     for (Sarray::const_iterator it = LibSetNames.begin(); it != LibSetNames.end(); ++it)
       mprintf(" %s", it->c_str());
     mprintf("\n");
-  }
+  }*/
   mprintf("\tMain sequence:");
   for (Sarray::const_iterator it = main_sequence.begin(); it != main_sequence.end(); ++it)
     mprintf(" %s", it->c_str());
@@ -370,7 +324,7 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
   mprintf("\tOutput set name : %s\n", OUT->legend());
 
   // Execute
-  if (generate_sequence(OUT, State.DSL(), main_sequence, LibSetNames)) {
+  if (generate_sequence(OUT, State.DSL(), main_sequence, creator)) {
     mprinterr("Error: Could not generate sequence.\n");
     return CpptrajState::ERR;
   }
