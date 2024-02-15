@@ -19,6 +19,8 @@ class Creator {
 
     /// \return True if a parameter set is defined
     bool HasMainParmSet() const { return (mainParmSet_ != 0); }
+    /// \return Main parm set
+    DataSet_Parameters const& MainParmSet() const { return *mainParmSet_; }
   private:
     /// Get parameter sets
     int getParameterSets(ArgList&, DataSetList const&);

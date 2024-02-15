@@ -15,7 +15,7 @@ Creator::Creator() :
 
 /** DESTRUCTOR */
 Creator::~Creator() {
-  if (mainParmSet_ != 0)
+  if (mainParmSet_ != 0 && free_parmset_mem_)
     delete mainParmSet_;
 }
 

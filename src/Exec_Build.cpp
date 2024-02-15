@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_Parameters.h"
 #include "Structure/Builder.h"
+#include "Structure/Creator.h"
 #include "Structure/GenerateConnectivityArrays.h"
 #include "Parm/GB_Params.h"
 #include "AssociatedData_ResId.h"
@@ -609,6 +610,15 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // Get parameter sets.
+  Cpptraj::Structure::Creator creator;
+  if (creator.InitCreator(argIn, State.DSL(), State.Debug())) {
+    return CpptrajState::ERR;
+  }
+  if (!creator.HasMainParmSet()) {
+    mprinterr("Error: No parameter sets.\n");
+    return CpptrajState::ERR;
+  }
+/*
   typedef std::vector<DataSet_Parameters*> Parray;
   Parray ParamSets;
   std::string parmset = argIn.GetStringKey("parmset");
@@ -652,12 +662,12 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     ParameterSet::UpdateCount UC;
     for (; it != ParamSets.end(); ++it)
       mainParmSet->UpdateParamSet( *(*it), UC, State.Debug(), State.Debug() ); // FIXME verbose
-  }
+  }*/
 
   // Fill in atoms with templates
   Topology topOut;
   Frame frameOut;
-  if (FillAtomsWithTemplates(topOut, frameOut, Templates, topIn, frameIn, *mainParmSet)) {
+  if (FillAtomsWithTemplates(topOut, frameOut, Templates, topIn, frameIn, creator.MainParmSet())) {
     mprinterr("Error: Could not fill in atoms using templates.\n");
     return CpptrajState::ERR;
   }
@@ -666,7 +676,7 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   // Assign parameters. This will create the bond/angle/dihedral/improper
   // arrays as well.
   Exec::RetType ret = CpptrajState::OK;
-  if ( topOut.AssignParams( *mainParmSet  ) ) {
+  if ( topOut.AssignParams( creator.MainParmSet()  ) ) {
     mprinterr("Error: Could not assign parameters for '%s'.\n", topOut.c_str());
     ret = CpptrajState::ERR;
   }
@@ -680,7 +690,7 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   topOut.AllocJoinArray();
   topOut.AllocRotateArray();
 
-  if (free_parmset_mem && mainParmSet != 0) delete mainParmSet;
+  //if (free_parmset_mem && mainParmSet != 0) delete mainParmSet;
 
   // Update coords 
   if (crdout.CoordsSetup( topOut, CoordinateInfo() )) { // FIXME better coordinate info
