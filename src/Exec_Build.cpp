@@ -459,9 +459,13 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
 void Exec_Build::Help() const
 {
   mprintf("\tname <output COORDS> crdset <COORDS set> [frame <#>]\n"
-          "\t[parmset <param set> ...] [lib <lib set> ...]\n"
-          "\t[atomscandir {f|b}]\n"
-         );
+          "\t[%s]\n"
+          "\t[{%s} ...]\n"
+          "\t[{%s} ...]\n"
+          "  Build complete topology and parameters from given crdset.\n",
+          Cpptraj::Structure::Creator::other_keywords_,
+          Cpptraj::Structure::Creator::template_keywords_,
+          Cpptraj::Structure::Creator::parm_keywords_);
 }
 
 // Exec_Build::Execute()

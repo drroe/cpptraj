@@ -263,8 +263,13 @@ const
 void Exec_Sequence::Help() const
 {
   mprintf("\tname <output set name> <unit0> <unit1> ...\n"
-          "\t[{libset <libsetname>} ...]\n"
-          "  Create a molecule from a sequence of units.\n");
+          "\t[%s]\n"
+          "\t[{%s} ...]\n"
+          "\t[{%s} ...]\n"
+          "  Create a molecule from a sequence of units.\n",
+          Cpptraj::Structure::Creator::other_keywords_,
+          Cpptraj::Structure::Creator::template_keywords_,
+          Cpptraj::Structure::Creator::parm_keywords_);
 }
 
 
