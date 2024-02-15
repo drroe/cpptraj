@@ -1,49 +1,10 @@
 #include "Exec_Build.h"
+#include "AssociatedData_Connect.h"
 #include "CpptrajStdio.h"
-#include "DataSet_Parameters.h"
+#include "DataSet_Parameters.h" // For casting DataSet_Parameters to ParameterSet
+#include "Parm/GB_Params.h"
 #include "Structure/Builder.h"
 #include "Structure/Creator.h"
-#include "Structure/GenerateConnectivityArrays.h"
-#include "Parm/GB_Params.h"
-#include "AssociatedData_ResId.h"
-#include "AssociatedData_Connect.h"
-
-/** Try to identify residue template DataSet from the given residue
-  * name (from e.g. the PDB/Mol2/etc file).
-  */
-DataSet_Coords* Exec_Build::IdTemplateFromName(Carray const& Templates,
-                                               NameType const& rname,
-                                               Cpptraj::Structure::TerminalType termType)
-{
-  DataSet_Coords* out = 0;
-  if (termType != Cpptraj::Structure::NON_TERMINAL) {
-    // Looking for a terminal residue. Need to get sets with AssociatedData_ResId
-    for (Carray::const_iterator it = Templates.begin(); it != Templates.end(); ++it) {
-      AssociatedData* ad = (*it)->GetAssociatedData( AssociatedData::RESID );
-      if (ad != 0) {
-        AssociatedData_ResId const& resid = static_cast<AssociatedData_ResId const&>( *ad );
-        if (rname == resid.ResName() && termType == resid.TermType()) {
-          out = *it;
-          break;
-        }
-      }
-    }
-  }
-  if (out == 0) {
-    // Terminal residue not found or non-terminal residue.
-    if (termType != Cpptraj::Structure::NON_TERMINAL)
-      mprintf("Warning: No terminal residue found for '%s'\n", *rname);
-    // Assume Coords set aspect is what we need
-    for (Carray::const_iterator it = Templates.begin(); it != Templates.end(); ++it) {
-      if ( rname == NameType( (*it)->Meta().Aspect() ) ) {
-        out = *it;
-        break;
-      }
-    }
-  }
-
-  return out;
-}
 
 /** Map atoms in residue to template. */
 std::vector<int> Exec_Build::MapAtomsToTemplate(Topology const& topIn,
@@ -71,9 +32,8 @@ std::vector<int> Exec_Build::MapAtomsToTemplate(Topology const& topIn,
 
 /** Use given templates to construct a final molecule. */
 int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
-                                       Carray const& Templates,
                                        Topology const& topIn, Frame const& frameIn,
-                                       ParameterSet const& mainParmSet)
+                                       Cpptraj::Structure::Creator const& creator)
 {
   // Array of head/tail connect atoms for each residue
   typedef std::vector<int> Iarray;
@@ -112,7 +72,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     }
     mprintf("DEBUG: Residue type: %s terminal\n", Cpptraj::Structure::terminalStr(resTermType));
     // Identify a template based on the residue name.
-    DataSet_Coords* resTemplate = IdTemplateFromName(Templates, currentRes.Name(), resTermType);
+    DataSet_Coords* resTemplate = creator.IdTemplateFromName(currentRes.Name(), resTermType);
     if (resTemplate == 0) {
       mprintf("Warning: No template found for residue %s\n", topIn.TruncResNameOnumId(ires).c_str());
       newNatom += currentRes.NumAtoms();
@@ -426,7 +386,8 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       // Residue has atom offset which indicates it needs something built.
       Cpptraj::Structure::Builder structureBuilder;// = new Cpptraj::Structure::Builder();
       structureBuilder.SetDebug( 1 ); // DEBUG FIXME
-      structureBuilder.SetParameters( &mainParmSet );
+      if (creator.HasMainParmSet())
+        structureBuilder.SetParameters( creator.MainParmSetPtr() );
       // Generate internals from the template, update indices to this topology.
       DataSet_Coords* resTemplate = ResTemplates[ires];
       Frame templateFrame = resTemplate->AllocateFrame();
@@ -506,7 +467,7 @@ void Exec_Build::Help() const
 // Exec_Build::Execute()
 Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
 {
-  // Atom scan direction
+/*  // Atom scan direction
   std::string atomscandir = argIn.GetStringKey("atomscandir");
   if (!atomscandir.empty()) {
     if (atomscandir == "f")
@@ -517,7 +478,7 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
       mprinterr("Error: Unrecognized keyword for 'atomscandir' : %s\n", atomscandir.c_str());
       return CpptrajState::ERR;
     }
-  }
+  }*/
   // Get input coords
   std::string crdset = argIn.GetStringKey("crdset");
   if (crdset.empty()) {
@@ -570,8 +531,7 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   }
   mprintf("\tGB radii set: %s\n", Cpptraj::Parm::GbTypeStr(gbradii).c_str());
 
-  // Get residue templates.
-  Carray Templates;
+/*  Carray Templates;
   std::string lib = argIn.GetStringKey("lib");
   if (lib.empty()) {
     mprintf("\tNo template(s) specified with 'lib'; using any loaded templates.\n");
@@ -607,12 +567,15 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     for (std::vector<DataSet_Coords*>::const_iterator it = Templates.begin(); it != Templates.end(); ++it)
       mprintf(" %s", (*it)->legend());
     mprintf("\n");
-  }
+  }*/
 
-  // Get parameter sets.
+  // Get templates and parameter sets.
   Cpptraj::Structure::Creator creator;
   if (creator.InitCreator(argIn, State.DSL(), State.Debug())) {
     return CpptrajState::ERR;
+  }
+  if (!creator.HasTemplates()) {
+    mprintf("Warning: No residue templates loaded.\n");
   }
   if (!creator.HasMainParmSet()) {
     mprinterr("Error: No parameter sets.\n");
@@ -667,7 +630,7 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   // Fill in atoms with templates
   Topology topOut;
   Frame frameOut;
-  if (FillAtomsWithTemplates(topOut, frameOut, Templates, topIn, frameIn, creator.MainParmSet())) {
+  if (FillAtomsWithTemplates(topOut, frameOut, topIn, frameIn, creator)) {
     mprinterr("Error: Could not fill in atoms using templates.\n");
     return CpptrajState::ERR;
   }
@@ -676,7 +639,7 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   // Assign parameters. This will create the bond/angle/dihedral/improper
   // arrays as well.
   Exec::RetType ret = CpptrajState::OK;
-  if ( topOut.AssignParams( creator.MainParmSet()  ) ) {
+  if ( topOut.AssignParams( *(creator.MainParmSetPtr())  ) ) {
     mprinterr("Error: Could not assign parameters for '%s'.\n", topOut.c_str());
     ret = CpptrajState::ERR;
   }
