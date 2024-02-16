@@ -1156,8 +1156,8 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
   }
   static const char* hstr[] = { "SP1", "SP2", "SP3", "Unknown" };
   mprintf("DEBUG: assignTorsionsAroundBond: AX= %s (%s)  AY= %s (%s), aAtomIdx= %i",
-          topIn.AtomMaskName(ax).c_str(), hstr[Hx],
-          topIn.AtomMaskName(ay).c_str(), hstr[Hy], aAtomIdx+1);
+          *(topIn[ax].Name()), hstr[Hx],
+          *(topIn[ay].Name()), hstr[Hy], aAtomIdx+1);
   if (aAtomIdx != -1) mprintf(" %s", topIn.AtomMaskName(aAtomIdx).c_str()); // DEBUG
   mprintf("\n"); // DEBUG
   TorsionModel mT;
@@ -1358,6 +1358,7 @@ int Builder::GenerateInternals(Frame const& frameIn, Topology const& topIn, Barr
   // Loop over bonds to determine torsions.
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
   {
+    if (topIn[bnd->A1()].Nbonds() > 1 && topIn[bnd->A2()].Nbonds() > 1) mprintf("Building torsion INTERNALs around: %s - %s\n", topIn.LeapName(bnd->A1()).c_str(), topIn.LeapName(bnd->A2()).c_str()); // DEBUG
     if (assignTorsionsAroundBond( bnd->A1(), bnd->A2(), frameIn, topIn, hasPosition, -1 )) {
       mprinterr("Error Assign torsions around bond %s - %s failed.\n",
                 topIn.AtomMaskName(bnd->A1()).c_str(),
@@ -1536,13 +1537,6 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
       return 1;
     }
   }
-  // Create torsions around the link
-  //if (assignTorsionsAroundBond( zmatrix, at0, at1, frameIn, topIn, hasPosition )) {
-  //  mprinterr("Error Assign torsions around link %s - %s failed.\n",
-  //            topIn.AtomMaskName(at0).c_str(),
-  //            topIn.AtomMaskName(at1).c_str());
-  //  return 1;
-  //}
   // FIXME this is a hack to make certain we have all the angle/bond terms we need
   mprintf("DEBUG: LOOKING FOR MISSING ANGLE/BOND PARAMS.\n");
   for (Tarray::const_iterator dih = internalTorsions_.begin(); dih != internalTorsions_.end(); ++dih)

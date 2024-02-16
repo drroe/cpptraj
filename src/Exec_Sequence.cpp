@@ -101,7 +101,8 @@ const
       for (Atom::bond_iterator bat = sourceAtom.bondbegin(); bat != sourceAtom.bondend(); ++bat) {
         int at1 = *bat + atomOffset;
         if (at1 > at0) {
-          mprintf("Will add bond between %i and %i (original %i and %i)\n", at0+1, at1+1, itgt+1, *bat + 1);
+          if (debug_ > 1)
+            mprintf("Will add bond between %i and %i (original %i and %i)\n", at0+1, at1+1, itgt+1, *bat + 1);
           intraResBonds.push_back( Ipair(at0, at1) );
         }
       }
@@ -125,7 +126,8 @@ const
                   prevTailAtom+1, headAtom+1);
         return 1;
       }
-      mprintf("Will add bond between %i and %i\n", prevTailAtom+1, headAtom+1);
+      if (debug_ > 1)
+        mprintf("Will add bond between %i and %i\n", prevTailAtom+1, headAtom+1);
       // To preserve compat. with LEaP, make first atom the head atom.
       interResBonds.push_back( Ipair(headAtom, prevTailAtom) );
     } else
