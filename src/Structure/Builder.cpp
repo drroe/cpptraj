@@ -646,11 +646,12 @@ int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(Iarray const& 
     if (ml == outerAtoms.end())
       outerAtoms.push_back( MockAtom(ic.AtL()) );
   }
+# ifdef CPPTRAJ_DEBUG_BUILDER
   mprintf("DEBUG: Outer atoms:\n");
   for (Marray::const_iterator it = outerAtoms.begin(); it != outerAtoms.end(); ++it)
     mprintf("DEBUG:\t\t%i %4s (%i) {%f %f %f}\n", it->Idx()+1, topIn.AtomMaskName(it->Idx()).c_str(),
             (int)it->Known(), it->Pos()[0], it->Pos()[1], it->Pos()[2]);
-
+# endif
   // Loop through the known torsions looking for those that
   // have one position defined, then build coords for the
   // other atom and mark the torsion as used.
@@ -709,11 +710,15 @@ int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(Iarray const& 
     mprinterr("Error: There are %u torsions left over for mock coords.\n", used.size() - nused);
     return 1;
   }
-  // Update the outer atom positions for this torsion
+# ifdef CPPTRAJ_DEBUG_BUILDER
   mprintf("DEBUG: Final outer atoms:\n");
   for (Marray::const_iterator it = outerAtoms.begin(); it != outerAtoms.end(); ++it) {
     mprintf("DEBUG:\t\t%i %4s (%i) {%f %f %f}\n", it->Idx()+1, topIn.AtomMaskName(it->Idx()).c_str(),
             (int)it->Known(), it->Pos()[0], it->Pos()[1], it->Pos()[2]);
+  }
+# endif
+  // Update the outer atom positions for this torsion
+  for (Marray::const_iterator it = outerAtoms.begin(); it != outerAtoms.end(); ++it) {
     Marray::iterator itx = find_mock_atom(sorted_ax_, it->Idx());
     if (itx != sorted_ax_.end()) {
       itx->SetPos( it->Pos() );
