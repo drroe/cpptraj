@@ -183,18 +183,11 @@ const
         return 1;
       }
       // Update internal coords from known positions
-      if (structureBuilder.UpdateICsFromFrame( frameOut, topOut, hasPosition )) {
-        mprinterr("Error: Failed to update Zmatrix with values from existing positions.\n");
-        return 1;
-      }
-      // Convert to Zmatrix and assign missing atom positions
-      //Cpptraj::Structure::Zmatrix tmpz;
-      //tmpz.SetDebug( 1 ); // DEBUG
-      //if (structureBuilder.GetZmatrixFromInternals(tmpz, topOut)) {
-      //  mprinterr("Error: Could not get Zmatrix from internals.\n");
+      // NOTE: By defintion, there are no known positions.
+      //if (structureBuilder.UpdateICsFromFrame( frameOut, topOut, hasPosition )) {
+      //  mprinterr("Error: Failed to update Zmatrix with values from existing positions.\n");
       //  return 1;
       //}
-      //if (tmpz.SetToFrame( frameOut, hasPosition )) {
       if (structureBuilder.BuildFromInternals(frameOut, topOut, hasPosition)) {
         mprinterr("Error: Building residue %s failed.\n",
                   topOut.TruncResNameOnumId(ires).c_str());

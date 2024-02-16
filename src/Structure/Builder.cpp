@@ -1722,6 +1722,7 @@ const
               mprintf( "Angle   = %f\n", ic.Theta() );
               mprintf( "Bond    = %f\n", ic.Dist() );
               Vec3 posI = Zmatrix::AtomIposition(ic, frameOut);
+              mprintf( "ZMatrixAll:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
               frameOut.SetXYZ( ic.AtI(), posI );
               hasPosition[ ic.AtI() ] = true;
               nAtomsBuilt++;
