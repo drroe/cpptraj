@@ -116,7 +116,7 @@ const
       else if (*ptr == '}') {
         bracketCount--;
         if (bracketCount == 1) {
-          mprintf("DEBUG: addAtomTypes: %s\n", tmp.c_str());
+          if (debug_ > 0) mprintf("DEBUG: addAtomTypes: %s\n", tmp.c_str());
           ArgList aline( tmp );
           // Some entries (like LP and EP) are not required to have elements.
           // Set the hybridization index to 1 or 2.
@@ -198,7 +198,7 @@ const
       else if (*ptr == '}') {
         bracketCount--;
         if (bracketCount == 1) {
-          mprintf("DEBUG: addPdbResMap: %s\n", tmp.c_str());
+          if (debug_ > 0) mprintf("DEBUG: addPdbResMap: %s\n", tmp.c_str());
           ArgList aline( tmp );
           // 3 tokens: terminal type (0=beg 1=end), PDB name, unit name
           if (aline.Nargs() < 2 || aline.Nargs() > 3) {
@@ -394,9 +394,11 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
       DataSet_Coords& crd = static_cast<DataSet_Coords&>( *ds );
       AssociatedData_ResId resid( it->pdbName_, it->termType_ );
       crd.AssociateData( &resid );
-      mprintf("DEBUG: Found unit %s", crd.legend());
-      resid.Ainfo();
-      mprintf("\n");
+      if (debug_ > 0) {
+        mprintf("DEBUG: Found unit %s", crd.legend());
+        resid.Ainfo();
+        mprintf("\n");
+      }
     }
   }
 
