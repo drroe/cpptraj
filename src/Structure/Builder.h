@@ -27,7 +27,7 @@ class Builder {
     /// Generate internal coordinates in the same manner as LEaP
     int GenerateInternals(Frame const&, Topology const&, Barray const&);
     /// Generate internal coordinates around a link between residues in same manner as LEaP
-    int GenerateInternalsAroundLink(int, int, Frame const&, Topology const&, Barray const&);
+    int GenerateInternalsAroundLink(int, int, Frame const&, Topology const&, Barray const&, bool);
     /// Update existing indices with given offset
     void UpdateIndicesWithOffset(int);
 

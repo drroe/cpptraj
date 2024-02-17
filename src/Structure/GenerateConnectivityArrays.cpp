@@ -75,7 +75,10 @@ BondArray Cpptraj::Structure::GenerateBondArray(std::vector<Residue> const& resi
   return out;
 }
 
-/** Generate a spanning tree around two atoms in the same manner as LEaP. */ // FIXME at1 not strictly needed
+/** Generate a spanning tree around two atoms in the same manner as LEaP.
+  * If at1 is -1, get the full tree. Otherwise, just get the tree in 
+  * the direction of at0.
+  */
 std::vector<int> Cpptraj::Structure::GenerateSpanningTree(int at0, int at1, int targetDepth,
                                                           std::vector<Atom> const& atoms)
 {
@@ -95,7 +98,7 @@ std::vector<int> Cpptraj::Structure::GenerateSpanningTree(int at0, int at1, int 
     Atom const& currentAt = atoms[queue[idx]];
     for (Atom::bond_iterator bat = currentAt.bondbegin(); bat != currentAt.bondend(); ++bat)
     {
-      if (!atomSeen[*bat]) {
+      if (*bat != at1 && !atomSeen[*bat]) {
         out.push_back( *bat );
         atomSeen[*bat] = true;
         if (depth[idx] + 1 < targetDepth && atoms[*bat].Nbonds() > 1) {

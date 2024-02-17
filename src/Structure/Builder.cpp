@@ -551,12 +551,14 @@ int Cpptraj::Structure::Builder::TorsionModel::SetupTorsion(AtomType::Hybridizat
   // DEBUG
   Atom const& AX = topIn[atX_.Idx()];
   Atom const& AY = topIn[atY_.Idx()];
-  mprintf("Orientation around: %s = %f (chiX= %f)\n", *(AX.Name()), Xorientation_, chiX);
+  //mprintf("Orientation around: %s = %f (chiX= %f)\n", *(AX.Name()), Xorientation_, chiX);
+  mprintf("Orientation around: %s = %f\n", *(AX.Name()), Xorientation_);
   //for (Atom::bond_iterator bat = AX.bondbegin(); bat != AX.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
   //mprintf("}\n");
   for (Marray::const_iterator it = sorted_ax_.begin(); it != sorted_ax_.end(); ++it)
       mprintf("Atom %li: %s (%i) (build=%i)\n", it - sorted_ax_.begin(), *(topIn[it->Idx()].Name()), (int)it->Known(), (int)it->BuildInternals());
-  mprintf("Orientation around: %s = %f (chiY= %f)\n", *(AY.Name()), Yorientation_, chiY);
+  //mprintf("Orientation around: %s = %f (chiY= %f)\n", *(AY.Name()), Yorientation_, chiY);
+  mprintf("Orientation around: %s = %f\n", *(AY.Name()), Yorientation_);
   //for (Atom::bond_iterator bat = AY.bondbegin(); bat != AY.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
   //mprintf("}\n");
   for (Marray::const_iterator it = sorted_ay_.begin(); it != sorted_ay_.end(); ++it)
@@ -1110,7 +1112,7 @@ void Builder::createSp2Sp2Torsions(TorsionModel const& MT) {
   double dADOffset =         MT.Absolute() - Constants::PI ;
   double d180      =         Constants::PI + dADOffset     ;
   double d0        =                 dADOffset             ;
-  mprintf("In ModelCreateSp2Sp2Torsions, dAbsolute is %g, dADOffset= %g, d180= %g, d0= %g\n",
+  mprintf("In ModelCreateSp2Sp2Torsions, dAbsolute= %g, dADOffset= %g, d180= %g, d0= %g\n",
           MT.Absolute()*Constants::RADDEG,
           dADOffset * Constants::RADDEG,
           d180 * Constants::RADDEG,
@@ -1513,7 +1515,8 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
   */
 int Builder::GenerateInternalsAroundLink(int at0, int at1,
                                          Frame const& frameIn, Topology const& topIn,
-                                         Barray const& hasPosition)
+                                         Barray const& hasPosition,
+                                         bool fullTree)
 {
   mprintf("DEBUG: ----- Entering Builder::GenerateInternalsAroundLink. -----\n");
   mprintf("DEBUG: Link: %s to %s\n", topIn.AtomMaskName(at0).c_str(), topIn.AtomMaskName(at1).c_str());
@@ -1532,11 +1535,16 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
   for (int at = 0; at < R0.FirstAtom(); at++)
     tmpHasPosition[at] = true;
   // Create spanning tree across the link
-  std::vector<int> span_atoms = GenerateSpanningTree(at0, at1, 4, topIn.Atoms());
+  int actualAt1;
+  if (fullTree)
+    actualAt1 = -1;
+  else
+    actualAt1 = at1;
+  std::vector<int> span_atoms = GenerateSpanningTree(at0, actualAt1, 4, topIn.Atoms());
   for (std::vector<int>::const_iterator it = span_atoms.begin(); 
                                         it != span_atoms.end(); ++it)
   {
-    //mprintf("SPANNING TREE ATOM: %s\n", topIn.LeapName(*it).c_str());
+    mprintf("SPANNING TREE ATOM: %s\n", *(topIn[*it].Name()));
     if (generateAtomInternals(*it, frameIn, topIn, tmpHasPosition)) {
       mprinterr("Error: Could not generate internals for atom %s\n", topIn.AtomMaskName(*it).c_str());
       return 1;
@@ -1693,7 +1701,7 @@ const
       int atToBuildAround = -1;
       if (!hasPosition[at]) {
         // Position of atom is not known.
-        mprintf("BUILD: Position of %s is not known.\n", *(topIn[at].Name()));
+        //mprintf("BUILD: Position of %s is not known.\n", *(topIn[at].Name()));
         // Is this bonded to an atom with known position?
         for (Atom::bond_iterator bat = topIn[at].bondbegin(); bat != topIn[at].bondend(); ++bat) {
           if (hasPosition[*bat]) {
@@ -1703,7 +1711,7 @@ const
         }
       } else {
         // Position of atom is known.
-        mprintf("BUILD: Position of %s is known.\n", *(topIn[at].Name()));
+        //mprintf("BUILD: Position of %s is known.\n", *(topIn[at].Name()));
         atToBuildAround = at;
       }
       // Build unknown positions around known atom
