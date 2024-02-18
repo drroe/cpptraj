@@ -6,6 +6,7 @@ class Atom;
 class Topology;
 class Frame;
 class ParameterSet;
+class Residue;
 namespace Cpptraj {
 namespace Structure {
 class Zmatrix;
@@ -14,6 +15,11 @@ class InternalCoords;
 class Builder {
   public:
     typedef std::vector<bool> Barray;
+    /// Build type
+    enum BuildType {
+      BUILD = 0, ///< For cases where some external coordinates may already be known.
+      SEQUENCE   ///< For cases where no external coordinates are known.
+    };
     /// CONSTRUCTOR
     Builder();
     /// Set debug level
@@ -27,14 +33,16 @@ class Builder {
     /// Generate internal coordinates in the same manner as LEaP
     int GenerateInternals(Frame const&, Topology const&, Barray const&);
     /// Generate internal coordinates around a link between residues in same manner as LEaP
-    int GenerateInternalsAroundLink(int, int, Frame const&, Topology const&, Barray const&, bool);
+    int GenerateInternalsAroundLink(int, int, Frame const&, Topology const&, Barray const&, BuildType);
     /// Update existing indices with given offset
     void UpdateIndicesWithOffset(int);
 
     /// \return LEaP chirality value around given atom
     static double DetermineChiralityAroundAtom(int, Frame const&, Topology const&);
-    /// Build position from internals for any atom with unset position
+    /// Build position from internals for any atom with unset position; some positions may be known.
     int BuildFromInternals(Frame&, Topology const&, Barray&) const;
+    /// Build position from internals for any atom with unset position
+    int BuildSequenceFromInternals(Frame&, Topology const&, Barray&, int, int) const;
     /// \return Zmatrix from current internals
     //int GetZmatrixFromInternals(Zmatrix&, Topology const&) const;
     /// Adjust torsion around a bond so that atoms with longest 'depth' are trans
@@ -104,6 +112,10 @@ class Builder {
     void printAllInternalsForAtom(int, Topology const&, Barray const&) const;
     /// \\return index of atom with longest 'depth' bonded to a given atom (ignoring one bonded atom).
     static int get_depths_around_atom(int, int, Topology const&);
+    /// \return array containing all residues with atoms that need positions
+    std::vector<Residue> residuesThatNeedPositions(Topology const&, Barray const&) const;
+    /// Build externals for atoms in the given array using internals.
+    int buildExternalsForAtoms(Iarray const&, Frame&, Topology const&, Barray&) const;
 
     int debug_;
     ParameterSet const* params_;

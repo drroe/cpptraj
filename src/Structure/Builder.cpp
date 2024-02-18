@@ -603,7 +603,7 @@ int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(Iarray const& 
     return 1;
   }
   mprintf("=======  Started mock coords from: %s\n", topIn.LeapName(internalTorsionsIn[iaTorsions.front()].AtI()).c_str());
-
+  mprintf("========  %zu Torsions to build mock coords from:\n", iaTorsions.size());
   for (Iarray::const_iterator idx = iaTorsions.begin(); idx != iaTorsions.end(); ++idx) {
     InternalTorsion const& ic = internalTorsionsIn[*idx];
     mprintf("------- Known torsion: %s - %s - %s - %s  %f\n",
@@ -1385,7 +1385,10 @@ int Builder::GenerateInternals(Frame const& frameIn, Topology const& topIn, Barr
     buildBondInternal(bnd->A1(), bnd->A2(), frameIn, topIn, hasPosition);
   }
   // Chirality
-  for (int at = 0; at != topIn.Natom(); ++at) {
+  Iarray atomIdxs = GenerateAtomArray(topIn.Residues(), topIn.Atoms());
+  for (Iarray::const_iterator it = atomIdxs.begin(); it != atomIdxs.end(); ++it) {
+    int at = *it; // FIXME just use *it
+  //for (int at = 0; at != topIn.Natom(); ++at) {
     double dValue = 0;
     if (determineChirality(dValue, at, frameIn, topIn, hasPosition)) {
       mprintf("Got chirality from external coordinates\n" );
@@ -1516,7 +1519,7 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
 int Builder::GenerateInternalsAroundLink(int at0, int at1,
                                          Frame const& frameIn, Topology const& topIn,
                                          Barray const& hasPosition,
-                                         bool fullTree)
+                                         BuildType btype)
 {
   mprintf("DEBUG: ----- Entering Builder::GenerateInternalsAroundLink. -----\n");
   mprintf("DEBUG: Link: %s to %s\n", topIn.AtomMaskName(at0).c_str(), topIn.AtomMaskName(at1).c_str());
@@ -1536,13 +1539,14 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
     tmpHasPosition[at] = true;
   // Create spanning tree across the link
   int actualAt1;
-  if (fullTree)
+  if (btype == BUILD)
+    // Want the full tree
     actualAt1 = -1;
   else
+    // Only want the 'forward' tree
     actualAt1 = at1;
-  std::vector<int> span_atoms = GenerateSpanningTree(at0, actualAt1, 4, topIn.Atoms());
-  for (std::vector<int>::const_iterator it = span_atoms.begin(); 
-                                        it != span_atoms.end(); ++it)
+  Iarray span_atoms = GenerateSpanningTree(at0, actualAt1, 4, topIn.Atoms());
+  for (Iarray::const_iterator it = span_atoms.begin(); it != span_atoms.end(); ++it)
   {
     mprintf("SPANNING TREE ATOM: %s\n", *(topIn[*it].Name()));
     if (generateAtomInternals(*it, frameIn, topIn, tmpHasPosition)) {
@@ -1650,13 +1654,11 @@ int Builder::getIcFromInternals(InternalCoords& icOut, int at, Barray const& has
   return 0;
 }
 
-/** Build coordinates for any atom with an internal that does
-  * not have its position set.
-  */ 
-int Builder::BuildFromInternals(Frame& frameOut, Topology const& topIn, Barray& hasPosition)
+/** \return Array of residues with atoms that need positions. */
+std::vector<Residue> Builder::residuesThatNeedPositions(Topology const& topIn,
+                                                        Barray const& hasPosition)
 const
 {
-  // Create a list of residues that have atoms that need positions
   std::vector<Residue> residues;
   std::vector<int> Rnums;
   for (Tarray::const_iterator dih = internalTorsions_.begin();
@@ -1678,10 +1680,65 @@ const
       }
     }
   }
+  return residues;
+} 
+
+/** Build coordinates for any atom with an internal that does
+  * not have its position set. Use same atom order as leap sequence.
+  */
+int Builder::BuildSequenceFromInternals(Frame& frameOut, Topology const& topIn,
+                                        Barray& hasPosition, int at0, int at1)
+const
+{
+  // Create a list of residues that have atoms that need positions
+  //std::vector<Residue> residues = residuesThatNeedPositions(topIn, hasPosition);
+  Iarray atomIndices = GenerateSpanningTree(at0, at1, -1, topIn.Atoms());
+
+  return buildExternalsForAtoms( atomIndices, frameOut, topIn, hasPosition ); 
+  return 0;
+}
+
+/** Build coordinates for any atom with an internal that does
+  * not have its position set.
+  */ 
+int Builder::BuildFromInternals(Frame& frameOut, Topology const& topIn, Barray& hasPosition)
+const
+{
+  // Create a list of residues that have atoms that need positions
+  std::vector<Residue> residues = residuesThatNeedPositions(topIn, hasPosition);
+//  std::vector<int> Rnums;
+//  for (Tarray::const_iterator dih = internalTorsions_.begin();
+//                              dih != internalTorsions_.end(); ++dih)
+//  {
+//    if (!hasPosition[dih->AtI()]) {
+//      int rnum = topIn[dih->AtI()].ResNum();
+//      bool has_rnum = false;
+//      for (std::vector<int>::const_iterator it = Rnums.begin(); it != Rnums.end(); ++it) {
+//        if (*it == rnum) {
+//          has_rnum = true;
+//          break;
+//        }
+//      }
+//      if (!has_rnum) {
+//        mprintf("DEBUG: Need to build for residue %s\n", topIn.TruncResNameNum(rnum).c_str());
+//        residues.push_back( topIn.Res(rnum) );
+//        Rnums.push_back(rnum);
+//      }
+//    }
+//  }
   // Generate array over residue in same order that leap would do
-  std::vector<int> atomIndices = GenerateAtomArray(residues, topIn.Atoms());
+  Iarray atomIndices = GenerateAtomArray(residues, topIn.Atoms());
   residues.clear();
-  Rnums.clear();
+//  Rnums.clear();
+  return buildExternalsForAtoms( atomIndices, frameOut, topIn, hasPosition ); 
+}
+
+/** Build externals for atoms in the given array using internals. */
+int Builder::buildExternalsForAtoms(Iarray const& atomIndices,
+                                    Frame& frameOut, Topology const& topIn,
+                                    Barray& hasPosition)
+const
+{
   // Count how many atoms need their positions set
   unsigned int nAtomsThatNeedPositions = 0;
   for (std::vector<int>::const_iterator it = atomIndices.begin();
@@ -1724,7 +1781,7 @@ const
             // Find an internal coordinate.
             InternalCoords ic;
             if (getIcFromInternals(ic, *bat, hasPosition)) {
-              printAllInternalsForAtom(*bat, topIn, hasPosition); // DEBUG
+              //printAllInternalsForAtom(*bat, topIn, hasPosition); // DEBUG
 
               mprintf("Building atom %s using torsion/angle/bond\n", topIn.LeapName(*bat).c_str());
               mprintf("Using - %s - %s - %s\n",

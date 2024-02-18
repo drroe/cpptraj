@@ -414,7 +414,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
           topOut.AddBond(resBonds->first, resBonds->second);
           // Generate internals around the link
           if (structureBuilder.GenerateInternalsAroundLink(resBonds->first, resBonds->second,
-                                                            frameOut, topOut, hasPosition, true))
+                                                            frameOut, topOut, hasPosition, Cpptraj::Structure::Builder::BUILD))
           {
             mprinterr("Error: Assign torsions around inter-residue link %s - %s failed.\n",
                       topOut.AtomMaskName(resBonds->first).c_str(),

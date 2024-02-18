@@ -101,9 +101,16 @@ std::vector<int> Cpptraj::Structure::GenerateSpanningTree(int at0, int at1, int 
       if (*bat != at1 && !atomSeen[*bat]) {
         out.push_back( *bat );
         atomSeen[*bat] = true;
-        if (depth[idx] + 1 < targetDepth && atoms[*bat].Nbonds() > 1) {
-          queue.push_back( *bat );
-          depth.push_back( depth[idx]+1 );
+        if (targetDepth < 1) {
+          if (atoms[*bat].Nbonds() > 1) {
+            queue.push_back( *bat );
+            depth.push_back( depth[idx]+1 );
+          }
+        } else {
+          if (depth[idx] + 1 < targetDepth && atoms[*bat].Nbonds() > 1) {
+            queue.push_back( *bat );
+            depth.push_back( depth[idx]+1 );
+          }
         }
       }
     }

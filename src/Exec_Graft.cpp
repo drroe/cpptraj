@@ -468,7 +468,7 @@ const
   // Generate internals around the link
   if (structureBuilder.GenerateInternalsAroundLink( bondat1 + atomOffset,
                                                     bondat0,
-                                                    frameOut, topOut, hasPosition, false ) )
+                                                    frameOut, topOut, hasPosition, Cpptraj::Structure::Builder::SEQUENCE ) )
   {
     mprinterr("Error: Assign torsions around graft bond atoms %s - %s failed.\n",
               topOut.AtomMaskName(bondat1 + atomOffset).c_str(),

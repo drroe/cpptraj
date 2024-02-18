@@ -175,7 +175,7 @@ const
       topOut.AddBond( interResBonds[ires].first, interResBonds[ires].second );
       // Generate internals around the link
       if (structureBuilder.GenerateInternalsAroundLink(interResBonds[ires].first, interResBonds[ires].second,
-                                                        frameOut, topOut, hasPosition, false))
+                                                        frameOut, topOut, hasPosition, Cpptraj::Structure::Builder::SEQUENCE))
       {
         mprinterr("Error: Assign torsions around inter-unit link %s - %s failed.\n",
                   topOut.AtomMaskName(interResBonds[ires].first).c_str(),
@@ -188,7 +188,10 @@ const
       //  mprinterr("Error: Failed to update Zmatrix with values from existing positions.\n");
       //  return 1;
       //}
-      if (structureBuilder.BuildFromInternals(frameOut, topOut, hasPosition)) {
+      if (structureBuilder.BuildSequenceFromInternals(frameOut, topOut, hasPosition,
+                                                      interResBonds[ires].first,
+                                                      interResBonds[ires].second))
+      {
         mprinterr("Error: Building residue %s failed.\n",
                   topOut.TruncResNameOnumId(ires).c_str());
         buildFailed = true;
