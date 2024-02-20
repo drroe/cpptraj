@@ -55,10 +55,11 @@ const
     ParmHolder<BondParmType>::const_iterator it = params_->BP().GetParam( btypes );
     if (it != params_->BP().end()) {
       dist = it->second.Req();
-      mprintf("DEBUG: Found bond parameter for %s (%s) - %s (%s): req=%g rk=%g\n",
-              topIn.AtomMaskName(ai).c_str(), *(topIn[ai].Type()),
-              topIn.AtomMaskName(aj).c_str(), *(topIn[aj].Type()),
-              it->second.Req(), it->second.Rk());
+      if (debug_ > 1)
+        mprintf("DEBUG: Found bond parameter for %s (%s) - %s (%s): req=%g rk=%g\n",
+                topIn.AtomMaskName(ai).c_str(), *(topIn[ai].Type()),
+                topIn.AtomMaskName(aj).c_str(), *(topIn[aj].Type()),
+                it->second.Req(), it->second.Rk());
       return 1;
     }
   }
@@ -83,11 +84,12 @@ const
     ParmHolder<AngleParmType>::const_iterator it = params_->AP().GetParam( atypes );
     if (it != params_->AP().end()) {
       theta = it->second.Teq();
-      mprintf("DEBUG: Found angle parameter for %s (%s) - %s (%s) - %s (%s): teq=%g tk=%g\n",
-                topIn.AtomMaskName(ai).c_str(), *(topIn[ai].Type()),
-                topIn.AtomMaskName(aj).c_str(), *(topIn[aj].Type()),
-                topIn.AtomMaskName(ak).c_str(), *(topIn[ak].Type()),
-                it->second.Teq()*Constants::RADDEG, it->second.Tk());
+      if (debug_ > 1)
+        mprintf("DEBUG: Found angle parameter for %s (%s) - %s (%s) - %s (%s): teq=%g tk=%g\n",
+                  topIn.AtomMaskName(ai).c_str(), *(topIn[ai].Type()),
+                  topIn.AtomMaskName(aj).c_str(), *(topIn[aj].Type()),
+                  topIn.AtomMaskName(ak).c_str(), *(topIn[ak].Type()),
+                  it->second.Teq()*Constants::RADDEG, it->second.Tk());
       return 1;
     }
   }
@@ -1144,11 +1146,11 @@ void Builder::createSp2Sp2Torsions(TorsionModel const& MT) {
   double dADOffset =         MT.Absolute() - Constants::PI ;
   double d180      =         Constants::PI + dADOffset     ;
   double d0        =                 dADOffset             ;
-  mprintf("In ModelCreateSp2Sp2Torsions, dAbsolute= %g, dADOffset= %g, d180= %g, d0= %g\n",
-          MT.Absolute()*Constants::RADDEG,
-          dADOffset * Constants::RADDEG,
-          d180 * Constants::RADDEG,
-          d0 * Constants::RADDEG);
+  //mprintf("In ModelCreateSp2Sp2Torsions, dAbsolute= %g, dADOffset= %g, d180= %g, d0= %g\n",
+  //        MT.Absolute()*Constants::RADDEG,
+  //        dADOffset * Constants::RADDEG,
+  //        d180 * Constants::RADDEG,
+  //        d0 * Constants::RADDEG);
 
   ModelTorsion( MT, 0, 0, d180 );
   ModelTorsion( MT, 0, 1, d0 );
@@ -1467,10 +1469,11 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
     for (Atom::bond_iterator cat = AtB.bondbegin(); cat != AtB.bondend(); ++cat) {
       if (*cat != at) {
         Atom const& AtC = topIn[*cat];
-        mprintf("Building torsion INTERNALs for: %s  around: %s - %s\n",
-               topIn.LeapName(at).c_str(),
-               topIn.LeapName(*bat).c_str(),
-               topIn.LeapName(*cat).c_str());
+        if (debug_ > 1)
+          mprintf("Building torsion INTERNALs for: %s  around: %s - %s\n",
+                 topIn.LeapName(at).c_str(),
+                 topIn.LeapName(*bat).c_str(),
+                 topIn.LeapName(*cat).c_str());
         Iarray iTorsions = getExistingTorsionIdxs(*bat, *cat);
         int iShouldBe = (AtB.Nbonds() - 1) * (AtC.Nbonds() - 1);
 #       ifdef CPPTRAJ_DEBUG_BUILDER
@@ -1487,10 +1490,11 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
     Atom const& AtB = topIn[*bat];
     for (Atom::bond_iterator cat = AtB.bondbegin(); cat != AtB.bondend(); ++cat) {
       if (*cat != at) {
-        mprintf("Building angle INTERNAL for: %s - %s - %s\n",
-                topIn.LeapName(at).c_str(),
-                topIn.LeapName(*bat).c_str(),
-                topIn.LeapName(*cat).c_str());
+        if (debug_ > 1)
+          mprintf("Building angle INTERNAL for: %s - %s - %s\n",
+                  topIn.LeapName(at).c_str(),
+                  topIn.LeapName(*bat).c_str(),
+                  topIn.LeapName(*cat).c_str());
         int aidx = getExistingAngleIdx(at, *bat, *cat);
         if (aidx < 0) {
           double dValue = 0;
@@ -1498,55 +1502,60 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
               hasPosition[*bat] &&
               hasPosition[*cat])
           {
-            mprintf("Got bond angle from externals\n");
+            if (debug_ > 1) mprintf("Got bond angle from externals\n");
             dValue = CalcAngle(frameIn.XYZ(at), frameIn.XYZ(*bat), frameIn.XYZ(*cat));
           } else {
-            mprintf("Got bond angle from model builder\n");
+            if (debug_ > 1) mprintf("Got bond angle from model builder\n");
             dValue = ModelBondAngle(at, *bat, *cat, topIn);
           }
-          mprintf("++++Angle INTERNAL: %f  for %s - %s - %s\n", dValue*Constants::RADDEG,
-                  topIn.LeapName(at).c_str(),
-                  topIn.LeapName(*bat).c_str(),
-                  topIn.LeapName(*cat).c_str());
+          if (debug_ > 1)
+            mprintf("++++Angle INTERNAL: %f  for %s - %s - %s\n", dValue*Constants::RADDEG,
+                    topIn.LeapName(at).c_str(),
+                    topIn.LeapName(*bat).c_str(),
+                    topIn.LeapName(*cat).c_str());
           internalAngles_.push_back(InternalAngle(at, *bat, *cat, dValue));
         } else {
-          mprintf("Angle INTERNAL was already defined\n");
+          if (debug_ > 1) mprintf("Angle INTERNAL was already defined\n");
         }
       }
     } // END loop over atoms bonded to B
   } // END loop over atoms bonded to A
   // Bonds
   for (Atom::bond_iterator bat = AtA.bondbegin(); bat != AtA.bondend(); ++bat) {
-    mprintf("Building bond INTERNAL for: %s - %s\n",
-            topIn.LeapName(at).c_str(),
-            topIn.LeapName(*bat).c_str());
+    if (debug_ > 1)
+      mprintf("Building bond INTERNAL for: %s - %s\n",
+              topIn.LeapName(at).c_str(),
+              topIn.LeapName(*bat).c_str());
     int bidx = getExistingBondIdx(at, *bat);
     if (bidx < 0) {
       double dValue = 0;
       if (hasPosition[at] &&
           hasPosition[*bat])
       {
-        mprintf("Got bond length from externals\n");
+        if (debug_ > 1) mprintf("Got bond length from externals\n");
         dValue = sqrt(DIST2_NoImage(frameIn.XYZ(at), frameIn.XYZ(*bat)));
       } else {
-        mprintf("Got bond length from the model builder\n");
+        if (debug_ > 1) mprintf("Got bond length from the model builder\n");
         dValue = ModelBondLength(at, *bat, topIn);
       }
-      mprintf("++++Bond INTERNAL: %f  for %s - %s\n", dValue,
-              topIn.LeapName(at).c_str(),
-              topIn.LeapName(*bat).c_str());
+      if (debug_ > 1)
+        mprintf("++++Bond INTERNAL: %f  for %s - %s\n", dValue,
+                topIn.LeapName(at).c_str(),
+                topIn.LeapName(*bat).c_str());
       internalBonds_.push_back(InternalBond(at, *bat, dValue));
     } else {
-      mprintf( "Bond length INTERNAL already defined\n" );
+      if (debug_ > 1) mprintf( "Bond length INTERNAL already defined\n" );
     }
   } // END loop over atoms bonded to A
   // Chirality
   double dChi = 0;
   int cidx = getExistingChiralityIdx(at);
   if (determineChirality(dChi, at, frameIn, topIn, hasPosition)) {
-    mprintf("Got chirality from external coordinates\n" );
-    mprintf("++++Chirality INTERNAL: %f  for %s\n", dChi,
-              topIn.LeapName(at).c_str());
+    if (debug_ > 1) {
+      mprintf("Got chirality from external coordinates\n" );
+      mprintf("++++Chirality INTERNAL: %f  for %s\n", dChi,
+                topIn.LeapName(at).c_str());
+    }
     if (cidx == -1)
       internalChirality_.push_back( InternalChirality(at, dChi) );
     else {
@@ -1556,10 +1565,12 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
                 topIn.AtomMaskName(at).c_str(), dChi, internalChirality_[cidx].ChiralVal());
     }
   } else {
-    if (cidx == -1)
-      mprintf("Left chirality undefined for %s\n",topIn.LeapName(at).c_str() );
-    else
-      mprintf("Using already-defined chirality (%f).\n", internalChirality_[cidx].ChiralVal());
+    if (debug_ > 1) {
+      if (cidx == -1)
+        mprintf("Left chirality undefined for %s\n",topIn.LeapName(at).c_str() );
+      else
+        mprintf("Using already-defined chirality (%f).\n", internalChirality_[cidx].ChiralVal());
+    }
   }
 
   return 0;
