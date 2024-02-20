@@ -71,6 +71,7 @@ const
   for (unsigned int idx = 0; idx < Units.size(); idx++)
   {
     int atomOffset = topOut.Natom();
+    int resOffset = topOut.Nres();
     DataSet_Coords* unit = Units[idx];
     // Needs to have connect associated data
     AssociatedData* ad = unit->GetAssociatedData(AssociatedData::CONNECT);
@@ -86,16 +87,17 @@ const
     int headAtom = CONN.Connect()[0] + atomOffset;
     int tailAtom = CONN.Connect()[1] + atomOffset;
     mprintf("\tAdding atoms for unit %s (head %i tail %i)\n", unit->legend(), headAtom+1, tailAtom+1);
-    Residue const& currentRes = unit->Top().Res(0); // FIXME assuming 1 unit
-    mprintf("DEBUG: atom offset is %i\n", atomOffset);
+    //mprintf("DEBUG: atom offset is %i\n", atomOffset);
     // Add the unit atoms. Only the first unit has known position.
     bool atomPosKnown = (idx == 0);
-    Frame unitFrm = unit->AllocateFrame(); // FIXME only first res
+    Frame unitFrm = unit->AllocateFrame();
     unit->GetFrame(0, unitFrm);
     IParray intraResBonds;
     for (int itgt = 0; itgt < unit->Top().Natom(); itgt++)
     {
       Atom sourceAtom = unit->Top()[itgt];
+      Residue currentRes = unit->Top().Res( sourceAtom.ResNum() );
+      currentRes.SetOriginalNum( currentRes.OriginalResNum() + resOffset );
       // Save the intra-residue bonds
       int at0 = itgt + atomOffset;
       for (Atom::bond_iterator bat = sourceAtom.bondbegin(); bat != sourceAtom.bondend(); ++bat) {
