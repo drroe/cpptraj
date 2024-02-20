@@ -2847,16 +2847,18 @@ DihedralArray Topology::AssignDihedralParm(DihedralParmHolder const& newDihedral
           paramTypes = impit->first;
           ipa = impit->second;
           found = true;
-          mprintf("DEBUG: Found new value for improper %2s %2s %2s %2s (%2s %2s %2s %2s)\n",
-                  *types[0], *types[1], *types[2], *types[3],
-                  *paramTypes[0], *paramTypes[1], *paramTypes[2], *paramTypes[3]);
+          if (debug_ > 1)
+            mprintf("DEBUG: Found new value for improper %2s %2s %2s %2s (%2s %2s %2s %2s)\n",
+                    *types[0], *types[1], *types[2], *types[3],
+                    *paramTypes[0], *paramTypes[1], *paramTypes[2], *paramTypes[3]);
         }
       } else {
         paramTypes = impit->first;
         ipa = impit->second;
         found = true;
-        mprintf("DEBUG: Using cached value for improper %2s %2s %2s %2s (%2s %2s %2s %2s)\n",
-                *types[0], *types[1], *types[2], *types[3],
+        if (debug_ > 1)
+          mprintf("DEBUG: Using cached value for improper %2s %2s %2s %2s (%2s %2s %2s %2s)\n",
+                  *types[0], *types[1], *types[2], *types[3],
                   *paramTypes[0], *paramTypes[1], *paramTypes[2], *paramTypes[3]);
       }
       int idx = -1;
@@ -2895,7 +2897,7 @@ DihedralArray Topology::AssignDihedralParm(DihedralParmHolder const& newDihedral
         // Add to the cache
         if (is_new_improper) {
           // To match leap behavior, make sure paramTypes are sorted alphabetically.
-          mprintf("DEBUG: Improper wildcard: %s\n", *(newImproperParams.Wildcard()));
+          //mprintf("DEBUG: Improper wildcard: %s\n", *(newImproperParams.Wildcard()));
           if (sort_improper_cache) paramTypes.SortImproperByAlpha( newImproperParams.Wildcard() );
           improperCache.AddParm( paramTypes, ipa.front(), false );
         }
