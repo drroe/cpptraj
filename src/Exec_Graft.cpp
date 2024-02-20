@@ -383,7 +383,7 @@ const
     mprintf("\t%6i %s %s\n", at+1, mol1Top.AtomMaskName(at).c_str(), *(mol1Top.Res(mol1Top[at].ResNum()).Name()));
   mprintf("BOND ATOM 1 %i\n", bondat1+1);
 
-  // Combine topologies. TODO save original chiralities
+  // Combine topologies.
   Topology topOut;
   Frame frameOut;
   int total_natom = mol0Top.Natom() + mol1Top.Natom();
@@ -403,6 +403,7 @@ const
   topOut.SetParmBox( mol0frm.BoxCrd() );
   for (int at = 0; at < mol0Top.Natom(); at++) {
     Atom sourceAtom = mol0Top[at];
+    // Save the intra-residue bonds.
     for (Atom::bond_iterator bat = sourceAtom.bondbegin(); bat != sourceAtom.bondend(); ++bat) {
       if (*bat > at) {
         mprintf("Will add bond between %i and %i\n", at+1, *bat+1);
@@ -416,9 +417,13 @@ const
   }
   // Add mol1 atoms
   int atomOffset = mol0Top.Natom();
+  int resOffset = topOut.Nres();
   mprintf("DEBUG: Atom offset is %i\n", atomOffset);
   for (int itgt = 0; itgt < mol1Top.Natom(); itgt++) {
     Atom sourceAtom = mol1Top[itgt];
+    Residue currentRes = mol1Top.Res(sourceAtom.ResNum());
+    currentRes.SetOriginalNum( currentRes.OriginalResNum() + resOffset );
+    // Save the intra-residue bonds.
     int at0 = itgt + atomOffset;
     for (Atom::bond_iterator bat = sourceAtom.bondbegin(); bat != sourceAtom.bondend(); ++bat) {
       int at1 = *bat + atomOffset;
@@ -428,7 +433,7 @@ const
       }
     }
     sourceAtom.ClearBonds(); // FIXME AddTopAtom should clear bonds
-    topOut.AddTopAtom( sourceAtom, mol1Top.Res(mol1Top[itgt].ResNum()) );
+    topOut.AddTopAtom( sourceAtom, currentRes );
     frameOut.AddVec3( Vec3(mol1frm.XYZ(itgt)) );
     hasPosition.push_back( false );
   }
