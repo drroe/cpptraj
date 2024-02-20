@@ -1419,7 +1419,11 @@ int Builder::GenerateInternals(Frame const& frameIn, Topology const& topIn, Barr
   // Loop over bonds to determine torsions.
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
   {
-    if (topIn[bnd->A1()].Nbonds() > 1 && topIn[bnd->A2()].Nbonds() > 1) mprintf("Building torsion INTERNALs around: %s - %s\n", topIn.LeapName(bnd->A1()).c_str(), topIn.LeapName(bnd->A2()).c_str()); // DEBUG
+    if (debug_ > 0) {
+      if (topIn[bnd->A1()].Nbonds() > 1 && topIn[bnd->A2()].Nbonds() > 1)
+        mprintf("Building torsion INTERNALs around: %s - %s\n",
+                topIn.LeapName(bnd->A1()).c_str(), topIn.LeapName(bnd->A2()).c_str()); // DEBUG
+    }
     if (assignTorsionsAroundBond( bnd->A1(), bnd->A2(), frameIn, topIn, hasPosition, -1 )) {
       mprinterr("Error Assign torsions around bond %s - %s failed.\n",
                 topIn.AtomMaskName(bnd->A1()).c_str(),
@@ -1461,7 +1465,8 @@ int Builder::GenerateInternals(Frame const& frameIn, Topology const& topIn, Barr
 /** Build internal coordinates around an atom. */
 int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
 {
-  mprintf( "Building internals for: %s\n", topIn.LeapName(at).c_str());
+  if (debug_ > 0)
+    mprintf( "Building internals for: %s\n", topIn.LeapName(at).c_str());
   // Torsions
   Atom const& AtA = topIn[at];
   for (Atom::bond_iterator bat = AtA.bondbegin(); bat != AtA.bondend(); ++bat) {
