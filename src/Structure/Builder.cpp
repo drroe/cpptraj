@@ -1332,9 +1332,11 @@ int Builder::determineChirality(double& dChi, int at, Frame const& frameIn, Topo
   }
   // Only check atoms with 3 or 4 bonds
   Atom const& A0 = topIn[at];
+# ifdef CPPTRAJ_DEBUG_BUILDER
   mprintf("CHIRALITY CALCULATION FOR %s (nbonds= %i)\n", *(A0.Name()), A0.Nbonds());
   for (Atom::bond_iterator bat = A0.bondbegin(); bat != A0.bondend(); ++bat)
     mprintf("\tneighbor %s (id= %i) [%i]\n", *(topIn[*bat].Name()), *bat, (int)hasPosition[*bat]);
+# endif
   if ( A0.Nbonds() == 3 ||
        A0.Nbonds() == 4 )
   {
@@ -1348,12 +1350,12 @@ int Builder::determineChirality(double& dChi, int at, Frame const& frameIn, Topo
     bool knowB = (aAtomB != -1 && hasPosition[aAtomB]);
     bool knowC = (aAtomC != -1 && hasPosition[aAtomC]);
     bool knowD = (aAtomD != -1 && hasPosition[aAtomD]);
-
+#   ifdef CPPTRAJ_DEBUG_BUILDER
     if (knowA) mprintf("Chirality order A %s %i\n", *(topIn[aAtomA].Name()), aAtomA);
     if (knowB) mprintf("Chirality order B %s %i\n", *(topIn[aAtomB].Name()), aAtomB);
     if (knowC) mprintf("Chirality order C %s %i\n", *(topIn[aAtomC].Name()), aAtomC);
     if (knowD) mprintf("Chirality order D %s %i\n", *(topIn[aAtomD].Name()), aAtomD);
-
+#   endif
     Vec3 vPA, vPB, vPC, vPD;
     if (knowA) vPA = Vec3(frameIn.XYZ(aAtomA));
     if (knowB) vPB = Vec3(frameIn.XYZ(aAtomB));
@@ -1461,7 +1463,9 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
                topIn.LeapName(*cat).c_str());
         Iarray iTorsions = getExistingTorsionIdxs(*bat, *cat);
         int iShouldBe = (AtB.Nbonds() - 1) * (AtC.Nbonds() - 1);
+#       ifdef CPPTRAJ_DEBUG_BUILDER
         mprintf("ISHOULDBE= %i ITORSIONS= %zu\n", iShouldBe, iTorsions.size());
+#       endif
         if (iShouldBe != (int)iTorsions.size()) {
           assignTorsionsAroundBond(*bat, *cat, frameIn, topIn, hasPosition, at);
         }
