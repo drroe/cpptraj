@@ -191,7 +191,7 @@ int Builder::AdjustIcAroundLink(int at0, int at1, Frame const& frameIn, Topology
   */
 int Builder::UpdateICsFromFrame(Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
 {
-  // Create a list of residues that have atoms with internals 
+  // Create a list of residues that have atoms with internals TODO combine with residuesThatNeedPositions()?
   std::vector<Residue> residues;
   std::vector<int> Rnums;
   for (Tarray::const_iterator dih = internalTorsions_.begin();
@@ -206,7 +206,8 @@ int Builder::UpdateICsFromFrame(Frame const& frameIn, Topology const& topIn, Bar
       }
     }
     if (!has_rnum) {
-      mprintf("DEBUG: Residue %s has internals.\n", topIn.TruncResNameNum(rnum).c_str());
+      if (debug_ > 0)
+        mprintf("DEBUG: Residue %s has internals.\n", topIn.TruncResNameNum(rnum).c_str());
       residues.push_back( topIn.Res(rnum) );
       Rnums.push_back(rnum);
     }
@@ -214,55 +215,59 @@ int Builder::UpdateICsFromFrame(Frame const& frameIn, Topology const& topIn, Bar
   // Get list of bonds.
   BondArray myBonds = GenerateBondArray( residues, topIn.Atoms() );
   for (BondArray::const_iterator bnd = myBonds.begin(); bnd != myBonds.end(); ++bnd) {
-    //if (topIn[bnd->A1()].ResNum() == ires && topIn[bnd->A2()].ResNum() == ires) {
+    if (debug_ > 1)
       mprintf("Looking at torsions around: %s - %s\n", topIn.LeapName(bnd->A1()).c_str(), topIn.LeapName(bnd->A2()).c_str());
-      // Find all ICs that share atoms 1 and 2 (J and K)
-      bool needsUpdate = false;
-      double tDiff = 0;
-      Iarray iTorsions = getExistingTorsionIdxs(bnd->A1(), bnd->A2());
-      for (Iarray::const_iterator idx = iTorsions.begin(); idx != iTorsions.end(); ++idx)
+    // Find all ICs that share atoms 1 and 2 (J and K)
+    bool needsUpdate = false;
+    double tDiff = 0;
+    Iarray iTorsions = getExistingTorsionIdxs(bnd->A1(), bnd->A2());
+    for (Iarray::const_iterator idx = iTorsions.begin(); idx != iTorsions.end(); ++idx)
+    {
+      InternalTorsion const& dih = internalTorsions_[*idx];
+      if (hasPosition[dih.AtI()] &&
+          hasPosition[dih.AtJ()] &&
+          hasPosition[dih.AtK()] &&
+          hasPosition[dih.AtL()])
       {
-        InternalTorsion const& dih = internalTorsions_[*idx];
-        if (hasPosition[dih.AtI()] &&
-            hasPosition[dih.AtJ()] &&
-            hasPosition[dih.AtK()] &&
-            hasPosition[dih.AtL()])
-        {
+        if (debug_ > 1)
           mprintf("Measuring torsion of fixed atoms: %s - %s - %s - %s\n",
                   topIn.LeapName(dih.AtI()).c_str(),
                   topIn.LeapName(dih.AtJ()).c_str(),
                   topIn.LeapName(dih.AtK()).c_str(),
                   topIn.LeapName(dih.AtL()).c_str());
-          double dTorsion = Torsion(frameIn.XYZ(dih.AtI()),
-                                    frameIn.XYZ(dih.AtJ()),
-                                    frameIn.XYZ(dih.AtK()),
-                                    frameIn.XYZ(dih.AtL()));
-          double dInternalValue = dih.PhiVal();
-          tDiff = (dTorsion - dInternalValue);
+        double dTorsion = Torsion(frameIn.XYZ(dih.AtI()),
+                                  frameIn.XYZ(dih.AtJ()),
+                                  frameIn.XYZ(dih.AtK()),
+                                  frameIn.XYZ(dih.AtL()));
+        double dInternalValue = dih.PhiVal();
+        tDiff = (dTorsion - dInternalValue);
+        if (debug_ > 1)
           mprintf("\tdTorsion= %f  dInternalValue= %f\n", dTorsion, dInternalValue);
-          needsUpdate = true;
-        } // END all coords present
-      } // END loop over torsions matching current bond
-      // If any difference was found, shift all of the torsions
-      if (needsUpdate) {
+        needsUpdate = true;
+      } // END all coords present
+    } // END loop over torsions matching current bond
+    // If any difference was found, shift all of the torsions
+    if (needsUpdate) {
+      if (debug_ > 1)
         mprintf("Twisting torsions centered on %s - %s by %f degrees\n",
                 topIn.LeapName(bnd->A1()).c_str(),
                 topIn.LeapName(bnd->A2()).c_str(),
                 tDiff*Constants::RADDEG);
-        for (Iarray::const_iterator idx = iTorsions.begin(); idx != iTorsions.end(); ++idx)
-        {
-          InternalTorsion& dih = internalTorsions_[*idx];
-          double dNew = dih.PhiVal() + tDiff;
+      for (Iarray::const_iterator idx = iTorsions.begin(); idx != iTorsions.end(); ++idx)
+      {
+        InternalTorsion& dih = internalTorsions_[*idx];
+        double dNew = dih.PhiVal() + tDiff;
+        if (debug_ > 1) {
           mprintf("Twisting torsion for atoms: %s-%s-%s-%s\n",
                   *(topIn[dih.AtI()].Name()),
                   *(topIn[dih.AtJ()].Name()),
                   *(topIn[dih.AtK()].Name()),
                   *(topIn[dih.AtL()].Name()));
           mprintf("------- From %f to %f\n", dih.PhiVal()*Constants::RADDEG, dNew*Constants::RADDEG);
-          dih.SetPhiVal( dNew );
         }
-      } // END ICs need update
-    //} // END both bond atoms belong to this residue
+        dih.SetPhiVal( dNew );
+      }
+    } // END ICs need update
   } // END loop over bonds
   return 0;
 }
@@ -1025,14 +1030,16 @@ void Builder::ModelTorsion(TorsionModel const& MT, unsigned int iBondX, unsigned
   // Look for an existing internal
   int icIdx = getExistingTorsionIdx( aa, ax, ay, ad );
   if (icIdx < 0) {
-    mprintf("++++Torsion INTERNAL: %f to %s - %s - %s - %s\n", phiVal*Constants::RADDEG,
-            currentTop_->LeapName(aa).c_str(),
-            currentTop_->LeapName(ax).c_str(),
-            currentTop_->LeapName(ay).c_str(),
-            currentTop_->LeapName(ad).c_str());
+    if (debug_ > 1)
+      mprintf("++++Torsion INTERNAL: %f to %s - %s - %s - %s\n", phiVal*Constants::RADDEG,
+              currentTop_->LeapName(aa).c_str(),
+              currentTop_->LeapName(ax).c_str(),
+              currentTop_->LeapName(ay).c_str(),
+              currentTop_->LeapName(ad).c_str());
     internalTorsions_.push_back( InternalTorsion(aa, ax, ay, ad, phiVal) );
   } else {
-    mprintf( "Torsional INTERNAL already exists: %f\n", internalTorsions_[icIdx].PhiVal()*Constants::RADDEG );
+    if (debug_ > 1)
+      mprintf( "Torsional INTERNAL already exists: %f\n", internalTorsions_[icIdx].PhiVal()*Constants::RADDEG );
   }
 }
 
@@ -1295,10 +1302,11 @@ void Builder::buildAngleInternal(int a1, int a2, int a3, Frame const& frameIn, T
       dValue = ModelBondAngle( a1, a2, a3, topIn );
     }
     internalAngles_.push_back( InternalAngle(a1, a2, a3, dValue) );
-    mprintf("++++Angle INTERNAL: %f  for %s - %s - %s\n", dValue*Constants::RADDEG,
-            topIn.LeapName(a1).c_str(),
-            topIn.LeapName(a2).c_str(),
-            topIn.LeapName(a3).c_str());
+    if (debug_ > 1)
+      mprintf("++++Angle INTERNAL: %f  for %s - %s - %s\n", dValue*Constants::RADDEG,
+              topIn.LeapName(a1).c_str(),
+              topIn.LeapName(a2).c_str(),
+              topIn.LeapName(a3).c_str());
 }
 
 /** Build bond internal. */
@@ -1314,9 +1322,10 @@ void Builder::buildBondInternal(int a1, int a2, Frame const& frameIn, Topology c
       dValue = ModelBondLength( a1, a2, topIn );
     }
     internalBonds_.push_back( InternalBond(a1, a2, dValue) );
-    mprintf("++++Bond INTERNAL: %f  for %s - %s\n", dValue,
-            topIn.LeapName(a1).c_str(),
-            topIn.LeapName(a2).c_str());
+    if (debug_ > 1)
+      mprintf("++++Bond INTERNAL: %f  for %s - %s\n", dValue,
+              topIn.LeapName(a1).c_str(),
+              topIn.LeapName(a2).c_str());
 }
 
 
@@ -1430,17 +1439,18 @@ int Builder::GenerateInternals(Frame const& frameIn, Topology const& topIn, Barr
   // Chirality
   Iarray atomIdxs = GenerateAtomArray(topIn.Residues(), topIn.Atoms());
   for (Iarray::const_iterator it = atomIdxs.begin(); it != atomIdxs.end(); ++it) {
-    int at = *it; // FIXME just use *it
-  //for (int at = 0; at != topIn.Natom(); ++at) {
     double dValue = 0;
-    if (determineChirality(dValue, at, frameIn, topIn, hasPosition)) {
-      mprintf("Got chirality from external coordinates\n" );
-      mprintf("++++Chirality INTERNAL: %f  for %s\n", dValue,
-              topIn.LeapName(at).c_str());
+    if (determineChirality(dValue, *it, frameIn, topIn, hasPosition)) {
+      if (debug_ > 1) {
+        mprintf("Got chirality from external coordinates\n" );
+        mprintf("++++Chirality INTERNAL: %f  for %s\n", dValue,
+                topIn.LeapName(*it).c_str());
+      }
     } else {
-      mprintf("Left chirality undefined for %s\n",topIn.LeapName(at).c_str() );
+      if (debug_ > 1)
+        mprintf("Left chirality undefined for %s\n",topIn.LeapName(*it).c_str() );
     }
-    internalChirality_.push_back( InternalChirality(at, dValue) );
+    internalChirality_.push_back( InternalChirality(*it, dValue) );
   }
   mprintf("DEBUG: ----- Leaving Builder::GenerateInternals. ------\n");
   return 0;
