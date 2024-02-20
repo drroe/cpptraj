@@ -508,28 +508,6 @@ const
   // Add to output data set
   if (outCoords->CoordsSetup(topOut, frameOut.CoordsInfo())) return 1;
   outCoords->AddFrame( frameOut );
-/*
-  Topology combinedTop;
-  combinedTop.SetDebug( debug_ );
-  combinedTop.SetParmName( outCoords->Meta().Name(), FileName() );
-  combinedTop.AppendTop( mol0Top );
-  combinedTop.SetParmBox( mol0frm.BoxCrd() );
-  if (debug_ > 0)
-    combinedTop.Brief("Grafted parm:");
-
-  Frame CombinedFrame = mol0frm;
-  Builder builder;
-  builder.SetDebug( debug_ );
-  if (builder.Combine( combinedTop, CombinedFrame, mol1Top, mol1frm, bondat0, bondat1 )) {
-    mprinterr("Error: Fragment combine failed.\n");
-    return 1;
-  }
-
-  // Add topology to output COORDS set
-  if (outCoords->CoordsSetup(combinedTop, CombinedFrame.CoordsInfo())) return 1;
-
-  // Add frame to the output data set
-  outCoords->AddFrame( CombinedFrame );*/
 
   return 0;
 }
