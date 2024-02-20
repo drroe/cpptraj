@@ -116,8 +116,6 @@ class Builder {
     std::vector<Residue> residuesThatNeedPositions(Topology const&, Barray const&) const;
     /// Build XYZ coords for an atom if internals are available
     int buildCoordsForAtom(int, Frame&, Topology const&, Barray const&) const;
-    /// Build externals for atoms in the given array using internals.
-    int buildExternalsForAtoms(Iarray const&, Frame&, Topology const&, Barray&) const;
 
     int debug_;
     ParameterSet const* params_;

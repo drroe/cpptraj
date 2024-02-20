@@ -1658,7 +1658,7 @@ int Builder::getIcFromInternals(InternalCoords& icOut, int at, Barray const& has
   return 0;
 }
 
-/** \return Array of residues with atoms that need positions. */
+/** \return Array of residues with atoms that need positions. */ // TODO does this need to be separate
 std::vector<Residue> Builder::residuesThatNeedPositions(Topology const& topIn,
                                                         Barray const& hasPosition)
 const
@@ -1721,11 +1721,9 @@ int Builder::BuildSequenceFromInternals(Frame& frameOut, Topology const& topIn,
                                         Barray& hasPosition, int at0, int at1)
 const
 {
-  // Create a list of residues that have atoms that need positions
-  //std::vector<Residue> residues = residuesThatNeedPositions(topIn, hasPosition);
+  // Create a list of atoms that may need positions
   Iarray atomIndices = GenerateSpanningTree(at0, at1, -1, topIn.Atoms());
 
-//  return buildExternalsForAtoms( atomIndices, frameOut, topIn, hasPosition ); 
   // Count how many atoms need their positions set
   unsigned int nAtomsThatNeedPositions = 0;
   for (std::vector<int>::const_iterator it = atomIndices.begin();
@@ -1789,16 +1787,7 @@ const
   // Generate array over residue in same order that leap would do
   Iarray atomIndices = GenerateAtomArray(residues, topIn.Atoms());
   residues.clear();
-//  Rnums.clear();
-  return buildExternalsForAtoms( atomIndices, frameOut, topIn, hasPosition ); 
-}
 
-/** Build externals for atoms in the given array using internals. */
-int Builder::buildExternalsForAtoms(Iarray const& atomIndices,
-                                    Frame& frameOut, Topology const& topIn,
-                                    Barray& hasPosition)
-const
-{
   // Count how many atoms need their positions set
   unsigned int nAtomsThatNeedPositions = 0;
   for (std::vector<int>::const_iterator it = atomIndices.begin();
