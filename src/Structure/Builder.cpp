@@ -399,7 +399,7 @@ void Cpptraj::Structure::Builder::TorsionModel::swap_heaviest(Marray& bondedAtom
     }
   }
   // If highest weight atom not already in front, swap it there.
-  if (iPos != 0) swap_mock_atom( bondedAtoms[0], bondedAtoms[iPos] );
+  if (iHighest != 0) swap_mock_atom( bondedAtoms[0], bondedAtoms[iPos] );
 }
 
 /** Order atoms bonded to the given atom in a manner similar to LEaP's
@@ -423,14 +423,16 @@ std::vector<MockAtom>
       known_out.push_back( *it );
   firstUnknownIdx = known_out.size();
   swap_heaviest(known_out, topIn);
-  // Unknown atoms go at the back
+  // Unknown atoms go at the back.
+  // In order to match the way LEaP performs sifting, known atoms are
+  // added in order, but unknown atoms are added in reverse order.
   Marray unknown_out;
   unknown_out.reserve(bondedAtoms.size() - known_out.size() + 1);
-  for (Marray::const_iterator it = bondedAtoms.begin(); it != bondedAtoms.end(); ++it)
+  for (Marray::const_reverse_iterator it = bondedAtoms.rbegin(); it != bondedAtoms.rend(); ++it)
     if (!it->Known())
       unknown_out.push_back( *it );
   swap_heaviest(unknown_out, topIn);
-
+  // Append unknown array to known array and return
   for (Marray::const_iterator it = unknown_out.begin(); it != unknown_out.end(); ++it)
     known_out.push_back( *it );
 
@@ -552,15 +554,15 @@ int Cpptraj::Structure::Builder::TorsionModel::SetupTorsion(AtomType::Hybridizat
   Atom const& AX = topIn[atX_.Idx()];
   Atom const& AY = topIn[atY_.Idx()];
   //mprintf("Orientation around: %s = %f (chiX= %f)\n", *(AX.Name()), Xorientation_, chiX);
-  mprintf("Orientation around: %s = %f\n", *(AX.Name()), Xorientation_);
-  //for (Atom::bond_iterator bat = AX.bondbegin(); bat != AX.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
-  //mprintf("}\n");
+  mprintf("Orientation around: %s = %f {", *(AX.Name()), Xorientation_);
+  for (Atom::bond_iterator bat = AX.bondbegin(); bat != AX.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
+  mprintf("}\n");
   for (Marray::const_iterator it = sorted_ax_.begin(); it != sorted_ax_.end(); ++it)
       mprintf("Atom %li: %s (%i) (build=%i)\n", it - sorted_ax_.begin(), *(topIn[it->Idx()].Name()), (int)it->Known(), (int)it->BuildInternals());
   //mprintf("Orientation around: %s = %f (chiY= %f)\n", *(AY.Name()), Yorientation_, chiY);
-  mprintf("Orientation around: %s = %f\n", *(AY.Name()), Yorientation_);
-  //for (Atom::bond_iterator bat = AY.bondbegin(); bat != AY.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
-  //mprintf("}\n");
+  mprintf("Orientation around: %s = %f {", *(AY.Name()), Yorientation_);
+  for (Atom::bond_iterator bat = AY.bondbegin(); bat != AY.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
+  mprintf("}\n");
   for (Marray::const_iterator it = sorted_ay_.begin(); it != sorted_ay_.end(); ++it)
       mprintf("Atom %li: %s (%i) (build=%i)\n", it - sorted_ay_.begin(), *(topIn[it->Idx()].Name()), (int)it->Known(), (int)it->BuildInternals());
   // Calculate the actual torsion angle between A-X-Y-D
