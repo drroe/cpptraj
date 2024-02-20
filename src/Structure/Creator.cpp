@@ -140,9 +140,16 @@ int Creator::getTemplates(ArgList& argIn, DataSetList const& DSL) {
   }
   if (!Templates_.empty()) {
     mprintf("\t%zu residue templates found:", Templates_.size());
-    for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it)
+    for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it) {
       mprintf(" %s", (*it)->legend());
-    mprintf("\n");
+      AssociatedData* ad = (*it)->GetAssociatedData( AssociatedData::RESID );
+      if (ad != 0) {
+        AssociatedData_ResId const& resid = static_cast<AssociatedData_ResId const&>( *ad );
+        resid.Ainfo();
+      }
+      mprintf("\n");
+    }
+    //mprintf("\n");
   }
 
   return 0;
