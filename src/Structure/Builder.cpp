@@ -1696,7 +1696,7 @@ const
   // Find an internal coordinate for the atom.
   InternalCoords ic;
   if (getIcFromInternals(ic, at, hasPosition)) {
-    printAllInternalsForAtom(at, topIn, hasPosition); // DEBUG
+    //printAllInternalsForAtom(at, topIn, hasPosition); // DEBUG
 
     mprintf("Building atom %s using torsion/angle/bond\n", topIn.LeapName(at).c_str());
     mprintf("Using - %s - %s - %s\n",
@@ -1827,7 +1827,8 @@ const
         for (Atom::bond_iterator bat = bAtom.bondbegin(); bat != bAtom.bondend(); ++bat)
         {
           if (!hasPosition[*bat]) {
-            // Find an internal coordinate.
+            if (buildCoordsForAtom(*bat, frameOut, topIn, hasPosition)) {
+/*            // Find an internal coordinate.
             InternalCoords ic;
             if (getIcFromInternals(ic, *bat, hasPosition)) {
               printAllInternalsForAtom(*bat, topIn, hasPosition); // DEBUG
@@ -1842,8 +1843,8 @@ const
               mprintf( "Bond    = %f\n", ic.Dist() );
               Vec3 posI = Zmatrix::AtomIposition(ic, frameOut);
               mprintf( "ZMatrixAll:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
-              frameOut.SetXYZ( ic.AtI(), posI );
-              hasPosition[ ic.AtI() ] = true;
+              frameOut.SetXYZ( ic.AtI(), posI );*/
+              hasPosition[ *bat ] = true;
               nAtomsBuilt++;
               nAtomsThatNeedPositions--;
             }
