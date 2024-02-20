@@ -606,6 +606,7 @@ int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(Iarray const& 
     mprinterr("Internal Error: TorsionModel::BuildMockExternals() called with no internal torsions.\n");
     return 1;
   }
+# ifdef CPPTRAJ_DEBUG_BUILDER
   mprintf("=======  Started mock coords from: %s\n", topIn.LeapName(internalTorsionsIn[iaTorsions.front()].AtI()).c_str());
   mprintf("========  %zu Torsions to build mock coords from:\n", iaTorsions.size());
   for (Iarray::const_iterator idx = iaTorsions.begin(); idx != iaTorsions.end(); ++idx) {
@@ -617,7 +618,7 @@ int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(Iarray const& 
             topIn.LeapName(ic.AtL()).c_str(),
             ic.PhiVal()*Constants::RADDEG);
   }
-
+# endif
   // Define coordinates for the central atoms.
   //Vec3 posX(0, 0, 0);
   //Vec3 posY(1, 0, 0);
@@ -695,6 +696,7 @@ int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(Iarray const& 
         }
         if (tgt != outerAtoms.end()) {
           //gotOne = true;
+#         ifdef CPPTRAJ_DEBUG_BUILDER
           mprintf("======= Building mock coord for: %s\n", topIn.LeapName(tgt->Idx()).c_str());
           mprintf("======= Using torsion: %s - %s - %s - %s (p1known= %i, p4known= %i)\n",
                    topIn.LeapName(iInt.AtI()).c_str(),
@@ -702,9 +704,12 @@ int Cpptraj::Structure::Builder::TorsionModel::BuildMockExternals(Iarray const& 
                    topIn.LeapName(iInt.AtK()).c_str(),
                    topIn.LeapName(iInt.AtL()).c_str(),
                    (int)tmpAt1->Known(), (int)tmpAt4->Known());
+#         endif
           // Now build the coordinate for the target atom
           tgt->SetPos( Zmatrix::AtomIposition(maPC1, maPC2, knownAt->Pos(), 1.0, 90.0, iInt.PhiVal()*Constants::RADDEG) );
+#         ifdef CPPTRAJ_DEBUG_BUILDER
           mprintf("ZMatrixAll:  %f,%f,%f\n", tgt->Pos()[0], tgt->Pos()[1], tgt->Pos()[2]);
+#         endif
           used[jdx] = true;
           nused++;
           break;
@@ -1166,11 +1171,13 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
     Hy = H2;
   }
   static const char* hstr[] = { "SP1", "SP2", "SP3", "Unknown" };
-  mprintf("DEBUG: assignTorsionsAroundBond: AX= %s (%s)  AY= %s (%s), aAtomIdx= %i",
-          *(topIn[ax].Name()), hstr[Hx],
-          *(topIn[ay].Name()), hstr[Hy], aAtomIdx+1);
-  if (aAtomIdx != -1) mprintf(" %s", topIn.AtomMaskName(aAtomIdx).c_str()); // DEBUG
-  mprintf("\n"); // DEBUG
+  if (debug_ > 0) {
+    mprintf("DEBUG: assignTorsionsAroundBond: AX= %s (%s)  AY= %s (%s), aAtomIdx= %i",
+            *(topIn[ax].Name()), hstr[Hx],
+            *(topIn[ay].Name()), hstr[Hy], aAtomIdx+1);
+    if (aAtomIdx != -1) mprintf(" %s", topIn.AtomMaskName(aAtomIdx).c_str()); // DEBUG
+    mprintf("\n"); // DEBUG
+  }
   TorsionModel mT;
   if (mT.InitTorsion( ax, ay, frameIn, topIn, hasPosition, aAtomIdx )) {
     mprinterr("Error: Could not init model torsion.\n");
@@ -1180,30 +1187,39 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
   // whose position is known.
   //Atom const& AX = topIn[ax];
   //Atom const& AY = topIn[ay];
+# ifdef CPPTRAJ_DEBUG_BUILDER
   mprintf("bKnownX=%i  bKnownY=%i\n", (int)mT.AxHasKnownAtoms(), (int)mT.AyHasKnownAtoms());
+# endif
   if (!(mT.AxHasKnownAtoms() && mT.AyHasKnownAtoms())) {
     // Find any existing internal coords around ax-ay
     Iarray iTorsions = getExistingTorsionIdxs(ax, ay);
     if (!iTorsions.empty()) {
+#     ifdef CPPTRAJ_DEBUG_BUILDER
       mprintf("Using INTERNALs to fit new torsions around: %s - %s\n",
               topIn.LeapName(ax).c_str(), topIn.LeapName(ay).c_str());
+#     endif
       if (mT.BuildMockExternals(iTorsions, internalTorsions_, topIn)) {
         mprinterr("Error: Building mock externals around %s - %s failed.\n",
                   topIn.AtomMaskName(ax).c_str(), topIn.AtomMaskName(ay).c_str());
         return 1;
       }
-      //return 0; // FIXME DEBUG 
-    } else {
+    } 
+#   ifdef CPPTRAJ_DEBUG_BUILDER
+      else {
       mprintf("Completely free in assigning new torsions for: %s - %s\n",
               topIn.LeapName(ax).c_str(), topIn.LeapName(ay).c_str());
-      //return 0; // FIXME DEBUG 
     }
-  } else {
+#   endif
+  }
+
+# ifdef CPPTRAJ_DEBUG_BUILDER
+    else {
     // Use existing atoms to determine torsions
     mprintf("Using externals to fit new torsions around: %s - %s\n",
             topIn.LeapName(ax).c_str(),
             topIn.LeapName(ay).c_str());
   }
+# endif
   // Get chiralities around X and Y if they exist
   double chiX = 0;
   int Xcidx = getExistingChiralityIdx( ax );
