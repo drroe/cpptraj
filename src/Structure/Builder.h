@@ -114,6 +114,8 @@ class Builder {
     static int get_depths_around_atom(int, int, Topology const&);
     /// \return array containing all residues with atoms that need positions
     std::vector<Residue> residuesThatNeedPositions(Topology const&, Barray const&) const;
+    /// Build XYZ coords for an atom if internals are available
+    int buildCoordsForAtom(int, Frame&, Topology const&, Barray const&) const;
     /// Build externals for atoms in the given array using internals.
     int buildExternalsForAtoms(Iarray const&, Frame&, Topology const&, Barray&) const;
 

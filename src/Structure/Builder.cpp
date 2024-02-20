@@ -554,15 +554,17 @@ int Cpptraj::Structure::Builder::TorsionModel::SetupTorsion(AtomType::Hybridizat
   Atom const& AX = topIn[atX_.Idx()];
   Atom const& AY = topIn[atY_.Idx()];
   //mprintf("Orientation around: %s = %f (chiX= %f)\n", *(AX.Name()), Xorientation_, chiX);
-  mprintf("Orientation around: %s = %f {", *(AX.Name()), Xorientation_);
-  for (Atom::bond_iterator bat = AX.bondbegin(); bat != AX.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
-  mprintf("}\n");
+  mprintf("Orientation around: %s = %f\n", *(AX.Name()), Xorientation_);
+  //mprintf("Orientation around: %s = %f {", *(AX.Name()), Xorientation_);
+  //for (Atom::bond_iterator bat = AX.bondbegin(); bat != AX.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
+  //mprintf("}\n");
   for (Marray::const_iterator it = sorted_ax_.begin(); it != sorted_ax_.end(); ++it)
       mprintf("Atom %li: %s (%i) (build=%i)\n", it - sorted_ax_.begin(), *(topIn[it->Idx()].Name()), (int)it->Known(), (int)it->BuildInternals());
   //mprintf("Orientation around: %s = %f (chiY= %f)\n", *(AY.Name()), Yorientation_, chiY);
-  mprintf("Orientation around: %s = %f {", *(AY.Name()), Yorientation_);
-  for (Atom::bond_iterator bat = AY.bondbegin(); bat != AY.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
-  mprintf("}\n");
+  mprintf("Orientation around: %s = %f\n", *(AY.Name()), Yorientation_);
+  //mprintf("Orientation around: %s = %f {", *(AY.Name()), Yorientation_);
+  //for (Atom::bond_iterator bat = AY.bondbegin(); bat != AY.bondend(); ++bat) mprintf(" %s", *(topIn[*bat].Name()));
+  //mprintf("}\n");
   for (Marray::const_iterator it = sorted_ay_.begin(); it != sorted_ay_.end(); ++it)
       mprintf("Atom %li: %s (%i) (build=%i)\n", it - sorted_ay_.begin(), *(topIn[it->Idx()].Name()), (int)it->Known(), (int)it->BuildInternals());
   // Calculate the actual torsion angle between A-X-Y-D
@@ -1685,6 +1687,33 @@ const
   return residues;
 } 
 
+/** Build coordinates for an atom from internals.
+  * \return 1 if atom was built, 0 otherwise.
+  */
+int Builder::buildCoordsForAtom(int at, Frame& frameOut, Topology const& topIn, Barray const& hasPosition)
+const
+{
+  // Find an internal coordinate for the atom.
+  InternalCoords ic;
+  if (getIcFromInternals(ic, at, hasPosition)) {
+    printAllInternalsForAtom(at, topIn, hasPosition); // DEBUG
+
+    mprintf("Building atom %s using torsion/angle/bond\n", topIn.LeapName(at).c_str());
+    mprintf("Using - %s - %s - %s\n",
+            topIn.LeapName(ic.AtJ()).c_str(),
+            topIn.LeapName(ic.AtK()).c_str(),
+            topIn.LeapName(ic.AtL()).c_str());
+    mprintf( "Torsion = %f\n", ic.Phi() );
+    mprintf( "Angle   = %f\n", ic.Theta() );
+    mprintf( "Bond    = %f\n", ic.Dist() );
+    Vec3 posI = Zmatrix::AtomIposition(ic, frameOut);
+    mprintf( "ZMatrixAll:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
+    frameOut.SetXYZ( ic.AtI(), posI );
+    return 1;
+  }
+  return 0;
+}
+
 /** Build coordinates for any atom with an internal that does
   * not have its position set. Use same atom order as leap sequence.
   */
@@ -1696,7 +1725,36 @@ const
   //std::vector<Residue> residues = residuesThatNeedPositions(topIn, hasPosition);
   Iarray atomIndices = GenerateSpanningTree(at0, at1, -1, topIn.Atoms());
 
-  return buildExternalsForAtoms( atomIndices, frameOut, topIn, hasPosition ); 
+//  return buildExternalsForAtoms( atomIndices, frameOut, topIn, hasPosition ); 
+  // Count how many atoms need their positions set
+  unsigned int nAtomsThatNeedPositions = 0;
+  for (std::vector<int>::const_iterator it = atomIndices.begin();
+                                        it != atomIndices.end(); ++it)
+    if (!hasPosition[*it])
+      nAtomsThatNeedPositions++;
+  mprintf("DEBUG: %u atoms need positions.\n", nAtomsThatNeedPositions);
+  if (nAtomsThatNeedPositions == 0) return 0;
+
+  // Loop over residue atoms
+  while (nAtomsThatNeedPositions > 0) {
+    unsigned int nAtomsBuilt = 0;
+    for (std::vector<int>::const_iterator idx = atomIndices.begin();
+                                          idx != atomIndices.end(); ++idx)
+    {
+      if (!hasPosition[*idx]) {
+        if (buildCoordsForAtom(*idx, frameOut, topIn, hasPosition)) {
+          hasPosition[ *idx ] = true;
+          nAtomsBuilt++;
+          nAtomsThatNeedPositions--;
+        }
+      }
+    } // END loop over atom indices
+    // If we built no atoms this is a problem
+    if (nAtomsBuilt < 1) {
+      mprinterr("Error: No more atoms could be built in sequence for %s\n", topIn.c_str());
+      return 1;
+    }
+  } // END atoms need positions
   return 0;
 }
 
@@ -1783,7 +1841,7 @@ const
             // Find an internal coordinate.
             InternalCoords ic;
             if (getIcFromInternals(ic, *bat, hasPosition)) {
-              //printAllInternalsForAtom(*bat, topIn, hasPosition); // DEBUG
+              printAllInternalsForAtom(*bat, topIn, hasPosition); // DEBUG
 
               mprintf("Building atom %s using torsion/angle/bond\n", topIn.LeapName(*bat).c_str());
               mprintf("Using - %s - %s - %s\n",
