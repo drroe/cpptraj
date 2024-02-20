@@ -174,14 +174,16 @@ const
       // ----- A template exists for this residue. ---------
       // Map source atoms to template atoms.
       std::vector<int> map = MapAtomsToTemplate( topIn, ires, resTemplate );
-      mprintf("\t  Atom map:\n");
-      // DEBUG - print map
-      for (int iref = 0; iref != resTemplate->Top().Natom(); iref++) {
-        mprintf("\t\t%6i %6s =>", iref+1, *(resTemplate->Top()[iref].Name()));
-        if (map[iref] == -1)
-          mprintf(" No match\n");
-        else
-          mprintf(" %6i %6s\n", map[iref]+1, *(topIn[map[iref]].Name()));
+      if (debug_ > 1) {
+        mprintf("\t  Atom map:\n");
+        // DEBUG - print map
+        for (int iref = 0; iref != resTemplate->Top().Natom(); iref++) {
+          mprintf("\t\t%6i %6s =>", iref+1, *(resTemplate->Top()[iref].Name()));
+          if (map[iref] == -1)
+            mprintf(" No match\n");
+          else
+            mprintf(" %6i %6s\n", map[iref]+1, *(topIn[map[iref]].Name()));
+        }
       }
       // Map template atoms back to source atoms.
       std::vector<int> pdb(currentRes.NumAtoms(), -1);
@@ -437,13 +439,15 @@ const
   } // END loop over atom offsets
 
   // DEBUG - Print new top/coords
-  for (int iat = 0; iat != topOut.Natom(); iat++)
-  {
-    Residue const& res = topOut.Res( topOut[iat].ResNum() );
-    const double* XYZ = frameOut.XYZ(iat);
-    mprintf("%6i %6s %6i %6s (%i) %g %g %g\n",
-            iat+1, *(topOut[iat].Name()), res.OriginalResNum(), *(res.Name()),
-            (int)hasPosition[iat], XYZ[0], XYZ[1], XYZ[2]);
+  if (debug_ > 1) {
+    for (int iat = 0; iat != topOut.Natom(); iat++)
+    {
+      Residue const& res = topOut.Res( topOut[iat].ResNum() );
+      const double* XYZ = frameOut.XYZ(iat);
+      mprintf("%6i %6s %6i %6s (%i) %g %g %g\n",
+              iat+1, *(topOut[iat].Name()), res.OriginalResNum(), *(res.Name()),
+              (int)hasPosition[iat], XYZ[0], XYZ[1], XYZ[2]);
+    }
   }
 
   // Finalize topology - determine molecules, dont renumber residues, dont assign default bond params
