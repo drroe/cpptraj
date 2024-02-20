@@ -454,14 +454,20 @@ static inline double calculateOrientation(MockAtom const& iX, double chiX, Atom 
       iB.Known())
   {
     dOrientation = VectorAtomChirality( iX.Pos(), iA.Pos(), iY.Pos(), iB.Pos() );
+#   ifdef CPPTRAJ_DEBUG_BUILDER
     mprintf("ORIENTATION: known = %f\n", dOrientation);
+#   endif
   } else {
     double dChi = chiX;
     if (fabs(dChi) < Constants::SMALL) {
+#     ifdef CPPTRAJ_DEBUG_BUILDER
       mprintf("default chirality on\n");
+#     endif
       dChi = 1.0;
     }
+#   ifdef CPPTRAJ_DEBUG_BUILDER
     mprintf("ORIENTATION: Chirality %f\n", dChi);
+#   endif
     dOrientation = chiralityToOrientation(dChi, AX, iA.Idx(), iY.Idx(), iB.Idx(), -1);
   }
   return dOrientation;
@@ -550,6 +556,7 @@ int Cpptraj::Structure::Builder::TorsionModel::SetupTorsion(AtomType::Hybridizat
     else
       Yorientation_ = calculateOrientation( atY_, chiY, topIn[atY_.Idx()], sorted_ay_[0], atX_, sorted_ay_[1] );
   }
+# ifdef CPPTRAJ_DEBUG_BUILDER
   // DEBUG
   Atom const& AX = topIn[atX_.Idx()];
   Atom const& AY = topIn[atY_.Idx()];
@@ -567,6 +574,7 @@ int Cpptraj::Structure::Builder::TorsionModel::SetupTorsion(AtomType::Hybridizat
   //mprintf("}\n");
   for (Marray::const_iterator it = sorted_ay_.begin(); it != sorted_ay_.end(); ++it)
       mprintf("Atom %li: %s (%i) (build=%i)\n", it - sorted_ay_.begin(), *(topIn[it->Idx()].Name()), (int)it->Known(), (int)it->BuildInternals());
+# endif
   // Calculate the actual torsion angle between A-X-Y-D
   if (sorted_ax_[0].Known() &&
       atX_.Known() &&
@@ -580,7 +588,9 @@ int Cpptraj::Structure::Builder::TorsionModel::SetupTorsion(AtomType::Hybridizat
   } else {
     dAbsolute_ = 180.0 * Constants::DEGRAD;
   }
+# ifdef CPPTRAJ_DEBUG_BUILDER
   mprintf("DABSOLUTE= %g\n", dAbsolute_);
+# endif
   return 0;
 }
 
@@ -978,13 +988,17 @@ void Builder::ModelTorsion(TorsionModel const& MT, unsigned int iBondX, unsigned
   if (iBondX >= MT.SortedAx().size() ||
       iBondY >= MT.SortedAy().size())
     return;
+# ifdef CPPTRAJ_DEBUG_BUILDER
   mprintf("CALLING ModelTorsion for iBondX=%u iBondY=%u dVal=%g\n",iBondX,iBondY,dvalIn*Constants::RADDEG);
+# endif
   MockAtom const& AA = MT.SortedAx()[iBondX];
   MockAtom const& AX = MT.AtX();
   MockAtom const& AY = MT.AtY();
   MockAtom const& AD = MT.SortedAy()[iBondY];
   if ( !(AA.BuildInternals() || AD.BuildInternals()) ) {
+#   ifdef CPPTRAJ_DEBUG_BUILDER
     mprintf("%s does not need internals.\n", *((*currentTop_)[AA.Idx()].Name()));
+#   endif
     return;
   }
   int aa = AA.Idx();
@@ -1004,7 +1018,9 @@ void Builder::ModelTorsion(TorsionModel const& MT, unsigned int iBondX, unsigned
                       AX.Pos().Dptr(),
                       AY.Pos().Dptr(),
                       AD.Pos().Dptr() );
+#   ifdef CPPTRAJ_DEBUG_BUILDER
     mprintf(" %s replacing dval with %f\n", *((*currentTop_)[aa].Name()), phiVal*Constants::RADDEG);
+#   endif
   }
   // Look for an existing internal
   int icIdx = getExistingTorsionIdx( aa, ax, ay, ad );
@@ -1211,7 +1227,6 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
     }
 #   endif
   }
-
 # ifdef CPPTRAJ_DEBUG_BUILDER
     else {
     // Use existing atoms to determine torsions
@@ -1238,13 +1253,19 @@ int Builder::assignTorsionsAroundBond(int a1, int a2, Frame const& frameIn, Topo
 
   // Build the new internals
   if (Hx == AtomType::SP3 && Hy == AtomType::SP3) {
+#   ifdef CPPTRAJ_DEBUG_BUILDER
     mprintf("SP3 SP3\n");
+#   endif
     createSp3Sp3Torsions(mT);
   } else if (Hx == AtomType::SP3 && Hy == AtomType::SP2) {
+#   ifdef CPPTRAJ_DEBUG_BUILDER
     mprintf("SP3 SP2\n");
+#   endif
     createSp3Sp2Torsions(mT);
   } else if (Hx == AtomType::SP2 && Hy == AtomType::SP2) {
+#   ifdef CPPTRAJ_DEBUG_BUILDER
     mprintf("SP2 SP2\n");
+#   endif
     createSp2Sp2Torsions(mT);
   } else {
     mprinterr("Error: Currently only Sp3-Sp3/Sp3-Sp2/Sp2-Sp2 are supported\n"
