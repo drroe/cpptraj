@@ -384,6 +384,8 @@ const
   {
     long int ires = it-AtomOffsets.begin();
     if (*it > -1) {
+      mprintf("DEBUG: ***** BUILD residue %li %s *****\n", ires + 1,
+              topOut.TruncResNameOnumId(ires).c_str());
       // Residue has atom offset which indicates it needs something built.
       Cpptraj::Structure::Builder structureBuilder;// = new Cpptraj::Structure::Builder();
       structureBuilder.SetDebug( debug_ );
@@ -400,9 +402,6 @@ const
         return 1;
       }
       structureBuilder.UpdateIndicesWithOffset( *it );
-
-      mprintf("DEBUG: ***** BUILD residue %li %s *****\n", ires + 1,
-              topOut.TruncResNameOnumId(ires).c_str());
       //mprintf("DEBUG: Residue type: %s terminal\n", Cpptraj::Structure::terminalStr(*termType));
       // Is this residue connected to an earlier residue?
       for (IParray::const_iterator resBonds = resBondingAtoms[ires].begin();

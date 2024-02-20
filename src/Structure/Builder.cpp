@@ -1745,7 +1745,7 @@ const
         }
       }
       if (!has_rnum) {
-        mprintf("DEBUG: Need to build for residue %s\n", topIn.TruncResNameNum(rnum).c_str());
+        if (debug_ > 0) mprintf("DEBUG: Need to build for residue %s\n", topIn.TruncResNameNum(rnum).c_str());
         residues.push_back( topIn.Res(rnum) );
         Rnums.push_back(rnum);
       }
