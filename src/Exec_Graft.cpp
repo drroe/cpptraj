@@ -471,9 +471,9 @@ const
   if (hasOrient1_)
     structureBuilder.SetAtomChirality(bondat1 + atomOffset, chi1_);
   // Generate internals around the link
-  if (structureBuilder.GenerateInternalsAroundLink( bondat1 + atomOffset,
-                                                    bondat0,
-                                                    frameOut, topOut, hasPosition, Cpptraj::Structure::Builder::SEQUENCE ) )
+  if (structureBuilder.GenerateInternalsAroundLink(bondat1 + atomOffset, bondat0,
+                                                   frameOut, topOut, hasPosition,
+                                                   Cpptraj::Structure::Builder::SEQUENCE) )
   {
     mprinterr("Error: Assign torsions around graft bond atoms %s - %s failed.\n",
               topOut.AtomMaskName(bondat1 + atomOffset).c_str(),
@@ -487,27 +487,21 @@ const
     return 1;
   }
   // Update internal coords from known positions
-  if (structureBuilder.UpdateICsFromFrame( frameOut, topOut, hasPosition )) {
-    mprinterr("Error: Failed to update Zmatrix with values from existing positions.\n");
-    return 1;
-  }
+  // NOTE: By definition, there are no known positions
+  //if (structureBuilder.UpdateICsFromFrame( frameOut, topOut, hasPosition )) {
+  //  mprinterr("Error: Failed to update Zmatrix with values from existing positions.\n");
+  //  return 1;
+  //}
   // Convert to Zmatrix and assign missing atom positions
-  if (structureBuilder.BuildFromInternals(frameOut, topOut, hasPosition)) {
+  if (structureBuilder.BuildSequenceFromInternals(frameOut, topOut, hasPosition,
+                                                  bondat1 + atomOffset,
+                                                  bondat0))
+  {
     mprinterr("Error: Grafting %s with %s build from internals failed.\n",
               mol0Top.c_str(), mol1Top.c_str());
     return 1;
   }
-//  Cpptraj::Structure::Zmatrix tmpz;
-//  tmpz.SetDebug( 1 ); // DEBUG
-//  if (structureBuilder.GetZmatrixFromInternals(tmpz, topOut)) {
-//    mprinterr("Error: Could not get Zmatrix from internals.\n");
-//    return 1;
-//  }
-//  if (tmpz.SetToFrame( frameOut, hasPosition )) {
-//    mprinterr("Error: Grafting %s with %s build from internals failed.\n",
-//              mol0Top.c_str(), mol1Top.c_str());
-//    return 1;
-//  }
+
   // Finalize topology - determine molecules, dont renumber residues, assign default bond params
   topOut.CommonSetup(true, false, true);
   topOut.Summary();

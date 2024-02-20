@@ -177,7 +177,8 @@ const
       topOut.AddBond( interResBonds[ires].first, interResBonds[ires].second );
       // Generate internals around the link
       if (structureBuilder.GenerateInternalsAroundLink(interResBonds[ires].first, interResBonds[ires].second,
-                                                        frameOut, topOut, hasPosition, Cpptraj::Structure::Builder::SEQUENCE))
+                                                       frameOut, topOut, hasPosition,
+                                                       Cpptraj::Structure::Builder::SEQUENCE))
       {
         mprinterr("Error: Assign torsions around inter-unit link %s - %s failed.\n",
                   topOut.AtomMaskName(interResBonds[ires].first).c_str(),
