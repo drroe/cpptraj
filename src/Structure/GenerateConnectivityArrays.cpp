@@ -237,17 +237,17 @@ DihedralArray Cpptraj::Structure::GenerateImproperArray(std::vector<Residue> con
               order_improper_atoms(indices, atoms);
               out.push_back( DihedralType(indices[0], indices[1], iat3, indices[2], DihedralType::BOTH) );
               // DEBUG
-              mprintf("DEBUG:\tOriginal order :");
-              printName(atoms[iat1]);
-              printName(atoms[iat2]);
-              printName(atoms[iat3]);
-              printName(atoms[iat4]);
-              mprintf("\nDEBUG:\tLeap order     :");
-              printName(atoms[indices[0]]);
-              printName(atoms[indices[1]]);
-              printName(atoms[iat3]);
-              printName(atoms[indices[2]]);
-              mprintf("\n");
+              //mprintf("DEBUG:\tOriginal order :");
+              //printName(atoms[iat1]);
+              //printName(atoms[iat2]);
+              //printName(atoms[iat3]);
+              //printName(atoms[iat4]);
+              //mprintf("\nDEBUG:\tLeap order     :");
+              //printName(atoms[indices[0]]);
+              //printName(atoms[indices[1]]);
+              //printName(atoms[iat3]);
+              //printName(atoms[indices[2]]);
+              //mprintf("\n");
             }
           }
         } // END outer loop over bond indices
