@@ -34,6 +34,7 @@ std::vector<int> Exec_Build::MapAtomsToTemplate(Topology const& topIn,
 int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
                                        Topology const& topIn, Frame const& frameIn,
                                        Cpptraj::Structure::Creator const& creator)
+const
 {
   // Array of head/tail connect atoms for each residue
   typedef std::vector<int> Iarray;
@@ -385,7 +386,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     if (*it > -1) {
       // Residue has atom offset which indicates it needs something built.
       Cpptraj::Structure::Builder structureBuilder;// = new Cpptraj::Structure::Builder();
-      structureBuilder.SetDebug( 1 ); // DEBUG FIXME
+      structureBuilder.SetDebug( debug_ );
       if (creator.HasMainParmSet())
         structureBuilder.SetParameters( creator.MainParmSetPtr() );
       // Generate internals from the template, update indices to this topology.
@@ -471,6 +472,7 @@ void Exec_Build::Help() const
 // Exec_Build::Execute()
 Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
 {
+  debug_ = State.Debug();
 /*  // Atom scan direction
   std::string atomscandir = argIn.GetStringKey("atomscandir");
   if (!atomscandir.empty()) {
@@ -575,7 +577,7 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
 
   // Get templates and parameter sets.
   Cpptraj::Structure::Creator creator;
-  if (creator.InitCreator(argIn, State.DSL(), State.Debug())) {
+  if (creator.InitCreator(argIn, State.DSL(), debug_)) {
     return CpptrajState::ERR;
   }
   if (!creator.HasTemplates()) {

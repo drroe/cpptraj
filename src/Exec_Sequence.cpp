@@ -152,7 +152,7 @@ const
     if (*it > -1) {
       // Residue has atom offset which indicates it needs something built.
       Cpptraj::Structure::Builder structureBuilder;// = new Cpptraj::Structure::Builder();
-      structureBuilder.SetDebug( 1 ); // DEBUG FIXME
+      structureBuilder.SetDebug( debug_ );
       if (creator.HasMainParmSet())
         structureBuilder.SetParameters( creator.MainParmSetPtr() );
       // Generate internals from the template, update indices to this topology.

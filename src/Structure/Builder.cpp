@@ -1593,7 +1593,7 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
   Iarray span_atoms = GenerateSpanningTree(at0, actualAt1, 4, topIn.Atoms());
   for (Iarray::const_iterator it = span_atoms.begin(); it != span_atoms.end(); ++it)
   {
-    mprintf("SPANNING TREE ATOM: %s\n", *(topIn[*it].Name()));
+    //mprintf("SPANNING TREE ATOM: %s\n", *(topIn[*it].Name()));
     if (generateAtomInternals(*it, frameIn, topIn, tmpHasPosition)) {
       mprinterr("Error: Could not generate internals for atom %s\n", topIn.AtomMaskName(*it).c_str());
       return 1;
@@ -1738,17 +1738,18 @@ const
   InternalCoords ic;
   if (getIcFromInternals(ic, at, hasPosition)) {
     //printAllInternalsForAtom(at, topIn, hasPosition); // DEBUG
-
-    mprintf("Building atom %s using torsion/angle/bond\n", topIn.LeapName(at).c_str());
-    mprintf("Using - %s - %s - %s\n",
-            topIn.LeapName(ic.AtJ()).c_str(),
-            topIn.LeapName(ic.AtK()).c_str(),
-            topIn.LeapName(ic.AtL()).c_str());
-    mprintf( "Torsion = %f\n", ic.Phi() );
-    mprintf( "Angle   = %f\n", ic.Theta() );
-    mprintf( "Bond    = %f\n", ic.Dist() );
     Vec3 posI = Zmatrix::AtomIposition(ic, frameOut);
-    mprintf( "ZMatrixAll:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
+    if (debug_ > 1) {
+      mprintf("Building atom %s using torsion/angle/bond\n", topIn.LeapName(at).c_str());
+      mprintf("Using - %s - %s - %s\n",
+              topIn.LeapName(ic.AtJ()).c_str(),
+              topIn.LeapName(ic.AtK()).c_str(),
+              topIn.LeapName(ic.AtL()).c_str());
+      mprintf( "Torsion = %f\n", ic.Phi() );
+      mprintf( "Angle   = %f\n", ic.Theta() );
+      mprintf( "Bond    = %f\n", ic.Dist() );
+      mprintf( "ZMatrixAll:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
+    }
     frameOut.SetXYZ( ic.AtI(), posI );
     return 1;
   }
@@ -1771,7 +1772,8 @@ const
                                         it != atomIndices.end(); ++it)
     if (!hasPosition[*it])
       nAtomsThatNeedPositions++;
-  mprintf("DEBUG: %u atoms need positions.\n", nAtomsThatNeedPositions);
+  if (debug_ > 0)
+    mprintf("DEBUG: %u atoms need positions.\n", nAtomsThatNeedPositions);
   if (nAtomsThatNeedPositions == 0) return 0;
 
   // Loop over residue atoms
@@ -1835,7 +1837,8 @@ const
                                         it != atomIndices.end(); ++it)
     if (!hasPosition[*it])
       nAtomsThatNeedPositions++;
-  mprintf("DEBUG: %u atoms need positions.\n", nAtomsThatNeedPositions);
+  if (debug_ > 0)
+    mprintf("DEBUG: %u atoms need positions.\n", nAtomsThatNeedPositions);
   if (nAtomsThatNeedPositions == 0) return 0;
 
   // Loop over residue atoms
@@ -1863,7 +1866,8 @@ const
       }
       // Build unknown positions around known atom
       if (atToBuildAround != -1) {
-        mprintf("Building externals from %s\n", topIn.LeapName(atToBuildAround).c_str());
+        if (debug_ > 0)
+          mprintf("Building externals from %s\n", topIn.LeapName(atToBuildAround).c_str());
         Atom const& bAtom = topIn[atToBuildAround];
         for (Atom::bond_iterator bat = bAtom.bondbegin(); bat != bAtom.bondend(); ++bat)
         {

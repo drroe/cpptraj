@@ -445,12 +445,12 @@ const
     //        topOut.TruncResNameOnumId(topOut[it->second].ResNum()).c_str(), *(topOut[it->second].Name()));
     topOut.AddBond(it->first, it->second);
   }
-  // FIXME
-  for (int at = 0; at != topOut.Natom(); at++)
-    mprintf("\t%6i %s %s\n", at+1, topOut.AtomMaskName(at).c_str(), *(topOut.Res(topOut[at].ResNum()).Name()));
+  // DEBUG
+  //for (int at = 0; at != topOut.Natom(); at++)
+  //  mprintf("\t%6i %s %s\n", at+1, topOut.AtomMaskName(at).c_str(), *(topOut.Res(topOut[at].ResNum()).Name()));
   // Build
   Cpptraj::Structure::Builder structureBuilder;
-  structureBuilder.SetDebug( 1 ); // DEBUG FIXME
+  structureBuilder.SetDebug( debug_ );
   if (structureBuilder.GenerateInternals( mol1frm, mol1Top,
                                           std::vector<bool>(mol1Top.Natom(), true) ))
   {
