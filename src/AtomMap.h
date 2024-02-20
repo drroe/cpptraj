@@ -22,6 +22,9 @@ class AtomMap {
     /// Clear the map
     void ClearMap();
     bool BondIsRepeated(int,int) const;
+    /// Assign unique atom IDs
+    void AssignUniqueAtomIDs();
+    /// Assign unique atom IDs and determine which ones are duplicated
     void DetermineAtomIDs();
     void MarkAtomComplete(int,bool);
     void CheckForCompleteAtoms();

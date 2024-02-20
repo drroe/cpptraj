@@ -1790,7 +1790,7 @@ int SugarBuilder::FixSugarsStructure(Topology& topIn, Frame& frameIn,
     mprinterr("Internal Error: FixSugarsStructure: Atom map setup failed.\n");
     return 1;
   }
-  myMap_.DetermineAtomIDs();
+  myMap_.AssignUniqueAtomIDs();
 
   Sugars_.clear();
   AtomMask sugarMask(sugarmaskstr_);
