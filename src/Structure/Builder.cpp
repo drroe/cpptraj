@@ -1413,7 +1413,8 @@ int Builder::determineChirality(double& dChi, int at, Frame const& frameIn, Topo
   */
 int Builder::GenerateInternals(Frame const& frameIn, Topology const& topIn, Barray const& hasPosition)
 {
-  mprintf("DEBUG: ----- Entering Builder::GenerateInternals. -----\n");
+  if (debug_ > 0)
+    mprintf("DEBUG: ----- Entering Builder::GenerateInternals. -----\n");
   // First generate the bond array for use in determining torsions.
   BondArray bonds = GenerateBondArray( topIn.Residues(), topIn.Atoms() );
   // Loop over bonds to determine torsions.
@@ -1458,7 +1459,8 @@ int Builder::GenerateInternals(Frame const& frameIn, Topology const& topIn, Barr
     }
     internalChirality_.push_back( InternalChirality(*it, dValue) );
   }
-  mprintf("DEBUG: ----- Leaving Builder::GenerateInternals. ------\n");
+  if (debug_ > 0)
+    mprintf("DEBUG: ----- Leaving Builder::GenerateInternals. ------\n");
   return 0;
 }
 
@@ -1592,8 +1594,10 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
                                          Barray const& hasPosition,
                                          BuildType btype)
 {
-  mprintf("DEBUG: ----- Entering Builder::GenerateInternalsAroundLink. -----\n");
-  mprintf("DEBUG: Link: %s to %s\n", topIn.AtomMaskName(at0).c_str(), topIn.AtomMaskName(at1).c_str());
+  if (debug_ > 0) {
+    mprintf("DEBUG: ----- Entering Builder::GenerateInternalsAroundLink. -----\n");
+    mprintf("DEBUG: Link: %s to %s\n", topIn.AtomMaskName(at0).c_str(), topIn.AtomMaskName(at1).c_str());
+  }
   // Sanity check
   Atom const& A0 = topIn[at0];
   Atom const& A1 = topIn[at1];
@@ -1626,7 +1630,8 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
     }
   }
   // FIXME this is a hack to make certain we have all the angle/bond terms we need
-  mprintf("DEBUG: LOOKING FOR MISSING ANGLE/BOND PARAMS.\n");
+  if (debug_ > 0)
+    mprintf("DEBUG: LOOKING FOR MISSING ANGLE/BOND PARAMS.\n");
   for (Tarray::const_iterator dih = internalTorsions_.begin(); dih != internalTorsions_.end(); ++dih)
   {
     int idx = getExistingAngleIdx(dih->AtI(), dih->AtJ(), dih->AtK());
@@ -1638,8 +1643,8 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
     idx = getExistingBondIdx(dih->AtK(), dih->AtL());
     if (idx < 0) buildBondInternal( dih->AtK(), dih->AtL(), frameIn, topIn, hasPosition );
   }
-
-  mprintf("DEBUG: ----- Leaving Builder::GenerateInternalsAroundLink. -----\n");
+  if (debug_ > 0)
+    mprintf("DEBUG: ----- Leaving Builder::GenerateInternalsAroundLink. -----\n");
   return 0;
 }
 
