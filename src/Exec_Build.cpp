@@ -30,6 +30,13 @@ std::vector<int> Exec_Build::MapAtomsToTemplate(Topology const& topIn,
   return mapOut;
 }
 
+/** Search in array of atom bonding pairs for given bonding pair. */
+bool Exec_Build::hasBondingPair(IParray const& bpairs, Ipair const& bpair) {
+  for (IParray::const_iterator it = bpairs.begin(); it != bpairs.end(); ++it)
+    if (*it == bpair) return true;
+  return false;
+}
+
 /** Use given templates to construct a final molecule. */
 int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
                                        Topology const& topIn, Frame const& frameIn,
@@ -37,7 +44,6 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
 const
 {
   // Array of head/tail connect atoms for each residue
-  typedef std::vector<int> Iarray;
   Iarray resHeadAtoms;
   Iarray resTailAtoms;
   resHeadAtoms.reserve( topIn.Nres() );
@@ -45,9 +51,9 @@ const
   // Array of templates for each residue
   std::vector<DataSet_Coords*> ResTemplates;
   ResTemplates.reserve( topIn.Nres() );
-  typedef std::vector<Cpptraj::Structure::TerminalType> TermTypeArray;
-  TermTypeArray ResTypes;
-  ResTypes.reserve( topIn.Nres() );
+  //typedef std::vector<Cpptraj::Structure::TerminalType> TermTypeArray;
+  //TermTypeArray ResTypes;
+  //ResTypes.reserve( topIn.Nres() );
   // Initial loop to try to match residues to templates
   int newNatom = 0;
   for (int ires = 0; ires != topIn.Nres(); ires++)
@@ -123,15 +129,11 @@ const
   Iarray AtomOffsets;
   AtomOffsets.reserve( topIn.Nres() );
 
-  // For inter-residue bonding, use residue # and atom name since
+  // For existing inter-residue bonding, use residue # and atom name since
   // atom numbering may change if atoms are added from templates.
   typedef std::pair<int,NameType> ResAtPair;
   typedef std::vector<ResAtPair> ResAtArray;
-  ResAtArray interResBonds;
-
-  // For holding bonded atom pairs
-  typedef std::pair<int,int> Ipair;
-  typedef std::vector<Ipair> IParray;
+  ResAtArray detectedInterResBonds;
 
   // Loop for setting up atoms in the topology from residues or residue templates.
   int nRefAtomsMissing = 0;
@@ -139,7 +141,7 @@ const
   {
     mprintf("\tAdding atoms for residue %s\n", topIn.TruncResNameOnumId(ires).c_str());
     int atomOffset = topOut.Natom();
-    mprintf("DEBUG: atom offset is %i\n", atomOffset);
+    //mprintf("DEBUG: atom offset is %i\n", atomOffset);
     Residue const& currentRes = topIn.Res(ires);
     DataSet_Coords* resTemplate = ResTemplates[ires];
     IParray intraResBonds;
@@ -160,10 +162,10 @@ const
               intraResBonds.push_back( Ipair(at0, at1) );
             }
           } else {
-            // Inter-residue. Only record if bonding to the next residue.
-            if (topIn[*bat].ResNum() > ires) {
-              interResBonds.push_back( ResAtPair(ires, sourceAtom.Name()) );
-              interResBonds.push_back( ResAtPair(topIn[*bat].ResNum(), topIn[*bat].Name()) );
+            // Inter-residue. Only record if bonding to a previous residue.
+            if (topIn[*bat].ResNum() < ires) {
+              detectedInterResBonds.push_back( ResAtPair(ires, sourceAtom.Name()) );
+              detectedInterResBonds.push_back( ResAtPair(topIn[*bat].ResNum(), topIn[*bat].Name()) );
             }
           }
         }
@@ -191,37 +193,36 @@ const
       std::vector<int> pdb(currentRes.NumAtoms(), -1);
       bool atomsNeedBuilding = false;
       for (int iref = 0; iref != resTemplate->Top().Natom(); iref++) {
-        // Track intra-residue bonds
+        // Track intra-residue bonds from the template.
         Atom templateAtom = resTemplate->Top()[iref];
         int at0 = iref + atomOffset;
         for (Atom::bond_iterator bat = templateAtom.bondbegin(); bat != templateAtom.bondend(); ++bat) {
-          //if ( resTemplate->Top()[*bat].ResNum() == ires ) {
-            int at1 = *bat + atomOffset;
-            if (at1 > at0) {
-              //mprintf("Will add bond between %i and %i (original %i and %i)\n", at0+1, at1+1, iref+1, *bat + 1);
-              intraResBonds.push_back( Ipair(at0, at1) );
-            }
-          //}
+          int at1 = *bat + atomOffset;
+          if (at1 > at0) {
+            //mprintf("Will add bond between %i and %i (original %i and %i)\n", at0+1, at1+1, iref+1, *bat + 1);
+            intraResBonds.push_back( Ipair(at0, at1) );
+          }
         }
-        // TODO check connect atoms for inter-residue connections
         templateAtom.ClearBonds(); // FIXME AddTopAtom should clear bonds
         topOut.AddTopAtom( templateAtom, currentRes );
         if (map[iref] == -1) {
+          // Template atom not in input structure.
           frameOut.AddVec3( Vec3(0.0) );
           hasPosition.push_back( false );
           nRefAtomsMissing++;
           atomsNeedBuilding = true;
         } else {
+          // Template atom was in input structure.
           int itgt = map[iref];
           frameOut.AddVec3( Vec3(frameIn.XYZ(itgt)) );
           hasPosition.push_back( true );
           pdb[itgt-currentRes.FirstAtom()] = iref;
-          // Check source atoms for inter-residue connections
+          // Check source atoms for inter-residue connections.
           Atom const& sourceAtom = topIn[itgt];
           for (Atom::bond_iterator bat = sourceAtom.bondbegin(); bat != sourceAtom.bondend(); ++bat) {
-            if ( topIn[*bat].ResNum() > ires ) {
-              interResBonds.push_back( ResAtPair(ires, sourceAtom.Name()) );
-              interResBonds.push_back( ResAtPair(topIn[*bat].ResNum(), topIn[*bat].Name()) );
+            if ( topIn[*bat].ResNum() < ires ) {
+              detectedInterResBonds.push_back( ResAtPair(ires, sourceAtom.Name()) );
+              detectedInterResBonds.push_back( ResAtPair(topIn[*bat].ResNum(), topIn[*bat].Name()) );
             }
           }
         }
@@ -250,6 +251,7 @@ const
   mprintf("\t%i template atoms missing in source.\n", nRefAtomsMissing);
 
   // -----------------------------------
+  // DEBUG - Print primary connection atoms
   for (unsigned int idx = 0; idx != ResTemplates.size(); idx++) {
     if (ResTemplates[idx] != 0) {
       mprintf("DEBUG: Template %s", ResTemplates[idx]->legend());
@@ -258,9 +260,41 @@ const
       mprintf("\n");
     }
   }
-  // Check detected inter-residue bonds
+
+  // Keep track of which residues are connected.
+  typedef std::vector<Iarray> ResConnectArray;
+  ResConnectArray ResidueConnections( topOut.Nres() );
+
+  // Try to connect HEAD atoms to previous residue TAIL atoms.
   std::vector<IParray> resBondingAtoms(topOut.Nres());
-  for (ResAtArray::const_iterator it = interResBonds.begin(); it != interResBonds.end(); ++it)
+  for (int ires = 1; ires < topOut.Nres(); ires++) {
+    int pres = ires - 1;
+    if (resHeadAtoms[ires] != -1) {
+      if (resTailAtoms[pres] != -1) {
+        mprintf("DEBUG: Connecting HEAD atom %s to tail atom %s\n",
+                topOut.AtomMaskName(resHeadAtoms[ires]).c_str(),
+                topOut.AtomMaskName(resTailAtoms[pres]).c_str());
+        resBondingAtoms[ires].push_back( Ipair(resHeadAtoms[ires], resTailAtoms[pres]) );
+        resBondingAtoms[pres].push_back( Ipair(resTailAtoms[pres], resHeadAtoms[ires]) );
+        resHeadAtoms[ires] = -1;
+        resTailAtoms[pres] = -1;
+        ResidueConnections[ires].push_back( pres );
+        ResidueConnections[pres].push_back( ires );
+      }
+    }
+  }
+
+  // Report unused HEAD/TAIL atoms
+  for (int ires = 0; ires != topOut.Nres(); ires++) { // TODO should be topIn?
+    if (resHeadAtoms[ires] != -1)
+      mprintf("Warning: Unused head atom %s\n", topOut.AtomMaskName(resHeadAtoms[ires]).c_str());
+    if (resTailAtoms[ires] != -1)
+      mprintf("Warning: Unused tail atom %s\n", topOut.AtomMaskName(resTailAtoms[ires]).c_str());
+  }
+
+  // Check detected inter-residue bonds
+  for (ResAtArray::const_iterator it = detectedInterResBonds.begin();
+                                  it != detectedInterResBonds.end(); ++it)
   {
     ResAtPair const& ra0 = *it;
     ++it;
@@ -280,13 +314,23 @@ const
     }
     // Save inter-residue bonding atoms; convention is atom belonging to
     // the residue is first.
-    resBondingAtoms[ra0.first].push_back( Ipair(at0, at1) );
-    resBondingAtoms[ra1.first].push_back( Ipair(at1, at0) );
+    if (!hasBondingPair(resBondingAtoms[ra0.first], Ipair(at0, at1)))
+      resBondingAtoms[ra0.first].push_back( Ipair(at0, at1) );
+    else
+      mprintf("DEBUG: Detected bond %s - %s already present.\n",
+              topOut.AtomMaskName(at0).c_str(),
+              topOut.AtomMaskName(at1).c_str());
+    if (!hasBondingPair(resBondingAtoms[ra1.first], Ipair(at1, at0)))
+      resBondingAtoms[ra1.first].push_back( Ipair(at1, at0) );
+    else
+      mprintf("DEBUG: Detected bond %s - %s already present.\n",
+              topOut.AtomMaskName(at1).c_str(),
+              topOut.AtomMaskName(at0).c_str());
   }
 
   // For each inter-residue bonding atom pair, check that they match expected
   // head/tail atoms.
-  for (std::vector<IParray>::const_iterator rit = resBondingAtoms.begin();
+/*  for (std::vector<IParray>::const_iterator rit = resBondingAtoms.begin();
                                             rit != resBondingAtoms.end(); ++rit)
   {
     long int ires = rit - resBondingAtoms.begin();
@@ -312,10 +356,10 @@ const
                 topOut.AtomMaskName(atPair->first).c_str());
       }
     } // END loop over inter-residue bond pairs for this residue
-  } // END loop over residues
+  } // END loop over residues*/
 
   // Mark used HEAD/TAIL atoms in existing inter-residue bonds.
-  for (std::vector<IParray>::const_iterator rit = resBondingAtoms.begin();
+/*  for (std::vector<IParray>::const_iterator rit = resBondingAtoms.begin();
                                             rit != resBondingAtoms.end(); ++rit)
   {
     long int ires = rit - resBondingAtoms.begin();
@@ -326,31 +370,7 @@ const
       else if (atPair->first == resTailAtoms[ires])
         resTailAtoms[ires] = -1;
     }
-  }
-
-  // Try to connect unused HEAD atoms to previous unused TAIL atoms
-  for (int ires = 1; ires < topOut.Nres(); ires++) {
-    int pres = ires - 1;
-    if (resHeadAtoms[ires] != -1) {
-      if (resTailAtoms[pres] != -1) {
-        mprintf("DEBUG: Connecting unused HEAD atom %s to unused tail atom %s\n",
-                topOut.AtomMaskName(resHeadAtoms[ires]).c_str(),
-                topOut.AtomMaskName(resTailAtoms[pres]).c_str());
-        resBondingAtoms[ires].push_back( Ipair(resHeadAtoms[ires], resTailAtoms[pres]) );
-        resBondingAtoms[pres].push_back( Ipair(resTailAtoms[pres], resHeadAtoms[ires]) );
-        resHeadAtoms[ires] = -1;
-        resTailAtoms[pres] = -1;
-      }
-    }
-  }
-
-  // Report unused HEAD/TAIL atoms
-  for (int ires = 0; ires != topOut.Nres(); ires++) { // TODO should be topIn?
-    if (resHeadAtoms[ires] != -1)
-      mprintf("Warning: Unused head atom %s\n", topOut.AtomMaskName(resHeadAtoms[ires]).c_str());
-    if (resTailAtoms[ires] != -1)
-      mprintf("Warning: Unused tail atom %s\n", topOut.AtomMaskName(resTailAtoms[ires]).c_str());
-  }
+  }*/
 
   // DEBUG print inter-residue bonding atoms
   for (std::vector<IParray>::const_iterator rit = resBondingAtoms.begin();
