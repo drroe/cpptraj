@@ -344,7 +344,7 @@ const
       // Check if we already have a connection from ra0 to ra1.
       if (resIsConnected(ResidueConnections[ra0.first], ra1.first)) {
         mprintf("Warning: Residue %s already connected to residue %s; ignoring\n"
-                "Warning: potential detected bond %s - %s\n",
+                "Warning:   potential detected bond %s - %s\n",
                 topOut.TruncResNameNum(ra0.first).c_str(),
                 topOut.TruncResNameNum(ra1.first).c_str(),
                 topOut.AtomMaskName(at0).c_str(),
