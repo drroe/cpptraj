@@ -149,11 +149,11 @@ const
     mprintf("\tAdding atoms for residue %s\n", topIn.TruncResNameOnumId(ires).c_str());
     int atomOffset = topOut.Natom();
     //mprintf("DEBUG: atom offset is %i\n", atomOffset);
-    Residue const& currentRes = topIn.Res(ires);
     DataSet_Coords* resTemplate = ResTemplates[ires];
     IParray intraResBonds;
     if (resTemplate == 0) {
       // ----- No template. Just add the atoms. ------------
+      Residue const& currentRes = topIn.Res(ires);
       AtomOffsets.push_back( -1 );
       for (int itgt = currentRes.FirstAtom(); itgt != currentRes.LastAtom(); ++itgt)
       {
@@ -183,6 +183,15 @@ const
       }
     } else {
       // ----- A template exists for this residue. ---------
+      Residue currentRes = topIn.Res(ires);
+      // Use template residue name.
+      // To match LEaP behavior, if the template name is > 3 characters,
+      // truncate to the last 3 characters.
+      NameType const& templateResName = resTemplate->Top().Res(0).Name();
+      if (templateResName.len() < 4)
+        currentRes.SetName( templateResName );
+      else
+        currentRes.SetName( NameType( (*templateResName) + ( templateResName.len() - 3) ) );
       // Map source atoms to template atoms.
       std::vector<int> map = MapAtomsToTemplate( topIn, ires, resTemplate );
       if (debug_ > 1) {
