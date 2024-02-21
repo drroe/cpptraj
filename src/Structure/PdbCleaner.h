@@ -12,6 +12,8 @@ class PdbCleaner {
     typedef std::vector<int> Iarray;
   public:
     PdbCleaner();
+    /// Help text
+    static void Help();
     /// Initialize
     int InitPdbCleaner(ArgList&, std::string const&, Iarray const&);
     /// Setup

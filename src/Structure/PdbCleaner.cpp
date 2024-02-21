@@ -13,6 +13,13 @@ PdbCleaner::PdbCleaner() :
   remove_h_(false)
 {}
 
+/** Print help text. */
+void PdbCleaner::Help() {
+  mprintf("\t[nowat [watermask <watermask>] [noh]\n"
+          "\t[keepaltloc {<alt loc ID>|highestocc}]\n"
+          "\t[stripmask <stripmask>]\n");
+}
+
 /** Initialize */
 int PdbCleaner::InitPdbCleaner(ArgList& argIn, std::string const& solventResNameIn,
                                Iarray const& pdbResToRemoveIn)
