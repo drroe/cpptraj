@@ -66,7 +66,8 @@ const
   for (int ires = 0; ires != topIn.Nres(); ires++)
   {
     Residue const& currentRes = topIn.Res(ires);
-    mprintf("DEBUG: ---------- Processing Residue %s ---------- \n", topIn.TruncResNameNum(ires).c_str());
+    if (debug_ > 0)
+      mprintf("DEBUG: ---------- Processing Residue %s ---------- \n", topIn.TruncResNameNum(ires).c_str());
     int pres = ires - 1;
     int nres = ires + 1;
     // Determine if this is a terminal residue
@@ -86,7 +87,8 @@ const
     } else {
       resTermType = Cpptraj::Structure::NON_TERMINAL;
     }
-    mprintf("DEBUG: Residue type: %s terminal\n", Cpptraj::Structure::terminalStr(resTermType));
+    if (debug_ > 0)
+      mprintf("DEBUG: Residue type: %s terminal\n", Cpptraj::Structure::terminalStr(resTermType));
     // Identify a template based on the residue name.
     DataSet_Coords* resTemplate = creator.IdTemplateFromResname(currentRes.Name(), resTermType);
     if (resTemplate == 0) {
@@ -96,8 +98,9 @@ const
       resHeadAtoms.push_back( -1 );
       resTailAtoms.push_back( -1 );
     } else {
-      mprintf("\tTemplate %s being used for residue %s\n",
-              resTemplate->legend(), topIn.TruncResNameOnumId(ires).c_str());
+      if (debug_ > 0)
+        mprintf("\tTemplate %s being used for residue %s\n",
+                resTemplate->legend(), topIn.TruncResNameOnumId(ires).c_str());
       // Save the head and tail atoms
       AssociatedData* ad = resTemplate->GetAssociatedData(AssociatedData::CONNECT);
       if (ad == 0) {
@@ -146,7 +149,8 @@ const
   int nRefAtomsMissing = 0;
   for (int ires = 0; ires != topIn.Nres(); ires++)
   {
-    mprintf("\tAdding atoms for residue %s\n", topIn.TruncResNameOnumId(ires).c_str());
+    if (debug_ > 0)
+      mprintf("\tAdding atoms for residue %s\n", topIn.TruncResNameOnumId(ires).c_str());
     int atomOffset = topOut.Natom();
     //mprintf("DEBUG: atom offset is %i\n", atomOffset);
     DataSet_Coords* resTemplate = ResTemplates[ires];
@@ -248,7 +252,8 @@ const
       for (int itgt = 0; itgt != currentRes.NumAtoms(); itgt++)
         if (pdb[itgt] == -1)
           nTgtAtomsMissing++;
-      mprintf("\t%i source atoms not mapped to template.\n", nTgtAtomsMissing);
+      if (nTgtAtomsMissing > 0)
+        mprintf("\t%i source atoms not mapped to template.\n", nTgtAtomsMissing);
       // Save atom offset if atoms need to be built
       if (atomsNeedBuilding)
         AtomOffsets.push_back( atomOffset );
@@ -268,12 +273,14 @@ const
 
   // -----------------------------------
   // DEBUG - Print primary connection atoms
-  for (unsigned int idx = 0; idx != ResTemplates.size(); idx++) {
-    if (ResTemplates[idx] != 0) {
-      mprintf("DEBUG: Template %s", ResTemplates[idx]->legend());
-      if (resHeadAtoms[idx] > -1) mprintf(" head %s", topOut.AtomMaskName(resHeadAtoms[idx]).c_str());
-      if (resTailAtoms[idx] > -1) mprintf(" tail %s", topOut.AtomMaskName(resTailAtoms[idx]).c_str());
-      mprintf("\n");
+  if (debug_ > 0) {
+    for (unsigned int idx = 0; idx != ResTemplates.size(); idx++) {
+      if (ResTemplates[idx] != 0) {
+        mprintf("DEBUG: Template %s", ResTemplates[idx]->legend());
+        if (resHeadAtoms[idx] > -1) mprintf(" head %s", topOut.AtomMaskName(resHeadAtoms[idx]).c_str());
+        if (resTailAtoms[idx] > -1) mprintf(" tail %s", topOut.AtomMaskName(resTailAtoms[idx]).c_str());
+        mprintf("\n");
+      }
     }
   }
 
@@ -286,9 +293,10 @@ const
     int pres = ires - 1;
     if (resHeadAtoms[ires] != -1) {
       if (resTailAtoms[pres] != -1) {
-        mprintf("DEBUG: Connecting HEAD atom %s to tail atom %s\n",
-                topOut.AtomMaskName(resHeadAtoms[ires]).c_str(),
-                topOut.AtomMaskName(resTailAtoms[pres]).c_str());
+        if (debug_ > 0)
+          mprintf("DEBUG: Connecting HEAD atom %s to tail atom %s\n",
+                  topOut.AtomMaskName(resHeadAtoms[ires]).c_str(),
+                  topOut.AtomMaskName(resTailAtoms[pres]).c_str());
         resBondingAtoms[ires].push_back( Ipair(resHeadAtoms[ires], resTailAtoms[pres]) );
         resBondingAtoms[pres].push_back( Ipair(resTailAtoms[pres], resHeadAtoms[ires]) );
         resHeadAtoms[ires] = -1;
@@ -314,9 +322,10 @@ const
     ResAtPair const& ra0 = *it;
     ++it;
     ResAtPair const& ra1 = *it;
-    mprintf("DEBUG: Inter-res bond: Res %i atom %s to res %i atom %s\n",
-            ra0.first+1, *(ra0.second),
-            ra1.first+1, *(ra1.second));
+    if (debug_ > 1)
+      mprintf("DEBUG: Inter-res bond: Res %i atom %s to res %i atom %s\n",
+              ra0.first+1, *(ra0.second),
+              ra1.first+1, *(ra1.second));
     int at0 = topOut.FindAtomInResidue(ra0.first, ra0.second);
     if (at0 < 0) {
       mprinterr("Error: Atom %s not found in residue %i\n", *(ra0.second), ra0.first);
@@ -406,12 +415,14 @@ const
   }*/
 
   // DEBUG print inter-residue bonding atoms
-  for (std::vector<IParray>::const_iterator rit = resBondingAtoms.begin();
-                                            rit != resBondingAtoms.end(); ++rit)
-  {
-    mprintf("\tResidue %s bonding atoms.\n", topOut.TruncResNameNum(rit-resBondingAtoms.begin()).c_str());
-    for (IParray::const_iterator it = rit->begin(); it != rit->end(); ++it)
-      mprintf("\t\t%s - %s\n", topOut.AtomMaskName(it->first).c_str(), topOut.AtomMaskName(it->second).c_str());
+  if (debug_ > 0) {
+    for (std::vector<IParray>::const_iterator rit = resBondingAtoms.begin();
+                                              rit != resBondingAtoms.end(); ++rit)
+    {
+      mprintf("\tResidue %s bonding atoms.\n", topOut.TruncResNameNum(rit-resBondingAtoms.begin()).c_str());
+      for (IParray::const_iterator it = rit->begin(); it != rit->end(); ++it)
+        mprintf("\t\t%s - %s\n", topOut.AtomMaskName(it->first).c_str(), topOut.AtomMaskName(it->second).c_str());
+    }
   }
 
   // -----------------------------------
@@ -441,8 +452,9 @@ const
   {
     long int ires = it-AtomOffsets.begin();
     if (*it > -1) {
-      mprintf("DEBUG: ***** BUILD residue %li %s *****\n", ires + 1,
-              topOut.TruncResNameOnumId(ires).c_str());
+      if (debug_ > 0)
+        mprintf("DEBUG: ***** BUILD residue %li %s *****\n", ires + 1,
+                topOut.TruncResNameOnumId(ires).c_str());
       // Residue has atom offset which indicates it needs something built.
       Cpptraj::Structure::Builder structureBuilder;// = new Cpptraj::Structure::Builder();
       structureBuilder.SetDebug( debug_ );
@@ -465,9 +477,10 @@ const
                                    resBonds != resBondingAtoms[ires].end(); ++resBonds)
       {
         if (resBonds->second < resBonds->first) {
-          mprintf("\t\tResidue connection: %s - %s\n",
-                  topOut.AtomMaskName(resBonds->first).c_str(),
-                  topOut.AtomMaskName(resBonds->second).c_str());
+          if (debug_ > 0)
+            mprintf("\t\tResidue connection: %s - %s\n",
+                    topOut.AtomMaskName(resBonds->first).c_str(),
+                    topOut.AtomMaskName(resBonds->second).c_str());
           topOut.AddBond(resBonds->first, resBonds->second);
           // Generate internals around the link
           if (structureBuilder.GenerateInternalsAroundLink(resBonds->first, resBonds->second,

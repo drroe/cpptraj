@@ -1631,13 +1631,16 @@ int Parm_Amber::WriteDihedrals(FlagType flag, DihedralArray const& DIH) {
   for (DihedralArray::const_iterator it = DIH.begin(); it != DIH.end(); ++it) {
     int dihIdxs[4];
     if (it->A3() == 0 || it->A4() == 0) {
-      mprintf("Warning: Had to turn torsion around to avoid K,L == 0\n");
-      mprintf("Warning: Old order (i j k l): %i %i %i %i\n", it->A1(), it->A2(), it->A3(), it->A4());
+      if (debug_ > 0) {
+        mprintf("Warning: Had to turn torsion around to avoid K,L == 0\n");
+        mprintf("Warning: Old order (i j k l): %i %i %i %i\n", it->A1(), it->A2(), it->A3(), it->A4());
+      }
       dihIdxs[0] = it->A4()*3;
       dihIdxs[1] = it->A3()*3;
       dihIdxs[2] = it->A2()*3;
       dihIdxs[3] = it->A1()*3;
-      mprintf("Warning: New order (i j k l): %i %i %i %i\n", it->A4(), it->A3(), it->A2(), it->A1());
+      if (debug_ > 0)
+        mprintf("Warning: New order (i j k l): %i %i %i %i\n", it->A4(), it->A3(), it->A2(), it->A1());
     } else {
       dihIdxs[0] = it->A1()*3;
       dihIdxs[1] = it->A2()*3;
