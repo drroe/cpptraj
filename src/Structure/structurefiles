@@ -10,6 +10,7 @@ STRUCTURE_SOURCES= \
   GenerateConnectivityArrays.cpp \
   HisProt.cpp \
   InternalCoords.cpp \
+  PdbCleaner.cpp \
   StructureEnum.cpp \
   StructureRoutines.cpp \
   SugarBuilder.cpp \
