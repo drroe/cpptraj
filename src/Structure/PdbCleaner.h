@@ -3,6 +3,8 @@
 #include <vector>
 #include <string>
 class ArgList;
+class Frame;
+class Topology;
 namespace Cpptraj {
 namespace Structure {
 /// Used to clean up structures read from a PDB
@@ -12,7 +14,14 @@ class PdbCleaner {
     PdbCleaner();
     /// Initialize
     int InitPdbCleaner(ArgList&, std::string const&, Iarray const&);
+    /// Setup
+    int SetupPdbCleaner(Topology const&);
+    /// Info
+    void PdbCleanerInfo() const;
+    /// Modify top/frame
+    int ModifyCoords(Topology&, Frame&) const;
   private:
+    int debug_;
     bool remove_water_;      ///< If true, remove any water.
     bool remove_h_;          ///< If true, remove hydrogen atoms.
     std::string waterMask_;  ///< Mask expression for selecting water.
