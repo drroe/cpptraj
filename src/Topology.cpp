@@ -2726,6 +2726,7 @@ void Topology::AssignAngleParams(ParmHolder<AngleParmType> const& newAngleParams
 void Topology::warn_improper_reorder(DihedralType const& imp0, DihedralType const& imp)
 const
 {
+  if (debug_ < 1) return;
   mprintf("Warning: Improper types have been reordered from %4s %4s %4s %4s",
           *(atoms_[imp0.A1()].Type()),
           *(atoms_[imp0.A2()].Type()),
