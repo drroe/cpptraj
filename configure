@@ -102,6 +102,7 @@ UsageFull() {
   echo "    -gprofile         : Use Gnu compiler GLIBC profiling (>= V4.5)*"
   echo "    -vtune            : Enable options for use with Intel Vtune."
   echo "    -single-ensemble  : Enable support for reading/writing single ensemble trajectories."
+  echo "    -leappi           : Use LEaP's value of PI for converting radians/degrees."
   echo ""
   echo "*NOTE: -profile and -gprofile are mutually exclusive."
   echo ""
@@ -198,6 +199,7 @@ BUILD_MPI=''      # If not empty, attempt to download and build specified mpi di
 
 USE_SINGLEENSEMBLE=0 # Enable support for single ensemble trajectories
 USE_CPPTRAJDEBUG=0   # Enable internal cpptraj debug flags
+USE_LEAP_PI=0        # Use LEaP's value of PI for converting radians/degrees
 
 CLEAN='yes'          # yes = clean after configure, no = do not
 PERFORM_CHECKS='yes' # yes = Check compilers/libraries, no = do not
@@ -1257,6 +1259,7 @@ SetupFinalFlags() {
       DIRECTIVES="$DIRECTIVES -DLIBPME -DHAVE_FFTWD=1"
     fi
   fi
+  if [ $USE_LEAP_PI -eq 1 ] ; then DIRECTIVES="$DIRECTIVES -DCPPTRAJ_USE_LEAP_PI" ; fi
   # Determine if this is a GitHub or AmberTools build
   if [ ! -z "$AMBERHOME" ] ; then
     AMBCFGDIR=`pwd | grep "AmberTools/src"`
@@ -2597,6 +2600,7 @@ while [ ! -z "$1" ] ; do
     '-nolfs'           ) LFS='' ;;
     '-single-ensemble' ) USE_SINGLEENSEMBLE=1 ;;
     '-debugon'         ) USE_CPPTRAJDEBUG=1 ;;
+    '-leappi'          ) USE_LEAP_PI=1 ;;
     # Code profiling
     '-profile'  ) USE_PROFILE=1 ;;
     '-gprofile' ) USE_PROFILE=2 ;;
@@ -2811,6 +2815,9 @@ if [ $USE_STATIC -eq 1 ] ; then
   echo "  Using static linking."
 elif [ $USE_STATIC -eq 2 ] ; then
   echo "  Specified libraries will be linked statically if possible."
+fi
+if [ $USE_LEAP_PI -eq 1 ] ; then
+  echo "  Using LEaP's value of PI for converting radians/degrees."
 fi
 #echo DIRECTIVES $DIRECTIVES
 #echo CFLAGS $CFLAGS
