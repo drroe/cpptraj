@@ -5,6 +5,7 @@
 #include "Parm/GB_Params.h"
 #include "Structure/Builder.h"
 #include "Structure/Creator.h"
+#include "Structure/PdbCleaner.h"
 
 /** Map atoms in residue to template. */
 std::vector<int> Exec_Build::MapAtomsToTemplate(Topology const& topIn,
@@ -582,7 +583,23 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   coords.GetFrame(tgtframe, frameIn);
   // Get modifiable topology
   //Topology& topIn = *(coords.TopPtr());
-  Topology const& topIn = coords.Top();
+  //Topology const& topIn = coords.Top();
+  Topology topIn = coords.Top(); // FIXME do not work on the copy, work on the top itself
+  Cpptraj::Structure::PdbCleaner pdbCleaner;
+  pdbCleaner.SetDebug( debug_ );
+  if (pdbCleaner.InitPdbCleaner( argIn, "HOH", std::vector<int>() )) {
+    mprinterr("Error: Could not init PDB cleaner.\n");
+    return CpptrajState::ERR;
+  }
+  if (pdbCleaner.SetupPdbCleaner( topIn )) {
+    mprinterr("Error: Could not set up PDB cleaner.\n");
+    return CpptrajState::ERR;
+  }
+  pdbCleaner.PdbCleanerInfo();
+  if (pdbCleaner.ModifyCoords(topIn, frameIn)) {
+    mprinterr("Error: Could not clean PDB.\n");
+    return CpptrajState::ERR;
+  }
 
   // Output coords
   std::string outset = argIn.GetStringKey("name");

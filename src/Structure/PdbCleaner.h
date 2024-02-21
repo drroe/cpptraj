@@ -12,6 +12,7 @@ class PdbCleaner {
     typedef std::vector<int> Iarray;
   public:
     PdbCleaner();
+    void SetDebug(int d) { debug_ = d; }
     /// Help text
     static void Help();
     /// Initialize
