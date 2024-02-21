@@ -277,7 +277,7 @@ const
 // -----------------------------------------------------------------------------
 
 /** Modify coords according to user wishes. */
-int Exec_PrepareForLeap::ModifyCoords( Topology& topIn, Frame& frameIn,
+/*int Exec_PrepareForLeap::ModifyCoords( Topology& topIn, Frame& frameIn,
                                        bool remove_water,
                                        std::string const& altLocStr, std::string const& stripMask,
                                        std::string const& waterMask,
@@ -423,13 +423,13 @@ const
   delete newTop;
 
   return 0;
-}
+}*/
 
 /** Remove any hydrogen atoms. This is done separately from ModifyCoords
   * so that hydrogen atom info can be used to e.g. ID histidine
   * protonation.
   */
-int Exec_PrepareForLeap::RemoveHydrogens(Topology& topIn, Frame& frameIn) const {
+/*int Exec_PrepareForLeap::RemoveHydrogens(Topology& topIn, Frame& frameIn) const {
   AtomMask keptAtoms;
   keptAtoms.SetNatoms( topIn.Natom() );
   for (int idx = 0; idx != topIn.Natom(); idx++)
@@ -456,7 +456,7 @@ int Exec_PrepareForLeap::RemoveHydrogens(Topology& topIn, Frame& frameIn) const 
   delete newTop;
 
   return 0;
-}
+}*/
 
 // -----------------------------------------------------------------------------
 
