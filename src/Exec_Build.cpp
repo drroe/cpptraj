@@ -37,6 +37,13 @@ bool Exec_Build::hasBondingPair(IParray const& bpairs, Ipair const& bpair) {
   return false;
 }
 
+/** \return True if target residue is in array of residue connections. */
+bool Exec_Build::resIsConnected(Iarray const& resConnections, int tgtRes) {
+  for (Iarray::const_iterator it = resConnections.begin(); it != resConnections.end(); ++it)
+    if (*it == tgtRes) return true;
+  return false;
+}
+
 /** Use given templates to construct a final molecule. */
 int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
                                        Topology const& topIn, Frame const& frameIn,
@@ -262,7 +269,6 @@ const
   }
 
   // Keep track of which residues are connected.
-  typedef std::vector<Iarray> ResConnectArray;
   ResConnectArray ResidueConnections( topOut.Nres() );
 
   // Try to connect HEAD atoms to previous residue TAIL atoms.
@@ -312,20 +318,38 @@ const
       mprinterr("Error: Atom %s not found in residue %i\n", *(ra1.second), ra1.first);
       return 1;
     }
-    // Save inter-residue bonding atoms; convention is atom belonging to
-    // the residue is first.
-    if (!hasBondingPair(resBondingAtoms[ra0.first], Ipair(at0, at1)))
-      resBondingAtoms[ra0.first].push_back( Ipair(at0, at1) );
-    else
-      mprintf("DEBUG: Detected bond %s - %s already present.\n",
-              topOut.AtomMaskName(at0).c_str(),
-              topOut.AtomMaskName(at1).c_str());
-    if (!hasBondingPair(resBondingAtoms[ra1.first], Ipair(at1, at0)))
-      resBondingAtoms[ra1.first].push_back( Ipair(at1, at0) );
-    else
-      mprintf("DEBUG: Detected bond %s - %s already present.\n",
-              topOut.AtomMaskName(at1).c_str(),
-              topOut.AtomMaskName(at0).c_str());
+    // Save detected inter-residue bonding atoms if not already added via
+    // template connect atoms. Convention is atom belonging to the current
+    // residue is first.
+    // NOTE: Only checking at0/at1 here, which should be fine.
+    if (!hasBondingPair(resBondingAtoms[ra0.first], Ipair(at0, at1))) {
+      // Check if we already have a connection from ra0 to ra1.
+      if (resIsConnected(ResidueConnections[ra0.first], ra1.first)) {
+        mprintf("Warning: Residue %s already connected to residue %s; ignoring\n"
+                "Warning: potential detected bond %s - %s\n",
+                topOut.TruncResNameNum(ra0.first).c_str(),
+                topOut.TruncResNameNum(ra1.first).c_str(),
+                topOut.AtomMaskName(at0).c_str(),
+                topOut.AtomMaskName(at1).c_str());
+      } else {
+        mprintf("\tAdding non-template bond %s - %s\n",
+                topOut.AtomMaskName(at0).c_str(),
+                topOut.AtomMaskName(at1).c_str());
+        resBondingAtoms[ra0.first].push_back( Ipair(at0, at1) );
+        resBondingAtoms[ra1.first].push_back( Ipair(at1, at0) );
+        ResidueConnections[ra0.first].push_back( ra1.first );
+        ResidueConnections[ra1.first].push_back( ra0.first );
+      }
+    } //else
+      //mprintf("DEBUG: Detected bond %s - %s already present.\n",
+      //        topOut.AtomMaskName(at0).c_str(),
+      //        topOut.AtomMaskName(at1).c_str());
+    //if (!hasBondingPair(resBondingAtoms[ra1.first], Ipair(at1, at0)))
+    //  resBondingAtoms[ra1.first].push_back( Ipair(at1, at0) );
+    //else
+    //  mprintf("DEBUG: Detected bond %s - %s already present.\n",
+    //          topOut.AtomMaskName(at1).c_str(),
+    //          topOut.AtomMaskName(at0).c_str());
   }
 
   // For each inter-residue bonding atom pair, check that they match expected
