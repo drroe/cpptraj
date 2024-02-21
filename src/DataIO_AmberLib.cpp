@@ -80,7 +80,7 @@ int DataIO_AmberLib::ReadData(FileName const& fname, DataSetList& dsl, std::stri
       return 1;
     }
   }
-  mprintf("\tRead %zu units from Amber OFF file.\n", UnitNames.size());
+  mprintf("\tRead %zu units from Amber OFF file %s.\n", UnitNames.size(), fname.base());
 
   return 0;
 }

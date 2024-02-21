@@ -15,6 +15,12 @@ DataIO_LeapRC::DataIO_LeapRC()
 
 }
 
+/** Track already loaded parm files. */
+DataIO_LeapRC::Sarray DataIO_LeapRC::paramFiles_ = Sarray();
+
+/** Track already loaded lib/prep files. */
+DataIO_LeapRC::Sarray DataIO_LeapRC::libFiles_ = Sarray();
+
 // DataIO_LeapRC::ID_DataFormat()
 bool DataIO_LeapRC::ID_DataFormat(CpptrajFile& infile)
 {
@@ -54,6 +60,13 @@ int DataIO_LeapRC::processReadArgs(ArgList& argIn)
   return 0;
 }
 
+/** Check if file already loaded. */
+bool DataIO_LeapRC::check_already_loaded(Sarray const& files, std::string const& filename) {
+  for (Sarray::const_iterator it = files.begin(); it != files.end(); ++it)
+    if (*it == filename) return true;
+  return false;
+}
+
 /** LEaP loadAmberParams command. */
 int DataIO_LeapRC::LoadAmberParams(std::string const& filename, DataSetList& dsl, std::string const& dsname) const {
   // TODO detect this better
@@ -66,11 +79,16 @@ int DataIO_LeapRC::LoadAmberParams(std::string const& filename, DataSetList& dsl
       return 1;
     }
   } else {
-    mprintf("\tLoading force field from '%s'\n", filename.c_str());
-    DataIO_AmberFF infile;
-    if (infile.ReadData(amberhome_ + "parm/" + filename, dsl, dsname)) {
-      mprinterr("Error: Could not load force field from '%s'\n", filename.c_str());
-      return 1;
+    if (check_already_loaded(paramFiles_, filename)) {
+      mprintf("Warning: Force field %s has already been loaded, skipping.\n", filename.c_str());
+    } else {
+      mprintf("\tLoading force field from '%s'\n", filename.c_str());
+      DataIO_AmberFF infile;
+      if (infile.ReadData(amberhome_ + "parm/" + filename, dsl, dsname)) {
+        mprinterr("Error: Could not load force field from '%s'\n", filename.c_str());
+        return 1;
+      }
+      paramFiles_.push_back( filename );
     }
   }
   return 0;
@@ -78,20 +96,30 @@ int DataIO_LeapRC::LoadAmberParams(std::string const& filename, DataSetList& dsl
 
 /** LEaP loadOff command. */
 int DataIO_LeapRC::LoadOFF(std::string const& filename, DataSetList& dsl, std::string const& dsname) const {
-  DataIO_AmberLib infile;
-  if (infile.ReadData(amberhome_ + "lib/" + filename, dsl, dsname)) {
-    mprinterr("Error: Could not load library file '%s'\n", filename.c_str());
-    return 1;
+  if (check_already_loaded(libFiles_, filename)) {
+    mprintf("Warning: Library %s has already been loaded, skipping.\n", filename.c_str());
+  } else {
+    DataIO_AmberLib infile;
+    if (infile.ReadData(amberhome_ + "lib/" + filename, dsl, dsname)) {
+      mprinterr("Error: Could not load library file '%s'\n", filename.c_str());
+      return 1;
+    }
+    libFiles_.push_back( filename );
   }
   return 0;
 }
 
 /** LEaP loadAmberPrep command. */
 int DataIO_LeapRC::LoadAmberPrep(std::string const& filename, DataSetList& dsl, std::string const& dsname) const {
-  DataIO_AmberPrep infile;
-  if (infile.ReadData(amberhome_ + "lib/" + filename, dsl, dsname)) {
-    mprinterr("Error: Could not load prep file '%s'\n", filename.c_str());
-    return 1;
+  if (check_already_loaded(libFiles_, filename)) {
+    mprintf("Warning: Prep file %s has already been loaded, skipping.\n", filename.c_str());
+  } else {
+    DataIO_AmberPrep infile;
+    if (infile.ReadData(amberhome_ + "lib/" + filename, dsl, dsname)) {
+      mprinterr("Error: Could not load prep file '%s'\n", filename.c_str());
+      return 1;
+    }
+    libFiles_.push_back( filename );
   }
   return 0;
 }
