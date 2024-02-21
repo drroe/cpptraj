@@ -23,6 +23,8 @@ class PdbCleaner {
     void PdbCleanerInfo() const;
     /// Modify top/frame
     int ModifyCoords(Topology&, Frame&) const;
+    /// \return True if option to remove water is set
+    bool RemoveWater() const { return remove_water_; }
   private:
     int debug_;
     bool remove_water_;      ///< If true, remove any water.

@@ -8,6 +8,7 @@
 #include "StringRoutines.h"
 #include "Structure/Disulfide.h"
 #include "Structure/HisProt.h"
+#include "Structure/PdbCleaner.h"
 #include "Structure/ResStatArray.h"
 #include "Structure/SugarBuilder.h"
 #include "Structure/Sugar.h"
@@ -875,6 +876,33 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     }
   }
 
+  // Do histidine detection before H atoms are removed
+  if (!argIn.hasKey("nohisdetect")) {
+    std::string nd1name = argIn.GetStringKey("nd1", "ND1");
+    std::string ne2name = argIn.GetStringKey("ne2", "NE2");
+    std::string hisname = argIn.GetStringKey("hisname", "HIS");
+    std::string hiename = argIn.GetStringKey("hiename", "HIE");
+    std::string hidname = argIn.GetStringKey("hidname", "HID");
+    std::string hipname = argIn.GetStringKey("hipname", "HIP");
+    mprintf("\tHistidine protonation detection:\n");
+    mprintf("\t\tND1 atom name                   : %s\n", nd1name.c_str());
+    mprintf("\t\tNE2 atom name                   : %s\n", ne2name.c_str());
+    mprintf("\t\tHistidine original residue name : %s\n", hisname.c_str());
+    mprintf("\t\tEpsilon-protonated residue name : %s\n", hiename.c_str());
+    mprintf("\t\tDelta-protonated residue name   : %s\n", hidname.c_str());
+    mprintf("\t\tDoubly-protonated residue name  : %s\n", hipname.c_str());
+    // Add epsilon, delta, and double-protonated names as recognized.
+    pdb_res_names_.insert( hiename );
+    pdb_res_names_.insert( hidname );
+    pdb_res_names_.insert( hipname );
+    if (DetermineHisProt( topIn,
+                          nd1name, ne2name,
+                          hisname, hiename, hidname, hipname)) {
+      mprinterr("Error: HIS protonation detection failed.\n");
+      return CpptrajState::ERR;
+    }
+  }
+
   Iarray pdbResToRemove;
   std::string removeArg = argIn.GetStringKey("remove");
   if (!removeArg.empty()) {
@@ -891,8 +919,24 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     }
   }
 
+  Cpptraj::Structure::PdbCleaner pdbCleaner;
+  pdbCleaner.SetDebug( debug_ );
+  if (pdbCleaner.InitPdbCleaner( argIn, solventResName_, pdbResToRemove )) {
+    mprinterr("Error: Could not init PDB cleaner.\n");
+    return CpptrajState::ERR;
+  }
+  if (pdbCleaner.SetupPdbCleaner( topIn )) {
+    mprinterr("Error: Could not set up PDB cleaner.\n");
+    return CpptrajState::ERR;
+  }
+  pdbCleaner.PdbCleanerInfo();
+  if (pdbCleaner.ModifyCoords(topIn, frameIn)) {
+    mprinterr("Error: Could not clean PDB.\n");
+    return CpptrajState::ERR;
+  }
+
   // Deal with any coordinate modifications
-  bool remove_water     = argIn.hasKey("nowat");
+/*  bool remove_water     = argIn.hasKey("nowat");
   std::string waterMask = argIn.GetStringKey("watermask", ":" + solventResName_);
   bool remove_h         = argIn.hasKey("noh");
   std::string altLocArg = argIn.GetStringKey("keepaltloc");
@@ -957,38 +1001,11 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
-  // Do histidine detection before H atoms are removed
-  if (!argIn.hasKey("nohisdetect")) {
-    std::string nd1name = argIn.GetStringKey("nd1", "ND1");
-    std::string ne2name = argIn.GetStringKey("ne2", "NE2");
-    std::string hisname = argIn.GetStringKey("hisname", "HIS");
-    std::string hiename = argIn.GetStringKey("hiename", "HIE");
-    std::string hidname = argIn.GetStringKey("hidname", "HID");
-    std::string hipname = argIn.GetStringKey("hipname", "HIP");
-    mprintf("\tHistidine protonation detection:\n");
-    mprintf("\t\tND1 atom name                   : %s\n", nd1name.c_str());
-    mprintf("\t\tNE2 atom name                   : %s\n", ne2name.c_str());
-    mprintf("\t\tHistidine original residue name : %s\n", hisname.c_str());
-    mprintf("\t\tEpsilon-protonated residue name : %s\n", hiename.c_str());
-    mprintf("\t\tDelta-protonated residue name   : %s\n", hidname.c_str());
-    mprintf("\t\tDoubly-protonated residue name  : %s\n", hipname.c_str());
-    // Add epsilon, delta, and double-protonated names as recognized.
-    pdb_res_names_.insert( hiename );
-    pdb_res_names_.insert( hidname );
-    pdb_res_names_.insert( hipname );
-    if (DetermineHisProt( topIn,
-                          nd1name, ne2name,
-                          hisname, hiename, hidname, hipname)) {
-      mprinterr("Error: HIS protonation detection failed.\n");
-      return CpptrajState::ERR;
-    }
-  }
-
   // Remove hydrogens
   if (remove_h) {
     if (RemoveHydrogens(topIn, frameIn)) return CpptrajState::ERR;
   }
-
+*/
   // If preparing sugars, need to set up an atom map and potentially
   // search for terminal sugars/missing bonds. Do this here after all atom
   // modifications have been done.
@@ -1112,7 +1129,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   {
     NameType const& residueName = topIn.Res(it-resStat.begin()).Name();
     // Skip water if not removing water
-    if (!remove_water && residueName == solvName) continue;
+    if (!pdbCleaner.RemoveWater() && residueName == solvName) continue;
     // If status is unknown, see if this is a common residue name
     if ( *it == ResStatArray::UNKNOWN ) {
       SetType::const_iterator pname = pdb_res_names_.find( residueName );
@@ -1161,7 +1178,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     outfile->Printf("%s\n", Cpptraj::LeapInterface::LeapBond(bnd->A1(), bnd->A2(), leapunitname_, topIn).c_str());
 
   // Count any solvent molecules
-  if (!remove_water) {
+  if (!pdbCleaner.RemoveWater()) {
     unsigned int nsolvent = 0;
     for (Topology::res_iterator res = topIn.ResStart(); res != topIn.ResEnd(); ++res) {
       if ( res->Name() == solvName) {
