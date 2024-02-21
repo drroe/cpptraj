@@ -531,6 +531,7 @@ const
 void Exec_Build::Help() const
 {
   mprintf("\tname <output COORDS> crdset <COORDS set> [frame <#>]\n"
+          "\t[title <title>]\n"
           "\t[%s]\n"
           "\t[{%s} ...]\n"
           "\t[{%s} ...]\n"
@@ -544,6 +545,7 @@ void Exec_Build::Help() const
 Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
 {
   debug_ = State.Debug();
+  std::string title = argIn.GetStringKey("title");
 /*  // Atom scan direction
   std::string atomscandir = argIn.GetStringKey("atomscandir");
   if (!atomscandir.empty()) {
@@ -706,6 +708,11 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
 
   // Fill in atoms with templates
   Topology topOut;
+  topOut.SetDebug( debug_ );
+  // TODO better default
+  if (title.empty())
+    title.assign( topIn.c_str() );
+  topOut.SetParmName( title, FileName() );
   Frame frameOut;
   if (FillAtomsWithTemplates(topOut, frameOut, topIn, frameIn, creator)) {
     mprinterr("Error: Could not fill in atoms using templates.\n");
