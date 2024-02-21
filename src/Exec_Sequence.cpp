@@ -46,6 +46,8 @@ const
 //    mprintf("\tUnit %s HEAD %i TAIL %i\n", Units[idx]->legend(), connectAt0[idx]+1, connectAt1[idx]+1);
 
   Topology topOut;
+  topOut.SetDebug( debug_ );
+  topOut.SetParmName( OUT->Meta().Name(), FileName() );
   Frame frameOut;
   mprintf("\tFinal structure should have %i atoms.\n", total_natom);
   frameOut.SetupFrame( total_natom );
@@ -214,7 +216,6 @@ const
 /*
   Topology combinedTop;
   combinedTop.SetDebug( debug_ );
-  combinedTop.SetParmName( OUT->Meta().Name(), FileName() );
   combinedTop.AppendTop( Units.front()->Top() );
   //combinedTop.SetParmBox( Units // TODO
   combinedTop.Brief("Sequence topology:");
