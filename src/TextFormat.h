@@ -48,6 +48,8 @@ class TextFormat {
     void SetFormatWidthPrecision(int w, int p) { width_ = w; precision_ = p; SetFormatString(); }
     /// Set width only - do not reset format string (for DataSet_string).
     void SetWidth(int w) { width_ = w; }
+    /// Set long format flag
+    void SetLongFormat(bool b) { isLong_ = b; SetFormatString(); }
     /// \return pointer to format string.
     const char* fmt()        const { return fmt_.c_str(); }
     std::string const& Fmt() const { return fmt_;         }

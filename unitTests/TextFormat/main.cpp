@@ -14,7 +14,8 @@ int main() {
 
   TextFormat f1(TextFormat::SCIENTIFIC, 16, 8, 5);
   f1.SetFormatAlign(TextFormat::NO_SPACES);
-  printf("5FE16.8 format: %s\n", f1.fmt());
+  f1.SetLongFormat( true );
+  printf("5FE16.8 format: '%s' width=%i\n", f1.fmt(), f1.ColumnWidth());
 
   return 0;
 }

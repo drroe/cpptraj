@@ -29,11 +29,12 @@ void TextFormat::SetFormatString() {
   }
   for (int i = 0; i != nelements_; i++) {
     if (i != 0) {
-      if (align_ != NO_SPACES)
+      if (align_ != NO_SPACES) {
         fmt_.append(" ");
-      colwidth_++;
+        colwidth_++;
+      }
     }
-    fmt_.append( "%" + left_arg + long_arg + width_arg + prec_arg + TypeChar_[type_] );
+    fmt_.append( "%" + left_arg + width_arg + prec_arg + long_arg + TypeChar_[type_] );
     colwidth_ += width_;
   }
 }
