@@ -29,7 +29,8 @@ void TextFormat::SetFormatString() {
   }
   for (int i = 0; i != nelements_; i++) {
     if (i != 0) {
-      fmt_.append(" "); // TODO: Option to not have spaces in-between?
+      if (align_ != NO_SPACES)
+        fmt_.append(" ");
       colwidth_++;
     }
     fmt_.append( "%" + left_arg + long_arg + width_arg + prec_arg + TypeChar_[type_] );
