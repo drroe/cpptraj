@@ -19,13 +19,17 @@ unit.StringRoutines:
 unit.Range:
 	@-cd Range && ./UnitTest.sh $(OPT)
 
+unit.TextFormat:
+	@-cd TextFormat && ./UnitTest.sh $(OPT)
+
 # ----- Every unit test should go here -----------
 COMPLETETESTS= \
   unit.NameType \
   unit.ArgList \
   unit.GistEntropyUtils \
   unit.StringRoutines \
-  unit.Range
+  unit.Range \
+  unit.TextFormat
 
 test.cpptraj: $(COMPLETETESTS)
 
