@@ -113,6 +113,31 @@ const char* BufferedLine::Line() {
   return 0; 
 }
 
+/** Separate the current line into N tokens of fixed length.
+  * \return Number of tokens.
+  */
+int BufferedLine::TokenizeLine(int ncols, int colwidth) {
+  if (ncols < 1 || colwidth < 1) return 0;
+  tokens_.clear();
+  tokens_.reserve( ncols*2 );
+  char* linechar = bufferPosition_;
+  for (int col = 0; col < ncols; col++)
+  {
+    char* endchar = linechar + colwidth;
+    if (endchar > lineEnd_) {
+      //mprinterr("Error: Ran out of characters getting token %i from line:\n", col);
+      //mprinterr("Error: '%s'\n", bufferPosition_);
+      //return 0; // TODO -1?
+      break;
+    }
+    tokens_.push_back( linechar );
+    tokens_.push_back( endchar );
+    linechar = endchar;
+  }
+  tokenidx_ = 0; 
+  return (int)(tokens_.size() / 2);
+}
+
 /** Separate the current line into tokens delimited by given chars. 
   * \return Number of tokens.
   */

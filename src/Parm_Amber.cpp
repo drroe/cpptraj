@@ -239,7 +239,7 @@ bool Parm_Amber::ID_ParmFormat(CpptrajFile& fileIn) {
 // -----------------------------------------------------------------------------
 // Parm_Amber::ReadParm()
 int Parm_Amber::ReadParm(FileName const& fname, Topology& TopIn ) {
-  if (file_.OpenRead( fname )) return 1;
+  if (file_.OpenFileRead( fname )) return 1;
   elec_to_parm_ = Constants::ELECTOAMBER;
   parm_to_elec_ = Constants::AMBERTOELEC;
   int err = 0;
@@ -295,6 +295,20 @@ int Parm_Amber::ReadParm(FileName const& fname, Topology& TopIn ) {
   return 0;
 }
 
+int Parm_Amber::blankRead(FlagType ftype, int nvals, FortranData const& FMT)
+{
+  Section blank(nvals, FMT);
+  const char* ptr = blank.nextLine( file_ );
+  while (ptr != 0) {
+    ptr = blank.nextLine( file_ );
+  }
+  if (!blank.AllLinesRead()) {
+    mprinterr("Error: Not enough lines read during blank read of Flag '%s'.\n", FLAGS_[ftype].Flag);
+    return 1;
+  }
+  return 0;
+}
+
 // Parm_Amber::ReadOldParm()
 int Parm_Amber::ReadOldParm(Topology& TopIn) {
   mprintf("\tReading old (<v7) Amber Topology file.\n");
@@ -343,11 +357,14 @@ int Parm_Amber::ReadOldParm(Topology& TopIn) {
   // Solvent info
   if (values_[IFBOX] > 0) {
     // Read SOLVENT_POINTERS, only need number of molecules (2nd value).
-    if (SetupBuffer(F_SOLVENT_POINTER, 3, INT)) return 1;
-    file_.NextElement(); // Final solute residue
-    int nmolecules = atoi(file_.NextElement());
+    const char* ptr = file_.Line();
+    int nmolecules = 0;
+    if (sscanf(ptr, "%*6i%6i", &nmolecules) != 1) {
+      mprinterr("Error: In old Amber topology, could not get # of molecules from SOLVENT_POINTERS.\n");
+      return 1;
+    }
     // Skip past ATOMS_PER_MOL
-    if (SetupBuffer(F_ATOMSPERMOL, nmolecules, INT)) return 1;
+    if (blankRead(F_ATOMSPERMOL, nmolecules, INT)) return 1;
     if ( ReadBox(DBL) ) return 1;
   }
   // Water cap info
@@ -374,7 +391,7 @@ static inline bool IsFLAG(const char* ptr) {
 // Parm_Amber::ReadNewParm()
 int Parm_Amber::ReadNewParm(Topology& TopIn) {
   FortranData FMT; // Used to hold fortran format from format string
-  const char* ptr = file_.NextLine();
+  const char* ptr = file_.Line();
   if (ptr == 0) {
     mprinterr("Error: Unexpected EOF encountered.\n");
     return 1;
@@ -385,7 +402,7 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
     if ( ptr[0] == '%' ) {
       if (ptr[1] == 'V' && ptr[2] == 'E' && ptr[3] == 'R') {
         // %VERSION line. Skip it.
-        ptr = file_.NextLine();
+        ptr = file_.Line();
       } else if (IsFLAG(ptr)) {
         // %FLAG <type> line. Determine the flag type.
         std::string flagType = NoTrailingWhitespace(ptr+6);
@@ -521,11 +538,11 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
         }
       } else {
         // Unknown '%' tag. Read past it.
-        ptr = file_.NextLine();
+        ptr = file_.Line();
       }  
     } else {
       // Unknown line. Read past it.
-      ptr = file_.NextLine();
+      ptr = file_.Line();
     }
   }
 
@@ -535,8 +552,8 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
 
 // Parm_Amber::SkipToNextFlag()
 const char* Parm_Amber::SkipToNextFlag() {
-  const char* ptr = file_.NextLine();
-  while (ptr != 0 && !IsFLAG(ptr)) ptr = file_.NextLine();
+  const char* ptr = file_.Line();
+  while (ptr != 0 && !IsFLAG(ptr)) ptr = file_.Line();
   return ptr;
 }
 
@@ -544,13 +561,13 @@ const char* Parm_Amber::SkipToNextFlag() {
 int Parm_Amber::ReadFormatLine(FortranData& FMT) {
   // Read next line; can be either a COMMENT or FORMAT. If COMMENT, 
   // read past until you get to the FORMAT line.
-  const char* ptr = file_.NextLine();
+  const char* ptr = file_.Line();
   if (ptr == 0) {
     mprinterr("Error: Unexpected EOF in Amber Topology when looking for FORMAT.\n");
     return 1;
   }
   while ( ptr != 0 && strncmp(ptr, "%FORMAT", 7) !=0) {
-    ptr = file_.NextLine();
+    ptr = file_.Line();
     // Sanity check
     if (IsFLAG(ptr)) {
       mprinterr("Error: Missing FORMAT line.\n");
@@ -570,7 +587,7 @@ int Parm_Amber::ReadFormatLine(FortranData& FMT) {
 void Parm_Amber::ResetFileToFlag(FlagType currFlag) {
   mprintf("Info: Scanning past problematic flag %s\n", FLAGS_[currFlag].Flag);
   file_.Rewind();
-  const char* ptr = file_.NextLine();
+  const char* ptr = file_.Line();
   // TODO trap null?
   atProblemFlag_ = false;
   while (ptr != 0) {
@@ -583,7 +600,7 @@ void Parm_Amber::ResetFileToFlag(FlagType currFlag) {
         break;
       }
     }
-    ptr = file_.NextLine();
+    ptr = file_.Line();
   }
 }
 
@@ -603,7 +620,7 @@ void Parm_Amber::ProblemFlagWarning(FlagType currFlag, unsigned int idx, unsigne
   */
 double Parm_Amber::FileBufferToDouble(FlagType currFlag, unsigned int idx, unsigned int nExpected) {
   char* endptr;
-  const char* elt = file_.NextElement();
+  const char* elt = file_.NextToken();
   double dval = strtod( elt, &endptr );
   if (elt == endptr) {
     ProblemFlagWarning(currFlag, idx, nExpected);
@@ -618,7 +635,7 @@ int Parm_Amber::ReadTitle(Topology& TopIn) {
   if (debug_ > 0)
     mprintf("\tAmberParm Title: \"%s\"\n",title.c_str());
   TopIn.SetParmName( title, file_.Filename() );
-  if (file_.NextLine() == 0) return 1; // Advance to next line
+  if (file_.Line() == 0) return 1; // Advance to next line
   return 0;
 }
 

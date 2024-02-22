@@ -12,8 +12,10 @@ class BufferedLine : private CpptrajFile {
     /// \return Next line as a string
     inline std::string GetLine();
 
-    /// Convert current line into tokens
+    /// Convert current line into tokens with separator
     int TokenizeLine(const char*);
+    /// Convert current line into N fixed-width tokens
+    int TokenizeLine(int,int);
     /// \return next token, null-delimited.
     const char* NextToken();
     /// \return specified token, not null-delimited.
@@ -39,12 +41,15 @@ class BufferedLine : private CpptrajFile {
     const char* CurrentLine() const { return bufferPosition_; }
     /// \return Number of characters left in the buffer
     long int Nremaining()     const { return (endBuffer_ - bufferPosition_); }
+    /// Size of the current line
+    long int LineSize()       const { return (lineEnd_ - bufferPosition_); }
     // Members of CpptrajFile that should be public
     using CpptrajFile::Filename;
     using CpptrajFile::CloseFile;
     using CpptrajFile::OpenWrite;
     using CpptrajFile::Printf;
     using CpptrajFile::SetDebug;
+    using CpptrajFile::Rewind;
   protected:
     using CpptrajFile::IsDos;
     using CpptrajFile::Debug;

@@ -1,7 +1,7 @@
 #ifndef INC_PARM_AMBER_H
 #define INC_PARM_AMBER_H
 #include "ParmIO.h"
-#include "BufferedFrame.h"
+#include "BufferedLine.h"
 class Parm_Amber : public ParmIO {
   public :
     Parm_Amber();
@@ -18,6 +18,8 @@ class Parm_Amber : public ParmIO {
     typedef std::vector<int> Iarray;
     /// Class for determining data size from Fortran format string.
     class FortranData;
+    /// Class for reading through a FLAG section one line at a time
+    class Section;
     /// Enumerated type for Fortran data type
     enum Type { UNKNOWN_FTYPE=0, FINT, FDOUBLE, FCHAR, FFLOAT };
     /// Enumerated type for Amber Parmtop Flags. KEEP IN SYNC WITH FLAGS_ ARRAY
@@ -52,6 +54,8 @@ class Parm_Amber : public ParmIO {
     static const size_t BUF_SIZE = 256;
     /// Amber topology subtype
     enum ParmType { OLDPARM = 0, NEWPARM, CHAMBER };
+    /// Blank read past a section
+    int blankRead(FlagType, int, FortranData const&);
 
     int ReadOldParm(Topology&);
     int ReadNewParm(Topology&);
@@ -162,7 +166,7 @@ class Parm_Amber : public ParmIO {
     static const ParmFlag FLAGS_[];
 
     ParmType ptype_;
-    BufferedFrame file_;
+    BufferedLine file_;
     double elec_to_parm_; ///< Convert elec to topology units
     double parm_to_elec_; ///< Convert topology units to elec.
 
@@ -214,5 +218,40 @@ class Parm_Amber::FortranData {
     int fncols_;
     int fwidth_;
     int fprecision_;
+};
+
+class Parm_Amber::Section {
+  public:
+    Section(int nvals, FortranData const& FMT) :
+      currentLine_(0),
+      ncols_(FMT.Ncols()),
+      colwidth_(FMT.Width())
+    {
+      calcMaxLine(nvals, FMT);
+    }
+
+    const char* nextLine(BufferedLine& file) {
+      if (currentLine_ < maxLine_) {
+        currentLine_++;
+        const char* ptr = file.Line();
+        ntokens_ = file.TokenizeLine(ncols_, colwidth_);
+        return ptr;
+      }
+      return 0;
+    }
+
+    bool AllLinesRead() const { return (currentLine_ == maxLine_); }
+    int Ntokens() const { return ntokens_; }
+  private:
+    void calcMaxLine(int nvals, FortranData const& FMT) {
+      maxLine_ = nvals / FMT.Ncols();
+      if ( (nvals % FMT.Ncols()) != 0) maxLine_++;
+    }
+
+    int currentLine_; ///< Current line in the section
+    int maxLine_;     ///< Max # of lines in the section
+    int ntokens_;     ///< Number of tokens in the current line
+    int ncols_;
+    int colwidth_;
 };
 #endif
