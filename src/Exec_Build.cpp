@@ -675,9 +675,14 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   //Topology& topIn = *(coords.TopPtr());
   //Topology const& topIn = coords.Top();
   Topology topIn = coords.Top(); // FIXME do not work on the copy, work on the top itself
+
+  std::string solventResName = argIn.GetStringKey("solventresname", "HOH");
+  mprintf("\tSolvent residue name: %s\n", solventResName.c_str());
+
+  // Clean up structure
   Cpptraj::Structure::PdbCleaner pdbCleaner;
   pdbCleaner.SetDebug( debug_ );
-  if (pdbCleaner.InitPdbCleaner( argIn, "HOH", std::vector<int>() )) {
+  if (pdbCleaner.InitPdbCleaner( argIn, solventResName, std::vector<int>() )) {
     mprinterr("Error: Could not init PDB cleaner.\n");
     return CpptrajState::ERR;
   }
@@ -830,6 +835,27 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
                                     argIn.GetStringKey("resmapfile") ))
     {
       mprinterr("Error: Sugar options init failed.\n");
+      return CpptrajState::ERR;
+    }
+    bool splitres = !argIn.hasKey("nosplitres");
+    if (splitres)
+      mprintf("\tWill split off recognized sugar functional groups into separate residues.\n");
+    else
+      mprintf("\tNot splitting recognized sugar functional groups into separate residues.\n");
+    bool c1bondsearch = !argIn.hasKey("noc1search");
+    if (c1bondsearch)
+      mprintf("\tWill search for missing bonds to sugar anomeric atoms.\n");
+    else
+      mprintf("\tNot searching for missing bonds to sugar anomeric atoms.\n");
+    // May need to modify sugar structure/topology, either by splitting
+    // C1 hydroxyls of terminal sugars into ROH residues, and/or by
+    // adding missing bonds to C1 atoms.
+    // This is done before any identification takes place since we want
+    // to identify based on the most up-to-date topology.
+    if (sugarBuilder_->FixSugarsStructure(topIn, frameIn,
+                                          c1bondsearch, splitres, solventResName))
+    {
+      mprinterr("Error: Sugar structure modification failed.\n");
       return CpptrajState::ERR;
     }
   }
