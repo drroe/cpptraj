@@ -4,6 +4,7 @@
 #include "../AssociatedData_ResId.h"
 #include "../CpptrajStdio.h"
 #include "../DataSet_Coords.h" // TODO new coords type
+#include "../DataSet_NameMap.h"
 #include "../DataSet_Parameters.h"
 #include "../DataSetList.h"
 
@@ -48,6 +49,12 @@ int Creator::InitCreator(ArgList& argIn, DataSetList const& DSL, int debugIn)
 
   if (getTemplates(argIn, DSL)) return 1;
   if (getParameterSets(argIn, DSL)) return 1;
+
+  // Get any atom name maps
+  DataSetList nameMapSets = DSL.GetSetsOfType("*", DataSet::NAMEMAP);
+  for (DataSetList::const_iterator ds = nameMapSets.begin();
+                                   ds != nameMapSets.end(); ++ds)
+    NameMaps_.push_back( static_cast<DataSet_NameMap*>( *ds ) );
 
   return 0;
 }

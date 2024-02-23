@@ -5,6 +5,7 @@
 #include "StructureEnum.h" // TerminalType
 class ArgList;
 class DataSet_Coords;
+class DataSet_NameMap;
 class DataSet_Parameters;
 class DataSetList;
 class NameType;
@@ -13,6 +14,7 @@ namespace Structure {
 /// Used to create a system from individual units
 class Creator {
     typedef std::vector<DataSet_Coords*> Carray;
+    typedef std::vector<DataSet_NameMap*> Narray;
   public:
     /// CONSTRUCTOR
     Creator();
@@ -45,6 +47,7 @@ class Creator {
 
     DataSet_Parameters* mainParmSet_; ///< Hold optional parameter set.
     Carray Templates_;                ///< Hold unit templates.
+    Narray NameMaps_;                 ///< Hold atom name maps.
     int debug_;                       ///< Debug level
     bool free_parmset_mem_;           ///< True if main parm set is combined and should be freed
 };
