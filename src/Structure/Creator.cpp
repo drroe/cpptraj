@@ -101,9 +101,9 @@ const
     }
   }
   if (out == 0) {
-    // Terminal residue not found or non-terminal residue.
-    if (termType != Cpptraj::Structure::NON_TERMINAL)
-      mprintf("Warning: No terminal residue found for '%s'\n", *rname);
+    // Terminal residue with alias not found or non-terminal residue.
+    if (debug_ > 0 && termType != Cpptraj::Structure::NON_TERMINAL)
+      mprintf("DEBUG: No aliased terminal residue found for '%s'\n", *rname);
     // Assume Coords set aspect is what we need
     for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it) {
       if ( rname == NameType( (*it)->Meta().Aspect() ) ) {
