@@ -195,6 +195,7 @@ const
 
   // Loop for setting up atoms in the topology from residues or residue templates.
   int nRefAtomsMissing = 0;
+  int nAtomsMissingTypes = 0;
   for (int ires = 0; ires != topIn.Nres(); ires++)
   {
     if (debug_ > 0)
@@ -211,6 +212,8 @@ const
       {
         // Track intra-residue bonds
         Atom sourceAtom = topIn[itgt];
+        if (sourceAtom.Type().len() < 1)
+          nAtomsMissingTypes++;
         SourceAtomNames.push_back( sourceAtom.Name() );
         int at0 = itgt - currentRes.FirstAtom() + atomOffset;
         for (Atom::bond_iterator bat = sourceAtom.bondbegin(); bat != sourceAtom.bondend(); ++bat) {
@@ -324,6 +327,12 @@ const
     }
   } // END loop over source residues
   mprintf("\t%i template atoms missing in source.\n", nRefAtomsMissing);
+  if (nAtomsMissingTypes > 0) {
+    mprinterr("Error: %i atoms are missing types, either because they did not have\n"
+              "Error:  one initially or they could not be matched to a template.\n"
+              "Error:  Build cannot proceed unless all atoms have a type.\n");
+    return 1;
+  }
 
   // -----------------------------------
   // DEBUG - Print primary connection atoms
