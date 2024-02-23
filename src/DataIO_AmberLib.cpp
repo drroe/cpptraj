@@ -61,18 +61,36 @@ int DataIO_AmberLib::ReadData(FileName const& fname, DataSetList& dsl, std::stri
     line = infile.GetLine();
   }
   // Now should be at first unit
-  if (debug_ > 0) mprintf("DEBUG: Units:\n");
-  for (Sarray::const_iterator it = UnitNames.begin(); it != UnitNames.end(); ++it)
+  unsigned int units_read = 0;
+  if (debug_ > 0) {
+    mprintf("DEBUG: Units:");
+    for (Sarray::const_iterator it = UnitNames.begin(); it != UnitNames.end(); ++it)
+      mprintf(" %s", it->c_str());
+    mprintf("\n");
+  }
+  while (units_read < UnitNames.size())
   {
-    if (debug_ > 0) mprintf("DEBUG: Reading unit %s\n", it->c_str());
-    std::string entryColumn = "!entry." + *it + ".unit.atoms";
-    ArgList tmparg( line );
-    if (tmparg.Nargs() < 1 || tmparg[0] != entryColumn) {
-      mprinterr("Error: Expected '%s', got '%s'\n", entryColumn.c_str(), line.c_str());
+    // Which unit are we reading: !entry.<name>.unit.atoms most likely
+    ArgList tmparg( line, " !." );
+    std::string currentName = tmparg.GetStringKey("entry");
+    if (debug_ > 0)
+       mprintf("DEBUG: Reading unit %s\n", currentName.c_str());
+    // Ensure this is in the list of units
+    bool found = false;
+    for (Sarray::const_iterator it = UnitNames.begin(); it != UnitNames.end(); ++it) {
+      if (*it == currentName) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      mprinterr("Error: Unit %s was not found in the initial list of names in lib file.\n",
+                currentName.c_str());
       return 1;
     }
+
     DataSet_Coords* ds = 0;
-    MetaData meta(dsname, *it);
+    MetaData meta(dsname, currentName);
     DataSet* set = dsl.CheckForSet( meta );
     if (set == 0) {
       ds = (DataSet_Coords*)dsl.AddSet( DataSet::COORDS, meta );
@@ -85,13 +103,14 @@ int DataIO_AmberLib::ReadData(FileName const& fname, DataSetList& dsl, std::stri
       return 1;
     }
     if (ds == 0) {
-      mprinterr("Error: Could not create data set for unit %s\n", it->c_str());
+      mprinterr("Error: Could not create data set for unit %s\n", currentName.c_str());
       return 1;
     }
-    if (read_unit( ds, infile, line, *it )) {
-      mprinterr("Error: Reading unit '%s'\n", it->c_str());
+    if (read_unit( ds, infile, line, currentName )) {
+      mprinterr("Error: Reading unit '%s'\n", currentName.c_str());
       return 1;
     }
+    units_read++;
   }
   mprintf("\tRead %zu units from Amber OFF file %s.\n", UnitNames.size(), fname.base());
 
