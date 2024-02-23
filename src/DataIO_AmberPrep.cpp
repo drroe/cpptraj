@@ -116,7 +116,7 @@ const
   std::string resName = args.GetStringNext();
   std::string coordFlag = args.GetStringNext();
   int kform = args.getNextInteger(-1);
-  if (debug_ > 0)
+//  if (debug_ > 0)
     mprintf("DEBUG: %s %s %i\n", resName.c_str(), coordFlag.c_str(), kform);
   // 6 - IFIXC , IOMIT , ISYMDU , IPOS
   // FORMAT (4A)

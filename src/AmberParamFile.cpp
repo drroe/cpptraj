@@ -179,7 +179,7 @@ int AmberParamFile::read_dihedral(ParameterSet& prm, const char* ptr,
 const
 {
   // Dihedral parameters
-  //if (debug_ > 1)
+  if (debug_ > 1)
     mprintf("DEBUG: Dihedral: %s\n", ptr);
   std::vector<std::string> symbols(4);
   int pos = 0;

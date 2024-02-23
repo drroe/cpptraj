@@ -32,5 +32,7 @@ class DataIO_AmberLib : public DataIO {
     static int read_bonds(Topology&, std::string const&);
     static int read_positions(std::vector<Vec3>&, std::string const&);
     int read_connect(AssociatedData_Connect&, std::string const&) const;
+
+    bool allowOverwrite_; ///< If true, allow existing sets to be overwritten
 };
 #endif

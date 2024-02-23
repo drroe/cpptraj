@@ -91,7 +91,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Amber Energy File",  0,                             0,            DataIO_AmberEne::Alloc},
   { "Numpy array",        0,                             0,            DataIO_Numpy::Alloc},
   { "Amber Prep File",    DataIO_AmberPrep::ReadHelp,    0,            DataIO_AmberPrep::Alloc},
-  { "Amber OFF File",     0,                             0,            DataIO_AmberLib::Alloc},
+  { "Amber OFF File",     DataIO_AmberLib::ReadHelp,     0,            DataIO_AmberLib::Alloc},
   { "Amber Force Field",  DataIO_AmberFF::ReadHelp,      0,            DataIO_AmberFF::Alloc},
   { "Amber Frcmod File",  0,                             0,            DataIO_AmberFrcmod::Alloc},
   { "Amber LEaP RC File", 0,                             0,            DataIO_LeapRC::Alloc},

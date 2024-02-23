@@ -4,7 +4,8 @@
 #include "AssociatedData_Connect.h"
 
 /// CONSTRUCTOR
-DataIO_AmberLib::DataIO_AmberLib()
+DataIO_AmberLib::DataIO_AmberLib() :
+  allowOverwrite_(false)
 {
 
 }
@@ -23,13 +24,13 @@ bool DataIO_AmberLib::ID_DataFormat(CpptrajFile& infile)
 // DataIO_AmberLib::ReadHelp()
 void DataIO_AmberLib::ReadHelp()
 {
-
+  mprintf("\tallowoverwrite : Allow existing sets to be overwritten.\n");
 }
 
 // DataIO_AmberLib::processReadArgs()
 int DataIO_AmberLib::processReadArgs(ArgList& argIn)
 {
-
+  allowOverwrite_ = argIn.hasKey("allowoverwrite");
   return 0;
 }
 
@@ -70,7 +71,19 @@ int DataIO_AmberLib::ReadData(FileName const& fname, DataSetList& dsl, std::stri
       mprinterr("Error: Expected '%s', got '%s'\n", entryColumn.c_str(), line.c_str());
       return 1;
     }
-    DataSet_Coords* ds = (DataSet_Coords*)dsl.AddSet( DataSet::COORDS, MetaData(dsname, *it) );
+    DataSet_Coords* ds = 0;
+    MetaData meta(dsname, *it);
+    DataSet* set = dsl.CheckForSet( meta );
+    if (set == 0) {
+      ds = (DataSet_Coords*)dsl.AddSet( DataSet::COORDS, meta );
+    } else if (allowOverwrite_) {
+      mprintf("Warning: Overwriting existing set %s\n", set->legend());
+      dsl.RemoveSet( set );
+      ds = (DataSet_Coords*)dsl.AddSet( DataSet::COORDS, meta );
+    } else {
+      mprinterr("Error: Set %s already exists and 'allowoverwrite' not specified.\n");
+      return 1;
+    }
     if (ds == 0) {
       mprinterr("Error: Could not create data set for unit %s\n", it->c_str());
       return 1;

@@ -103,6 +103,9 @@ int DataIO_LeapRC::LoadOFF(std::string const& filename, DataSetList& dsl, std::s
   } else {
     DataIO_AmberLib infile;
     infile.SetDebug( debug_ );
+    // Allow lib to overwrite e.g. something from previous prep
+    ArgList tmpArgs("allowoverwrite");
+    infile.processReadArgs(tmpArgs);
     if (infile.ReadData(amberhome_ + "lib/" + filename, dsl, dsname)) {
       mprinterr("Error: Could not load library file '%s'\n", filename.c_str());
       return 1;
