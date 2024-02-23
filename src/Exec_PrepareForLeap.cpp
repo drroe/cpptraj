@@ -1118,6 +1118,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       mprinterr("Error: Sugar preparation failed.\n");
       return CpptrajState::ERR;
     }
+    sugarBuilder.SetEachSugarAsTerminal(topIn);
   } else {
     mprintf("\tNot preparing sugars.\n");
   }

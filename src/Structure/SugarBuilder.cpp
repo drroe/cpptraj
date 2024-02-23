@@ -1947,14 +1947,21 @@ int SugarBuilder::PrepareSugars(bool errorsAreFatal,
     }
     // Bonds to sugars have been removed, so regenerate molecule info
     topIn.DetermineMolecules();
-    // Set each sugar as terminal
-    for (std::vector<Sugar>::const_iterator sugar = Sugars_.begin(); sugar != Sugars_.end(); ++sugar)
-    {
-      int rnum = sugar->ResNum(topIn);
-      topIn.SetRes(rnum).SetTerminal(true);
-      if (rnum - 1 > -1)
-        topIn.SetRes(rnum-1).SetTerminal(true);
-    }
+
   }
   return 0;
+}
+
+/** When being used in prepareforleap, this is used to set each sugar as
+  * terminal, which LEaP needs.
+  */
+void SugarBuilder::SetEachSugarAsTerminal(Topology& topIn) const {
+  // Set each sugar as terminal
+  for (std::vector<Sugar>::const_iterator sugar = Sugars_.begin(); sugar != Sugars_.end(); ++sugar)
+  {
+    int rnum = sugar->ResNum(topIn);
+    topIn.SetRes(rnum).SetTerminal(true);
+    if (rnum - 1 > -1)
+      topIn.SetRes(rnum-1).SetTerminal(true);
+  }
 }

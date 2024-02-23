@@ -26,6 +26,8 @@ class SugarBuilder {
                            bool, bool, NameType const&);
     /// Identify sugars, do renaming, remove bonds, generate leap input
     int PrepareSugars(bool, ResStatArray&, Topology&, Frame const&, std::vector<BondType>&);
+    /// Set each sugar as a terminal residue
+    void SetEachSugarAsTerminal(Topology&) const;
   private:
     typedef std::vector<int> Iarray;
 
