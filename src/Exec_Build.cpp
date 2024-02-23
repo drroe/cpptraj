@@ -6,6 +6,21 @@
 #include "Structure/Builder.h"
 #include "Structure/Creator.h"
 #include "Structure/PdbCleaner.h"
+#include "Structure/SugarBuilder.h"
+#include "Structure/Sugar.h"
+
+/** CONSTRUCTOR */
+Exec_Build::Exec_Build() :
+  Exec(GENERAL),
+  debug_(0),
+  sugarBuilder_(0)
+{}
+
+/** DESTRUCTOR */
+Exec_Build::~Exec_Build() {
+  if (sugarBuilder_ != 0)
+    delete sugarBuilder_;
+}
 
 /** Map atoms in residue to template. */
 std::vector<int> Exec_Build::MapAtomsToTemplate(Topology const& topIn,
@@ -797,6 +812,27 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     for (; it != ParamSets.end(); ++it)
       mainParmSet->UpdateParamSet( *(*it), UC, State.Debug(), State.Debug() ); // FIXME verbose
   }*/
+
+  // Load PDB to glycam residue name map
+  bool prepare_sugars = !argIn.hasKey("nosugars");
+  if (!prepare_sugars)
+    mprintf("\tNot attempting to prepare sugars.\n");
+  else
+    mprintf("\tWill attempt to prepare sugars.\n");
+  if (sugarBuilder_ != 0) delete sugarBuilder_;
+  sugarBuilder_ = 0;
+  if (prepare_sugars) {
+    sugarBuilder_ = new Cpptraj::Structure::SugarBuilder(debug_);
+    // Init options
+    if (sugarBuilder_->InitOptions( argIn.hasKey("hasglycam"),
+                                    argIn.GetStringKey("sugarmask"),
+                                    argIn.GetStringKey("determinesugarsby", "geometry"),
+                                    argIn.GetStringKey("resmapfile") ))
+    {
+      mprinterr("Error: Sugar options init failed.\n");
+      return CpptrajState::ERR;
+    }
+  }
 
   // Fill in atoms with templates
   Topology topOut;

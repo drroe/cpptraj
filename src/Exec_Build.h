@@ -4,12 +4,14 @@
 namespace Cpptraj {
 namespace Structure {
 class Creator;
+class SugarBuilder;
 }
 }
 /// Used to build a structure 
 class Exec_Build : public Exec {
   public:
-    Exec_Build() : Exec(GENERAL), debug_() {}
+    Exec_Build();
+    ~Exec_Build();
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Build(); }
     RetType Execute(CpptrajState&, ArgList&);
@@ -31,5 +33,6 @@ class Exec_Build : public Exec {
     static std::vector<int> MapAtomsToTemplate(Topology const&, int, DataSet_Coords*, Cpptraj::Structure::Creator const&, std::vector<NameType>&);
 
     int debug_;
+    Cpptraj::Structure::SugarBuilder* sugarBuilder_;
 };
 #endif
