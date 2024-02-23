@@ -22,26 +22,36 @@ std::vector<int> Exec_Build::MapAtomsToTemplate(Topology const& topIn,
   {
     NameType const& tgtName = topIn[itgt].Name();
     //mprintf("DEBUG: Search for atom %s\n", *tgtName);
+    bool found = false;
     // Check if this atom has an alias.
     NameType alias;
-    creator.GetAlias( alias, tgtName );
+    bool has_alias = creator.GetAlias( alias, tgtName );
 //    if (creator.GetAlias( alias, tgtName )) {
 //      mprintf("DEBUG: Atom %s alias is %s\n", *tgtName, *alias);
 //    }
-    // See if tgtName or alias matches a reference (template) atom name.
+    // See if tgtName matches a reference (template) atom name.
     for (int iref = 0; iref != resTemplate->Top().Natom(); iref++)
     {
       NameType const& refName = resTemplate->Top()[iref].Name();
       if (refName == tgtName) {
         sourceAtomNames.push_back( tgtName );
         mapOut[iref] = itgt;
-        break;
-      } else if (refName == alias) {
-        sourceAtomNames.push_back( alias );
-        mapOut[iref] = itgt;
+        found = true;
         break;
       }
     }
+    if (!found && has_alias) {
+      // See if alias matches a reference (template) atom name.
+      for (int iref = 0; iref != resTemplate->Top().Natom(); iref++) {
+        NameType const& refName = resTemplate->Top()[iref].Name();
+        if (refName == alias) {
+          sourceAtomNames.push_back( alias );
+          mapOut[iref] = itgt;
+          found = true;
+          break;
+        }
+      } // END search template for alias
+    } // END do alias search
   }
 /*
   for (int iref = 0; iref != resTemplate->Top().Natom(); iref++)
