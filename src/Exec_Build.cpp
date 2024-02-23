@@ -20,33 +20,20 @@ std::vector<int> Exec_Build::MapAtomsToTemplate(Topology const& topIn,
   for (int itgt = resIn.FirstAtom(); itgt != resIn.LastAtom(); itgt++)
   {
     NameType const& tgtName = topIn[itgt].Name();
-    //mprintf("DEBUG: Search for atom %s\n", *tgtName);
-
+    mprintf("DEBUG: Search for atom %s\n", *tgtName);
+    // Did this atom have an alias
+    NameType alias;
+    if (creator.GetAlias( alias, tgtName )) {
+      mprintf("DEBUG: Atom %s alias is %s\n",
+              *tgtName, *alias);
+    }
     // See if tgtName or alias matches a reference atom
-    int iat = -1;
     for (int iref = 0; iref != resTemplate->Top().Natom(); iref++)
     {
       NameType const& refName = resTemplate->Top()[iref].Name();
-      if (refName == tgtName) {
+      if (refName == tgtName || refName == alias) {
         mapOut[iref] = itgt;
-        iat = itgt;
         break;
-      }
-    }
-    if (iat == -1) {
-      // Did this atom have an alias
-      NameType alias;
-      if (creator.GetAlias( alias, tgtName )) {
-        mprintf("DEBUG: Atom %s alias is %s\n", *tgtName, *alias);
-        for (int iref = 0; iref != resTemplate->Top().Natom(); iref++)
-        {
-          NameType const& refName = resTemplate->Top()[iref].Name();
-          if (refName == alias) {
-            mapOut[iref] = itgt;
-            iat = itgt;
-            break;
-          }
-        }
       }
     }
   }
