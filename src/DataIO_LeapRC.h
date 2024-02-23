@@ -33,6 +33,7 @@ class DataIO_LeapRC : public DataIO {
     int LoadAmberPrep(std::string const&, DataSetList&, std::string const&) const;
     int AddAtomTypes(NHarrayType&, BufferedLine&) const;
     int AddPdbResMap(PdbResMapArray&, BufferedLine&) const;
+    int AddPdbAtomMap(std::string const&, DataSetList&, BufferedLine&) const;
     /// Used to check if a parm/lib file was already loaded.
     static inline bool check_already_loaded(Sarray const&, std::string const&);
 

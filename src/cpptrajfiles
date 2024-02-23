@@ -219,6 +219,7 @@ COMMON_SOURCES= \
         DataSet_MatrixFlt.cpp \
         DataSet_Mesh.cpp \
         DataSet_Modes.cpp \
+        DataSet_NameMap.cpp \
         DataSet_PairwiseCache.cpp \
         DataSet_PairwiseCache_MEM.cpp \
         DataSet_PairwiseCache_NC.cpp \

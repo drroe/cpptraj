@@ -6,6 +6,7 @@
 #include "DataIO_AmberFrcmod.h"
 #include "DataIO_AmberLib.h"
 #include "DataIO_AmberPrep.h"
+#include "DataSet_NameMap.h"
 #include "DataSet_Parameters.h"
 #include <cstdlib> //getenv
 
@@ -276,6 +277,67 @@ const
   }
   return 0;
 }
+/** LEaP addPdbAtomMap command. */
+int DataIO_LeapRC::AddPdbAtomMap(std::string const& dsname, DataSetList& DSL, BufferedLine& infile)
+const
+{
+  MetaData meta(dsname, "atommap");
+  DataSet* ds = DSL.CheckForSet(meta);
+  if (ds == 0) {
+    ds = DSL.AddSet(DataSet::NAMEMAP, meta);
+    if (ds == 0) return 1;
+  }
+  DataSet_NameMap& namemap = static_cast<DataSet_NameMap&>( *ds );
+  mprintf("DEBUG: Name map set: %s\n", namemap.legend());
+  int bracketCount = 0;
+  // First line should contain the command
+  const char* line = infile.CurrentLine();
+  while (line != 0) {
+    // Process the line
+    std::string tmp;
+    for (const char* ptr = line; *ptr != '\0'; ++ptr)
+    {
+      if (*ptr == '#') {
+        // Comment - skip everything else
+        break;
+      } else if (*ptr == '{')
+        bracketCount++;
+      else if (*ptr == '}') {
+        bracketCount--;
+        if (bracketCount == 1) {
+          //if (debug_ > 0)
+            mprintf("DEBUG: addPdbAtomMap: %s\n", tmp.c_str());
+          ArgList aline( tmp );
+          // 2 tokens: Old name, new name
+          if (aline.Nargs() != 2) {
+            mprinterr("Error: Malformed entry in addPdbAtomMap: %s\n", tmp.c_str());
+            return 1;
+          }
+          mprintf("DEBUG: old= %s  new= %s\n", aline[0].c_str(), aline[1].c_str());
+          tmp.clear();
+        }
+      } else {
+        if (bracketCount == 2)
+          tmp += *ptr;
+      }
+    }
+    if (bracketCount < 0) {
+      mprinterr("Error: Too many close brackets '}' in addPdbAtomMap command.\n");
+      return 1;
+    } else if (bracketCount == 0) {
+      break;
+    } //else {
+    //mprintf("DEBUG: END OF LINE: addPdbResMap: %s\n", tmp.c_str());
+    //}
+    line = infile.Line();
+  }
+  if (bracketCount != 0) {
+    mprinterr("Error: Not enough close brackets '}' in addPdbAtomMap command.\n");
+    return 1;
+  }
+  return 0;
+}
+
 
 /// Move sets from paramDSL to dsl
 static inline int addSetsToList(DataSetList& dsl, DataSetList& paramDSL)
@@ -341,6 +403,8 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
         err = AddAtomTypes(atomHybridizations, infile);
       else if (line.Contains("addPdbResMap") || line.Contains("addpdbresmap"))
         err = AddPdbResMap(pdbResMap, infile);
+      else if (line.Contains("addPdbAtomMap") || line.Contains("addpdbatommap"))
+        err = AddPdbAtomMap(dsname, dsl, infile);
       else {
         // Does this line contain an equals sign?
         bool has_equals = false;

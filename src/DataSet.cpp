@@ -33,6 +33,7 @@ const char* DataSet::Descriptions_[] = {
   "unsigned integer",           // UNSIGNED_INTEGER
   "frames",                     // FRAMES
   "zmatrix",                    // ZMATRIX
+  "name map",                   // NAMEMAP
   "unknown"                     // UNKNOWN_DATA
 };
 

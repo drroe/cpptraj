@@ -181,6 +181,7 @@ class Parm_Amber : public ParmIO {
     int UB_count_[2];   ///< Urey-Bradley count: # bonds (x3), # parameters
     int N_impropers_;   ///< Number of impropers (x5)
     int N_impTerms_;    ///< Number of improper terms
+    int ncoords_;       ///< Number of coordinates (# atoms * 3)
     int n_cmap_terms_;  ///< Number of CMAP terms
     int n_cmap_grids_;  ///< Number of CMAP grids
 
@@ -193,6 +194,7 @@ class Parm_Amber : public ParmIO {
     bool writePdbInfo_;     ///< If true write chain IDs etc
 
     bool has_valid_nonbond_params_; ///< Will set to false if invalid nonbonds detected on read
+    bool hasBadDihedrals_; ///< Set to true if bad dihedrals detected on read
 };
 // -----------------------------------------------------------------------------
 class Parm_Amber::FortranData {

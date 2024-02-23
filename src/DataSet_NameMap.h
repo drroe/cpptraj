@@ -5,6 +5,8 @@
 #include <map>
 /// Used to map old atom names to new atom names 
 class DataSet_NameMap : public DataSet {
+    typedef std::pair<NameType,NameType> AmapPair;
+    typedef std::map<NameType,NameType> AmapType;
   public:
     DataSet_NameMap();
     static DataSet* Alloc() { return (DataSet*)new DataSet_NameMap(); }
@@ -20,9 +22,10 @@ class DataSet_NameMap : public DataSet {
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
 #   endif
     // -------------------------------------------
+    void AddNameMap(NameType const& oldName, NameType const& newName) {
+      nameMap_.insert( AmapPair(oldName, newName) );
+    }
   private:
-    typedef std::pair<NameType,NameType> AmapPair;
-    typedef std::map<NameType,NameType> AmapType;
     AmapType nameMap_;
 };
 #endif

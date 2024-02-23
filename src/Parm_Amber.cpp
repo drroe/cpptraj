@@ -165,10 +165,12 @@ Parm_Amber::Parm_Amber() :
   atProblemFlag_(false),
   N_impropers_(0),
   N_impTerms_(0),
+  ncoords_(0),
   writeChamber_(true),
   writeEmptyArrays_(false),
   writePdbInfo_(true),
-  has_valid_nonbond_params_(true)
+  has_valid_nonbond_params_(true),
+  hasBadDihedrals_(false)
 {
   UB_count_[0] = 0;
   UB_count_[1] = 0;
@@ -675,6 +677,7 @@ int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& 
   TopIn.SetNonbond().SetupLJforNtypes( values_[NTYPES] );
   numLJparm_ = TopIn.Nonbond().NBarray().size();
   TopIn.SetNonbond().SetNHBterms( values_[NPHB] );
+  ncoords_ = values_[NATOM] * 3;
   //TopIn.SetNatyp( values_[NATYP] );
   return 0;
 }
@@ -972,6 +975,14 @@ DihedralType Parm_Amber::GetDihedral() {
   int a3 = atoi(file_.NextElement());
   int a4 = atoi(file_.NextElement());
   int didx = atoi(file_.NextElement());
+  if (a1 < 0 || a1 >= ncoords_ ||
+      a2 < 0 || a2 >= ncoords_ ||
+      a3 < 0 || a3 >= ncoords_ ||
+      a4 < 0 || a4 >= ncoords_ ||
+      didx < 0 || didx - 1 >= values_[NPTRA])
+  {
+    hasBadDihedrals_ = true;
+  }
   return DihedralType( a1 / 3, a2 / 3, a3 / 3, a4 / 3, didx - 1 );
 }
 
@@ -979,8 +990,14 @@ DihedralType Parm_Amber::GetDihedral() {
 int Parm_Amber::ReadDihedralsH(Topology& TopIn, FortranData const& FMT) {
   int nvals = values_[NPHIH]*5;
   if (SetupBuffer(F_DIHH, nvals, FMT)) return 1;
-  for (int idx = 0; idx != nvals; idx += 5)
-    TopIn.AddDihedral( GetDihedral(), true );
+  for (int idx = 0; idx != nvals; idx += 5) {
+    DihedralType dih = GetDihedral();
+    if (hasBadDihedrals_) {
+      mprintf("Warning: Dihedrals including hydrogen have bad atom or parm indices, skipping.\n");
+      break;
+    }
+    TopIn.AddDihedral( dih, true );
+  }
   return 0;
 }
 
@@ -988,8 +1005,14 @@ int Parm_Amber::ReadDihedralsH(Topology& TopIn, FortranData const& FMT) {
 int Parm_Amber::ReadDihedrals(Topology& TopIn, FortranData const& FMT) {
   int nvals = values_[MPHIA]*5;
   if (SetupBuffer(F_DIH, nvals, FMT)) return 1;
-  for (int idx = 0; idx != nvals; idx += 5)
-    TopIn.AddDihedral( GetDihedral(), false );
+  for (int idx = 0; idx != nvals; idx += 5) {
+    DihedralType dih = GetDihedral();
+    if (hasBadDihedrals_) {
+      mprintf("Warning: Dihedrals not including hydrogen have bad atom or parm indices, skipping.\n");
+      break;
+    }
+    TopIn.AddDihedral( dih, false );
+  }
   return 0;
 }
 
