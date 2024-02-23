@@ -314,6 +314,7 @@ const
             return 1;
           }
           mprintf("DEBUG: old= %s  new= %s\n", aline[0].c_str(), aline[1].c_str());
+          namemap.AddNameMap( aline[0], aline[1] );
           tmp.clear();
         }
       } else {
