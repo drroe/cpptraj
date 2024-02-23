@@ -13,22 +13,31 @@ std::vector<int> Exec_Build::MapAtomsToTemplate(Topology const& topIn,
                                                 DataSet_Coords* resTemplate,
                                                 Cpptraj::Structure::Creator const& creator)
 {
-  std::vector<int> mapOut;
+  std::vector<int> mapOut(resTemplate->Top().Natom(), -1);
   mapOut.reserve( resTemplate->Top().Natom() );
   Residue const& resIn = topIn.Res(rnum);
   // For each atom in topIn, find a template atom
   for (int itgt = resIn.FirstAtom(); itgt != resIn.LastAtom(); itgt++)
   {
-    mprintf("DEBUG: Search for atom %s\n", *(topIn[itgt].Name()));
+    NameType const& tgtName = topIn[itgt].Name();
+    mprintf("DEBUG: Search for atom %s\n", *tgtName);
     // Did this atom have an alias
     NameType alias;
-    if (creator.GetAlias( alias, topIn[itgt].Name() )) {
+    if (creator.GetAlias( alias, tgtName )) {
       mprintf("DEBUG: Atom %s alias is %s\n",
-              *(topIn[itgt].Name()),
-              *alias);
+              *tgtName, *alias);
+    }
+    // See if tgtName or alias matches a reference atom
+    for (int iref = 0; iref != resTemplate->Top().Natom(); iref++)
+    {
+      NameType const& refName = resTemplate->Top()[iref].Name();
+      if (refName == tgtName || refName == alias) {
+        mapOut[iref] = itgt;
+        break;
+      }
     }
   }
-
+/*
   for (int iref = 0; iref != resTemplate->Top().Natom(); iref++)
   {
     // Find this atom name in topIn
@@ -42,7 +51,7 @@ std::vector<int> Exec_Build::MapAtomsToTemplate(Topology const& topIn,
     }
     
     mapOut.push_back( iat );
-  }
+  }*/
   return mapOut;
 }
 
