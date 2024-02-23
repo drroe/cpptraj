@@ -89,11 +89,11 @@ void ParameterSet::Print(CpptrajFile& Out) const {
   }
   if (!dihParm_.empty()) {
     Out.Printf("Dihedral parameters:\n");
-    Out.Printf("\t%6s %6s %6s %6s %12s %12s %12s\n", "Type1", "Type2", "Type3", "Type4", "Pk", "Pn", "Phase");
+    Out.Printf("\t%6s %6s %6s %6s %12s %4s %6s %6s %6s\n", "Type1", "Type2", "Type3", "Type4", "Pk", "Pn", "Phase", "SCEE", "SCNB");
     for (DihedralParmHolder::const_iterator it0 = dihParm_.begin(); it0 != dihParm_.end(); ++it0)
       for (DihedralParmArray::const_iterator it1 = it0->second.begin();
                                              it1 != it0->second.end(); ++it1)
-        Out.Printf("\t%6s %6s %6s %6s : %12.4f %12.4f %12.4f\n", *(it0->first[0]), *(it0->first[1]), *(it0->first[2]), *(it0->first[3]), it1->Pk(), it1->Pn(), it1->Phase()*Constants::RADDEG);
+        Out.Printf("\t%6s %6s %6s %6s : %12.4f %4.1f %6.2f %6.2f %6.2f\n", *(it0->first[0]), *(it0->first[1]), *(it0->first[2]), *(it0->first[3]), it1->Pk(), it1->Pn(), it1->Phase()*Constants::RADDEG, it1->SCEE(), it1->SCNB());
   }
   if (!impParm_.empty()) {
     Out.Printf("Improper parameters:\n");
