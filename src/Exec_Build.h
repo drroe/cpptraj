@@ -28,7 +28,7 @@ class Exec_Build : public Exec {
     /// Create new topology/frame using templates
     int FillAtomsWithTemplates(Topology&, Frame&, Topology const&, Frame const&, Cpptraj::Structure::Creator const&) const;
     /// Map atoms in topology to template
-    static std::vector<int> MapAtomsToTemplate(Topology const&, int, DataSet_Coords*, Cpptraj::Structure::Creator const&);
+    static std::vector<int> MapAtomsToTemplate(Topology const&, int, DataSet_Coords*, Cpptraj::Structure::Creator const&, std::vector<NameType>&);
 
     int debug_;
 };

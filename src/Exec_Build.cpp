@@ -11,7 +11,8 @@
 std::vector<int> Exec_Build::MapAtomsToTemplate(Topology const& topIn,
                                                 int rnum,
                                                 DataSet_Coords* resTemplate,
-                                                Cpptraj::Structure::Creator const& creator)
+                                                Cpptraj::Structure::Creator const& creator,
+                                                std::vector<NameType>& sourceAtomNames)
 {
   std::vector<int> mapOut(resTemplate->Top().Natom(), -1);
   mapOut.reserve( resTemplate->Top().Natom() );
@@ -21,17 +22,22 @@ std::vector<int> Exec_Build::MapAtomsToTemplate(Topology const& topIn,
   {
     NameType const& tgtName = topIn[itgt].Name();
     //mprintf("DEBUG: Search for atom %s\n", *tgtName);
-    // Did this atom have an alias
+    // Check if this atom has an alias.
     NameType alias;
-    if (creator.GetAlias( alias, tgtName )) {
-      mprintf("DEBUG: Atom %s alias is %s\n",
-              *tgtName, *alias);
-    }
-    // See if tgtName or alias matches a reference atom
+    creator.GetAlias( alias, tgtName );
+//    if (creator.GetAlias( alias, tgtName )) {
+//      mprintf("DEBUG: Atom %s alias is %s\n", *tgtName, *alias);
+//    }
+    // See if tgtName or alias matches a reference (template) atom name.
     for (int iref = 0; iref != resTemplate->Top().Natom(); iref++)
     {
       NameType const& refName = resTemplate->Top()[iref].Name();
-      if (refName == tgtName || refName == alias) {
+      if (refName == tgtName) {
+        sourceAtomNames.push_back( tgtName );
+        mapOut[iref] = itgt;
+        break;
+      } else if (refName == alias) {
+        sourceAtomNames.push_back( alias );
         mapOut[iref] = itgt;
         break;
       }
@@ -170,6 +176,11 @@ const
   typedef std::vector<ResAtPair> ResAtArray;
   ResAtArray detectedInterResBonds;
 
+  // Hold template atom names corressponding to source atom names.
+  typedef std::vector<NameType> NameArray;
+  NameArray SourceAtomNames;
+  SourceAtomNames.reserve( topIn.Natom() );
+
   // Loop for setting up atoms in the topology from residues or residue templates.
   int nRefAtomsMissing = 0;
   for (int ires = 0; ires != topIn.Nres(); ires++)
@@ -188,6 +199,7 @@ const
       {
         // Track intra-residue bonds
         Atom sourceAtom = topIn[itgt];
+        SourceAtomNames.push_back( sourceAtom.Name() );
         int at0 = itgt - currentRes.FirstAtom() + atomOffset;
         for (Atom::bond_iterator bat = sourceAtom.bondbegin(); bat != sourceAtom.bondend(); ++bat) {
           if ( topIn[*bat].ResNum() == ires ) {
@@ -222,7 +234,7 @@ const
       else
         currentRes.SetName( NameType( (*templateResName) + ( templateResName.len() - 3) ) );
       // Map source atoms to template atoms.
-      std::vector<int> map = MapAtomsToTemplate( topIn, ires, resTemplate, creator );
+      std::vector<int> map = MapAtomsToTemplate( topIn, ires, resTemplate, creator, SourceAtomNames );
       if (debug_ > 1) {
         mprintf("\t  Atom map:\n");
         // DEBUG - print map
@@ -270,10 +282,9 @@ const
           Atom const& sourceAtom = topIn[itgt];
           for (Atom::bond_iterator bat = sourceAtom.bondbegin(); bat != sourceAtom.bondend(); ++bat) {
             if ( topIn[*bat].ResNum() < ires ) {
-              // Use template atom names
-              NameType const& bondAtomName = resTemplate->Top()[pdb[itgt-currentRes.FirstAtom()]].Name();
+              // Use template atom names. Use saved names in case source name had an alias.
               detectedInterResBonds.push_back( ResAtPair(ires, templateAtom.Name()) );
-              detectedInterResBonds.push_back( ResAtPair(topIn[*bat].ResNum(), bondAtomName) );
+              detectedInterResBonds.push_back( ResAtPair(topIn[*bat].ResNum(), SourceAtomNames[*bat]) );
             }
           }
         }
@@ -464,6 +475,10 @@ const
   }
   if (AtomOffsets.size() != (unsigned int)topOut.Nres()) {
     mprinterr("Internal Error: AtomOffsets size %zu != newNres size %i\n", AtomOffsets.size(), topOut.Nres());
+    return 1;
+  }
+  if (SourceAtomNames.size() != (unsigned int)topIn.Natom()) {
+    mprinterr("Internal Error: Source atom names length %zu != # input atoms %i\n", SourceAtomNames.size(), topIn.Natom());
     return 1;
   }
 
