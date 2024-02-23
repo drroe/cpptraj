@@ -146,6 +146,8 @@ const
       AssociatedData* ad = resTemplate->GetAssociatedData(AssociatedData::CONNECT);
       if (ad == 0) {
         mprintf("Warning: Unit '%s' does not have CONNECT data.\n", resTemplate->legend());
+        resHeadAtoms.push_back( -1 );
+        resTailAtoms.push_back( -1 );
       } else {
         AssociatedData_Connect const& CONN = static_cast<AssociatedData_Connect const&>( *ad );
         if (CONN.NconnectAtoms() < 2) {
