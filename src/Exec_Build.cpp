@@ -330,7 +330,16 @@ const
   if (nAtomsMissingTypes > 0) {
     mprinterr("Error: %i atoms are missing types, either because they did not have\n"
               "Error:  one initially or they could not be matched to a template.\n"
-              "Error:  Build cannot proceed unless all atoms have a type.\n");
+              "Error:  Build cannot proceed unless all atoms have a type:\n",
+              nAtomsMissingTypes);
+    for (int ires = 0; ires != topOut.Nres(); ires++) {
+      std::string missingTypes;
+      for (int at = topOut.Res(ires).FirstAtom(); at != topOut.Res(ires).LastAtom(); ++at)
+        if ( topOut[at].Type().len() < 1 )
+          missingTypes.append(" " + topOut[at].Name().Truncated() );
+      if (!missingTypes.empty())
+        mprinterr("Error:\t%s missing types for%s\n", topOut.TruncResNameNum(ires).c_str(), missingTypes.c_str());
+    }
     return 1;
   }
 
