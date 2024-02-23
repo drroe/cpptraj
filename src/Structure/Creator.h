@@ -39,6 +39,8 @@ class Creator {
     DataSet_Coords* IdTemplateFromName(std::string const&) const;
     /// Identify residue template from residue name
     DataSet_Coords* IdTemplateFromResname(NameType const&, TerminalType) const;
+    /// Get name map if its present
+    bool GetAlias(NameType&, NameType const&) const;
   private:
     /// Get templates
     int getTemplates(ArgList&, DataSetList const&);

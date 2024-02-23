@@ -54,7 +54,10 @@ int Creator::InitCreator(ArgList& argIn, DataSetList const& DSL, int debugIn)
   DataSetList nameMapSets = DSL.GetSetsOfType("*", DataSet::NAMEMAP);
   for (DataSetList::const_iterator ds = nameMapSets.begin();
                                    ds != nameMapSets.end(); ++ds)
+  {
     NameMaps_.push_back( static_cast<DataSet_NameMap*>( *ds ) );
+    mprintf("DEBUG: Atom name map: %s\n", NameMaps_.back()->legend());
+  }
 
   return 0;
 }
@@ -219,3 +222,14 @@ int Creator::getParameterSets(ArgList& argIn, DataSetList const& DSL) {
   return 0;
 }
 
+/** Get alias if present */
+bool Creator::GetAlias(NameType& newName, NameType const& oldName)
+const
+{
+  for (Narray::const_iterator it = NameMaps_.begin(); it != NameMaps_.end(); ++it)
+  {
+    if ((*it)->GetName( newName, oldName ))
+      return true;
+  }
+  return false;
+}

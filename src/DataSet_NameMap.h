@@ -25,6 +25,12 @@ class DataSet_NameMap : public DataSet {
     void AddNameMap(NameType const& oldName, NameType const& newName) {
       nameMap_.insert( AmapPair(oldName, newName) );
     }
+    bool GetName(NameType& newName, NameType const& oldName) const {
+      AmapType::const_iterator it = nameMap_.find( oldName );
+      if (it == nameMap_.end()) return false;
+      newName = it->second;
+      return true;
+    }
   private:
     AmapType nameMap_;
 };

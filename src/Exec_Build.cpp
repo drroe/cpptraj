@@ -10,11 +10,25 @@
 /** Map atoms in residue to template. */
 std::vector<int> Exec_Build::MapAtomsToTemplate(Topology const& topIn,
                                                 int rnum,
-                                                DataSet_Coords* resTemplate)
+                                                DataSet_Coords* resTemplate,
+                                                Cpptraj::Structure::Creator const& creator)
 {
   std::vector<int> mapOut;
   mapOut.reserve( resTemplate->Top().Natom() );
   Residue const& resIn = topIn.Res(rnum);
+  // For each atom in topIn, find a template atom
+  for (int itgt = resIn.FirstAtom(); itgt != resIn.LastAtom(); itgt++)
+  {
+    mprintf("DEBUG: Search for atom %s\n", *(topIn[itgt].Name()));
+    // Did this atom have an alias
+    NameType alias;
+    if (creator.GetAlias( alias, topIn[itgt].Name() )) {
+      mprintf("DEBUG: Atom %s alias is %s\n",
+              *(topIn[itgt].Name()),
+              *alias);
+    }
+  }
+
   for (int iref = 0; iref != resTemplate->Top().Natom(); iref++)
   {
     // Find this atom name in topIn
@@ -26,6 +40,7 @@ std::vector<int> Exec_Build::MapAtomsToTemplate(Topology const& topIn,
         break;
       }
     }
+    
     mapOut.push_back( iat );
   }
   return mapOut;
@@ -198,7 +213,7 @@ const
       else
         currentRes.SetName( NameType( (*templateResName) + ( templateResName.len() - 3) ) );
       // Map source atoms to template atoms.
-      std::vector<int> map = MapAtomsToTemplate( topIn, ires, resTemplate );
+      std::vector<int> map = MapAtomsToTemplate( topIn, ires, resTemplate, creator );
       if (debug_ > 1) {
         mprintf("\t  Atom map:\n");
         // DEBUG - print map
