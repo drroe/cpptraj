@@ -75,6 +75,7 @@ int DataIO_LeapRC::LoadAmberParams(std::string const& filename, DataSetList& dsl
   if (fargs.hasKey("frcmod")) {
     mprintf("\tLoading force field modifications from '%s'\n", filename.c_str());
     DataIO_AmberFrcmod infile;
+    infile.SetDebug( debug_ );
     if (infile.ReadData(amberhome_ + "parm/" + filename, dsl, dsname)) {
       mprinterr("Error: Could not load force field modifications from '%s'\n", filename.c_str());
       return 1;
@@ -101,6 +102,7 @@ int DataIO_LeapRC::LoadOFF(std::string const& filename, DataSetList& dsl, std::s
     mprintf("Warning: Library %s has already been loaded, skipping.\n", filename.c_str());
   } else {
     DataIO_AmberLib infile;
+    infile.SetDebug( debug_ );
     if (infile.ReadData(amberhome_ + "lib/" + filename, dsl, dsname)) {
       mprinterr("Error: Could not load library file '%s'\n", filename.c_str());
       return 1;
@@ -116,7 +118,8 @@ int DataIO_LeapRC::LoadAmberPrep(std::string const& filename, DataSetList& dsl, 
     mprintf("Warning: Prep file %s has already been loaded, skipping.\n", filename.c_str());
   } else {
     DataIO_AmberPrep infile;
-    if (infile.ReadData(amberhome_ + "lib/" + filename, dsl, dsname)) {
+    infile.SetDebug( debug_ );
+    if (infile.ReadData(amberhome_ + "prep/" + filename, dsl, dsname)) {
       mprinterr("Error: Could not load prep file '%s'\n", filename.c_str());
       return 1;
     }
