@@ -35,7 +35,7 @@ class AmberParamFile {
     /// Read angle line
     int read_angle(ParameterSet&, const char*) const;
     /// Read dihedral line
-    int read_dihedral(ParameterSet&, const char*) const;
+    int read_dihedral(ParameterSet&, const char*, std::vector<std::string>&, bool) const;
     /// Read improper line
     int read_improper(ParameterSet&, const char*) const;
     /// Read LJ 10-12 hbond line

@@ -173,16 +173,31 @@ const
   * of pn is used only for identifying the existence of the next term and 
   * only the absolute value of PN is kept.
   */
-int AmberParamFile::read_dihedral(ParameterSet& prm, const char* ptr)
+int AmberParamFile::read_dihedral(ParameterSet& prm, const char* ptr,
+                                  std::vector<std::string>& last_symbols,
+                                  bool first_char_is_space)
 const
 {
   // Dihedral parameters
-  if (debug_ > 1) mprintf("DEBUG: Dihedral: %s\n", ptr);
+  //if (debug_ > 1)
+    mprintf("DEBUG: Dihedral: %s\n", ptr);
   std::vector<std::string> symbols(4);
-  int pos = read_symbols(ptr, symbols, 4);
-  if (pos < 0) {
-    mprinterr("Error: Could not read symbols for dihedral from %s\n", ptr);
-    return 1;
+  int pos = 0;
+  if (first_char_is_space) {
+    // Assume no symbols on this line. Use previous symbols.
+    if (last_symbols.empty()) {
+      mprinterr("Error: No symbols in dihedral line: %s\n", ptr);
+      return 1;
+    }
+    symbols = last_symbols;
+    // Advance past the whitespace
+    while (ptr[pos] == ' ') pos++;
+  } else {
+    pos = read_symbols(ptr, symbols, 4);
+    if (pos < 0) {
+      mprinterr("Error: Could not read symbols for dihedral from %s\n", ptr);
+      return 1;
+    }
   }
   //mprintf("DEBUG: %s %s %s %s '%s'\n", symbols[0].c_str(), symbols[1].c_str(), symbols[2].c_str(), symbols[3].c_str(), ptr+pos);
   int IDIVF;
@@ -217,6 +232,7 @@ const
             *(types[0]), *(types[1]), *(types[2]), *(types[3]), PN);
     //mprintf("DEBUG: %s\n", ptr);
   }
+  last_symbols = symbols;
   return 0;
 }
 
@@ -403,6 +419,8 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
     mprinterr("Error: Could not read anything from Amber FF file %s\n", fname.full());
     return 1;
   }
+  std::vector<std::string> last_symbols;
+  last_symbols.reserve(4);
   std::string title(ptr);
   mprintf("\tTitle: %s\n", title.c_str());
   prm.SetParamSetName( title );
@@ -412,6 +430,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
   SectionType section = UNKNOWN;
   ptr = infile.Line();
   while (ptr != 0) {
+    bool first_char_is_space = (*ptr == ' ');
     // Advance to first non-space char
     while (*ptr == ' ' && *ptr != '\0') ++ptr;
     // Is this a recognized section keyword?
@@ -440,7 +459,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
         else if (section == ANGLE)
           err = read_angle(prm, ptr);
         else if (section == DIHEDRAL)
-          err = read_dihedral(prm, ptr);
+          err = read_dihedral(prm, ptr, last_symbols, first_char_is_space);
         else if (section == IMPROPER)
           err = read_improper(prm, ptr);
         else if (section == LJ1012)
@@ -499,10 +518,13 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
   std::string title(ptr);
   mprintf("\tTitle: %s\n", title.c_str());
   prm.SetParamSetName( title );
+  std::vector<std::string> last_symbols;
+  last_symbols.reserve(4);
   // Read file
   SectionType section = ATYPE;
   ptr = infile.Line();
   while (ptr != 0) {
+    bool first_char_is_space = (*ptr == ' ');
     // Advance to first non-space char
     while (*ptr == ' ' && *ptr != '\0') ++ptr;
     //mprintf("DEBUG: First char: %c (%i)\n", *ptr, (int)*ptr);
@@ -571,7 +593,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
     } else if (section == ANGLE) {
       read_err = read_angle(prm, ptr);
     } else if (section == DIHEDRAL) {
-      read_err = read_dihedral(prm, ptr);
+      read_err = read_dihedral(prm, ptr, last_symbols, first_char_is_space);
     } else if (section == IMPROPER) {
       read_err = read_improper(prm, ptr);
     } else if (section == LJ1012) {
