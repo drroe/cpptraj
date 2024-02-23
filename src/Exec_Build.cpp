@@ -20,7 +20,7 @@ std::vector<int> Exec_Build::MapAtomsToTemplate(Topology const& topIn,
   for (int itgt = resIn.FirstAtom(); itgt != resIn.LastAtom(); itgt++)
   {
     NameType const& tgtName = topIn[itgt].Name();
-    mprintf("DEBUG: Search for atom %s\n", *tgtName);
+    //mprintf("DEBUG: Search for atom %s\n", *tgtName);
     // Did this atom have an alias
     NameType alias;
     if (creator.GetAlias( alias, tgtName )) {
@@ -236,6 +236,10 @@ const
       }
       // Map template atoms back to source atoms.
       std::vector<int> pdb(currentRes.NumAtoms(), -1);
+      for (int iref = 0; iref != resTemplate->Top().Natom(); iref++) {
+        if (map[iref] != -1)
+          pdb[map[iref]-currentRes.FirstAtom()] = iref;
+      }
       bool atomsNeedBuilding = false;
       for (int iref = 0; iref != resTemplate->Top().Natom(); iref++) {
         // Track intra-residue bonds from the template.
@@ -261,13 +265,15 @@ const
           int itgt = map[iref];
           frameOut.AddVec3( Vec3(frameIn.XYZ(itgt)) );
           hasPosition.push_back( true );
-          pdb[itgt-currentRes.FirstAtom()] = iref;
+          //pdb[itgt-currentRes.FirstAtom()] = iref;
           // Check source atoms for inter-residue connections.
           Atom const& sourceAtom = topIn[itgt];
           for (Atom::bond_iterator bat = sourceAtom.bondbegin(); bat != sourceAtom.bondend(); ++bat) {
             if ( topIn[*bat].ResNum() < ires ) {
-              detectedInterResBonds.push_back( ResAtPair(ires, sourceAtom.Name()) );
-              detectedInterResBonds.push_back( ResAtPair(topIn[*bat].ResNum(), topIn[*bat].Name()) );
+              // Use template atom names
+              NameType const& bondAtomName = resTemplate->Top()[pdb[itgt-currentRes.FirstAtom()]].Name();
+              detectedInterResBonds.push_back( ResAtPair(ires, templateAtom.Name()) );
+              detectedInterResBonds.push_back( ResAtPair(topIn[*bat].ResNum(), bondAtomName) );
             }
           }
         }
