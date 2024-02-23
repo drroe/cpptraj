@@ -1035,11 +1035,11 @@ int Zmatrix::SetToFrame(Frame& frameOut, Barray& hasPosition) const {
       Iarray::const_iterator it = std::find(positionsToSet.begin(), positionsToSet.end(), IC_[icIdx].AtI());
       if (it == positionsToSet.end()) {
         positionsToSet.push_back( IC_[icIdx].AtI() );
-        mprintf("DEBUG:\t\tAtom %i needs its position set.\n", IC_[icIdx].AtI()+1);
+        if (debug_ > 1) mprintf("DEBUG:\t\tAtom %i needs its position set.\n", IC_[icIdx].AtI()+1);
       }
     }
   }
-  mprintf("DEBUG: %zu positions to set.\n", positionsToSet.size());
+  if (debug_ > 0) mprintf("DEBUG: %zu positions to set.\n", positionsToSet.size());
 
   //while (remainingPositionsToSet > 0 && Nused < IC_.size()) {
   Iarray::const_iterator at_with_unset_pos = positionsToSet.begin();
@@ -1048,10 +1048,10 @@ int Zmatrix::SetToFrame(Frame& frameOut, Barray& hasPosition) const {
     for (; at_with_unset_pos != positionsToSet.end(); ++at_with_unset_pos)
       if (!hasPosition[*at_with_unset_pos]) break;
     if (at_with_unset_pos == positionsToSet.end()) {
-      mprintf("DEBUG: No more positions to set.\n");
+      if (debug_ > 0) mprintf("DEBUG: No more positions to set.\n");
       break;
     }
-    mprintf("DEBUG: Setting position of atom %i\n", (*at_with_unset_pos) + 1);
+    if (debug_ > 1) mprintf("DEBUG: Setting position of atom %i\n", (*at_with_unset_pos) + 1);
     // Get IC that corresponds to this atom
     int icIdx = -1;
     for (unsigned int idx = 0; idx != IC_.size(); ++idx) {
@@ -1093,13 +1093,14 @@ int Zmatrix::SetToFrame(Frame& frameOut, Barray& hasPosition) const {
       continue; // FIXME
     }
     InternalCoords const& ic = IC_[icIdx];
-    //if (debug_ > 0)
+    if (debug_ > 0) {
       mprintf("DEBUG: Next IC to use is %i : %i %i %i %i r=%g theta=%g phi=%g\n",
               icIdx+1, ic.AtI()+1, ic.AtJ()+1, ic.AtK()+1, ic.AtL()+1,
               ic.Dist(), ic.Theta(), ic.Phi());
-    mprintf( "Torsion = %f\n", ic.Phi() );
-    mprintf( "Angle   = %f\n", ic.Theta() );
-    mprintf( "Bond    = %f\n", ic.Dist() );
+      mprintf( "Torsion = %f\n", ic.Phi() );
+      mprintf( "Angle   = %f\n", ic.Theta() );
+      mprintf( "Bond    = %f\n", ic.Dist() );
+    }
     Vec3 posI = AtomIposition(ic, frameOut);
 
     frameOut.SetXYZ( ic.AtI(), posI );
