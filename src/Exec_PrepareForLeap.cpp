@@ -1113,11 +1113,24 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Prepare sugars
   if (prepare_sugars) {
-    if (sugarBuilder.PrepareSugars(errorsAreFatal_, resStat, topIn, frameIn, LeapBonds))
+    std::vector<BondType> SugarBonds; 
+    if (sugarBuilder.PrepareSugars(errorsAreFatal_, resStat, topIn, frameIn, SugarBonds))
     {
       mprinterr("Error: Sugar preparation failed.\n");
       return CpptrajState::ERR;
     }
+    // Remove bonds to sugar
+    if (!SugarBonds.empty()) {
+      for (std::vector<BondType>::const_iterator it = SugarBonds.begin();
+                                                 it != SugarBonds.end(); ++it)
+      {
+        LeapBonds.push_back( *it );
+        topIn.RemoveBond(it->A1(), it->A2());
+      }
+      // Bonds to sugars have been removed, so regenerate molecule info
+      topIn.DetermineMolecules();
+    }
+    // Set each sugar residue as a terminal residue
     sugarBuilder.SetEachSugarAsTerminal(topIn);
   } else {
     mprintf("\tNot preparing sugars.\n");

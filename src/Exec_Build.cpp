@@ -6,6 +6,7 @@
 #include "Structure/Builder.h"
 #include "Structure/Creator.h"
 #include "Structure/PdbCleaner.h"
+#include "Structure/ResStatArray.h"
 #include "Structure/SugarBuilder.h"
 #include "Structure/Sugar.h"
 
@@ -856,6 +857,13 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
                                           c1bondsearch, splitres, solventResName))
     {
       mprinterr("Error: Sugar structure modification failed.\n");
+      return CpptrajState::ERR;
+    }
+    std::vector<BondType> LeapBonds;
+    Cpptraj::Structure::ResStatArray resStat( topIn.Nres() );
+    if (sugarBuilder_->PrepareSugars(true, resStat, topIn, frameIn, LeapBonds))
+    {
+      mprinterr("Error: Sugar preparation failed.\n");
       return CpptrajState::ERR;
     }
   }

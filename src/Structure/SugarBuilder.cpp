@@ -1935,7 +1935,7 @@ int SugarBuilder::PrepareSugars(bool errorsAreFatal,
     {
       //outfile->Printf("%s\n", LeapInterface::LeapBond(bnd->A1(), bnd->A2(), leapunitname, topIn).c_str());
       LeapBonds.push_back( *bnd );
-      topIn.RemoveBond(bnd->A1(), bnd->A2());
+      //topIn.RemoveBond(bnd->A1(), bnd->A2());
     }
     // Remove bonds between sugars
     for (std::set<BondType>::const_iterator bnd = sugarBondsToRemove.begin();
@@ -1943,11 +1943,10 @@ int SugarBuilder::PrepareSugars(bool errorsAreFatal,
     {
       //outfile->Printf("%s\n", LeapInterface::LeapBond(bnd->A1(), bnd->A2(), leapunitname, topIn).c_str());
       LeapBonds.push_back( *bnd );
-      topIn.RemoveBond(bnd->A1(), bnd->A2());
+      //topIn.RemoveBond(bnd->A1(), bnd->A2());
     }
     // Bonds to sugars have been removed, so regenerate molecule info
-    topIn.DetermineMolecules();
-
+    //topIn.DetermineMolecules();
   }
   return 0;
 }
