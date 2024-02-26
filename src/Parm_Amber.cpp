@@ -969,6 +969,9 @@ int Parm_Amber::ReadAngles(Topology& TopIn, FortranData const& FMT) {
 }
 
 // Parm_Amber::GetDihedral()
+/** Indices for atoms 3/4 are allowed to be negative, indicates end/improper
+  * dihedral respectively.
+  */
 DihedralType Parm_Amber::GetDihedral() {
   int a1 = atoi(file_.NextElement());
   int a2 = atoi(file_.NextElement());
@@ -977,8 +980,8 @@ DihedralType Parm_Amber::GetDihedral() {
   int didx = atoi(file_.NextElement());
   if (a1 < 0 || a1 >= ncoords_ ||
       a2 < 0 || a2 >= ncoords_ ||
-      a3 < 0 || a3 >= ncoords_ ||
-      a4 < 0 || a4 >= ncoords_ ||
+                a3 >= ncoords_ ||
+                a4 >= ncoords_ ||
       didx < 0 || didx - 1 >= values_[NPTRA])
   {
     hasBadDihedrals_ = true;
