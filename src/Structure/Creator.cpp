@@ -106,9 +106,22 @@ const
       mprintf("DEBUG: No aliased terminal residue found for '%s'\n", *rname);
     // Assume Coords set aspect is what we need
     for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it) {
-      if ( rname == NameType( (*it)->Meta().Aspect() ) ) {
-        out = *it;
-        break;
+      if ( (*it)->Meta().Aspect().size() < NameType::max() ) {
+        if ( rname == NameType( (*it)->Meta().Aspect() ) ) {
+          out = *it;
+          break;
+        }
+      }
+    }
+  }
+  if (out == 0) {
+    // As a final attempt, just look for the name
+    for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it) {
+      if ( (*it)->Meta().Name().size() < NameType::max() ) {
+        if ( rname == NameType( (*it)->Meta().Name() ) ) {
+          out = *it;
+          break;
+        }
       }
     }
   }
