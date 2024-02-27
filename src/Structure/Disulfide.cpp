@@ -13,7 +13,8 @@ using namespace Cpptraj::Structure;
 /** CONSTRUCTOR */
 Disulfide::Disulfide() :
   disulfidecut_(2.5),
-  searchForNewDisulfides_(true)
+  searchForNewDisulfides_(true),
+  addNewBonds_(NO_ADD_BONDS)
 {}
 
 /** Keywords recognized by InitDisulfide */
@@ -23,8 +24,9 @@ const char* Disulfide::keywords_ =
   "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n";
 
 /** Init with args */
-int Disulfide::InitDisulfide(ArgList& argIn, int debugIn)
+int Disulfide::InitDisulfide(ArgList& argIn, AddType addTypeIn, int debugIn)
 {
+  addNewBonds_ = addTypeIn;
   disulfidecut_ = argIn.getKeyDouble("disulfidecut", 2.5);
   newcysnamestr_ = argIn.GetStringKey("newcysname", "CYX");
   cysmaskstr_ = argIn.GetStringKey("cysmask", ":CYS@SG");
@@ -44,7 +46,7 @@ const
 {
   return searchForDisulfides(resStat, disulfidecut_, newcysnamestr_,
                              cysmaskstr_, searchForNewDisulfides_,
-                             topIn, frameIn, LeapBonds);
+                             topIn, frameIn, LeapBonds, addNewBonds_);
 }
 
 /** Search for disulfide bonds. */
@@ -54,7 +56,8 @@ int Disulfide::searchForDisulfides(ResStatArray& resStat,
                                              std::string const& cysmaskstr,
                                              bool searchForNewDisulfides,
                                              Topology& topIn, Frame const& frameIn,
-                                             std::vector<BondType>& LeapBonds)
+                                             std::vector<BondType>& LeapBonds,
+                                             AddType addNewBonds)
 {
   // Disulfide search
   typedef std::vector<int> Iarray;
@@ -175,6 +178,8 @@ int Disulfide::searchForDisulfides(ResStatArray& resStat,
                     topIn.ResNameNumAtomNameNum(at2).c_str(), sqrt(it->first));
             disulfidePartner[it->second.first ] = it->second.second;
             disulfidePartner[it->second.second] = it->second.first;
+            if (addNewBonds == ADD_BONDS)
+              topIn.AddBond( at1, at2 );
           }
         } // END loop over sorted distances
       } // END s_idxs not empty()
