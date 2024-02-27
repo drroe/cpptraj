@@ -628,10 +628,12 @@ void Exec_Build::Help() const
           "\t[%s]\n"
           "\t[{%s} ...]\n"
           "\t[{%s} ...]\n"
+          "%s"
           "  Build complete topology and parameters from given crdset.\n",
           Cpptraj::Structure::Creator::other_keywords_,
           Cpptraj::Structure::Creator::template_keywords_,
-          Cpptraj::Structure::Creator::parm_keywords_);
+          Cpptraj::Structure::Creator::parm_keywords_,
+          Cpptraj::Structure::HisProt::keywords_);
 }
 
 // Exec_Build::Execute()

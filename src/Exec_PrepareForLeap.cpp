@@ -715,9 +715,7 @@ void Exec_PrepareForLeap::Help() const
           "\t[keepaltloc {<alt loc ID>|highestocc}]\n"
           "\t[stripmask <stripmask>] [solventresname <solventresname>]\n"
           "\t[molmask <molmask> ...] [determinemolmask <mask>]\n"
-          "\t[{nohisdetect |\n"
-          "\t  [nd1 <nd1>] [ne2 <ne2] [hisname <his>] [hiename <hie>]\n"
-          "\t  [hidname <hid>] [hipname <hip]}]\n"
+          "%s"
           "\t[{nodisulfides |\n"
           "\t  existingdisulfides |\n"
           "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
@@ -736,7 +734,8 @@ void Exec_PrepareForLeap::Help() const
           "  input to add the bonds back once the structure has been loaded\n"
           "  into LEaP will be written to <leap input file>.\n"
           "  The command will attempt to download parameters for unknown\n"
-          "  residues unless 'nodlparams' is specified.\n"
+          "  residues unless 'nodlparams' is specified.\n",
+          HisProt::keywords_
          );
 }
 
