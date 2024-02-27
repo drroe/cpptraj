@@ -16,6 +16,11 @@ static inline void warn_length(std::string const& nameIn) {
     mprintf("Warning: Name '%s' is too large and will be truncated.\n", nameIn.c_str());
 }
 
+const char* HisProt::keywords_ =
+  "\t[{nohisdetect |\n"
+  "\t  [nd1 <nd1>] [ne2 <ne2] [hisname <his>] [hiename <hie>]\n"
+  "\t  [hidname <hid>] [hipname <hip]}]\n";
+
 /** Initialize from args. Get atom/residue names. */
 int HisProt::InitHisProt(ArgList& argIn, int debugIn) {
   nd1name_ = argIn.GetStringKey("nd1", "ND1");

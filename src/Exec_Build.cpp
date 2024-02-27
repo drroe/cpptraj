@@ -5,6 +5,7 @@
 #include "Parm/GB_Params.h"
 #include "Structure/Builder.h"
 #include "Structure/Creator.h"
+#include "Structure/HisProt.h"
 #include "Structure/PdbCleaner.h"
 #include "Structure/ResStatArray.h"
 #include "Structure/SugarBuilder.h"
@@ -679,6 +680,20 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
 
   std::string solventResName = argIn.GetStringKey("solventresname", "HOH");
   mprintf("\tSolvent residue name: %s\n", solventResName.c_str());
+
+  // Do histidine detection before H atoms are removed
+  if (!argIn.hasKey("nohisdetect")) {
+    Cpptraj::Structure::HisProt hisProt;
+    if (hisProt.InitHisProt( argIn, debug_ )) {
+      mprinterr("Error: Could not initialize histidine detection.\n");
+      return CpptrajState::ERR;
+    }
+    hisProt.HisProtInfo();
+    if (hisProt.DetermineHisProt( topIn )) {
+      mprinterr("Error: HIS protonation detection failed.\n");
+      return CpptrajState::ERR;
+    }
+  }
 
   // Clean up structure
   Cpptraj::Structure::PdbCleaner pdbCleaner;

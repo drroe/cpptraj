@@ -11,6 +11,8 @@ class HisProt {
   public:
     /// CONSTRUCTOR
     HisProt();
+    /// \return keywords recognized by init
+    static const char* keywords_;
     /// Initialize
     int InitHisProt(ArgList&, int);
     /// Print info to stdout
