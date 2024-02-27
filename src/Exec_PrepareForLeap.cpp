@@ -832,7 +832,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   // Disulfide search
   if (!argIn.hasKey("nodisulfides")) {
     Cpptraj::Structure::Disulfide disulfide;
-    if (disulfide.InitDisulfide( argIn, debug_ )) {
+    if (disulfide.InitDisulfide( argIn, Disulfide::NO_ADD_BONDS, debug_ )) {
       mprinterr("Error: Could not init disulfide search.\n");
       return CpptrajState::ERR;
     }
