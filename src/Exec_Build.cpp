@@ -742,7 +742,8 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
-  // Load PDB to glycam residue name map
+  // Handle sugars.
+  // TODO should be on a residue by residue basis in FillAtomsWithTemplates
   bool prepare_sugars = !argIn.hasKey("nosugars");
   if (!prepare_sugars)
     mprintf("\tNot attempting to prepare sugars.\n");

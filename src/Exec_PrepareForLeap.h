@@ -36,12 +36,6 @@ class Exec_PrepareForLeap : public Exec {
     /// Try to determine where TER cards should be placed based on bonds
     int FindTerByBonds(Topology&, CharMask const&) const;
 
-    /// Remove specified atoms
-    //int ModifyCoords(Topology&, Frame&, bool, std::string const&, std::string const&,
-    //                 std::string const&, Iarray const&) const;
-    /// Remove hydrogen atoms
-    //int RemoveHydrogens(Topology&, Frame&) const;
-
     /// Run leap to generate topology, perform any modifications
     int RunLeap(std::string const&, std::string const&) const;
     /// Print a warning for residues that will need modification after leap

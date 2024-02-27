@@ -276,190 +276,6 @@ const
 
 // -----------------------------------------------------------------------------
 
-/** Modify coords according to user wishes. */
-/*int Exec_PrepareForLeap::ModifyCoords( Topology& topIn, Frame& frameIn,
-                                       bool remove_water,
-                                       std::string const& altLocStr, std::string const& stripMask,
-                                       std::string const& waterMask,
-                                       Iarray const& resnumsToRemove )
-const
-{
-  // Create a mask denoting which atoms will be kept.
-  std::vector<bool> atomsToKeep( topIn.Natom(), true );
-  // Previously-determined array of residues to remove
-  for (Iarray::const_iterator rnum = resnumsToRemove.begin();
-                              rnum != resnumsToRemove.end(); ++rnum)
-  {
-    Residue const& res = topIn.Res( *rnum );
-    mprintf("\tRemoving %s\n", topIn.TruncResNameOnumId( *rnum ).c_str());
-    for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
-      atomsToKeep[at] = false;
-  }
-  // User-specified strip mask
-  if (!stripMask.empty()) {
-    AtomMask mask;
-    if (mask.SetMaskString( stripMask )) {
-      mprinterr("Error: Invalid mask string '%s'\n", stripMask.c_str());
-      return 1;
-    }
-    if (topIn.SetupIntegerMask( mask )) return 1;
-    mask.MaskInfo();
-    if (!mask.None()) {
-      for (AtomMask::const_iterator atm = mask.begin(); atm != mask.end(); ++atm)
-        atomsToKeep[*atm] = false;
-    }
-  }
-  if (remove_water) {
-    // Do not use cpptraj definition of solvent in case we have e.g. bound HOH
-    AtomMask mask;
-    if (mask.SetMaskString( waterMask )) {
-      mprinterr("Error: Invalid solvent mask string '%s'\n", waterMask.c_str());
-      return 1;
-    }
-    if (topIn.SetupIntegerMask( mask )) return 1;
-    mask.MaskInfo();
-    if (!mask.None()) {
-      for (AtomMask::const_iterator atm = mask.begin(); atm != mask.end(); ++atm)
-        atomsToKeep[*atm] = false;
-    }
-
-  }
-  // Identify alternate atom location groups.
-  if (!altLocStr.empty()) {
-    if (topIn.AtomAltLoc().empty()) {
-      mprintf("\tNo alternate atom locations.\n");
-    } else {
-      // Map atom name to atom indices
-      typedef std::map<NameType, std::vector<int>> AlocMapType;
-      AlocMapType alocMap;
-      for (int rnum = 0; rnum != topIn.Nres(); rnum++) {
-        alocMap.clear();
-        for (int at = topIn.Res(rnum).FirstAtom(); at != topIn.Res(rnum).LastAtom(); at++) {
-          if (topIn.AtomAltLoc()[at] != ' ') {
-            AlocMapType::iterator it = alocMap.find( topIn[at].Name() );
-            if (it == alocMap.end()) {
-              alocMap.insert( std::pair<NameType, std::vector<int>>( topIn[at].Name(),
-                                                                     std::vector<int>(1, at) ));
-            } else {
-              it->second.push_back( at );
-            }
-          }
-        } // END loop over atoms in residue
-        if (!alocMap.empty()) {
-          if (debug_ > 0)
-            mprintf("DEBUG: Alternate loc. for %s\n", topIn.TruncResNameOnumId(rnum).c_str());
-          // Loop over atoms with alternate locations
-          for (AlocMapType::const_iterator it = alocMap.begin(); it != alocMap.end(); ++it) {
-            if (debug_ > 0) {
-              // Print all alternate atoms
-              mprintf("\t'%s'", *(it->first));
-              for (std::vector<int>::const_iterator at = it->second.begin();
-                                                    at != it->second.end(); ++at)
-                mprintf(" %s[%c]", *(topIn[*at].Name()), topIn.AtomAltLoc()[*at]);
-              mprintf("\n");
-            }
-            // For each, choose which location to keep.
-            if (altLocStr.size() == 1) {
-              // Keep only specified character
-              char altLocChar = altLocStr[0];
-              for (std::vector<int>::const_iterator at = it->second.begin();
-                                                    at != it->second.end(); ++at)
-                if (topIn.AtomAltLoc()[*at] != altLocChar)
-                  atomsToKeep[*at] = false;
-            } else {
-              // Keep highest occupancy
-              if (topIn.Occupancy().empty()) {
-                mprintf("\tNo occupancy.\n"); // TODO error?
-              } else {
-                int highestOccAt = -1;
-                float highestOcc = 0;
-                for (std::vector<int>::const_iterator at = it->second.begin();
-                                                      at != it->second.end(); ++at)
-                {
-                  if (highestOccAt == -1) {
-                    highestOccAt = *at;
-                    highestOcc = topIn.Occupancy()[*at];
-                  } else if (topIn.Occupancy()[*at] > highestOcc) {
-                    highestOccAt = *at;
-                    highestOcc = topIn.Occupancy()[*at];
-                  }
-                }
-                // Set everything beside highest occ to false
-                for (std::vector<int>::const_iterator at = it->second.begin();
-                                                      at != it->second.end(); ++at)
-                  if (*at != highestOccAt)
-                    atomsToKeep[*at] = false;
-              }
-            }
-          } // END loop over atoms with alternate locations
-        }
-      } // END loop over residue numbers
-    }
-  }
-
-  // Set up mask of only kept atoms.
-  AtomMask keptAtoms;
-  keptAtoms.SetNatoms( topIn.Natom() );
-  for (int idx = 0; idx != topIn.Natom(); idx++) {
-    if (atomsToKeep[idx])
-      keptAtoms.AddSelectedAtom(idx);
-  }
-  if (keptAtoms.Nselected() == topIn.Natom())
-    // Keeping everything, no modifications
-    return 0;
-  // Modify top/frame
-  Topology* newTop = topIn.modifyStateByMask( keptAtoms );
-  if (newTop == 0) {
-    mprinterr("Error: Could not create new topology.\n");
-    return 1;
-  }
-  newTop->Brief("After removing atoms:");
-  Frame newFrame;
-  newFrame.SetupFrameV(newTop->Atoms(), frameIn.CoordsInfo());
-  newFrame.SetFrame(frameIn, keptAtoms);
-
-  topIn = *newTop;
-  frameIn = newFrame;
-  delete newTop;
-
-  return 0;
-}*/
-
-/** Remove any hydrogen atoms. This is done separately from ModifyCoords
-  * so that hydrogen atom info can be used to e.g. ID histidine
-  * protonation.
-  */
-/*int Exec_PrepareForLeap::RemoveHydrogens(Topology& topIn, Frame& frameIn) const {
-  AtomMask keptAtoms;
-  keptAtoms.SetNatoms( topIn.Natom() );
-  for (int idx = 0; idx != topIn.Natom(); idx++)
-  {
-    if (topIn[idx].Element() != Atom::HYDROGEN)
-      keptAtoms.AddSelectedAtom(idx);
-  }
-  if (keptAtoms.Nselected() == topIn.Natom())
-    // Keeping everything, no modification
-    return 0;
-  // Modify top/frame
-  Topology* newTop = topIn.modifyStateByMask( keptAtoms );
-  if (newTop == 0) {
-    mprinterr("Error: Could not create new topology with no hydrogens.\n");
-    return 1;
-  }
-  newTop->Brief("After removing hydrogen atoms:");
-  Frame newFrame;
-  newFrame.SetupFrameV(newTop->Atoms(), frameIn.CoordsInfo());
-  newFrame.SetFrame(frameIn, keptAtoms);
-
-  topIn = *newTop;
-  frameIn = newFrame;
-  delete newTop;
-
-  return 0;
-}*/
-
-// -----------------------------------------------------------------------------
-
 /// \return index of oxygen atom bonded to this atom but not in same residue
 static inline int getLinkOxygenIdx(Topology const& leaptop, int at, int rnum) {
   int o_idx = -1;
@@ -776,7 +592,6 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   Frame frameIn = coords.AllocateFrame();
   coords.GetFrame(tgtframe, frameIn);
 
-
   // Copy input topology, may be modified.
   Topology topIn = coords.Top();
 
@@ -909,6 +724,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     }
   }
 
+  // Deal with any coordinate modifications
   Cpptraj::Structure::PdbCleaner pdbCleaner;
   pdbCleaner.SetDebug( debug_ );
   if (pdbCleaner.InitPdbCleaner( argIn, solventResName_, pdbResToRemove )) {
@@ -925,77 +741,6 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
-  // Deal with any coordinate modifications
-/*  bool remove_water     = argIn.hasKey("nowat");
-  std::string waterMask = argIn.GetStringKey("watermask", ":" + solventResName_);
-  bool remove_h         = argIn.hasKey("noh");
-  std::string altLocArg = argIn.GetStringKey("keepaltloc");
-  if (!altLocArg.empty()) {
-    if (altLocArg != "highestocc" &&
-        altLocArg.size() > 1)
-    {
-      mprinterr("Error: Invalid keyword for 'keepaltloc' '%s'; must be 'highestocc' or 1 character.\n",
-                altLocArg.c_str());
-      return CpptrajState::ERR;
-    }
-  }
-  std::string stripMask = argIn.GetStringKey("stripmask");
-
-  // If keeping highest alt loc, check that alt locs and occupancies are present.
-  if (altLocArg == "highestocc") {
-    if (topIn.AtomAltLoc().empty()) {
-      mprintf("Warning: 'highestocc' specified but no atom alternate location info.\n");
-      altLocArg.clear();
-    } else if (topIn.Occupancy().empty()) {
-      mprintf("Warning: 'highestocc' specified but no atom occupancy info.\n");
-      altLocArg.clear();
-    }
-  }
-  // Check if alternate atom location IDs are present 
-  if (!topIn.AtomAltLoc().empty()) {
-    // For LEaP, must have only 1 atom alternate location
-    char firstAltLoc = ' ';
-    for (std::vector<char>::const_iterator altLocId = topIn.AtomAltLoc().begin();
-                                           altLocId != topIn.AtomAltLoc().end();
-                                         ++altLocId)
-    {
-      if (firstAltLoc == ' ') {
-        // Find first non-blank alternate location ID
-        if (*altLocId != ' ')
-          firstAltLoc = *altLocId;
-      } else if (*altLocId != ' ' && *altLocId != firstAltLoc) {
-        // Choose a default if necessary
-        if (altLocArg.empty()) {
-          altLocArg.assign(1, firstAltLoc);
-          mprintf("Warning: '%s' has atoms with multiple alternate location IDs, which\n"
-                  "Warning:  are not supported by LEaP. Keeping only '%s'.\n"
-                  "Warning: To choose a specific location to keep use the 'keepaltloc <char>'\n"
-                  "Warning:  keyword.\n", coords.legend(), altLocArg.c_str());
-         }
-         break;
-      }
-    }
-  }
-
-  if (remove_water)
-    mprintf("\tRemoving solvent. Solvent mask= '%s'\n", waterMask.c_str());
-  if (remove_h)
-    mprintf("\tRemoving hydrogens.\n");
-  if (!altLocArg.empty())
-    mprintf("\tIf present, keeping only alternate atom locations denoted by '%s'\n", altLocArg.c_str());
-  if (!stripMask.empty())
-    mprintf("\tRemoving atoms in mask '%s'\n", stripMask.c_str());
-  if (ModifyCoords(topIn, frameIn, remove_water, altLocArg, stripMask, waterMask, pdbResToRemove))
-  {
-    mprinterr("Error: Modification of '%s' failed.\n", coords.legend());
-    return CpptrajState::ERR;
-  }
-
-  // Remove hydrogens
-  if (remove_h) {
-    if (RemoveHydrogens(topIn, frameIn)) return CpptrajState::ERR;
-  }
-*/
   // If preparing sugars, need to set up an atom map and potentially
   // search for terminal sugars/missing bonds. Do this here after all atom
   // modifications have been done.
