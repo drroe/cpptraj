@@ -5,6 +5,7 @@
 #include "Parm/GB_Params.h"
 #include "Structure/Builder.h"
 #include "Structure/Creator.h"
+#include "Structure/Disulfide.h"
 #include "Structure/HisProt.h"
 #include "Structure/PdbCleaner.h"
 #include "Structure/ResStatArray.h"
@@ -629,11 +630,14 @@ void Exec_Build::Help() const
           "\t[{%s} ...]\n"
           "\t[{%s} ...]\n"
           "%s"
+          "%s"
           "  Build complete topology and parameters from given crdset.\n",
           Cpptraj::Structure::Creator::other_keywords_,
           Cpptraj::Structure::Creator::template_keywords_,
           Cpptraj::Structure::Creator::parm_keywords_,
-          Cpptraj::Structure::HisProt::keywords_);
+          Cpptraj::Structure::HisProt::keywords_,
+          Cpptraj::Structure::Disulfide::keywords_
+         );
 }
 
 // Exec_Build::Execute()
@@ -742,6 +746,26 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
+  // All residues start unknown
+  Cpptraj::Structure::ResStatArray resStat( topIn.Nres() );
+
+  // Disulfide search
+  if (!argIn.hasKey("nodisulfides")) {
+    Cpptraj::Structure::Disulfide disulfide;
+    if (disulfide.InitDisulfide( argIn, Cpptraj::Structure::Disulfide::ADD_BONDS, debug_ )) {
+      mprinterr("Error: Could not init disulfide search.\n");
+      return CpptrajState::ERR;
+    }
+    std::vector<BondType> LeapBonds;
+    if (disulfide.SearchForDisulfides( resStat, topIn, frameIn, LeapBonds ))
+    {
+      mprinterr("Error: Disulfide search failed.\n");
+      return CpptrajState::ERR;
+    }
+  } else {
+    mprintf("\tNot searching for disulfides.\n");
+  }
+
   // Handle sugars.
   // TODO should be on a residue by residue basis in FillAtomsWithTemplates
   bool prepare_sugars = !argIn.hasKey("nosugars");
@@ -784,7 +808,6 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
       return CpptrajState::ERR;
     }
     std::vector<BondType> LeapBonds;
-    Cpptraj::Structure::ResStatArray resStat( topIn.Nres() );
     if (sugarBuilder_->PrepareSugars(true, resStat, topIn, frameIn, LeapBonds))
     {
       mprinterr("Error: Sugar preparation failed.\n");
