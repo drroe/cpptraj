@@ -7,6 +7,9 @@
 
 using namespace Cpptraj::Structure;
 
+/** CONSTRUCTOR */
+HisProt::HisProt() {}
+
 /// Warn if name length greater than NameType max
 static inline void warn_length(std::string const& nameIn) {
   if (nameIn.size() >= NameType::max())

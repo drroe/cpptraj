@@ -878,26 +878,17 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Do histidine detection before H atoms are removed
   if (!argIn.hasKey("nohisdetect")) {
-    std::string nd1name = argIn.GetStringKey("nd1", "ND1");
-    std::string ne2name = argIn.GetStringKey("ne2", "NE2");
-    std::string hisname = argIn.GetStringKey("hisname", "HIS");
-    std::string hiename = argIn.GetStringKey("hiename", "HIE");
-    std::string hidname = argIn.GetStringKey("hidname", "HID");
-    std::string hipname = argIn.GetStringKey("hipname", "HIP");
-    mprintf("\tHistidine protonation detection:\n");
-    mprintf("\t\tND1 atom name                   : %s\n", nd1name.c_str());
-    mprintf("\t\tNE2 atom name                   : %s\n", ne2name.c_str());
-    mprintf("\t\tHistidine original residue name : %s\n", hisname.c_str());
-    mprintf("\t\tEpsilon-protonated residue name : %s\n", hiename.c_str());
-    mprintf("\t\tDelta-protonated residue name   : %s\n", hidname.c_str());
-    mprintf("\t\tDoubly-protonated residue name  : %s\n", hipname.c_str());
+    Cpptraj::Structure::HisProt hisProt;
+    if (hisProt.InitHisProt( argIn, debug_ )) {
+      mprinterr("Error: Could not initialize histidine detection.\n");
+      return CpptrajState::ERR;
+    }
+    hisProt.HisProtInfo();
     // Add epsilon, delta, and double-protonated names as recognized.
-    pdb_res_names_.insert( hiename );
-    pdb_res_names_.insert( hidname );
-    pdb_res_names_.insert( hipname );
-    if (DetermineHisProt( topIn,
-                          nd1name, ne2name,
-                          hisname, hiename, hidname, hipname)) {
+    pdb_res_names_.insert( hisProt.EpsilonProtHisName() );
+    pdb_res_names_.insert( hisProt.DeltaProtHisName() );
+    pdb_res_names_.insert( hisProt.DoubleProtHisName() );
+    if (hisProt.DetermineHisProt( topIn )) {
       mprinterr("Error: HIS protonation detection failed.\n");
       return CpptrajState::ERR;
     }
