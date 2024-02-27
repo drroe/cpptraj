@@ -1,6 +1,7 @@
 #include "Disulfide.h"
 #include "ResStatArray.h"
 #include "StructureRoutines.h"
+#include "../ArgList.h"
 #include "../CpptrajStdio.h"
 #include "../DistRoutines.h"
 #include "../Frame.h"
@@ -9,8 +10,39 @@
 
 using namespace Cpptraj::Structure;
 
+/** CONSTRUCTOR */
+Disulfide::Disulfide() :
+  disulfidecut_(2.5),
+  searchForNewDisulfides_(true)
+{}
+
+/** Init with args */
+int Disulfide::InitDisulfide(ArgList& argIn, int debugIn)
+{
+  disulfidecut_ = argIn.getKeyDouble("disulfidecut", 2.5);
+  newcysnamestr_ = argIn.GetStringKey("newcysname", "CYX");
+  cysmaskstr_ = argIn.GetStringKey("cysmask", ":CYS@SG");
+  searchForNewDisulfides_ = !argIn.hasKey("existingdisulfides");
+  return 0;
+}
+
+/** Print info to stdout. */
+//void Disulfide::DisulfideInfo() const {
+
+
 /** Search for disulfide bonds. */
-int Cpptraj::Structure::SearchForDisulfides(ResStatArray& resStat,
+int Disulfide::SearchForDisulfides(ResStatArray& resStat, Topology& topIn,
+                                   Frame const& frameIn,
+                                   std::vector<BondType>& LeapBonds)
+const
+{
+  return searchForDisulfides(resStat, disulfidecut_, newcysnamestr_,
+                             cysmaskstr_, searchForNewDisulfides_,
+                             topIn, frameIn, LeapBonds);
+}
+
+/** Search for disulfide bonds. */
+int Disulfide::searchForDisulfides(ResStatArray& resStat,
                                              double disulfidecut,
                                              std::string const& newcysnamestr,
                                              std::string const& cysmaskstr,
