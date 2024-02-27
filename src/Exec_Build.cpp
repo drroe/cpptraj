@@ -641,18 +641,7 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
 {
   debug_ = State.Debug();
   std::string title = argIn.GetStringKey("title");
-/*  // Atom scan direction
-  std::string atomscandir = argIn.GetStringKey("atomscandir");
-  if (!atomscandir.empty()) {
-    if (atomscandir == "f")
-      Cpptraj::Structure::SetAtomScanDirection(Cpptraj::Structure::SCAN_ATOMS_FORWARDS);
-    else if (atomscandir == "b")
-      Cpptraj::Structure::SetAtomScanDirection(Cpptraj::Structure::SCAN_ATOMS_BACKWARDS);
-    else {
-      mprinterr("Error: Unrecognized keyword for 'atomscandir' : %s\n", atomscandir.c_str());
-      return CpptrajState::ERR;
-    }
-  }*/
+
   // Get input coords
   std::string crdset = argIn.GetStringKey("crdset");
   if (crdset.empty()) {
@@ -714,7 +703,7 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
-  // Output coords
+  // Set up Output coords
   std::string outset = argIn.GetStringKey("name");
   if (outset.empty()) {
     mprinterr("Error: Must specify output COORDS set with 'name'\n");
@@ -740,44 +729,6 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   }
   mprintf("\tGB radii set: %s\n", Cpptraj::Parm::GbTypeStr(gbradii).c_str());
 
-/*  Carray Templates;
-  std::string lib = argIn.GetStringKey("lib");
-  if (lib.empty()) {
-    mprintf("\tNo template(s) specified with 'lib'; using any loaded templates.\n");
-    DataSetList sets = State.DSL().SelectGroupSets( "*", DataSet::COORDINATES ); // TODO specific set type for units?
-    for (DataSetList::const_iterator it = sets.begin(); it != sets.end(); ++it)
-    {
-      // Should only be a single residue FIXME need new set type
-      DataSet_Coords const& ds = static_cast<DataSet_Coords const&>( *(*it) );
-      if ( ds.Top().Nres() == 1 )
-        Templates.push_back( (DataSet_Coords*)(*it) );
-    }
-  } else {
-    while (!lib.empty()) {
-      DataSetList sets = State.DSL().SelectGroupSets( lib, DataSet::COORDINATES ); // TODO specific set type for units?
-      if (sets.empty()) {
-        mprintf("Warning: No sets corresponding to '%s'\n", lib.c_str());
-      } else {
-        for (DataSetList::const_iterator it = sets.begin(); it != sets.end(); ++it)
-        {
-          // Should only be a single residue FIXME need new set type
-          DataSet_Coords const& ds = static_cast<DataSet_Coords const&>( *(*it) );
-          if ( ds.Top().Nres() == 1 )
-            Templates.push_back( (DataSet_Coords*)(*it) );
-        }
-      }
-      lib = argIn.GetStringKey("lib");
-    }
-  }
-  if (Templates.empty())
-    mprintf("Warning: No residue templates loaded.\n");
-  else {
-    mprintf("\t%zu residue templates found:", Templates.size());
-    for (std::vector<DataSet_Coords*>::const_iterator it = Templates.begin(); it != Templates.end(); ++it)
-      mprintf(" %s", (*it)->legend());
-    mprintf("\n");
-  }*/
-
   // Get templates and parameter sets.
   Cpptraj::Structure::Creator creator;
   if (creator.InitCreator(argIn, State.DSL(), debug_)) {
@@ -790,51 +741,6 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: No parameter sets.\n");
     return CpptrajState::ERR;
   }
-/*
-  typedef std::vector<DataSet_Parameters*> Parray;
-  Parray ParamSets;
-  std::string parmset = argIn.GetStringKey("parmset");
-  if (parmset.empty()) {
-    mprintf("\tNo parameter set(s) specified with 'parmset'; using any loaded sets.\n");
-    // See if there are any parameter sets.
-    DataSetList sets = State.DSL().GetSetsOfType( "*", DataSet::PARAMETERS );
-    for (DataSetList::const_iterator it = sets.begin(); it != sets.end(); ++it)
-      ParamSets.push_back( (DataSet_Parameters*)(*it) );
-  } else {
-    while (!parmset.empty()) {
-      DataSetList sets = State.DSL().GetSetsOfType( parmset, DataSet::PARAMETERS );
-      if (sets.empty()) {
-        mprintf("Warning: No parameter sets corresponding to '%s'\n", parmset.c_str());
-      } else {
-        for (DataSetList::const_iterator it = sets.begin(); it != sets.end(); ++it)
-          ParamSets.push_back( (DataSet_Parameters*)(*it) );
-      }
-      parmset = argIn.GetStringKey("parmset");
-    }
-  }
-  if (ParamSets.empty()) {
-    mprinterr("Error: No parameter sets.\n");
-    return CpptrajState::ERR;
-  }
-  mprintf("\tParameter sets:\n");
-  for (Parray::const_iterator it = ParamSets.begin(); it != ParamSets.end(); ++it)
-    mprintf("\t  %s\n", (*it)->legend());
-
-  // Combine parameters if needed
-  DataSet_Parameters* mainParmSet = 0;
-  bool free_parmset_mem = false;
-  if (ParamSets.size() == 1)
-    mainParmSet = ParamSets.front();
-  else {
-    free_parmset_mem = true;
-    mprintf("\tCombining parameter sets.\n");
-    Parray::const_iterator it = ParamSets.begin();
-    mainParmSet = new DataSet_Parameters( *(*it) );
-    ++it;
-    ParameterSet::UpdateCount UC;
-    for (; it != ParamSets.end(); ++it)
-      mainParmSet->UpdateParamSet( *(*it), UC, State.Debug(), State.Debug() ); // FIXME verbose
-  }*/
 
   // Load PDB to glycam residue name map
   bool prepare_sugars = !argIn.hasKey("nosugars");
@@ -898,7 +804,6 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
-
   // Assign parameters. This will create the bond/angle/dihedral/improper
   // arrays as well.
   Exec::RetType ret = CpptrajState::OK;
@@ -915,8 +820,6 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   topOut.AllocTreeChainClassification( );
   topOut.AllocJoinArray();
   topOut.AllocRotateArray();
-
-  //if (free_parmset_mem && mainParmSet != 0) delete mainParmSet;
 
   // Update coords 
   if (crdout.CoordsSetup( topOut, CoordinateInfo() )) { // FIXME better coordinate info
