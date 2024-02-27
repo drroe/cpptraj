@@ -532,9 +532,7 @@ void Exec_PrepareForLeap::Help() const
           "\t[stripmask <stripmask>] [solventresname <solventresname>]\n"
           "\t[molmask <molmask> ...] [determinemolmask <mask>]\n"
           "%s"
-          "\t[{nodisulfides |\n"
-          "\t  existingdisulfides |\n"
-          "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
+          "%s"
           "\t[{nosugars |\n"
           "\t  sugarmask <sugarmask> [noc1search] [nosplitres]\n"
           "\t  [resmapfile <file>]\n"
@@ -551,7 +549,8 @@ void Exec_PrepareForLeap::Help() const
           "  into LEaP will be written to <leap input file>.\n"
           "  The command will attempt to download parameters for unknown\n"
           "  residues unless 'nodlparams' is specified.\n",
-          HisProt::keywords_
+          HisProt::keywords_,
+          Disulfide::keywords_
          );
 }
 
@@ -832,12 +831,12 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Disulfide search
   if (!argIn.hasKey("nodisulfides")) {
-    if (SearchForDisulfides( resStat,
-                             argIn.getKeyDouble("disulfidecut", 2.5),
-                             argIn.GetStringKey("newcysname", "CYX"),
-                             argIn.GetStringKey("cysmask", ":CYS@SG"),
-                            !argIn.hasKey("existingdisulfides"),
-                             topIn, frameIn, LeapBonds ))
+    Cpptraj::Structure::Disulfide disulfide;
+    if (disulfide.InitDisulfide( argIn, debug_ )) {
+      mprinterr("Error: Could not init disulfide search.\n");
+      return CpptrajState::ERR;
+    }
+    if (disulfide.SearchForDisulfides( resStat, topIn, frameIn, LeapBonds ))
     {
       mprinterr("Error: Disulfide search failed.\n");
       return CpptrajState::ERR;

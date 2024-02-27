@@ -15,6 +15,8 @@ class Disulfide {
   public:
     /// Constructor
     Disulfide();
+    /// Keywords recognized by InitDisulfide
+    static const char* keywords_;
     /// Init from args
     int InitDisulfide(ArgList&, int);
     /// Print info to stdout

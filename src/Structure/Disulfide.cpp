@@ -16,6 +16,12 @@ Disulfide::Disulfide() :
   searchForNewDisulfides_(true)
 {}
 
+/** Keywords recognized by InitDisulfide */
+const char* Disulfide::keywords_ =
+  "\t[{nodisulfides |\n"
+  "\t  existingdisulfides |\n"
+  "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n";
+
 /** Init with args */
 int Disulfide::InitDisulfide(ArgList& argIn, int debugIn)
 {
