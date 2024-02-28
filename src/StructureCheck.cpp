@@ -124,6 +124,23 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
   ExclusionArray::ListOpt ex_list_opt = ExclusionArray::ONLY_GREATER_IDX;
   if (imageOpt_.ImagingEnabled() && !Mask2_.MaskStringSet()) {
     mprintf("\tUsing pair list.\n");
+    // If pairlist cutoff < 0 try to use a heuristic to estimate.
+    if (plcut_ < 0) {
+      // Get the minimum dimension length
+      double minDimLen = boxIn.Param(Box::X);
+      if (boxIn.Param(Box::Y) < minDimLen)
+        minDimLen = boxIn.Param(Box::Y);
+      if (boxIn.Param(Box::Z) < minDimLen)
+        minDimLen = boxIn.Param(Box::Z);
+      // Have cutoff be sqrt of min dim len
+      plcut_ = sqrt(minDimLen);
+      if (plcut_ < 8.0) {
+        plcut_ = 8.0;
+        mprintf("\tSet pairlist cutoff to default of %f Ang.\n", plcut_);
+      } else
+        mprintf("\tSet pairlist cutoff to %f Ang. based on minimum box dimension %f Ang.\n",
+                plcut_, minDimLen);
+    }
     if (pairList_.InitPairList( plcut_, 0.1, debug_ )) {
       mprinterr("Error: StructureCheck: Could not init pair list.\n");
       return 1;

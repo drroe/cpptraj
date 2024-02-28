@@ -48,7 +48,9 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
                                          "Structure check", DataFileList::TEXT, true);
   else
     outfile_ = 0;
-  double nonbondcut =  actionArgs.getKeyDouble("cut",0.8);
+  double nonbondcut = actionArgs.getKeyDouble("cut",0.8);
+  double plcut      = actionArgs.getKeyDouble("plcut", -1);
+  //  actionArgs.getKeyDouble("plcut", std::max(8.0, nonbondcut))
   // Structure checker setup
   int err = check_.SetOptions(
     !(actionArgs.hasKey("noimage")),
@@ -60,7 +62,7 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
     nonbondcut,
     actionArgs.getKeyDouble("offset",1.15),
     actionArgs.getKeyDouble("minoffset", 0.5),
-    actionArgs.getKeyDouble("plcut", std::max(8.0, nonbondcut))
+    plcut
   );
   if (err != 0) return Action::ERR;
   // Remaining keywords
