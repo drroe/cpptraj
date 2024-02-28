@@ -12,3 +12,8 @@ void DataSet_Coords::CommonInfo() const {
   if (cInfo_.HasVel()) mprintf(" Velocities,");
   mprintf(" %i atoms", top_.Natom());
 }
+
+/** Update coords info box */
+void DataSet_Coords::UpdateCoordsInfoBox( Box const& boxIn ) {
+  cInfo_.SetBox( boxIn );
+}
