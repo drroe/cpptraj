@@ -60,7 +60,7 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
     nonbondcut,
     actionArgs.getKeyDouble("offset",1.15),
     actionArgs.getKeyDouble("minoffset", 0.5),
-    actionArgs.getKeyDouble("plcut", std::max(4.0, nonbondcut))
+    actionArgs.getKeyDouble("plcut", std::max(8.0, nonbondcut))
   );
   if (err != 0) return Action::ERR;
   // Remaining keywords

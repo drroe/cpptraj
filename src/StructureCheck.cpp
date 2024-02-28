@@ -14,9 +14,7 @@ StructureCheck::StructureCheck() :
   bondoffset_(1.15),
   bondMinOffset_(0.50),
   nonbondcut2_(0.64), // 0.8^2
-  // NOTE: Default of 4.0 Ang for cutoff is from trial and error; seems
-  //       to give a good balance between speed and grid size.
-  plcut_(4.0),
+  plcut_(8.0),
   checkType_(NO_PL_1_MASK),
   debug_(0),
   bondcheck_(true),
