@@ -31,6 +31,7 @@ class StructureCheck {
     double NonBondCut2()        const { return nonbondcut2_; }
     double PairListCut()        const { return plcut_; }
     unsigned int Nbonds()       const { return bondList_.size(); }
+    int Debug()                 const { return debug_; }
 #   ifdef _OPENMP
     unsigned int Nthreads()     const { return thread_problemAtoms_.size(); }
 #   endif
