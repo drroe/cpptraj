@@ -138,6 +138,10 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
 // Action_CheckStructure::Setup()
 Action::RetType Action_CheckStructure::Setup(ActionSetup& setup) {
   CurrentParm_ = setup.TopAddress();
+  if (check_.Debug() > 0) {
+    if (setup.CoordInfo().HasBox())
+      setup.CoordInfo().TrajBox().PrintInfo();
+  }
   if (check_.Setup( setup.Top(), setup.CoordInfo().TrajBox() )) return Action::ERR;
   check_.Mask1().MaskInfo();
   if (check_.Mask2().MaskStringSet())
