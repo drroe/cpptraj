@@ -18,6 +18,8 @@ class Creator {
   public:
     /// CONSTRUCTOR
     Creator();
+    /// CONSTRUCTOR - debug level
+    Creator(int);
     /// DESTRUCTOR
     ~Creator();
     /// Associated parameter keywords for InitCreator

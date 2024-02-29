@@ -734,7 +734,7 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   mprintf("\tGB radii set: %s\n", Cpptraj::Parm::GbTypeStr(gbradii).c_str());
 
   // Get templates and parameter sets.
-  Cpptraj::Structure::Creator creator;
+  Cpptraj::Structure::Creator creator( debug_ );
   if (creator.InitCreator(argIn, State.DSL(), debug_)) {
     return CpptrajState::ERR;
   }

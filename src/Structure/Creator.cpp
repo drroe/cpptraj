@@ -17,6 +17,13 @@ Creator::Creator() :
   free_parmset_mem_(false)
 {}
 
+/** CONSTRUCTOR */
+Creator::Creator(int d) :
+  mainParmSet_(0),
+  debug_(d),
+  free_parmset_mem_(false)
+{}
+
 /** DESTRUCTOR */
 Creator::~Creator() {
   if (mainParmSet_ != 0 && free_parmset_mem_)
@@ -162,17 +169,18 @@ int Creator::getTemplates(ArgList& argIn, DataSetList const& DSL) {
     }
   }
   if (!Templates_.empty()) {
-    mprintf("\t%zu residue templates found:", Templates_.size());
-    for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it) {
-      mprintf(" %s", (*it)->legend());
-      AssociatedData* ad = (*it)->GetAssociatedData( AssociatedData::RESID );
-      if (ad != 0) {
-        AssociatedData_ResId const& resid = static_cast<AssociatedData_ResId const&>( *ad );
-        resid.Ainfo();
+    mprintf("\t%zu residue templates found:\n", Templates_.size());
+    if (debug_ > 0) {
+      for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it) {
+        mprintf("\t%s", (*it)->legend());
+        AssociatedData* ad = (*it)->GetAssociatedData( AssociatedData::RESID );
+        if (ad != 0) {
+          AssociatedData_ResId const& resid = static_cast<AssociatedData_ResId const&>( *ad );
+          resid.Ainfo();
+        }
+        mprintf("\n");
       }
-      mprintf("\n");
     }
-    //mprintf("\n");
   }
 
   return 0;

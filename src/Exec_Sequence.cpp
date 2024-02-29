@@ -281,7 +281,7 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
   debug_ = State.Debug();
 
   // Args
-  Cpptraj::Structure::Creator creator;
+  Cpptraj::Structure::Creator creator(debug_);
   if (creator.InitCreator(argIn, State.DSL(), debug_)) {
     return CpptrajState::ERR;
   }
