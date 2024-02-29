@@ -311,7 +311,7 @@ const
       else if (*ptr == '}') {
         bracketCount--;
         if (bracketCount == 1) {
-          //if (debug_ > 0)
+          if (debug_ > 0)
             mprintf("DEBUG: addPdbAtomMap: %s\n", tmp.c_str());
           ArgList aline( tmp );
           // 2 tokens: Old name, new name
@@ -319,7 +319,7 @@ const
             mprinterr("Error: Malformed entry in addPdbAtomMap: %s\n", tmp.c_str());
             return 1;
           }
-          mprintf("DEBUG: old= %s  new= %s\n", aline[0].c_str(), aline[1].c_str());
+          if (debug_ > 0) mprintf("DEBUG: old= %s  new= %s\n", aline[0].c_str(), aline[1].c_str());
           namemap.AddNameMap( aline[0], aline[1] );
           tmp.clear();
         }
