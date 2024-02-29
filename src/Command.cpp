@@ -33,6 +33,7 @@
 #include "Exec_ReadInput.h"
 #include "Exec_RunAnalysis.h"
 #include "Exec_SortEnsembleData.h"
+#include "Exec_Source.h"
 #include "Exec_SequenceAlign.h"
 #include "Exec_ViewRst.h"
 #include "Exec_Set.h"
@@ -261,6 +262,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_SilenceActions(),  Cmd::EXE, 1, "silenceactions" );
   Command::AddCmd( new Exec_SequenceAlign(),   Cmd::EXE, 1, "sequencealign" ); // hidden
   Command::AddCmd( new Exec_SortEnsembleData(),Cmd::EXE, 1, "sortensembledata" );
+  Command::AddCmd( new Exec_Source(),          Cmd::EXE, 1, "source" );
   Command::AddCmd( new Exec_WriteDataFile(),   Cmd::EXE, 2, "write", "writedata" );
   Command::AddCmd( new Exec_UseDiskCache(),    Cmd::EXE, 1, "usediskcache" );
   Command::AddCmd( new Exec_ViewRst(),         Cmd::EXE, 1, "viewrst" ); // hidden

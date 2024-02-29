@@ -310,6 +310,7 @@ COMMON_SOURCES= \
         Exec_SequenceAlign.cpp \
         Exec_Show.cpp \
         Exec_SortEnsembleData.cpp \
+        Exec_Source.cpp \
         Exec_SplitCoords.cpp \
         Exec_System.cpp \
         Exec_Top.cpp \
