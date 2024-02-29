@@ -230,7 +230,7 @@ const
       {
         // Track intra-residue bonds
         Atom sourceAtom = topIn[itgt];
-        if (sourceAtom.Type().len() < 1)
+        if (!sourceAtom.HasType())
           nAtomsMissingTypes++;
         SourceAtomNames.push_back( sourceAtom.Name() );
         int at0 = itgt - currentRes.FirstAtom() + atomOffset;
@@ -353,7 +353,7 @@ const
     for (int ires = 0; ires != topOut.Nres(); ires++) {
       std::string missingTypes;
       for (int at = topOut.Res(ires).FirstAtom(); at != topOut.Res(ires).LastAtom(); ++at)
-        if ( topOut[at].Type().len() < 1 )
+        if ( !topOut[at].HasType() )
           missingTypes.append(" " + topOut[at].Name().Truncated() );
       if (!missingTypes.empty())
         mprinterr("Error:\t%s missing types for%s\n", topOut.TruncResNameNum(ires).c_str(), missingTypes.c_str());
