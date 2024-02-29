@@ -1,5 +1,6 @@
 #include "Exec_Source.h"
 #include "CpptrajStdio.h"
+#include "DataIO_LeapRC.h"
 
 // Exec_Source::Help()
 void Exec_Source::Help() const
@@ -18,22 +19,38 @@ Exec::RetType Exec_Source::Execute(CpptrajState& State, ArgList& argIn)
   }
   // If file is in this dir, read it.
   // Otherwise, prepend AMBERHOME/dat/leap/cmd
-  std::string fileName;
+  FileName fileName;
   if ( File::Exists( fname ) ) {
-    fileName = fname;
+    fileName.SetFileName( fname );
   } else {
     const char* env = getenv("AMBERHOME");
     if (env == 0) {
       mprinterr("Error: %s not found and AMBERHOME is not set.\n", fname.c_str());
       return CpptrajState::ERR;
     }
-    fileName = std::string(env) + "/dat/leap/cmd/" + fname;
+    fileName.SetFileName( std::string(env) + "/dat/leap/cmd/" + fname );
     if (!File::Exists(fileName)) {
-      mprinterr("Error: %s not found.\n", fileName.c_str());
+      mprinterr("Error: %s not found.\n", fileName.full());
       return CpptrajState::ERR;
     }
   }
-  mprintf("\tReading %s\n", fileName.c_str());
+  mprintf("\tReading %s\n", fileName.full());
+
+  DataIO_LeapRC infile;
+  CpptrajFile tmp;
+  tmp.SetupRead( fileName, State.Debug() );
+  if (!infile.ID_DataFormat( tmp )) {
+    mprinterr("Error: %s does not appear to be a leaprc file.\n", fileName.full());
+    return CpptrajState::ERR;
+  }
+  if (infile.processReadArgs( argIn )) {
+    mprinterr("Error: Could not process read args for leaprc file %s\n", fileName.full());
+    return CpptrajState::ERR;
+  }
+  if (infile.ReadData(fileName, State.DSL(), fileName.Base())) {
+    mprinterr("Error: Could not read leaprc file %s\n", fileName.full());
+    return CpptrajState::ERR;
+  }
 
   return CpptrajState::OK;
 }
