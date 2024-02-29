@@ -11,13 +11,13 @@ class DataSet_NameMap : public DataSet {
     DataSet_NameMap();
     static DataSet* Alloc() { return (DataSet*)new DataSet_NameMap(); }
     // ----- DataSet functions -------------------
-    size_t Size()                                    const { return 0; }
+    size_t Size()                                    const { return nameMap_.size(); }
     void Info()                                      const { return; }
     int Allocate(SizeArray const&)                         { return 1; }
     void Add(size_t, const void*)                          { return; }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
     int Append(DataSet*)                                   { return 1; }
-    size_t MemUsageInBytes()                         const { return 0; }
+    size_t MemUsageInBytes()                         const { return Size() * (2*NameType::max()); }
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
 #   endif
