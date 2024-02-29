@@ -130,7 +130,10 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
   }
   if (silent_)
     mprintf("\tStructure warning messages will be suppressed.\n");
-  mprintf("\tCutoff for building pair list is %f Ang.\n", check_.PairListCut());
+  if ( check_.PairListCut() < 0.0 )
+    mprintf("\tPair list cutoff will be determined from system size.\n");
+  else
+    mprintf("\tCutoff for building pair list is %f Ang.\n", check_.PairListCut());
 # ifdef _OPENMP
   mprintf("\tParallelizing calculation with %u threads.\n", check_.Nthreads());
 # endif
