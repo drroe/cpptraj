@@ -21,7 +21,7 @@ class AmberParamFile {
     static const int MAXSYMLEN;
 
     enum SectionType { ATYPE = 0, HYDROPHILIC, BOND, ANGLE, DIHEDRAL, IMPROPER, 
-                       LJ1012, NB_EQUIV, NONBOND, LJEDIT, UNKNOWN };
+                       LJ1012, NB_EQUIV, NONBOND, LJEDIT, CMAP, UNKNOWN };
 
     class NonbondSet;
     class OffdiagNB;
