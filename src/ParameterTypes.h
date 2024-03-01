@@ -718,6 +718,7 @@ class CmapGridType {
     inline std::vector<double> const& Grid() const { return grid_;             }
     inline int Size()                        const { return (int)grid_.size(); }
     void SetGridPt(int idx, double d)              { grid_[idx] = d;           }
+    unsigned int DataSize()                  const { return (sizeof(int) + (grid_.size()*sizeof(double))); }
   private:
     int resolution_;           ///< Number of steps along each phi/psi CMAP axis
     std::vector<double> grid_; ///< CMAP grid (size is resolution_*resolution_)

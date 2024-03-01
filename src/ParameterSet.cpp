@@ -5,6 +5,9 @@
 #include "UpdateParameters.h"
 
 size_t ParameterSet::DataSize() const {
+  unsigned int cmapsize = 0;
+  for (CmapGridArray::const_iterator it = CMAP_.begin(); it != CMAP_.end(); ++it)
+    cmapsize += it->DataSize();
   return (atomTypes_.DataSize() +
           bondParm_.DataSize() +
           angleParm_.DataSize() +
@@ -12,6 +15,7 @@ size_t ParameterSet::DataSize() const {
           dihParm_.DataSize() +
           impParm_.DataSize() +
           HBparm_.DataSize() +
+          cmapsize +
           (hydrophilicAtomTypes_.size() * NameType::DataSize()));
 }
 
