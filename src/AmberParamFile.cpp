@@ -359,6 +359,30 @@ const
   return 0;
 }
 
+/** Read CMAP section */
+int AmberParamFile::read_cmap(CmapType& currentCmapFlag, std::string const& line) const {
+  //if (ptr[0] == '%' && ptr[1] == 'F' && ptr[2] == 'L' &&
+  //    ptr[3] == 'A' && ptr[4] == 'G')
+  ArgList argline(line);
+  if (argline.Nargs() > 1)
+  {
+    if (argline[0] == "%FLAG") {
+      if (argline[1] == "CMAP_COUNT") {
+        int cmapcount = argline.getKeyInt("CMAP_COUNT", -1);
+        mprintf("DEBUG: Cmap count: %i\n", cmapcount);
+      } else if (argline[1] == "CMAP_TITLE")
+        currentCmapFlag = CMAP_TITLE;
+      else if (argline[1] == "CMAP_RESLIST")
+        currentCmapFlag = CMAP_RESLIST;
+      else if (argline[1] == "CMAP_RESOLUTION") {
+        int cmapres = argline.getKeyInt("CMAP_RESOLUTION", -1);
+        mprintf("DEBUG: Cmap res: %i\n", cmapres);
+      } else if (argline[1] == "CMAP_PARAMETER")
+        currentCmapFlag = CMAP_PARAMETER;
+    }
+  }
+  return 0;
+}
 
 /** Assign nonbond parameters from a NonbondSet to ParameterSet */
 int AmberParamFile::assign_nb(ParameterSet& prm, NonbondSet const& nbset) const {
@@ -428,6 +452,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
   Oarray Offdiag;
   // Read file
   SectionType section = UNKNOWN;
+  CmapType currentCmapFlag = CMAP_INITIAL;
   ptr = infile.Line();
   while (ptr != 0) {
     bool first_char_is_space = (*ptr == ' ');
@@ -469,6 +494,8 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
           err = read_nb_RE(nbset, ptr);
         else if (section == LJEDIT)
           err = read_ljedit(Offdiag, ptr);
+        else if (section == CMAP)
+          err = read_cmap(currentCmapFlag, line);
         if (err != 0) {
           mprinterr("Error: Reading line: %s\n", ptr);
           return 1;

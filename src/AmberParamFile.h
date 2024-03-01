@@ -22,6 +22,7 @@ class AmberParamFile {
 
     enum SectionType { ATYPE = 0, HYDROPHILIC, BOND, ANGLE, DIHEDRAL, IMPROPER, 
                        LJ1012, NB_EQUIV, NONBOND, LJEDIT, CMAP, UNKNOWN };
+    enum CmapType { CMAP_INITIAL, CMAP_TITLE, CMAP_RESLIST, CMAP_PARAMETER };
 
     class NonbondSet;
     class OffdiagNB;
@@ -44,6 +45,8 @@ class AmberParamFile {
     int read_nb_RE(NonbondSet&, const char*) const;
     /// Read LJ 6-12 off-diagonal modifications
     int read_ljedit(Oarray&, const char*) const;
+    /// Read CMAP section
+    int read_cmap(CmapType&, std::string const&) const;
     /// Assign parameters from NonbondSet to ParameterSet
     int assign_nb(ParameterSet&, NonbondSet const&) const;
     /// Assign parameters from OffdiagNB array to ParameterSet
