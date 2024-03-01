@@ -713,14 +713,30 @@ class CapParmType {
 class CmapGridType {
   public:
     CmapGridType() : resolution_(0) {}
-    CmapGridType(unsigned int r) : resolution_(r), grid_((size_t)r*(size_t)r, 0.0) {}
-    inline int Resolution()                  const { return resolution_;       }
-    inline std::vector<double> const& Grid() const { return grid_;             }
-    inline int Size()                        const { return (int)grid_.size(); }
+    CmapGridType(unsigned int r) : resolution_(r), grid_(r*r, 0.0) {}
+    unsigned int Resolution()                const { return resolution_;       }
+    std::vector<double> const& Grid()        const { return grid_;             }
+    /// \return Grid size as integer, used for topology write
+    int Size()                               const { return (int)grid_.size(); }
+    unsigned int DataSize()                  const { return (sizeof(unsigned int) + (grid_.size()*sizeof(double))); }
+    /// Set specified grid point
     void SetGridPt(int idx, double d)              { grid_[idx] = d;           }
-    unsigned int DataSize()                  const { return (sizeof(int) + (grid_.size()*sizeof(double))); }
+    /// Prepare grid for given resolution
+    void SetResolution(unsigned int r) {
+      grid_.clear();
+      grid_.reserve( r*r );
+      resolution_ = r;
+    }
+    /// Add value to the grid
+    void AddToGrid(double d) { grid_.push_back( d ); }
+    /// \return True if the CMAP is valid
+    bool CmapIsValid() const {
+      if (resolution_*resolution_ != grid_.size())
+        return false;
+      return true;
+    }
   private:
-    int resolution_;           ///< Number of steps along each phi/psi CMAP axis
+    unsigned int resolution_;  ///< Number of steps along each phi/psi CMAP axis
     std::vector<double> grid_; ///< CMAP grid (size is resolution_*resolution_)
 };
 typedef std::vector<CmapGridType> CmapGridArray;

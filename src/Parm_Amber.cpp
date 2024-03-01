@@ -2229,7 +2229,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     if (BufferAlloc(f_grid_res, TopOut.CmapGrid().size())) return 1;
     for (CmapGridArray::const_iterator grid = TopOut.CmapGrid().begin();
                                        grid != TopOut.CmapGrid().end(); ++grid)
-      file_.IntToBuffer( grid->Resolution() );
+      file_.IntToBuffer( (int)grid->Resolution() );
     file_.FlushBuffer();
     // CMAP GRIDS
     int ngrid = 1;

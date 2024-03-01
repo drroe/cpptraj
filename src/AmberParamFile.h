@@ -46,7 +46,7 @@ class AmberParamFile {
     /// Read LJ 6-12 off-diagonal modifications
     int read_ljedit(Oarray&, const char*) const;
     /// Read CMAP section
-    int read_cmap(CmapType&, std::string const&) const;
+    int read_cmap(ParameterSet&, CmapType&, std::string const&) const;
     /// Assign parameters from NonbondSet to ParameterSet
     int assign_nb(ParameterSet&, NonbondSet const&) const;
     /// Assign parameters from OffdiagNB array to ParameterSet
