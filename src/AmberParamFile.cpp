@@ -380,6 +380,12 @@ int AmberParamFile::read_cmap(ParameterSet& prm, CmapType& currentCmapFlag, std:
             mprinterr("Error: Previous CMAP term is not valid.\n");
             return 1;
           }
+          if (!prm.CMAP()[currentCmapIdx].CmapNresIsValid()) {
+            mprintf("Warning: # expected CMAP %i residue names %i not equal to actual number %zu\n",
+                    currentCmapIdx+1,
+                    prm.CMAP()[currentCmapIdx].NcmapResNames(),
+                    prm.CMAP()[currentCmapIdx].ResNames().size());
+          }
         }
         int cmapcount = argline.getKeyInt("CMAP_COUNT", -1);
         mprintf("DEBUG: Cmap count: %i\n", cmapcount);
@@ -393,10 +399,20 @@ int AmberParamFile::read_cmap(ParameterSet& prm, CmapType& currentCmapFlag, std:
         return 0;
       } else if (argline[1] == "CMAP_RESLIST") {
         currentCmapFlag = CMAP_RESLIST;
+        int nres = argline.getKeyInt("CMAP_RESLIST", -1);
+        if (nres < 1) {
+          mprinterr("Error: Bad CMAP # residues: %s\n", line.c_str());
+          return 1;
+        }
+        prm.CMAP()[currentCmapIdx].SetNumCmapRes( nres );
         return 0;
       } else if (argline[1] == "CMAP_RESOLUTION") {
         int cmapres = argline.getKeyInt("CMAP_RESOLUTION", -1);
         mprintf("DEBUG: Cmap res: %i\n", cmapres);
+        if (cmapres < 1) {
+          mprinterr("Error: Bad CMAP resolution: %s\n", line.c_str());
+          return 1;
+        }
         prm.CMAP()[currentCmapIdx].SetResolution( cmapres );
         return 0;
       } else if (argline[1] == "CMAP_PARAMETER") {
@@ -415,6 +431,15 @@ int AmberParamFile::read_cmap(ParameterSet& prm, CmapType& currentCmapFlag, std:
       //mprintf("DEBUG: cmap term %f\n", terms[i] );
       prm.CMAP()[currentCmapIdx].AddToGrid( terms[i] );
     }
+  } else if (currentCmapFlag == CMAP_RESLIST) {
+    ArgList resnames( line );
+    std::string rn = resnames.GetStringNext();
+    while (!rn.empty()) {
+      prm.CMAP()[currentCmapIdx].AddResName( rn );
+      rn = resnames.GetStringNext();
+    }
+  } else if (currentCmapFlag == CMAP_TITLE) {
+    prm.CMAP()[currentCmapIdx].SetTitle( line );
   }
   return 0;
 }

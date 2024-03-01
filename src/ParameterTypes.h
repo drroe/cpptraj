@@ -712,12 +712,17 @@ class CapParmType {
 /// Hold CMAP grid parameters
 class CmapGridType {
   public:
-    CmapGridType() : resolution_(0) {}
-    CmapGridType(unsigned int r) : resolution_(r), grid_(r*r, 0.0) {}
+    CmapGridType() : nCmapRes_(0), resolution_(0) {}
+    CmapGridType(unsigned int r) : nCmapRes_(0), resolution_(r), grid_(r*r, 0.0) {}
     unsigned int Resolution()                const { return resolution_;       }
     std::vector<double> const& Grid()        const { return grid_;             }
+    /// \return array of residue names this CMAP applies to
+    std::vector<std::string> ResNames()      const { return resNames_; }
+    /// \return Expected number of CMAP residue names
+    int NcmapResNames()                      const { return nCmapRes_; }
     /// \return Grid size as integer, used for topology write
     int Size()                               const { return (int)grid_.size(); }
+    /// Size of the CMAP grid in bytes
     unsigned int DataSize()                  const { return (sizeof(unsigned int) + (grid_.size()*sizeof(double))); }
     /// Set specified grid point
     void SetGridPt(int idx, double d)              { grid_[idx] = d;           }
@@ -729,15 +734,34 @@ class CmapGridType {
     }
     /// Add value to the grid
     void AddToGrid(double d) { grid_.push_back( d ); }
+    /// Set CMAP title
+    void SetTitle(std::string const& t) { title_ = t; }
+    /// Number of residues this CMAP will be applied to
+    void SetNumCmapRes(int n) {
+      resNames_.clear();
+      resNames_.reserve( n );
+      nCmapRes_ = n;
+    }
+    /// Add residue name this CMAP will apply to
+    void AddResName(std::string const& n) { resNames_.push_back( n ); }
     /// \return True if the CMAP is valid
     bool CmapIsValid() const {
       if (resolution_*resolution_ != grid_.size())
         return false;
       return true;
     }
+    /// \return True if CMAP # res names matches expected.
+    bool CmapNresIsValid() const {
+      if (nCmapRes_ != (int)resNames_.size())
+        return false;
+      return true;
+    }
   private:
+    int nCmapRes_;             ///< Number of expected residues this CMAP will apply to
     unsigned int resolution_;  ///< Number of steps along each phi/psi CMAP axis
     std::vector<double> grid_; ///< CMAP grid (size is resolution_*resolution_)
+    std::string title_;        ///< CMAP title (from parameter file)
+    std::vector<std::string> resNames_; ///< Residue names this CMAP will apply to
 };
 typedef std::vector<CmapGridType> CmapGridArray;
 /// Hold CMAP atom indices and corresponding grid index
