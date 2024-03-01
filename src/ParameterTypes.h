@@ -717,11 +717,13 @@ class CmapGridType {
     unsigned int Resolution()                const { return resolution_;       }
     std::vector<double> const& Grid()        const { return grid_;             }
     /// \return array of residue names this CMAP applies to
-    std::vector<std::string> ResNames()      const { return resNames_; }
+    std::vector<std::string> const& ResNames() const { return resNames_; }
     /// \return Expected number of CMAP residue names
     int NcmapResNames()                      const { return nCmapRes_; }
     /// \return Grid size as integer, used for topology write
     int Size()                               const { return (int)grid_.size(); }
+    /// \return CMAP title
+    std::string const& Title()               const { return title_; }
     /// Size of the CMAP grid in bytes
     unsigned int DataSize()                  const { return (sizeof(unsigned int) + (grid_.size()*sizeof(double))); }
     /// Set specified grid point

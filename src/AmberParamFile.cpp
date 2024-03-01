@@ -359,6 +359,26 @@ const
   return 0;
 }
 
+static inline int check_cmap(int currentCmapIdx, CmapGridType const& cmap) {
+  mprintf("DEBUG: Cmap %i '%s' (gridSize= %i) %zu res:",
+          currentCmapIdx, cmap.Title().c_str(), cmap.Size(), cmap.ResNames().size());
+  for (std::vector<std::string>::const_iterator it = cmap.ResNames().begin();
+                                                it != cmap.ResNames().end(); ++it)
+    mprintf(" %s", it->c_str());
+  mprintf("\n");
+  if (!cmap.CmapIsValid()) {
+    mprinterr("Error: Previous CMAP term is not valid.\n");
+    return 1;
+  }
+  if (!cmap.CmapNresIsValid()) {
+    mprintf("Warning: # expected CMAP %i residue names %i not equal to actual number %zu\n",
+            currentCmapIdx,
+            cmap.NcmapResNames(),
+            cmap.ResNames().size());
+  }
+  return 0;
+}
+
 /** Read CMAP section */
 int AmberParamFile::read_cmap(ParameterSet& prm, CmapType& currentCmapFlag, std::string const& line) const {
   //if (ptr[0] == '%' && ptr[1] == 'F' && ptr[2] == 'L' &&
@@ -376,19 +396,10 @@ int AmberParamFile::read_cmap(ParameterSet& prm, CmapType& currentCmapFlag, std:
         // New CMAP term. Ignore the index for now. If a previous CMAP
         // was read make sure its OK.
         if (currentCmapIdx > -1) {
-          if (!prm.CMAP()[currentCmapIdx].CmapIsValid()) {
-            mprinterr("Error: Previous CMAP term is not valid.\n");
-            return 1;
-          }
-          if (!prm.CMAP()[currentCmapIdx].CmapNresIsValid()) {
-            mprintf("Warning: # expected CMAP %i residue names %i not equal to actual number %zu\n",
-                    currentCmapIdx+1,
-                    prm.CMAP()[currentCmapIdx].NcmapResNames(),
-                    prm.CMAP()[currentCmapIdx].ResNames().size());
-          }
+          if (check_cmap(currentCmapIdx+1, prm.CMAP()[currentCmapIdx])) return 1;
         }
         int cmapcount = argline.getKeyInt("CMAP_COUNT", -1);
-        mprintf("DEBUG: Cmap count: %i\n", cmapcount);
+        //mprintf("DEBUG: Cmap count: %i\n", cmapcount);
         prm.CMAP().push_back( CmapGridType() );
         if ( cmapcount != (int)prm.CMAP().size() )
           mprintf("Warning: CMAP term is not in numerical order. CMAP_COUNT %i, expected %zu\n",
@@ -408,7 +419,7 @@ int AmberParamFile::read_cmap(ParameterSet& prm, CmapType& currentCmapFlag, std:
         return 0;
       } else if (argline[1] == "CMAP_RESOLUTION") {
         int cmapres = argline.getKeyInt("CMAP_RESOLUTION", -1);
-        mprintf("DEBUG: Cmap res: %i\n", cmapres);
+        //mprintf("DEBUG: Cmap res: %i\n", cmapres);
         if (cmapres < 1) {
           mprinterr("Error: Bad CMAP resolution: %s\n", line.c_str());
           return 1;
@@ -563,6 +574,10 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
       }
     }
     ptr = infile.Line();
+  }
+  // Check last cmap
+  if (!prm.CMAP().empty()) {
+    if (check_cmap(prm.CMAP().size(), prm.CMAP().back())) return 1;
   }
   // Nonbonds
   if (assign_nb(prm, nbset)) return 1;
