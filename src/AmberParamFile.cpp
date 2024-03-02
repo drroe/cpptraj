@@ -380,14 +380,10 @@ static inline int check_cmap(int currentCmapIdx, CmapGridType const& cmap) {
 }
 
 /** Read CMAP section */
-int AmberParamFile::read_cmap(ParameterSet& prm, CmapType& currentCmapFlag, std::string const& line) const {
-  //if (ptr[0] == '%' && ptr[1] == 'F' && ptr[2] == 'L' &&
-  //    ptr[3] == 'A' && ptr[4] == 'G')
-  int currentCmapIdx;
-  if (prm.CMAP().empty())
-    currentCmapIdx = -1;
-  else
-    currentCmapIdx = prm.CMAP().size() - 1;
+int AmberParamFile::read_cmap(CmapGridType& currentCMAP, ParameterSet& prm, CmapType& currentCmapFlag,
+                              std::string const& line)
+const
+{
   ArgList argline(line);
   if (argline.Nargs() > 1)
   {
@@ -395,12 +391,13 @@ int AmberParamFile::read_cmap(ParameterSet& prm, CmapType& currentCmapFlag, std:
       if (argline[1] == "CMAP_COUNT") {
         // New CMAP term. Ignore the index for now. If a previous CMAP
         // was read make sure its OK.
-        if (currentCmapIdx > -1) {
-          if (check_cmap(currentCmapIdx+1, prm.CMAP()[currentCmapIdx])) return 1;
+        if (!currentCMAP.empty()) {
+          if (check_cmap(prm.CMAP().size()+1, currentCMAP)) return 1;
+          prm.CMAP().AddParm( currentCMAP, true );
+          currentCMAP = CmapGridType();
         }
         int cmapcount = argline.getKeyInt("CMAP_COUNT", -1);
         //mprintf("DEBUG: Cmap count: %i\n", cmapcount);
-        prm.CMAP().push_back( CmapGridType() );
         if ( cmapcount != (int)prm.CMAP().size() )
           mprintf("Warning: CMAP term is not in numerical order. CMAP_COUNT %i, expected %zu\n",
                   cmapcount, prm.CMAP().size());
@@ -415,7 +412,7 @@ int AmberParamFile::read_cmap(ParameterSet& prm, CmapType& currentCmapFlag, std:
           mprinterr("Error: Bad CMAP # residues: %s\n", line.c_str());
           return 1;
         }
-        prm.CMAP()[currentCmapIdx].SetNumCmapRes( nres );
+        currentCMAP.SetNumCmapRes( nres );
         return 0;
       } else if (argline[1] == "CMAP_RESOLUTION") {
         int cmapres = argline.getKeyInt("CMAP_RESOLUTION", -1);
@@ -424,7 +421,7 @@ int AmberParamFile::read_cmap(ParameterSet& prm, CmapType& currentCmapFlag, std:
           mprinterr("Error: Bad CMAP resolution: %s\n", line.c_str());
           return 1;
         }
-        prm.CMAP()[currentCmapIdx].SetResolution( cmapres );
+        currentCMAP.SetResolution( cmapres );
         return 0;
       } else if (argline[1] == "CMAP_PARAMETER") {
         currentCmapFlag = CMAP_PARAMETER;
@@ -440,17 +437,17 @@ int AmberParamFile::read_cmap(ParameterSet& prm, CmapType& currentCmapFlag, std:
                         terms+4, terms+5, terms+6, terms+7);
     for (int i = 0; i != nterms; i++) {
       //mprintf("DEBUG: cmap term %f\n", terms[i] );
-      prm.CMAP()[currentCmapIdx].AddToGrid( terms[i] );
+      currentCMAP.AddToGrid( terms[i] );
     }
   } else if (currentCmapFlag == CMAP_RESLIST) {
     ArgList resnames( line );
     std::string rn = resnames.GetStringNext();
     while (!rn.empty()) {
-      prm.CMAP()[currentCmapIdx].AddResName( rn );
+      currentCMAP.AddResName( rn );
       rn = resnames.GetStringNext();
     }
   } else if (currentCmapFlag == CMAP_TITLE) {
-    prm.CMAP()[currentCmapIdx].SetTitle( line );
+    currentCMAP.SetTitle( line );
   }
   return 0;
 }
@@ -524,6 +521,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
   // Read file
   SectionType section = UNKNOWN;
   CmapType currentCmapFlag = CMAP_INITIAL;
+  CmapGridType currentCMAP;
   ptr = infile.Line();
   while (ptr != 0) {
     bool first_char_is_space = (*ptr == ' ');
@@ -566,7 +564,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
         else if (section == LJEDIT)
           err = read_ljedit(Offdiag, ptr);
         else if (section == CMAP)
-          err = read_cmap(prm, currentCmapFlag, line);
+          err = read_cmap(currentCMAP, prm, currentCmapFlag, line);
         if (err != 0) {
           mprinterr("Error: Reading line: %s\n", ptr);
           return 1;
@@ -576,8 +574,9 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
     ptr = infile.Line();
   }
   // Check last cmap
-  if (!prm.CMAP().empty()) {
-    if (check_cmap(prm.CMAP().size(), prm.CMAP().back())) return 1;
+  if (!currentCMAP.empty()) {
+    if (check_cmap(prm.CMAP().size(), currentCMAP)) return 1;
+    prm.CMAP().AddParm( currentCMAP, true );
   }
   // Nonbonds
   if (assign_nb(prm, nbset)) return 1;

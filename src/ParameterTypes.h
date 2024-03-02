@@ -758,6 +758,11 @@ class CmapGridType {
         return false;
       return true;
     }
+    /// \return True if CMAP is completely empty
+    bool empty() const {
+      return (nCmapRes_ == 0 && resolution_ == 0 &&
+              grid_.empty() && title_.empty() && resNames_.empty());
+    }
   private:
     int nCmapRes_;             ///< Number of expected residues this CMAP will apply to
     unsigned int resolution_;  ///< Number of steps along each phi/psi CMAP axis

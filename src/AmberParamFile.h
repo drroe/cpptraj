@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 class ParameterSet;
+class CmapGridType;
 //class BufferedLine;
 class FileName;
 /// Used to read in Amber parameters from Amber FF/FRCMOD file.
@@ -46,7 +47,7 @@ class AmberParamFile {
     /// Read LJ 6-12 off-diagonal modifications
     int read_ljedit(Oarray&, const char*) const;
     /// Read CMAP section
-    int read_cmap(ParameterSet&, CmapType&, std::string const&) const;
+    int read_cmap(CmapGridType&, ParameterSet&, CmapType&, std::string const&) const;
     /// Assign parameters from NonbondSet to ParameterSet
     int assign_nb(ParameterSet&, NonbondSet const&) const;
     /// Assign parameters from OffdiagNB array to ParameterSet
