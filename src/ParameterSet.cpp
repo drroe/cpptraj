@@ -42,6 +42,7 @@ void ParameterSet::Summary() const {
   mprintf("\t  %zu UB parameters.\n", ubParm_.size());
   mprintf("\t  %zu dihedral parameters.\n", dihParm_.size());
   mprintf("\t  %zu improper parameters.\n", impParm_.size());
+  mprintf("\t  %zu CMAP parameters.\n", CMAP_.size());
 }
 
 /** Write parameters out to given file. */
@@ -112,6 +113,17 @@ void ParameterSet::Print(CpptrajFile& Out) const {
     for (NsetType::const_iterator it = hydrophilicAtomTypes_.begin(); it != hydrophilicAtomTypes_.end(); ++it)
       Out.Printf(" %s", it->Truncated().c_str());
     Out.Printf("\n");
+  }
+  if (!CMAP_.empty()) {
+    Out.Printf("CMAP parameters:\n");
+    for (CmapGridArray::const_iterator it = CMAP_.begin(); it != CMAP_.end(); ++it) {
+      Out.Printf("\tCMAP %li '%s' (resolution %u) residues:",
+              it - CMAP_.begin(), it->Title().c_str(), it->Resolution());
+      for (std::vector<std::string>::const_iterator rn = it->ResNames().begin();
+                                                    rn != it->ResNames().end(); ++rn)
+        Out.Printf(" %s", rn->c_str());
+      Out.Printf("\n");
+    }
   }
 }
 
