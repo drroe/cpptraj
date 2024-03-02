@@ -718,6 +718,8 @@ class CmapGridType {
     std::vector<double> const& Grid()        const { return grid_;             }
     /// \return array of residue names this CMAP applies to
     std::vector<std::string> const& ResNames() const { return resNames_; }
+    /// \return array of atom names this CMAP applies to
+    std::vector<std::string> const& AtomNames() const { return atomNames_; }
     /// \return Expected number of CMAP residue names
     int NcmapResNames()                      const { return nCmapRes_; }
     /// \return Grid size as integer, used for topology write
@@ -746,13 +748,19 @@ class CmapGridType {
     }
     /// Add residue name this CMAP will apply to
     void AddResName(std::string const& n) { resNames_.push_back( n ); }
+    /// Add atom name this CMAP will apply to
+    void AddAtomName(std::string const& n) { atomNames_.push_back( n ); }
     /// \return True if the CMAP is valid
     bool CmapIsValid() const {
       if (resolution_ == 0 || resolution_*resolution_ != grid_.size())
         return false;
+      if (atomNames_.size() != 5)
+        return false;
+      if (resNames_.empty())
+        return false;
       return true;
     }
-    /// \return True if CMAP # res names matches expected.
+    /// \return True if CMAP # res names matches expected # of names.
     bool CmapNresIsValid() const {
       if (nCmapRes_ == 0 || nCmapRes_ != (int)resNames_.size())
         return false;
@@ -768,7 +776,8 @@ class CmapGridType {
     unsigned int resolution_;  ///< Number of steps along each phi/psi CMAP axis
     std::vector<double> grid_; ///< CMAP grid (size is resolution_*resolution_)
     std::string title_;        ///< CMAP title (from parameter file)
-    std::vector<std::string> resNames_; ///< Residue names this CMAP will apply to
+    std::vector<std::string> resNames_;  ///< Residue name(s) this CMAP will apply to
+    std::vector<std::string> atomNames_; ///< 5x atom names this CMAP will apply to
 };
 typedef std::vector<CmapGridType> CmapGridArray;
 /// Hold CMAP atom indices and corresponding grid index

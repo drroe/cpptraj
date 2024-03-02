@@ -117,8 +117,12 @@ void ParameterSet::Print(CpptrajFile& Out) const {
   if (!CMAP_.empty()) {
     Out.Printf("CMAP parameters:\n");
     for (CmapGridArray::const_iterator it = CMAP_.begin(); it != CMAP_.end(); ++it) {
-      Out.Printf("\tCMAP %li '%s' (resolution %u) residues:",
-              it - CMAP_.begin() + 1, it->Title().c_str(), it->Resolution());
+      Out.Printf("\tCMAP %li '%s' (resolution %u) atoms {",
+                 it - CMAP_.begin() + 1, it->Title().c_str(), it->Resolution());
+      for (std::vector<std::string>::const_iterator an = it->AtomNames().begin();
+                                                    an != it->AtomNames().end(); ++an)
+        Out.Printf(" %s", an->c_str());
+      Out.Printf("} residues:");
       for (std::vector<std::string>::const_iterator rn = it->ResNames().begin();
                                                     rn != it->ResNames().end(); ++rn)
         Out.Printf(" %s", rn->c_str());

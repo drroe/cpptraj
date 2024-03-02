@@ -359,6 +359,7 @@ const
   return 0;
 }
 
+/// \return 1 if problem detected with CMAP term
 static inline int check_cmap(int currentCmapIdx, CmapGridType const& cmap) {
   mprintf("DEBUG: Cmap %i '%s' (gridSize= %i) %zu res:",
           currentCmapIdx, cmap.Title().c_str(), cmap.Size(), cmap.ResNames().size());
@@ -379,6 +380,15 @@ static inline int check_cmap(int currentCmapIdx, CmapGridType const& cmap) {
   return 0;
 }
 
+/// Add default atom names to CMAP term
+static inline void add_cmap_default_atoms(CmapGridType& cmap) {
+  cmap.AddAtomName("C");
+  cmap.AddAtomName("N");
+  cmap.AddAtomName("CA");
+  cmap.AddAtomName("C");
+  cmap.AddAtomName("N");
+}
+
 /** Read CMAP section
   * Default CMAP atoms are Amber phi/psi:
   * Res  : 0   1   1    1   2
@@ -396,6 +406,7 @@ const
         // New CMAP term. Ignore the index for now. If a previous CMAP
         // was read make sure its OK.
         if (!currentCmap.empty()) {
+          add_cmap_default_atoms( currentCmap );
           if (check_cmap(prm.CMAP().size()+1, currentCmap)) return 1;
           prm.CMAP().AddParm( currentCmap, true );
           currentCmap = CmapGridType();
@@ -579,6 +590,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
   }
   // Check last cmap
   if (!currentCmap.empty()) {
+    add_cmap_default_atoms( currentCmap );
     if (check_cmap(prm.CMAP().size(), currentCmap)) return 1;
     prm.CMAP().AddParm( currentCmap, true );
   }

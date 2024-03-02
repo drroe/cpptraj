@@ -3131,8 +3131,11 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
 
 /** Assign CMAP parameters */
 int Topology::AssignCmapParams(CmapParmHolder const& cmapIn) {
+  // TODO combine with AssignDihedrals?
   DihedralArray allDih = Cpptraj::Structure::GenerateDihedralArray(residues_, atoms_);
-
+  //for (DihedralArray::const_iterator dih = allDih.begin(); dih != allDih.end(); ++dih)
+  //{
+    // 
   return 0;
 }
 
