@@ -22,7 +22,7 @@ class CmapParmHolder {
     /// \return true if no CMAP terms
     bool empty() const { return CMAP_.empty(); }
     /// \return CMAP at index
-    //CmapGridType const& operator[](int idx) const { return CMAP_[idx]; }
+    CmapGridType const& operator[](int idx) const { return CMAP_[idx]; }
 
     /// \return Modifiable CMAP at index
     
