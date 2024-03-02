@@ -142,6 +142,58 @@ void ParameterSet::Print(CpptrajFile& Out) const {
   }
 }
 
+/** Update/add to CMAP parameters.
+  * CMAP terms are different in that they are applied via residue name instead
+  * of atom type, hence the separate routine.
+  * \return The number of CMAP terms updated.
+  */
+int ParameterSet::updateCmapTerms(ParameterSet const& set1, int debugIn, int verbose) {
+  typedef std::vector<std::string> Sarray;
+  enum ResMatchType { NO_MATCH = 0, FULL_MATCH, PARTIAL_MATCH };
+  // Loop over the incoming CMAPs
+  for (CmapGridArray::const_iterator it = set1.CMAP().begin(); it != set1.CMAP().end(); ++it)
+  {
+    // Does a CMAP for any of the residues exist?
+    ResMatchType mtype = NO_MATCH;
+    CmapGridArray::iterator currentCmap = CMAP_.end();
+    for (CmapGridArray::iterator jt = CMAP_.begin(); jt != CMAP_.end(); ++jt)
+    {
+      int nMatch = 0;
+      for (Sarray::const_iterator rni = it->ResNames().begin(); rni != it->ResNames().end(); ++rni)
+      {
+        for (Sarray::const_iterator rnj = jt->ResNames().begin(); rnj != jt->ResNames().end(); ++rnj)
+        {
+          if (*rni == *rnj) {
+            nMatch++;
+            break;
+          }
+        } // END loop over cmap j res names
+      } // END loop over cmap i res names
+      if (nMatch == (int)jt->ResNames().size()) {
+        mtype = FULL_MATCH;
+        currentCmap = jt;
+        break;
+      } else if (nMatch > 0) {
+        mtype = PARTIAL_MATCH;
+        currentCmap = jt;
+        break;
+      }
+    } // END loop over existing CMAP terms
+    if (mtype == PARTIAL_MATCH) {
+      mprinterr("Internal Error: Partial match between new CMAP '%s' and existing CMAP '%s'\n"
+                "Internal Error:   Not yet set up to handle this kind of parameter update.\n",
+                it->Title().c_str(), currentCmap->Title().c_str());
+      return -1;
+    } else if (mtype == FULL_MATCH) {
+      mprintf("DEBUG: Match between new CMAP '%s' and existing CMAP '%s'\n",
+              it->Title().c_str(), currentCmap->Title().c_str());
+    } else if (mtype == NO_MATCH) {
+      mprintf("DEBUG: CMAP '%s' is a new CMAP.\n", it->Title().c_str());
+    }
+  } // END loop over new CMAP terms
+  return 0;
+}
+
 /** Update/add to parameters in this topology with those from given set. */
 int ParameterSet::UpdateParamSet(ParameterSet const& set1, UpdateCount& uc, int debugIn, int verbose) {
   ParameterSet& set0 = *this;
@@ -170,6 +222,8 @@ int ParameterSet::UpdateParamSet(ParameterSet const& set1, UpdateCount& uc, int 
   uc.nLJ14paramsUpdated_ = UpdateParameters< ParmHolder<NonbondType> >(set0.NB14(), set1.NB14(), "LJ A-B 1-4", verbose);
   // HB LJ 10-12 Pairs
   uc.nHBparamsUpdated_ = UpdateParameters< ParmHolder<HB_ParmType> >(set0.HB(), set1.HB(), "LJ HB 10-12", verbose);
+  // CMAP
+  uc.nCmapUpdated_ = updateCmapTerms(set1, debugIn, verbose);
 
   if (debugIn > 0) set0.Debug("newp.dat");
   return 0;

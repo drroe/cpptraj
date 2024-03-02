@@ -78,6 +78,9 @@ class ParameterSet {
     typedef std::vector<NameType> NsetType;
     typedef std::vector<std::string> Sarray;
 
+    /// Update CMAP terms
+    int updateCmapTerms(ParameterSet const&, int, int);
+
     Sarray name_;                          ///< Parameter set name(s)
     std::string NBname_;                   ///< Nonbond set name
 
