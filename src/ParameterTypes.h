@@ -748,13 +748,13 @@ class CmapGridType {
     void AddResName(std::string const& n) { resNames_.push_back( n ); }
     /// \return True if the CMAP is valid
     bool CmapIsValid() const {
-      if (resolution_*resolution_ != grid_.size())
+      if (resolution_ == 0 || resolution_*resolution_ != grid_.size())
         return false;
       return true;
     }
     /// \return True if CMAP # res names matches expected.
     bool CmapNresIsValid() const {
-      if (nCmapRes_ != (int)resNames_.size())
+      if (nCmapRes_ == 0 || nCmapRes_ != (int)resNames_.size())
         return false;
       return true;
     }
