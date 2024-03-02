@@ -714,10 +714,18 @@ class CmapGridType {
   public:
     CmapGridType() : nCmapRes_(0), resolution_(0) {}
     CmapGridType(unsigned int r) : nCmapRes_(0), resolution_(r), grid_(r*r, 0.0) {}
+    /// \return Grid resolution (in 1 dim, full res is resolutionXresolution)
     unsigned int Resolution()                const { return resolution_;       }
+    /// \return CMAP grid
     std::vector<double> const& Grid()        const { return grid_;             }
     /// \return array of residue names this CMAP applies to
     std::vector<std::string> const& ResNames() const { return resNames_; }
+    /// \return true if given name matches a residue name
+    bool MatchesResName(std::string const& nameIn) const {
+      for (std::vector<std::string>::const_iterator it = resNames_.begin(); it != resNames_.end(); ++it)
+        if (nameIn == *it) return true;
+      return false;
+    }
     /// \return array of atom names this CMAP applies to
     std::vector<std::string> const& AtomNames() const { return atomNames_; }
     /// \return Expected number of CMAP residue names
