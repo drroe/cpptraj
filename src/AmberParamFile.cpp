@@ -380,7 +380,7 @@ static inline int check_cmap(int currentCmapIdx, CmapGridType const& cmap) {
 }
 
 /** Read CMAP section */
-int AmberParamFile::read_cmap(CmapGridType& currentCMAP, ParameterSet& prm, CmapType& currentCmapFlag,
+int AmberParamFile::read_cmap(CmapGridType& currentCmap, ParameterSet& prm, CmapType& currentCmapFlag,
                               std::string const& line)
 const
 {
@@ -391,10 +391,10 @@ const
       if (argline[1] == "CMAP_COUNT") {
         // New CMAP term. Ignore the index for now. If a previous CMAP
         // was read make sure its OK.
-        if (!currentCMAP.empty()) {
-          if (check_cmap(prm.CMAP().size()+1, currentCMAP)) return 1;
-          prm.CMAP().AddParm( currentCMAP, true );
-          currentCMAP = CmapGridType();
+        if (!currentCmap.empty()) {
+          if (check_cmap(prm.CMAP().size()+1, currentCmap)) return 1;
+          prm.CMAP().AddParm( currentCmap, true );
+          currentCmap = CmapGridType();
         }
         int cmapcount = argline.getKeyInt("CMAP_COUNT", -1);
         //mprintf("DEBUG: Cmap count: %i\n", cmapcount);
@@ -412,7 +412,7 @@ const
           mprinterr("Error: Bad CMAP # residues: %s\n", line.c_str());
           return 1;
         }
-        currentCMAP.SetNumCmapRes( nres );
+        currentCmap.SetNumCmapRes( nres );
         return 0;
       } else if (argline[1] == "CMAP_RESOLUTION") {
         int cmapres = argline.getKeyInt("CMAP_RESOLUTION", -1);
@@ -421,7 +421,7 @@ const
           mprinterr("Error: Bad CMAP resolution: %s\n", line.c_str());
           return 1;
         }
-        currentCMAP.SetResolution( cmapres );
+        currentCmap.SetResolution( cmapres );
         return 0;
       } else if (argline[1] == "CMAP_PARAMETER") {
         currentCmapFlag = CMAP_PARAMETER;
@@ -437,17 +437,17 @@ const
                         terms+4, terms+5, terms+6, terms+7);
     for (int i = 0; i != nterms; i++) {
       //mprintf("DEBUG: cmap term %f\n", terms[i] );
-      currentCMAP.AddToGrid( terms[i] );
+      currentCmap.AddToGrid( terms[i] );
     }
   } else if (currentCmapFlag == CMAP_RESLIST) {
     ArgList resnames( line );
     std::string rn = resnames.GetStringNext();
     while (!rn.empty()) {
-      currentCMAP.AddResName( rn );
+      currentCmap.AddResName( rn );
       rn = resnames.GetStringNext();
     }
   } else if (currentCmapFlag == CMAP_TITLE) {
-    currentCMAP.SetTitle( line );
+    currentCmap.SetTitle( line );
   }
   return 0;
 }
@@ -521,7 +521,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
   // Read file
   SectionType section = UNKNOWN;
   CmapType currentCmapFlag = CMAP_INITIAL;
-  CmapGridType currentCMAP;
+  CmapGridType currentCmap;
   ptr = infile.Line();
   while (ptr != 0) {
     bool first_char_is_space = (*ptr == ' ');
@@ -564,7 +564,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
         else if (section == LJEDIT)
           err = read_ljedit(Offdiag, ptr);
         else if (section == CMAP)
-          err = read_cmap(currentCMAP, prm, currentCmapFlag, line);
+          err = read_cmap(currentCmap, prm, currentCmapFlag, line);
         if (err != 0) {
           mprinterr("Error: Reading line: %s\n", ptr);
           return 1;
@@ -574,9 +574,9 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
     ptr = infile.Line();
   }
   // Check last cmap
-  if (!currentCMAP.empty()) {
-    if (check_cmap(prm.CMAP().size(), currentCMAP)) return 1;
-    prm.CMAP().AddParm( currentCMAP, true );
+  if (!currentCmap.empty()) {
+    if (check_cmap(prm.CMAP().size(), currentCmap)) return 1;
+    prm.CMAP().AddParm( currentCmap, true );
   }
   // Nonbonds
   if (assign_nb(prm, nbset)) return 1;
