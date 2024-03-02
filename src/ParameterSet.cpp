@@ -142,6 +142,35 @@ void ParameterSet::Print(CpptrajFile& Out) const {
   }
 }
 
+/** Update/add to CMAP parameters in this set with those from given set. */
+int ParameterSet::updateCmapParams(CmapParmHolder const& cmap1, int verbose) {
+  int updateCount = 0;
+  for (CmapParmHolder::const_iterator newp = cmap1.begin(); newp != cmap1.end(); ++newp)
+  {
+    ParameterHolders::RetType ret = CMAP_.AddParm( *newp, true );
+    if (ret != ParameterHolders::ERR) {
+      bool print = false;
+      if (ret == ParameterHolders::ADDED) {
+        if (verbose > 2) { mprintf("\tAdded NEW CMAP parameter:"); print = true; }
+        updateCount++;
+      } else if (ret == ParameterHolders::UPDATED) {
+        if (verbose > 0) { mprintf("\tUpdated CMAP parameter:"); print = true; }
+        updateCount++;
+      } else if (ret == ParameterHolders::SAME) {
+        if (verbose > 1) { mprintf("\tParameter for CMAP already present:"); print = true; }
+      }
+      if (print) {
+        mprintf("\tCMAP '%s' (resolution %u) residues:", newp->Title().c_str(), newp->Resolution());
+        for (std::vector<std::string>::const_iterator rn = newp->ResNames().begin();
+                                                      rn != newp->ResNames().end(); ++rn)
+          mprintf(" %s", rn->c_str());
+        mprintf("\n");
+      }
+    }
+  }
+  return updateCount;
+}
+
 /** Update/add to parameters in this topology with those from given set. */
 int ParameterSet::UpdateParamSet(ParameterSet const& set1, UpdateCount& uc, int debugIn, int verbose) {
   ParameterSet& set0 = *this;
@@ -171,7 +200,7 @@ int ParameterSet::UpdateParamSet(ParameterSet const& set1, UpdateCount& uc, int 
   // HB LJ 10-12 Pairs
   uc.nHBparamsUpdated_ = UpdateParameters< ParmHolder<HB_ParmType> >(set0.HB(), set1.HB(), "LJ HB 10-12", verbose);
   // CMAP
-  //uc.nCmapUpdated_ = updateCmapTerms(set1, debugIn, verbose);
+  uc.nCmapUpdated_ = updateCmapParams(set1.CMAP(), verbose);
 
   if (debugIn > 0) set0.Debug("newp.dat");
   return 0;
