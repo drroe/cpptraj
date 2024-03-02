@@ -379,7 +379,11 @@ static inline int check_cmap(int currentCmapIdx, CmapGridType const& cmap) {
   return 0;
 }
 
-/** Read CMAP section */
+/** Read CMAP section
+  * Default CMAP atoms are Amber phi/psi:
+  * Res  : 0   1   1    1   2
+  * Atom : C - N - CA - C - N
+  */ 
 int AmberParamFile::read_cmap(CmapGridType& currentCmap, ParameterSet& prm, CmapType& currentCmapFlag,
                               std::string const& line)
 const
