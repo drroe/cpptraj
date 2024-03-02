@@ -2,9 +2,9 @@
 #define INC_PARM_CMAPPARMHOLDER_H
 class CmapGridType;
 #include <vector>
-#include "../ParameterHolders.h" // TODO fix the includes
-namespace Cpptraj {
-namespace Parm {
+#include "ParameterHolders.h" // TODO fix the includes
+//namespace Cpptraj {
+//namespace Parm {
 /// Hold CMAP terms
 class CmapParmHolder {
     typedef std::vector<CmapGridType> Carray;
@@ -31,6 +31,6 @@ class CmapParmHolder {
   private:
     Carray CMAP_;
 };
-}
-}
+//}
+//}
 #endif

@@ -1,4 +1,3 @@
 # Files for Parm subdirectory.
 PARM_SOURCES= \
-  CmapParmHolder.cpp \
   GB_Params.cpp

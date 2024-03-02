@@ -398,7 +398,7 @@ const
         }
         int cmapcount = argline.getKeyInt("CMAP_COUNT", -1);
         //mprintf("DEBUG: Cmap count: %i\n", cmapcount);
-        if ( cmapcount != (int)prm.CMAP().size() )
+        if ( cmapcount != (int)prm.CMAP().size()+1 )
           mprintf("Warning: CMAP term is not in numerical order. CMAP_COUNT %i, expected %zu\n",
                   cmapcount, prm.CMAP().size());
         return 0;

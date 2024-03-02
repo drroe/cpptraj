@@ -158,6 +158,7 @@ COMMON_SOURCES= \
         CharmmParamFile.cpp \
         CIFfile.cpp \
         ClusterMap.cpp \
+        CmapParmHolder.cpp \
         Cmd.cpp \
         CmdInput.cpp \
         CmdList.cpp \

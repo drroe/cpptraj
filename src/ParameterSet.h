@@ -2,7 +2,7 @@
 #define INC_PARAMETERSET_H
 #include "ParameterTypes.h"
 #include "ParameterHolders.h"
-#include "Parm/CmapParmHolder.h"
+#include "CmapParmHolder.h"
 #include "AtomType.h"
 class CpptrajFile;
 /// Hold a set of parameters for atom types, bonds, angles, etc.
@@ -19,7 +19,8 @@ class ParameterSet {
     ImproperParmHolder& IP()           { return impParm_;   }
     DihedralParmHolder& DP()           { return dihParm_;   }
     ParmHolder<HB_ParmType>& HB()      { return HBparm_;    }
-    Cpptraj::Parm::CmapParmHolder& CMAP() { return CMAP_;      }
+    //Cpptraj::Parm::CmapParmHolder& CMAP() { return CMAP_;      }
+    CmapParmHolder& CMAP() { return CMAP_;      }
 
     void SetHasLJparams(bool b) { hasLJparams_ = b; }
     bool HasLJparams() const { return hasLJparams_; }
@@ -33,7 +34,8 @@ class ParameterSet {
     ImproperParmHolder const& IP()           const { return impParm_;   }
     DihedralParmHolder const& DP()           const { return dihParm_;   }
     ParmHolder<HB_ParmType> const& HB()      const { return HBparm_;    }
-    Cpptraj::Parm::CmapParmHolder const& CMAP() const { return CMAP_;      }
+    //Cpptraj::Parm::CmapParmHolder const& CMAP() const { return CMAP_;      }
+    CmapParmHolder const& CMAP() const { return CMAP_;      }
     std::string const& NbParamName()         const { return NBname_;    }
     /// \return Parameter set names as a single line
     std::string ParamSetName()        const;
@@ -91,7 +93,8 @@ class ParameterSet {
     ImproperParmHolder impParm_;           ///< Improper dihedral parameters
     DihedralParmHolder dihParm_;           ///< Cosine-series dihedral parameters
     ParmHolder<HB_ParmType> HBparm_;       ///< LJ 10-12 A-B parameters for hydrogen bonds
-    Cpptraj::Parm::CmapParmHolder CMAP_;   ///< CMAP parameters; unlike others, not indexed by atom type
+    //Cpptraj::Parm::CmapParmHolder CMAP_;   ///< CMAP parameters; unlike others, not indexed by atom type
+    CmapParmHolder CMAP_;   ///< CMAP parameters; unlike others, not indexed by atom type
     NsetType hydrophilicAtomTypes_;        ///< Hold names of hydrophilic atom types
     bool hasLJparams_;
 };

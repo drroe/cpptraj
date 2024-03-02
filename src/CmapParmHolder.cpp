@@ -1,8 +1,8 @@
 #include "CmapParmHolder.h"
-#include "../CpptrajStdio.h"
-#include "../ParameterTypes.h"
+#include "CpptrajStdio.h"
+#include "ParameterTypes.h"
 
-using namespace Cpptraj::Parm;
+//using namespace Cpptraj::Parm;
 
 /** CONSTRUCTOR */
 CmapParmHolder::CmapParmHolder() {}
