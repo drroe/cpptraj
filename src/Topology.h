@@ -317,7 +317,9 @@ class Topology {
     inline DihedralArray get_unique_dihedrals(DihedralArray const&) const;
     DihedralArray AssignDihedralParm(DihedralParmHolder const&, ImproperParmHolder const&,
                                      ParmHolder<AtomType> const&, DihedralArray const&, bool);
-    int AssignCmapParams(CmapParmHolder const&);
+
+    /// Assign CMAP parameters
+    int AssignCmapParams(DihedralArray const&, CmapParmHolder const&, CmapGridArray&, CmapArray&) const;
 
     static const NonbondType LJ_EMPTY;
     std::vector<Atom> atoms_;

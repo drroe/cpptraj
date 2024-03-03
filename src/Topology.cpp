@@ -3129,13 +3129,107 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
   }
 }
 
+/// \return index of 5th cmap atom if atom names match those in dihedral, -1 otherwise
+static inline int cmap_anames_match(DihedralType const& dih,
+                                     std::vector<Atom> const& atoms,
+                                     CmapGridType const& cmap)
+{
+  mprintf("DEBUG: Check res %i %s %s %s %s against %s %s %s %s\n",
+          atoms[dih.A2()].ResNum()+1,
+            atoms[dih.A1()].Name().Truncated().c_str(),
+            atoms[dih.A2()].Name().Truncated().c_str(),
+            atoms[dih.A3()].Name().Truncated().c_str(),
+            atoms[dih.A4()].Name().Truncated().c_str(),
+            cmap.AtomNames()[0].c_str(),
+            cmap.AtomNames()[1].c_str(),
+            cmap.AtomNames()[2].c_str(),
+            cmap.AtomNames()[3].c_str());
+  // TODO without Truncated
+  if (atoms[dih.A1()].Name().Truncated() == cmap.AtomNames()[0] &&
+      atoms[dih.A2()].Name().Truncated() == cmap.AtomNames()[1] &&
+      atoms[dih.A3()].Name().Truncated() == cmap.AtomNames()[2] &&
+      atoms[dih.A4()].Name().Truncated() == cmap.AtomNames()[3])
+  {
+    mprintf("DEBUG: Partial match %s %s %s %s = %s %s %s %s\n",
+            atoms[dih.A1()].Name().Truncated().c_str(),
+            atoms[dih.A2()].Name().Truncated().c_str(),
+            atoms[dih.A3()].Name().Truncated().c_str(),
+            atoms[dih.A4()].Name().Truncated().c_str(),
+            cmap.AtomNames()[0].c_str(),
+            cmap.AtomNames()[1].c_str(),
+            cmap.AtomNames()[2].c_str(),
+            cmap.AtomNames()[3].c_str());
+    for (Atom::bond_iterator bat = atoms[dih.A4()].bondbegin();
+                             bat != atoms[dih.A4()].bondend(); ++bat)
+    {
+      if (*bat != dih.A3()) { // TODO can A4 ever be bonded to A1??
+        if (atoms[*bat].Name().Truncated() == cmap.AtomNames()[4]) {
+          return *bat;
+        }
+      }
+    }
+  }
+  return -1;
+}
+
 /** Assign CMAP parameters */
-int Topology::AssignCmapParams(CmapParmHolder const& cmapIn) {
+int Topology::AssignCmapParams(DihedralArray const& allDih, CmapParmHolder const& cmapIn,
+                               CmapGridArray& cmapGrids, CmapArray& cmapTerms)
+const
+{
   // TODO combine with AssignDihedrals?
-  DihedralArray allDih = Cpptraj::Structure::GenerateDihedralArray(residues_, atoms_);
-  //for (DihedralArray::const_iterator dih = allDih.begin(); dih != allDih.end(); ++dih)
-  //{
-    // 
+  for (DihedralArray::const_iterator dih = allDih.begin(); dih != allDih.end(); ++dih)
+  {
+    // Get residue name for A2
+    Atom const& A2 = atoms_[dih->A2()];
+    // TODO make sure A2-A4 in same residue?
+    NameType const& rn2 = residues_[A2.ResNum()].Name();
+    // Is this residue already in cmapGrids?
+    int cidx = -1;
+    int a5 = -1;
+    for (unsigned int idx = 0; idx != cmapGrids.size(); idx++) {
+      if (cmapGrids[idx].MatchesResName( rn2.Truncated() )) {
+        a5 = cmap_anames_match(*dih, atoms_, cmapGrids[idx]);
+        if (a5 > -1) {
+          cidx = (int)idx;
+          break;
+        }
+      }
+    }
+    if (cidx > -1) {
+      mprintf("DEBUG: Potential existing cmap %i found for %s (%li)\n", cidx, TruncResNameNum(A2.ResNum()).c_str(), dih-allDih.begin());
+      mprintf("DEBUG:\t\t%s - %s - %s - %s - %s\n",
+              AtomMaskName(dih->A1()).c_str(),
+              AtomMaskName(dih->A2()).c_str(),
+              AtomMaskName(dih->A3()).c_str(),
+              AtomMaskName(dih->A4()).c_str(),
+              AtomMaskName(a5).c_str());
+    }
+    // If not already in cmapGrids, check cmapIn
+    if (cidx == -1) {
+      //int nidx = -1;
+      for (unsigned int idx = 0; idx != cmapIn.size(); idx++) {
+        if (cmapIn[idx].MatchesResName( rn2.Truncated() )) {
+          a5 = cmap_anames_match(*dih, atoms_, cmapIn[idx]);
+          if (a5 > -1) {
+            cidx = (int)cmapGrids.size();
+            cmapGrids.push_back( cmapIn[idx] );
+            //nidx = (int)idx;
+            break;
+          }
+        }
+      }
+      if (cidx > -1) {
+        mprintf("DEBUG: Potential new cmap %i found for %s (%li)\n", cidx, TruncResNameNum(A2.ResNum()).c_str(), dih-allDih.begin());
+        mprintf("DEBUG:\t\t%s - %s - %s - %s - %s\n",
+              AtomMaskName(dih->A1()).c_str(),
+              AtomMaskName(dih->A2()).c_str(),
+              AtomMaskName(dih->A3()).c_str(),
+              AtomMaskName(dih->A4()).c_str(),
+              AtomMaskName(a5).c_str());
+      }
+    }
+  }
   return 0;
 }
 
@@ -3169,6 +3263,14 @@ int Topology::AssignParams(ParameterSet const& set0) {
   dihedrals_.clear();
   dihedralsh_.clear();
   DihedralArray allDihedrals = Cpptraj::Structure::GenerateDihedralArray(residues_, atoms_);
+  // If we need CMAP terms, do it here before the dihedrals array is modified
+  if (!set0.CMAP().empty()) {
+    cmap_.clear();
+    cmapGrid_.clear();
+    mprintf("\tAssigning CMAP parameters.\n");
+    AssignCmapParams( allDihedrals, set0.CMAP(), cmapGrid_, cmap_ );
+  } 
+  // Now modify the dihedrals for any multiplicities
   allDihedrals = AssignDihedralParm( set0.DP(), set0.IP(), set0.AT(), allDihedrals, false );
   for (DihedralArray::const_iterator dih = allDihedrals.begin(); dih != allDihedrals.end(); ++dih)
     AddToDihedralArrays( *dih );
@@ -3192,7 +3294,9 @@ int Topology::AssignParams(ParameterSet const& set0) {
   // LJ 6-12
   mprintf("\tAssigning nonbond parameters.\n");
   AssignNonbondParams( set0.AT(), set0.NB(), set0.HB() );
+  mprintf("DEBUG: CMAP size %zu\n", set0.CMAP().size());
   // TODO LJ14
+
   return 0;
 }
 
