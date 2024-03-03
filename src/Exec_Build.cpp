@@ -597,6 +597,20 @@ const
                   topOut.TruncResNameOnumId(ires).c_str());
         buildFailed = true;
       }
+    } else {
+      // All atoms present. Just connect
+      // Is this residue connected to an earlier residue?
+      for (IParray::const_iterator resBonds = resBondingAtoms[ires].begin();
+                                   resBonds != resBondingAtoms[ires].end(); ++resBonds)
+      {
+        if (resBonds->second < resBonds->first) {
+          if (debug_ > 0)
+            mprintf("\t\tResidue connection: %s - %s\n",
+                    topOut.AtomMaskName(resBonds->first).c_str(),
+                    topOut.AtomMaskName(resBonds->second).c_str());
+          topOut.AddBond(resBonds->first, resBonds->second);
+        }
+      }
     }
   } // END loop over atom offsets
 
