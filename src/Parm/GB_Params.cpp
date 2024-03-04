@@ -3,13 +3,13 @@
 #include "../CpptrajStdio.h"
 
 static const char* GB_RadiiTypeStr_[] = {
-  "Bondi radii",
-  "Amber 6 modified Bondi radii",
-  "Modified Bondi radii",
-  "Radii optimized for Amber charges by Huo and Kollman",
-  "H(N)-modified Bondi radii",
-  "PARSE radii",
-  "ArgH and AspGluO modified Bondi2 radii",
+  "Bondi radii", // 0
+  "Amber 6 modified Bondi radii", // 1
+  "Modified Bondi radii", // 2
+  "Radii optimized for Amber charges by Huo and Kollman", // 3
+  "H(N)-modified Bondi radii", // 6
+  "PARSE radii", // 7
+  "ArgH and AspGluO modified Bondi2 radii", // 8
   "Unknown GB radii set"
 };
 
@@ -123,7 +123,7 @@ static void assign_gb_radii(Topology& top, Cpptraj::Parm::GB_RadiiType radiiSet)
 	    else if (iGBparm == 6 || iGBparm == 8) {
 
               // Try Alexey's scheme
-              if (currentAtom.Element() == Atom::NITROGEN) {
+              if (aAtomA.Element() == Atom::NITROGEN) {
                 dGBrad = 1.3;
                 if (iGBparm == 8) {
 
