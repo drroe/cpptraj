@@ -35,6 +35,11 @@ static const char* GB_RadiiAmberFlag_[] = {
   "Unknown radius set (leap needs to be modified!)"
 };
 
+/** \return key corresponding to type. */
+const char* Cpptraj::Parm::GbTypeKey(GB_RadiiType t) {
+  return GB_RadiiTypeKey_[t];
+}
+
 /** \return char string corresponding to type. */
 std::string Cpptraj::Parm::GbTypeStr(GB_RadiiType t) {
   return std::string(GB_RadiiTypeStr_[t]);

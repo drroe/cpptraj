@@ -15,6 +15,8 @@ enum GB_RadiiType {
   MBONDI3,          ///< 8, ArgH and AspGluO modified Bondi2 radii
   UNKNOWN_GB
 };
+/// \return Keyword corresponding to Amber radii flag
+const char* GbTypeKey(GB_RadiiType);
 /// \return string corresponding to Amber Radii Flag
 std::string GbAmberFlag(GB_RadiiType);
 /// \return string corresponding to gb radii set

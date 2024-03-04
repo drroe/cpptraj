@@ -639,19 +639,23 @@ const
 void Exec_Build::Help() const
 {
   mprintf("\tname <output COORDS> crdset <COORDS set> [frame <#>]\n"
-          "\t[title <title>]\n"
+          "\t[title <title>] [gb <radii>]\n"
           "\t[%s]\n"
           "\t[{%s} ...]\n"
           "\t[{%s} ...]\n"
           "%s"
-          "%s"
-          "  Build complete topology and parameters from given crdset.\n",
+          "%s",
           Cpptraj::Structure::Creator::other_keywords_,
           Cpptraj::Structure::Creator::template_keywords_,
           Cpptraj::Structure::Creator::parm_keywords_,
           Cpptraj::Structure::HisProt::keywords_,
           Cpptraj::Structure::Disulfide::keywords_
          );
+  mprintf("    <radii> =");
+  for (int ig = 0; ig != (int)Cpptraj::Parm::UNKNOWN_GB; ig++)
+    mprintf(" %s", Cpptraj::Parm::GbTypeKey((Cpptraj::Parm::GB_RadiiType)ig));
+  mprintf("\n");
+  mprintf("  Build complete topology and parameters from given crdset.\n");
 }
 
 // Exec_Build::Execute()
