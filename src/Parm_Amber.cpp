@@ -167,7 +167,7 @@ Parm_Amber::Parm_Amber() :
   N_impTerms_(0),
   ncoords_(0),
   writeChamber_(true),
-  writeEmptyArrays_(false),
+  writeEmptyArrays_(true),
   writePdbInfo_(true),
   has_valid_nonbond_params_(true),
   hasBadDihedrals_(false)
@@ -1517,13 +1517,18 @@ int Parm_Amber::ReadLESid(Topology& TopIn, FortranData const& FMT) {
 void Parm_Amber::WriteHelp() {
   mprintf("\tnochamber  : Do not write CHAMBER information to topology (useful for e.g. using"
           "\t             topology for visualization with VMD).\n");
-  mprintf("\twriteempty : Write Amber tree, join, and rotate info even if not present.\n");
+  mprintf("\tnoempty    : Do not generate Amber tree/join/rotate info if not already present.\n");
+  mprintf("\twriteempty : Generate Amber tree/join/rotate info if not already present.\n");
   mprintf("\tnopdbinfo  : Do not write \"PDB\" info (e.g. chain IDs, original res #s, etc).\n");
 }
 
+/** Process write args */
 int Parm_Amber::processWriteArgs(ArgList& argIn) {
   writeChamber_ = !argIn.hasKey("nochamber");
-  writeEmptyArrays_ = argIn.hasKey("writeempty");
+  if (argIn.hasKey("noempty"))
+    writeEmptyArrays_ = false;
+  else if (argIn.hasKey("writeempty"))
+    writeEmptyArrays_ = true;
   writePdbInfo_ = !argIn.hasKey("nopdbinfo");
   return 0;
 }
