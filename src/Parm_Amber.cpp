@@ -1558,6 +1558,12 @@ int Parm_Amber::BufferAlloc(FlagType ftype, int nvals, int idx) {
   return BufferAlloc(ftype, FMT, nvals, idx, "");
 }
 
+/** This version uses default flag and optional comment. */
+int Parm_Amber::BufferAlloc(FlagType ftype, int nvals, int idx, std::string const& comment) {
+  FortranData FMT = WriteFormat( ftype );
+  return BufferAlloc(ftype, FMT, nvals, idx, comment);
+}
+
 /** This version allocates with no comment. */
 int Parm_Amber::BufferAlloc(FlagType ftype, FortranData const& FMT, int nvals, int idx)
 {
@@ -2418,13 +2424,24 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
                                        grid != TopOut.CmapGrid().end();
                                        ++grid, ++ngrid)
     {
-      if (BufferAlloc(f_grid, grid->Size(), ngrid)) return 1;
+      int cmg_err = 0;
+      if (!grid->Title().empty()) {
+        std::string cmaptitle = grid->Title();
+        if (cmaptitle.size() > 70) {
+          mprintf("Warning: CMAP title %s is too large (%zu), truncating.\n",
+                  cmaptitle.c_str(), cmaptitle.size());
+          cmaptitle.resize(70);
+        }
+        cmg_err = BufferAlloc(f_grid, grid->Size(), ngrid, cmaptitle);
+      } else
+        cmg_err = BufferAlloc(f_grid, grid->Size(), ngrid);
+      if (cmg_err != 0) return 1;
       for (std::vector<double>::const_iterator it = grid->Grid().begin();
                                                it != grid->Grid().end(); ++it)
         file_.DblToBuffer( *it );
       file_.FlushBuffer();
     }
-    // CMAP parameters
+    // CMAP terms
     const FlagType f_param = (ptype_ == CHAMBER) ? F_CHM_CMAPI : F_CMAPI;
     if (BufferAlloc(f_param, TopOut.Cmap().size())) return 1;
     for (CmapArray::const_iterator it = TopOut.Cmap().begin();

@@ -146,6 +146,7 @@ class Parm_Amber : public ParmIO {
     int BufferAlloc(FlagType, FortranData const&, int, int, std::string const&);
     int BufferAlloc(FlagType, FortranData const&, int, int);
     int BufferAlloc(FlagType, int, int);
+    int BufferAlloc(FlagType, int, int, std::string const&);
     int BufferAlloc(FlagType f, int n) { return BufferAlloc(f, n, -1); }
     int WriteLJ(FlagType, FlagType, NonbondArray const&);
     int WriteBondParm(FlagType, FlagType, BondParmArray const&);
