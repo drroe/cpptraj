@@ -2854,6 +2854,43 @@ DihedralArray Topology::AssignDihedralParm(DihedralParmHolder const& newDihedral
                     *paramTypes[0], *paramTypes[1], *paramTypes[2], *paramTypes[3]);
         }
       } else {
+        // If the cached improper has wildcards, see if there is a more
+        // specific one in the new improper parameters.
+        int n_wildcards = 0;
+        if (newImproperParams.Wildcard().len() > 0) {
+          for (TypeNameHolder::const_iterator tt = impit->first.begin(); tt != impit->first.end(); ++tt) {
+            if ( *tt == newImproperParams.Wildcard() ) {
+              n_wildcards++;
+            }
+          }
+        }
+        if (n_wildcards > 0) {
+          // Check if there is a more specific improper.
+          bool newReordered;
+          DihedralType newdih = *dih;
+          ImproperParmHolder::const_iterator moreSpecificImpit = newImproperParams.GetParam( types, newdih, newReordered );
+          if (moreSpecificImpit != newImproperParams.end()) {
+            // See if the new improper has fewer wildcards than the cached one.
+            int new_wildcards = 0;
+            for (TypeNameHolder::const_iterator tt = moreSpecificImpit->first.begin();
+                                                tt != moreSpecificImpit->first.end(); ++tt)
+            {
+              if ( *tt == newImproperParams.Wildcard() ) {
+                new_wildcards++;
+              }
+            }
+            if (new_wildcards < n_wildcards) {
+              // More specific improper was found.
+              mprintf("DEBUG: A more specific improper was found for %2s %2s %2s %2s (%2s %2s %2s %2s)\n",
+                      *(impit->first[0]), *(impit->first[1]), *(impit->first[2]), *(impit->first[3]),
+                      *(moreSpecificImpit->first[0]), *(moreSpecificImpit->first[1]), *(moreSpecificImpit->first[2]), *(moreSpecificImpit->first[3]));
+              is_new_improper = true;
+              reordered = newReordered;
+              mydih = newdih;
+              impit = moreSpecificImpit;
+            }
+          }
+        } // END found improper had wildcards
         paramTypes = impit->first;
         ipa = impit->second;
         found = true;
