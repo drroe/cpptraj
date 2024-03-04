@@ -3171,7 +3171,7 @@ static inline int cmap_anames_match(DihedralType const& dih,
                                      std::vector<Atom> const& atoms,
                                      CmapGridType const& cmap)
 {
-  mprintf("DEBUG: Check res %i %s %s %s %s against %s %s %s %s\n",
+/*  mprintf("DEBUG: Check res %i %s %s %s %s against %s %s %s %s\n",
           atoms[dih.A2()].ResNum()+1,
             atoms[dih.A1()].Name().Truncated().c_str(),
             atoms[dih.A2()].Name().Truncated().c_str(),
@@ -3180,14 +3180,14 @@ static inline int cmap_anames_match(DihedralType const& dih,
             cmap.AtomNames()[0].c_str(),
             cmap.AtomNames()[1].c_str(),
             cmap.AtomNames()[2].c_str(),
-            cmap.AtomNames()[3].c_str());
+            cmap.AtomNames()[3].c_str());*/
   // TODO without Truncated
   if (atoms[dih.A1()].Name().Truncated() == cmap.AtomNames()[0] &&
       atoms[dih.A2()].Name().Truncated() == cmap.AtomNames()[1] &&
       atoms[dih.A3()].Name().Truncated() == cmap.AtomNames()[2] &&
       atoms[dih.A4()].Name().Truncated() == cmap.AtomNames()[3])
   {
-    mprintf("DEBUG: Partial match %s %s %s %s = %s %s %s %s\n",
+    /*mprintf("DEBUG: Partial match %s %s %s %s = %s %s %s %s\n",
             atoms[dih.A1()].Name().Truncated().c_str(),
             atoms[dih.A2()].Name().Truncated().c_str(),
             atoms[dih.A3()].Name().Truncated().c_str(),
@@ -3195,7 +3195,7 @@ static inline int cmap_anames_match(DihedralType const& dih,
             cmap.AtomNames()[0].c_str(),
             cmap.AtomNames()[1].c_str(),
             cmap.AtomNames()[2].c_str(),
-            cmap.AtomNames()[3].c_str());
+            cmap.AtomNames()[3].c_str());*/
     for (Atom::bond_iterator bat = atoms[dih.A4()].bondbegin();
                              bat != atoms[dih.A4()].bondend(); ++bat)
     {
@@ -3214,6 +3214,10 @@ int Topology::AssignCmapParams(DihedralArray const& allDih, CmapParmHolder const
                                CmapGridArray& cmapGrids, CmapArray& cmapTerms)
 const
 {
+  // The LEaP convention is to number the CMAP parameters in the same
+  // order as they are listed in the original parameter file. This
+  // variable keeps track of those indices.
+  std::vector<int> originalCmapIndices;
   // TODO combine with AssignDihedrals?
   for (DihedralArray::const_iterator dih = allDih.begin(); dih != allDih.end(); ++dih)
   {
@@ -3228,19 +3232,21 @@ const
       if (cmapGrids[idx].MatchesResName( rn2.Truncated() )) {
         a5 = cmap_anames_match(*dih, atoms_, cmapGrids[idx]);
         if (a5 > -1) {
-          cidx = (int)idx;
+          //cidx = (int)idx;
+          cidx = originalCmapIndices[idx];
           break;
         }
       }
     }
     if (cidx > -1) {
       mprintf("DEBUG: Potential existing cmap %i found for %s (%li)\n", cidx, TruncResNameNum(A2.ResNum()).c_str(), dih-allDih.begin());
-      mprintf("DEBUG:\t\t%s - %s - %s - %s - %s\n",
-              AtomMaskName(dih->A1()).c_str(),
-              AtomMaskName(dih->A2()).c_str(),
-              AtomMaskName(dih->A3()).c_str(),
-              AtomMaskName(dih->A4()).c_str(),
-              AtomMaskName(a5).c_str());
+      mprintf("DEBUG:\t\t%i - %i - %i - %i - %i %i\n", dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1, a5+1, cidx+1);
+//      mprintf("DEBUG:\t\t%s - %s - %s - %s - %s\n",
+//              AtomMaskName(dih->A1()).c_str(),
+//              AtomMaskName(dih->A2()).c_str(),
+//              AtomMaskName(dih->A3()).c_str(),
+//              AtomMaskName(dih->A4()).c_str(),
+//              AtomMaskName(a5).c_str());
     }
     // If not already in cmapGrids, check cmapIn
     if (cidx == -1) {
@@ -3249,8 +3255,10 @@ const
         if (cmapIn[idx].MatchesResName( rn2.Truncated() )) {
           a5 = cmap_anames_match(*dih, atoms_, cmapIn[idx]);
           if (a5 > -1) {
-            cidx = (int)cmapGrids.size();
+            //cidx = (int)cmapGrids.size();
+            cidx = (int)idx;
             cmapGrids.push_back( cmapIn[idx] );
+            originalCmapIndices.push_back( idx );
             //nidx = (int)idx;
             break;
           }
@@ -3258,15 +3266,23 @@ const
       }
       if (cidx > -1) {
         mprintf("DEBUG: Potential new cmap %i found for %s (%li)\n", cidx, TruncResNameNum(A2.ResNum()).c_str(), dih-allDih.begin());
-        mprintf("DEBUG:\t\t%s - %s - %s - %s - %s\n",
-              AtomMaskName(dih->A1()).c_str(),
-              AtomMaskName(dih->A2()).c_str(),
-              AtomMaskName(dih->A3()).c_str(),
-              AtomMaskName(dih->A4()).c_str(),
-              AtomMaskName(a5).c_str());
+        mprintf("DEBUG:\t\t%i - %i - %i - %i - %i %i\n", dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1, a5+1, cidx+1);
+      //mprintf("DEBUG:\t\t%s - %s - %s - %s - %s\n",
+      //        AtomMaskName(dih->A1()).c_str(),
+      //        AtomMaskName(dih->A2()).c_str(),
+      //        AtomMaskName(dih->A3()).c_str(),
+      //        AtomMaskName(dih->A4()).c_str(),
+      //        AtomMaskName(a5).c_str());
       }
     }
   }
+  mprintf("DEBUG: Cmap parameter indices:\n");
+  for (unsigned int idx = 0; idx < originalCmapIndices.size(); idx++)
+    mprintf("DEBUG:\t\tCurrent idx=%i  Actual idx=%u\n", originalCmapIndices[idx], idx);
+  std::sort(originalCmapIndices.begin(), originalCmapIndices.end());
+  for (unsigned int idx = 0; idx < originalCmapIndices.size(); idx++)
+    mprintf("DEBUG: Will change cmap parameter index %i to %u\n",
+            originalCmapIndices[idx]+1, idx+1);
   return 0;
 }
 
