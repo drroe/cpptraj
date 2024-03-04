@@ -141,7 +141,7 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS_[] = {
   { "ATOM_BFACTOR", "%FORMAT(10F8.2)"},                 // PDB atom B-factors
   { "ATOM_OCCUPANCY", "%FORMAT(10F8.2)"},               // PDB atom occupancies
   { "ATOM_NUMBER", F10I8},                              // PDB original atom serial #s
-  // CHARMM CMAP
+  // AMBER CMAP
   { "CMAP_COUNT",                  "%FORMAT(2I8)" },    // # CMAP terms, # unique CMAP params
   { "CMAP_RESOLUTION",             "%FORMAT(20I4)"},    // # steps along each Phi/Psi CMAP axis
   { "CMAP_PARAMETER_",             "%FORMAT(8(F9.5))"}, // CMAP grid
@@ -2216,50 +2216,6 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   // but warn.
   if (WriteExtra(TopOut, TopOut.Natom())) return 1;
 
-  // CHAMBER only - write CMAP parameters
-  if (TopOut.HasCmap()) {
-    // CMAP COUNT
-    const FlagType f_count = (ptype_ == CHAMBER) ? F_CHM_CMAPC : F_CMAPC;
-    if (BufferAlloc(f_count, 2)) return 1;
-    file_.IntToBuffer( TopOut.Cmap().size() );     // CMAP terms
-    file_.IntToBuffer( TopOut.CmapGrid().size() ); // CMAP grids
-    file_.FlushBuffer();
-    // CMAP GRID RESOLUTIONS
-    const FlagType f_grid_res = (ptype_ == CHAMBER) ? F_CHM_CMAPR : F_CMAPR;
-    if (BufferAlloc(f_grid_res, TopOut.CmapGrid().size())) return 1;
-    for (CmapGridArray::const_iterator grid = TopOut.CmapGrid().begin();
-                                       grid != TopOut.CmapGrid().end(); ++grid)
-      file_.IntToBuffer( (int)grid->Resolution() );
-    file_.FlushBuffer();
-    // CMAP GRIDS
-    int ngrid = 1;
-    const FlagType f_grid = (ptype_ == CHAMBER) ? F_CHM_CMAPP : F_CMAPP;
-    for (CmapGridArray::const_iterator grid = TopOut.CmapGrid().begin();
-                                       grid != TopOut.CmapGrid().end();
-                                       ++grid, ++ngrid)
-    {
-      if (BufferAlloc(f_grid, grid->Size(), ngrid)) return 1;
-      for (std::vector<double>::const_iterator it = grid->Grid().begin();
-                                               it != grid->Grid().end(); ++it)
-        file_.DblToBuffer( *it );
-      file_.FlushBuffer();
-    }
-    // CMAP parameters
-    const FlagType f_param = (ptype_ == CHAMBER) ? F_CHM_CMAPI : F_CMAPI;
-    if (BufferAlloc(f_param, TopOut.Cmap().size())) return 1;
-    for (CmapArray::const_iterator it = TopOut.Cmap().begin();
-                                   it != TopOut.Cmap().end(); ++it)
-    {
-      file_.IntToBuffer( it->A1() + 1 );
-      file_.IntToBuffer( it->A2() + 1 );
-      file_.IntToBuffer( it->A3() + 1 );
-      file_.IntToBuffer( it->A4() + 1 );
-      file_.IntToBuffer( it->A5() + 1 );
-      file_.IntToBuffer( it->Idx() + 1 );
-    }
-    file_.FlushBuffer();
-  }
-
   // Write solvent info if IFBOX > 0
   if (ifbox > 0) {
     // Need to check if molecules are contiguous or not via
@@ -2409,14 +2365,59 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.FlushBuffer();
   }
 
-  // Polarizability - only write if it needs to be there
+  // Polarizability
+  if (BufferAlloc(F_IPOL, 1)) return 1;
+  file_.IntToBuffer( TopOut.Ipol() );
+  file_.FlushBuffer();
   if (TopOut.Ipol() > 0) {
-    if (BufferAlloc(F_IPOL, 1)) return 1;
-    file_.IntToBuffer( TopOut.Ipol() );
-    file_.FlushBuffer();
+    // Only write polarizabilities if IPOL is set.
     if (BufferAlloc(F_POLAR, TopOut.Natom())) return 1;
     for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
       file_.DblToBuffer( atm->Polar() );
+    file_.FlushBuffer();
+  }
+
+  // Write CMAP parameters
+  if (TopOut.HasCmap()) {
+    // CMAP COUNT
+    const FlagType f_count = (ptype_ == CHAMBER) ? F_CHM_CMAPC : F_CMAPC;
+    if (BufferAlloc(f_count, 2)) return 1;
+    file_.IntToBuffer( TopOut.Cmap().size() );     // CMAP terms
+    file_.IntToBuffer( TopOut.CmapGrid().size() ); // CMAP grids
+    file_.FlushBuffer();
+    // CMAP GRID RESOLUTIONS
+    const FlagType f_grid_res = (ptype_ == CHAMBER) ? F_CHM_CMAPR : F_CMAPR;
+    if (BufferAlloc(f_grid_res, TopOut.CmapGrid().size())) return 1;
+    for (CmapGridArray::const_iterator grid = TopOut.CmapGrid().begin();
+                                       grid != TopOut.CmapGrid().end(); ++grid)
+      file_.IntToBuffer( (int)grid->Resolution() );
+    file_.FlushBuffer();
+    // CMAP GRIDS
+    int ngrid = 1;
+    const FlagType f_grid = (ptype_ == CHAMBER) ? F_CHM_CMAPP : F_CMAPP;
+    for (CmapGridArray::const_iterator grid = TopOut.CmapGrid().begin();
+                                       grid != TopOut.CmapGrid().end();
+                                       ++grid, ++ngrid)
+    {
+      if (BufferAlloc(f_grid, grid->Size(), ngrid)) return 1;
+      for (std::vector<double>::const_iterator it = grid->Grid().begin();
+                                               it != grid->Grid().end(); ++it)
+        file_.DblToBuffer( *it );
+      file_.FlushBuffer();
+    }
+    // CMAP parameters
+    const FlagType f_param = (ptype_ == CHAMBER) ? F_CHM_CMAPI : F_CMAPI;
+    if (BufferAlloc(f_param, TopOut.Cmap().size())) return 1;
+    for (CmapArray::const_iterator it = TopOut.Cmap().begin();
+                                   it != TopOut.Cmap().end(); ++it)
+    {
+      file_.IntToBuffer( it->A1() + 1 );
+      file_.IntToBuffer( it->A2() + 1 );
+      file_.IntToBuffer( it->A3() + 1 );
+      file_.IntToBuffer( it->A4() + 1 );
+      file_.IntToBuffer( it->A5() + 1 );
+      file_.IntToBuffer( it->Idx() + 1 );
+    }
     file_.FlushBuffer();
   }
 
