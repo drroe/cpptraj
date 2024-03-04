@@ -144,7 +144,7 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS_[] = {
   // AMBER CMAP
   { "CMAP_COUNT",                  "%FORMAT(2I8)" },    // # CMAP terms, # unique CMAP params
   { "CMAP_RESOLUTION",             "%FORMAT(20I4)"},    // # steps along each Phi/Psi CMAP axis
-  { "CMAP_PARAMETER_",             "%FORMAT(8(F9.5))"}, // CMAP grid
+  { "CMAP_PARAMETER_",             "%FORMAT(8F9.5)"},   // CMAP grid
   { "CMAP_INDEX",                  "%FORMAT(6I8)" },    // Atom i,j,k,l,m of cross term and idx
   { 0, 0 }
 };
