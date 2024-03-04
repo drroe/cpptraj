@@ -169,6 +169,7 @@ Parm_Amber::Parm_Amber() :
   writeChamber_(true),
   writeEmptyArrays_(true),
   writePdbInfo_(true),
+  writeComments_(true),
   has_valid_nonbond_params_(true),
   hasBadDihedrals_(false)
 {
@@ -1520,6 +1521,7 @@ void Parm_Amber::WriteHelp() {
   mprintf("\tnoempty    : Do not generate Amber tree/join/rotate info if not already present.\n");
   mprintf("\twriteempty : Generate Amber tree/join/rotate info if not already present.\n");
   mprintf("\tnopdbinfo  : Do not write \"PDB\" info (e.g. chain IDs, original res #s, etc).\n");
+  mprintf("\tnocomments : Do not write %%COMMENT lines to topology file.\n");
 }
 
 /** Process write args */
@@ -1530,6 +1532,7 @@ int Parm_Amber::processWriteArgs(ArgList& argIn) {
   else if (argIn.hasKey("writeempty"))
     writeEmptyArrays_ = true;
   writePdbInfo_ = !argIn.hasKey("nopdbinfo");
+  writeComments_ = !argIn.hasKey("nocomments");
   return 0;
 }
 
@@ -1552,7 +1555,13 @@ Parm_Amber::FortranData Parm_Amber::WriteFormat(FlagType fflag) const {
 /** This version uses the default flag to allocate the format string. */
 int Parm_Amber::BufferAlloc(FlagType ftype, int nvals, int idx) {
   FortranData FMT = WriteFormat( ftype );
-  return BufferAlloc(ftype, FMT, nvals, idx);
+  return BufferAlloc(ftype, FMT, nvals, idx, "");
+}
+
+/** This version allocates with no comment. */
+int Parm_Amber::BufferAlloc(FlagType ftype, FortranData const& FMT, int nvals, int idx)
+{
+  return BufferAlloc(ftype, FMT, nvals, idx, "");
 }
 
 // Parm_Amber::BufferAlloc()
@@ -1562,7 +1571,7 @@ int Parm_Amber::BufferAlloc(FlagType ftype, int nvals, int idx) {
   * \param nvals The number of values that will be written.
   * \param idx Index for flags that can be specified multiple times (e.g. CMAP grids).
   */
-int Parm_Amber::BufferAlloc(FlagType ftype, FortranData const& FMT, int nvals, int idx) {
+int Parm_Amber::BufferAlloc(FlagType ftype, FortranData const& FMT, int nvals, int idx, std::string const& comment) {
   if ( FMT.Ftype() == UNKNOWN_FTYPE) {
     mprinterr("Interal Error: Could not set up format string.\n");
     return 1;
@@ -1574,7 +1583,11 @@ int Parm_Amber::BufferAlloc(FlagType ftype, FortranData const& FMT, int nvals, i
     // NOTE: Currently only needed for CMAP grid flags
     std::string fflag( FLAGS_[ftype].Flag );
     fflag.append( integerToString( idx, 2 ) );
-    file_.Printf("%%FLAG %-74s\n%-80s\n", fflag.c_str(), FMT.Fstr());
+    if (!comment.empty() && writeComments_)
+      file_.Printf("%%FLAG %-74s\n%%COMMENT  %-70s\n%-80s\n",
+                   fflag.c_str(), comment.c_str(), FMT.Fstr());
+    else
+      file_.Printf("%%FLAG %-74s\n%-80s\n", fflag.c_str(), FMT.Fstr());
   }
   if (nvals > 0) {
     TextFormat WriteFmt;
@@ -1781,6 +1794,7 @@ int Parm_Amber::WriteExtra(Topology const& topOut, int natom) {
 // Parm_Amber::WriteParm()
 int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   if (file_.OpenWrite( fname )) return 1;
+  if (!writeComments_) mprintf("Warning: Not writing %%COMMENT lines to topology.\n");
   elec_to_parm_ = Constants::ELECTOAMBER;
   parm_to_elec_ = Constants::AMBERTOELEC;
   // Determine if this is a CHAMBER topology

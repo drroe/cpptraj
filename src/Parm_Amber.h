@@ -143,6 +143,7 @@ class Parm_Amber : public ParmIO {
 
     // ----- Write -------------------------------
     FortranData WriteFormat(FlagType) const;
+    int BufferAlloc(FlagType, FortranData const&, int, int, std::string const&);
     int BufferAlloc(FlagType, FortranData const&, int, int);
     int BufferAlloc(FlagType, int, int);
     int BufferAlloc(FlagType f, int n) { return BufferAlloc(f, n, -1); }
@@ -192,6 +193,7 @@ class Parm_Amber : public ParmIO {
     bool writeChamber_;     ///< If true write CHAMBER info
     bool writeEmptyArrays_; ///< If true try to write TREE, IROTATE, JOIN even if not present 
     bool writePdbInfo_;     ///< If true write chain IDs etc
+    bool writeComments_;    ///< If false suppress writing %COMMENT lines
 
     bool has_valid_nonbond_params_; ///< Will set to false if invalid nonbonds detected on read
     bool hasBadDihedrals_; ///< Set to true if bad dihedrals detected on read
