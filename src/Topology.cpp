@@ -3316,6 +3316,14 @@ const
   for (CmapGridArray::const_iterator it = cmapGrids.begin(); it != cmapGrids.end(); ++it)
     mprintf("DEBUG:\t\t%li : %s\n", it-cmapGrids.begin(), it->Title().c_str());
   // Renumber the parameter indices
+  for (CmapArray::iterator it = cmapTerms.begin(); it != cmapTerms.end(); ++it) {
+    int newIdx = currentToNew[ it->Idx() ];
+    if (newIdx < 0) {
+      mprinterr("Internal Error: CMAP term index is not mapped.\n");
+      return 1;
+    }
+    it->SetIdx( newIdx );
+  }
   return 0;
 }
 

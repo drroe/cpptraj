@@ -800,6 +800,8 @@ class CmapType {
     inline int A4()     const { return a4_;   }
     inline int A5()     const { return a5_;   }
     inline int Idx()    const { return idx_;  }
+
+    void SetIdx(int i) { idx_ = i; }
   private:
     int a1_;
     int a2_;
