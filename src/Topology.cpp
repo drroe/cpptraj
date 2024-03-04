@@ -3371,11 +3371,12 @@ int Topology::AssignParams(ParameterSet const& set0) {
   // Urey-Bradley
   mprintf("\tAssigning Urey-Bradley parameters.\n");
   AssignUBParams( set0.UB() );
-  // Improper parameters
   if (!chamber_.Impropers().empty()) {
+    // Charmm Improper parameters
     mprintf("\tAssigning CHARMM improper parameters.\n");
     AssignImproperParams( set0.IP() );
   } else {
+    // Amber improper parameters
     mprintf("\tAssigning improper parameters.\n");
     DihedralArray allImpropers = Cpptraj::Structure::GenerateImproperArray(residues_, atoms_);
     allImpropers = AssignDihedralParm( set0.DP(), set0.IP(), set0.AT(), allImpropers, true );
@@ -3389,7 +3390,7 @@ int Topology::AssignParams(ParameterSet const& set0) {
   mprintf("\tAssigning nonbond parameters.\n");
   AssignNonbondParams( set0.AT(), set0.NB(), set0.HB() );
   mprintf("DEBUG: CMAP size %zu\n", set0.CMAP().size());
-  // TODO LJ14
+  // TODO LJ14, LJC
 
   return 0;
 }
