@@ -206,7 +206,7 @@ static void assign_gb_radii(Topology& top, Cpptraj::Parm::GB_RadiiType radiiSet)
                  (currentRes.Name() == "GLU" && currentAtom.Name().Match("OE*")) ||
                  (currentRes.Name() == "GL4" && currentAtom.Name().Match("OE*")) ||
                  (currentAtom.Name() == "OXT") ||
-                 (iat+1 < top.Natom() && top[iat+1].Name() == "OXT")
+                 (iat+1 < top.Natom() && top[iat+1].Name() == "OXT") // FIXME O next to OXT in topology seems very hacky
                )
             {
             //if (!(strcmp(cPTemp, "ASP") || strncmp(sAtomName(saPAtom->aAtom), "OD", 2)) ||
