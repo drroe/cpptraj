@@ -40,6 +40,7 @@ ParameterHolders::RetType CmapParmHolder::AddParm(CmapGridType const& cmap1, boo
       break;
     }
   } // END loop over existing CMAP terms
+  // TODO match atom types?
   if (mtype == PARTIAL_MATCH) {
     mprinterr("Internal Error: Partial match between new CMAP '%s' and existing CMAP '%s'\n"
               "Internal Error:   Not yet set up to handle this kind of parameter update.\n",
