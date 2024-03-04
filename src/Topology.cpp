@@ -3169,7 +3169,7 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
 /// \return index of 5th cmap atom if atom names match those in dihedral, -1 otherwise
 static inline int cmap_anames_match(DihedralType const& dih,
                                      std::vector<Atom> const& atoms,
-                                     CmapGridType const& cmap)
+                                     std::vector<std::string> const& cmapAtomNames)
 {
 /*  mprintf("DEBUG: Check res %i %s %s %s %s against %s %s %s %s\n",
           atoms[dih.A2()].ResNum()+1,
@@ -3182,10 +3182,10 @@ static inline int cmap_anames_match(DihedralType const& dih,
             cmap.AtomNames()[2].c_str(),
             cmap.AtomNames()[3].c_str());*/
   // TODO without Truncated
-  if (atoms[dih.A1()].Name().Truncated() == cmap.AtomNames()[0] &&
-      atoms[dih.A2()].Name().Truncated() == cmap.AtomNames()[1] &&
-      atoms[dih.A3()].Name().Truncated() == cmap.AtomNames()[2] &&
-      atoms[dih.A4()].Name().Truncated() == cmap.AtomNames()[3])
+  if (atoms[dih.A1()].Name().Truncated() == cmapAtomNames[0] &&
+      atoms[dih.A2()].Name().Truncated() == cmapAtomNames[1] &&
+      atoms[dih.A3()].Name().Truncated() == cmapAtomNames[2] &&
+      atoms[dih.A4()].Name().Truncated() == cmapAtomNames[3])
   {
     /*mprintf("DEBUG: Partial match %s %s %s %s = %s %s %s %s\n",
             atoms[dih.A1()].Name().Truncated().c_str(),
@@ -3200,7 +3200,7 @@ static inline int cmap_anames_match(DihedralType const& dih,
                              bat != atoms[dih.A4()].bondend(); ++bat)
     {
       if (*bat != dih.A3()) { // TODO can A4 ever be bonded to A1??
-        if (atoms[*bat].Name().Truncated() == cmap.AtomNames()[4]) {
+        if (atoms[*bat].Name().Truncated() == cmapAtomNames[4]) {
           return *bat;
         }
       }
@@ -3209,11 +3209,24 @@ static inline int cmap_anames_match(DihedralType const& dih,
   return -1;
 }
 
+/// \return true if given name matches a residue name
+static inline bool MatchesResName(std::vector<std::string> const& resNames, std::string const& nameIn) {
+  for (std::vector<std::string>::const_iterator it = resNames.begin(); it != resNames.end(); ++it)
+    if (nameIn == *it) return true;
+  return false;
+}
+
 /** Assign CMAP parameters */
 int Topology::AssignCmapParams(DihedralArray const& allDih, CmapParmHolder const& cmapIn,
                                CmapGridArray& cmapGrids, CmapArray& cmapTerms)
 const
 {
+  // TODO check for duplicates, look for reverse match?
+  // Keep track of residue names each cmap applies to
+  //typedef std::vector<NameType> Narray;
+  typedef std::vector<std::string> Sarray;
+  std::vector<Sarray> CmapResNames;
+  std::vector<Sarray> CmapAtomNames;
   // The LEaP convention is to number the CMAP parameters in the same
   // order as they are listed in the original parameter file. This
   // variable keeps track of those indices.
@@ -3228,9 +3241,12 @@ const
     // Is this residue already in cmapGrids?
     int cidx = -1;
     int a5 = -1;
-    for (unsigned int idx = 0; idx != cmapGrids.size(); idx++) {
-      if (cmapGrids[idx].MatchesResName( rn2.Truncated() )) {
-        a5 = cmap_anames_match(*dih, atoms_, cmapGrids[idx]);
+    //for (unsigned int idx = 0; idx != cmapGrids.size(); idx++) {
+    //  if (cmapGrids[idx].MatchesResName( rn2.Truncated() )) {
+    for (unsigned int idx = 0; idx != CmapResNames.size(); idx++) {
+      if ( MatchesResName(CmapResNames[idx], rn2.Truncated()) ) {
+        //a5 = cmap_anames_match(*dih, atoms_, cmapGrids[idx]);
+        a5 = cmap_anames_match(*dih, atoms_, CmapAtomNames[idx]);
         if (a5 > -1) {
           //cidx = (int)idx;
           cidx = originalCmapIndices[idx];
@@ -3247,17 +3263,22 @@ const
 //              AtomMaskName(dih->A3()).c_str(),
 //              AtomMaskName(dih->A4()).c_str(),
 //              AtomMaskName(a5).c_str());
+      cmapTerms.push_back( CmapType(dih->A1(), dih->A2(), dih->A3(), dih->A4(), a5, cidx) );
     }
     // If not already in cmapGrids, check cmapIn
     if (cidx == -1) {
       //int nidx = -1;
       for (unsigned int idx = 0; idx != cmapIn.size(); idx++) {
-        if (cmapIn[idx].MatchesResName( rn2.Truncated() )) {
-          a5 = cmap_anames_match(*dih, atoms_, cmapIn[idx]);
+        //if (cmapIn[idx].MatchesResName( rn2.Truncated() )) {
+        if ( MatchesResName( cmapIn[idx].ResNames(), rn2.Truncated() ) ) {
+          //a5 = cmap_anames_match(*dih, atoms_, cmapIn[idx]);
+          a5 = cmap_anames_match(*dih, atoms_, cmapIn[idx].AtomNames());
           if (a5 > -1) {
             //cidx = (int)cmapGrids.size();
             cidx = (int)idx;
-            cmapGrids.push_back( cmapIn[idx] );
+            //cmapGrids.push_back( cmapIn[idx] );
+            CmapResNames.push_back( cmapIn[idx].ResNames() );
+            CmapAtomNames.push_back( cmapIn[idx].AtomNames() );
             originalCmapIndices.push_back( idx );
             //nidx = (int)idx;
             break;
@@ -3273,6 +3294,7 @@ const
       //        AtomMaskName(dih->A3()).c_str(),
       //        AtomMaskName(dih->A4()).c_str(),
       //        AtomMaskName(a5).c_str());
+        cmapTerms.push_back( CmapType(dih->A1(), dih->A2(), dih->A3(), dih->A4(), a5, cidx) );
       }
     }
   }
@@ -3280,9 +3302,20 @@ const
   for (unsigned int idx = 0; idx < originalCmapIndices.size(); idx++)
     mprintf("DEBUG:\t\tCurrent idx=%i  Actual idx=%u\n", originalCmapIndices[idx], idx);
   std::sort(originalCmapIndices.begin(), originalCmapIndices.end());
-  for (unsigned int idx = 0; idx < originalCmapIndices.size(); idx++)
+  std::vector<int> currentToNew(cmapIn.size(), -1);
+  // Add the grid terms in original parameter file order
+  // and create map from assigned index to new index.
+  cmapGrids.reserve( originalCmapIndices.size() );
+  for (unsigned int idx = 0; idx < originalCmapIndices.size(); idx++) {
     mprintf("DEBUG: Will change cmap parameter index %i to %u\n",
             originalCmapIndices[idx]+1, idx+1);
+    currentToNew[ originalCmapIndices[idx] ] = idx;
+    cmapGrids.push_back( cmapIn[ originalCmapIndices[idx] ] );
+  }
+  mprintf("DEBUG: Assigned CMAP parameters:\n");
+  for (CmapGridArray::const_iterator it = cmapGrids.begin(); it != cmapGrids.end(); ++it)
+    mprintf("DEBUG:\t\t%li : %s\n", it-cmapGrids.begin(), it->Title().c_str());
+  // Renumber the parameter indices
   return 0;
 }
 

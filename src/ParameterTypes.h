@@ -721,11 +721,11 @@ class CmapGridType {
     /// \return array of residue names this CMAP applies to
     std::vector<std::string> const& ResNames() const { return resNames_; }
     /// \return true if given name matches a residue name
-    bool MatchesResName(std::string const& nameIn) const {
+/*    bool MatchesResName(std::string const& nameIn) const {
       for (std::vector<std::string>::const_iterator it = resNames_.begin(); it != resNames_.end(); ++it)
         if (nameIn == *it) return true;
       return false;
-    }
+    }*/
     /// \return array of atom names this CMAP applies to
     std::vector<std::string> const& AtomNames() const { return atomNames_; }
     /// \return Expected number of CMAP residue names
