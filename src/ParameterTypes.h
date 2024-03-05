@@ -709,7 +709,7 @@ class CapParmType {
     double zcap_;   ///< Z coordinate for the center of the cap
 };
 // ----- CHAMBER PARAMETERS ----------------------------------------------------
-/// Hold CMAP grid parameters
+/// Hold CMAP grid parameters // FIXME use NameType
 class CmapGridType {
   public:
     CmapGridType() : nCmapRes_(0), resolution_(0) {}
