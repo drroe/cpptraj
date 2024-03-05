@@ -19,6 +19,22 @@ ParameterHolders::RetType CmapParmHolder::AddParm(CmapGridType const& cmap1, boo
   CmapGridArray::iterator currentCmap = CMAP_.end();
   for (CmapGridArray::iterator jt = CMAP_.begin(); jt != CMAP_.end(); ++jt)
   {
+    // First check if atom names match.
+    // Order is important.
+    bool atomNamesMatch = true;
+    if (cmap1.AtomNames().size() != jt->AtomNames().size())
+      atomNamesMatch = false;
+    else {
+      for (unsigned int idx = 0; idx != cmap1.AtomNames().size(); idx++) {
+        if (cmap1.AtomNames()[idx] != jt->AtomNames()[idx]) {
+          atomNamesMatch = false;
+          break;
+        }
+      }
+    }
+    if (!atomNamesMatch) continue;
+    // How many residue names in the incoming cmap match this cmap (jt)?
+    // Order not important.
     int nMatch = 0;
     for (Sarray::const_iterator rni = cmap1.ResNames().begin(); rni != cmap1.ResNames().end(); ++rni)
     {
@@ -47,13 +63,22 @@ ParameterHolders::RetType CmapParmHolder::AddParm(CmapGridType const& cmap1, boo
               cmap1.Title().c_str(), currentCmap->Title().c_str());
     return ParameterHolders::ERR;
   } else if (mtype == FULL_MATCH) {
-    mprintf("DEBUG: Match between new CMAP '%s' and existing CMAP '%s'\n",
+    mprintf("DEBUG: Potential match between new CMAP '%s' and existing CMAP '%s'\n",
             cmap1.Title().c_str(), currentCmap->Title().c_str());
-    if (allowUpdate) {
-      *currentCmap = cmap1;
-      return ParameterHolders::UPDATED;
-    } else
-      return ParameterHolders::ERR;
+    // Is this parameter the same?
+    if (currentCmap->GridMatches( cmap1 )) {
+      mprintf("DEBUG: CMAP parameter already present.\n");
+      return ParameterHolders::SAME;
+    } else {
+      if (allowUpdate) {
+        mprintf("DEBUG: Update of CMAP parameter.\n");
+        *currentCmap = cmap1;
+        return ParameterHolders::UPDATED;
+      } else {
+        mprintf("DEBUG: Update of CMAP parameter NOT ALLOWED.\n");
+        return ParameterHolders::ERR;
+      }
+    }
   }
   // NO_MATCH
   mprintf("DEBUG: CMAP '%s' is a new CMAP.\n", cmap1.Title().c_str());

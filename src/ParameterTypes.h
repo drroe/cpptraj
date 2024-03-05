@@ -779,6 +779,14 @@ class CmapGridType {
       return (nCmapRes_ == 0 && resolution_ == 0 &&
               grid_.empty() && title_.empty() && resNames_.empty());
     }
+    /// \return True if CMAP grid matches given grid. Expensive, so use sparingly.
+    bool GridMatches(CmapGridType const& rhs) const {
+      if (grid_.size() != rhs.grid_.size()) return false;
+      for (unsigned int idx = 0; idx != grid_.size(); idx++) {
+        if (FNE(grid_[idx], rhs.grid_[idx])) return false;
+      }
+      return true;
+    }
   private:
     int nCmapRes_;             ///< Number of expected residues this CMAP will apply to
     unsigned int resolution_;  ///< Number of steps along each phi/psi CMAP axis
