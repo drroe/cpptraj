@@ -2335,7 +2335,7 @@ static inline int GetCmapParams(CmapParmHolder& cmapParm, CmapArray const& cmapT
         if (ret == ParameterHolders::ERR)
           paramOverwriteWarning("CMAP");
       } // END if adding existing grid to parms
-    } // END loop over existing grides
+    } // END loop over existing grids
   } else {
     mprintf("CMAP terms have residue/atom info.\n");
     for (unsigned int idx = 0; idx != cmapGrids.size(); idx++) {
