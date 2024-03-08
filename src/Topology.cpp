@@ -3153,7 +3153,7 @@ DihedralArray Topology::get_unique_dihedrals(DihedralArray const& dihedralsIn) c
     if (dihedrals.empty())
       dihedrals.push_back( *dih );
     else {
-      if ( *dih != dihedrals.back() )
+      if ( *dih != dihedrals.back() ) // TODO skip end dihedrals, impropers?
         dihedrals.push_back( *dih );
     }
   }
@@ -3350,6 +3350,8 @@ const
   // TODO combine with AssignDihedrals?
   for (DihedralArray::const_iterator dih = allDih.begin(); dih != allDih.end(); ++dih)
   {
+    // Ignore end (repeated) or improper dihedrals
+    if (dih->IsImproper() || dih->Skip14()) continue;
     // Get residue name for A2
     Atom const& A2 = atoms_[dih->A2()];
     // TODO make sure A2-A4 in same residue?
@@ -3583,6 +3585,14 @@ int Topology::updateParams(ParameterSet& set0, ParameterSet const& set1) {
   if (UC.nAtomTypeUpdated_ > 0) {
     mprintf("\tRegenerating nonbond parameters.\n");
     AssignNonbondParams( set0.AT(), set0.NB(), set0.HB() );
+  }
+  // CMAP
+  if (UC.nCmapUpdated_ > 0) {
+    cmap_.clear();
+    cmapGrid_.clear();
+    mprintf("\tRegenerating CMAP parameters.\n");
+    AssignCmapParams(dihedrals_, set0.CMAP(), cmapGrid_, cmap_);
+    AssignCmapParams(dihedralsh_, set0.CMAP(), cmapGrid_, cmap_);
   }
   // TODO LJ14
 
