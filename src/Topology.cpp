@@ -3419,6 +3419,10 @@ const
   mprintf("DEBUG: Cmap parameter indices:\n");
   for (unsigned int idx = 0; idx < originalCmapIndices.size(); idx++)
     mprintf("DEBUG:\t\tCurrent idx=%i  Actual idx=%u\n", originalCmapIndices[idx], idx);
+  if (originalCmapIndices.empty()) {
+    mprintf("DEBUG: No CMAP indices in %s\n", c_str());
+    return 0;
+  }
   std::sort(originalCmapIndices.begin(), originalCmapIndices.end());
   std::vector<int> currentToNew(cmapIn.size(), -1);
   // Add the grid terms in original parameter file order
