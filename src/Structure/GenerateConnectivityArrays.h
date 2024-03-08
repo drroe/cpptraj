@@ -26,6 +26,9 @@ DihedralArray GenerateDihedralArray(std::vector<Residue> const&, std::vector<Ato
 DihedralArray GenerateImproperArray(std::vector<Residue> const&, std::vector<Atom> const&);
 /// Generate angle and torsion arrays from bonds
 void GenerateAngleAndTorsionArraysFromBonds(AngleArray&, DihedralArray&, std::vector<Atom> const&, BondArray const&);
+/// Merge two bond arrays
+void MergeBondArrays(BondArray&, BondArray const&, BondArray const&, std::vector<Atom> const&);
+
 }
 }
 #endif

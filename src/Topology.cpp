@@ -2626,6 +2626,12 @@ int Topology::AppendTop(Topology const& NewTop) {
                                      res.Icode(), res.ChainId()) );
   }
   // Recreate bonds for the added atoms
+  // DEBUG TEST
+  BondArray allBonds;
+  Cpptraj::Structure::MergeBondArrays(allBonds, NewTop.Bonds(), NewTop.BondsH(), NewTop.Atoms() );
+  for (BondArray::const_iterator it = allBonds.begin(); it != allBonds.end(); ++it)
+    mprintf("DEBUG: Merged bond array %li : %i - %i\n",
+            it - allBonds.begin(), it->A1()+1, it->A2()+1);
   addBondsWithOffset( bonds_, NewTop.Bonds(), atomOffset, atoms_ );
   addBondsWithOffset( bondsh_, NewTop.BondsH(), atomOffset, atoms_ );
   addBondsWithOffset( chamber_.SetUB(), NewTop.chamber_.UB(), atomOffset, atoms_ );

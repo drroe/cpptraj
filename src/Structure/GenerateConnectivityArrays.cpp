@@ -312,3 +312,60 @@ void Cpptraj::Structure::GenerateAngleAndTorsionArraysFromBonds(AngleArray& angl
     enumerateDihedrals( dihedrals, it->A1(), it->A2(), atoms );
   }
 }
+
+/** Merge two separate bond arrays. */
+void Cpptraj::Structure::MergeBondArrays(BondArray& bondsOut,
+                                         BondArray const& bonds,
+                                         BondArray const& bondsh,
+                                         std::vector<Atom> const& atoms)
+{
+  bondsOut.clear();
+  bondsOut.reserve( bonds.size() + bondsh.size() );
+
+  BondArray::const_iterator bx = bonds.begin();
+  BondArray::const_iterator by = bondsh.begin();
+
+  while (bx != bonds.end() && by != bondsh.end()) {
+    // Which one goes next?
+    Atom const& bx0 = atoms[bx->A1()];
+    Atom const& by0 = atoms[by->A1()];
+    if (bx0.ResNum() == by0.ResNum()) {
+      if (bx->A1() == by->A1()) {
+        // Same residue, same A1. Lower A2 goes first.
+        if (by->A2() < bx->A2()) {
+          bondsOut.push_back( *by );
+          ++by;
+        } else {
+          bondsOut.push_back( *bx );
+          ++bx;
+        }
+      } else {
+        // Same residue. Higher A1 goes first. FIXME fix for scan direction forwards
+        if (by->A1() > bx->A1()) {
+          bondsOut.push_back( *by );
+          ++by;
+        } else {
+          bondsOut.push_back( *bx );
+          ++bx;
+        }
+      }
+    } else {
+      // Lower residue goes first.
+      if (by0.ResNum() < bx0.ResNum()) {
+        bondsOut.push_back( *by );
+        ++by;
+      } else {
+        bondsOut.push_back( *bx );
+        ++bx;
+      }
+    }
+  } // END loop over both
+  if (bx != bonds.end()) {
+    for (; bx != bonds.end(); ++bx)
+      bondsOut.push_back( *bx );
+  }
+  if (by != bondsh.end()) {
+    for (; by != bondsh.end(); ++by)
+      bondsOut.push_back( *by );
+  }
+}
