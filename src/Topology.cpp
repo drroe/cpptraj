@@ -2331,6 +2331,9 @@ static inline int GetCmapParams(CmapParmHolder& cmapParm, CmapArray const& cmapT
             mprinterr(" %s", *(*it));
           mprinterr(" }\n");
         }
+        // Set a default title if needed
+        if (newGrid.Title().empty())
+          newGrid.SetTitle( "CMAP for " + newGrid.ResNames().front() );
         ParameterHolders::RetType ret = cmapParm.AddParm( newGrid, false );
         if (ret == ParameterHolders::ERR)
           paramOverwriteWarning("CMAP");
@@ -2631,7 +2634,12 @@ int Topology::AppendTop(Topology const& NewTop) {
   addDihedralsWithOffset( dihedrals_, NewTop.Dihedrals(), atomOffset );
   addDihedralsWithOffset( dihedralsh_, NewTop.DihedralsH(), atomOffset );
   addDihedralsWithOffset( chamber_.SetImpropers(), NewTop.chamber_.Impropers(), atomOffset );
-  // TODO CMAP
+  for (CmapArray::const_iterator cm = NewTop.Cmap().begin(); cm != NewTop.Cmap().end(); ++cm)
+    cmap_.push_back( CmapType(cm->A1() + atomOffset,
+                              cm->A2() + atomOffset,
+                              cm->A3() + atomOffset,
+                              cm->A4() + atomOffset,
+                              cm->A5() + atomOffset, -1) );
 //#  for (BondArray::const_iterator bond = NewTop.Bonds().begin(); bond != NewTop.Bonds().end(); ++bond)
 //#    AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
 //#  for (BondArray::const_iterator bond = NewTop.BondsH().begin(); bond != NewTop.BondsH().end(); ++bond)
@@ -3332,7 +3340,121 @@ static inline bool MatchesResName(std::vector<std::string> const& resNames, std:
   return false;
 }
 
-/** Assign CMAP parameters */
+/// Remap cmap indices
+int Topology::remap_cmap_indices(std::vector<int>& originalCmapIndices,
+                                     CmapGridArray& cmapGrids,
+                                     CmapArray& cmapTerms,
+                                 CmapParmHolder const& cmapIn)
+const
+{
+  mprintf("DEBUG: Cmap parameter indices:\n");
+  for (unsigned int idx = 0; idx < originalCmapIndices.size(); idx++)
+    mprintf("DEBUG:\t\tCurrent idx=%i  Actual idx=%u\n", originalCmapIndices[idx], idx);
+  if (originalCmapIndices.empty()) {
+    mprintf("DEBUG: No CMAP indices in %s\n", c_str());
+    return 0;
+  }
+  std::sort(originalCmapIndices.begin(), originalCmapIndices.end());
+  std::vector<int> currentToNew(cmapIn.size(), -1);
+  // Add the grid terms in original parameter file order
+  // and create map from assigned index to new index.
+  cmapGrids.reserve( originalCmapIndices.size() );
+  for (unsigned int idx = 0; idx < originalCmapIndices.size(); idx++) {
+    mprintf("DEBUG: Will change cmap parameter index %i to %u\n",
+            originalCmapIndices[idx]+1, idx+1);
+    currentToNew[ originalCmapIndices[idx] ] = idx;
+    cmapGrids.push_back( cmapIn[ originalCmapIndices[idx] ] );
+  }
+  mprintf("DEBUG: Assigned CMAP parameters:\n");
+  for (CmapGridArray::const_iterator it = cmapGrids.begin(); it != cmapGrids.end(); ++it)
+    mprintf("DEBUG:\t\t%li : %s\n", it-cmapGrids.begin(), it->Title().c_str());
+  // Renumber the parameter indices
+  for (CmapArray::iterator it = cmapTerms.begin(); it != cmapTerms.end(); ++it) {
+    int newIdx = currentToNew[ it->Idx() ];
+    if (newIdx < 0) {
+      mprinterr("Internal Error: CMAP term index is not mapped.\n");
+      return 1;
+    }
+    it->SetIdx( newIdx );
+  }
+  return 0;
+}
+
+/** Assign CMAP parameters to existing CMAP terms. */
+int Topology::AssignCmapParams(CmapArray& cmapTerms, CmapParmHolder const& cmapIn,
+                               CmapGridArray& cmapGrids)
+const
+{
+  // Keep track of residue names each cmap applies to
+  typedef std::vector<std::string> Sarray;
+  std::vector<Sarray> CmapResNames;
+  std::vector<Sarray> CmapAtomNames;
+  // The LEaP convention is to number the CMAP parameters in the same
+  // order as they are listed in the original parameter file. This
+  // variable keeps track of those indices.
+  std::vector<int> originalCmapIndices;
+  for (CmapArray::iterator cm = cmapTerms.begin(); cm != cmapTerms.end(); ++cm)
+  {
+    // Get residue name for A2
+    Atom const& A2 = atoms_[cm->A2()];
+    // TODO make sure A2-A4 in same residue?
+    NameType const& rn2 = residues_[A2.ResNum()].Name();
+    // Is this residue already in cmapGrids?
+    int cidx = -1;
+    for (unsigned int idx = 0; idx != CmapResNames.size(); idx++) {
+      if ( MatchesResName(CmapResNames[idx], rn2.Truncated()) ) {
+        if (atoms_[cm->A1()].Name() == CmapAtomNames[idx][0] &&
+            atoms_[cm->A2()].Name() == CmapAtomNames[idx][1] &&
+            atoms_[cm->A3()].Name() == CmapAtomNames[idx][2] &&
+            atoms_[cm->A4()].Name() == CmapAtomNames[idx][3] &&
+            atoms_[cm->A5()].Name() == CmapAtomNames[idx][4])
+        {
+          cidx = originalCmapIndices[idx];
+          break;
+        }
+      }
+    }
+    if (cidx > -1) {
+      mprintf("DEBUG: Potential existing cmap %i found for %s (%li)\n", cidx, TruncResNameNum(A2.ResNum()).c_str(), cm-cmapTerms.begin());
+      mprintf("DEBUG:\t\t%i - %i - %i - %i - %i %i\n", cm->A1()+1, cm->A2()+1, cm->A3()+1, cm->A4()+1, cm->A5()+1, cidx+1);
+      cm->SetIdx( cidx );
+    }
+    // If not already in cmapGrids, check cmapIn
+    if (cidx == -1) {
+      for (unsigned int idx = 0; idx != cmapIn.size(); idx++) {
+        if ( MatchesResName( cmapIn[idx].ResNames(), rn2.Truncated() ) ) {
+          if (atoms_[cm->A1()].Name() == cmapIn[idx].AtomNames()[0] &&
+              atoms_[cm->A2()].Name() == cmapIn[idx].AtomNames()[1] &&
+              atoms_[cm->A3()].Name() == cmapIn[idx].AtomNames()[2] &&
+              atoms_[cm->A4()].Name() == cmapIn[idx].AtomNames()[3] &&
+              atoms_[cm->A5()].Name() == cmapIn[idx].AtomNames()[4])
+          {
+            cidx = (int)idx;
+            CmapResNames.push_back( cmapIn[idx].ResNames() );
+            CmapAtomNames.push_back( cmapIn[idx].AtomNames() );
+            originalCmapIndices.push_back( idx );
+            break;
+          }
+        }
+      }
+      if (cidx > -1) {
+        mprintf("DEBUG: Potential new cmap %i found for %s (%li)\n", cidx, TruncResNameNum(A2.ResNum()).c_str(), cm-cmapTerms.begin());
+        mprintf("DEBUG:\t\t%i - %i - %i - %i - %i %i\n", cm->A1()+1, cm->A2()+1, cm->A3()+1, cm->A4()+1, cm->A5()+1, cidx+1);
+        //mprintf("DEBUG:\t\t%s - %s - %s - %s - %s\n",
+        //        AtomMaskName(dih->A1()).c_str(),
+        //        AtomMaskName(dih->A2()).c_str(),
+        //        AtomMaskName(dih->A3()).c_str(),
+        //        AtomMaskName(dih->A4()).c_str(),
+        //        AtomMaskName(a5).c_str());
+        cm->SetIdx( cidx );
+      }
+    }
+  } // END loop over cmap terms
+
+  return remap_cmap_indices(originalCmapIndices, cmapGrids, cmapTerms, cmapIn);
+}
+
+/** Assign CMAP parameters. Also generates CMAP terms from dihedrals. */
 int Topology::AssignCmapParams(DihedralArray const& allDih, CmapParmHolder const& cmapIn,
                                CmapGridArray& cmapGrids, CmapArray& cmapTerms)
 const
@@ -3415,8 +3537,9 @@ const
         cmapTerms.push_back( CmapType(dih->A1(), dih->A2(), dih->A3(), dih->A4(), a5, cidx) );
       }
     }
-  }
-  mprintf("DEBUG: Cmap parameter indices:\n");
+  } // END loop over dihedrals
+  return remap_cmap_indices(originalCmapIndices, cmapGrids, cmapTerms, cmapIn);
+/*  mprintf("DEBUG: Cmap parameter indices:\n");
   for (unsigned int idx = 0; idx < originalCmapIndices.size(); idx++)
     mprintf("DEBUG:\t\tCurrent idx=%i  Actual idx=%u\n", originalCmapIndices[idx], idx);
   if (originalCmapIndices.empty()) {
@@ -3446,7 +3569,7 @@ const
     }
     it->SetIdx( newIdx );
   }
-  return 0;
+  return 0;*/
 }
 
 /** Replace existing parameters with the given parameter set. */
@@ -3592,11 +3715,9 @@ int Topology::updateParams(ParameterSet& set0, ParameterSet const& set1) {
   }
   // CMAP
   if (UC.nCmapUpdated_ > 0) {
-    cmap_.clear();
     cmapGrid_.clear();
     mprintf("\tRegenerating CMAP parameters.\n");
-    AssignCmapParams(dihedrals_, set0.CMAP(), cmapGrid_, cmap_);
-    AssignCmapParams(dihedralsh_, set0.CMAP(), cmapGrid_, cmap_);
+    AssignCmapParams(cmap_, set0.CMAP(), cmapGrid_);
   }
   // TODO LJ14
 

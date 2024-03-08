@@ -318,8 +318,13 @@ class Topology {
     DihedralArray AssignDihedralParm(DihedralParmHolder const&, ImproperParmHolder const&,
                                      ParmHolder<AtomType> const&, DihedralArray const&, bool);
 
-    /// Assign CMAP parameters
+    /// Remap CMAP parameter indices to match incoming parameter order
+    int remap_cmap_indices(std::vector<int>&, CmapGridArray&, CmapArray&, CmapParmHolder const&) const;
+    /// Assign CMAP parameters and terms
     int AssignCmapParams(DihedralArray const&, CmapParmHolder const&, CmapGridArray&, CmapArray&) const;
+    /// Assign CMAP parameters
+    int AssignCmapParams(CmapArray&, CmapParmHolder const&, CmapGridArray&) const;
+
 
     static const NonbondType LJ_EMPTY;
     std::vector<Atom> atoms_;
