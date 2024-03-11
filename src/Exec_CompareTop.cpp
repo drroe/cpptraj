@@ -512,7 +512,7 @@ Exec::RetType Exec_CompareTop::Execute(CpptrajState& State, ArgList& argIn)
     {
       output.Printf("# Angle Parameters\n");
       Diff<AngleParmType> diff_angP;
-      diff_angP.Compare( p1.AngleParm(), p2.AngleParm(), PrintAngP, output, p1, p2 );
+      diff_angP.Compare( p1.AngleParm().Array(), p2.AngleParm().Array(), PrintAngP, output, p1, p2 );
     }
   }
   if (cmp_dih) {

@@ -234,8 +234,8 @@ const
 
   Eresults Eangle(angleDeltaE_, angleDeltaR_);
   CalcEnergy<AngleType, AngleParmType>(Eangle, angleout_,
-                                     frame0, commonAngles0_.Array(), top0.AngleParm(),
-                                     frame1, commonAngles1_.Array(), top1.AngleParm(),
+                                     frame0, commonAngles0_.Array(), top0.AngleParm().Array(),
+                                     frame1, commonAngles1_.Array(), top1.AngleParm().Array(),
                                      angleNames_, EANGFXN);
   Eangle.Print( angleout_, "Angle" );
 }

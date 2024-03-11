@@ -180,7 +180,37 @@ class AngleParmType {
     double tk_;  ///< Angle force constant in kcal/mol*rad^2
     double teq_; ///< Angle equilibirum value in rad
 };
-typedef std::vector<AngleParmType> AngleParmArray;
+/// Hold Array of angle parameters
+class AngleParmArray {
+    typedef std::vector<AngleParmType> APArray;
+  public:
+    AngleParmArray() {}
+    /// Resize the angle parm array
+    void resize(unsigned int n) { angleparm_.resize( n ); }
+    /// Clear the angle parm array
+    void clear() { angleparm_.clear(); }
+    /// \return reference to specified angle parameter
+    AngleParmType& operator[](unsigned int idx) { return angleparm_[idx]; }
+    /// Add angle parameter
+    void push_back( AngleParmType const& bp ) { angleparm_.push_back( bp ); }
+
+    /// \return const reference to specified angle parameter
+    AngleParmType const& operator[](unsigned int idx) const { return angleparm_[idx]; }
+    /// \return true if no angle parameters
+    bool empty() const { return angleparm_.empty(); }
+    /// \return number of angle parameters
+    size_t size() const { return angleparm_.size(); }
+    /// Const iterator
+    typedef APArray::const_iterator const_iterator;
+    /// \return const iterator to beginning
+    const_iterator begin() const { return angleparm_.begin(); }
+    /// \return const iterator to end
+    const_iterator end() const { return angleparm_.end(); }
+    /// \return Underlying array
+    std::vector<AngleParmType> const& Array() const { return angleparm_; }
+  private:
+    APArray angleparm_;
+};
 /// Hold angle atom indices and parameter index
 class AngleType {
   public:
