@@ -4,6 +4,7 @@
 #include "../ParameterHolders.h"
 #include "../ParameterTypes.h"
 
+/// Append bnd1 to bonds0 arrays along with parameters
 static inline void append_bond(BondArray& bonds0,
                                BondArray& bondsh0,
                                BondParmArray& bp0,
@@ -46,11 +47,12 @@ static inline void append_bond(BondArray& bonds0,
   // At this point we have either found a parameter or not.
   if (A1.Element() == Atom::HYDROGEN ||
       A2.Element() == Atom::HYDROGEN)
-    bondsh0.push_back( BondType(bnd1.A1(), bnd1.A2(), idx) );
+    bondsh0.push_back( BondType(bnd1.A1()+atomOffset, bnd1.A2()+atomOffset, idx) );
   else
-    bonds0.push_back( BondType(bnd1.A1(), bnd1.A2(), idx) );
+    bonds0.push_back( BondType(bnd1.A1()+atomOffset, bnd1.A2()+atomOffset, idx) );
 }
 
+/// Index existing bond types in bond arrays
 static inline void index_bond_types(ParmHolder<int>& currentTypes,
                                     BondArray const& bonds,
                                     std::vector<Atom> const& atoms)
@@ -133,5 +135,12 @@ void Cpptraj::Parm::MergeBondArrays(BondArray& bonds0,
       }
     }
   } // END loop over both bond arrays from top1
-
+  if (bx != bonds1.end()) {
+    for (; bx != bonds1.end(); ++bx)
+      append_bond( bonds0, bondsh0, bp0, atomOffset, *bx, currentTypes0, currentTypes1, bp1, atoms1 );
+  }
+  if (by != bondsh1.end()) {
+    for (; by != bondsh1.end(); ++by)
+      append_bond( bonds0, bondsh0, bp0, atomOffset, *by, currentTypes0, currentTypes1, bp1, atoms1 );
+  }
 }
