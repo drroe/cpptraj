@@ -67,9 +67,23 @@ class BondParmArray {
     void clear() { bondparm_.clear(); }
     /// \return reference to specified bond parameter
     BondParmType& operator[](unsigned int idx) { return bondparm_[idx]; }
+    /// Add bond parameter
+    void push_back( BondParmType const& bp ) { bondparm_.push_back( bp ); }
 
     /// \return const reference to specified bond parameter
     BondParmType const& operator[](unsigned int idx) const { return bondparm_[idx]; }
+    /// \return true if no bond parameters
+    bool empty() const { return bondparm_.empty(); }
+    /// \return number of bond parameters
+    size_t size() const { return bondparm_.size(); }
+    /// Const iterator
+    typedef BPArray::const_iterator const_iterator;
+    /// \return const iterator to beginning
+    const_iterator begin() const { return bondparm_.begin(); }
+    /// \return const iterator to end
+    const_iterator end() const { return bondparm_.end(); }
+    /// \return Underlying array
+    std::vector<BondParmType> const& Array() const { return bondparm_; }
   private:
     BPArray bondparm_;
 };

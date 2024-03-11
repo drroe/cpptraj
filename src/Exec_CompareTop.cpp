@@ -496,7 +496,7 @@ Exec::RetType Exec_CompareTop::Execute(CpptrajState& State, ArgList& argIn)
     // Bond parameters
     output.Printf("# Bond Parameters\n");
     Diff<BondParmType> diff_bndP;
-    diff_bndP.Compare( p1.BondParm(), p2.BondParm(), PrintBndP, output, p1, p2 );
+    diff_bndP.Compare( p1.BondParm().Array(), p2.BondParm().Array(), PrintBndP, output, p1, p2 );
   }
   if (cmp_ang) {
     // Angles

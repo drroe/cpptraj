@@ -146,8 +146,8 @@ const
 
   Eresults Ebond(bondDeltaE_, bondDeltaR_);
   CalcEnergy<BondType, BondParmType>(Ebond, bondout_,
-                                     frame0, commonBonds0_.Array(), top0.BondParm(),
-                                     frame1, commonBonds1_.Array(), top1.BondParm(),
+                                     frame0, commonBonds0_.Array(), top0.BondParm().Array(),
+                                     frame1, commonBonds1_.Array(), top1.BondParm().Array(),
                                      bondNames_, EBONDFXN);
   Ebond.Print( bondout_, "Bond" );
 }
