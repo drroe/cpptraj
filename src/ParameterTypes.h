@@ -56,7 +56,23 @@ class BondParmType {
     double rk_;
     double req_;
 };
-typedef std::vector<BondParmType> BondParmArray;
+/// Hold Array of bond parameters
+class BondParmArray {
+    typedef std::vector<BondParmType> BPArray;
+  public:
+    BondParmArray() {}
+    /// Resize the bond parm array
+    void resize(unsigned int n) { bondparm_.resize( n ); }
+    /// Clear the bond parm array
+    void clear() { bondparm_.clear(); }
+    /// \return reference to specified bond parameter
+    BondParmType& operator[](unsigned int idx) { return bondparm_[idx]; }
+
+    /// \return const reference to specified bond parameter
+    BondParmType const& operator[](unsigned int idx) const { return bondparm_[idx]; }
+  private:
+    BPArray bondparm_;
+};
 /// Hold bonded atom indices and parameter index
 class BondType {
   public:
@@ -81,7 +97,7 @@ class BondType {
     int a2_;
     int idx_;
 };
-/// Hold array of bond parameters
+/// Hold array of bonds
 class BondArray {
     typedef std::vector<BondType> BArray;
   public:
