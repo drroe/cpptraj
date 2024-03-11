@@ -4,6 +4,7 @@
 #include "../ParameterHolders.h"
 #include "../ParameterTypes.h"
 
+// ----- Bonds -------------------------
 static inline void printIdx(BondType const& bnd1, unsigned int atomOffset) {
   mprintf("DEBUG: Bond from top1 %i - %i will be %i - %i in top0\n",
           bnd1.A1()+1, bnd1.A2()+1, bnd1.A1()+1+atomOffset, bnd1.A2()+1+atomOffset);
@@ -28,10 +29,40 @@ static inline BondType idxWithOffset(BondType const& bnd1, int idx, unsigned int
   return BondType(bnd1.A1()+atomOffset, bnd1.A2()+atomOffset, idx);
 }
 
+// ----- Angles ------------------------
+static inline void printIdx(AngleType const& ang1, unsigned int atomOffset) {
+  mprintf("DEBUG: Angle from top1 %i - %i  - %i will be %i - %i - %i in top0\n",
+          ang1.A1()+1, ang1.A2()+1, ang1.A3()+1, ang1.A1()+1+atomOffset, ang1.A2()+1+atomOffset, ang1.A3()+1+atomOffset);
+}
+
+static inline TypeNameHolder getTypes(bool& hasH, AngleType const& ang1, std::vector<Atom> const& atoms)
+{
+  Atom const& A1 = atoms[ang1.A1()];
+  Atom const& A2 = atoms[ang1.A2()];
+  Atom const& A3 = atoms[ang1.A3()];
+  if (A1.Element() == Atom::HYDROGEN ||
+      A2.Element() == Atom::HYDROGEN ||
+      A3.Element() == Atom::HYDROGEN)
+    hasH = true;
+  else
+    hasH = false; 
+  TypeNameHolder types(3);
+  types.AddName( A1.Type() );
+  types.AddName( A2.Type() );
+  types.AddName( A3.Type() );
+  return types;
+}
+
+static inline AngleType idxWithOffset(AngleType const& ang1, int idx, unsigned int atomOffset) {
+  return AngleType(ang1.A1()+atomOffset, ang1.A2()+atomOffset, ang1.A3()+atomOffset, idx);
+}
+
 // -------------------------------------
 static inline void noParmWarning(TypeNameHolder const& types) {
   if (types.Size() == 2)
     mprintf("Warning: No bond parameters for types %s - %s\n", *(types[0]), *(types[1]));
+  else if (types.Size() == 3)
+    mprintf("Warning: No angle parameters for types %s - %s - %s\n", *(types[0]), *(types[1]), *(types[2]));
 }
 
 // -------------------------------------
@@ -325,6 +356,7 @@ void Cpptraj::Parm::MergeBondArrays(BondArray& bonds0,
 }
 
 // -----------------------------------------------------------------------------
+/*
 /// Append ang1 to angles0 arrays along with parameters
 static inline void append_angle(AngleArray& angles0,
                                AngleArray& anglesh0,
@@ -395,7 +427,7 @@ static inline void index_angle_types(ParmHolder<int>& currentTypes,
       }
     }
   }
-}
+}*/
 
 /** Given angle/angle parameter arrays from top0 and angle/angle parameter
   * arrays from top1, merge the angle arrays and consolidate the
@@ -403,13 +435,17 @@ static inline void index_angle_types(ParmHolder<int>& currentTypes,
   */
 void Cpptraj::Parm::MergeAngleArrays(AngleArray& angles0,
                                     AngleArray& anglesh0,
-                                    AngleParmArray& bp0,
+                                    AngleParmArray& ap0,
                                     AtArray const& atoms0,
                                     AngleArray const& angles1,
                                     AngleArray const& anglesh1,
-                                    AngleParmArray const& bp1,
+                                    AngleParmArray const& ap1,
                                     AtArray const& atoms1)
 {
+  MergeTopArray<AngleType, AngleParmType, AngleArray, AngleParmArray> mergeAngles;
+  mergeAngles.MergeTermArrays( angles0, anglesh0, ap0, atoms0,
+                               angles1, anglesh1, ap1, atoms1 );
+/*
   // First index existing parameters
   ParmHolder<int> currentTypes0, currentTypes1;
   index_angle_types(currentTypes0, angles0, atoms0);
@@ -467,7 +503,7 @@ void Cpptraj::Parm::MergeAngleArrays(AngleArray& angles0,
   if (by != anglesh1.end()) {
     for (; by != anglesh1.end(); ++by)
       append_angle( angles0, anglesh0, bp0, atomOffset, *by, currentTypes0, currentTypes1, bp1, atoms1 );
-  }
+  }*/
 }
 
 
