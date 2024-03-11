@@ -2635,8 +2635,8 @@ int Topology::AppendTop(Topology const& NewTop) {
   //for (BondArray::const_iterator it = allBonds.begin(); it != allBonds.end(); ++it)
   //  mprintf("DEBUG: Merged bond array %li : %i - %i\n",
   //          it - allBonds.begin(), it->A1()+1, it->A2()+1);
-  addBondsWithOffset( bonds_, NewTop.Bonds(), atomOffset, atoms_ );
-  addBondsWithOffset( bondsh_, NewTop.BondsH(), atomOffset, atoms_ );
+  //addBondsWithOffset( bonds_, NewTop.Bonds(), atomOffset, atoms_ );
+  //addBondsWithOffset( bondsh_, NewTop.BondsH(), atomOffset, atoms_ );
   addBondsWithOffset( chamber_.SetUB(), NewTop.chamber_.UB(), atomOffset, atoms_ );
   addAnglesWithOffset( angles_, NewTop.Angles(), atomOffset );
   addAnglesWithOffset( anglesh_, NewTop.AnglesH(), atomOffset );
@@ -2669,7 +2669,7 @@ int Topology::AppendTop(Topology const& NewTop) {
 //#                                 dih->Type() ) );
   // Update parameters
   mprintf("DEBUG: Updating with new parameters.\n");
-  updateParams( oldParams, NewTop.GetParameters() );
+  //updateParams( oldParams, NewTop.GetParameters() );
 
   // EXTRA ATOM INFO
   TopVecAppend<NameType> appendNameType;

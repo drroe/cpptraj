@@ -1,2 +1,2 @@
 GB_Params.o : GB_Params.cpp ../Atom.h ../AtomMask.h ../AtomType.h ../Box.h ../CmapParmHolder.h ../Constants.h ../CoordinateInfo.h ../CpptrajStdio.h ../FileName.h ../Frame.h ../MaskToken.h ../Matrix_3x3.h ../Molecule.h ../NameType.h ../Parallel.h ../ParameterHolders.h ../ParameterSet.h ../ParameterTypes.h ../Range.h ../ReplicaDimArray.h ../Residue.h ../Segment.h ../SymbolExporting.h ../Topology.h ../TypeNameHolder.h ../Unit.h ../Vec3.h GB_Params.h
-Merge.o : Merge.cpp ../Atom.h ../Constants.h ../CpptrajStdio.h ../NameType.h ../ParameterTypes.h ../SymbolExporting.h Merge.h
+Merge.o : Merge.cpp ../Atom.h ../Constants.h ../CpptrajStdio.h ../NameType.h ../ParameterHolders.h ../ParameterTypes.h ../SymbolExporting.h ../TypeNameHolder.h Merge.h
