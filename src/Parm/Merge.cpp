@@ -14,7 +14,7 @@ static inline TypeNameHolder getTypes(bool& hasH, BondType const& bnd1, std::vec
   Atom const& A1 = atoms[bnd1.A1()];
   Atom const& A2 = atoms[bnd1.A2()];
   if (A1.Element() == Atom::HYDROGEN ||
-      A1.Element() == Atom::HYDROGEN)
+      A2.Element() == Atom::HYDROGEN)
     hasH = true;
   else
     hasH = false; 
@@ -35,15 +35,15 @@ static inline void noParmWarning(TypeNameHolder const& types) {
 }
 
 // -------------------------------------
-template <class IdxType, class ParmType>
+template <class IdxType, class ParmType, class IdxArray, class ParmArray>
 class MergeTopArray
 {
   public:
     MergeTopArray() {}
     /// Index type array
-    typedef std::vector<IdxType> IdxArray;
+    //typedef std::vector<IdxType> IdxArray;
     /// Parm type array
-    typedef std::vector<ParmType> ParmArray;
+    //typedef std::vector<ParmType> ParmArray;
   private:
     /// Append term1 to arrayX0/arrayY0 arrays along with parameters
     void append_term(IdxArray& arrayX0,
@@ -177,6 +177,7 @@ class MergeTopArray
 }; // END MergeTopArray template class
 
 // -----------------------------------------------------------------------------
+/*
 /// Append bnd1 to bonds0 arrays along with parameters
 static inline void append_bond(BondArray& bonds0,
                                BondArray& bondsh0,
@@ -243,7 +244,7 @@ static inline void index_bond_types(ParmHolder<int>& currentTypes,
       }
     }
   }
-}
+}*/
 
 /** Given bond/bond parameter arrays from top0 and bond/bond parameter
   * arrays from top1, merge the bond arrays and consolidate the
@@ -258,8 +259,10 @@ void Cpptraj::Parm::MergeBondArrays(BondArray& bonds0,
                                     BondParmArray const& bp1,
                                     AtArray const& atoms1)
 {
-  MergeTopArray<BondType, BondParmType> mergeBonds;
-
+  MergeTopArray<BondType, BondParmType, BondArray, BondParmArray> mergeBonds;
+  mergeBonds.MergeTermArrays( bonds0, bondsh0, bp0, atoms0,
+                              bonds1, bondsh1, bp1, atoms1 );
+/*
 
   // First index existing parameters
   ParmHolder<int> currentTypes0, currentTypes1;
@@ -318,7 +321,7 @@ void Cpptraj::Parm::MergeBondArrays(BondArray& bonds0,
   if (by != bondsh1.end()) {
     for (; by != bondsh1.end(); ++by)
       append_bond( bonds0, bondsh0, bp0, atomOffset, *by, currentTypes0, currentTypes1, bp1, atoms1 );
-  }
+  }*/
 }
 
 // -----------------------------------------------------------------------------
