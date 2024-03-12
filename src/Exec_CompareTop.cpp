@@ -529,7 +529,7 @@ Exec::RetType Exec_CompareTop::Execute(CpptrajState& State, ArgList& argIn)
     {
       output.Printf("# Dihedral Parameters\n");
       Diff<DihedralParmType> diff_dihP;
-      diff_dihP.Compare( p1.DihedralParm(), p2.DihedralParm(), PrintDihP, output, p1, p2 );
+      diff_dihP.Compare( p1.DihedralParm().Array(), p2.DihedralParm().Array(), PrintDihP, output, p1, p2 );
     }
   }
   output.CloseFile();

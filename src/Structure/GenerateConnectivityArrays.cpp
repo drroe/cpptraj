@@ -213,7 +213,7 @@ DihedralArray Cpptraj::Structure::GenerateImproperArray(std::vector<Residue> con
                                                         std::vector<Atom> const& atoms)
 {
   DihedralArray out;
-//  int iidx = 0;
+  int iidx = 0;
   for (std::vector<Residue>::const_iterator res = residues.begin(); res != residues.end(); ++res)
   {
     int start, end, offset;
@@ -229,7 +229,7 @@ DihedralArray Cpptraj::Structure::GenerateImproperArray(std::vector<Residue> con
               int iat1 = AJ.BondIdxArray()[bidx0];
               int iat2 = AJ.BondIdxArray()[bidx1];
               int iat4 = AJ.BondIdxArray()[bidx2];
-              //mprintf("DEBUG: IMPROPER  i= %i  %i - %i - %i - %i (%i %i %i %i)\n", iidx++, iat1+1, iat2+1, iat3+1, iat4+1, iat1*3, iat2*3, iat3*3, iat4*3);
+              mprintf("DEBUG: IMPROPER  i= %i  %i - %i - %i - %i (%i %i %i %i)\n", iidx++, iat1+1, iat2+1, iat3+1, iat4+1, iat1*3, iat2*3, iat3*3, iat4*3);
               int indices[3];
               indices[0] = iat1;
               indices[1] = iat2;

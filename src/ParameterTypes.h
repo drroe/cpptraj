@@ -321,7 +321,51 @@ class DihedralParmType {
     double scee_;
     double scnb_;
 };
-typedef std::vector<DihedralParmType> DihedralParmArray;
+/// Hold Array of dihedral parameters
+class DihedralParmArray {
+    typedef std::vector<DihedralParmType> DPArray;
+  public:
+    /// CONSTRUCTOR
+    DihedralParmArray() {}
+    /// CONSTRUCTOR - Number of parameters, parameter
+    DihedralParmArray(unsigned int n, DihedralParmType const& dp) :
+      dihedralparm_(n, dp) {}
+    /// Resize the dihedral parm array
+    void resize(unsigned int n) { dihedralparm_.resize( n ); }
+    /// Clear the dihedral parm array
+    void clear() { dihedralparm_.clear(); }
+    /// \return reference to specified dihedral parameter
+    DihedralParmType& operator[](unsigned int idx) { return dihedralparm_[idx]; }
+    /// Add dihedral parameter
+    void push_back( DihedralParmType const& bp ) { dihedralparm_.push_back( bp ); }
+    /// Iterator
+    typedef DPArray::iterator iterator;
+    /// \return iterator to beginning
+    iterator begin() { return dihedralparm_.begin(); }
+    /// \return iterator to end
+    iterator end() { return dihedralparm_.end(); }
+
+    /// \return const reference to specified dihedral parameter
+    DihedralParmType const& operator[](unsigned int idx) const { return dihedralparm_[idx]; }
+    /// \return true if no dihedral parameters
+    bool empty() const { return dihedralparm_.empty(); }
+    /// \return number of dihedral parameters
+    size_t size() const { return dihedralparm_.size(); }
+    /// Const iterator
+    typedef DPArray::const_iterator const_iterator;
+    /// \return const iterator to beginning
+    const_iterator begin() const { return dihedralparm_.begin(); }
+    /// \return const iterator to end
+    const_iterator end() const { return dihedralparm_.end(); }
+    /// \return Underlying array
+    std::vector<DihedralParmType> const& Array() const { return dihedralparm_; }
+    /// \return Last dihedral parameter added
+    DihedralParmType const& back() const { return dihedralparm_.back(); }
+    /// \return First dihedral parameter added
+    DihedralParmType const& front() const { return dihedralparm_.front(); }
+  private:
+    DPArray dihedralparm_;
+};
 /// Hold dihedral atom indices and parameter index
 /** Dihedrals can be marked normal (A1-A2-A3-A4), end (meaning 1-4 calc should
   * be skipped to avoid overcounting, e.g. for dihedrals with multiple 

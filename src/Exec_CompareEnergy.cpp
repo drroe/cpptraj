@@ -324,8 +324,8 @@ const
 
   Eresults Edihedral(dihedralDeltaE_, dihedralDeltaR_);
   CalcEnergy<DihedralType, DihedralParmType>(Edihedral, dihedralout_,
-                                             frame0, commonDihedrals0_.Array(), top0.DihedralParm(),
-                                             frame1, commonDihedrals1_.Array(), top1.DihedralParm(),
+                                             frame0, commonDihedrals0_.Array(), top0.DihedralParm().Array(),
+                                             frame1, commonDihedrals1_.Array(), top1.DihedralParm().Array(),
                                              dihedralNames_, EDIHFXN);
   Edihedral.Print( dihedralout_, "Dihedral" );
 }
