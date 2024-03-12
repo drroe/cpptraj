@@ -529,6 +529,7 @@ void Cpptraj::Parm::MergeCmapArrays(CmapArray& cmap0,
                                     ResArray const& residues1)
 {
   unsigned int atomOffset = atoms0.size();
+  unsigned int cgOffset = cg0.size();
   // First index existing parameters
   ParmHolder<int> currentTypes0, currentTypes1;
   index_cmap_types(currentTypes0, cmap0, atoms0, residues0);
@@ -567,8 +568,17 @@ void Cpptraj::Parm::MergeCmapArrays(CmapArray& cmap0,
         //}
         if (oldIdx == -1) {
           // Do not merge with existing or does not yet exist.
-          int newIdx = cg0.size();
-          cg0.push_back( cg1[idx] );
+          // CMAPs are different than other parameters in that their order
+          // in the topology matches the order in which they are specified
+          // in the original parameter set. Therefore do not just append,
+          // use the existing index as an offset.
+          //int newIdx = cg0.size();
+          //cg0.push_back( cg1[idx] );
+          int newIdx = cgOffset + idx;
+          mprintf("DEBUG: New CMAP index in top0 is %i\n", newIdx);
+          if ((unsigned int)newIdx >= cg0.size())
+            cg0.resize( newIdx + 1 );
+          cg0[newIdx] = cg1[idx];
           idx = newIdx;
         } else {
           mprintf("DEBUG: Parm from top1 already present in top0 at position %i\n", oldIdx+1);

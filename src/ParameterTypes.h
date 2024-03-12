@@ -925,6 +925,8 @@ class CmapGridArray {
     void clear() { cmapgrids_.clear(); }
     /// Reserve for specified # of grids
     void reserve(size_t n) { cmapgrids_.reserve(n); }
+    /// Resize for specified # of grids
+    void resize(size_t n) { cmapgrids_.resize(n); }
     /// iterator
     typedef CGarray::iterator iterator;
     /// begin iterator
