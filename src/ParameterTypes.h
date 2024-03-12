@@ -899,7 +899,42 @@ class CmapGridType {
     std::vector<std::string> resNames_;  ///< Residue name(s) this CMAP will apply to
     std::vector<std::string> atomNames_; ///< 5x atom names this CMAP will apply to
 };
-typedef std::vector<CmapGridType> CmapGridArray;
+/// Hold an array of CMAP grids
+class CmapGridArray {
+    typedef std::vector<CmapGridType> CGarray;
+  public:
+    CmapGridArray() {}
+    /// \return number of CMAP grids
+    size_t size() const { return cmapgrids_.size(); }
+    /// \return CMAP grid at specified index
+    CmapGridType const& operator[](unsigned int idx) const { return cmapgrids_[idx]; }
+    /// const iterator
+    typedef CGarray::const_iterator const_iterator;
+    /// const begin iterator
+    const_iterator begin() const { return cmapgrids_.begin(); }
+    /// const end iterator
+    const_iterator end() const { return cmapgrids_.end(); }
+    /// \return True if no CMAP grids
+    bool empty() const { return cmapgrids_.empty(); }
+
+    /// \return CMAP grid at specified index
+    CmapGridType& operator[](unsigned int idx) { return cmapgrids_[idx]; }
+    /// Add CMAP grid
+    void push_back(CmapGridType const& cg) { cmapgrids_.push_back( cg ); }
+    /// Clear all grids
+    void clear() { cmapgrids_.clear(); }
+    /// Reserve for specified # of grids
+    void reserve(size_t n) { cmapgrids_.reserve(n); }
+    /// iterator
+    typedef CGarray::iterator iterator;
+    /// begin iterator
+    iterator begin() { return cmapgrids_.begin(); }
+    /// end iterator
+    iterator end() { return cmapgrids_.end(); }
+
+  private:
+    CGarray cmapgrids_;
+};
 /// Hold CMAP atom indices and corresponding grid index
 class CmapType {
   public:
@@ -922,7 +957,35 @@ class CmapType {
     int a5_;
     int idx_;
 };
-typedef std::vector<CmapType> CmapArray;
+/// Hold an array of CMAP terms
+class CmapArray {
+    typedef std::vector<CmapType> CArray;
+  public:
+    CmapArray() {}
+    /// \return number of CMAP terms
+    size_t size() const { return cmap_.size(); }
+    /// const iterator
+    typedef CArray::const_iterator const_iterator;
+    /// const begin iterator
+    const_iterator begin() const { return cmap_.begin(); }
+    /// const end iterator
+    const_iterator end() const { return cmap_.end(); }
+    /// \return True if no CMAP terms
+    bool empty() const { return cmap_.empty(); }
+
+    /// Add CMAP term
+    void push_back(CmapType const& cm) { cmap_.push_back( cm ); }
+    /// Clear all terms 
+    void clear() { cmap_.clear(); }
+    /// iterator
+    typedef CArray::iterator iterator;
+    /// begin iterator
+    iterator begin() { return cmap_.begin(); }
+    /// end iterator
+    iterator end() { return cmap_.end(); }
+  private:
+    CArray cmap_;
+};
 /// Hold CHAMBER parameters
 class ChamberParmType {
     typedef std::vector<std::string> Sarray;

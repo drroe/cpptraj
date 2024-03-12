@@ -3,6 +3,7 @@
 #include "../CpptrajStdio.h"
 #include "../ParameterHolders.h"
 #include "../ParameterTypes.h"
+#include "../Residue.h"
 #include "../StringRoutines.h" // integerToString
 
 // ----- Bonds -------------------------
@@ -119,8 +120,13 @@ static inline void noParmWarning(TypeNameHolder const& types) {
     mprintf("Warning: No bond parameters for types %s - %s\n", *(types[0]), *(types[1]));
   else if (types.Size() == 3)
     mprintf("Warning: No angle parameters for types %s - %s - %s\n", *(types[0]), *(types[1]), *(types[2]));
-  else if (types.Size() == 4)
-    mprintf("Warning: No dihedral parameters for types %s - %s - %s - %s\n", *(types[0]), *(types[1]), *(types[2]), *(types[3]));
+  else if (types.Size() == 5) {
+    if (types[4] == "0")
+      mprintf("Warning: No improper parameters for types %s - %s - %s - %s\n", *(types[0]), *(types[1]), *(types[2]), *(types[3]));
+    else
+      mprintf("Warning: No dihedral parameters for types %s - %s - %s - %s multiplicity %s\n", *(types[0]), *(types[1]), *(types[2]), *(types[3]), *(types[4]));
+  } else if (types.Size() == 6)
+    mprintf("Warning: No CMAP parameters for res %s atoms %s - %s - %s - %s - %s\n", *(types[0]), *(types[1]), *(types[2]), *(types[3]), *(types[4]), *(types[5]));
 }
 
 // -------------------------------------
@@ -431,11 +437,11 @@ static inline void merge_impropers(DihedralArray& dihOut, DihedralArray& dihIn, 
   */
 void Cpptraj::Parm::MergeDihedralArrays(DihedralArray& dihedrals0,
                                     DihedralArray& dihedralsh0,
-                                    DihedralParmArray& ap0,
+                                    DihedralParmArray& dp0,
                                     AtArray const& atoms0,
                                     DihedralArray const& dihedrals1,
                                     DihedralArray const& dihedralsh1,
-                                    DihedralParmArray const& ap1,
+                                    DihedralParmArray const& dp1,
                                     AtArray const& atoms1)
 {
   // Separate any impropers.
@@ -451,12 +457,131 @@ void Cpptraj::Parm::MergeDihedralArrays(DihedralArray& dihedrals0,
 
   MergeTopArray<DihedralType, DihedralParmType, DihedralArray, DihedralParmArray> mergeDihedrals;
   mergeDihedrals.SetMergeWithExisting( true );
-  mergeDihedrals.MergeTermArrays( dih0, dihH0, ap0, atoms0,
-                                  dih1, dihH1, ap1, atoms1 );
-  mergeDihedrals.MergeImproperArrays( imp0, impH0, ap0, atoms0,
-                                      imp1, impH1, ap1, atoms1 );
+  mergeDihedrals.MergeTermArrays( dih0, dihH0, dp0, atoms0,
+                                  dih1, dihH1, dp1, atoms1 );
+  mergeDihedrals.MergeImproperArrays( imp0, impH0, dp0, atoms0,
+                                      imp1, impH1, dp1, atoms1 );
   // Re-merge
   merge_impropers(dihedrals0, dih0, imp0);
   merge_impropers(dihedralsh0, dihH0, impH0);
 }
 
+// -----------------------------------------------------------------------------
+// ----- CMAPs -------------------------
+static inline void printIdx(CmapType const& cmap1, unsigned int atomOffset) {
+  mprintf("DEBUG: CMAP from top1 %i - %i - %i - %i - %i will be %i - %i - %i - %i - %i in top0\n",
+          cmap1.A1()+1, cmap1.A2()+1, cmap1.A3()+1, cmap1.A4()+1, cmap1.A5()+1,
+          cmap1.A1()+1+atomOffset, cmap1.A2()+1+atomOffset, cmap1.A3()+1+atomOffset, cmap1.A4()+1+atomOffset, cmap1.A5()+1+atomOffset);
+}
+
+/** CMAPs are indexed by residue name and 5 atom names, so need 6. 
+  */
+static inline TypeNameHolder getCmapTypes(CmapType const& cmap1, std::vector<Atom> const& atoms, std::vector<Residue> const& residues)
+{
+  Atom const& A1 = atoms[cmap1.A1()];
+  Atom const& A2 = atoms[cmap1.A2()];
+  Atom const& A3 = atoms[cmap1.A3()];
+  Atom const& A4 = atoms[cmap1.A4()];
+  Atom const& A5 = atoms[cmap1.A5()];
+
+  TypeNameHolder types(6);
+  types.AddName( residues[A2.ResNum()].Name() );
+  types.AddName( A1.Name() );
+  types.AddName( A2.Name() );
+  types.AddName( A3.Name() );
+  types.AddName( A4.Name() );
+  types.AddName( A5.Name() );
+
+  return types;
+}
+
+static inline CmapType idxWithOffset(CmapType const& cmap1, int idx, unsigned int atomOffset) {
+  return CmapType(cmap1.A1()+atomOffset, cmap1.A2()+atomOffset, cmap1.A3()+atomOffset, cmap1.A4()+atomOffset, cmap1.A5()+atomOffset, idx);
+}
+
+/// Index existing CMAP types in term arrays
+void index_cmap_types(ParmHolder<int>& currentTypes,
+                      CmapArray const& terms,
+                      std::vector<Atom> const& atoms,
+                      std::vector<Residue> const& residues)
+{
+  for (typename CmapArray::const_iterator term = terms.begin(); term != terms.end(); ++term)
+  {
+    if (term->Idx() > -1) {
+      TypeNameHolder types = getCmapTypes(*term, atoms, residues);
+      bool found;
+      currentTypes.FindParam(types, found);
+      if (!found) {
+        currentTypes.AddParm(types, term->Idx(), false);
+      }
+    }
+  }
+}
+
+/** Given CMAP arrays from top0 and top1, merge and consolidate parameters. */
+void Cpptraj::Parm::MergeCmapArrays(CmapArray& cmap0,
+                                    CmapGridArray& cg0,
+                                    AtArray const& atoms0,
+                                    ResArray const& residues0,
+                                    CmapArray const& cmap1,
+                                    CmapGridArray const& cg1,
+                                    AtArray const& atoms1,
+                                    ResArray const& residues1)
+{
+  unsigned int atomOffset = atoms0.size();
+  // First index existing parameters
+  ParmHolder<int> currentTypes0, currentTypes1;
+  index_cmap_types(currentTypes0, cmap0, atoms0, residues0);
+  index_cmap_types(currentTypes1, cmap1, atoms1, residues1);
+  // Loop over incoming terms
+  for (CmapArray::const_iterator c1 = cmap1.begin(); c1 != cmap1.end(); ++c1)
+  {
+    printIdx(*c1, atomOffset);
+    TypeNameHolder types = getCmapTypes(*c1, atoms1, residues1);
+    mprintf("DEBUG: Looking for types in top0:");
+    printTypes( types ); // DEBUG
+    // Do we have an existing parameter in top0
+    bool found;
+    int idx = currentTypes0.FindParam(types, found);
+    if (!found) {
+      // No parameter yet.
+      // Do we have an existing parameter in top1
+      mprintf("DEBUG: Not found in top0. Looking in top1.\n");
+      idx = currentTypes1.FindParam(types, found);
+      if (!found) {
+        mprintf("DEBUG: No parameters.\n");
+        // No parameter in either top.
+        idx = -1;
+      } else {
+        mprintf("DEBUG: Found in top1 index %i, adding to top0.\n", idx+1);
+        // Found a parameter in top1, add it to top0.
+        int oldIdx = -1;
+        //if (merge_with_existing_) {
+          // Check if parameter exists
+          for (unsigned int i0 = 0; i0 != cg0.size(); i0++) {
+            if (cg1[idx].GridMatches( cg0[i0] )) {
+              oldIdx = (int)i0;
+              break;
+            }
+          }
+        //}
+        if (oldIdx == -1) {
+          // Do not merge with existing or does not yet exist.
+          int newIdx = cg0.size();
+          cg0.push_back( cg1[idx] );
+          idx = newIdx;
+        } else {
+          mprintf("DEBUG: Parm from top1 already present in top0 at position %i\n", oldIdx+1);
+          idx = oldIdx;
+        }
+      }
+      // Add to existing parameters in top0.
+      // Do this even if a parameter was not found so we dont keep looking.
+      if (idx < 0) noParmWarning(types);
+      currentTypes0.AddParm(types, idx, false);
+    }
+    mprintf("DEBUG: top0 parameter index is %i\n", idx+1);
+    // At this point we have either found a parameter or not.
+    cmap0.push_back( idxWithOffset(*c1, idx, atomOffset) );
+  } // END loop over cmap terms from top1
+}

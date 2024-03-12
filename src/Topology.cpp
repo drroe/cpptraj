@@ -2617,6 +2617,9 @@ int Topology::AppendTop(Topology const& NewTop) {
   Cpptraj::Parm::MergeDihedralArrays(dihedrals_, dihedralsh_, dihedralparm_, atoms_,
                                   NewTop.Dihedrals(), NewTop.DihedralsH(), NewTop.DihedralParm(), NewTop.Atoms());
 
+  Cpptraj::Parm::MergeCmapArrays(cmap_, cmapGrid_, atoms_, residues_,
+                                 NewTop.Cmap(), NewTop.CmapGrid(), NewTop.Atoms(), NewTop.Residues());
+
   // Append NewTop atoms to this topology.
   for (atom_iterator atom = NewTop.begin(); atom != NewTop.end(); ++atom)
   {
@@ -2648,12 +2651,12 @@ int Topology::AppendTop(Topology const& NewTop) {
   //addDihedralsWithOffset( dihedrals_, NewTop.Dihedrals(), atomOffset );
   //addDihedralsWithOffset( dihedralsh_, NewTop.DihedralsH(), atomOffset );
   addDihedralsWithOffset( chamber_.SetImpropers(), NewTop.chamber_.Impropers(), atomOffset );
-  for (CmapArray::const_iterator cm = NewTop.Cmap().begin(); cm != NewTop.Cmap().end(); ++cm)
-    cmap_.push_back( CmapType(cm->A1() + atomOffset,
-                              cm->A2() + atomOffset,
-                              cm->A3() + atomOffset,
-                              cm->A4() + atomOffset,
-                              cm->A5() + atomOffset, -1) );
+  //for (CmapArray::const_iterator cm = NewTop.Cmap().begin(); cm != NewTop.Cmap().end(); ++cm)
+  //  cmap_.push_back( CmapType(cm->A1() + atomOffset,
+  //                            cm->A2() + atomOffset,
+  //                            cm->A3() + atomOffset,
+  //                            cm->A4() + atomOffset,
+  //                            cm->A5() + atomOffset, -1) );
 //#  for (BondArray::const_iterator bond = NewTop.Bonds().begin(); bond != NewTop.Bonds().end(); ++bond)
 //#    AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
 //#  for (BondArray::const_iterator bond = NewTop.BondsH().begin(); bond != NewTop.BondsH().end(); ++bond)
