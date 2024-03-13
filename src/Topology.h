@@ -165,7 +165,7 @@ class Topology {
     /// \return Lennard-Jones 6-12 parameters for given pair of atoms
     inline NonbondType const& GetLJparam(int, int) const;
     void AssignNonbondParams(ParmHolder<AtomType> const&, ParmHolder<NonbondType> const&,
-                             ParmHolder<HB_ParmType> const&);
+                             ParmHolder<HB_ParmType> const&, int);
     /// \return True if any charge is non-zero
     bool HasChargeInfo() const;
     /// Redistribute charge on atoms in topology to match target total charge
