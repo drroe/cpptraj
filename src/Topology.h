@@ -220,6 +220,7 @@ class Topology {
     void SetParmBox( Box const& bIn )   { parmBox_ = bIn;         }
     void SetBoxFromTraj(Box const&);
     // ----- Setup routines ----------------------
+    /// Add an atom to the topology inside given residue
     int AddTopAtom(Atom const&, Residue const&);
     //void StartNewMol();
     /// Perform common final setup: optional molecule determination, renumber residues by molecules
@@ -280,6 +281,8 @@ class Topology {
                                                    DihedralParmArray const&,
                                                    int, const char*);
     inline bool CheckExtraSize(size_t, const char*) const;
+    /// Add an atom to the topology inside given residue and molecule number
+    int addTopAtom(Atom const&, Residue const&, unsigned int, bool);
 
     void VisitAtom(int, int);
     int RecursiveMolSearch();

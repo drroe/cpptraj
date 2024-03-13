@@ -466,6 +466,25 @@ int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)
   residues_.back().SetLastAtom( atoms_.size() );
   return 0;
 }
+
+/** This version takes a molecule number as well. */
+int Topology::addTopAtom(Atom const& atomIn, Residue const& resIn,
+                         unsigned int molnum, bool isSolvent)
+{
+  unsigned int atnum = atoms_.size();
+  AddTopAtom(atomIn, resIn);
+  atoms_.back().SetMol( molnum );
+  if (molnum > molecules_.size())
+    mprintf("Warning: AddTopAtom(): Molecule number %i is not consecutive.\n");
+  if (molnum >= molecules_.size()) {
+    molecules_.resize( molnum+1 );
+    if (isSolvent)
+      NsolventMolecules_++;
+  }
+  molecules_[molnum].AddAtnum( atnum );
+  return 0;
+}
+
 /*
 // Topology::StartNewMol()
 void Topology::StartNewMol() {
@@ -2589,8 +2608,10 @@ static inline void addDihedralsWithOffset(DihedralArray& dihedralsOut, DihedralA
 
 // Topology::AppendTop()
 int Topology::AppendTop(Topology const& NewTop) {
-  int atomOffset = (int)atoms_.size();
-  mprintf("DEBUG: Appending '%s' to '%s' (offset= %i)\n", NewTop.c_str(), c_str(), atomOffset);
+  unsigned int atomOffset = atoms_.size();
+  unsigned int molOffset = molecules_.size();
+  mprintf("DEBUG: Appending '%s' to '%s' (atom offset= %u mol offset= %u)\n",
+          NewTop.c_str(), c_str(), atomOffset, molOffset);
   //int resOffset = (int)residues_.size();
 
 // NOTE: Lines commented out with //# can be used to test appending via the
@@ -2633,8 +2654,9 @@ int Topology::AppendTop(Topology const& NewTop) {
     for (Atom::bond_iterator bat = atom->bondbegin(); bat != atom->bondend(); ++bat)
       CurrentAtom.AddBondToIdx( *bat + atomOffset );
 
-    AddTopAtom( CurrentAtom, Residue(res.Name(), res.OriginalResNum(),
-                                     res.Icode(), res.ChainId()) );
+    addTopAtom( CurrentAtom,
+                Residue(res.Name(), res.OriginalResNum(), res.Icode(), res.ChainId()),
+                atom->MolNum()+molOffset, NewTop.Mol(atom->MolNum()).IsSolvent() );
   }
   // Recreate bonds for the added atoms
   // DEBUG TEST
@@ -2713,7 +2735,12 @@ int Topology::AppendTop(Topology const& NewTop) {
 
   // Re-set up this topology
   // TODO: Could get expensive for multiple appends.
-  return CommonSetup();
+  //return CommonSetup();
+  // The version of AddTopAtom() with molecule number already determines
+  // molecules and number of solvent molecules.
+  // Just need to determine the number of extra points.
+  DetermineNumExtraPoints();
+  return 0;
 }
 
 // -----------------------------------------------------------------------------
