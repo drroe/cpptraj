@@ -2391,7 +2391,7 @@ static inline void GetLJAtomTypes(ParmHolder<AtomType>& atomTypesOut,
     // Nonbonded parameters are present.
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
     {
-      if (atm->Type().len() < 1) {
+      if (!atm->HasType()) {
         mprintf("Warning: Topology has nonbond parameters but atom %s has no type.\n", *(atm->Name()));
         continue;
       }
