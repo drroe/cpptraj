@@ -476,8 +476,8 @@ void TopInfo::PrintBonds(BondArray const& barray, BondParmArray const& bondparm,
 int TopInfo::PrintBondInfo(std::string const& mask1exp, std::string const& mask2exp,
                            bool printUB) const
 {
-  if (printUB && !parm_->Chamber().HasChamber()) {
-    mprintf("Warning: '%s' does not have any CHARMM parameters.\n", parm_->c_str());
+  if (printUB && parm_->UB().empty()) {
+    mprintf("Warning: '%s' does not have any Urey-Bradley parameters.\n", parm_->c_str());
     return 0;
   }
   CharMask mask1( mask1exp );
@@ -489,8 +489,8 @@ int TopInfo::PrintBondInfo(std::string const& mask1exp, std::string const& mask2
   bool hasParams;
   if (printUB) {
     label = "#UB";
-    n_bonds = parm_->Chamber().UB().size();
-    hasParams = !parm_->Chamber().UBparm().empty();
+    n_bonds = parm_->UB().size();
+    hasParams = !parm_->UBparm().empty();
   } else {
     n_bonds = parm_->BondsH().size() + parm_->Bonds().size();
     hasParams = !parm_->BondParm().empty();
@@ -507,7 +507,7 @@ int TopInfo::PrintBondInfo(std::string const& mask1exp, std::string const& mask2
                    max_type_len_, "T1", max_type_len_, "T2");
   int nb = 1;
   if (printUB)
-    PrintBonds( parm_->Chamber().UB(), parm_->Chamber().UBparm(), mask1, mask2, nw, nb );
+    PrintBonds( parm_->UB(), parm_->UBparm(), mask1, mask2, nw, nb );
   else {
     PrintBonds( parm_->BondsH(), parm_->BondParm(), mask1, mask2, nw, nb );
     PrintBonds( parm_->Bonds(),  parm_->BondParm(), mask1, mask2, nw, nb );
@@ -689,8 +689,8 @@ int TopInfo::PrintDihedralInfo(std::string const& mask1exp, std::string const& m
   bool hasParams;
   if (printImpropers) {
     label = "Imp";
-    n_torsions = parm_->Chamber().Impropers().size();
-    hasParams = !parm_->Chamber().ImproperParm().empty();
+    n_torsions = parm_->Impropers().size();
+    hasParams = !parm_->ImproperParm().empty();
   } else {
     n_torsions = parm_->DihedralsH().size() + parm_->Dihedrals().size();
     hasParams = !parm_->DihedralParm().empty();
@@ -713,7 +713,7 @@ int TopInfo::PrintDihedralInfo(std::string const& mask1exp, std::string const& m
                    max_type_len_, "T3", max_type_len_, "T4");
   int nd = 1;
   if (printImpropers) {
-    PrintDihedrals( parm_->Chamber().Impropers(), parm_->Chamber().ImproperParm(), mask1, mask2, mask3, mask4, nw, nd, printExtraInfo );
+    PrintDihedrals( parm_->Impropers(), parm_->ImproperParm(), mask1, mask2, mask3, mask4, nw, nd, printExtraInfo );
   } else {
     PrintDihedrals( parm_->DihedralsH(), parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd, printExtraInfo );
     PrintDihedrals( parm_->Dihedrals(),  parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd, printExtraInfo );

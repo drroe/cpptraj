@@ -655,8 +655,10 @@ class NonbondParmType {
     inline int Ntypes()                  const { return ntypes_;     }
     bool Has_C_Coeff()                   const { return !ccoef_.empty(); }
     std::vector<int> const& NBindex()    const { return nbindex_;    }
-    /// \return Array of LJ 12-6 A and B parameters
+    /// \return Array of LJ 6-12 A and B parameters
     NonbondArray     const& NBarray()    const { return nbarray_;    }
+    /// \return Array of LJ 6-12 1-4 A and B parameters
+    NonbondArray     const& LJ14()       const { return lj14_;       }
     /// \return Array of LJ 10-12 (hbond) parameters
     HB_ParmArray     const& HBarray()    const { return hbarray_;    }
     /// \return Array of LJ 12-6-4 C parameters
@@ -676,8 +678,12 @@ class NonbondParmType {
     }
     /// Set number of types, init NB index array, init LJ array.
     void SetupLJforNtypes(int n) { SetNtypes(n); nbarray_.assign((n*(n+1))/2, NonbondType()); }
+    /// Set number of LJ 1-4 terms
+    void SetNLJ14terms(int n)    { lj14_.assign( n, NonbondType() ); }
     /// Set specified LJ term
-    NonbondType& SetLJ(int i) { return nbarray_[i];                  }
+    NonbondType& SetLJ(int i)    { return nbarray_[i];                  }
+    /// Set specified LJ 1-4 term
+    NonbondType& SetLJ14(int i)  { return lj14_[i];    }
     /// Set number of HB terms and init HB array TODO combine with SetNtypes?
     void SetNHBterms(int n)   { hbarray_.assign( n, HB_ParmType() ); }
     /// Set specified HB term
@@ -715,11 +721,12 @@ class NonbondParmType {
       nbindex_[ntypes_ * type2 + type1] = ndx;
       hbarray_.push_back( HB );
     }
-    void Clear() { ntypes_ = 0; nbindex_.clear(); nbarray_.clear(); hbarray_.clear(); }
+    void Clear() { ntypes_ = 0; nbindex_.clear(); nbarray_.clear(); lj14_.clear(); hbarray_.clear(); }
   private:
     int ntypes_;               ///< Number of unique atom types
     std::vector<int> nbindex_; ///< Hold indices into arrays nbarray/hbarray for atom type pairs
     NonbondArray nbarray_;     ///< Hold Lennard-Jones 6-12 A and B parameters for all pairs.
+    NonbondArray lj14_;        ///< Lennard-Jones 6-12 1-4 parameters
     HB_ParmArray hbarray_;     ///< Hold 10-12 Amber HBond params for all pairs.
     std::vector<double> ccoef_; ///< Hold Lennard-Jones C parameters for 12-6-4 LJ potential.
 };
@@ -989,6 +996,7 @@ class CmapArray {
     CArray cmap_;
 };
 /// Hold CHAMBER parameters
+/*
 class ChamberParmType {
     typedef std::vector<std::string> Sarray;
   public:
@@ -1035,5 +1043,5 @@ class ChamberParmType {
     DihedralArray impropers_;        ///< Improper terms
     DihedralParmArray improperparm_; ///< Improper parameters
     NonbondArray lj14_;              ///< Lennard-Jones 1-4 parameters
-};
+};*/
 #endif

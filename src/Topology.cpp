@@ -419,13 +419,13 @@ void Topology::Summary() const {
     if (nonbond_.Has_C_Coeff())
       mprintf("\t\t\tLJ 12-6-4 C coefficients are present.\n");
   }
-  if (chamber_.HasChamber()) {
-    mprintf("\t\tCHAMBER: %zu Urey-Bradley terms, %zu Impropers\n",
-            chamber_.UB().size(), chamber_.Impropers().size());
-    if (HasCmap())
-      mprintf("\t\t         %zu CMAP grids, %zu CMAP terms.\n", 
-              CmapGrid().size(), Cmap().size());
+  if (HasChamber()) {
+    mprintf("\t\tCHAMBER: %zu Urey-Bradley terms, %zu Impropers, %zu LJ 1-4 terms.\n",
+            ub_.size(), impropers_.size(), nonbond_.LJ14().size());
   }
+  if (HasCmap())
+    mprintf("\t\t%zu CMAP grids, %zu CMAP terms.\n", 
+            CmapGrid().size(), Cmap().size());
   if (lesparm_.HasLES())
     mprintf("\t\tLES info: %i types, %i copies\n", lesparm_.Ntypes(), lesparm_.Ncopies());
   if (cap_.HasWaterCap())
@@ -709,7 +709,11 @@ void Topology::Resize(Pointers const& pIn) {
   nonbond_.Clear();
   cap_.Clear();
   lesparm_.Clear();
-  chamber_.Clear();
+  ff_desc_.clear();
+  ub_.clear();
+  ubparm_.clear();
+  impropers_.clear();
+  improperparm_.clear();
   tree_.clear();
   ijoin_.clear();
   irotat_.clear();
@@ -1130,10 +1134,18 @@ void Topology::AddToDihedralArrays(DihedralType const& dih) {
     dihedrals_.push_back( dih );
 }
 
+/** \return true if any CHARMM parameters are set (based on indices). */
+bool Topology::HasChamber() const {
+  if (!ub_.empty()) return true;
+  if (!impropers_.empty()) return true;
+  if (!nonbond_.LJ14().empty()) return true;
+  return false;
+}
+
 /** Add given Charmm improper with given improper parm to Charmm improper array. */
 void Topology::AddCharmmImproper(DihedralType const& imp, DihedralParmType const& IPin)
 {
-  int pidx = addTorsionParm(chamber_.SetImproperParm(), IPin);
+  int pidx = addTorsionParm(improperparm_, IPin);
   if (CheckTorsionRange(imp, "CHARMM improper")) return;
   AddCharmmImproper(imp, pidx);
 }
@@ -1142,9 +1154,9 @@ void Topology::AddCharmmImproper(DihedralType const& imp, DihedralParmType const
 void Topology::AddCharmmImproper(DihedralType const& impIn, int pidxIn)
 {
   if (CheckTorsionRange(impIn, "CHARMM improper")) return;
-  DihedralType imp = SetTorsionParmIndex(impIn, chamber_.ImproperParm(), pidxIn, "CHARMM improper");
+  DihedralType imp = SetTorsionParmIndex(impIn, improperparm_, pidxIn, "CHARMM improper");
   // Update Charmm improper array.
-  chamber_.AddImproperTerm( imp );
+  impropers_.push_back( imp );
 }
 
 // -----------------------------------------------------------------------------
@@ -1757,8 +1769,8 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     //mprintf("DEBUG: # new types %zu\n", oldTypeArray.size());
     // Set up new nonbond and nonbond index arrays.
     newParm->nonbond_.SetNtypes( oldTypeArray.size() );
-    if (chamber_.HasChamber())
-      newParm->chamber_.SetNLJ14terms( (oldTypeArray.size()*(oldTypeArray.size()+1))/2 );
+    if (!nonbond_.LJ14().empty())
+      newParm->nonbond_.SetNLJ14terms( (oldTypeArray.size()*(oldTypeArray.size()+1))/2 );
     for (int a1idx = 0; a1idx != (int)oldTypeArray.size(); a1idx++)
     {
       int atm1 = oldTypeArray[a1idx];
@@ -1780,7 +1792,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
         //int newnbidx = newParm->nonbond_.GetLJindex( a1idx, a2idx );
         //mprintf("DEBUG: oldtypei=%i oldtypej=%i Old NB index=%i, newtypi=%i newtypej=%i new NB idx=%i testidx=%i\n", 
         //        atm1, atm2, oldnbidx, a1idx, a2idx, newnbidx, testidx);
-        if (chamber_.HasChamber()) {
+        if (!nonbond_.LJ14().empty()) {
           // Update LJ 1-4 as well. No need to worry about hbond terms here,
           // just recalculate the old index and determine new one.
           int ibig = std::max(atm1, atm2) + 1;
@@ -1789,7 +1801,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
               ibig = a2idx + 1;
               isml = a1idx + 1;
           int newnbidx = (ibig*(ibig-1)/2+isml)-1;
-          newParm->chamber_.SetLJ14( newnbidx ) = chamber_.LJ14()[oldnbidx];
+          newParm->nonbond_.SetLJ14( newnbidx ) = nonbond_.LJ14()[oldnbidx];
         }
       }
     }
@@ -1812,49 +1824,52 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   if (cap_.HasWaterCap())
     mprintf("Warning: Stripping of CAP info not supported. Removing CAP info.\n");
   // CHAMBER info
-  if (chamber_.HasChamber()) {
-    newParm->chamber_.SetDescription( chamber_.Description() );
+  if (!ff_desc_.empty())
+    newParm->ff_desc_ = ff_desc_;
+  if (!ub_.empty()) {
     // Urey-Bradley
-    newParm->chamber_.SetUB() = StripBondArray(chamber_.UB(),atomMap);
-    parmMap.assign( chamber_.UBparm().size(), -1 ); // Map[oldidx] = newidx
-    StripBondParmArray( newParm->chamber_.SetUB(), parmMap,
-                        newParm->chamber_.SetUBparm(), chamber_.UBparm() );
+    newParm->ub_ = StripBondArray( ub_, atomMap );
+    parmMap.assign( ubparm_.size(), -1 ); // Map[oldidx] = newidx
+    StripBondParmArray( newParm->ub_, parmMap,
+                        newParm->ubparm_, ubparm_ );
+  }
+  if (!impropers_.empty()) {
     // Impropers
-    newParm->chamber_.SetImpropers() = StripDihedralArray(chamber_.Impropers(), atomMap);
-    parmMap.assign( chamber_.ImproperParm().size(), -1 );
-    StripDihedralParmArray( newParm->chamber_.SetImpropers(), parmMap,
-                            newParm->chamber_.SetImproperParm(), chamber_.ImproperParm() );
+    newParm->impropers_ = StripDihedralArray(impropers_, atomMap);
+    parmMap.assign( improperparm_.size(), -1 );
+    StripDihedralParmArray( newParm->impropers_, parmMap,
+                            newParm->improperparm_, improperparm_ );
     // NOTE 1-4 LJ parameters handled above
-    // CMAP terms
-    if (HasCmap()) {
-      // NOTE that atom indexing is updated but cmap indexing is not. So if
-      // any CMAP terms remain all CMAP entries remain.
-      for (CmapArray::const_iterator cmap = Cmap().begin();
-                                     cmap != Cmap().end(); ++cmap)
-      {
-        int newA1 = atomMap[ cmap->A1() ];
-        if (newA1 != -1) {
-          int newA2 = atomMap[ cmap->A2() ];
-          if (newA2 != -1) {
-            int newA3 = atomMap[ cmap->A3() ];
-            if (newA3 != -1) {
-              int newA4 = atomMap[ cmap->A4() ];
-              if (newA4 != -1) {
-                int newA5 = atomMap[ cmap->A5() ];
-                if (newA5 != -1)
-                  newParm->AddCmapTerm( CmapType(newA1,newA2,newA3,
-                                                          newA4,newA5,cmap->Idx()) );
-              }
+  }
+  // CMAP terms
+  if (HasCmap()) {
+    // NOTE that atom indexing is updated but cmap indexing is not. So if
+    // any CMAP terms remain all CMAP entries remain.
+    for (CmapArray::const_iterator cmap = Cmap().begin();
+                                   cmap != Cmap().end(); ++cmap)
+    {
+      int newA1 = atomMap[ cmap->A1() ];
+      if (newA1 != -1) {
+        int newA2 = atomMap[ cmap->A2() ];
+        if (newA2 != -1) {
+          int newA3 = atomMap[ cmap->A3() ];
+          if (newA3 != -1) {
+            int newA4 = atomMap[ cmap->A4() ];
+            if (newA4 != -1) {
+              int newA5 = atomMap[ cmap->A5() ];
+              if (newA5 != -1)
+                newParm->AddCmapTerm( CmapType(newA1,newA2,newA3,
+                                                        newA4,newA5,cmap->Idx()) );
             }
           }
         }
       }
-      // Only add CMAP grids if there are CMAP terms left.
-      if (!newParm->Cmap().empty()) {
-        for (CmapGridArray::const_iterator g = CmapGrid().begin();
-                                           g != CmapGrid().end(); ++g)
-          newParm->AddCmapGrid( *g );
-      }
+    }
+    // Only add CMAP grids if there are CMAP terms left.
+    if (!newParm->Cmap().empty()) {
+      for (CmapGridArray::const_iterator g = CmapGrid().begin();
+                                         g != CmapGrid().end(); ++g)
+        newParm->AddCmapGrid( *g );
     }
   }
   // Amber extra info.
@@ -2492,11 +2507,13 @@ ParameterSet Topology::GetParameters() const {
   GetDihedralParams( Params.DP(), Params.IP(), atoms_, dihedrals_, dihedralparm_);
   GetDihedralParams( Params.DP(), Params.IP(), atoms_, dihedralsh_, dihedralparm_);
   // CHARMM parameters
-  if (chamber_.HasChamber()) {
+  if (!ub_.empty()) {
     // UB parameters
-    GetBondParams(Params.UB(), atoms_, chamber_.UB(), chamber_.UBparm());
+    GetBondParams(Params.UB(), atoms_, ub_, ubparm_);
+  }
+  if (!impropers_.empty()) {
     // Impropers
-    GetImproperParams( Params.IP(), atoms_, chamber_.Impropers(), chamber_.ImproperParm() );
+    GetImproperParams( Params.IP(), atoms_, impropers_, improperparm_ );
   }
   // CMAPs
   if (GetCmapParams( Params.CMAP(), cmap_, cmapGrid_, atoms_, residues_ )) {
@@ -2565,10 +2582,10 @@ int Topology::AppendTop(Topology const& NewTop) {
                                      NewTop.Dihedrals(), NewTop.DihedralsH(), NewTop.DihedralParm(), NewTop.Atoms());
   Cpptraj::Parm::MergeCmapArrays(cmap_, cmapGrid_, atoms_, residues_,
                                  NewTop.Cmap(), NewTop.CmapGrid(), NewTop.Atoms(), NewTop.Residues());
-  Cpptraj::Parm::MergeBondArray(chamber_.SetUB(), chamber_.SetUBparm(), atoms_,
-                                NewTop.chamber_.UB(), NewTop.chamber_.UBparm(), NewTop.Atoms());
-  Cpptraj::Parm::MergeImproperArray(chamber_.SetImpropers(), chamber_.SetImproperParm(), atoms_,
-                                    NewTop.chamber_.Impropers(), NewTop.chamber_.ImproperParm(), NewTop.Atoms());
+  Cpptraj::Parm::MergeBondArray(ub_, ubparm_, atoms_,
+                                NewTop.ub_, NewTop.ubparm_, NewTop.Atoms());
+  Cpptraj::Parm::MergeImproperArray(impropers_, improperparm_, atoms_,
+                                    NewTop.impropers_, NewTop.improperparm_, NewTop.Atoms());
   // FIXME TODO LJ 1-4 terms
 
   // Append incoming atoms to this topology.
@@ -2693,8 +2710,8 @@ void Topology::AssignBondParams(ParmHolder<BondParmType> const& newBondParams) {
 
 /** Replace any current Urey-Bradley parameters with given UB parameters. */
 void Topology::AssignUBParams(ParmHolder<BondParmType> const& newBondParams) {
-  chamber_.SetUBparm().clear();
-  AssignBondParm( newBondParams, chamber_.SetUB(), chamber_.SetUBparm(), "UB term" );
+  ubparm_.clear();
+  AssignBondParm( newBondParams, ub_, ubparm_, "UB term" );
 }
 
 /** Set parameters for angles in given angle array. */
@@ -2815,8 +2832,8 @@ const
 
 /** Replace any current improper parameters with given improper parameters. */
 void Topology::AssignImproperParams(ImproperParmHolder const& newImproperParams) {
-  chamber_.SetImproperParm().clear();
-  AssignImproperParm( newImproperParams, chamber_.SetImpropers(), chamber_.SetImproperParm() );
+  improperparm_.clear();
+  AssignImproperParm( newImproperParams, impropers_, improperparm_ );
 }
 
 /** Set parameters for dihedrals in given dihedral array.
@@ -3530,7 +3547,7 @@ int Topology::AssignParams(ParameterSet const& set0) {
   // Urey-Bradley
   mprintf("\tAssigning Urey-Bradley parameters.\n");
   AssignUBParams( set0.UB() );
-  if (!chamber_.Impropers().empty()) {
+  if (!impropers_.empty()) {
     // Charmm Improper parameters
     mprintf("\tAssigning CHARMM improper parameters.\n");
     AssignImproperParams( set0.IP() );

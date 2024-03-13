@@ -1263,7 +1263,7 @@ int Parm_Amber::ReadChamberFFtype(Topology& TopIn, FortranData const& FMT) {
       if (nlines > 0) {
         std::string ff_desc = NoTrailingWhitespace( ptr + FMT.Width() );
         mprintf("  %s\n", ff_desc.c_str());
-        TopIn.SetChamber().AddDescription( ff_desc );
+        TopIn.AddDescription( ff_desc );
         for (int line = 1; line < nlines; line++) {
           ptr = file_.NextLine();
           err = fftype_err(ptr, Flag);
@@ -1272,7 +1272,7 @@ int Parm_Amber::ReadChamberFFtype(Topology& TopIn, FortranData const& FMT) {
           else if (err == 2) break;
           ff_desc = NoTrailingWhitespace( ptr + FMT.Width() );
           mprintf("  %s\n", ff_desc.c_str());
-          TopIn.SetChamber().AddDescription( ff_desc );
+          TopIn.AddDescription( ff_desc );
         }
       }
     }
@@ -1286,8 +1286,8 @@ int Parm_Amber::ReadChamberUBCount(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_CHM_UBC, 2, FMT)) return 1;
   UB_count_[0] = atoi(file_.NextElement()); // Number of bonds
   UB_count_[1] = atoi(file_.NextElement()); // Number of parameters
-  TopIn.SetChamber().ReserveUBterms( UB_count_[0] );
-  TopIn.SetChamber().ResizeUBparm( UB_count_[1] );
+  TopIn.ReserveUBterms( UB_count_[0] );
+  TopIn.ResizeUBparm( UB_count_[1] );
   UB_count_[0] *= 3; // Number of bond terms (bonds x 3)
   return 0;
 }
@@ -1300,7 +1300,7 @@ int Parm_Amber::ReadChamberUBTerms(Topology& TopIn, FortranData const& FMT) {
     int a1 = atoi(file_.NextElement()) - 1;
     int a2 = atoi(file_.NextElement()) - 1;
     int bidx = atoi(file_.NextElement()) - 1;
-    TopIn.SetChamber().AddUBterm( BondType(a1, a2, bidx) );
+    TopIn.AddUBterm( BondType(a1, a2, bidx) );
   }
   return 0;
 }
@@ -1309,7 +1309,7 @@ int Parm_Amber::ReadChamberUBTerms(Topology& TopIn, FortranData const& FMT) {
 int Parm_Amber::ReadChamberUBFC(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_CHM_UBFC, UB_count_[1], FMT)) return 1;
   for (int idx = 0; idx != UB_count_[1]; idx++)
-    TopIn.SetChamber().SetUBparm(idx).SetRk( atof(file_.NextElement()) );
+    TopIn.SetUBparm(idx).SetRk( atof(file_.NextElement()) );
   return 0;
 }
 
@@ -1317,7 +1317,7 @@ int Parm_Amber::ReadChamberUBFC(Topology& TopIn, FortranData const& FMT) {
 int Parm_Amber::ReadChamberUBEQ(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_CHM_UBEQ, UB_count_[1], FMT)) return 1;
   for (int idx = 0; idx != UB_count_[1]; idx++)
-    TopIn.SetChamber().SetUBparm(idx).SetReq( atof(file_.NextElement()) );
+    TopIn.SetUBparm(idx).SetReq( atof(file_.NextElement()) );
   return 0;
 }
 
@@ -1325,7 +1325,7 @@ int Parm_Amber::ReadChamberUBEQ(Topology& TopIn, FortranData const& FMT) {
 int Parm_Amber::ReadChamberNumImpropers(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_CHM_NIMP, 1, FMT)) return 1;
   N_impropers_ = atoi(file_.NextElement());
-  TopIn.SetChamber().ReserveImproperTerms( N_impropers_ );
+  TopIn.ReserveImproperTerms( N_impropers_ );
   N_impropers_ *= 5; // Number of improper terms (impropers * 5)
   return 0;
 }
@@ -1334,7 +1334,7 @@ int Parm_Amber::ReadChamberNumImpropers(Topology& TopIn, FortranData const& FMT)
 int Parm_Amber::ReadChamberNumImpTerms(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_CHM_NIMPT, 1, FMT)) return 1;
   N_impTerms_ = atoi(file_.NextElement());
-  TopIn.SetChamber().ResizeImproperParm( N_impTerms_ );
+  TopIn.ResizeImproperParm( N_impTerms_ );
   return 0;
 }
 
@@ -1348,7 +1348,7 @@ int Parm_Amber::ReadChamberImpropers(Topology& TopIn, FortranData const& FMT) {
     int a3 = atoi(file_.NextElement()) - 1;
     int a4 = atoi(file_.NextElement()) - 1;
     int didx = atoi(file_.NextElement()) - 1;
-    TopIn.SetChamber().AddImproperTerm( DihedralType(a1, a2, a3, a4, didx) );
+    TopIn.AddImproperTerm( DihedralType(a1, a2, a3, a4, didx) );
   }
   return 0;
 }
@@ -1357,7 +1357,7 @@ int Parm_Amber::ReadChamberImpropers(Topology& TopIn, FortranData const& FMT) {
 int Parm_Amber::ReadChamberImpFC(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_CHM_IMPFC, N_impTerms_, FMT)) return 1;
   for (int idx = 0; idx != N_impTerms_; idx++)
-    TopIn.SetChamber().SetImproperParm(idx).SetPk( atof(file_.NextElement()) );
+    TopIn.SetImproperParm(idx).SetPk( atof(file_.NextElement()) );
   return 0;
 }
 
@@ -1365,18 +1365,18 @@ int Parm_Amber::ReadChamberImpFC(Topology& TopIn, FortranData const& FMT) {
 int Parm_Amber::ReadChamberImpPHASE(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_CHM_IMPP, N_impTerms_, FMT)) return 1;
   for (int idx = 0; idx != N_impTerms_; idx++)
-    TopIn.SetChamber().SetImproperParm(idx).SetPhase( atof(file_.NextElement()) );
+    TopIn.SetImproperParm(idx).SetPhase( atof(file_.NextElement()) );
   return 0;
 }
 
 // Parm_Amber::ReadChamberLJ14A()
 int Parm_Amber::ReadChamberLJ14A(Topology& TopIn, FortranData const& FMT) {
   // Ensure LJ terms are set up
-  if (TopIn.Chamber().LJ14().empty())
-    TopIn.SetChamber().SetNLJ14terms( numLJparm_ );
+  if (TopIn.Nonbond().LJ14().empty())
+    TopIn.SetNonbond().SetNLJ14terms( numLJparm_ );
   if (SetupBuffer(F_LJ14A, numLJparm_, FMT)) return 1;
   for (int idx = 0; idx != numLJparm_; idx++) {
-    TopIn.SetChamber().SetLJ14(idx).SetA( FileBufferToDouble(F_LJ14A, idx, numLJparm_) );
+    TopIn.SetNonbond().SetLJ14(idx).SetA( FileBufferToDouble(F_LJ14A, idx, numLJparm_) );
     if (atProblemFlag_) break;
   }
   return 0;
@@ -1385,11 +1385,11 @@ int Parm_Amber::ReadChamberLJ14A(Topology& TopIn, FortranData const& FMT) {
 // Parm_Amber::ReadChamberLJ14B()
 int Parm_Amber::ReadChamberLJ14B(Topology& TopIn, FortranData const& FMT) {
   // Ensure LJ terms are set up
-  if (TopIn.Chamber().LJ14().empty())
-    TopIn.SetChamber().SetNLJ14terms( numLJparm_ );
+  if (TopIn.Nonbond().LJ14().empty())
+    TopIn.SetNonbond().SetNLJ14terms( numLJparm_ );
   if (SetupBuffer(F_LJ14B, numLJparm_, FMT)) return 1;
   for (int idx = 0; idx != numLJparm_; idx++) {
-    TopIn.SetChamber().SetLJ14(idx).SetB( FileBufferToDouble(F_LJ14B, idx, numLJparm_) );
+    TopIn.SetNonbond().SetLJ14(idx).SetB( FileBufferToDouble(F_LJ14B, idx, numLJparm_) );
     if (atProblemFlag_) break;
   }
   return 0;
@@ -1806,7 +1806,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   // Determine if this is a CHAMBER topology
   ptype_ = NEWPARM;
   FlagType titleFlag = F_TITLE;
-  if (TopOut.Chamber().HasChamber()) {
+  if (TopOut.HasChamber()) {
     if (!writeChamber_)
       mprintf("\tnochamber: Removing CHAMBER info from topology.\n");
     else {
@@ -1975,17 +1975,17 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   file_.IntToBuffer( TopOut.NextraPts() ); // NEXTRA
   file_.FlushBuffer();
  
-  // CHAMBER only - FF type description 
+  // CHAMBER only - FF type description
   if (ptype_ == CHAMBER) {
     file_.Printf("%%FLAG %-74s\n%-80s\n", FLAGS_[F_FF_TYPE].Flag, FLAGS_[F_FF_TYPE].Fmt);
-    int nlines = (int)TopOut.Chamber().Description().size();
+    int nlines = (int)TopOut.Description().size();
     if (nlines > 99) {
       mprintf("Warning: Number of CHAMBER description lines > 99. Only writing 99.\n", nlines);
       nlines = 99;
     }
     if (nlines > 0) {
       for (int line = 0; line != nlines; line++)
-        file_.Printf("%2i%78s\n", nlines, TopOut.Chamber().Description()[line].c_str());
+        file_.Printf("%2i%78s\n", nlines, TopOut.Description()[line].c_str());
     } else {
       // No description. Write a placeholder.
       file_.Printf("%2i%78s\n", 1, "CHARMM:");
@@ -2077,13 +2077,13 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   if (ptype_ == CHAMBER) {
     // UB COUNT
     if (BufferAlloc(F_CHM_UBC, 2)) return 1;
-    file_.IntToBuffer( TopOut.Chamber().UB().size() );
-    file_.IntToBuffer( TopOut.Chamber().UBparm().size() );
+    file_.IntToBuffer( TopOut.UB().size() );
+    file_.IntToBuffer( TopOut.UBparm().size() );
     file_.FlushBuffer();
     // UB terms
-    if (BufferAlloc(F_CHM_UB, TopOut.Chamber().UB().size()*3)) return 1;
-    for (BondArray::const_iterator it = TopOut.Chamber().UB().begin();
-                                   it != TopOut.Chamber().UB().end(); ++it)
+    if (BufferAlloc(F_CHM_UB, TopOut.UB().size()*3)) return 1;
+    for (BondArray::const_iterator it = TopOut.UB().begin();
+                                   it != TopOut.UB().end(); ++it)
     {
       file_.IntToBuffer( it->A1()+1 );
       file_.IntToBuffer( it->A2()+1 );
@@ -2091,7 +2091,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     }
     file_.FlushBuffer();
     // UB FORCE CONSTANTS and EQ
-    if (WriteBondParm(F_CHM_UBFC, F_CHM_UBEQ, TopOut.Chamber().UBparm())) return 1;
+    if (WriteBondParm(F_CHM_UBFC, F_CHM_UBEQ, TopOut.UBparm())) return 1;
   }
 
   // DIHEDRAL PK
@@ -2133,12 +2133,12 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   if (ptype_ == CHAMBER) {
     // NUM IMPROPERS
     if (BufferAlloc(F_CHM_NIMP, 1)) return 1;
-    file_.IntToBuffer( TopOut.Chamber().Impropers().size() );
+    file_.IntToBuffer( TopOut.Impropers().size() );
     file_.FlushBuffer();
     // IMPROPER TERMS
-    if (BufferAlloc(F_CHM_IMP, TopOut.Chamber().Impropers().size()*5)) return 1;
-    for (DihedralArray::const_iterator it = TopOut.Chamber().Impropers().begin();
-                                       it != TopOut.Chamber().Impropers().end(); ++it)
+    if (BufferAlloc(F_CHM_IMP, TopOut.Impropers().size()*5)) return 1;
+    for (DihedralArray::const_iterator it = TopOut.Impropers().begin();
+                                       it != TopOut.Impropers().end(); ++it)
     {
       file_.IntToBuffer( it->A1() + 1 );
       file_.IntToBuffer( it->A2() + 1 );
@@ -2155,18 +2155,18 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.FlushBuffer();
     // NUM IMPROPER PARAMS
     if (BufferAlloc(F_CHM_NIMPT, 1)) return 1;
-    file_.IntToBuffer( TopOut.Chamber().ImproperParm().size() );
+    file_.IntToBuffer( TopOut.ImproperParm().size() );
     file_.FlushBuffer();
     // IMPROPER FORCE CONSTANTS
-    if (BufferAlloc(F_CHM_IMPFC, TopOut.Chamber().ImproperParm().size())) return 1;
-    for (DihedralParmArray::const_iterator it = TopOut.Chamber().ImproperParm().begin();
-                                           it != TopOut.Chamber().ImproperParm().end(); ++it)
+    if (BufferAlloc(F_CHM_IMPFC, TopOut.ImproperParm().size())) return 1;
+    for (DihedralParmArray::const_iterator it = TopOut.ImproperParm().begin();
+                                           it != TopOut.ImproperParm().end(); ++it)
       file_.DblToBuffer( it->Pk() );
     file_.FlushBuffer();
     // IMPROPER PHASES
-    if (BufferAlloc(F_CHM_IMPP, TopOut.Chamber().ImproperParm().size())) return 1;
-    for (DihedralParmArray::const_iterator it = TopOut.Chamber().ImproperParm().begin();
-                                           it != TopOut.Chamber().ImproperParm().end(); ++it)
+    if (BufferAlloc(F_CHM_IMPP, TopOut.ImproperParm().size())) return 1;
+    for (DihedralParmArray::const_iterator it = TopOut.ImproperParm().begin();
+                                           it != TopOut.ImproperParm().end(); ++it)
       file_.DblToBuffer( it->Phase() );
     file_.FlushBuffer();
   }
@@ -2182,7 +2182,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
  
   // CHAMBER only - LJ 1-4 terms
   if (ptype_ == CHAMBER) {
-    if (WriteLJ(F_LJ14A, F_LJ14B, TopOut.Chamber().LJ14())) return 1;
+    if (WriteLJ(F_LJ14A, F_LJ14B, TopOut.Nonbond().LJ14())) return 1;
   }
 
   // BONDSH and BONDS

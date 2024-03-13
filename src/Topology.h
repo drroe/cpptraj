@@ -25,6 +25,8 @@ class Topology {
     void SetGBradiiSet(std::string const& s) { radius_set_ = s;              }
     void SetParmName(std::string const&, FileName const&);
     void SetDistMaskRef( Frame const& );
+    /// Add forcefield description
+    void AddDescription(std::string const& s) { ff_desc_.push_back( s ); }
     // ----- Return internal variables -----------
     int Ipol()                     const { return ipol_;                  }
     int Pindex()                   const { return pindex_;                }
@@ -33,6 +35,8 @@ class Topology {
     int Nmol()                     const { return (int)molecules_.size(); }
     int Nsolvent()                 const { return NsolventMolecules_;     }
     int NextraPts()                const { return n_extra_pts_;           }
+    /// \return Strings describing forcefield
+    std::vector<std::string> const& Description() const { return ff_desc_; }
     /// \return number of unique atom types
     unsigned int NuniqueAtomTypes() const;
     std::string const& ParmName()         const { return parmName_;       }
@@ -178,8 +182,37 @@ class Topology {
     LES_ParmType  const& LES()    const { return lesparm_; }
     LES_ParmType&        SetLES()       { return lesparm_; }
     // ----- CHAMBER info ------------------------
-    ChamberParmType const& Chamber()        const { return chamber_;      }
-    ChamberParmType& SetChamber()                 { return chamber_;      }
+    /// \return true if any CHARMM parameters are set (based on indices).
+    bool HasChamber() const;
+
+    /// Reserve space for future UB terms
+    void ReserveUBterms(unsigned int n)       { ub_.reserve( n );                 }
+    /// Resize for given number of UB parameters
+    void ResizeUBparm(unsigned int n)         { ubparm_.resize( n );              }
+    /// Add a Urey-Bradley term
+    void AddUBterm(BondType const& bnd)       { ub_.push_back( bnd );             }
+    /// Set specified Urey-Bradley parameter
+    BondParmType& SetUBparm(unsigned int idx) { return ubparm_[idx];              }
+    /// \return Array of Urey-Bradley terms
+    BondArray         const& UB()       const { return ub_;           }
+    /// \return Array of Urey-Bradley parameters
+    BondParmArray     const& UBparm()   const { return ubparm_;       }
+
+
+    /// Reserve space for future improper terms
+    void ReserveImproperTerms(unsigned int n)         { impropers_.reserve( n );     }
+    /// Resize for given number of improper parameters
+    void ResizeImproperParm(unsigned int n)           { improperparm_.resize( n );   }
+    /// Add improper term
+    void AddImproperTerm(DihedralType const& dih)     { impropers_.push_back( dih ); }
+    /// Set specified improper parameter
+    DihedralParmType& SetImproperParm(unsigned int i) { return improperparm_[i];     }
+    /// \return Array of impropers
+    DihedralArray     const& Impropers()        const { return impropers_;    }
+    /// \return Array of improper parameters
+    DihedralParmArray const& ImproperParm()     const { return improperparm_; }
+
+
     void AddCharmmImproper(DihedralType const&, DihedralParmType const&);
     void AddCharmmImproper(DihedralType const&, int);
     void AddCharmmImproper(DihedralType const& i) { AddCharmmImproper(i, -1); }
@@ -264,6 +297,8 @@ class Topology {
     /// Append topology to this one.
     int AppendTop( Topology const& );
   private:
+    typedef std::vector<std::string> Sarray;
+
     void SetAtomBondInfo(BondArray const&);
     // NOTE: Use set so that elements are always sorted.
     typedef std::vector< std::set<Atom::AtomicElementType> > BP_mapType;
@@ -348,7 +383,12 @@ class Topology {
     // Amber-only parameters
     CapParmType cap_;                ///< Water cap information
     LES_ParmType lesparm_;           ///< LES parameters
-    ChamberParmType chamber_;        ///< CHAMBER parameters
+    // Charmm parameters
+    Sarray ff_desc_;                 ///< Force field descriptions
+    BondArray ub_;                   ///< Urey-Bradley terms
+    BondParmArray ubparm_;           ///< Urey-Bradley parameters
+    DihedralArray impropers_;        ///< Improper terms
+    DihedralParmArray improperparm_; ///< Improper parameters
     // "Extra" Amber atom info
     std::vector<NameType> tree_;     ///< Amber TREE_CHAIN_CLASSIFICATION array
     std::vector<int> ijoin_;         ///< Amber JOIN_ARRAY array

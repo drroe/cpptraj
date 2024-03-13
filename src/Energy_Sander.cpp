@@ -351,7 +351,7 @@ int Energy_Sander::CommonInit(Topology const& topIn, Frame& fIn) { // TODO const
      )
     isActive_[HBOND] = true;
   // Are CHARMM terms present?
-  if (topIn.Chamber().HasChamber()) {
+  if (topIn.HasChamber()) {
     isActive_[ANGLE_UB] = true;
     isActive_[IMP] = true;
   }

@@ -566,9 +566,9 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   if ((idx % 2)==0) outfile.Printf("\n");
   outfile.Printf("\n");
   // Write out NIMPHI section
-  WriteSectionHeader(outfile, "!NIMPHI: impropers", parm.Chamber().Impropers().size());
+  WriteSectionHeader(outfile, "!NIMPHI: impropers", parm.Impropers().size());
   idx = 1;
-  WriteDihedrals(parm.Chamber().Impropers(), idx, outfile, dihfmt);
+  WriteDihedrals(parm.Impropers(), idx, outfile, dihfmt);
   if ((idx % 2)==0) outfile.Printf("\n");
   outfile.Printf("\n");
 
