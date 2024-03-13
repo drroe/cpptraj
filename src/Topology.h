@@ -164,6 +164,7 @@ class Topology {
     double GetVDWdepth(int) const;
     /// \return Lennard-Jones 6-12 parameters for given pair of atoms
     inline NonbondType const& GetLJparam(int, int) const;
+    /// Assign LJ 6-12 / 10-12 parameters, reset atom type indices
     void AssignNonbondParams(ParmHolder<AtomType> const&, ParmHolder<NonbondType> const&,
                              ParmHolder<HB_ParmType> const&, int);
     /// \return True if any charge is non-zero
@@ -305,12 +306,6 @@ class Topology {
     void StripDihedralParmArray(DihedralArray&, std::vector<int>&, DihedralParmArray&) const;
     void StripDihedralParmArray(DihedralArray&, std::vector<int>&, DihedralParmArray&,
                                 DihedralParmArray const&) const;
-//    inline void AddBondArray(BondArray const&, BondParmArray const&, int);
-//    inline void AddAngleArray(AngleArray const&, AngleParmArray const&, int);
-//    inline void AddDihArray(DihedralArray const&, DihedralParmArray const&, int);
-
-    /// Update parameters in this Topology with those from combined sets.
-    int updateParams(ParameterSet&, ParameterSet const&);
 
     void AssignAtomTypeParm(ParmHolder<AtomType> const&);
     void AssignBondParm(ParmHolder<BondParmType> const&, BondArray&, BondParmArray&, const char*) const;
