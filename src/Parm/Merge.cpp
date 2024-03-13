@@ -614,3 +614,23 @@ void Cpptraj::Parm::MergeBondArray(BondArray& bonds0,
   mergeBonds.MergeTermArrays( bonds0, tmp,         bp0, atoms0,
                               bonds1, BondArray(), bp1, atoms1 );
 }
+
+// -----------------------------------------------------------------------------
+/** Given improper/improper parameter array from top0 and improper/improper
+  * parameter array from top1, merge the improper arrays and consolidate the
+  * parameters.
+  */
+void Cpptraj::Parm::MergeImproperArray(DihedralArray& impropers0,
+                                       DihedralParmArray& ip0,
+                                       AtArray const& atoms0,
+                                       DihedralArray const& impropers1,
+                                       DihedralParmArray const& ip1,
+                                       AtArray const& atoms1)
+{
+  MergeTopArray<DihedralType, DihedralParmType, DihedralArray, DihedralParmArray> mergeImpropers;
+  mergeImpropers.SetMergeWithExisting( true ); // FIXME check this
+  DihedralArray tmp;
+  // NOTE could be MergeTermArrays as well
+  mergeImpropers.MergeImproperArrays( impropers0, tmp,             ip0, atoms0,
+                                      impropers1, DihedralArray(), ip1, atoms1 );
+}

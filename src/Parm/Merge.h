@@ -32,6 +32,9 @@ void MergeCmapArrays(CmapArray&, CmapGridArray&, AtArray const&, ResArray const&
 /// Merge two bond arrays and their parameters
 void MergeBondArray(BondArray&, BondParmArray&, AtArray const&,
                     BondArray const&, BondParmArray const&, AtArray const&);
+/// Merge two improper arrays and their parameters
+void MergeImproperArray(DihedralArray&, DihedralParmArray&, AtArray const&,
+                        DihedralArray const&, DihedralParmArray const&, AtArray const&);
 }
 }
 #endif

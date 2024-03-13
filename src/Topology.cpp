@@ -2663,7 +2663,8 @@ int Topology::AppendTop(Topology const& NewTop) {
                                  NewTop.Cmap(), NewTop.CmapGrid(), NewTop.Atoms(), NewTop.Residues());
   Cpptraj::Parm::MergeBondArray(chamber_.SetUB(), chamber_.SetUBparm(), atoms_,
                                 NewTop.chamber_.UB(), NewTop.chamber_.UBparm(), NewTop.Atoms());
-
+  Cpptraj::Parm::MergeImproperArray(chamber_.SetImpropers(), chamber_.SetImproperParm(), atoms_,
+                                    NewTop.chamber_.Impropers(), NewTop.chamber_.ImproperParm(), NewTop.Atoms());
   // Append incoming atoms to this topology.
   for (atom_iterator atom = NewTop.begin(); atom != NewTop.end(); ++atom)
   {
@@ -2695,7 +2696,7 @@ int Topology::AppendTop(Topology const& NewTop) {
   //addAnglesWithOffset( anglesh_, NewTop.AnglesH(), atomOffset );
   //addDihedralsWithOffset( dihedrals_, NewTop.Dihedrals(), atomOffset );
   //addDihedralsWithOffset( dihedralsh_, NewTop.DihedralsH(), atomOffset );
-  addDihedralsWithOffset( chamber_.SetImpropers(), NewTop.chamber_.Impropers(), atomOffset );
+  //addDihedralsWithOffset( chamber_.SetImpropers(), NewTop.chamber_.Impropers(), atomOffset );
   //for (CmapArray::const_iterator cm = NewTop.Cmap().begin(); cm != NewTop.Cmap().end(); ++cm)
   //  cmap_.push_back( CmapType(cm->A1() + atomOffset,
   //                            cm->A2() + atomOffset,
