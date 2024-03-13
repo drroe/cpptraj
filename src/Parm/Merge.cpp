@@ -595,3 +595,22 @@ void Cpptraj::Parm::MergeCmapArrays(CmapArray& cmap0,
     cmap0.push_back( idxWithOffset(*c1, idx, atomOffset) );
   } // END loop over cmap terms from top1
 }
+
+// -----------------------------------------------------------------------------
+
+/** Given bond/bond parameter array from top0 and bond/bond parameter
+  * array from top1, merge the bond arrays and consolidate the
+  * parameters.
+  */
+void Cpptraj::Parm::MergeBondArray(BondArray& bonds0,
+                                   BondParmArray& bp0,
+                                   AtArray const& atoms0,
+                                   BondArray const& bonds1,
+                                   BondParmArray const& bp1,
+                                   AtArray const& atoms1)
+{
+  MergeTopArray<BondType, BondParmType, BondArray, BondParmArray> mergeBonds; // FIXME simplify
+  BondArray tmp;
+  mergeBonds.MergeTermArrays( bonds0, tmp,         bp0, atoms0,
+                              bonds1, BondArray(), bp1, atoms1 );
+}
