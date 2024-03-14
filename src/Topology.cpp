@@ -2593,7 +2593,7 @@ static inline void GetLJAtomTypes(ParmHolder<AtomType>& atomTypesOut,
 /** \return ParameterSet for this Topology. */
 ParameterSet Topology::GetParameters() const {
   ParameterSet Params;
-  // Atom LJ types
+  // Atom LJ types and other nonbonded parameters.
   GetLJAtomTypes( Params.AT(), Params.NB(), Params.AT14(), Params.NB14(), Params.HB(), atoms_, nonbond_, debug_ );
   // Bond parameters.
   GetBondParams( Params.BP(), atoms_, bonds_, bondparm_ );
