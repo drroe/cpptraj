@@ -2390,12 +2390,14 @@ static inline int GetCmapParams(CmapParmHolder& cmapParm, CmapArray const& cmapT
 
 /** \param atomTypesOut Output array of atom types.
   * \param LJ612out Output array of LJ 6-12 parameters.
+  * \param LJ14out Output array of LJ 6-12 1-4 parameters.
   * \param LJ1012out Output array of LJ 10-12 parameters.
   * \param atoms Current array of atoms.
   * \param NB0 Current nonbond parameters.
   */
 static inline void GetLJAtomTypes(ParmHolder<AtomType>& atomTypesOut,
                                   ParmHolder<NonbondType>& LJ612out,
+                                  ParmHolder<NonbondType>& LJ14out,
                                   ParmHolder<HB_ParmType>& LJ1012out,
                                   std::vector<Atom> const& atoms,
                                   NonbondParmType const& NB0,
@@ -2413,11 +2415,16 @@ static inline void GetLJAtomTypes(ParmHolder<AtomType>& atomTypesOut,
       TypeNameHolder atype( atm->Type() );
       // Check for self parameters to back-calculate LJ depth/radius
       int idx = NB0.GetLJindex( atm->TypeIndex(), atm->TypeIndex() );
-      AtomType thisType;
+      AtomType thisType, this14type;
       if (idx > -1) {
         // Has LJ 6-12 parameters
         NonbondType const& LJ = NB0.NBarray( idx );
         thisType = AtomType(LJ.Radius(), LJ.Depth(), atm->Mass(), atm->Polar());
+        if (!NB0.LJ14().empty()) {
+          NonbondType const& lj14 = NB0.LJ14( idx );
+          this14type = AtomType(lj14.Radius(), lj14.Depth(), atm->Mass(), atm->Polar()); // TODO mass and polar unneeded
+        }
+        // FIXME do LJ C
       } else {
         // Has LJ 10-12 parameters
         thisType = AtomType(atm->Mass(), atm->Polar());
