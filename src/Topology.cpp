@@ -2688,7 +2688,6 @@ int Topology::AppendTop(Topology const& NewTop) {
                                 NewTop.ub_, NewTop.ubparm_, NewTop.Atoms());
   Cpptraj::Parm::MergeImproperArray(impropers_, improperparm_, atoms_,
                                     NewTop.impropers_, NewTop.improperparm_, NewTop.Atoms());
-  // FIXME TODO LJ 1-4 terms
 
   // Append incoming atoms to this topology.
   for (atom_iterator atom = NewTop.begin(); atom != NewTop.end(); ++atom)
