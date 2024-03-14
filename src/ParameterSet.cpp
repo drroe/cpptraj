@@ -9,14 +9,19 @@ size_t ParameterSet::DataSize() const {
   for (CmapGridArray::const_iterator it = CMAP_.begin(); it != CMAP_.end(); ++it)
     cmapsize += it->DataSize();
   return (atomTypes_.DataSize() +
+          nbParm_.DataSize() +
+          nb14Types_.DataSize() +
+          nb14Parm_.DataSize() +
           bondParm_.DataSize() +
           angleParm_.DataSize() +
           ubParm_.DataSize() +
-          dihParm_.DataSize() +
           impParm_.DataSize() +
+          dihParm_.DataSize() +
           HBparm_.DataSize() +
           cmapsize +
-          (hydrophilicAtomTypes_.size() * NameType::DataSize()));
+          (hydrophilicAtomTypes_.size() * NameType::DataSize()) +
+          sizeof(bool)
+         );
 }
 
 /** Write parameters out to file with given name. */
@@ -34,6 +39,7 @@ void ParameterSet::Summary() const {
   for (ParmHolder<AtomType>::const_iterator at = atomTypes_.begin(); at != atomTypes_.end(); ++at)
     mprintf(" %s", *(at->first[0]));
   mprintf("\n");
+  // TODO 1-4 types?
   mprintf("\t  %zu LJ 6-12 parameters.\n", nbParm_.size());
   mprintf("\t  %zu LJ 6-12 1-4 parameters.\n", nb14Parm_.size());
   mprintf("\t  %zu LJ 10-12 parameters.\n", HBparm_.size());
@@ -199,6 +205,8 @@ int ParameterSet::UpdateParamSet(ParameterSet const& set1, UpdateCount& uc, int 
   uc.nAtomTypeUpdated_ = UpdateParameters< ParmHolder<AtomType> >(set0.AT(), set1.AT(), "atom type", verbose);
   // LJ Pairs
   uc.nLJparamsUpdated_ = UpdateParameters< ParmHolder<NonbondType> >(set0.NB(), set1.NB(), "LJ A-B", verbose);
+  // 1-4 atom types
+  uc.nLJ14typesUpdated_ = UpdateParameters< ParmHolder<AtomType> >(set0.AT14(), set1.AT14(), "LJ 1-4 type", verbose);
   // LJ 1-4 Pairs
   uc.nLJ14paramsUpdated_ = UpdateParameters< ParmHolder<NonbondType> >(set0.NB14(), set1.NB14(), "LJ A-B 1-4", verbose);
   // HB LJ 10-12 Pairs

@@ -6,12 +6,17 @@
 #include "AtomType.h"
 class CpptrajFile;
 /// Hold a set of parameters for atom types, bonds, angles, etc.
+/** NOTE: Although LJ 6-12 regular type indices and 1-4 type indices
+  *       are currently the same, there is a separate 1-4 types variable
+  *       here in case that ever changes in the future.
+  */
 class ParameterSet {
   public:
     ParameterSet() : hasLJparams_(false) {}
 
     ParmHolder<AtomType>& AT()         { return atomTypes_; }
     ParmHolder<NonbondType>& NB()      { return nbParm_;    }
+    ParmHolder<AtomType>& AT14()       { return nb14Types_; }
     ParmHolder<NonbondType>& NB14()    { return nb14Parm_;  }
     ParmHolder<BondParmType>& BP()     { return bondParm_;  }
     ParmHolder<AngleParmType>& AP()    { return angleParm_; }
@@ -27,6 +32,7 @@ class ParameterSet {
 
     ParmHolder<AtomType> const& AT()         const { return atomTypes_; }
     ParmHolder<NonbondType> const& NB()      const { return nbParm_;    }
+    ParmHolder<AtomType> const& AT14()       const { return nb14Types_; }
     ParmHolder<NonbondType> const& NB14()    const { return nb14Parm_;  }
     ParmHolder<BondParmType> const& BP()     const { return bondParm_;  }
     ParmHolder<AngleParmType> const& AP()    const { return angleParm_; }
@@ -54,8 +60,9 @@ class ParameterSet {
         UpdateCount() : nBondsUpdated_(0), nAnglesUpdated_(0),
                         nDihedralsUpdated_(0), nImpropersUpdated_(0),
                         nUreyBradleyUpdated_(0), nAtomTypeUpdated_(0),
-                        nLJparamsUpdated_(0), nLJ14paramsUpdated_(0),
-                        nHBparamsUpdated_(0), nCmapUpdated_(0) {}
+                        nLJparamsUpdated_(0), nLJ14typesUpdated_(0),
+                        nLJ14paramsUpdated_(0), nHBparamsUpdated_(0),
+                        nCmapUpdated_(0) {}
         unsigned int nBondsUpdated_;
         unsigned int nAnglesUpdated_;
         unsigned int nDihedralsUpdated_;
@@ -63,6 +70,7 @@ class ParameterSet {
         unsigned int nUreyBradleyUpdated_;
         unsigned int nAtomTypeUpdated_;
         unsigned int nLJparamsUpdated_;
+        unsigned int nLJ14typesUpdated_;
         unsigned int nLJ14paramsUpdated_;
         unsigned int nHBparamsUpdated_;
         unsigned int nCmapUpdated_;
@@ -89,6 +97,7 @@ class ParameterSet {
 
     ParmHolder<AtomType> atomTypes_;       ///< Atom types
     ParmHolder<NonbondType> nbParm_;       ///< Lennard-Jones 6-12 A-B parameters
+    ParmHolder<AtomType> nb14Types_;       ///< Atom types for LJ 6-12 1-4 interactions
     ParmHolder<NonbondType> nb14Parm_;     ///< LJ 6-12 A-B parameters for 1-4 interactions
     ParmHolder<BondParmType> bondParm_;    ///< Hooke's law bond potential parameters
     ParmHolder<AngleParmType> angleParm_;  ///< Hooke's law angle potential parameters

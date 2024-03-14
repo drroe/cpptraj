@@ -2388,6 +2388,82 @@ static inline int GetCmapParams(CmapParmHolder& cmapParm, CmapArray const& cmapT
   return 0;
 }
 
+/** Loop over atom type pairs, determine what the A and B
+  * parameters should be based on the LJ radius and depth,
+  * then compare to the existing A and B parameters.
+  * Warn if it does not match, store the current A and B
+  * parameters.
+  * \param atomTypesOut The atom types containing radii and depths.
+  * \param LJ612out The output LJ 6-12 A and B paramters.
+  * \param LJ1012ptr If not 0, the output LJ 10-12 parameters.
+  */
+static inline void GetLJterms(ParmHolder<AtomType> const& atomTypesOut,
+                              ParmHolder<NonbondType>& LJ612out,
+                              ParmHolder<HB_ParmType>* LJ1012ptr,
+                              NonbondParmType const& NB0,
+                              bool isLJ14,
+                              int debugIn)
+{
+    // Do atom type pairs, check for off-diagonal elements.
+    // Explicitly store pairs instead of regenerating to avoid round-off issues.
+    unsigned int nModifiedOffDiagonal = 0;
+    for (ParmHolder<AtomType>::const_iterator i1 = atomTypesOut.begin(); i1 != atomTypesOut.end(); ++i1)
+    {
+      for (ParmHolder<AtomType>::const_iterator i2 = i1; i2 != atomTypesOut.end(); ++i2)
+      {
+        NameType const& name1 = i1->first[0];
+        NameType const& name2 = i2->first[0];
+        TypeNameHolder types(2);
+        types.AddName( name1 );
+        types.AddName( name2 );
+        // Extract original nonbonded parameters for this type pair.
+        AtomType const& type1 = i1->second;
+        AtomType const& type2 = i2->second;
+        int idx1 = type1.OriginalIdx();
+        int idx2 = type2.OriginalIdx();
+        int idx = NB0.GetLJindex( idx1, idx2 );
+        if (idx < 0) {
+          // This is LJ 10-12.
+          //mprinterr("Error: No off-diagonal LJ for  %s %s (%i %i)\n",
+          //          *name1, *name2, idx1, idx2);
+          //return;
+          if (LJ1012ptr != 0) {
+            mprintf("DEBUG: LJ 10-12 parameters detected for %s %s (%i %i)\n",
+                    *name1, *name2, idx1, idx2);
+            LJ1012ptr->AddParm( types, NB0.HBarray((-idx)-1), false );
+          }
+        } else {
+          // This is LJ 6-12.
+          // Determine what A and B parameters would be.
+          NonbondType lj0 = type1.LJ().Combine_LB( type2.LJ() );
+
+          NonbondType lj1;
+          if (isLJ14)
+            lj1 = NB0.LJ14( idx );
+          else
+            lj1 = NB0.NBarray( idx );
+          // Compare them
+          if (lj0 != lj1) {
+            nModifiedOffDiagonal++;
+            //if (debugIn > 0) {
+              double deltaA = fabs(lj0.A() - lj1.A());
+              double deltaB = fabs(lj0.B() - lj1.B());
+              mprintf("DEBUG: Potential off-diagonal LJ: %s %s expect A=%g B=%g, actual A=%g B=%g\n",
+                      *name1, *name2, lj0.A(), lj0.B(), lj1.A(), lj1.B());
+              mprintf("DEBUG:\tdeltaA= %g    deltaB= %g\n", deltaA, deltaB);
+              double pe_a = (fabs(lj0.A() - lj1.A()) / lj0.A());
+              double pe_b = (fabs(lj0.B() - lj1.B()) / lj0.B());
+              mprintf("DEBUG:\tPEA= %g  PEB= %g\n", pe_a, pe_b);
+            //}
+          }
+          LJ612out.AddParm( types, lj1, false );
+        }
+      } // END inner loop over atom types
+    } // END outer loop over atom types
+    if (nModifiedOffDiagonal > 0)
+      mprintf("Warning: %u modified off-diagonal LJ terms present.\n", nModifiedOffDiagonal);
+}
+
 /** \param atomTypesOut Output array of atom types.
   * \param LJ612out Output array of LJ 6-12 parameters.
   * \param LJ14out Output array of LJ 6-12 1-4 parameters.
@@ -2397,6 +2473,7 @@ static inline int GetCmapParams(CmapParmHolder& cmapParm, CmapArray const& cmapT
   */
 static inline void GetLJAtomTypes(ParmHolder<AtomType>& atomTypesOut,
                                   ParmHolder<NonbondType>& LJ612out,
+                                  ParmHolder<AtomType>& LJ14typesOut,
                                   ParmHolder<NonbondType>& LJ14out,
                                   ParmHolder<HB_ParmType>& LJ1012out,
                                   std::vector<Atom> const& atoms,
@@ -2405,6 +2482,7 @@ static inline void GetLJAtomTypes(ParmHolder<AtomType>& atomTypesOut,
 {
   if (NB0.HasNonbond()) {
     mprintf("DEBUG: Topology has nonbond parameters.\n");
+    bool hasLJ14 = !NB0.LJ14().empty();
     // Nonbonded parameters are present.
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
     {
@@ -2415,14 +2493,23 @@ static inline void GetLJAtomTypes(ParmHolder<AtomType>& atomTypesOut,
       TypeNameHolder atype( atm->Type() );
       // Check for self parameters to back-calculate LJ depth/radius
       int idx = NB0.GetLJindex( atm->TypeIndex(), atm->TypeIndex() );
-      AtomType thisType, this14type;
+      AtomType thisType;
       if (idx > -1) {
         // Has LJ 6-12 parameters
         NonbondType const& LJ = NB0.NBarray( idx );
         thisType = AtomType(LJ.Radius(), LJ.Depth(), atm->Mass(), atm->Polar());
-        if (!NB0.LJ14().empty()) {
+        if (hasLJ14) {
+          // NOTE: Even though we do not need mass/polarizability for LJ14 types,
+          //       use AtomType anyway so we can use the same routine as the
+          //       regular 6-12 terms for determining off-diagonal elements.
+          //LJparmType this14type;
           NonbondType const& lj14 = NB0.LJ14( idx );
-          this14type = AtomType(lj14.Radius(), lj14.Depth(), atm->Mass(), atm->Polar()); // TODO mass and polar unneeded
+          AtomType this14type = AtomType(lj14.Radius(), lj14.Depth(), 0, 0); // NOTE: empty mass/polarizability
+          this14type.SetTypeIdx( atm->TypeIndex() );
+          ParameterHolders::RetType ret14 = LJ14typesOut.AddParm( atype, this14type, true );
+          if (debugIn > 0 && ret14 == ParameterHolders::ADDED) {
+            mprintf("DEBUG: New LJ14 atom type: %s R=%g D=%g\n", *(atype[0]), this14type.LJ().Radius(), this14type.LJ().Depth());
+          }
         }
         // FIXME do LJ C
       } else {
@@ -2431,14 +2518,17 @@ static inline void GetLJAtomTypes(ParmHolder<AtomType>& atomTypesOut,
       }
       thisType.SetTypeIdx( atm->TypeIndex() );
       ParameterHolders::RetType ret = atomTypesOut.AddParm( atype, thisType, true );
-      if (debugIn > 0) {
-        if (ret == ParameterHolders::ADDED) {
-          mprintf("DEBUG: New atom type: %s R=%g D=%g M=%g P=%g\n", *(atype[0]), thisType.LJ().Radius(), thisType.LJ().Depth(), thisType.Mass(), thisType.Polarizability());
-        }
+      if (debugIn > 0 && ret == ParameterHolders::ADDED) {
+        mprintf("DEBUG: New atom type: %s R=%g D=%g M=%g P=%g\n", *(atype[0]),
+                thisType.LJ().Radius(), thisType.LJ().Depth(), thisType.Mass(), thisType.Polarizability());
       }
     }
     // Do atom type pairs, check for off-diagonal elements.
     // Explicitly store pairs instead of regenerating to avoid round-off issues.
+    GetLJterms(atomTypesOut, LJ612out, &LJ1012out, NB0, false, debugIn);
+    if (hasLJ14)
+      GetLJterms(LJ14typesOut, LJ14out, 0, NB0, true, debugIn);
+/*
     unsigned int nModifiedOffDiagonal = 0;
     for (ParmHolder<AtomType>::const_iterator i1 = atomTypesOut.begin(); i1 != atomTypesOut.end(); ++i1)
     {
@@ -2489,6 +2579,7 @@ static inline void GetLJAtomTypes(ParmHolder<AtomType>& atomTypesOut,
     } // END outer loop over atom types
     if (nModifiedOffDiagonal > 0)
       mprintf("Warning: %u modified off-diagonal LJ terms present.\n", nModifiedOffDiagonal);
+*/
   } else {
     if (!atoms.empty())
       mprintf("DEBUG: Topology does not have nonbond parameters.\n");
@@ -2503,7 +2594,7 @@ static inline void GetLJAtomTypes(ParmHolder<AtomType>& atomTypesOut,
 ParameterSet Topology::GetParameters() const {
   ParameterSet Params;
   // Atom LJ types
-  GetLJAtomTypes( Params.AT(), Params.NB(), Params.HB(), atoms_, nonbond_, debug_ );
+  GetLJAtomTypes( Params.AT(), Params.NB(), Params.AT14(), Params.NB14(), Params.HB(), atoms_, nonbond_, debug_ );
   // Bond parameters.
   GetBondParams( Params.BP(), atoms_, bonds_, bondparm_ );
   GetBondParams( Params.BP(), atoms_, bondsh_, bondparm_ );
@@ -2570,15 +2661,19 @@ int Topology::AppendTop(Topology const& NewTop) {
   // Save nonbonded parameters from each topology
   ParmHolder<AtomType> myAtomTypes, newAtomTypes;
   ParmHolder<NonbondType> myNB, newNB;
+  ParmHolder<AtomType> my14Types, new14Types;
+  ParmHolder<NonbondType> my14, new14;
   ParmHolder<HB_ParmType> myHB, newHB;
-  GetLJAtomTypes( myAtomTypes, myNB, myHB, atoms_, nonbond_, debug_ );
-  GetLJAtomTypes( newAtomTypes, newNB, newHB, NewTop.atoms_, NewTop.nonbond_, debug_ );
+  GetLJAtomTypes( myAtomTypes, myNB, my14Types, my14, myHB, atoms_, nonbond_, debug_ );
+  GetLJAtomTypes( newAtomTypes, newNB, new14Types, new14, newHB, NewTop.atoms_, NewTop.nonbond_, debug_ );
   // Create combined nonbond parameter set
   int nAtomTypeUpdated = UpdateParameters< ParmHolder<AtomType> >( myAtomTypes, newAtomTypes, "atom type", 1 ); // TODO verbose 
   int nLJparamsUpdated = UpdateParameters< ParmHolder<NonbondType> >( myNB, newNB, "LJ 6-12", 1 ); // TODO verbose
+  int n14TypeUpdated   = UpdateParameters< ParmHolder<AtomType> >( my14Types, new14Types, "1-4 atom type", 1) ; // TODO verbose
+  int n14paramsUpdated = UpdateParameters< ParmHolder<NonbondType> >( my14, new14, "LJ 6-12 1-4", 1); // TODO verbose
   int nHBparamsUpdated = UpdateParameters< ParmHolder<HB_ParmType> >( myHB, newHB, "LJ 10-12", 1); // TODO verbose
-  mprintf("\t%i atom types updated, %i LJ 6-12 params updated, %i LJ 10-12 params updated.\n",
-          nAtomTypeUpdated, nLJparamsUpdated, nHBparamsUpdated);
+  mprintf("\t%i atom types updated, %i LJ 6-12 params updated, %i 1-4 types updated, %i 1-4 params updated, %i LJ 10-12 params updated.\n",
+          nAtomTypeUpdated, nLJparamsUpdated, n14TypeUpdated, n14paramsUpdated, nHBparamsUpdated);
 
   // Add incoming topology bond/angle/dihedral/cmap arrays to this one.
   Cpptraj::Parm::MergeBondArrays(bonds_, bondsh_, bondparm_, atoms_,
