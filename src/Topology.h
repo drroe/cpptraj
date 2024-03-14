@@ -170,6 +170,7 @@ class Topology {
     inline NonbondType const& GetLJparam(int, int) const;
     /// Assign LJ 6-12 / 10-12 parameters, reset atom type indices
     void AssignNonbondParams(ParmHolder<AtomType> const&, ParmHolder<NonbondType> const&,
+                             ParmHolder<AtomType> const&, ParmHolder<NonbondType> const&,
                              ParmHolder<HB_ParmType> const&, int);
     /// \return True if any charge is non-zero
     bool HasChargeInfo() const;

@@ -2723,7 +2723,7 @@ int Topology::AppendTop(Topology const& NewTop) {
 
   // Need to regenerate nonbonded info
   mprintf("\tRegenerating nonbond parameters.\n");
-  AssignNonbondParams( myAtomTypes, myNB, myHB, 1 ); // FIXME verbose
+  AssignNonbondParams( myAtomTypes, myNB, my14Types, my14, myHB, 1 ); // FIXME verbose
 
   // The version of AddTopAtom() with molecule number already determines
   // molecules and number of solvent molecules.
@@ -3221,11 +3221,14 @@ void Topology::AssignDihedralParams(DihedralParmHolder const& newDihedralParams,
 //TODO Accept array of atom type names?
 void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
                                    ParmHolder<NonbondType> const& newNB,
+                                   ParmHolder<AtomType> const& new14types,
+                                   ParmHolder<NonbondType> const& new14,
                                    ParmHolder<HB_ParmType> const& newHB,
                                    int verbose)
 {
+  bool hasLJ14 = !new14.empty();
   // Generate array of only the types that are currently in Topology. TODO should this be a permanent part of Topology?
-  ParmHolder<AtomType> currentAtomTypes;
+  ParmHolder<AtomType> currentAtomTypes, current14Types;
   for (std::vector<Atom>::const_iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
   {
     if (atm->HasType()) {
@@ -3239,6 +3242,15 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
         newAT = AtomType(atm->Mass());
       }
       currentAtomTypes.AddParm( types, newAT, true );
+      // Find LJ14 types if needed
+      if (hasLJ14) {
+        AtomType new14AT = new14types.FindParam( types, found );
+        if (!found) {
+          mprintf("Warning: No 1-4 atom type information for type '%s'\n", *types[0]); // TODO error out here?
+          new14AT = AtomType(atm->Mass());
+        }
+        current14Types.AddParm( types, new14AT, true );
+      }
     }
   }
   if (currentAtomTypes.size() < 1) {
@@ -3268,6 +3280,8 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
   }
   mprintf("DEBUG: Setting up nonbond array for %i unique LJ types.\n", n_unique_lj_types);
   nonbond_.SetupLJforNtypes( n_unique_lj_types );
+  if (hasLJ14)
+    nonbond_.SetNLJ14terms( nonbond_.NBarray().size() );
   // Loop over all atom type pairs
   for (ParmHolder<AtomType>::const_iterator t1 = currentAtomTypes.begin(); t1 != currentAtomTypes.end(); ++t1)
   {
@@ -3298,10 +3312,33 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
           if (verbose > 0) mprintf("Using existing NB parameter for %s %s\n", *name1, *name2);
           LJAB = it->second;
         }
-        nonbond_.AddLJterm(t1->second.OriginalIdx(), t2->second.OriginalIdx(), LJAB);
-      }
-    }
-  }
+        int ljidx = nonbond_.AddLJterm(t1->second.OriginalIdx(), t2->second.OriginalIdx(), LJAB);
+        // LJ 1-4
+        if (hasLJ14) {
+          // Get parameter if it exists
+          ParmHolder<NonbondType>::const_iterator it = new14.GetParam( types );
+          if (it == new14.end()) {
+            if (verbose > 0) mprintf("NB 1-4 parameter for %s %s not found. Generating.\n", *name1, *name2);
+            bool found;
+            AtomType at14_1 = current14Types.FindParam(t1->first, found);
+            if (!found) {
+              mprinterr("Internal Error: LJ 1-4 parameter not found for %s\n", *name1);
+              return;
+            }
+            AtomType at14_2 = current14Types.FindParam(t2->first, found);
+            if (!found) {
+              mprinterr("Internal Error: LJ 1-4 parameter not found for %s\n", *name2);
+              return;
+            }
+            nonbond_.SetLJ14( ljidx ) = at14_1.LJ().Combine_LB( at14_2.LJ() );
+          } else {
+            if (verbose > 0) mprintf("Using existing NB 1-4 parameter for %s %s\n", *name1, *name2);
+            nonbond_.SetLJ14( ljidx ) = it->second;
+          }
+        } // END hasLJ14
+      } // END is LJ
+    } // END inner loop over current types
+  } // END outer loop over current types
   // Reset the atom type indices.
   for (std::vector<Atom>::iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
   {
@@ -3666,7 +3703,7 @@ int Topology::AssignParams(ParameterSet const& set0) {
   AssignAtomTypeParm( set0.AT() );
   // LJ 6-12
   mprintf("\tAssigning nonbond parameters.\n");
-  AssignNonbondParams( set0.AT(), set0.NB(), set0.HB(), debug_ );
+  AssignNonbondParams( set0.AT(), set0.NB(), set0.AT14(), set0.NB14(), set0.HB(), debug_ );
   mprintf("DEBUG: CMAP size %zu\n", set0.CMAP().size());
   // TODO LJ14, LJC
 
@@ -3735,9 +3772,11 @@ int Topology::UpdateParams(ParameterSet const& set1) {
     AssignAtomTypeParm( set0.AT() );
   }
 //  updateCount += UpdateParameters< ParmHolder<NonbondType> >(set0.NB(), set1.NB(), "LJ A-B");
-  if (UC.nAtomTypeUpdated_ > 0) {
+  if (UC.nAtomTypeUpdated_ > 0 || UC.nLJ14typesUpdated_ > 0 ||
+      UC.nLJparamsUpdated_ > 0 || UC.nLJ14paramsUpdated_ > 0)
+  {
     mprintf("\tRegenerating nonbond parameters.\n");
-    AssignNonbondParams( set0.AT(), set0.NB(), set0.HB(), debug_ );
+    AssignNonbondParams( set0.AT(), set0.NB(), set0.AT14(), set0.NB14(), set0.HB(), debug_ );
   }
   // CMAP
   if (UC.nCmapUpdated_ > 0) {
