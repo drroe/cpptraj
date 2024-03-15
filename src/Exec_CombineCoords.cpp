@@ -30,8 +30,8 @@ Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
     setname = argIn.GetStringNext();
   }
   if (CRD.size() < 2) {
-    mprinterr("Error: %s: Must specify at least 2 COORDS data sets\n", argIn.Command());
-    return CpptrajState::ERR;
+    mprintf("Warning: %s: Less than 2 COORDS data sets specified.\n", argIn.Command());
+    //return CpptrajState::ERR;
   }
   mprintf("\tCombining %zu sets:", CRD.size());
   for (std::vector<DataSet_Coords*>::const_iterator it = CRD.begin(); it != CRD.end(); ++it)
@@ -42,7 +42,14 @@ Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
   Topology CombinedTop;
   CombinedTop.SetDebug( State.Debug() );
   if (parmname.empty()) {
-    parmname = CRD[0]->Top().ParmName() + "_" + CRD[1]->Top().ParmName();
+    for (std::vector<DataSet_Coords*>::const_iterator it = CRD.begin();
+                                                      it != CRD.end(); ++it)
+    {
+      if (it == CRD.begin())
+        parmname = CRD[0]->Top().ParmName();
+      else
+        parmname.append( "_" + CRD[1]->Top().ParmName() );
+    }
     addTop = false;
   }
   CombinedTop.SetParmName( parmname, FileName() );
