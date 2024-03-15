@@ -377,7 +377,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
 
   // Add nonbonded parameters
   if (params_.HasLJparams()) {
-    parmOut.AssignNonbondParams( atomTypes, params_.NB(), params_.AT14(), params_.NB14(), params_.HB(), debug_ );
+    parmOut.AssignNonbondParams( atomTypes, params_.NB(), params_.NB14(), params_.HB(), debug_ );
   }
 
   return 0;

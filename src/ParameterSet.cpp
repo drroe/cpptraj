@@ -10,7 +10,6 @@ size_t ParameterSet::DataSize() const {
     cmapsize += it->DataSize();
   return (atomTypes_.DataSize() +
           nbParm_.DataSize() +
-          nb14Types_.DataSize() +
           nb14Parm_.DataSize() +
           bondParm_.DataSize() +
           angleParm_.DataSize() +
@@ -205,8 +204,6 @@ int ParameterSet::UpdateParamSet(ParameterSet const& set1, UpdateCount& uc, int 
   uc.nAtomTypeUpdated_ = UpdateParameters< ParmHolder<AtomType> >(set0.AT(), set1.AT(), "atom type", verbose);
   // LJ Pairs
   uc.nLJparamsUpdated_ = UpdateParameters< ParmHolder<NonbondType> >(set0.NB(), set1.NB(), "LJ A-B", verbose);
-  // 1-4 atom types
-  uc.nLJ14typesUpdated_ = UpdateParameters< ParmHolder<AtomType> >(set0.AT14(), set1.AT14(), "LJ 1-4 type", verbose);
   // LJ 1-4 Pairs
   uc.nLJ14paramsUpdated_ = UpdateParameters< ParmHolder<NonbondType> >(set0.NB14(), set1.NB14(), "LJ A-B 1-4", verbose);
   // HB LJ 10-12 Pairs

@@ -16,7 +16,6 @@ class ParameterSet {
 
     ParmHolder<AtomType>& AT()         { return atomTypes_; }
     ParmHolder<NonbondType>& NB()      { return nbParm_;    }
-    ParmHolder<AtomType>& AT14()       { return nb14Types_; }
     ParmHolder<NonbondType>& NB14()    { return nb14Parm_;  }
     ParmHolder<BondParmType>& BP()     { return bondParm_;  }
     ParmHolder<AngleParmType>& AP()    { return angleParm_; }
@@ -32,7 +31,6 @@ class ParameterSet {
 
     ParmHolder<AtomType> const& AT()         const { return atomTypes_; }
     ParmHolder<NonbondType> const& NB()      const { return nbParm_;    }
-    ParmHolder<AtomType> const& AT14()       const { return nb14Types_; }
     ParmHolder<NonbondType> const& NB14()    const { return nb14Parm_;  }
     ParmHolder<BondParmType> const& BP()     const { return bondParm_;  }
     ParmHolder<AngleParmType> const& AP()    const { return angleParm_; }
@@ -97,7 +95,6 @@ class ParameterSet {
 
     ParmHolder<AtomType> atomTypes_;       ///< Atom types
     ParmHolder<NonbondType> nbParm_;       ///< Lennard-Jones 6-12 A-B parameters
-    ParmHolder<AtomType> nb14Types_;       ///< Atom types for LJ 6-12 1-4 interactions
     ParmHolder<NonbondType> nb14Parm_;     ///< LJ 6-12 A-B parameters for 1-4 interactions
     ParmHolder<BondParmType> bondParm_;    ///< Hooke's law bond potential parameters
     ParmHolder<AngleParmType> angleParm_;  ///< Hooke's law angle potential parameters
