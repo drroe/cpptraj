@@ -144,26 +144,15 @@ class MergeTopArray
     MergeTopArray() : merge_with_existing_(false) {}
     /// Indicate parameters from top1 already present in top0 should not be added as new
     void SetMergeWithExisting(bool b) { merge_with_existing_ = b; }
-    /// Index type array
-    //typedef std::vector<IdxType> IdxArray;
-    /// Parm type array
-    //typedef std::vector<ParmType> ParmArray;
   private:
-    /// Append term1 to arrayX0/arrayY0 arrays along with parameters
-    void append_term(IdxArray& arrayX0,
-                     IdxArray& arrayY0,
-                     ParmArray& p0,
-                     unsigned int atomOffset,
-                     IdxType const& term1,
+    /// Append parameter for given types
+    /** \return Index of newly-added parameter to p0 */
+    int append_param(TypeNameHolder const& types,
                      ParmHolder<int>& currentTypes0,
+                     ParmArray& p0,
                      ParmHolder<int> const& currentTypes1,
-                     ParmArray const& p1,
-                     std::vector<Atom> const& atoms1)
+                     ParmArray const& p1)
     {
-      printIdx(term1, atomOffset);
-      bool hasH;
-      TypeNameHolder types = getTypes(hasH, term1, atoms1, p1);
-      mprintf("DEBUG: Looking for types in top0:");
       printTypes( types ); // DEBUG
       // Do we have an existing parameter in top0
       bool found;
@@ -206,11 +195,47 @@ class MergeTopArray
         currentTypes0.AddParm(types, idx, false);
       }
       mprintf("DEBUG: top0 parameter index is %i\n", idx+1);
+      return idx;
+    }
+    /// Append term1 to arrayX0/arrayY0 arrays along with parameters
+    void append_term(IdxArray& arrayX0,
+                     IdxArray& arrayY0,
+                     ParmArray& p0,
+                     unsigned int atomOffset,
+                     IdxType const& term1,
+                     ParmHolder<int>& currentTypes0,
+                     ParmHolder<int> const& currentTypes1,
+                     ParmArray const& p1,
+                     std::vector<Atom> const& atoms1)
+    {
+      printIdx(term1, atomOffset);
+      bool hasH;
+      TypeNameHolder types = getTypes(hasH, term1, atoms1, p1);
+      mprintf("DEBUG: Looking for types in top0:");
+      int idx = append_param( types, currentTypes0, p0, currentTypes1, p1 );
       // At this point we have either found a parameter or not.
       if (hasH)
         arrayY0.push_back( idxWithOffset(term1, idx, atomOffset) );
       else
         arrayX0.push_back( idxWithOffset(term1, idx, atomOffset) );
+    }
+    /// Append term1 to arrayX0 array along with parameter
+    void append_term(IdxArray& arrayX0,
+                     ParmArray& p0,
+                     unsigned int atomOffset,
+                     IdxType const& term1,
+                     ParmHolder<int>& currentTypes0,
+                     ParmHolder<int> const& currentTypes1,
+                     ParmArray const& p1,
+                     std::vector<Atom> const& atoms1)
+    {
+      printIdx(term1, atomOffset);
+      bool hasH;
+      TypeNameHolder types = getTypes(hasH, term1, atoms1, p1);
+      mprintf("DEBUG: Looking for types in top0:");
+      int idx = append_param( types, currentTypes0, p0, currentTypes1, p1 );
+      // At this point we have either found a parameter or not.
+      arrayX0.push_back( idxWithOffset(term1, idx, atomOffset) );
     }
 
     /// Index existing term types in term arrays
@@ -366,7 +391,25 @@ class MergeTopArray
         for (; by != termsh1.end(); ++by)
           append_term( terms0, termsh0, p0, atomOffset, *by, currentTypes0, currentTypes1, p1, atoms1 );
       }
-    } // END MergeTermArrays
+    } // END MergeImproperArrays
+    /// Merge two term/parm arrays
+    void MergeTermArray(IdxArray& terms0,
+                        ParmArray& p0,
+                        std::vector<Atom> const& atoms0,
+                        IdxArray const& terms1,
+                        ParmArray const& p1,
+                        std::vector<Atom> const& atoms1)
+    {
+      // First index existing parameters
+      ParmHolder<int> currentTypes0, currentTypes1;
+      index_term_types(currentTypes0, terms0, atoms0, p0);
+      index_term_types(currentTypes1, terms1, atoms1, p1);
+      unsigned int atomOffset = atoms0.size();
+      for (typename IdxArray::const_iterator it = terms1.begin(); it != terms1.end(); ++it) {
+        append_term( terms0, p0, atomOffset, *it, currentTypes0, currentTypes1, p1, atoms1 );
+      }
+    } // END MergeTermArray
+
   private:
     bool merge_with_existing_;
 
@@ -609,10 +652,10 @@ void Cpptraj::Parm::MergeBondArray(BondArray& bonds0,
                                    BondParmArray const& bp1,
                                    AtArray const& atoms1)
 {
-  MergeTopArray<BondType, BondParmType, BondArray, BondParmArray> mergeBonds; // FIXME simplify
-  BondArray tmp;
-  mergeBonds.MergeTermArrays( bonds0, tmp,         bp0, atoms0,
-                              bonds1, BondArray(), bp1, atoms1 );
+  mprintf("DEBUG: Enter MergeBondArray()\n");
+  MergeTopArray<BondType, BondParmType, BondArray, BondParmArray> mergeBonds;
+  mergeBonds.MergeTermArray( bonds0, bp0, atoms0,
+                             bonds1, bp1, atoms1 );
 }
 
 // -----------------------------------------------------------------------------
@@ -629,8 +672,7 @@ void Cpptraj::Parm::MergeImproperArray(DihedralArray& impropers0,
 {
   MergeTopArray<DihedralType, DihedralParmType, DihedralArray, DihedralParmArray> mergeImpropers;
   mergeImpropers.SetMergeWithExisting( true ); // FIXME check this
-  DihedralArray tmp;
   // NOTE could be MergeTermArrays as well
-  mergeImpropers.MergeImproperArrays( impropers0, tmp,             ip0, atoms0,
-                                      impropers1, DihedralArray(), ip1, atoms1 );
+  mergeImpropers.MergeTermArray( impropers0, ip0, atoms0,
+                                 impropers1, ip1, atoms1 );
 }
