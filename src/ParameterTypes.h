@@ -667,6 +667,8 @@ class NonbondParmType {
     NonbondType const& NBarray(int i)    const { return nbarray_[i]; }
     /// \return LJ 6-12 1-4 A and B parameter at specified index
     NonbondType const& LJ14(int i)       const { return lj14_[i]; }
+    /// \return LJC parameter at specified index
+    double LJC_Array(int idx)            const { return ccoef_[idx]; }
     /// \return LJ 10-12 (hbond) parameter at specified index
     HB_ParmType const& HBarray(int i)    const { return hbarray_[i]; }
     /// In Amber, index < 0 means HB, otherwise LJ 6-12

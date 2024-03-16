@@ -11,6 +11,7 @@ size_t ParameterSet::DataSize() const {
   return (atomTypes_.DataSize() +
           nbParm_.DataSize() +
           nb14Parm_.DataSize() +
+          ljcParm_.DataSize() +
           bondParm_.DataSize() +
           angleParm_.DataSize() +
           ubParm_.DataSize() +
@@ -41,6 +42,7 @@ void ParameterSet::Summary() const {
   // TODO 1-4 types?
   mprintf("\t  %zu LJ 6-12 parameters.\n", nbParm_.size());
   mprintf("\t  %zu LJ 6-12 1-4 parameters.\n", nb14Parm_.size());
+  mprintf("\t  %zu LJ C parameters.\n", ljcParm_.size());
   mprintf("\t  %zu LJ 10-12 parameters.\n", HBparm_.size());
   mprintf("\t  %zu bond parameters.\n", bondParm_.size());
   mprintf("\t  %zu angle parameters.\n", angleParm_.size());
@@ -72,6 +74,12 @@ void ParameterSet::Print(CpptrajFile& Out) const {
     Out.Printf("\t%6s %6s : %12s %12s\n", "Type1", "Type2", "A", "B");
     for (ParmHolder<NonbondType>::const_iterator nb = nb14Parm_.begin(); nb != nb14Parm_.end(); ++nb)
       Out.Printf("\t%6s %6s : %12.4E %12.4E\n", (*nb->first[0]), (*nb->first[1]), nb->second.A(), nb->second.B());
+  }
+  if (!ljcParm_.empty()) {
+    Out.Printf("LJ C parameters:\n");
+    Out.Printf("\t%6s %6s : %12s\n", "Type1", "Type2", "C");
+    for (ParmHolder<NonbondType>::const_iterator nb = nb14Parm_.begin(); nb != nb14Parm_.end(); ++nb)
+      Out.Printf("\t%6s %6s : %12.4E\n", (*nb->first[0]), (*nb->first[1]), nb->second);
   }
   if (!HBparm_.empty()) {
     Out.Printf("HB LJ 10-12 parameters:\n");

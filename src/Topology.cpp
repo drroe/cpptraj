@@ -2474,6 +2474,7 @@ static inline int GetCmapParams(CmapParmHolder& cmapParm, CmapArray const& cmapT
 static inline void GetLJAtomTypes(ParmHolder<AtomType>& atomTypesOut,
                                   ParmHolder<NonbondType>& LJ612out,
                                   ParmHolder<NonbondType>& LJ14out,
+                                  ParmHolder<double>& LJCout,
                                   ParmHolder<HB_ParmType>& LJ1012out,
                                   std::vector<Atom> const& atoms,
                                   NonbondParmType const& NB0,
@@ -2484,6 +2485,9 @@ static inline void GetLJAtomTypes(ParmHolder<AtomType>& atomTypesOut,
     bool hasLJ14 = !NB0.LJ14().empty();
     if (hasLJ14)
       mprintf("DEBUG: Topology has 1-4 nonbond parameters.\n");
+    bool hasLJC = !NB0.LJC_Array().empty();
+    if (hasLJC)
+      mprintf("DEBUG: Topology has LJC nonbond paramters.\n");
     // Nonbonded parameters are present.
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
     {
@@ -2591,6 +2595,11 @@ static inline void GetLJAtomTypes(ParmHolder<AtomType>& atomTypesOut,
             }
             LJ14out.AddParm( types, lj1, false );
           } // END hasLJ14
+          if (hasLJC) {
+            // This is LJC
+            double ljc1 = NB0.LJC_Array( idx );
+            LJCout.AddParm( types, ljc1, false );
+          }
         }
       } // END inner loop over atom types
     } // END outer loop over atom types
@@ -2612,7 +2621,7 @@ static inline void GetLJAtomTypes(ParmHolder<AtomType>& atomTypesOut,
 ParameterSet Topology::GetParameters() const {
   ParameterSet Params;
   // Atom LJ types and other nonbonded parameters.
-  GetLJAtomTypes( Params.AT(), Params.NB(), Params.NB14(), Params.HB(), atoms_, nonbond_, debug_ );
+  GetLJAtomTypes( Params.AT(), Params.NB(), Params.NB14(), Params.LJC(), Params.HB(), atoms_, nonbond_, debug_ );
   // Bond parameters.
   GetBondParams( Params.BP(), atoms_, bonds_, bondparm_ );
   GetBondParams( Params.BP(), atoms_, bondsh_, bondparm_ );
@@ -2681,15 +2690,17 @@ int Topology::AppendTop(Topology const& NewTop) {
   ParmHolder<NonbondType> myNB, newNB;
   ParmHolder<NonbondType> my14, new14;
   ParmHolder<HB_ParmType> myHB, newHB;
-  GetLJAtomTypes( myAtomTypes, myNB, my14, myHB, atoms_, nonbond_, debug_ );
-  GetLJAtomTypes( newAtomTypes, newNB, new14, newHB, NewTop.atoms_, NewTop.nonbond_, debug_ );
+  ParmHolder<double> myLJC, newLJC;
+  GetLJAtomTypes( myAtomTypes, myNB, my14, myLJC, myHB, atoms_, nonbond_, debug_ );
+  GetLJAtomTypes( newAtomTypes, newNB, new14, newLJC, newHB, NewTop.atoms_, NewTop.nonbond_, debug_ );
   // Create combined nonbond parameter set
   int nAtomTypeUpdated = UpdateParameters< ParmHolder<AtomType> >( myAtomTypes, newAtomTypes, "atom type", 1 ); // TODO verbose 
   int nLJparamsUpdated = UpdateParameters< ParmHolder<NonbondType> >( myNB, newNB, "LJ 6-12", 1 ); // TODO verbose
   int n14paramsUpdated = UpdateParameters< ParmHolder<NonbondType> >( my14, new14, "LJ 6-12 1-4", 1); // TODO verbose
+  int nljcparamsUpdated = UpdateParameters< ParmHolder<double> >( myLJC, newLJC, "LJ C", 1); // TODO verbose
   int nHBparamsUpdated = UpdateParameters< ParmHolder<HB_ParmType> >( myHB, newHB, "LJ 10-12", 1); // TODO verbose
-  mprintf("\t%i atom types updated, %i LJ 6-12 params updated, %i 1-4 params updated, %i LJ 10-12 params updated.\n",
-          nAtomTypeUpdated, nLJparamsUpdated, n14paramsUpdated, nHBparamsUpdated);
+  mprintf("\t%i atom types updated, %i LJ 6-12 params updated, %i 1-4 params updated, %i LJC params updated, %i LJ 10-12 params updated.\n",
+          nAtomTypeUpdated, nLJparamsUpdated, n14paramsUpdated, nljcparamsUpdated, nHBparamsUpdated);
 
   // Add incoming topology bond/angle/dihedral/cmap arrays to this one.
   Cpptraj::Parm::MergeBondArrays(bonds_, bondsh_, bondparm_, atoms_,
@@ -2738,7 +2749,7 @@ int Topology::AppendTop(Topology const& NewTop) {
 
   // Need to regenerate nonbonded info
   mprintf("\tRegenerating nonbond parameters.\n");
-  AssignNonbondParams( myAtomTypes, myNB, my14, myHB, 1 ); // FIXME verbose
+  AssignNonbondParams( myAtomTypes, myNB, my14, myHB, 1 ); // FIXME verbose TODO LJC
 
   // The version of AddTopAtom() with molecule number already determines
   // molecules and number of solvent molecules.
@@ -3782,7 +3793,7 @@ int Topology::UpdateParams(ParameterSet const& set1) {
     AssignAtomTypeParm( set0.AT() );
   }
 //  updateCount += UpdateParameters< ParmHolder<NonbondType> >(set0.NB(), set1.NB(), "LJ A-B");
-  if (UC.nAtomTypeUpdated_ > 0 || UC.nLJ14typesUpdated_ > 0 ||
+  if (UC.nAtomTypeUpdated_ > 0 || UC.nLJCUpdated_ > 0 ||
       UC.nLJparamsUpdated_ > 0 || UC.nLJ14paramsUpdated_ > 0)
   {
     mprintf("\tRegenerating nonbond parameters.\n");

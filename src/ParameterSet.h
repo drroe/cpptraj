@@ -17,6 +17,7 @@ class ParameterSet {
     ParmHolder<AtomType>& AT()         { return atomTypes_; }
     ParmHolder<NonbondType>& NB()      { return nbParm_;    }
     ParmHolder<NonbondType>& NB14()    { return nb14Parm_;  }
+    ParmHolder<double>& LJC()          { return ljcParm_;   }
     ParmHolder<BondParmType>& BP()     { return bondParm_;  }
     ParmHolder<AngleParmType>& AP()    { return angleParm_; }
     ParmHolder<BondParmType>& UB()     { return ubParm_;    }
@@ -32,6 +33,7 @@ class ParameterSet {
     ParmHolder<AtomType> const& AT()         const { return atomTypes_; }
     ParmHolder<NonbondType> const& NB()      const { return nbParm_;    }
     ParmHolder<NonbondType> const& NB14()    const { return nb14Parm_;  }
+    ParmHolder<double> const& LJC()          const { return ljcParm_;   }
     ParmHolder<BondParmType> const& BP()     const { return bondParm_;  }
     ParmHolder<AngleParmType> const& AP()    const { return angleParm_; }
     ParmHolder<BondParmType> const& UB()     const { return ubParm_;    }
@@ -58,7 +60,7 @@ class ParameterSet {
         UpdateCount() : nBondsUpdated_(0), nAnglesUpdated_(0),
                         nDihedralsUpdated_(0), nImpropersUpdated_(0),
                         nUreyBradleyUpdated_(0), nAtomTypeUpdated_(0),
-                        nLJparamsUpdated_(0), nLJ14typesUpdated_(0),
+                        nLJparamsUpdated_(0), nLJCUpdated_(0),
                         nLJ14paramsUpdated_(0), nHBparamsUpdated_(0),
                         nCmapUpdated_(0) {}
         unsigned int nBondsUpdated_;
@@ -68,7 +70,7 @@ class ParameterSet {
         unsigned int nUreyBradleyUpdated_;
         unsigned int nAtomTypeUpdated_;
         unsigned int nLJparamsUpdated_;
-        unsigned int nLJ14typesUpdated_;
+        unsigned int nLJCUpdated_;
         unsigned int nLJ14paramsUpdated_;
         unsigned int nHBparamsUpdated_;
         unsigned int nCmapUpdated_;
@@ -96,6 +98,7 @@ class ParameterSet {
     ParmHolder<AtomType> atomTypes_;       ///< Atom types
     ParmHolder<NonbondType> nbParm_;       ///< Lennard-Jones 6-12 A-B parameters
     ParmHolder<NonbondType> nb14Parm_;     ///< LJ 6-12 A-B parameters for 1-4 interactions
+    ParmHolder<double> ljcParm_;           ///< LJ 12-6-4 C parameters
     ParmHolder<BondParmType> bondParm_;    ///< Hooke's law bond potential parameters
     ParmHolder<AngleParmType> angleParm_;  ///< Hooke's law angle potential parameters
     ParmHolder<BondParmType> ubParm_;      ///< Urey-Bradley parameters
