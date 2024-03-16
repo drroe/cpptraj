@@ -684,10 +684,14 @@ class NonbondParmType {
     void SetupLJforNtypes(int n) { SetNtypes(n); nbarray_.assign((n*(n+1))/2, NonbondType()); }
     /// Set number of LJ 1-4 terms
     void SetNLJ14terms(int n)    { lj14_.assign( n, NonbondType() ); }
+    /// Set number of LJC terms
+    void SetNLJCterms(int n)     { ccoef_.assign( n, 0 ); }
     /// Set specified LJ term
     NonbondType& SetLJ(int i)    { return nbarray_[i];                  }
     /// Set specified LJ 1-4 term
     NonbondType& SetLJ14(int i)  { return lj14_[i];    }
+    /// Set specified LJC term
+    void SetLJC(int i, double ljc) { ccoef_[i] = ljc; }
     /// Set number of HB terms and init HB array TODO combine with SetNtypes?
     void SetNHBterms(int n)   { hbarray_.assign( n, HB_ParmType() ); }
     /// Set specified HB term

@@ -1770,7 +1770,10 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     // Set up new nonbond and nonbond index arrays.
     newParm->nonbond_.SetNtypes( oldTypeArray.size() );
     if (!nonbond_.LJ14().empty())
-      newParm->nonbond_.SetNLJ14terms( (oldTypeArray.size()*(oldTypeArray.size()+1))/2 );
+      //newParm->nonbond_.SetNLJ14terms( (oldTypeArray.size()*(oldTypeArray.size()+1))/2 );
+      newParm->nonbond_.SetNLJ14terms( newParm->nonbond_.NBarray().size() );
+    if (!nonbond_.LJC_Array().empty())
+      newParm->nonbond_.SetNLJCterms( newParm->nonbond_.NBarray().size() );
     for (int a1idx = 0; a1idx != (int)oldTypeArray.size(); a1idx++)
     {
       int atm1 = oldTypeArray[a1idx];
@@ -1778,15 +1781,16 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
       {
         int atm2 = oldTypeArray[a2idx];
         int oldnbidx = nonbond_.GetLJindex( atm1, atm2 );
+        int newnbidx;
         if (oldnbidx > -1) {
           // This is a traditional LJ 6-12 term. Because of the way the LJ 1-4
           // code is laid out in sander/pmemd the LJ matrix has to be laid out
           // indepdendent of the nonbond index array.
-          newParm->nonbond_.AddLJterm( a1idx, a2idx, nonbond_.NBarray(oldnbidx) );
+          newnbidx = newParm->nonbond_.AddLJterm( a1idx, a2idx, nonbond_.NBarray(oldnbidx) );
         } else {
           // This is an old LJ 10-12 hbond term. Add one to the LJ 6-12 matrix
           // and one to the hbond since that seems to be the convention.
-          newParm->nonbond_.AddLJterm( a1idx, a2idx, NonbondType() );
+          newnbidx = newParm->nonbond_.AddLJterm( a1idx, a2idx, NonbondType() );
           newParm->nonbond_.AddHBterm( a1idx, a2idx, nonbond_.HBarray((-oldnbidx)-1) );
         }
         //int newnbidx = newParm->nonbond_.GetLJindex( a1idx, a2idx );
@@ -1795,13 +1799,17 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
         if (!nonbond_.LJ14().empty()) {
           // Update LJ 1-4 as well. No need to worry about hbond terms here,
           // just recalculate the old index and determine new one.
-          int ibig = std::max(atm1, atm2) + 1;
-          int isml = std::min(atm1, atm2) + 1;
-              oldnbidx = (ibig*(ibig-1)/2+isml)-1;
-              ibig = a2idx + 1;
-              isml = a1idx + 1;
-          int newnbidx = (ibig*(ibig-1)/2+isml)-1;
+          //int ibig = std::max(atm1, atm2) + 1;
+          //int isml = std::min(atm1, atm2) + 1;
+          //    oldnbidx = (ibig*(ibig-1)/2+isml)-1;
+          //    ibig = a2idx + 1;
+          //    isml = a1idx + 1;
+          //int newnbidx = (ibig*(ibig-1)/2+isml)-1;
           newParm->nonbond_.SetLJ14( newnbidx ) = nonbond_.LJ14()[oldnbidx];
+        }
+        if (!nonbond_.LJC_Array().empty()) {
+          // Update LJC
+          newParm->nonbond_.SetLJC( newnbidx, nonbond_.LJC_Array( oldnbidx ) );
         }
       }
     }
@@ -2749,7 +2757,7 @@ int Topology::AppendTop(Topology const& NewTop) {
 
   // Need to regenerate nonbonded info
   mprintf("\tRegenerating nonbond parameters.\n");
-  AssignNonbondParams( myAtomTypes, myNB, my14, myHB, 1 ); // FIXME verbose TODO LJC
+  AssignNonbondParams( myAtomTypes, myNB, my14, myLJC, myHB, 1 ); // FIXME verbose TODO LJC
 
   // The version of AddTopAtom() with molecule number already determines
   // molecules and number of solvent molecules.
@@ -3248,10 +3256,12 @@ void Topology::AssignDihedralParams(DihedralParmHolder const& newDihedralParams,
 void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
                                    ParmHolder<NonbondType> const& newNB,
                                    ParmHolder<NonbondType> const& new14,
+                                   ParmHolder<double> const& newLJC,
                                    ParmHolder<HB_ParmType> const& newHB,
                                    int verbose)
 {
   bool hasLJ14 = !new14.empty();
+  bool hasLJC = !newLJC.empty();
   // Generate array of only the types that are currently in Topology. TODO should this be a permanent part of Topology?
   ParmHolder<AtomType> currentAtomTypes;
   for (std::vector<Atom>::const_iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
@@ -3292,6 +3302,7 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
       t1->second.SetTypeIdx( n_unique_lj_types );
       // Look for equivalent nonbond types
       for (ParmHolder<AtomType>::iterator t2 = t1 + 1; t2 != currentAtomTypes.end(); ++t2) {
+        // Everything must match
         if (!hasLJ14) {
           if (t2->second.OriginalIdx() == -1 && t1->second.LJ() == t2->second.LJ()) {
             mprintf("DEBUG: Type %s equivalent to type %s\n", *(t2->first[0]), *(t1->first[0]));
@@ -3314,6 +3325,8 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
   nonbond_.SetupLJforNtypes( n_unique_lj_types );
   if (hasLJ14)
     nonbond_.SetNLJ14terms( nonbond_.NBarray().size() );
+  if (hasLJC)
+    nonbond_.SetNLJCterms( nonbond_.NBarray().size() );
   // Loop over all atom type pairs
   for (ParmHolder<AtomType>::const_iterator t1 = currentAtomTypes.begin(); t1 != currentAtomTypes.end(); ++t1)
   {
@@ -3328,11 +3341,14 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
       TypeNameHolder types(2);
       types.AddName( name1 );
       types.AddName( name2 );
+      int newnbidx;
       // Check for LJ10-12 first
       ParmHolder<HB_ParmType>::const_iterator hb = newHB.GetParam( types );
       if (hb != newHB.end()) {
         if (verbose > 0) mprintf("LJ 10-12 parameter found for %s %s\n", *name1, *name2);
         nonbond_.AddHBterm(t1->second.OriginalIdx(), t2->second.OriginalIdx(), hb->second);
+        // Also add a blank 6-12 term since that seems to be the convention
+        newnbidx = nonbond_.AddLJterm( t1->second.OriginalIdx(), t2->second.OriginalIdx(), NonbondType() );
       } else {
         // See if this parameter exists in the given nonbond array.
         NonbondType LJAB;
@@ -3344,20 +3360,32 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
           if (verbose > 0) mprintf("Using existing NB parameter for %s %s\n", *name1, *name2);
           LJAB = it->second;
         }
-        int ljidx = nonbond_.AddLJterm(t1->second.OriginalIdx(), t2->second.OriginalIdx(), LJAB);
-        // LJ 1-4
-        if (hasLJ14) {
-          // Get parameter if it exists
-          ParmHolder<NonbondType>::const_iterator it = new14.GetParam( types );
-          if (it == new14.end()) {
-            if (verbose > 0) mprintf("NB 1-4 parameter for %s %s not found. Generating.\n", *name1, *name2);
-            nonbond_.SetLJ14( ljidx ) = type1.LJ14().Combine_LB( type2.LJ14() );
-          } else {
-            if (verbose > 0) mprintf("Using existing NB 1-4 parameter for %s %s\n", *name1, *name2);
-            nonbond_.SetLJ14( ljidx ) = it->second;
-          }
-        } // END hasLJ14
-      } // END is LJ
+        newnbidx = nonbond_.AddLJterm(t1->second.OriginalIdx(), t2->second.OriginalIdx(), LJAB);
+      }
+      // LJ 1-4
+      if (hasLJ14) {
+        // Get parameter if it exists
+        ParmHolder<NonbondType>::const_iterator it = new14.GetParam( types );
+        if (it == new14.end()) {
+          if (verbose > 0) mprintf("NB 1-4 parameter for %s %s not found. Generating.\n", *name1, *name2);
+          nonbond_.SetLJ14( newnbidx ) = type1.LJ14().Combine_LB( type2.LJ14() );
+        } else {
+          if (verbose > 0) mprintf("Using existing NB 1-4 parameter for %s %s\n", *name1, *name2);
+          nonbond_.SetLJ14( newnbidx ) = it->second;
+        }
+      } // END hasLJ14
+      // LJC
+      if (hasLJC) {
+        // Get parameter if it exists
+        ParmHolder<double>::const_iterator it = newLJC.GetParam( types );
+        if (it == newLJC.end()) {
+          mprintf("LJC parameter for %s %s not found. Setting to 0.\n", *name1, *name2); // FIXME generate
+          nonbond_.SetLJC( newnbidx, 0 );
+        } else {
+          mprintf("Using existing LJC parameter for %s %s\n", *name1, *name2);
+          nonbond_.SetLJC( newnbidx, it->second );
+        }
+      } // END hasLJC
     } // END inner loop over current types
   } // END outer loop over current types
   // Reset the atom type indices.
@@ -3724,7 +3752,7 @@ int Topology::AssignParams(ParameterSet const& set0) {
   AssignAtomTypeParm( set0.AT() );
   // LJ 6-12
   mprintf("\tAssigning nonbond parameters.\n");
-  AssignNonbondParams( set0.AT(), set0.NB(), set0.NB14(), set0.HB(), debug_ );
+  AssignNonbondParams( set0.AT(), set0.NB(), set0.NB14(), set0.LJC(), set0.HB(), debug_ );
   mprintf("DEBUG: CMAP size %zu\n", set0.CMAP().size());
   // TODO LJ14, LJC
 
@@ -3797,7 +3825,7 @@ int Topology::UpdateParams(ParameterSet const& set1) {
       UC.nLJparamsUpdated_ > 0 || UC.nLJ14paramsUpdated_ > 0)
   {
     mprintf("\tRegenerating nonbond parameters.\n");
-    AssignNonbondParams( set0.AT(), set0.NB(), set0.NB14(), set0.HB(), debug_ );
+    AssignNonbondParams( set0.AT(), set0.NB(), set0.NB14(), set0.LJC(), set0.HB(), debug_ );
   }
   // CMAP
   if (UC.nCmapUpdated_ > 0) {
