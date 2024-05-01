@@ -10,6 +10,10 @@ class Exec_Change : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Change(); }
     RetType Execute(CpptrajState&, ArgList&);
   private:
+    enum ChangeType { MASS_TO = 0, CHARGE_TO, MASS_BY, CHARGE_BY };
+    /// Change mass or charge
+    static inline void changeTopVal(Topology&, int, ChangeType, double);
+
     int ChangeSplitRes(Topology&, ArgList&) const;
     int ChangeResidueName(Topology&, ArgList&) const;
     int ChangeOresNums(Topology&, ArgList&) const;
@@ -22,5 +26,6 @@ class Exec_Change : public Exec {
     int RemoveBonds(CpptrajState&, Topology&, ArgList&) const;
     int ChangeBondParameters(Topology&, ArgList&) const;
     int ChangeMassOrCharge(Topology&, ArgList&, DataSetList const&, int) const;
+    int ChangeMergeRes(Topology&, ArgList&) const;
 };
 #endif
