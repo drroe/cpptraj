@@ -32,11 +32,19 @@ class HbCalc {
     typedef std::vector<Type> Tarray;
     typedef std::vector<Site> Sarray;
     typedef std::vector<int> Iarray;
+    typedef std::vector<PairList::Aarray> HbCellArray;
 
     /// \return True if Atom element is F, O, or N
     static inline bool IsFON( Atom const& );
 
     int setupPairlistAtomMask(Topology const&);
+
+
+    int GridAtom(int, Vec3 const&, Vec3 const&);
+    int grid_orthogonal(int, const double*, Matrix_3x3 const&,  Matrix_3x3 const&);
+    int grid_nonOrthogonal(int, const double*, Matrix_3x3 const&,  Matrix_3x3 const&);
+    int PlaceSitesOnGrid(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&);
+
 
     PairList pairList_;    ///< Pair list for atoms involved in hydrogen bond calc
     AtomMask generalMask_; ///< Mask of atoms to potentially calculate hydrogen bonds for
@@ -44,6 +52,8 @@ class HbCalc {
     Tarray plTypes_;       ///< Type of each atom in plMask_
     Sarray Both_;          ///< HB donor/acceptor sites followed by donor-only
     Iarray Acceptor_;      ///< HB acceptor sites
+    HbCellArray bothCells_; ///< Pairlist cells containing donor/acceptor sites
+    HbCellArray acceptorCells_; ///< Pairlist cells containing acceptor sites
     double dcut2_;         ///< Heavy atom distance cutoff (Ang) squared
 };
 }

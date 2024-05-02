@@ -133,6 +133,63 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
   return 0;
 }
 
+/** Place atom into cell TODO put into pairlist */
+int HbCalc::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
+  return 0;
+}
+
+/** Orthogonal imaging TODO put into PairList */
+int HbCalc::grid_orthogonal(int idx, const double* XYZ, Matrix_3x3 const& ucell,  Matrix_3x3 const& recip) {
+      Vec3 fc( XYZ[0]*recip[0],    XYZ[1]*recip[4],    XYZ[2]*recip[8]   );
+      Vec3 fcw(fc[0]-floor(fc[0]), fc[1]-floor(fc[1]), fc[2]-floor(fc[2]));
+      Vec3 ccw(fcw[0]*ucell[0],    fcw[1]*ucell[4],    fcw[2]*ucell[8]   );
+#     ifdef DEBUG_PAIRLIST
+      mprintf("DBG: o %6i fc=%7.3f%7.3f%7.3f  fcw=%7.3f%7.3f%7.3f  ccw=%7.3f%7.3f%7.3f\n",
+              *atom+1, fc[0], fc[1], fc[2], fcw[0], fcw[1], fcw[2], ccw[0], ccw[1], ccw[2]);
+#     endif
+      return GridAtom( idx, fcw, ccw );
+}
+
+/** Non-orthogonal imaging TODO put into PairList */
+int HbCalc::grid_nonOrthogonal(int idx, const double* XYZ, Matrix_3x3 const& ucell,  Matrix_3x3 const& recip) {
+      Vec3 fc = recip * Vec3(XYZ);
+      Vec3 fcw(fc[0]-floor(fc[0]), fc[1]-floor(fc[1]), fc[2]-floor(fc[2]));
+      Vec3 ccw = ucell.TransposeMult( fcw );
+#     ifdef DEBUG_PAIRLIST
+      mprintf("DBG: n %6i fc=%7.3f%7.3f%7.3f  fcw=%7.3f%7.3f%7.3f  ccw=%7.3f%7.3f%7.3f\n",
+              *atom+1, fc[0], fc[1], fc[2], fcw[0], fcw[1], fcw[2], ccw[0], ccw[1], ccw[2]);
+#     endif
+      return GridAtom( idx, fcw, ccw );
+}
+
+/** Place donor/acceptor sites and acceptor sites into their respective grids. */
+int HbCalc::PlaceSitesOnGrid(Frame const& frmIn, Matrix_3x3 const& ucell,
+                             Matrix_3x3 const& recip)
+{
+  for (HbCellArray::iterator cell = bothCells_.begin(); cell != bothCells_.end(); ++cell)
+    cell->clear();
+  for (HbCellArray::iterator cell = acceptorCells_.begin(); cell != acceptorCells_.end(); ++cell)
+    cell->clear();
+  int nOffGrid = 0;
+  if (frmIn.BoxCrd().Is_X_Aligned_Ortho()) {
+    // Orthogonal imaging
+    for (Sarray::const_iterator site = Both_.begin(); site != Both_.end(); ++site)
+    {
+      const double* XYZ = frmIn.XYZ(site->Idx());
+      nOffGrid += grid_orthogonal( site - Both_.begin(), XYZ, ucell, recip );
+    }
+  } else {
+    // Non-orthogonal imaging
+    for (Iarray::const_iterator it = Acceptor_.begin(); it != Acceptor_.end(); ++it)
+    {
+      const double* XYZ = frmIn.XYZ( *it );
+      nOffGrid += grid_nonOrthogonal( it - Acceptor_.begin(), XYZ, ucell, recip );
+    }
+  }
+  return 0;
+}
+
+
 /** HB calc loop with a pairlist */
 int HbCalc::RunCalc_PL(Frame const& currentFrame)
 {
