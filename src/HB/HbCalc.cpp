@@ -77,28 +77,37 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
   plTypes_.clear();
 
   int nsites = 0;
+  Both_.clear();
+  Acceptor_.clear();
+  //Iarray Donor;
   for (AtomMask::const_iterator at = generalMask_.begin(); at != generalMask_.end(); ++at) {
     Atom const& currentAtom = topIn[*at];
     if (IsFON( currentAtom )) {
-      int nh = 0;
+      Iarray h_atoms;
       for (Atom::bond_iterator bat = currentAtom.bondbegin(); bat != currentAtom.bondend(); ++bat) {
         if (topIn[*bat].Element() == Atom::HYDROGEN) {
-          nh++;
+          h_atoms.push_back( *bat );
           IdxTypes.push_back( Ptype(*bat, HYDROGEN) );
         }
       }
       int molnum = currentAtom.MolNum();
       Type currentType;
       if ( topIn.Mol(molnum).IsSolvent()) {
-        if (nh == 0)
+        if (h_atoms.empty()) {
           currentType = VACCEPTOR;
-        else
+          Acceptor_.push_back( *at );
+        } else {
           currentType = VBOTH;
+          Both_.push_back( Site(*at, h_atoms) );
+        }
       } else {
-        if (nh == 0)
+        if (h_atoms.empty()) {
           currentType = ACCEPTOR;
-         else
+          Acceptor_.push_back( *at );
+        } else {
           currentType = BOTH;
+          Both_.push_back( Site(*at, h_atoms) );
+        }
       }
       nsites++;
       IdxTypes.push_back( Ptype(*at, currentType) );
