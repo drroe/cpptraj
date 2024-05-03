@@ -72,6 +72,8 @@ class PairList {
     int SetupPairList(Box const&);
     /// Create pair list from Frame, unit cell and recip matrices, and mask.
     int CreatePairList(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&, AtomMask const&);
+    /// Prepare the pair list grid
+    int PreparePairList(Matrix_3x3 const&, Vec3 const&);
     /// Print timing info as percent of given total.
     void Timing(double) const;
     /// Print timing into as percent of given total with specified number of tab indents.

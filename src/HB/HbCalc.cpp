@@ -187,7 +187,7 @@ int HbCalc::PlaceSitesOnGrid(Frame const& frmIn, Matrix_3x3 const& ucell,
     cell->clear();
   int nOffGrid = 0;
   if (frmIn.BoxCrd().Is_X_Aligned_Ortho()) {
-    // Orthogonal imaging
+    // Orthogonal imaging // FIXME may need to pass in actual atom index to grid_XXX functions instead of array index
     for (Sarray::const_iterator site = Both_.begin(); site != Both_.end(); ++site)
     {
       const double* XYZ = frmIn.XYZ(site->Idx());
@@ -211,21 +211,26 @@ int HbCalc::PlaceSitesOnGrid(Frame const& frmIn, Matrix_3x3 const& ucell,
       nOffGrid += grid_nonOrthogonal( acceptorCells_, it - Acceptor_.begin(), XYZ, ucell, recip );
     }
   }
-  return 0;
+  return nOffGrid;
 }
 
 
 /** HB calc loop with a pairlist */
 int HbCalc::RunCalc_PL(Frame const& currentFrame)
 {
-  int retVal = pairList_.CreatePairList(currentFrame,
-                                        currentFrame.BoxCrd().UnitCell(),
-                                        currentFrame.BoxCrd().FracCell(), plMask_);
+  //int retVal = pairList_.CreatePairList(currentFrame,
+  //                                      currentFrame.BoxCrd().UnitCell(),
+  //                                      currentFrame.BoxCrd().FracCell(), plMask_);
+  int retVal = pairList_.PreparePairList(currentFrame.BoxCrd().UnitCell(), currentFrame.BoxCrd().RecipLengths());
   if (retVal < 0) {
     mprinterr("Error: Grid setup failed.\n");
     return 1;
+  }
+  retVal = PlaceSitesOnGrid(currentFrame, currentFrame.BoxCrd().UnitCell(), currentFrame.BoxCrd().FracCell());
+  if (retVal < 0) {
+    mprinterr("Error: Placing sites on grids failed.\n");
   } else if (retVal > 0) {
-    mprintf("Warning: %i atoms are off the grid.\n", retVal);
+   mprintf("Warning: %i atoms are off the grid.\n", retVal);
   }
   //problemAtoms_.clear();
 
