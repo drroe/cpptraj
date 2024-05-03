@@ -36,7 +36,7 @@ int HbCalc::InitHbCalc(ArgList& argIn, int debugIn) {
 
   generalMask_.SetMaskString( argIn.GetMaskNext() );
 
-  pairList_.InitPairList( dcut, 1.0, debugIn );
+  pairList_.InitPairList( 8.0, 0.1, debugIn );
 
   return 0;
 }
