@@ -40,9 +40,9 @@ class HbCalc {
     int setupPairlistAtomMask(Topology const&);
 
 
-    int GridAtom(int, Vec3 const&, Vec3 const&);
-    int grid_orthogonal(int, const double*, Matrix_3x3 const&,  Matrix_3x3 const&);
-    int grid_nonOrthogonal(int, const double*, Matrix_3x3 const&,  Matrix_3x3 const&);
+    int GridAtom(HbCellArray&, int, Vec3 const&, Vec3 const&) const;
+    int grid_orthogonal(HbCellArray&, int, const double*, Matrix_3x3 const&,  Matrix_3x3 const&) const;
+    int grid_nonOrthogonal(HbCellArray&, int, const double*, Matrix_3x3 const&,  Matrix_3x3 const&) const;
     int PlaceSitesOnGrid(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&);
 
 
