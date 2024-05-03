@@ -187,33 +187,32 @@ int HbCalc::PlaceSitesOnGrid(Frame const& frmIn, Matrix_3x3 const& ucell,
     cell->clear();
   int nOffGrid = 0;
   if (frmIn.BoxCrd().Is_X_Aligned_Ortho()) {
-    // Orthogonal imaging // FIXME may need to pass in actual atom index to grid_XXX functions instead of array index
+    // Orthogonal imaging
     for (Sarray::const_iterator site = Both_.begin(); site != Both_.end(); ++site)
     {
       const double* XYZ = frmIn.XYZ(site->Idx());
-      nOffGrid += grid_orthogonal( bothCells_, site - Both_.begin(), XYZ, ucell, recip );
+      nOffGrid += grid_orthogonal( bothCells_, site->Idx(), XYZ, ucell, recip );
     }
     for (Iarray::const_iterator it = Acceptor_.begin(); it != Acceptor_.end(); ++it)
     {
       const double* XYZ = frmIn.XYZ( *it );
-      nOffGrid += grid_orthogonal( acceptorCells_, it - Acceptor_.begin(), XYZ, ucell, recip );
+      nOffGrid += grid_orthogonal( acceptorCells_, *it, XYZ, ucell, recip );
     }
   } else {
     // Non-orthogonal imaging
     for (Sarray::const_iterator site = Both_.begin(); site != Both_.end(); ++site)
     {
       const double* XYZ = frmIn.XYZ(site->Idx());
-      nOffGrid += grid_nonOrthogonal( bothCells_, site - Both_.begin(), XYZ, ucell, recip );
+      nOffGrid += grid_nonOrthogonal( bothCells_, site->Idx(), XYZ, ucell, recip );
     }
     for (Iarray::const_iterator it = Acceptor_.begin(); it != Acceptor_.end(); ++it)
     {
       const double* XYZ = frmIn.XYZ( *it );
-      nOffGrid += grid_nonOrthogonal( acceptorCells_, it - Acceptor_.begin(), XYZ, ucell, recip );
+      nOffGrid += grid_nonOrthogonal( acceptorCells_, *it, XYZ, ucell, recip );
     }
   }
   return nOffGrid;
 }
-
 
 /** HB calc loop with a pairlist */
 int HbCalc::RunCalc_PL(Frame const& currentFrame)
@@ -242,76 +241,82 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame)
 # pragma omp parallel private(cidx,mythread) 
   {
   mythread = omp_get_thread_num();
-  thread_problemAtoms_[mythread].clear();
+//  thread_problemAtoms_[mythread].clear();
 # pragma omp for
 # endif 
   for (cidx = 0; cidx < pairList_.NGridMax(); cidx++)
   {
     PairList::CellType const& thisCell = pairList_.Cell( cidx );
-    if (thisCell.NatomsInGrid() > 0)
-    {
-      // cellList contains this cell index and all neighbors.
-      PairList::Iarray const& cellList = thisCell.CellList();
-      // transList contains index to translation for the neighbor.
-      PairList::Iarray const& transList = thisCell.TransList();
-      // Loop over all atoms of thisCell.
-      for (PairList::CellType::const_iterator it0 = thisCell.begin();
-                                              it0 != thisCell.end(); ++it0)
+    // cellList contains this cell index and all neighbors.
+    PairList::Iarray const& cellList = thisCell.CellList();
+    // transList contains index to translation for the neighbor.
+    PairList::Iarray const& transList = thisCell.TransList();
+
+    PairList::Aarray const& bothList = bothCells_[ cidx ];
+    if (!bothList.empty()) {
+      PairList::Aarray const& accList = acceptorCells_[ cidx ];
+
+      // Loop over donor/acceptor atoms of thisCell
+      for (PairList::Aarray::const_iterator it0 = bothList.begin();
+                                            it0 != bothList.end(); ++it0)
       {
-        if (plTypes_[it0->Idx()] == HYDROGEN) continue;
         Vec3 const& xyz0 = it0->ImageCoords();
-        // Exclusion list for this atom
-        //ExclusionArray::ExListType const& excluded = Excluded_[it0->Idx()];
-        // Calc interaction of atom to all other atoms in thisCell.
-        for (PairList::CellType::const_iterator it1 = it0 + 1;
-                                                it1 != thisCell.end(); ++it1)
+        // Loop over other donor/acceptor atoms of thisCell
+        for (PairList::Aarray::const_iterator it1 = it0 + 1; // FIXME needs to be changed if donor only atoms added
+                                              it1 != bothList.end(); ++it1)
         {
-          if (plTypes_[it1->Idx()] == HYDROGEN) continue;
           Vec3 const& xyz1 = it1->ImageCoords();
           Vec3 dxyz = xyz1 - xyz0;
           double D2 = dxyz.Magnitude2();
           if (D2 < dcut2_) {
             Ninteractions++; // DEBUG
-            mprintf("DBG: %i %s to %i %s %g\n", plMask_[it0->Idx()]+1, TypeStr_[plTypes_[it0->Idx()]],
-                                                plMask_[it1->Idx()]+1, TypeStr_[plTypes_[it1->Idx()]], sqrt(D2));
-/*
-#           ifdef _OPENMP
-            thread_problemAtoms_[mythread]
-#           else
-            problemAtoms_
-#           endif
-              .push_back(Problem(Mask1_[it0->Idx()], Mask1_[it1->Idx()], sqrt(D2)));
-*/
+            mprintf("DBG: %i to %i %g\n", it0->Idx()+1, it1->Idx()+1, sqrt(D2));
           }
-        } // END loop over all other atoms in thisCell
+        } // END loop over other donor/acceptor atoms of thisCell
+        // Loop over acceptor only atoms of thisCell
+        for (PairList::Aarray::const_iterator it1 = accList.begin();
+                                              it1 != accList.end(); ++it1)
+        {
+          Vec3 const& xyz1 = it1->ImageCoords();
+          Vec3 dxyz = xyz1 - xyz0;
+          double D2 = dxyz.Magnitude2();
+          if (D2 < dcut2_) {
+            Ninteractions++; // DEBUG
+            mprintf("DBG: %i to %i %g\n", it0->Idx()+1, it1->Idx()+1, sqrt(D2));
+          }
+        } // END loop over acceptor only atoms of thisCell
+
         // Loop over all neighbor cells
         for (unsigned int nidx = 1; nidx != cellList.size(); nidx++)
         {
-          PairList::CellType const& nbrCell = pairList_.Cell( cellList[nidx] );
+          PairList::Aarray const& nbrBothList = bothCells_[ cellList[nidx] ];
+          PairList::Aarray const& nbrAccList = acceptorCells_[ cellList[nidx] ];
           // Translate vector for neighbor cell
           Vec3 const& tVec = pairList_.TransVec( transList[nidx] );
-          // Loop over every atom in nbrCell
-          for (PairList::CellType::const_iterator it1 = nbrCell.begin();
-                                                  it1 != nbrCell.end(); ++it1)
+          // Loop over donor/acceptor atoms of neighbor cell
+          for (PairList::Aarray::const_iterator it1 = nbrBothList.begin();
+                                                it1 != nbrBothList.end(); ++it1)
           {
-            if (plTypes_[it1->Idx()] == HYDROGEN) continue;
             Vec3 const& xyz1 = it1->ImageCoords();
             Vec3 dxyz = xyz1 + tVec - xyz0;
             double D2 = dxyz.Magnitude2();
             if (D2 < dcut2_) {
               Ninteractions++; // DEBUG
-              mprintf("DBG: %i %s to %i %s %g\n", plMask_[it0->Idx()]+1, TypeStr_[plTypes_[it0->Idx()]],
-                                                  plMask_[it1->Idx()]+1, TypeStr_[plTypes_[it1->Idx()]], sqrt(D2));
-/*
-#             ifdef _OPENMP
-              thread_problemAtoms_[mythread]
-#             else
-              problemAtoms_
-#             endif
-                .push_back(Problem(Mask1_[it0->Idx()], Mask1_[it1->Idx()], sqrt(D2)));
-*/
+              mprintf("DBG: %i to %i %g\n", it0->Idx()+1, it1->Idx()+1, sqrt(D2));
             }
-          } // END loop over atoms in neighbor cell
+          } // END loop over donor/acceptor atoms in neighbor cell
+          // Loop over acceptor only atoms of neighbor cell
+          for (PairList::Aarray::const_iterator it1 = nbrAccList.begin();
+                                                it1 != nbrAccList.end(); ++it1)
+          {
+            Vec3 const& xyz1 = it1->ImageCoords();
+            Vec3 dxyz = xyz1 + tVec - xyz0;
+            double D2 = dxyz.Magnitude2();
+            if (D2 < dcut2_) {
+              Ninteractions++; // DEBUG
+              mprintf("DBG: %i to %i %g\n", it0->Idx()+1, it1->Idx()+1, sqrt(D2));
+            }
+          } // END loop over acceptor only atoms of neighbor cell
         } // END loop over neighbor cells
       } // END loop over atoms in thisCell
     } // END cell not empty
