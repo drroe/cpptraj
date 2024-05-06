@@ -1,6 +1,5 @@
 #ifndef INC_HB_HBCALC_H
 #define INC_HB_HBCALC_H
-#include "Site.h"
 #include "../AtomMask.h"
 #include "../PairList.h"
 class ArgList;
@@ -25,35 +24,28 @@ class HbCalc {
     int RunCalc_PL(Frame const&);
   private:
     /// Different atom types
-    enum Type { HYDROGEN = 0, DONOR, ACCEPTOR, BOTH, VDONOR, VACCEPTOR, VBOTH };
+    enum Type { DONOR=0, ACCEPTOR, BOTH, VDONOR, VACCEPTOR, VBOTH, UNKNOWN };
     /// Strings for different atom types
     static const char* TypeStr_[];
 
     typedef std::vector<Type> Tarray;
-    typedef std::vector<Site> Sarray;
+    typedef std::vector<std::string> Sarray;
     typedef std::vector<int> Iarray;
-    typedef std::vector<PairList::Aarray> HbCellArray;
+    typedef std::vector<Iarray> Xarray;
 
-    /// \return True if Atom element is F, O, or N
+    /// \return True if atom is F, O, or N
     static inline bool IsFON( Atom const& );
-
+    /// \return True if interaction is valid between given types
+    static inline bool validInteraction(Type, Type);
+    /// Set up pair list for generalMask_ and given Topology
     int setupPairlistAtomMask(Topology const&);
-
-
-    int GridAtom(HbCellArray&, int, Vec3 const&, Vec3 const&) const;
-    int grid_orthogonal(HbCellArray&, int, const double*, Matrix_3x3 const&,  Matrix_3x3 const&) const;
-    int grid_nonOrthogonal(HbCellArray&, int, const double*, Matrix_3x3 const&,  Matrix_3x3 const&) const;
-    int PlaceSitesOnGrid(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&);
-
 
     PairList pairList_;    ///< Pair list for atoms involved in hydrogen bond calc
     AtomMask generalMask_; ///< Mask of atoms to potentially calculate hydrogen bonds for
     AtomMask plMask_;      ///< Mask selecting atoms to go into the pairlist
     Tarray plTypes_;       ///< Type of each atom in plMask_
-    Sarray Both_;          ///< HB donor/acceptor sites followed by donor-only
-    Iarray Acceptor_;      ///< HB acceptor sites
-    HbCellArray bothCells_; ///< Pairlist cells containing donor/acceptor sites
-    HbCellArray acceptorCells_; ///< Pairlist cells containing acceptor sites
+    Sarray plNames_;       ///< Name of each atom in plMask_
+    Xarray plHatoms_;      ///< Indices of any hydrogens bonded to each atom in plMask_
     double dcut2_;         ///< Heavy atom distance cutoff (Ang) squared
 };
 }

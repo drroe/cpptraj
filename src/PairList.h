@@ -72,8 +72,6 @@ class PairList {
     int SetupPairList(Box const&);
     /// Create pair list from Frame, unit cell and recip matrices, and mask.
     int CreatePairList(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&, AtomMask const&);
-    /// Prepare the pair list grid
-    int PreparePairList(Matrix_3x3 const&, Vec3 const&);
     /// Print timing info as percent of given total.
     void Timing(double) const;
     /// Print timing into as percent of given total with specified number of tab indents.
@@ -90,11 +88,11 @@ class PairList {
     Vec3 const& TransVec(int t)    const { return translateVec_[t];  }
     /// \return Array containing wrapped fractional coords.
     Varray const& FracCoords()     const { return Frac_;  }
-//#   ifdef DEBUG_PAIRLIST
+#   ifdef DEBUG_PAIRLIST
     int NX() const { return nGridX_; }
     int NY() const { return nGridY_; }
     int NZ() const { return nGridZ_; }
-//#   endif
+#   endif
   private:
     /// Determine neighbors and translation vectors for each cell.
     void CalcGridPointers(int,int);

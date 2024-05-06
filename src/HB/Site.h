@@ -28,5 +28,4 @@ class Site {
     int idx_;      ///< Heavy atom index
 };
 }
-}
 #endif

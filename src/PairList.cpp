@@ -93,19 +93,6 @@ int PairList::CreatePairList(Frame const& frmIn, Matrix_3x3 const& ucell,
   return nOffGrid;
 }
 
-/** Prepare the pairlist, but dont put any atoms in it yet. */
-int PairList::PreparePairList(Matrix_3x3 const& ucell, Vec3 const& RecipLengths) {
-  t_total_.Start();
-  // Calculate translation vectors based on current unit cell.
-  FillTranslateVec(ucell);
-  // If box size has changed a lot this will reallocate grid
-  t_gridpointers_.Start();
-  if (SetupGrids(RecipLengths)) return -1;
-  t_gridpointers_.Stop();
-  t_total_.Stop();
-  return 0;
-}
-
 // PairList::GridAtom()
 int PairList::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
   int i1 = (int)((frac[0]) * (double)nGridX_);
