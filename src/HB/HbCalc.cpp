@@ -199,8 +199,8 @@ double HbCalc::Angle(const double* XA, const double* XH, const double* XD, Box c
   * acceptor heavy atoms.
   */
 void HbCalc::CalcSiteHbonds(int frameNum, double dist2,
-                            int d_idx, Iarray const& Hatoms, Vec3 const& XYZD,
-                            int a_idx, Vec3 const& XYZA,
+                            int d_idx, Iarray const& Hatoms,
+                            int a_idx,
                             Frame const& frmIn, int& numHB,
                             int trajoutNum)
 {
@@ -209,12 +209,13 @@ void HbCalc::CalcSiteHbonds(int frameNum, double dist2,
   // Determine if angle cutoff is satisfied
   for (Iarray::const_iterator h_atom = Hatoms.begin(); h_atom != Hatoms.end(); ++h_atom)
   {
-    double angle = 0;
-    if (acut_ > -1)
-      angle = Angle(XYZA.Dptr(), frmIn.XYZ(*h_atom), XYZD.Dptr(), frmIn.BoxCrd());
+    //double angle = 0;
+    //if (acut_ > -1)
+    //double angle = Angle(XYZA.Dptr(), frmIn.XYZ(*h_atom), XYZD.Dptr(), frmIn.BoxCrd());
+    double angle = Angle(frmIn.XYZ(a_atom), frmIn.XYZ(*h_atom), frmIn.XYZ(d_atom), frmIn.BoxCrd());
     if ( !(angle < acut_) )
     {
-      mprintf("DBG: %12s %12s %12.4f\n", plNames_[a_idx].c_str(), plNames_[d_idx].c_str(), sqrt(dist2));
+      mprintf("DBG: %12s %12i %12s %12.4f %12.4f\n", plNames_[a_idx].c_str(), *h_atom + 1, plNames_[d_idx].c_str(), sqrt(dist2), angle*Constants::RADDEG);
 /*#     ifdef _OPENMP
       // numHB holds thread number, will be counted later on.
       thread_HBs_[numHB].push_back( Hbond(sqrt(dist2), angle, a_atom, *h_atom, d_atom) );
@@ -228,8 +229,8 @@ void HbCalc::CalcSiteHbonds(int frameNum, double dist2,
 
 /** Calculate hbonds between two atoms. */
 void HbCalc::CalcHbonds(int frameNum, double dist2,
-                        int a0idx, Vec3 const& a0xyz,
-                        int a1idx, Vec3 const& a1xyz,
+                        int a0idx,
+                        int a1idx,
                         Frame const& frmIn, int& numHB,
                         int trajoutNum)
 {
@@ -241,10 +242,10 @@ void HbCalc::CalcHbonds(int frameNum, double dist2,
   // DONOR BOTH
   // ACCEPTOR BOTH
   if ((plTypes_[a0idx] == BOTH || plTypes_[a0idx] == DONOR)    && (plTypes_[a1idx] == BOTH || plTypes_[a1idx] == ACCEPTOR)) {
-    CalcSiteHbonds(frameNum, dist2, a0idx, plHatoms_[a0idx], a0xyz, a1idx, a1xyz, frmIn, numHB, trajoutNum);
+    CalcSiteHbonds(frameNum, dist2, a0idx, plHatoms_[a0idx], a1idx, frmIn, numHB, trajoutNum);
   } 
   if ((plTypes_[a0idx] == BOTH || plTypes_[a0idx] == ACCEPTOR) && (plTypes_[a1idx] == BOTH || plTypes_[a1idx] == DONOR)) {
-    CalcSiteHbonds(frameNum, dist2, a1idx, plHatoms_[a1idx], a1xyz, a0idx, a0xyz, frmIn, numHB, trajoutNum);
+    CalcSiteHbonds(frameNum, dist2, a1idx, plHatoms_[a1idx], a0idx, frmIn, numHB, trajoutNum);
   }// else if (plTypes_[a0idx] == BOTH && plTypes_[a1idx] == BOTH) {
   //  CalcSiteHbonds(frameNum, dist2, a0idx, plHatoms_[a0idx], a0xyz, a1idx, a1xyz, frmIn, numHB, trajoutNum);
   //  CalcSiteHbonds(frameNum, dist2, a1idx, plHatoms_[a1idx], a1xyz, a0idx, a0xyz, frmIn, numHB, trajoutNum);
@@ -303,7 +304,7 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame)
             double D2 = dxyz.Magnitude2();
             if (D2 < dcut2_) {
               Ninteractions++; // DEBUG
-              CalcHbonds(frameNum, D2, it0->Idx(), xyz0, it1->Idx(), xyz1, currentFrame, numHB, trajoutNum);
+              CalcHbonds(frameNum, D2, it0->Idx(), it1->Idx(), currentFrame, numHB, trajoutNum);
               //mprintf("DBG: %12s %12s %12.4f\n", plNames_[it0->Idx()].c_str(), plNames_[it1->Idx()].c_str(), sqrt(D2));
               //mprintf("DBG: %i %s to %i %s %g\n", plMask_[it0->Idx()]+1, TypeStr_[plTypes_[it0->Idx()]],
               //                                  plMask_[it1->Idx()]+1, TypeStr_[plTypes_[it1->Idx()]], sqrt(D2));
@@ -328,7 +329,8 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame)
               double D2 = dxyz.Magnitude2();
               if (D2 < dcut2_) {
                 Ninteractions++; // DEBUG
-                mprintf("DBG: %12s %12s %12.4f\n", plNames_[it0->Idx()].c_str(), plNames_[it1->Idx()].c_str(), sqrt(D2));
+                CalcHbonds(frameNum, D2, it0->Idx(), it1->Idx(), currentFrame, numHB, trajoutNum);
+                //mprintf("DBG: %12s %12s %12.4f\n", plNames_[it0->Idx()].c_str(), plNames_[it1->Idx()].c_str(), sqrt(D2));
                 //mprintf("DBG: %i %s to %i %s %g\n", plMask_[it0->Idx()]+1, TypeStr_[plTypes_[it0->Idx()]],
                 //                                    plMask_[it1->Idx()]+1, TypeStr_[plTypes_[it1->Idx()]], sqrt(D2));
               }

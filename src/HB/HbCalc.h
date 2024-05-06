@@ -40,11 +40,11 @@ class HbCalc {
     /// Set up pair list for generalMask_ and given Topology
     int setupPairlistAtomMask(Topology const&);
     /// Calculate hydrogen bonds between donor site and acceptor
-    void CalcSiteHbonds(int, double, int, Iarray const&, Vec3 const&, int, Vec3 const&, Frame const&, int&, int);
+    void CalcSiteHbonds(int, double, int, Iarray const&, int, Frame const&, int&, int);
     /// Calculate a potentially imaged angle
     double Angle(const double*, const double*, const double*, Box const&) const;
     /// Calculate hydrogen bonds between two atoms
-    void CalcHbonds(int, double, int, Vec3 const&, int, Vec3 const&, Frame const&, int&, int);
+    void CalcHbonds(int, double, int, int, Frame const&, int&, int);
 
     PairList pairList_;    ///< Pair list for atoms involved in hydrogen bond calc
     AtomMask generalMask_; ///< Mask of atoms to potentially calculate hydrogen bonds for
