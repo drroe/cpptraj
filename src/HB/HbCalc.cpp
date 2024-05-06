@@ -3,14 +3,17 @@
 //#include <algorithm>
 //#include <utility>
 #include "../ArgList.h"
+#include "../Constants.h"
 #include "../CpptrajStdio.h"
+#include "../DistRoutines.h"
 #include "../Topology.h"
 
 using namespace Cpptraj::HB;
 
 /** CONSTRUCTOR */
 HbCalc::HbCalc() :
-  dcut2_(0)
+  dcut2_(0),
+  acut_(0)
 {}
 
 const char* HbCalc::TypeStr_[] = {
@@ -28,6 +31,7 @@ int HbCalc::InitHbCalc(ArgList& argIn, int debugIn) {
   double dcut = argIn.getKeyDouble("dist",3.0);
   dcut = argIn.getKeyDouble("distance", dcut); // for PTRAJ compat.
   dcut2_ = dcut * dcut;
+  acut_ = argIn.getKeyDouble("angle", 135.0 * Constants::DEGRAD);
 
   generalMask_.SetMaskString( argIn.GetMaskNext() );
 
@@ -40,6 +44,10 @@ int HbCalc::InitHbCalc(ArgList& argIn, int debugIn) {
 void HbCalc::PrintHbCalcOpts() const {
   mprintf("\tSearching for atoms in mask '%s'\n", generalMask_.MaskString());
   mprintf("\tHeavy atom distance cutoff= %g Ang.\n", sqrt(dcut2_));
+  if (acut_ > -1)
+    mprintf("\tAngle cutoff= %g deg.\n", acut_*Constants::RADDEG);
+  else
+    mprintf("\tNo angle cutoff.\n");
 }
 
 /** Set up calculation */
@@ -162,9 +170,92 @@ bool HbCalc::validInteraction(Type t0, Type t1) {
   return false;
 }
 
+/** Calculate angle in radians between 3 atoms with imaging. */
+double HbCalc::Angle(const double* XA, const double* XH, const double* XD, Box const& boxIn) const
+{ 
+  //if (imageOpt_.ImagingType() == ImageOption::NO_IMAGE)
+  //  return (CalcAngle(XA, XH, XD));
+  //else {
+    double angle;
+    Vec3 VH = Vec3(XH);
+    Vec3 H_A = MinImagedVec(VH, Vec3(XA), boxIn.UnitCell(), boxIn.FracCell());
+    Vec3 H_D = Vec3(XD) - VH;
+    double rha = H_A.Magnitude2();
+    double rhd = H_D.Magnitude2();
+    if (rha > Constants::SMALL && rhd > Constants::SMALL) {
+      angle = (H_A * H_D) / sqrt(rha * rhd);
+      if      (angle >  1.0) angle =  1.0;
+      else if (angle < -1.0) angle = -1.0;
+      angle = acos(angle);
+    } else
+      angle = 0.0;
+    return angle;
+  //}
+}
+
+/** Calculate hydrogen bonds between given solute donor site and 
+  * solute acceptor atom.
+  * The distance cutoff should already be satisfied between donor and
+  * acceptor heavy atoms.
+  */
+void HbCalc::CalcSiteHbonds(int frameNum, double dist2,
+                            int d_idx, Iarray const& Hatoms, Vec3 const& XYZD,
+                            int a_idx, Vec3 const& XYZA,
+                            Frame const& frmIn, int& numHB,
+                            int trajoutNum)
+{
+  int d_atom = plMask_[d_idx];
+  int a_atom = plMask_[a_idx]; 
+  // Determine if angle cutoff is satisfied
+  for (Iarray::const_iterator h_atom = Hatoms.begin(); h_atom != Hatoms.end(); ++h_atom)
+  {
+    double angle = 0;
+    if (acut_ > -1)
+      angle = Angle(XYZA.Dptr(), frmIn.XYZ(*h_atom), XYZD.Dptr(), frmIn.BoxCrd());
+    if ( !(angle < acut_) )
+    {
+      mprintf("DBG: %12s %12s %12.4f\n", plNames_[a_idx].c_str(), plNames_[d_idx].c_str(), sqrt(dist2));
+/*#     ifdef _OPENMP
+      // numHB holds thread number, will be counted later on.
+      thread_HBs_[numHB].push_back( Hbond(sqrt(dist2), angle, a_atom, *h_atom, d_atom) );
+#     else
+      ++numHB;
+      AddUU(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom, trajoutNum);
+#     endif*/
+    }
+  }
+}
+
+/** Calculate hbonds between two atoms. */
+void HbCalc::CalcHbonds(int frameNum, double dist2,
+                        int a0idx, Vec3 const& a0xyz,
+                        int a1idx, Vec3 const& a1xyz,
+                        Frame const& frmIn, int& numHB,
+                        int trajoutNum)
+{
+  // BOTH ACCEPTOR
+  // DONOR ACCEPTOR
+  // BOTH DONOR
+  // ACCEPTOR DONOR
+  // BOTH BOTH
+  // DONOR BOTH
+  // ACCEPTOR BOTH
+  if ((plTypes_[a0idx] == BOTH || plTypes_[a0idx] == DONOR)    && (plTypes_[a1idx] == BOTH || plTypes_[a1idx] == ACCEPTOR)) {
+    CalcSiteHbonds(frameNum, dist2, a0idx, plHatoms_[a0idx], a0xyz, a1idx, a1xyz, frmIn, numHB, trajoutNum);
+  } 
+  if ((plTypes_[a0idx] == BOTH || plTypes_[a0idx] == ACCEPTOR) && (plTypes_[a1idx] == BOTH || plTypes_[a1idx] == DONOR)) {
+    CalcSiteHbonds(frameNum, dist2, a1idx, plHatoms_[a1idx], a1xyz, a0idx, a0xyz, frmIn, numHB, trajoutNum);
+  }// else if (plTypes_[a0idx] == BOTH && plTypes_[a1idx] == BOTH) {
+  //  CalcSiteHbonds(frameNum, dist2, a0idx, plHatoms_[a0idx], a0xyz, a1idx, a1xyz, frmIn, numHB, trajoutNum);
+  //  CalcSiteHbonds(frameNum, dist2, a1idx, plHatoms_[a1idx], a1xyz, a0idx, a0xyz, frmIn, numHB, trajoutNum);
+  //}
+}
+
 /** HB calc loop with a pairlist */
 int HbCalc::RunCalc_PL(Frame const& currentFrame)
 {
+  int frameNum = 0; // FIXME
+  int trajoutNum = 0; // FIXME
   int retVal = pairList_.CreatePairList(currentFrame,
                                         currentFrame.BoxCrd().UnitCell(),
                                         currentFrame.BoxCrd().FracCell(), plMask_);
@@ -177,7 +268,7 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame)
   //problemAtoms_.clear();
 
   int Ninteractions = 0; // DEBUG
-
+  int numHB = 0;
   int cidx;
 # ifdef _OPENMP
   int mythread;
@@ -200,15 +291,11 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame)
       for (PairList::CellType::const_iterator it0 = thisCell.begin();
                                               it0 != thisCell.end(); ++it0)
       {
-//        if (plTypes_[it0->Idx()] == HYDROGEN) continue;
         Vec3 const& xyz0 = it0->ImageCoords();
-        // Exclusion list for this atom
-        //ExclusionArray::ExListType const& excluded = Excluded_[it0->Idx()];
         // Calc interaction of atom to all other atoms in thisCell.
         for (PairList::CellType::const_iterator it1 = it0 + 1;
                                                 it1 != thisCell.end(); ++it1)
         {
-//          if (plTypes_[it1->Idx()] == HYDROGEN) continue;
           if (validInteraction(plTypes_[it0->Idx()], plTypes_[it1->Idx()]))
           {
             Vec3 const& xyz1 = it1->ImageCoords();
@@ -216,7 +303,8 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame)
             double D2 = dxyz.Magnitude2();
             if (D2 < dcut2_) {
               Ninteractions++; // DEBUG
-              mprintf("DBG: %12s %12s %12.4f\n", plNames_[it0->Idx()].c_str(), plNames_[it1->Idx()].c_str(), sqrt(D2));
+              CalcHbonds(frameNum, D2, it0->Idx(), xyz0, it1->Idx(), xyz1, currentFrame, numHB, trajoutNum);
+              //mprintf("DBG: %12s %12s %12.4f\n", plNames_[it0->Idx()].c_str(), plNames_[it1->Idx()].c_str(), sqrt(D2));
               //mprintf("DBG: %i %s to %i %s %g\n", plMask_[it0->Idx()]+1, TypeStr_[plTypes_[it0->Idx()]],
               //                                  plMask_[it1->Idx()]+1, TypeStr_[plTypes_[it1->Idx()]], sqrt(D2));
 
@@ -233,7 +321,6 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame)
           for (PairList::CellType::const_iterator it1 = nbrCell.begin();
                                                   it1 != nbrCell.end(); ++it1)
           {
-//            if (plTypes_[it1->Idx()] == HYDROGEN) continue;
             if (validInteraction(plTypes_[it0->Idx()], plTypes_[it1->Idx()]))
             {
               Vec3 const& xyz1 = it1->ImageCoords();

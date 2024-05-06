@@ -39,6 +39,12 @@ class HbCalc {
     static inline bool validInteraction(Type, Type);
     /// Set up pair list for generalMask_ and given Topology
     int setupPairlistAtomMask(Topology const&);
+    /// Calculate hydrogen bonds between donor site and acceptor
+    void CalcSiteHbonds(int, double, int, Iarray const&, Vec3 const&, int, Vec3 const&, Frame const&, int&, int);
+    /// Calculate a potentially imaged angle
+    double Angle(const double*, const double*, const double*, Box const&) const;
+    /// Calculate hydrogen bonds between two atoms
+    void CalcHbonds(int, double, int, Vec3 const&, int, Vec3 const&, Frame const&, int&, int);
 
     PairList pairList_;    ///< Pair list for atoms involved in hydrogen bond calc
     AtomMask generalMask_; ///< Mask of atoms to potentially calculate hydrogen bonds for
@@ -47,6 +53,7 @@ class HbCalc {
     Sarray plNames_;       ///< Name of each atom in plMask_
     Xarray plHatoms_;      ///< Indices of any hydrogens bonded to each atom in plMask_
     double dcut2_;         ///< Heavy atom distance cutoff (Ang) squared
+    double acut_;          ///< Angle cutoff in radians
 };
 }
 }
