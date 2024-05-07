@@ -45,7 +45,10 @@ int HbCalc::InitHbCalc(ArgList& argIn, DataSetList* masterDslPtr, DataFileList& 
   // ----- All arguments should be processed now. ----------
   pairList_.InitPairList( 8.0, 0.1, debugIn );
 
-  hbdata_.InitHbData( masterDslPtr, hbsetname );
+  if (hbdata_.InitHbData( masterDslPtr, hbsetname )) {
+    mprinterr("Error: Could not initialize hydrogen bond data.\n");
+    return 1;
+  }
 
   return 0;
 }

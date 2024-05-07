@@ -15,25 +15,36 @@ using namespace Cpptraj::HB;
 HbData::HbData() :
   masterDSL_(0),
   CurrentParm_(0),
+  NumHbonds_(0),
+  NumSolvent_(0),
+  NumBridge_(0),
+  BridgeID_(0),
   UU_matrix_byRes_(0),
+  nhbout_(0),
   UUseriesout_(0),
   UVseriesout_(0),
   Bseriesout_(0),
+  uuResMatrixFile_(0),
   avgout_(0),
   solvout_(0),
   bridgeout_(0),
   Nframes_(0),
   UUmatByRes_norm_(NORM_FRAMES),
+  nuuhb_(0),
+  nuvhb_(0),
+  nbridge_(0),
   series_(false),
   Bseries_(false),
   calcSolvent_(false),
   seriesUpdated_(false),
   useAtomNum_(false),
-  bridgeByAtom_(false)
+  bridgeByAtom_(false),
+  do_uuResMatrix_(false)
 {}
 
 /** Process data-related args */
 int HbData::ProcessArgs(ArgList& actionArgs, DataFileList& DFL) {
+  nhbout_ = DFL.AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   series_ = actionArgs.hasKey("series");
   if (series_) {
     UUseriesout_ = DFL.AddDataFile(actionArgs.GetStringKey("uuseries"), actionArgs);
@@ -43,10 +54,10 @@ int HbData::ProcessArgs(ArgList& actionArgs, DataFileList& DFL) {
   if (Bseries_) {
     Bseriesout_ = DFL.AddDataFile(actionArgs.GetStringKey("bseriesfile"), actionArgs);
   }
-  bool do_uuResMatrix = actionArgs.hasKey("uuresmatrix");
-  DataFile* uuResMatrixFile = 0; // FIXME class var ?
-  if (do_uuResMatrix) {
-    uuResMatrixFile = DFL.AddDataFile(actionArgs.GetStringKey("uuresmatrixout"),
+  do_uuResMatrix_ = actionArgs.hasKey("uuresmatrix");
+  uuResMatrixFile_ = 0;
+  if (do_uuResMatrix_) {
+    uuResMatrixFile_ = DFL.AddDataFile(actionArgs.GetStringKey("uuresmatrixout"),
                                              ArgList("nosquare2d"),
                                              actionArgs);
     std::string uuResMatrixNorm = actionArgs.GetStringKey("uuresmatrixnorm");
@@ -62,7 +73,6 @@ int HbData::ProcessArgs(ArgList& actionArgs, DataFileList& DFL) {
         return 1;
       }
     }
-    
   }
   std::string avgname = actionArgs.GetStringKey("avgout");
   std::string solvname = actionArgs.GetStringKey("solvout");
@@ -111,7 +121,7 @@ int HbData::ProcessArgs(ArgList& actionArgs, DataFileList& DFL) {
 }
 
 /** Set pointer to the master DataSetList, set HB data set name. */
-void HbData::InitHbData(DataSetList* dslPtr, std::string const& setNameIn) {
+int HbData::InitHbData(DataSetList* dslPtr, std::string const& setNameIn) {
   masterDSL_ = dslPtr;
   if (setNameIn.empty())
     hbsetname_ = masterDSL_->GenerateDefaultName("HB");
@@ -122,6 +132,35 @@ void HbData::InitHbData(DataSetList* dslPtr, std::string const& setNameIn) {
   }
   seriesUpdated_ = false;
   Nframes_ = 0;
+  nuuhb_ = 0;
+  nuvhb_ = 0;
+  nbridge_ = 0;
+
+  NumHbonds_ = masterDSL_->AddSet(DataSet::INTEGER, MetaData(hbsetname_, "UU"));
+  if (NumHbonds_ == 0) return 1;
+  if (nhbout_ != 0) nhbout_->AddDataSet( NumHbonds_ );
+  if (calcSolvent_) {
+    NumSolvent_ = masterDSL_->AddSet(DataSet::INTEGER, MetaData(hbsetname_, "UV"));
+    if (NumSolvent_ == 0) return 1;
+    if (nhbout_ != 0) nhbout_->AddDataSet( NumSolvent_ );
+    NumBridge_ = masterDSL_->AddSet(DataSet::INTEGER, MetaData(hbsetname_, "Bridge"));
+    if (NumBridge_ == 0) return 1;
+    if (nhbout_ != 0) nhbout_->AddDataSet( NumBridge_ );
+    BridgeID_ = masterDSL_->AddSet(DataSet::STRING, MetaData(hbsetname_, "ID"));
+    if (BridgeID_ == 0) return 1;
+    if (nhbout_ != 0) nhbout_->AddDataSet( BridgeID_ );
+  }
+  if (do_uuResMatrix_) {
+    UU_matrix_byRes_ = (DataSet_2D*)
+                       masterDSL_->AddSet(DataSet::MATRIX_DBL, MetaData(hbsetname_, "UUresmat"));
+    if (UU_matrix_byRes_ == 0) return 1;
+    UU_matrix_byRes_->ModifyDim(Dimension::X).SetLabel("Res");
+    UU_matrix_byRes_->ModifyDim(Dimension::Y).SetLabel("Res");
+    if (uuResMatrixFile_ != 0)
+      uuResMatrixFile_->AddDataSet( UU_matrix_byRes_ );
+  }
+
+  return 0;
 }
 
 /** Set pointer to current Topology */
@@ -185,6 +224,18 @@ void HbData::AddUU(double dist, double angle, int fnum, int a_atom, int h_atom, 
     int d_res = (*CurrentParm_)[d_atom].ResNum();
     UU_matrix_byRes_->UpdateElement(a_res, d_res, 1.0);
   }
+  nuuhb_++;
+}
+
+/** Finish hbond calc for a Frame. */
+void HbData::IncrementNframes() {
+  if (NumHbonds_ != 0) NumHbonds_->Add( Nframes_, &nuuhb_ );
+  if (NumSolvent_ != 0) NumSolvent_->Add( Nframes_, &nuvhb_ );
+  if (NumBridge_ != 0) NumBridge_->Add( Nframes_, &nbridge_ );
+  nuuhb_ = 0;
+  nuvhb_ = 0;
+  nbridge_ = 0;
+  Nframes_++;
 }
 
 /** Estimate the memory usage of the hbond command. */
