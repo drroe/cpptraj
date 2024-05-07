@@ -33,6 +33,8 @@ class HbData {
 
     /// Add a solute-solute hydrogen bond
     void AddUU(double, double, int, int, int, int, int);
+    /// Add a solute-solvent hydrogen bond
+    void AddUV(double, double, int, int, int, int, bool, int);
     /// Finish calc for a Frame and increment total # frames
     void IncrementNframes();
   private:
@@ -42,7 +44,7 @@ class HbData {
     typedef std::pair<int,int> Hpair;
     typedef std::map<Hpair,Hbond> UUmapType;
     typedef std::map<int,Hbond> UVmapType;
-//    typedef std::map< int,std::set<int> > RmapType;
+    typedef std::map< int,std::set<int> > RmapType;
     typedef std::map< std::set<int>,Bridge > BmapType;
     typedef std::vector<Hbond> Harray;
     typedef std::map<int,int> IdxMapType;
@@ -71,7 +73,7 @@ class HbData {
 
     UUmapType UU_Map_;        ///< Map solute donorH/acceptor pair to UU hbond
     UVmapType UV_Map_;        ///< Map solute donorH or solute acceptor to UV hbond
-//    RmapType solvent2solute_; ///< Map solvent res # to solute residues it is bound to each frame
+    RmapType solvent2solute_; ///< Map solvent res # to solute residues it is bound to each frame
     BmapType BridgeMap_; ///< Map residues involved in bridging to # frames bridge present
     IdxMapType DidxMap_; ///< Map solute hydrogen donor atom # to index (series only)
     IdxMapType AidxMap_; ///< Map solute acceptor atom # to index (series only).

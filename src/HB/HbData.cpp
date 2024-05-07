@@ -135,6 +135,7 @@ int HbData::InitHbData(DataSetList* dslPtr, std::string const& setNameIn) {
   nuuhb_ = 0;
   nuvhb_ = 0;
   nbridge_ = 0;
+  solvent2solute_.clear();
 
   NumHbonds_ = masterDSL_->AddSet(DataSet::INTEGER, MetaData(hbsetname_, "UU"));
   if (NumHbonds_ == 0) return 1;
@@ -227,6 +228,55 @@ void HbData::AddUU(double dist, double angle, int fnum, int a_atom, int h_atom, 
   nuuhb_++;
 }
 
+/** Add or update solute-solvent hydrogen bond, track bridging water. */
+void HbData::AddUV(double dist, double angle, int fnum,
+                   int a_atom, int h_atom, int d_atom, bool udonor, int onum)
+{
+  int hbidx, solventres, soluteres;
+  // TODO: Option to use solvent mol num?
+  if (udonor) {
+    // Index U-H .. V hydrogen bonds by solute H atom.
+    hbidx = h_atom;
+    if (bridgeByAtom_)
+      soluteres = h_atom;
+    else
+      soluteres = (*CurrentParm_)[d_atom].ResNum();
+    solventres = (*CurrentParm_)[a_atom].ResNum();
+  } else {
+    // Index U .. H-V hydrogen bonds by solute A atom.
+    hbidx = a_atom;
+    if (bridgeByAtom_)
+      soluteres = a_atom;
+    else
+      soluteres = (*CurrentParm_)[a_atom].ResNum();
+    solventres = (*CurrentParm_)[d_atom].ResNum();
+  }
+  solvent2solute_[solventres].insert( soluteres );
+  UVmapType::iterator it = UV_Map_.lower_bound( hbidx );
+  if (it == UV_Map_.end() || it->first != hbidx)
+  {
+//      mprintf("DBG1: NEW hbond : %8i .. %8i - %8i\n", a_atom+1,h_atom+1,d_atom+1);
+    DataSet_integer* ds = 0;
+    if (series_) {
+      ds = (DataSet_integer*)
+           masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"solventhb",hbidx));
+      if (UVseriesout_ != 0) UVseriesout_->AddDataSet( ds );
+    }
+    Hbond hb;
+    if (udonor) { // Do not care about which solvent acceptor
+      if (ds != 0) ds->SetLegend( CreateHBlegend(*CurrentParm_, -1, h_atom, d_atom) );
+      hb = Hbond(ds, -1, h_atom, d_atom, splitFrames_);
+    } else {           // Do not care about which solvent donor
+      if (ds != 0) ds->SetLegend( CreateHBlegend(*CurrentParm_, a_atom, -1, -1) );
+      hb = Hbond(ds, a_atom, -1, -1, splitFrames_);
+    }
+    it = UV_Map_.insert(it, std::pair<int,Hbond>(hbidx,hb));
+  } else {
+//      mprintf("DBG1: OLD hbond : %8i .. %8i - %8i\n", a_atom+1,h_atom+1,d_atom+1);
+  }
+  it->second.Update(dist, angle, fnum, splitFrames_, onum);
+}
+
 /** Finish hbond calc for a Frame. */
 void HbData::IncrementNframes() {
   if (NumHbonds_ != 0) NumHbonds_->Add( Nframes_, &nuuhb_ );
@@ -235,6 +285,7 @@ void HbData::IncrementNframes() {
   nuuhb_ = 0;
   nuvhb_ = 0;
   nbridge_ = 0;
+  solvent2solute_.clear();
   Nframes_++;
 }
 
