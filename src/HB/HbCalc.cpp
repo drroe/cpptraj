@@ -1,10 +1,9 @@
 #include "HbCalc.h"
 #include <cmath> //sqrt
-//#include <algorithm>
-//#include <utility>
 #include "../ArgList.h"
 #include "../Constants.h"
 #include "../CpptrajStdio.h"
+#include "../DataFileList.h"
 #include "../DistRoutines.h"
 #include "../Topology.h"
 
@@ -27,15 +26,26 @@ const char* HbCalc::TypeStr_[] = {
 };
 
 /** Initialize */
-int HbCalc::InitHbCalc(ArgList& argIn, int debugIn) {
+int HbCalc::InitHbCalc(ArgList& argIn, DataSetList* masterDslPtr, DataFileList& DFL, int debugIn) {
   double dcut = argIn.getKeyDouble("dist",3.0);
   dcut = argIn.getKeyDouble("distance", dcut); // for PTRAJ compat.
   dcut2_ = dcut * dcut;
   acut_ = argIn.getKeyDouble("angle", 135.0 * Constants::DEGRAD);
 
+  if (hbdata_.ProcessArgs(argIn, DFL)) {
+    mprinterr("Error: Could not process hydrogen bond data args.\n");
+    return 1;
+  } 
+
   generalMask_.SetMaskString( argIn.GetMaskNext() );
 
+  // Setup datasets
+  std::string hbsetname = argIn.GetStringNext();
+
+  // ----- All arguments should be processed now. ----------
   pairList_.InitPairList( 8.0, 0.1, debugIn );
+
+  hbdata_.InitHbData( masterDslPtr, hbsetname );
 
   return 0;
 }
@@ -48,6 +58,7 @@ void HbCalc::PrintHbCalcOpts() const {
     mprintf("\tAngle cutoff= %g deg.\n", acut_*Constants::RADDEG);
   else
     mprintf("\tNo angle cutoff.\n");
+  // TODO hbdata_.Print
 }
 
 /** Set up calculation */
@@ -55,6 +66,8 @@ int HbCalc::SetupHbCalc(Topology const& topIn, Box const& boxIn) {
   if (setupPairlistAtomMask( topIn )) return 1;
 
   if (pairList_.SetupPairList( boxIn )) return 1;
+
+  hbdata_.SetCurrentParm( &topIn );
 
   return 0;
 }
@@ -216,18 +229,18 @@ void HbCalc::CalcSiteHbonds(int frameNum, double dist2,
     if ( !(angle < acut_) )
     {
       mprintf("DBG: %12s %12i %12s %12.4f %12.4f\n", plNames_[a_idx].c_str(), *h_atom + 1, plNames_[d_idx].c_str(), sqrt(dist2), angle*Constants::RADDEG);
-/*#     ifdef _OPENMP
+#     ifdef _OPENMP
       // numHB holds thread number, will be counted later on.
       thread_HBs_[numHB].push_back( Hbond(sqrt(dist2), angle, a_atom, *h_atom, d_atom) );
 #     else
       ++numHB;
-      AddUU(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom, trajoutNum);
-#     endif*/
+      hbdata_.AddUU(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom, trajoutNum);
+#     endif
     }
   }
 }
 
-/** Calculate hbonds between two atoms. */
+/** Calculate hbonds between two heavy atoms. */
 void HbCalc::CalcHbonds(int frameNum, double dist2,
                         int a0idx,
                         int a1idx,
@@ -345,6 +358,12 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame)
 # endif
   //ConsolidateProblems();
   mprintf("DEBUG: %i interactions.\n", Ninteractions);
+
+  hbdata_.IncrementNframes();
   return 0;
 }
 
+/** Finish HB calc and do output. */
+void HbCalc::FinishHbCalc() {
+  hbdata_.PrintHbData();
+}

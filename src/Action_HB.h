@@ -12,7 +12,7 @@ class Action_HB : public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
-    void Print() {}
+    void Print();
 
     Cpptraj::HB::HbCalc hbcalc_;
 };

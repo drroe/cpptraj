@@ -9,7 +9,7 @@ void Action_HB::Help() const {
 // Action_HB::Init()
 Action::RetType Action_HB::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  if (hbcalc_.InitHbCalc( actionArgs, debugIn )) {
+  if (hbcalc_.InitHbCalc( actionArgs, init.DslPtr(), init.DFL(), debugIn )) {
     mprinterr("Error: Could not initialize HB calc.\n");
     return Action::ERR;
   }
@@ -36,4 +36,8 @@ Action::RetType Action_HB::DoAction(int frameNum, ActionFrame& frm)
   if (hbcalc_.RunCalc_PL( frm.Frm() ))
     return Action::ERR;
   return Action::OK;
+}
+
+void Action_HB::Print() {
+  hbcalc_.FinishHbCalc();
 }

@@ -1,12 +1,14 @@
 #ifndef INC_HB_HBCALC_H
 #define INC_HB_HBCALC_H
+#include "HbData.h"
 #include "../AtomMask.h"
 #include "../PairList.h"
 class ArgList;
 class Atom;
 class Box;
-class Topology;
+class DataFileList;
 class Frame;
+class Topology;
 namespace Cpptraj {
 namespace HB {
 /// Main driver for hydrogen bond calculation
@@ -15,13 +17,15 @@ class HbCalc {
     /// CONSTRUCTOR
     HbCalc();
 
-    int InitHbCalc(ArgList&, int);
+    int InitHbCalc(ArgList&, DataSetList*, DataFileList&, int);
 
     int SetupHbCalc(Topology const&, Box const&);
 
     void PrintHbCalcOpts() const;
 
     int RunCalc_PL(Frame const&);
+
+    void FinishHbCalc();
   private:
     /// Different atom types
     enum Type { DONOR=0, ACCEPTOR, BOTH, VDONOR, VACCEPTOR, VBOTH, UNKNOWN };
@@ -54,6 +58,7 @@ class HbCalc {
     Xarray plHatoms_;      ///< Indices of any hydrogens bonded to each atom in plMask_
     double dcut2_;         ///< Heavy atom distance cutoff (Ang) squared
     double acut_;          ///< Angle cutoff in radians
+    HbData hbdata_;        ///< Hold hydrogen bond calculation data.
 };
 }
 }
