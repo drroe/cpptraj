@@ -340,7 +340,7 @@ static inline std::string CreateHBlegend(Topology const& topIn, int a_atom, int 
 }
 
 /** Create legend for bridge based on given indices. */
-static inline std::string CreateBridgeLegend(std::string const& prefix, std::set<int> indices)
+static inline std::string CreateBridgeLegend(std::string const& prefix, std::set<int> const& indices)
 {
   std::string blegend(prefix);
   for (std::set<int>::const_iterator brs = indices.begin(); brs != indices.end(); ++brs)
