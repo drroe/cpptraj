@@ -32,14 +32,15 @@ HbData::HbData() :
   UUmatByRes_norm_(NORM_FRAMES),
   nuuhb_(0),
   nuvhb_(0),
-  nbridge_(0),
+//  nbridge_(0),
   series_(false),
   Bseries_(false),
   calcSolvent_(false),
   seriesUpdated_(false),
   useAtomNum_(false),
   bridgeByAtom_(false),
-  do_uuResMatrix_(false)
+  do_uuResMatrix_(false),
+  noIntramol_(false) // FIXME
 {}
 
 /** Process data-related args */
@@ -134,7 +135,7 @@ int HbData::InitHbData(DataSetList* dslPtr, std::string const& setNameIn) {
   Nframes_ = 0;
   nuuhb_ = 0;
   nuvhb_ = 0;
-  nbridge_ = 0;
+//  nbridge_ = 0;
   solvent2solute_.clear();
 
   NumHbonds_ = masterDSL_->AddSet(DataSet::INTEGER, MetaData(hbsetname_, "UU"));
@@ -275,16 +276,102 @@ void HbData::AddUV(double dist, double angle, int fnum,
 //      mprintf("DBG1: OLD hbond : %8i .. %8i - %8i\n", a_atom+1,h_atom+1,d_atom+1);
   }
   it->second.Update(dist, angle, fnum, splitFrames_, onum);
+  nuvhb_++;
+}
+
+/** Create legend for bridge based on given indices. */
+std::string HbData::CreateBridgeLegend(std::string const& prefix, std::set<int> const& indices)
+{
+  std::string blegend(prefix);
+  for (std::set<int>::const_iterator brs = indices.begin(); brs != indices.end(); ++brs)
+    blegend.append("_" + integerToString(*brs + 1));
+  return blegend;
+}
+
+
+/** Calculate bridging water. */
+void HbData::BridgeCalc(int frameNum, int trajoutNum) {
+    int numHB = 0;
+    std::string bridgeID;
+    for (RmapType::const_iterator bridge = solvent2solute_.begin();
+                                  bridge != solvent2solute_.end(); ++bridge)
+    {
+      // bridge->first is solvent residue number.
+      // bridge->second is a set of solute residue numbers the solvent
+      // residue is bound to.
+      // If solvent molecule is bound to 2 or more different solute residues,
+      // it is bridging. 
+      if ( bridge->second.size() > 1) {
+        bool isBridge = true;
+        if (noIntramol_) {
+          // If all residues belong to the same molecule and 'nointramol',
+          // do not consider this bridge.
+          int firstmol = -1;
+          unsigned int nequal = 1;
+          for (std::set<int>::const_iterator res = bridge->second.begin();
+                                             res != bridge->second.end(); ++res)
+          {
+            int currentMol;
+            if (bridgeByAtom_)
+              currentMol = (*CurrentParm_)[*res].MolNum();
+            else
+              currentMol = (*CurrentParm_)[CurrentParm_->Res(*res).FirstAtom()].MolNum();
+            if ( firstmol == -1 )
+              firstmol = currentMol;
+            else if (currentMol == firstmol)
+              ++nequal;
+          }
+          isBridge = (nequal < bridge->second.size());
+        }
+        if (isBridge) {
+          // numHB is used to track the number of bridges
+          ++numHB;
+          // Bridging Solvent residue number
+          bridgeID.append(integerToString( bridge->first+1 ) + "(");
+          // Loop over solute residues this solvent is bound to.
+          for (std::set<int>::const_iterator res = bridge->second.begin();
+                                             res != bridge->second.end(); ++res)
+            // Solute residue number being bridged
+            bridgeID.append( integerToString( *res+1 ) + "+" );
+          bridgeID.append("),");
+          // Find bridge in map based on this combo of residues (bridge->second)
+          BmapType::iterator b_it = BridgeMap_.lower_bound( bridge->second );
+          if (b_it == BridgeMap_.end() || b_it->first != bridge->second) {
+            // New Bridge
+            DataSet_integer* bds = 0; 
+            if (Bseries_) {
+              bds = (DataSet_integer*)
+                masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,CreateBridgeLegend("bridge",bridge->second),BridgeMap_.size()));
+              // Create a legend from the indices.
+              bds->SetLegend( CreateBridgeLegend( "B", bridge->second ) );
+              if (Bseriesout_ != 0) Bseriesout_->AddDataSet( bds );
+            }
+            b_it = BridgeMap_.insert( b_it, std::pair<std::set<int>,Bridge>(bridge->second, Bridge(bds, splitFrames_)) );
+          }
+          // Increment bridge #frames
+          b_it->second.Update(frameNum, splitFrames_, trajoutNum);
+        }
+      }
+    } // END LOOP OVER solvent2solute_
+    if (bridgeID.empty())
+      bridgeID.assign("None");
+    NumBridge_->Add(frameNum, &numHB);
+    BridgeID_->Add(frameNum, bridgeID.c_str());
+#   ifdef TIMER
+    t_bridge_.Stop();
+#   endif
 }
 
 /** Finish hbond calc for a Frame. */
-void HbData::IncrementNframes() {
-  if (NumHbonds_ != 0) NumHbonds_->Add( Nframes_, &nuuhb_ );
-  if (NumSolvent_ != 0) NumSolvent_->Add( Nframes_, &nuvhb_ );
-  if (NumBridge_ != 0) NumBridge_->Add( Nframes_, &nbridge_ );
+void HbData::IncrementNframes(int frameNum, int trajoutNum) {
+  if (NumHbonds_ != 0) NumHbonds_->Add( frameNum, &nuuhb_ );
+  if (NumSolvent_ != 0) NumSolvent_->Add( frameNum, &nuvhb_ );
+  if (!solvent2solute_.empty())
+    BridgeCalc(frameNum, trajoutNum);
+//  if (NumBridge_ != 0) NumBridge_->Add( Nframes_, &nbridge_ );
   nuuhb_ = 0;
   nuvhb_ = 0;
-  nbridge_ = 0;
+//  nbridge_ = 0;
   solvent2solute_.clear();
   Nframes_++;
 }

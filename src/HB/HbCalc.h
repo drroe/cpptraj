@@ -23,7 +23,7 @@ class HbCalc {
 
     void PrintHbCalcOpts() const;
 
-    int RunCalc_PL(Frame const&);
+    int RunCalc_PL(Frame const&, int, int);
 
     void FinishHbCalc();
   private:

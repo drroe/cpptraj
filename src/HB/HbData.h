@@ -36,7 +36,7 @@ class HbData {
     /// Add a solute-solvent hydrogen bond
     void AddUV(double, double, int, int, int, int, bool, int);
     /// Finish calc for a Frame and increment total # frames
-    void IncrementNframes();
+    void IncrementNframes(int, int);
   private:
     enum MatrixNormType { NORM_NONE = 0, NORM_FRAMES, NORM_RESMAX };
 
@@ -57,6 +57,10 @@ class HbData {
     int UU_Set_Idx(int, int) const;
     /// \return Solute-solute hydrogen bond time series with legend set
     DataSet_integer* UUset(int, int, int);
+    /// \return legend for bridge based on indices
+    static inline std::string CreateBridgeLegend(std::string const&, std::set<int> const&);
+    /// Calculate Bridges for the current frame
+    void BridgeCalc(int, int);
     /// \return String containing estimated memory usage
     std::string MemoryUsage(size_t, size_t, size_t) const;
     /// Finish hbond time series
@@ -98,7 +102,7 @@ class HbData {
     MatrixNormType UUmatByRes_norm_;
     int nuuhb_;               ///< Number of UU hydrogen bonds for the current frame.
     int nuvhb_;               ///< Number of UV hydrogen bonds for the current frame.
-    int nbridge_;             ///< Number of UV bridges for the current frame.
+//    int nbridge_;             ///< Number of UV bridges for the current frame.
     bool series_;             ///< If true, track hbond time series TODO
     bool Bseries_;            ///< If true, track bridge time series
     bool calcSolvent_;        ///< If true track solvent hbonds TODO
@@ -106,6 +110,7 @@ class HbData {
     bool useAtomNum_;         ///< If true include atom numbers in labels/legends
     bool bridgeByAtom_;       ///< If true determine bridging by atom.
     bool do_uuResMatrix_;     ///< If true calculate UU matrix
+    bool noIntramol_; /// FIXME
 };
 
 }

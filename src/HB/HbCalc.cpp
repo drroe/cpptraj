@@ -339,10 +339,8 @@ void HbCalc::CalcHbonds(int frameNum, double dist2,
 }
 
 /** HB calc loop with a pairlist */
-int HbCalc::RunCalc_PL(Frame const& currentFrame)
+int HbCalc::RunCalc_PL(Frame const& currentFrame, int frameNum, int trajoutNum)
 {
-  int frameNum = 0; // FIXME
-  int trajoutNum = 0; // FIXME
   int retVal = pairList_.CreatePairList(currentFrame,
                                         currentFrame.BoxCrd().UnitCell(),
                                         currentFrame.BoxCrd().FracCell(), plMask_);
@@ -432,7 +430,7 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame)
   //ConsolidateProblems();
   mprintf("DEBUG: %i interactions.\n", Ninteractions);
 
-  hbdata_.IncrementNframes();
+  hbdata_.IncrementNframes(frameNum, trajoutNum);
   return 0;
 }
 
