@@ -19,6 +19,7 @@ namespace Cpptraj {
 namespace HB {
 /// Hold hydrogen bond calculation data
 class HbData {
+    typedef std::vector<int> Iarray;
   public:
     /// CONSTRUCTOR
     HbData();
@@ -29,7 +30,7 @@ class HbData {
     /// Initialize hydrogen bond data 
     int InitHbData(DataSetList*, std::string const&);
     /// Set pointer to current Topology
-    void SetCurrentParm(Topology const*);
+    void SetCurrentParm(Topology const*, Iarray const&, Iarray const&);
     /// Output HBond data
     void PrintHbData();
 
@@ -37,6 +38,8 @@ class HbData {
     void PrintHbDataOpts() const;
     /// \return True if solvent hydrogen bonds are being calculated
     bool CalcSolvent() const { return calcSolvent_; }
+    /// \return True if saving hydrogen bond time series data
+    bool Series() const { return series_; }
     /// \return Debug level
     int Debug() const { return debug_; }
 
@@ -49,7 +52,6 @@ class HbData {
   private:
     enum MatrixNormType { NORM_NONE = 0, NORM_FRAMES, NORM_RESMAX };
 
-    typedef std::vector<int> Iarray;
     typedef std::pair<int,int> Hpair;
     typedef std::map<Hpair,Hbond> UUmapType;
     typedef std::map<int,Hbond> UVmapType;

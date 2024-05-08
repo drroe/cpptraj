@@ -220,8 +220,27 @@ int HbData::InitHbData(DataSetList* dslPtr, std::string const& setNameIn) {
 }
 
 /** Set pointer to current Topology */
-void HbData::SetCurrentParm( Topology const* topPtr ) {
+void HbData::SetCurrentParm( Topology const* topPtr, Iarray const& donor_h_indices,
+                             Iarray const& acceptor_indices )
+{
   CurrentParm_ = topPtr;
+
+  // For backwards compat. store donor/acceptor indices for determining data set index.
+  if (series_) {
+    // Donor hydrogen indices
+    //std::sort(at_array.begin(), at_array.end()); // Should already be sorted
+    int didx = 0;
+    for (Iarray::const_iterator at = donor_h_indices.begin();
+                                at != donor_h_indices.end(); ++at)
+      DidxMap_[*at] = didx++;
+    // Acceptor indices
+    //std::sort(at_array.begin(), at_array.end());
+    int aidx = 0;
+    for (Iarray::const_iterator at = acceptor_indices.begin();
+                                at != acceptor_indices.end(); ++at)
+      AidxMap_[*at] = aidx++;
+  }
+
 }
 
 /** Create legend for hydrogen bond based on given atoms. */
