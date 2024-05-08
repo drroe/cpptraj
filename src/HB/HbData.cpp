@@ -314,10 +314,14 @@ void HbData::AddUV(double dist, double angle, int fnum,
                    int a_atom, int h_atom, int d_atom, bool udonor, int onum)
 {
   int hb_id;
-  if (d_atom == h_atom)
+  std::string aspect;
+  if (d_atom == h_atom) {
     hb_id = ID_ION_;
-  else
+    aspect = "ionhb";
+  } else {
     hb_id = ID_SOLVENT_;
+    aspect = "solventhb";
+  }
   // TODO return if not calcSolvent_?
   int hbidx, solventres, soluteres;
   // TODO: Option to use solvent mol num?
@@ -346,7 +350,7 @@ void HbData::AddUV(double dist, double angle, int fnum,
     DataSet_integer* ds = 0;
     if (series_) {
       ds = (DataSet_integer*)
-           masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"solventhb",hbidx));
+           masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_, aspect, hbidx));
       if (UVseriesout_ != 0) UVseriesout_->AddDataSet( ds );
     }
     Hbond hb;
