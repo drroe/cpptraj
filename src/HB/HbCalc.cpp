@@ -61,7 +61,7 @@ void HbCalc::PrintHbCalcOpts() const {
     mprintf("\tAngle cutoff= %g deg.\n", acut_*Constants::RADDEG);
   else
     mprintf("\tNo angle cutoff.\n");
-  // TODO hbdata_.Print
+  hbdata_.PrintHbDataOpts();
 }
 
 /** Set up calculation */
@@ -111,6 +111,10 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
   unsigned int NumH = 0;
   for (AtomMask::const_iterator at = generalMask_.begin(); at != generalMask_.end(); ++at) {
     Atom const& currentAtom = topIn[*at];
+    int molnum = currentAtom.MolNum();
+    bool isSolventAtom = topIn.Mol(molnum).IsSolvent();
+    // If we do not care about solvent hydrogen bonds and this is solvent, skip it.
+    if (isSolventAtom && !hbdata_.CalcSolvent()) continue;
     if (IsFON( currentAtom )) {
       // Check if there are any hydrogens bonded to this atom
       Iarray h_atoms;
@@ -119,9 +123,8 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
           h_atoms.push_back( *bat );
         }
       }
-      int molnum = currentAtom.MolNum();
       Type currentType;
-      if ( topIn.Mol(molnum).IsSolvent()) {
+      if ( isSolventAtom ) {
         // Solvent atom
         if (h_atoms.empty())
           currentType = VACCEPTOR;
@@ -305,35 +308,39 @@ void HbCalc::CalcHbonds(int frameNum, double dist2,
     if ((a0type == BOTH || a0type == ACCEPTOR) && (a1type == BOTH || a1type == DONOR)) {
       CalcSiteHbonds(frameNum, dist2, a1idx, plHatoms_[a1idx], a0idx, frmIn, numHB, trajoutNum);
     }
-  } else if (a0IsSolvent && a1IsSolvent) {
-    return; // FIXME
   } else {
-    // Solvent - solute.  By convention, put the solvent atom first.
-    int i0, i1;
-    Type t0, t1;
-    if (a0IsSolvent) {
-      i0 = a0idx;
-      t0 = a0type;
-      i1 = a1idx;
-      t1 = a1type;
+    if (!hbdata_.CalcSolvent()) return;
+    // Check solvent-solvent and solvent-solute
+    if (a0IsSolvent && a1IsSolvent) {
+      return; // FIXME
     } else {
-      i0 = a1idx;
-      t0 = a1type;
-      i1 = a0idx;
-      t1 = a0type;
-    }
-    // VBOTH ACCEPTOR
-    // VBOTH DONOR
-    // VBOTH BOTH
-    // VDONOR ACCEPTOR
-    // VDONOR BOTH
-    // VACCEPTOR DONOR
-    // VACCEPTOR BOTH
-    if ((t0 == VBOTH || t0 == VDONOR)  && (t1 == BOTH || t1 == ACCEPTOR)) {
-      CalcSolvHbonds(frameNum, dist2, i0, plHatoms_[i0], i1, frmIn, numHB, false, trajoutNum);
-    }
-    if ((t0 == VBOTH || t0 == VACCEPTOR) && (t1 == BOTH || t1 == DONOR)) {
-      CalcSolvHbonds(frameNum, dist2, i1, plHatoms_[i1], i0, frmIn, numHB, true, trajoutNum);
+      // Solvent - solute.  By convention, put the solvent atom first.
+      int i0, i1;
+      Type t0, t1;
+      if (a0IsSolvent) {
+        i0 = a0idx;
+        t0 = a0type;
+        i1 = a1idx;
+        t1 = a1type;
+      } else {
+        i0 = a1idx;
+        t0 = a1type;
+        i1 = a0idx;
+        t1 = a0type;
+      }
+      // VBOTH ACCEPTOR
+      // VBOTH DONOR
+      // VBOTH BOTH
+      // VDONOR ACCEPTOR
+      // VDONOR BOTH
+      // VACCEPTOR DONOR
+      // VACCEPTOR BOTH
+      if ((t0 == VBOTH || t0 == VDONOR)  && (t1 == BOTH || t1 == ACCEPTOR)) {
+        CalcSolvHbonds(frameNum, dist2, i0, plHatoms_[i0], i1, frmIn, numHB, false, trajoutNum);
+      }
+      if ((t0 == VBOTH || t0 == VACCEPTOR) && (t1 == BOTH || t1 == DONOR)) {
+        CalcSolvHbonds(frameNum, dist2, i1, plHatoms_[i1], i0, frmIn, numHB, true, trajoutNum);
+      }
     }
   }
 }

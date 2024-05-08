@@ -121,6 +121,51 @@ int HbData::ProcessArgs(ArgList& actionArgs, DataFileList& DFL) {
   return 0;
 }
 
+/** Print options to stdout */
+void HbData::PrintHbDataOpts() const {
+  if (calcSolvent_)
+    mprintf("\tWill look for solvent-solute hydrogen bonds.\n");
+  else
+    mprintf("\tOnly looking for solute-solute hydrogen bonds.\n");
+  if (noIntramol_)
+    mprintf("\tOnly looking for intermolecular hydrogen bonds.\n");
+  if (nhbout_ != 0) 
+    mprintf("\tWriting # Hbond v time results to %s\n", nhbout_->DataFilename().full());
+  if (avgout_ != 0)
+    mprintf("\tWriting Hbond avgs to %s\n",avgout_->Filename().full());
+  if (!splitFrames_.empty()) {
+    mprintf("\tWill split analysis at frames:");
+    for (Iarray::const_iterator it = splitFrames_.begin(); it != splitFrames_.end(); ++it)
+      mprintf(" %i", *it + 1);
+    mprintf("\n");
+  }
+  if (useAtomNum_)
+    mprintf("\tAtom numbers will be written to output.\n");
+  if (series_) {
+    mprintf("\tTime series data for each hbond will be saved for analysis.\n");
+    if (UUseriesout_ != 0) mprintf("\tWriting solute-solute time series to %s\n",
+                                   UUseriesout_->DataFilename().full());
+    if (UVseriesout_ != 0) mprintf("\tWriting solute-solvent time series to %s\n",
+                                   UVseriesout_->DataFilename().full());
+  }
+  if (Bseries_) {
+    mprintf("\tTime series data for each bridge will be saved for analysis.\n");
+    if (Bseriesout_ != 0)
+      mprintf("\tWriting bridge time series to '%s'\n", Bseriesout_->DataFilename().full());
+  }
+  if (UU_matrix_byRes_ != 0) {
+    mprintf("\tCalculating solute-solute residue matrix: %s\n", UU_matrix_byRes_->legend());
+    if (uuResMatrixFile_ != 0)
+      mprintf("\tWriting solute-solute residue matrix to '%s'\n", uuResMatrixFile_->DataFilename().full());
+    if (UUmatByRes_norm_ == NORM_NONE)
+      mprintf("\tNot normalizing solute-solute residue matrix.\n");
+    else if (UUmatByRes_norm_ == NORM_FRAMES)
+      mprintf("\tNormalizing solute-solute residue matrix by frames.\n");
+    else if (UUmatByRes_norm_ == NORM_RESMAX)
+      mprintf("\tNormalizing solute-solute residue matrix by max possible h. bonds between residues.\n");
+  }
+}
+
 /** Set pointer to the master DataSetList, set HB data set name. */
 int HbData::InitHbData(DataSetList* dslPtr, std::string const& setNameIn) {
   masterDSL_ = dslPtr;
@@ -233,6 +278,7 @@ void HbData::AddUU(double dist, double angle, int fnum, int a_atom, int h_atom, 
 void HbData::AddUV(double dist, double angle, int fnum,
                    int a_atom, int h_atom, int d_atom, bool udonor, int onum)
 {
+  // TODO return if not calcSolvent_?
   int hbidx, solventres, soluteres;
   // TODO: Option to use solvent mol num?
   if (udonor) {
@@ -287,7 +333,6 @@ std::string HbData::CreateBridgeLegend(std::string const& prefix, std::set<int> 
     blegend.append("_" + integerToString(*brs + 1));
   return blegend;
 }
-
 
 /** Calculate bridging water. */
 void HbData::BridgeCalc(int frameNum, int trajoutNum) {
@@ -364,11 +409,14 @@ void HbData::BridgeCalc(int frameNum, int trajoutNum) {
 
 /** Finish hbond calc for a Frame. */
 void HbData::IncrementNframes(int frameNum, int trajoutNum) {
-  if (NumHbonds_ != 0) NumHbonds_->Add( frameNum, &nuuhb_ );
-  if (NumSolvent_ != 0) NumSolvent_->Add( frameNum, &nuvhb_ );
-  if (!solvent2solute_.empty())
-    BridgeCalc(frameNum, trajoutNum);
-//  if (NumBridge_ != 0) NumBridge_->Add( Nframes_, &nbridge_ );
+  if (NumHbonds_ != 0)
+    NumHbonds_->Add( frameNum, &nuuhb_ );
+  if (calcSolvent_) {
+    if (NumSolvent_ != 0) NumSolvent_->Add( frameNum, &nuvhb_ );
+    if (!solvent2solute_.empty())
+      BridgeCalc(frameNum, trajoutNum);
+//     if (NumBridge_ != 0) NumBridge_->Add( Nframes_, &nbridge_ );
+  }
   nuuhb_ = 0;
   nuvhb_ = 0;
 //  nbridge_ = 0;

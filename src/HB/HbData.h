@@ -31,6 +31,11 @@ class HbData {
     /// Output HBond data
     void PrintHbData();
 
+    /// Print options to stdout
+    void PrintHbDataOpts() const;
+    /// \return True if solvent hydrogen bonds are being calculated
+    bool CalcSolvent() const { return calcSolvent_; }
+
     /// Add a solute-solute hydrogen bond
     void AddUU(double, double, int, int, int, int, int);
     /// Add a solute-solvent hydrogen bond
