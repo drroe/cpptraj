@@ -16,16 +16,18 @@ class HbCalc {
   public:
     /// CONSTRUCTOR
     HbCalc();
-
+    /// Read hydrogen bond calc options
     int InitHbCalc(ArgList&, DataSetList*, DataFileList&, int);
-
+    /// Set up hydrogen bond calc for given Topology; pair list is set up from box
     int SetupHbCalc(Topology const&, Box const&);
-
+    /// Print hydrogen bond calc options to stdout
     void PrintHbCalcOpts() const;
-
+    /// Run hydrogen bond calc on a frame
     int RunCalc_PL(Frame const&, int, int);
-
+    /// Finalize the hydrogen bond calculation
     void FinishHbCalc();
+    /// Set hydrogen bond calculation debug level
+    void SetDebug(int);
   private:
     /// Different atom types
     enum Type { DONOR=0, ACCEPTOR, BOTH, VDONOR, VACCEPTOR, VBOTH, UNKNOWN };
@@ -33,7 +35,7 @@ class HbCalc {
     static const char* TypeStr_[];
 
     typedef std::vector<Type> Tarray;
-    typedef std::vector<std::string> Sarray;
+//    typedef std::vector<std::string> Sarray;
     typedef std::vector<int> Iarray;
     typedef std::vector<Iarray> Xarray;
 
@@ -57,7 +59,7 @@ class HbCalc {
     AtomMask generalMask_; ///< Mask of atoms to potentially calculate hydrogen bonds for
     AtomMask plMask_;      ///< Mask selecting atoms to go into the pairlist
     Tarray plTypes_;       ///< Type of each atom in plMask_
-    Sarray plNames_;       ///< Name of each atom in plMask_
+//    Sarray plNames_;       ///< Name of each atom in plMask_
     Xarray plHatoms_;      ///< Indices of any hydrogens bonded to each atom in plMask_
     double dcut2_;         ///< Heavy atom distance cutoff (Ang) squared
     double acut_;          ///< Angle cutoff in radians

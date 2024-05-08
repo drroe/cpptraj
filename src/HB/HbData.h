@@ -22,6 +22,8 @@ class HbData {
   public:
     /// CONSTRUCTOR
     HbData();
+    /// Set debug level
+    void SetDebug(int);
     /// Process data-related args
     int ProcessArgs(ArgList&, DataFileList&);
     /// Initialize hydrogen bond data 
@@ -35,6 +37,8 @@ class HbData {
     void PrintHbDataOpts() const;
     /// \return True if solvent hydrogen bonds are being calculated
     bool CalcSolvent() const { return calcSolvent_; }
+    /// \return Debug level
+    int Debug() const { return debug_; }
 
     /// Add a solute-solute hydrogen bond
     void AddUU(double, double, int, int, int, int, int);
@@ -105,6 +109,7 @@ class HbData {
     std::string hbsetname_;   ///< Hydrogen bond data set name
     unsigned int Nframes_;    ///< Total # of frames going into the calculation
     MatrixNormType UUmatByRes_norm_;
+    int debug_;               ///< Debug level
     int nuuhb_;               ///< Number of UU hydrogen bonds for the current frame.
     int nuvhb_;               ///< Number of UV hydrogen bonds for the current frame.
 //    int nbridge_;             ///< Number of UV bridges for the current frame.

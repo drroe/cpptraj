@@ -25,6 +25,11 @@ const char* HbCalc::TypeStr_[] = {
   "Unknown"
 };
 
+/** Set debug level. */
+void HbCalc::SetDebug(int debugIn) {
+  hbdata_.SetDebug( debugIn );
+}
+
 /** Initialize */
 int HbCalc::InitHbCalc(ArgList& argIn, DataSetList* masterDslPtr, DataFileList& DFL, int debugIn) {
   double dcut = argIn.getKeyDouble("dist",3.0);
@@ -101,7 +106,7 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
 
   plMask_ = AtomMask( std::vector<int>(), topIn.Natom() );
   plTypes_.clear();
-  plNames_.clear();
+//  plNames_.clear();
   plHatoms_.clear();
 
   int nsites = 0;
@@ -164,7 +169,7 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
       //IdxTypes.push_back( Ptype(*at, currentType) );
       plMask_.AddSelectedAtom( *at );
       plTypes_.push_back( currentType );
-      plNames_.push_back( topIn.TruncResAtomName( *at ) );
+//      plNames_.push_back( topIn.TruncResAtomName( *at ) );
       plHatoms_.push_back( h_atoms );
     }
   }
@@ -189,11 +194,13 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
 //    plNames_.push_back( topIn.TruncResAtomName(it->first) );
 //  }
 
-  for (int idx = 0; idx != plMask_.Nselected(); idx++) {
-    //mprintf("\t%8i %4s %s\n", plMask_[idx]+1, *(topIn[plMask_[idx]].Name()), TypeStr_[plTypes_[idx]]);
-    mprintf("\t%8i", plMask_[idx]+1);
-    mprintf(" %4s", *(topIn[plMask_[idx]].Name()));
-    mprintf(" %s\n", TypeStr_[plTypes_[idx]]);
+  if (hbdata_.Debug() > 1) {
+    for (int idx = 0; idx != plMask_.Nselected(); idx++) {
+      //mprintf("\t%8i %4s %s\n", plMask_[idx]+1, *(topIn[plMask_[idx]].Name()), TypeStr_[plTypes_[idx]]);
+      mprintf("\t%8i", plMask_[idx]+1);
+      mprintf(" %4s", *(topIn[plMask_[idx]].Name()));
+      mprintf(" %s\n", TypeStr_[plTypes_[idx]]);
+    }
   }
 
   return 0;
@@ -253,7 +260,7 @@ void HbCalc::CalcSiteHbonds(int frameNum, double dist2,
     double angle = Angle(frmIn.XYZ(a_atom), frmIn.XYZ(*h_atom), frmIn.XYZ(d_atom), frmIn.BoxCrd());
     if ( !(angle < acut_) )
     {
-      mprintf("DBG: %12s %12i %12s %12.4f %12.4f\n", plNames_[a_idx].c_str(), *h_atom + 1, plNames_[d_idx].c_str(), sqrt(dist2), angle*Constants::RADDEG);
+//      mprintf("DBG: %12s %12i %12s %12.4f %12.4f\n", plNames_[a_idx].c_str(), *h_atom + 1, plNames_[d_idx].c_str(), sqrt(dist2), angle*Constants::RADDEG);
 #     ifdef _OPENMP
       // numHB holds thread number, will be counted later on.
       thread_HBs_[numHB].push_back( Hbond(sqrt(dist2), angle, a_atom, *h_atom, d_atom) );
@@ -378,7 +385,7 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame, int frameNum, int trajoutNum)
   }
   //problemAtoms_.clear();
 
-  int Ninteractions = 0; // DEBUG
+//  int Ninteractions = 0; // DEBUG
   int numHB = 0;
   int cidx;
 # ifdef _OPENMP
@@ -413,7 +420,7 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame, int frameNum, int trajoutNum)
             Vec3 dxyz = xyz1 - xyz0;
             double D2 = dxyz.Magnitude2();
             if (D2 < dcut2_) {
-              Ninteractions++; // DEBUG
+//              Ninteractions++; // DEBUG
               CalcHbonds(frameNum, D2, it0->Idx(), it1->Idx(), currentFrame, numHB, trajoutNum);
               //mprintf("DBG: %12s %12s %12.4f\n", plNames_[it0->Idx()].c_str(), plNames_[it1->Idx()].c_str(), sqrt(D2));
               //mprintf("DBG: %i %s to %i %s %g\n", plMask_[it0->Idx()]+1, TypeStr_[plTypes_[it0->Idx()]],
@@ -438,7 +445,7 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame, int frameNum, int trajoutNum)
               Vec3 dxyz = xyz1 + tVec - xyz0;
               double D2 = dxyz.Magnitude2();
               if (D2 < dcut2_) {
-                Ninteractions++; // DEBUG
+//                Ninteractions++; // DEBUG
                 CalcHbonds(frameNum, D2, it0->Idx(), it1->Idx(), currentFrame, numHB, trajoutNum);
                 //mprintf("DBG: %12s %12s %12.4f\n", plNames_[it0->Idx()].c_str(), plNames_[it1->Idx()].c_str(), sqrt(D2));
                 //mprintf("DBG: %i %s to %i %s %g\n", plMask_[it0->Idx()]+1, TypeStr_[plTypes_[it0->Idx()]],
@@ -454,7 +461,7 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame, int frameNum, int trajoutNum)
   } // END omp parallel
 # endif
   //ConsolidateProblems();
-  mprintf("DEBUG: %i interactions.\n", Ninteractions);
+//  mprintf("DEBUG: %i interactions.\n", Ninteractions);
 
   hbdata_.IncrementNframes(frameNum, trajoutNum);
   return 0;

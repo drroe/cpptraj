@@ -30,6 +30,7 @@ HbData::HbData() :
   bridgeout_(0),
   Nframes_(0),
   UUmatByRes_norm_(NORM_FRAMES),
+  debug_(0),
   nuuhb_(0),
   nuvhb_(0),
 //  nbridge_(0),
@@ -42,6 +43,11 @@ HbData::HbData() :
   do_uuResMatrix_(false),
   noIntramol_(false) // FIXME
 {}
+
+/** Set debug level */
+void HbData::SetDebug(int debugIn) {
+  debug_ = debugIn;
+}
 
 /** Process data-related args */
 int HbData::ProcessArgs(ArgList& actionArgs, DataFileList& DFL) {
