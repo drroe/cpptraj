@@ -188,7 +188,16 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
       plTypes_.push_back( currentType );
 //      plNames_.push_back( topIn.TruncResAtomName( *at ) );
       plHatoms_.push_back( h_atoms );
-    }
+    } else if (hbdata_.CalcSolvent()) {
+      if (currentAtom.Nbonds() == 0) {
+        // If no bonds to this atom assume it is an ion. Set the H atom
+        // to be the same as D atom; this will skip the angle calc.
+        plMask_.AddSelectedAtom( *at );
+        plTypes_.push_back( VDONOR );
+        // TODO check charge to see if it can be an acceptor?
+        plHatoms_.push_back( Iarray(1, *at) );
+      } // END atom has no bonds
+    } 
   }
   mprintf("\tTotal Number of heavy atom sites: %i\n", nsites);
   mprintf("\tSolute acceptor-only atoms: %u\n", NacceptorOnly);

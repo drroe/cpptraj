@@ -9,6 +9,7 @@ void Action_HB::Help() const {
 // Action_HB::Init()
 Action::RetType Action_HB::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  hbcalc_.SetDebug( debugIn );
   if (hbcalc_.InitHbCalc( actionArgs, init.DslPtr(), init.DFL(), debugIn )) {
     mprinterr("Error: Could not initialize HB calc.\n");
     return Action::ERR;
