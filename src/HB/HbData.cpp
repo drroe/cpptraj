@@ -422,9 +422,8 @@ void HbData::IncrementNframes(int frameNum, int trajoutNum) {
     NumHbonds_->Add( frameNum, &nuuhb_ );
   if (calcSolvent_) {
     if (NumSolvent_ != 0) NumSolvent_->Add( frameNum, &nuvhb_ );
-    if (!solvent2solute_.empty())
-      BridgeCalc(frameNum, trajoutNum);
-//     if (NumBridge_ != 0) NumBridge_->Add( Nframes_, &nbridge_ );
+    BridgeCalc(frameNum, trajoutNum);
+//    if (NumBridge_ != 0) NumBridge_->Add( Nframes_, &nbridge_ );
   }
   nuuhb_ = 0;
   nuvhb_ = 0;
