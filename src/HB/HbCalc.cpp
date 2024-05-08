@@ -214,11 +214,13 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
     mprintf("\t  %u solvent hydrogens, %u ions.\n", NV_H, NIons);
   }
 
+  unsigned int uuSize = NumH * (Nboth + NacceptorOnly);
+  unsigned int uvSize = NumH * (NV_both + NV_acceptorOnly + NIons);
+  uvSize += (Nboth + NacceptorOnly);
   mprintf("\tEstimated max potential memory usage: %s\n",
-          hbdata_.MemoryUsage((Nboth + NdonorOnly)     * (Nboth + NacceptorOnly),
-                              ((NV_both + NV_donorOnly) * (Nboth + NacceptorOnly)) +
-                              ((Nboth + NdonorOnly)     * (NV_both + NV_acceptorOnly)),
-                              0).c_str());
+          hbdata_.MemoryUsage( uuSize,
+                               uvSize,
+                               0 ).c_str());
 //  std::sort( IdxTypes.begin(), IdxTypes.end() );
 
 //  plTypes_.reserve( IdxTypes.size() );

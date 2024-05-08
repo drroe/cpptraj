@@ -475,6 +475,7 @@ std::string HbData::MemoryUsage(size_t n_uu_pairs, size_t n_uv_pairs, size_t nFr
     nFrames = masterDSL_->MaxFrames();
   else
     nFrames = nFramesIn;
+  mprintf("DEBUG: nuu %zu nuv %zu nframes %zu\n", n_uu_pairs, n_uv_pairs, nFrames);
   static const size_t sizeHbond = sizeof(Hbond);
   // NOTE: Assuming an overhead of 32 bytes per map element.
   static const size_t sizeElt = 32;
