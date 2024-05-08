@@ -44,6 +44,9 @@ HbData::HbData() :
   noIntramol_(false) // FIXME
 {}
 
+const int HbData::ID_SOLVENT_ = -1;
+const int HbData::ID_ION_ = -2;
+
 /** Set debug level */
 void HbData::SetDebug(int debugIn) {
   debug_ = debugIn;
@@ -246,10 +249,14 @@ void HbData::SetCurrentParm( Topology const* topPtr, Iarray const& donor_h_indic
 /** Create legend for hydrogen bond based on given atoms. */
 std::string HbData::CreateHBlegend(Topology const& topIn, int a_atom, int h_atom, int d_atom)
 {
-  if (a_atom == -1)
+  if (a_atom == ID_SOLVENT_)
     return (topIn.TruncResAtomName(h_atom) + "-V");
-  else if (d_atom == -1)
+  else if (a_atom == ID_ION_)
+    return (topIn.TruncResAtomName(h_atom) + "-I");
+  else if (d_atom == ID_SOLVENT_)
     return (topIn.TruncResAtomName(a_atom) + "-V");
+  else if (d_atom == ID_ION_)
+    return (topIn.TruncResAtomName(a_atom) + "-I");
   else
     return (topIn.TruncResAtomName(a_atom) + "-" +
             topIn.TruncResAtomName(d_atom) + "-" +
@@ -306,6 +313,11 @@ void HbData::AddUU(double dist, double angle, int fnum, int a_atom, int h_atom, 
 void HbData::AddUV(double dist, double angle, int fnum,
                    int a_atom, int h_atom, int d_atom, bool udonor, int onum)
 {
+  int hb_id;
+  if (d_atom == h_atom)
+    hb_id = ID_ION_;
+  else
+    hb_id = ID_SOLVENT_;
   // TODO return if not calcSolvent_?
   int hbidx, solventres, soluteres;
   // TODO: Option to use solvent mol num?
@@ -339,11 +351,11 @@ void HbData::AddUV(double dist, double angle, int fnum,
     }
     Hbond hb;
     if (udonor) { // Do not care about which solvent acceptor
-      if (ds != 0) ds->SetLegend( CreateHBlegend(*CurrentParm_, -1, h_atom, d_atom) );
-      hb = Hbond(ds, -1, h_atom, d_atom, splitFrames_);
+      if (ds != 0) ds->SetLegend( CreateHBlegend(*CurrentParm_, hb_id, h_atom, d_atom) );
+      hb = Hbond(ds, hb_id, h_atom, d_atom, splitFrames_);
     } else {           // Do not care about which solvent donor
-      if (ds != 0) ds->SetLegend( CreateHBlegend(*CurrentParm_, a_atom, -1, -1) );
-      hb = Hbond(ds, a_atom, -1, -1, splitFrames_);
+      if (ds != 0) ds->SetLegend( CreateHBlegend(*CurrentParm_, a_atom, hb_id, hb_id) );
+      hb = Hbond(ds, a_atom, hb_id, hb_id, splitFrames_);
     }
     it = UV_Map_.insert(it, std::pair<int,Hbond>(hbidx,hb));
   } else {
@@ -647,15 +659,25 @@ void HbData::PrintHbData() {
       // Average has slightly diff meaning since for any given frame multiple
       // solvent can bond to the same solute.
       double avg = ((double)hbond->Frames()) / ((double) Nframes_);
-      if (hbond->A()==-1) // Solvent acceptor
-        Aname = "SolventAcc";
-      else {
+      if (hbond->A() < 0) {
+        // Solvent/ion acceptor
+        if (hbond->A() == ID_SOLVENT_)
+          Aname = "SolventAcc";
+        else
+          Aname = "IonAcc";
+      } else {
         Aname = CurrentParm_->TruncResAtomName(hbond->A());
         if (useAtomNum_) Aname.append("_" + integerToString(hbond->A()+1));
       }
-      if (hbond->D()==-1) { // Solvent donor
-        Dname = "SolventDnr";
-        Hname = "SolventH";
+      if (hbond->D() < 0) {
+        // Solvent/ion donor
+        if (hbond->D() == ID_SOLVENT_) {
+          Dname = "SolventDnr";
+          Hname = "SolventH";
+        } else {
+          Dname = "Ion";
+          Hname = "Ion";
+        }
       } else {
         Dname = CurrentParm_->TruncResAtomName(hbond->D());
         Hname = CurrentParm_->TruncResAtomName(hbond->H());

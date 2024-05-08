@@ -52,6 +52,9 @@ class HbData {
   private:
     enum MatrixNormType { NORM_NONE = 0, NORM_FRAMES, NORM_RESMAX };
 
+    static const int ID_SOLVENT_;
+    static const int ID_ION_;
+
     typedef std::pair<int,int> Hpair;
     typedef std::map<Hpair,Hbond> UUmapType;
     typedef std::map<int,Hbond> UVmapType;

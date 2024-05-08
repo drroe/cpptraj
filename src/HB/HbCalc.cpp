@@ -135,6 +135,7 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
   unsigned int NV_both = 0;
   unsigned int NV_donorOnly = 0;
   unsigned int NV_H = 0;
+  unsigned int NIons = 0;
   for (AtomMask::const_iterator at = generalMask_.begin(); at != generalMask_.end(); ++at) {
     Atom const& currentAtom = topIn[*at];
     int molnum = currentAtom.MolNum();
@@ -196,19 +197,21 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
         plTypes_.push_back( VDONOR );
         // TODO check charge to see if it can be an acceptor?
         plHatoms_.push_back( Iarray(1, *at) );
+        NIons++;
+        nsites++;
       } // END atom has no bonds
     } 
   }
   mprintf("\tTotal Number of heavy atom sites: %i\n", nsites);
-  mprintf("\tSolute acceptor-only atoms: %u\n", NacceptorOnly);
-  mprintf("\tSolute donor/acceptor sites: %u\n", Nboth);
-  mprintf("\tSolute donor-only sites: %u\n", NdonorOnly);
-  mprintf("\t%u solute hydrogens.\n", NumH);
+  mprintf("\t  Solute acceptor-only atoms: %u\n", NacceptorOnly);
+  mprintf("\t  Solute donor/acceptor sites: %u\n", Nboth);
+  mprintf("\t  Solute donor-only sites: %u\n", NdonorOnly);
+  mprintf("\t  %u solute hydrogens.\n", NumH);
   if (hbdata_.CalcSolvent()) {
-    mprintf("\tSolvent acceptor-only atoms: %u\n", NV_acceptorOnly);
-    mprintf("\tSolvent donor/acceptor sites: %u\n", NV_both);
-    mprintf("\tSolvent donor-only sites: %u\n", NV_donorOnly);
-    mprintf("\t%u solvent hydrogens.\n", NV_H);
+    mprintf("\t  Solvent acceptor-only atoms: %u\n", NV_acceptorOnly);
+    mprintf("\t  Solvent donor/acceptor sites: %u\n", NV_both);
+    mprintf("\t  Solvent donor-only sites: %u\n", NV_donorOnly);
+    mprintf("\t  %u solvent hydrogens, %u ions.\n", NV_H, NIons);
   }
 
 //  std::sort( IdxTypes.begin(), IdxTypes.end() );
