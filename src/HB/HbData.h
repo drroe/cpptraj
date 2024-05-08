@@ -42,6 +42,8 @@ class HbData {
     bool Series() const { return series_; }
     /// \return Debug level
     int Debug() const { return debug_; }
+    /// \return String containing estimated memory usage
+    std::string MemoryUsage(size_t, size_t, size_t) const;
 
     /// Add a solute-solute hydrogen bond
     void AddUU(double, double, int, int, int, int, int);
@@ -75,8 +77,6 @@ class HbData {
     static inline std::string CreateBridgeLegend(std::string const&, std::set<int> const&);
     /// Calculate Bridges for the current frame
     void BridgeCalc(int, int);
-    /// \return String containing estimated memory usage
-    std::string MemoryUsage(size_t, size_t, size_t) const;
     /// Finish hbond time series
     void FinishSeries(DataSet_integer*, unsigned int);
     /// Ensure all hbond time series have same # frames

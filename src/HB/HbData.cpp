@@ -468,8 +468,13 @@ void HbData::IncrementNframes(int frameNum, int trajoutNum) {
 }
 
 /** Estimate the memory usage of the hbond command. */
-std::string HbData::MemoryUsage(size_t n_uu_pairs, size_t n_uv_pairs, size_t nFrames) const
+std::string HbData::MemoryUsage(size_t n_uu_pairs, size_t n_uv_pairs, size_t nFramesIn) const
 {
+  size_t nFrames;
+  if (nFramesIn < 1)
+    nFrames = masterDSL_->MaxFrames();
+  else
+    nFrames = nFramesIn;
   static const size_t sizeHbond = sizeof(Hbond);
   // NOTE: Assuming an overhead of 32 bytes per map element.
   static const size_t sizeElt = 32;
