@@ -3,6 +3,9 @@
 #include "HbData.h"
 #include "../AtomMask.h"
 #include "../PairList.h"
+#ifdef TIMER
+# include "../Timer.h"
+#endif
 class ArgList;
 class Atom;
 class Box;
@@ -64,6 +67,10 @@ class HbCalc {
     double dcut2_;         ///< Heavy atom distance cutoff (Ang) squared
     double acut_;          ///< Angle cutoff in radians
     HbData hbdata_;        ///< Hold hydrogen bond calculation data.
+#   ifdef TIMER
+    Timer t_action_;       ///< Total time taken by RunCalc_PL
+    Timer t_hbcalc_;       ///< Time taken by pairlist loop in RunCalc_PL
+#   endif
 };
 }
 }

@@ -411,9 +411,9 @@ void HbData::BridgeCalc(int frameNum, int trajoutNum) {
       bridgeID.assign("None");
     NumBridge_->Add(frameNum, &numHB);
     BridgeID_->Add(frameNum, bridgeID.c_str());
-#   ifdef TIMER
-    t_bridge_.Stop();
-#   endif
+//#   ifdef TIMER
+//    t_bridge_.Stop();
+//#   endif
 }
 
 /** Finish hbond calc for a Frame. */
@@ -551,14 +551,7 @@ void HbData::PrintHbData() {
    mprintf("\t%zu solute-solvent hydrogen bonds.\n", UV_Map_.size());
    mprintf("\t%zu unique solute-solvent bridging interactions.\n", BridgeMap_.size());
   }
-# ifdef TIMER
-  t_uu_.WriteTiming(      2,"Solute-Solute   :",t_action_.Total());
-  if (calcSolvent_) {
-    t_uv_.WriteTiming(    2,"Solute-Solvent  :",t_uv_.Total());
-    t_bridge_.WriteTiming(2,"Bridging waters :",t_action_.Total());
-  }
-  t_action_.WriteTiming(1,"Total:");
-# endif
+
   // Ensure all series have been updated for all frames.
   UpdateSeries();
   // Matrix normalization

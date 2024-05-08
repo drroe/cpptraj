@@ -374,6 +374,9 @@ void HbCalc::CalcHbonds(int frameNum, double dist2,
 /** HB calc loop with a pairlist */
 int HbCalc::RunCalc_PL(Frame const& currentFrame, int frameNum, int trajoutNum)
 {
+# ifdef TIMER
+  t_action_.Start();
+# endif
   int retVal = pairList_.CreatePairList(currentFrame,
                                         currentFrame.BoxCrd().UnitCell(),
                                         currentFrame.BoxCrd().FracCell(), plMask_);
@@ -384,7 +387,9 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame, int frameNum, int trajoutNum)
     mprintf("Warning: %i atoms are off the grid.\n", retVal);
   }
   //problemAtoms_.clear();
-
+# ifdef TIMER
+  t_hbcalc_.Start();
+# endif
 //  int Ninteractions = 0; // DEBUG
   int numHB = 0;
   int cidx;
@@ -460,14 +465,22 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame, int frameNum, int trajoutNum)
 # ifdef _OPENMP
   } // END omp parallel
 # endif
-  //ConsolidateProblems();
 //  mprintf("DEBUG: %i interactions.\n", Ninteractions);
-
+# ifdef TIMER
+  t_hbcalc_.Stop();
+# endif
   hbdata_.IncrementNframes(frameNum, trajoutNum);
+# ifdef TIMER
+  t_action_.Stop();
+# endif
   return 0;
 }
 
 /** Finish HB calc and do output. */
 void HbCalc::FinishHbCalc() {
   hbdata_.PrintHbData();
+# ifdef TIMER
+  t_hbcalc_.WriteTiming(2, "Hydrogen Bond Calc. :", t_action_.Total());
+  t_action_.WriteTiming(1, "Total :");
+# endif
 }
