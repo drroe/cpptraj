@@ -243,7 +243,7 @@ double HbCalc::Angle(const double* XA, const double* XH, const double* XD, Box c
   * The distance cutoff should already be satisfied between donor and
   * acceptor heavy atoms.
   */
-void HbCalc::CalcSiteHbonds(int frameNum, double dist2,
+void HbCalc::calc_UU_Hbonds(int frameNum, double dist2,
                             int d_idx, Iarray const& Hatoms,
                             int a_idx,
                             Frame const& frmIn, int& numHB,
@@ -276,7 +276,7 @@ void HbCalc::CalcSiteHbonds(int frameNum, double dist2,
   * The distance cutoff should already be satisfied between donor and
   * acceptor heavy atoms.
   */
-void HbCalc::CalcSolvHbonds(int frameNum, double dist2,
+void HbCalc::calc_UV_Hbonds(int frameNum, double dist2,
                             int d_idx, Iarray const& Hatoms,
                             int a_idx,
                             Frame const& frmIn, int& numHB, bool soluteDonor,
@@ -329,10 +329,10 @@ void HbCalc::CalcHbonds(int frameNum, double dist2,
     // DONOR BOTH
     // ACCEPTOR BOTH
     if ((a0type == BOTH || a0type == DONOR)    && (a1type == BOTH || a1type == ACCEPTOR)) {
-      CalcSiteHbonds(frameNum, dist2, a0idx, plHatoms_[a0idx], a1idx, frmIn, numHB, trajoutNum);
+      calc_UU_Hbonds(frameNum, dist2, a0idx, plHatoms_[a0idx], a1idx, frmIn, numHB, trajoutNum);
     } 
     if ((a0type == BOTH || a0type == ACCEPTOR) && (a1type == BOTH || a1type == DONOR)) {
-      CalcSiteHbonds(frameNum, dist2, a1idx, plHatoms_[a1idx], a0idx, frmIn, numHB, trajoutNum);
+      calc_UU_Hbonds(frameNum, dist2, a1idx, plHatoms_[a1idx], a0idx, frmIn, numHB, trajoutNum);
     }
   } else {
     if (!hbdata_.CalcSolvent()) return;
@@ -362,10 +362,10 @@ void HbCalc::CalcHbonds(int frameNum, double dist2,
       // VACCEPTOR DONOR
       // VACCEPTOR BOTH
       if ((t0 == VBOTH || t0 == VDONOR)  && (t1 == BOTH || t1 == ACCEPTOR)) {
-        CalcSolvHbonds(frameNum, dist2, i0, plHatoms_[i0], i1, frmIn, numHB, false, trajoutNum);
+        calc_UV_Hbonds(frameNum, dist2, i0, plHatoms_[i0], i1, frmIn, numHB, false, trajoutNum);
       }
       if ((t0 == VBOTH || t0 == VACCEPTOR) && (t1 == BOTH || t1 == DONOR)) {
-        CalcSolvHbonds(frameNum, dist2, i1, plHatoms_[i1], i0, frmIn, numHB, true, trajoutNum);
+        calc_UV_Hbonds(frameNum, dist2, i1, plHatoms_[i1], i0, frmIn, numHB, true, trajoutNum);
       }
     }
   }

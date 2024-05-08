@@ -49,9 +49,9 @@ class HbCalc {
     /// Set up pair list for generalMask_ and given Topology
     int setupPairlistAtomMask(Topology const&);
     /// Calculate hydrogen bonds between solute donor site and solute acceptor
-    void CalcSiteHbonds(int, double, int, Iarray const&, int, Frame const&, int&, int);
+    void calc_UU_Hbonds(int, double, int, Iarray const&, int, Frame const&, int&, int);
     /// Calculate hydrogen bonds between solute and solvent
-    void CalcSolvHbonds(int, double, int, Iarray const&, int, Frame const&, int&, bool, int);
+    void calc_UV_Hbonds(int, double, int, Iarray const&, int, Frame const&, int&, bool, int);
 
     /// Calculate a potentially imaged angle
     double Angle(const double*, const double*, const double*, Box const&) const;
