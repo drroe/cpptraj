@@ -75,6 +75,9 @@ int HbData::ProcessArgs(ArgList& actionArgs, DataFileList& DFL) {
       }
     }
   }
+
+  calcSolvent_ = actionArgs.hasKey("solvent");
+
   std::string avgname = actionArgs.GetStringKey("avgout");
   std::string solvname = actionArgs.GetStringKey("solvout");
   if (solvname.empty()) solvname = avgname;
