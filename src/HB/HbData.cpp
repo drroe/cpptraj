@@ -6,6 +6,7 @@
 #include "../DataSetList.h"
 #include "../DataSet_integer.h"
 #include "../DataSet_2D.h"
+#include "../DataSet_MatrixDbl.h"
 #include "../StringRoutines.h"
 #include <algorithm> //sort
 
@@ -20,6 +21,7 @@ HbData::HbData() :
   NumBridge_(0),
   BridgeID_(0),
   UU_matrix_byRes_(0),
+  UU_norm_byRes_(0),
   nhbout_(0),
   UUseriesout_(0),
   UVseriesout_(0),
@@ -43,6 +45,11 @@ HbData::HbData() :
   do_uuResMatrix_(false),
   noIntramol_(false) // FIXME
 {}
+
+/** DESTRUCTOR */
+HbData::~HbData() {
+  if (UU_norm_byRes_ != 0) delete UU_norm_byRes_;
+}
 
 const int HbData::ID_SOLVENT_ = -1;
 const int HbData::ID_ION_ = -2;
@@ -217,13 +224,23 @@ int HbData::InitHbData(DataSetList* dslPtr, std::string const& setNameIn) {
     UU_matrix_byRes_->ModifyDim(Dimension::Y).SetLabel("Res");
     if (uuResMatrixFile_ != 0)
       uuResMatrixFile_->AddDataSet( UU_matrix_byRes_ );
+    UU_norm_byRes_ = new DataSet_MatrixDbl();
   }
 
   return 0;
 }
 
-/** Set pointer to current Topology */
-void HbData::SetCurrentParm( Topology const* topPtr, Iarray const& donor_h_indices,
+/** Do any Topology-related setup. Set pointer to current Topology.
+  * \param topPtr Pointer to current topology.
+  * \param both_indices Indices of heavy atoms that can be hbond donor and acceptor
+  * \param donor_indices Indices of heavy atoms that can only be hbond donor
+  * \param donor_h_indices Indices of donor hydrogens
+  * \param acceptor_indices Indices of heavy atoms that can only be hbond acceptor.
+  */
+int HbData::SetCurrentParm( Topology const* topPtr,
+                             Iarray const& both_indices,
+                             Iarray const& donor_indices,
+                             Iarray const& donor_h_indices,
                              Iarray const& acceptor_indices )
 {
   CurrentParm_ = topPtr;
@@ -237,13 +254,102 @@ void HbData::SetCurrentParm( Topology const* topPtr, Iarray const& donor_h_indic
                                 at != donor_h_indices.end(); ++at)
       DidxMap_[*at] = didx++;
     // Acceptor indices
-    //std::sort(at_array.begin(), at_array.end());
+    Iarray at_array;
+    at_array.reserve( acceptor_indices.size() + both_indices.size() );
+    at_array = both_indices;
+    for (Iarray::const_iterator it = acceptor_indices.begin(); it != acceptor_indices.end(); ++it)
+      at_array.push_back( *it );
+    std::sort(at_array.begin(), at_array.end());
     int aidx = 0;
-    for (Iarray::const_iterator at = acceptor_indices.begin();
-                                at != acceptor_indices.end(); ++at)
+    for (Iarray::const_iterator at = at_array.begin(); at != at_array.end(); ++at)
       AidxMap_[*at] = aidx++;
   }
+  // Set up interaction matrix if needed
+  if (UU_matrix_byRes_ != 0) {
+    if (SetupInteractionMatrix(both_indices, donor_indices, acceptor_indices)) {
+      mprinterr("Error: Could not set up hydrogen bond interaction matrix.\n");
+      return 1;
+    }
+  }
+  return 0;
+}
 
+/** Set up hbond UU matrix */
+int HbData::SetupInteractionMatrix(Iarray const& both_indices,
+                                   Iarray const& donorOnly_indices,
+                                   Iarray const& acceptorOnly_indices)
+{
+  if (UU_matrix_byRes_ == 0) return 0;
+
+  unsigned int bothEnd = both_indices.size();
+  Iarray Both;
+  Both.reserve( both_indices.size() + donorOnly_indices.size() );
+  Both = both_indices;
+  for (Iarray::const_iterator it = donorOnly_indices.begin(); it != donorOnly_indices.end(); ++it)
+    Both.push_back( *it );
+
+  // Sanity check
+  if (CurrentParm_ == 0) {
+    mprinterr("Internal Error: HbData::SetupInteractionMatrix(): CurrentParm_ is null.\n");
+    return 1;
+  }
+
+  // Find highest solute index
+  int highest_U_idx = 0;
+  for (int rnum = 0; rnum < CurrentParm_->Nres(); rnum++)
+  {
+    // Find molecule number
+    int at0 = CurrentParm_->Res(rnum).FirstAtom();
+    int mnum = (*CurrentParm_)[at0].MolNum();
+    if (!CurrentParm_->Mol(mnum).IsSolvent())
+      highest_U_idx = rnum;
+  }
+  mprintf("\tHighest solute residue # = %i\n", highest_U_idx+1);
+  if (UU_matrix_byRes_->AllocateHalf(highest_U_idx+1)) {
+    mprinterr("Error: Allocating solute-solute hbond matrix failed.\n");
+    return 1;
+  }
+  // Set up normalization matrix if necesary
+  if (UUmatByRes_norm_ == NORM_RESMAX) {
+    UU_norm_byRes_->AllocateHalf( UU_matrix_byRes_->Nrows() );
+    // Outer loop over solute donors
+    for (unsigned int sidx0 = 0; sidx0 < Both.size(); sidx0++)
+    {
+      int atidx0 = Both[sidx0];
+      int mol0 = (*CurrentParm_)[atidx0].MolNum();
+      int rnum0 = (*CurrentParm_)[atidx0].ResNum();
+      // Loop over solute sites that can be both donor and acceptor
+      for (unsigned int sidx1 = sidx0 + 1; sidx1 < bothEnd; sidx1++)
+      {
+        int atidx1 = Both[sidx1];
+        if (!noIntramol_ || mol0 != (*CurrentParm_)[atidx1].MolNum()) {
+          int rnum1 = (*CurrentParm_)[atidx1].ResNum();
+          // The max # of hbonds between sites depends on # hydrogens.
+          // However, given H1-X-H2 Y, you tend to have either Y..H1-X or
+          // Y..H2-X, not both, so do based on sites only.
+          //UU_norm_byRes_.UpdateElement(rnum0, rnum1, Site0.n_hydrogens() + Site1.n_hydrogens());
+          UU_norm_byRes_->UpdateElement(rnum0, rnum1, 2.0);
+        }
+      } // END loop over solute sites that are D/A
+      // Loop over solute acceptor-only
+      for (Iarray::const_iterator a_atom = acceptorOnly_indices.begin();
+                                  a_atom != acceptorOnly_indices.end(); ++a_atom)
+      {
+        if (!noIntramol_ || mol0 != (*CurrentParm_)[*a_atom].MolNum()) {
+          int rnum1 = (*CurrentParm_)[*a_atom].ResNum();
+          //UU_norm_byRes_.UpdateElement(rnum0, rnum1, Site0.n_hydrogens());
+          UU_norm_byRes_->UpdateElement(rnum0, rnum1, 1.0);
+        }
+      } // END loop over acceptor atoms
+    } // END loop over all D/A sites
+    mprintf("DEBUG: Residue normalization matrix:\n");
+    for (unsigned int rnum0 = 0; rnum0 < UU_norm_byRes_->Nrows(); rnum0++) {
+      for (unsigned int rnum1 = rnum0; rnum1 < UU_norm_byRes_->Ncols(); rnum1++) {
+        mprintf("\t%6i %6i %f\n", rnum0+1, rnum1+1, UU_norm_byRes_->GetElement(rnum1, rnum0));
+      }
+    }
+  }
+  return 0;
 }
 
 /** Create legend for hydrogen bond based on given atoms. */
@@ -497,8 +603,10 @@ std::string HbData::MemoryUsage(size_t n_uu_pairs, size_t n_uv_pairs, size_t nFr
   for (BmapType::const_iterator it = BridgeMap_.begin(); it != BridgeMap_.end(); ++it)
     memTotal += (sizeBRmapElt + it->first.size()*sizeof(int));
   // Matrices
-  if (UU_matrix_byRes_ != 0)
+  if (UU_matrix_byRes_ != 0) {
     memTotal += UU_matrix_byRes_->MemUsageInBytes();
+    memTotal += UU_norm_byRes_->MemUsageInBytes();
+  }
  
   return ByteString( memTotal, BYTE_DECIMAL );
 }

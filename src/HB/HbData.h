@@ -13,6 +13,7 @@ class DataFileList;
 class DataSet;
 class DataSet_2D;
 class DataSet_integer;
+class DataSet_MatrixDbl;
 class DataSetList;
 class Topology;
 namespace Cpptraj {
@@ -23,6 +24,8 @@ class HbData {
   public:
     /// CONSTRUCTOR
     HbData();
+    /// DESTRUCTOR
+    ~HbData();
     /// Set debug level
     void SetDebug(int);
     /// Process data-related args
@@ -30,7 +33,7 @@ class HbData {
     /// Initialize hydrogen bond data 
     int InitHbData(DataSetList*, std::string const&);
     /// Set pointer to current Topology
-    void SetCurrentParm(Topology const*, Iarray const&, Iarray const&);
+    int SetCurrentParm(Topology const*, Iarray const&, Iarray const&, Iarray const&, Iarray const&);
     /// Output HBond data
     void PrintHbData();
 
@@ -40,6 +43,8 @@ class HbData {
     bool CalcSolvent() const { return calcSolvent_; }
     /// \return True if saving hydrogen bond time series data
     bool Series() const { return series_; }
+    /// \return True if calculating interaction matrix
+    bool InteractionMatrix() const { return (UU_matrix_byRes_ != 0); }
     /// \return Debug level
     int Debug() const { return debug_; }
     /// \return String containing estimated memory usage
@@ -67,6 +72,8 @@ class HbData {
 
     class bridgeSorter;
 
+    /// Set up solute/solute interaction matrix
+    int SetupInteractionMatrix(Iarray const&, Iarray const&, Iarray const&);
     /// \return legend for hydrogen bond series set
     static inline std::string CreateHBlegend(Topology const&, int, int, int);
     /// \return DataSet Index for solute-solute hbond
@@ -96,19 +103,20 @@ class HbData {
     IdxMapType DidxMap_; ///< Map solute hydrogen donor atom # to index (series only)
     IdxMapType AidxMap_; ///< Map solute acceptor atom # to index (series only).
 
-    DataSet* NumHbonds_;     ///< Hold # UU hbonds per frame.
-    DataSet* NumSolvent_;    ///< Hold # UV hbonds per frame.
-    DataSet* NumBridge_;     ///< Hold # solute-solvent bridges per frame.
-    DataSet* BridgeID_;      ///< Hold info on each bridge per frame.
-    DataSet_2D* UU_matrix_byRes_; ///< Record # hbonds between each residue pair.
-    DataFile* nhbout_;       ///< File to write # hbonds vs time to
-    DataFile* UUseriesout_;  ///< File to write UU time series to.
-    DataFile* UVseriesout_;  ///< File to write UV time series to.
-    DataFile* Bseriesout_;   ///< File to write bridge time series to.
-    DataFile* uuResMatrixFile_; ///< UU hbond matrix file
-    CpptrajFile* avgout_;    ///< File to write UU averages to.
-    CpptrajFile* solvout_;   ///< File to write UV averages to.
-    CpptrajFile* bridgeout_; ///< File to write bridge totals to.
+    DataSet* NumHbonds_;               ///< Hold # UU hbonds per frame.
+    DataSet* NumSolvent_;              ///< Hold # UV hbonds per frame.
+    DataSet* NumBridge_;               ///< Hold # solute-solvent bridges per frame.
+    DataSet* BridgeID_;                ///< Hold info on each bridge per frame.
+    DataSet_2D* UU_matrix_byRes_;      ///< Record # hbonds between each residue pair.
+    DataSet_MatrixDbl* UU_norm_byRes_; ///< For normalizing the max possible # hbonds by residue
+    DataFile* nhbout_;                 ///< File to write # hbonds vs time to
+    DataFile* UUseriesout_;            ///< File to write UU time series to.
+    DataFile* UVseriesout_;            ///< File to write UV time series to.
+    DataFile* Bseriesout_;             ///< File to write bridge time series to.
+    DataFile* uuResMatrixFile_;        ///< UU hbond matrix file
+    CpptrajFile* avgout_;              ///< File to write UU averages to.
+    CpptrajFile* solvout_;             ///< File to write UV averages to.
+    CpptrajFile* bridgeout_;           ///< File to write bridge totals to.
 
     Iarray splitFrames_;         ///< For calculating hydrogen bonds by parts
     std::string hbsetname_;   ///< Hydrogen bond data set name

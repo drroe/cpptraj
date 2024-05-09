@@ -77,22 +77,31 @@ int HbCalc::SetupHbCalc(Topology const& topIn, Box const& boxIn) {
 
   // For backwards compatibility, if saving time series we need to store
   // the donor hydrogen indices and acceptor heavy atom indices.
-  Iarray acceptor_indices, donor_h_indices;
-  if (hbdata_.Series()) {
+  // We also need to do this if we are saving an interaction matrix.
+  Iarray acceptorOnly_indices, donor_h_indices, both_indices, donorOnly_indices;
+  if (hbdata_.Series() || hbdata_.InteractionMatrix()) {
     for (int idx = 0; idx != plMask_.Nselected(); idx++) {
       if (plTypes_[idx] == BOTH) {
-        acceptor_indices.push_back( plMask_[idx] );
+        both_indices.push_back( plMask_[idx] );
+        //acceptor_indices.push_back( plMask_[idx] );
         for (Iarray::const_iterator ht = plHatoms_[idx].begin(); ht != plHatoms_[idx].end(); ++ht)
           donor_h_indices.push_back( *ht );
       } else if (plTypes_[idx] == ACCEPTOR) {
-        acceptor_indices.push_back( plMask_[idx] );
+        acceptorOnly_indices.push_back( plMask_[idx] );
       } else if (plTypes_[idx] == DONOR) {
+        donorOnly_indices.push_back( plMask_[idx] );
         for (Iarray::const_iterator ht = plHatoms_[idx].begin(); ht != plHatoms_[idx].end(); ++ht)
           donor_h_indices.push_back( *ht );
       }
     }
   }
-  hbdata_.SetCurrentParm( &topIn, donor_h_indices, acceptor_indices );
+  if (hbdata_.SetCurrentParm( &topIn, both_indices,
+                              donorOnly_indices, donor_h_indices,
+                              acceptorOnly_indices ))
+  {
+    mprinterr("Error: Could not set up hbond Topology data.\n");
+    return 1;
+  }
 
   return 0;
 }
