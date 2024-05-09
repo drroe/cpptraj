@@ -140,7 +140,9 @@ int HbData::ProcessArgs(ArgList& actionArgs, DataFileList& DFL) {
   return 0;
 }
 
-/** Print options to stdout */
+/** Print options to stdout. Should only be called after ProcessArgs()
+  * and InitHbData().
+  */
 void HbData::PrintHbDataOpts() const {
   if (calcSolvent_)
     mprintf("\tWill look for solvent-solute hydrogen bonds.\n");
