@@ -6,6 +6,9 @@
 #include "../DataFileList.h"
 #include "../DistRoutines.h"
 #include "../Topology.h"
+#ifdef _OPENMP
+# include <omp.h>
+#endif
 
 using namespace Cpptraj::HB;
 
@@ -54,12 +57,27 @@ int HbCalc::InitHbCalc(ArgList& argIn, DataSetList* masterDslPtr, DataFileList& 
     mprinterr("Error: Could not initialize hydrogen bond data.\n");
     return 1;
   }
+# ifdef _OPENMP
+  // Each thread needs temp. space to store found hbonds every frame
+  // to avoid memory clashes when adding/updating in map.
+# pragma omp parallel
+  {
+# pragma omp master
+  {
+  thread_HBs_.resize( omp_get_num_threads() );
+  }
+  }
+# endif
 
   return 0;
 }
 
 /** Print current options */
 void HbCalc::PrintHbCalcOpts() const {
+# ifdef _OPENMP
+  if (thread_HBs_.size() > 1)
+    mprintf("\tParallelizing calculation with %zu threads.\n", thread_HBs_.size());
+# endif
   mprintf("\tSearching for atoms in mask '%s'\n", generalMask_.MaskString());
   mprintf("\tHeavy atom distance cutoff= %g Ang.\n", sqrt(dcut2_));
   if (acut_ > -1)
@@ -307,8 +325,8 @@ void HbCalc::calc_UU_Hbonds(int frameNum, double dist2,
     {
 //      mprintf("DBG: %12s %12i %12s %12.4f %12.4f\n", plNames_[a_idx].c_str(), *h_atom + 1, plNames_[d_idx].c_str(), sqrt(dist2), angle*Constants::RADDEG);
 #     ifdef _OPENMP
-      // numHB holds thread number, will be counted later on.
-      thread_HBs_[numHB].push_back( Hbond(sqrt(dist2), angle, a_atom, *h_atom, d_atom) );
+      // numHB holds thread number, will be counted later on. -1 indicates UU hbond.
+      thread_HBs_[numHB].push_back( Hbond(sqrt(dist2), angle, a_atom, *h_atom, d_atom, -1) );
 #     else
       ++numHB;
       hbdata_.AddUU(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom, trajoutNum);
@@ -439,11 +457,11 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame, int frameNum, int trajoutNum)
   int numHB = 0;
   int cidx;
 # ifdef _OPENMP
-  int mythread;
-# pragma omp parallel private(cidx,mythread) 
+//  int mythread;
+# pragma omp parallel private(cidx, numHB) 
   {
-  mythread = omp_get_thread_num();
-//  thread_problemAtoms_[mythread].clear();
+  // In OpenMP, numHB is used to track thread number
+  numHB = omp_get_thread_num();
 # pragma omp for
 # endif 
   for (cidx = 0; cidx < pairList_.NGridMax(); cidx++)
@@ -509,7 +527,20 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame, int frameNum, int trajoutNum)
   } // END loop over cells
 # ifdef _OPENMP
   } // END omp parallel
-# endif
+  // Add all found hydrogen bonds
+  for (std::vector<Harray>::iterator it = thread_HBs_.begin();
+                                     it != thread_HBs_.end(); ++it)
+  {
+    for (Harray::const_iterator hb = it->begin(); hb != it->end(); ++hb)
+    {
+      if (hb->Frames() < 0)
+        hbdata_.AddUU(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), trajoutNum);
+      else
+        hbdata_.AddUV(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), (bool)hb->Frames(), trajoutNum);
+    }
+    it->clear();
+  }
+# endif /* _OPENMP */
 //  mprintf("DEBUG: %i interactions.\n", Ninteractions);
 # ifdef TIMER
   t_hbcalc_.Stop();

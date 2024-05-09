@@ -16,9 +16,11 @@ class Hbond {
     Hbond(DataSet_integer*, int, int, int, Iarray const&);
 #   ifdef _OPENMP
     /// Just record that hbond exists
-    Hbond(double d, double a, int ia, int ih, int id) :
-      dist_(d), angle_(a), data_(0), A_(ia), H_(ih), D_(id), frames_(0) {}
-    /// This version is for UV hbonds; a 1 in frames_ indicates soluteDonor
+//    Hbond(double d, double a, int ia, int ih, int id) :
+//      dist_(d), angle_(a), data_(0), A_(ia), H_(ih), D_(id), frames_(0) {}
+    /// This version is for tracking hbond type in OpenMP
+    /** \param sd 1 is UV solute donor, 0 is UV solute acceptor, -1 is UU
+      */
     Hbond(double d, double a, int ia, int ih, int id, int sd) :
       dist_(d), angle_(a), data_(0), A_(ia), H_(ih), D_(id), frames_(sd) {}
 #   endif
