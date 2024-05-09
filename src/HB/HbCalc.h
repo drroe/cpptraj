@@ -72,6 +72,7 @@ class HbCalc {
 #   ifdef TIMER
     Timer t_action_;       ///< Total time taken by RunCalc_PL
     Timer t_hbcalc_;       ///< Time taken by pairlist loop in RunCalc_PL
+    Timer t_angle_;        ///< Time taken by imaged angle calc
 #   endif
 #   ifdef _OPENMP
     typedef std::vector<Hbond> Harray;

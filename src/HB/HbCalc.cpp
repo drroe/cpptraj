@@ -331,7 +331,13 @@ void HbCalc::calc_UU_Hbonds(int frameNum, double dist2,
     //double angle = 0;
     //if (acut_ > -1)
     //double angle = Angle(XYZA.Dptr(), frmIn.XYZ(*h_atom), XYZD.Dptr(), frmIn.BoxCrd());
+#   ifdef TIMER
+    t_angle_.Start();
+#   endif
     double angle = Angle(frmIn.XYZ(a_atom), frmIn.XYZ(*h_atom), frmIn.XYZ(d_atom), frmIn.BoxCrd());
+#   ifdef TIMER
+    t_angle_.Stop();
+#   endif
     if ( !(angle < acut_) )
     {
 //      mprintf("DBG: %12s %12i %12s %12.4f %12.4f\n", plNames_[a_idx].c_str(), *h_atom + 1, plNames_[d_idx].c_str(), sqrt(dist2), angle*Constants::RADDEG);
@@ -365,8 +371,14 @@ void HbCalc::calc_UV_Hbonds(int frameNum, double dist2,
     bool angleSatisfied = true;
     // For ions, donor atom will be same as h atom so no angle needed.
     if (d_atom != *h_atom) {
+#     ifdef TIMER
+      t_angle_.Start();
+#     endif
       //angle = Angle(XYZA, frmIn.XYZ(*h_atom), XYZD, frmIn.BoxCrd());
       angle = Angle(frmIn.XYZ(a_atom), frmIn.XYZ(*h_atom), frmIn.XYZ(d_atom), frmIn.BoxCrd());
+#     ifdef TIMER
+      t_angle_.Stop();
+#     endif
       angleSatisfied = !(angle < acut_);
     }
     if (angleSatisfied)
@@ -569,6 +581,7 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame, int frameNum, int trajoutNum)
 void HbCalc::FinishHbCalc() {
   hbdata_.PrintHbData();
 # ifdef TIMER
+  t_angle_.WriteTiming( 3, "Angle Calc :", t_hbcalc_.Total());
   t_hbcalc_.WriteTiming(2, "Hydrogen Bond Calc. :", t_action_.Total());
   t_action_.WriteTiming(1, "Total :");
 # endif
