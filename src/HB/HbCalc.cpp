@@ -38,7 +38,9 @@ int HbCalc::InitHbCalc(ArgList& argIn, DataSetList* masterDslPtr, DataFileList& 
   double dcut = argIn.getKeyDouble("dist",3.0);
   dcut = argIn.getKeyDouble("distance", dcut); // for PTRAJ compat.
   dcut2_ = dcut * dcut;
-  acut_ = argIn.getKeyDouble("angle", 135.0 * Constants::DEGRAD);
+  acut_ = argIn.getKeyDouble("angle", 135.0);
+  // Convert angle cutoff to radians
+  acut_ *= Constants::DEGRAD;
 
   if (hbdata_.ProcessArgs(argIn, DFL)) {
     mprinterr("Error: Could not process hydrogen bond data args.\n");
