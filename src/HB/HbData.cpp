@@ -161,6 +161,16 @@ void HbData::PrintHbDataOpts() const {
       mprintf(" %i", *it + 1);
     mprintf("\n");
   }
+  if (calcSolvent_) {
+    if (solvout_ != 0)
+      mprintf("\tWriting solute-solvent hbond avgs to %s\n", solvout_->Filename().full());
+    if (bridgeout_ != 0)
+      mprintf("\tWriting solvent bridging info to %s\n", bridgeout_->Filename().full());
+    if (bridgeByAtom_)
+      mprintf("\tSolvent bridges will be determined between solute atoms.\n");
+    else
+      mprintf("\tSolvent bridges will be determined between solute residues.\n");
+  }
   if (useAtomNum_)
     mprintf("\tAtom numbers will be written to output.\n");
   if (series_) {
