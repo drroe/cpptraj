@@ -9,8 +9,11 @@ namespace HB {
 class Hbond;
 /// Hold routines for syncing up HB data in parallel (MPI)
 class HbParallel {
+    typedef std::vector<int> Iarray;
   public:
     HbParallel();
+    /// Sync all data to the master process
+    int SyncToMaster(int&, Iarray const&) const;
   private:
 #   ifdef MPI
     /// Determine number of hydrogen bonds on each rank

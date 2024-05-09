@@ -44,7 +44,7 @@ void HbParallel::HbondToArray(std::vector<double>& Dvals, std::vector<int>& Ival
   *   1303  : Array containing bridge integer info on rank.
   *   1304+X: Array of hbond X series info from rank.
   */
-int Action_HydrogenBond::SyncAction() {
+int HbParallel::SyncToMaster(int& Nframes_, Iarray const& splitFrames_) const {
   // Make sure all time series are updated at this point.
   UpdateSeries();
   // TODO consolidate # frames / offset calc code with Action_NAstruct
