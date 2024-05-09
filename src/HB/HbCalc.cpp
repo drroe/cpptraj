@@ -150,6 +150,7 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
 
   plMask_ = AtomMask( std::vector<int>(), topIn.Natom() );
   plTypes_.clear();
+  plId_.clear();
 //  plNames_.clear();
   plHatoms_.clear();
 
@@ -169,6 +170,12 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
     bool isSolventAtom = topIn.Mol(molnum).IsSolvent();
     // If we do not care about solvent hydrogen bonds and this is solvent, skip it.
     if (isSolventAtom && !hbdata_.CalcSolvent()) continue;
+    // Determine atom ID
+    int atid;
+    if (hbdata_.NoIntramol())
+      atid = molnum;
+    else
+      atid = *at;
     if (IsFON( currentAtom )) {
       // Check if there are any hydrogens bonded to this atom
       Iarray h_atoms;
@@ -214,6 +221,7 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
       //IdxTypes.push_back( Ptype(*at, currentType) );
       plMask_.AddSelectedAtom( *at );
       plTypes_.push_back( currentType );
+      plId_.push_back( atid );
 //      plNames_.push_back( topIn.TruncResAtomName( *at ) );
       plHatoms_.push_back( h_atoms );
     } else if (hbdata_.CalcSolvent()) {
@@ -222,6 +230,7 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
         // to be the same as D atom; this will skip the angle calc.
         plMask_.AddSelectedAtom( *at );
         plTypes_.push_back( VDONOR );
+        plId_.push_back( atid );
         // TODO check charge to see if it can be an acceptor?
         plHatoms_.push_back( Iarray(1, *at) );
         NIons++;
@@ -482,7 +491,8 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame, int frameNum, int trajoutNum)
         for (PairList::CellType::const_iterator it1 = it0 + 1;
                                                 it1 != thisCell.end(); ++it1)
         {
-          if (validInteraction(plTypes_[it0->Idx()], plTypes_[it1->Idx()]))
+          if (plId_[it0->Idx()] != plId_[it1->Idx()] &&
+              validInteraction(plTypes_[it0->Idx()], plTypes_[it1->Idx()]))
           {
             Vec3 const& xyz1 = it1->ImageCoords();
             Vec3 dxyz = xyz1 - xyz0;
@@ -507,7 +517,8 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame, int frameNum, int trajoutNum)
           for (PairList::CellType::const_iterator it1 = nbrCell.begin();
                                                   it1 != nbrCell.end(); ++it1)
           {
-            if (validInteraction(plTypes_[it0->Idx()], plTypes_[it1->Idx()]))
+            if (plId_[it0->Idx()] != plId_[it1->Idx()] && 
+                validInteraction(plTypes_[it0->Idx()], plTypes_[it1->Idx()]))
             {
               Vec3 const& xyz1 = it1->ImageCoords();
               Vec3 dxyz = xyz1 + tVec - xyz0;

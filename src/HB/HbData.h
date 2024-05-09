@@ -41,6 +41,8 @@ class HbData {
     void PrintHbDataOpts() const;
     /// \return True if solvent hydrogen bonds are being calculated
     bool CalcSolvent() const { return calcSolvent_; }
+    /// \return True if ignoring hbonds between atoms in same molecule
+    bool NoIntramol() const { return noIntramol_; }
     /// \return True if saving hydrogen bond time series data
     bool Series() const { return series_; }
     /// \return True if calculating interaction matrix
@@ -133,7 +135,7 @@ class HbData {
     bool useAtomNum_;         ///< If true include atom numbers in labels/legends
     bool bridgeByAtom_;       ///< If true determine bridging by atom.
     bool do_uuResMatrix_;     ///< If true calculate UU matrix
-    bool noIntramol_; /// FIXME
+    bool noIntramol_;         ///< If true ignore intramolecular hydrogen bonds/bridges.
 };
 
 }

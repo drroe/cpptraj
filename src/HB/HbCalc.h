@@ -63,6 +63,7 @@ class HbCalc {
     AtomMask generalMask_; ///< Mask of atoms to potentially calculate hydrogen bonds for
     AtomMask plMask_;      ///< Mask selecting atoms to go into the pairlist
     Tarray plTypes_;       ///< Type of each atom in plMask_
+    Iarray plId_;          ///< ID of each atom in plMask_; set to atom index, res index, or mol index
 //    Sarray plNames_;       ///< Name of each atom in plMask_
     Xarray plHatoms_;      ///< Indices of any hydrogens bonded to each atom in plMask_
     double dcut2_;         ///< Heavy atom distance cutoff (Ang) squared

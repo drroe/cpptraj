@@ -43,7 +43,7 @@ HbData::HbData() :
   useAtomNum_(false),
   bridgeByAtom_(false),
   do_uuResMatrix_(false),
-  noIntramol_(false) // FIXME
+  noIntramol_(false)
 {}
 
 /** DESTRUCTOR */
@@ -106,6 +106,7 @@ int HbData::ProcessArgs(ArgList& actionArgs, DataFileList& DFL) {
   }
 
   useAtomNum_ = actionArgs.hasKey("printatomnum");
+  noIntramol_ = actionArgs.hasKey("nointramol");
   bridgeByAtom_ = actionArgs.hasKey("bridgebyatom");
 
   // Hbond split analysis
