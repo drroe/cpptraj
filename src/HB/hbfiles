@@ -3,5 +3,4 @@ HB_SOURCES= \
   Bridge.cpp \
   HbCalc.cpp \
   HbData.cpp \
-  Hbond.cpp \
-  HbParallel.cpp
+  Hbond.cpp

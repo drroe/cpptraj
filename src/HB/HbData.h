@@ -2,9 +2,7 @@
 #define INC_HB_HBDATA_H
 #include "Bridge.h"
 #include "Hbond.h"
-#ifdef MPI
-# include "HbParallel.h"
-#endif
+#include "../Parallel.h" // FIXME Comm should be in a namespace
 #include <vector>
 #include <set>
 #include <map>
@@ -57,9 +55,9 @@ class HbData {
 
     /// Add a solute-solute hydrogen bond
     void AddUU(double, double, int, int, int, int, int);
-    /// Add a solute-solvent hydrogen bond
+    /// Add a solute-solvent hydrogen bond, note potential bridges
     void AddUV(double, double, int, int, int, int, bool, int);
-    /// Finish calc for a Frame and increment total # frames
+    /// Finish calc for a Frame and increment total # frames, do bridge calc if needed
     void IncrementNframes(int, int);
 #   ifdef MPI
     /// Set the across traj communicator
@@ -103,6 +101,12 @@ class HbData {
     static void summary_Parts_header(CpptrajFile*, unsigned int);
     /// Print parts summary for given hbond
     void summary_Parts(CpptrajFile*, Hbond const&) const;
+#   ifdef MPI
+    /// \return Array containing # hbonds on each rank
+    static std::vector<int> GetRankNhbonds(int,Parallel::Comm const&);
+    /// Flatten given Hbond into arrays
+    static void HbondToArray(std::vector<double>&, std::vector<int>&, Hbond const&);
+#   endif
     // ---------------------------------
     DataSetList* masterDSL_;  ///< Pointer to the master DataSetList
     Topology const* CurrentParm_; ///< Pointer to current Topology
@@ -146,10 +150,9 @@ class HbData {
     bool do_uuResMatrix_;     ///< If true calculate UU matrix
     bool noIntramol_;         ///< If true ignore intramolecular hydrogen bonds/bridges.
 #   ifdef MPI
-    HbParallel hbparallel_;   ///< For synchrozing hydrogen bond data across MPI ranks
+    Parallel::Comm trajComm_; ///< Across-trajectory communicator
 #   endif
 };
-
 }
 }
 #endif
