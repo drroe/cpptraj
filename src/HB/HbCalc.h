@@ -75,7 +75,7 @@ class HbCalc {
     double dcut2_;         ///< Heavy atom distance cutoff (Ang) squared
     double acut_;          ///< Angle cutoff in radians
     HbData hbdata_;        ///< Hold hydrogen bond calculation data.
-    bool skipIons_;        ///< If true skip ions in generalMask
+    bool calcIons_;        ///< If true calculate hydrogen bonds to ions in generalMask
 #   ifdef TIMER
     Timer t_action_;       ///< Total time taken by RunCalc_PL
     Timer t_hbcalc_;       ///< Time taken by pairlist loop in RunCalc_PL
