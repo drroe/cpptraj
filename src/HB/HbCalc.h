@@ -74,6 +74,7 @@ class HbCalc {
     Xarray plHatoms_;      ///< Indices of any hydrogens bonded to each atom in plMask_
     double dcut2_;         ///< Heavy atom distance cutoff (Ang) squared
     double acut_;          ///< Angle cutoff in radians
+    double plcut_;         ///< Pair list cutoff in Angstroms
     HbData hbdata_;        ///< Hold hydrogen bond calculation data.
     bool calcIons_;        ///< If true calculate hydrogen bonds to ions in generalMask
 #   ifdef TIMER

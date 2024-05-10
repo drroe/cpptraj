@@ -16,6 +16,7 @@ using namespace Cpptraj::HB;
 HbCalc::HbCalc() :
   dcut2_(0),
   acut_(0),
+  plcut_(0),
   calcIons_(false)
 {}
 
@@ -42,6 +43,7 @@ int HbCalc::InitHbCalc(ArgList& argIn, DataSetList* masterDslPtr, DataFileList& 
   acut_ = argIn.getKeyDouble("angle", 135.0);
   // Convert angle cutoff to radians
   acut_ *= Constants::DEGRAD;
+  plcut_ = argIn.getKeyDouble("plcut", 8.0);
   calcIons_ = argIn.hasKey("ions");
 
   if (hbdata_.ProcessArgs(argIn, DFL)) {
@@ -55,7 +57,7 @@ int HbCalc::InitHbCalc(ArgList& argIn, DataSetList* masterDslPtr, DataFileList& 
   std::string hbsetname = argIn.GetStringNext();
 
   // ----- All arguments should be processed now. ----------
-  pairList_.InitPairList( 8.0, 0.1, debugIn );
+  pairList_.InitPairList( plcut_, 0.1, debugIn );
 
   if (hbdata_.InitHbData( masterDslPtr, hbsetname )) {
     mprinterr("Error: Could not initialize hydrogen bond data.\n");
@@ -88,6 +90,7 @@ void HbCalc::PrintHbCalcOpts() const {
     mprintf("\tAngle cutoff= %g deg.\n", acut_*Constants::RADDEG);
   else
     mprintf("\tNo angle cutoff.\n");
+  mprintf("\tPair list cutoff: %g Ang.\n", plcut_);
   if (calcIons_)
     mprintf("\tWill calculate hydrogen bonds to ions found in mask '%s'\n", generalMask_.MaskString());
   hbdata_.PrintHbDataOpts();
