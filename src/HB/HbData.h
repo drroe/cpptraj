@@ -2,6 +2,9 @@
 #define INC_HB_HBDATA_H
 #include "Bridge.h"
 #include "Hbond.h"
+#ifdef MPI
+# include "HbParallel.h"
+#endif
 #include <vector>
 #include <set>
 #include <map>
@@ -58,6 +61,12 @@ class HbData {
     void AddUV(double, double, int, int, int, int, bool, int);
     /// Finish calc for a Frame and increment total # frames
     void IncrementNframes(int, int);
+#   ifdef MPI
+    /// Set the across traj communicator
+    void SetTrajComm(Parallel::Comm const&);
+    /// Sync data to the master process
+    int SyncToMaster();
+#   endif
   private:
     enum MatrixNormType { NORM_NONE = 0, NORM_FRAMES, NORM_RESMAX };
 
@@ -136,6 +145,9 @@ class HbData {
     bool bridgeByAtom_;       ///< If true determine bridging by atom.
     bool do_uuResMatrix_;     ///< If true calculate UU matrix
     bool noIntramol_;         ///< If true ignore intramolecular hydrogen bonds/bridges.
+#   ifdef MPI
+    HbParallel hbparallel_;   ///< For synchrozing hydrogen bond data across MPI ranks
+#   endif
 };
 
 }

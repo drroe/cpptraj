@@ -865,3 +865,16 @@ void HbData::PrintHbData() {
   }
 }
 
+#ifdef MPI
+/** Set the across trajectory communicator. */
+void HbData::SetTrajComm(Parallel::Comm const& commIn) {
+  hbparallel_.SetTrajComm( commIn );
+}
+
+/** Synchronize hydrogen bond data to master rank. */
+int HbData::SyncToMaster() {
+  // Make sure all time series are updated at this point.
+  UpdateSeries();
+  return hbparallel_.SyncToMaster(Nframes_, splitFrames_);
+}
+#endif
