@@ -13,7 +13,9 @@ class Action_HB : public Action {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
-
+#   ifdef MPI
+    int SyncAction();
+#   endif
     Cpptraj::HB::HbCalc hbcalc_;
 };
 #endif

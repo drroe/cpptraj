@@ -32,6 +32,12 @@ class HbCalc {
     void FinishHbCalc();
     /// Set hydrogen bond calculation debug level
     void SetDebug(int);
+#   ifdef MPI
+    /// Set across-trajectory comm
+    void SetTrajComm(Parallel::Comm const&);
+    /// Sync data to master rank
+    int SyncToMaster();
+#   endif
   private:
     /// Different atom types
     enum Type { DONOR=0, ACCEPTOR, BOTH, VDONOR, VACCEPTOR, VBOTH, UNKNOWN };

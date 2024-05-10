@@ -10,6 +10,9 @@ void Action_HB::Help() const {
 Action::RetType Action_HB::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   hbcalc_.SetDebug( debugIn );
+# ifdef MPI
+  hbcalc_.SetTrajComm( init.TrajComm() );
+# endif
   if (hbcalc_.InitHbCalc( actionArgs, init.DslPtr(), init.DFL(), debugIn )) {
     mprinterr("Error: Could not initialize HB calc.\n");
     return Action::ERR;
@@ -42,3 +45,9 @@ Action::RetType Action_HB::DoAction(int frameNum, ActionFrame& frm)
 void Action_HB::Print() {
   hbcalc_.FinishHbCalc();
 }
+
+#ifdef MPI
+int Action_HB::SyncAction() {
+  return hbcalc_.SyncToMaster();
+}
+#endif

@@ -586,3 +586,15 @@ void HbCalc::FinishHbCalc() {
   t_action_.WriteTiming(1, "Total :");
 # endif
 }
+
+#ifdef MPI
+/** Set across-trajectory comm */
+void HbCalc::SetTrajComm(Parallel::Comm const& commIn) {
+  hbdata_.SetTrajComm( commIn );
+}
+
+/** Sync data to master rank */
+int HbCalc::SyncToMaster() {
+  return hbdata_.SyncToMaster();
+}
+#endif /* MPI */

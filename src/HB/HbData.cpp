@@ -594,7 +594,7 @@ std::string HbData::MemoryUsage(size_t n_uu_pairs, size_t n_uv_pairs, size_t nFr
     nFrames = masterDSL_->MaxFrames();
   else
     nFrames = nFramesIn;
-  mprintf("DEBUG: nuu %zu nuv %zu nframes %zu\n", n_uu_pairs, n_uv_pairs, nFrames);
+  //mprintf("DEBUG: nuu %zu nuv %zu nframes %zu\n", n_uu_pairs, n_uv_pairs, nFrames);
   static const size_t sizeHbond = sizeof(Hbond);
   // NOTE: Assuming an overhead of 32 bytes per map element.
   static const size_t sizeElt = 32;
@@ -1004,7 +1004,7 @@ int HbData::SyncToMaster() {
             // Hbond on rank that has not been found on master
             if (series_) {
               ds = (DataSet_integer*)
-                   masterDSL_->AddSet(DataSet::INTEGER, MetaData(hbsetname_,"solventhb",hbidx));
+                   masterDSL_->AddSet(DataSet::INTEGER, MetaData(hbsetname_,"solventhb",hbidx)); // FIXME fix for ions
               ds->SetLegend( CreateHBlegend(*CurrentParm_, IV[0], IV[1], IV[2]) );
               if (UVseriesout_ != 0) UVseriesout_->AddDataSet( ds );
             }
