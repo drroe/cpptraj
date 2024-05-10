@@ -15,7 +15,8 @@ using namespace Cpptraj::HB;
 /** CONSTRUCTOR */
 HbCalc::HbCalc() :
   dcut2_(0),
-  acut_(0)
+  acut_(0),
+  skipIons_(false)
 {}
 
 const char* HbCalc::TypeStr_[] = {
@@ -41,6 +42,7 @@ int HbCalc::InitHbCalc(ArgList& argIn, DataSetList* masterDslPtr, DataFileList& 
   acut_ = argIn.getKeyDouble("angle", 135.0);
   // Convert angle cutoff to radians
   acut_ *= Constants::DEGRAD;
+  skipIons_ = argIn.hasKey("skipions");
 
   if (hbdata_.ProcessArgs(argIn, DFL)) {
     mprinterr("Error: Could not process hydrogen bond data args.\n");
@@ -86,6 +88,8 @@ void HbCalc::PrintHbCalcOpts() const {
     mprintf("\tAngle cutoff= %g deg.\n", acut_*Constants::RADDEG);
   else
     mprintf("\tNo angle cutoff.\n");
+  if (skipIons_)
+    mprintf("\tSkipping ions found in mask '%s'\n", generalMask_.MaskString());
   hbdata_.PrintHbDataOpts();
 }
 
@@ -227,7 +231,7 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
 //      plNames_.push_back( topIn.TruncResAtomName( *at ) );
       plHatoms_.push_back( h_atoms );
     } else if (hbdata_.CalcSolvent()) {
-      if (currentAtom.Nbonds() == 0) {
+      if (!skipIons_ && currentAtom.Nbonds() == 0) {
         // If no bonds to this atom assume it is an ion. Set the H atom
         // to be the same as D atom; this will skip the angle calc.
         plMask_.AddSelectedAtom( *at );
