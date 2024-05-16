@@ -166,6 +166,10 @@ int Cpptraj::Cluster::Control::InitClustersFromSet(DataSet* cnvt) {
     mprinterr("Internal Error: InitClustersFromSet: Null set.\n");
     return 1;
   }
+  if (cnvt->Size() < 1) {
+    mprintf("Error: Cluster num vs time set '%s' is empty.\n", cnvt->legend());
+    return 1;
+  }
   mprintf("\tReading clusters from cluster num vs time set '%s'\n", cnvt->legend());
   if (cnvt->Group() != DataSet::SCALAR_1D) {
     mprinterr("Error: Set '%s' is not a scalar 1D set.\n", cnvt->legend());
@@ -178,15 +182,25 @@ int Cpptraj::Cluster::Control::InitClustersFromSet(DataSet* cnvt) {
   // Hold frames for each cluster
   std::vector<Cframes> clusterFrames;
   DataSet_1D const& ds = static_cast<DataSet_1D const&>( *cnvt );
+  // Check if the X values are integers or not
+  double d_firstXval = ds.Xcrd(0);
+  int    i_firstXval = (int)ds.Xcrd(0);
+  if ( d_firstXval - (double)i_firstXval > 0.000001 ) {
+    mprintf("Warning: X values in set '%s' do not appear to be integers.\n", cnvt->legend());
+  }
+  // Loop over cluster num v time set.
+  // Assume frame numbers start from 1.
   for (unsigned int idx = 0; idx != cnvt->Size(); idx++)
   {
-    int cnum = ds.Dval(idx);
+    int cnum = (int)ds.Dval(idx);
+    int ixval = (int)ds.Xcrd(idx) - 1;
     if (cnum > -1) {
+      mprintf("DEBUG: idx=%u  xval=%i  cnum=%i\n", idx, ixval, cnum);
       if (cnum >= (int)clusterFrames.size()) {
         while ((int)clusterFrames.size() <= cnum)
           clusterFrames.push_back( Cframes() );
       }
-      clusterFrames[cnum].push_back( (int)idx );
+      clusterFrames[cnum].push_back( ixval );
     }
   }
   int clusterNum = 0;
