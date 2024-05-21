@@ -1,6 +1,7 @@
 #ifndef INC_HB_HBCALC_H
 #define INC_HB_HBCALC_H
 #include "HbData.h"
+#include "HbEnum.h"
 #include "../AtomMask.h"
 #include "../PairList.h"
 #ifdef TIMER
@@ -40,7 +41,7 @@ class HbCalc {
 #   endif
   private:
     /// Different atom types
-    enum Type { DONOR=0, ACCEPTOR, BOTH, VDONOR, VACCEPTOR, VBOTH, UNKNOWN };
+    //enum Type { DONOR=0, ACCEPTOR, BOTH, VDONOR, VACCEPTOR, VBOTH, UNKNOWN };
     /// Strings for different atom types
     static const char* TypeStr_[];
 
