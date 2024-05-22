@@ -51,3 +51,13 @@ void SiteCount::PrintCounts(bool calcSolvent) const {
     mprintf("\t  %u solvent hydrogens, %u ions.\n", NV_H_, NIons_);
   }
 }
+
+/** \return Potential number of solute-solute interactions */
+unsigned int SiteCount::UUsize() const {
+  return (NumH_ * (Nboth_ + NacceptorOnly_));
+}
+
+/** \return Potential number of solute-solvent interactions. */
+unsigned int SiteCount::UVsize() const {
+  return (NumH_ * (NV_both_ + NV_acceptorOnly_ + NIons_));
+}

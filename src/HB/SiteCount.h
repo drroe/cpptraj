@@ -14,6 +14,10 @@ class SiteCount {
     void AddIon();
     /// Print counts to stdout
     void PrintCounts(bool) const;
+    /// \return potential number of solute-solute interactions
+    unsigned int UUsize() const;
+    /// \return potential number of solute-solvent interactions
+    unsigned int UVsize() const;
   private:
     unsigned int nsites_;
     unsigned int NacceptorOnly_;
