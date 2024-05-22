@@ -1,4 +1,5 @@
 #include "SiteCount.h"
+#include "../CpptrajStdio.h"
 
 using namespace Cpptraj::HB;
 
@@ -34,4 +35,19 @@ void SiteCount::AddSite(Type currentType, unsigned int nH) {
 void SiteCount::AddIon() {
   NIons_++;
   nsites_++;
+}
+
+/** Print counts to stdout. */
+void SiteCount::PrintCounts(bool calcSolvent) const {
+  mprintf("\tTotal Number of heavy atom sites: %i\n", nsites_);
+  mprintf("\t  Solute acceptor-only atoms: %u\n", NacceptorOnly_);
+  mprintf("\t  Solute donor/acceptor sites: %u\n", Nboth_);
+  mprintf("\t  Solute donor-only sites: %u\n", NdonorOnly_);
+  mprintf("\t  %u solute hydrogens.\n", NumH_);
+  if (calcSolvent) {
+    mprintf("\t  Solvent acceptor-only atoms: %u\n", NV_acceptorOnly_);
+    mprintf("\t  Solvent donor/acceptor sites: %u\n", NV_both_);
+    mprintf("\t  Solvent donor-only sites: %u\n", NV_donorOnly_);
+    mprintf("\t  %u solvent hydrogens, %u ions.\n", NV_H_, NIons_);
+  }
 }

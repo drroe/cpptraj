@@ -12,6 +12,8 @@ class SiteCount {
     void AddSite(Type, unsigned int);
     /// Add ion site
     void AddIon();
+    /// Print counts to stdout
+    void PrintCounts(bool) const;
   private:
     unsigned int nsites_;
     unsigned int NacceptorOnly_;
