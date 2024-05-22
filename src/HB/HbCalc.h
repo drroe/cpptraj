@@ -43,10 +43,9 @@ class HbCalc {
     /// Different atom types
     //enum Type { DONOR=0, ACCEPTOR, BOTH, VDONOR, VACCEPTOR, VBOTH, UNKNOWN };
     /// Strings for different atom types
-    //static const char* TypeStr_[];
+    static const char* TypeStr_[];
 
-    typedef std::vector<SiteType> Tarray;
-    typedef std::vector<HbType> Harray;
+    typedef std::vector<Type> Tarray;
 //    typedef std::vector<std::string> Sarray;
     typedef std::vector<int> Iarray;
     typedef std::vector<Iarray> Xarray;
@@ -70,8 +69,7 @@ class HbCalc {
     PairList pairList_;    ///< Pair list for atoms involved in hydrogen bond calc
     AtomMask generalMask_; ///< Mask of atoms to potentially calculate hydrogen bonds for
     AtomMask plMask_;      ///< Mask selecting atoms to go into the pairlist
-    Tarray plTypes_;       ///< Site Type of each atom in plMask_
-    Harray plHtypes_;      ///< Hydrogen bond type of each atom in plMask_
+    Tarray plTypes_;       ///< Type of each atom in plMask_
     Iarray plId_;          ///< ID of each atom in plMask_; set to atom index, res index, or mol index
 //    Sarray plNames_;       ///< Name of each atom in plMask_
     Xarray plHatoms_;      ///< Indices of any hydrogens bonded to each atom in plMask_
