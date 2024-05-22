@@ -159,6 +159,7 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
 
   plMask_ = AtomMask( std::vector<int>(), topIn.Natom() );
   plTypes_.clear();
+  plHtypes_.clear();
   plId_.clear();
 //  plNames_.clear();
   plHatoms_.clear();
@@ -193,24 +194,27 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
           h_atoms.push_back( *bat );
         }
       }
-      Type currentType;
+      SiteType currentType;
+      HbType currentHtype;
       if ( isSolventAtom ) {
         // Solvent atom
+        currentHtype = SOLVENT;
         if (h_atoms.empty())
-          currentType = VACCEPTOR;
+          currentType = ACCEPTOR;
         else {
           NV_H += h_atoms.size();
-          currentType = VBOTH;
+          currentType = BOTH;
         }
         // Solvent count
-        if (currentType == VACCEPTOR)
+        if (currentType == ACCEPTOR)
           NV_acceptorOnly++;
-        else if (currentType == VBOTH)
+        else if (currentType == BOTH)
           NV_both++;
-        else if (currentType == VDONOR)
+        else if (currentType == DONOR)
           NV_donorOnly++;
       } else {
         // Solute atom
+        currentHtype = SOLUTE;
         if (h_atoms.empty())
           currentType = ACCEPTOR;
          else {
@@ -230,6 +234,7 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
       //IdxTypes.push_back( Ptype(*at, currentType) );
       plMask_.AddSelectedAtom( *at );
       plTypes_.push_back( currentType );
+      plHtypes_.push_back( currentHtype );
       plId_.push_back( atid );
 //      plNames_.push_back( topIn.TruncResAtomName( *at ) );
       plHatoms_.push_back( h_atoms );
@@ -238,10 +243,12 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
         // If no bonds to this atom assume it is an ion. Set the H atom
         // to be the same as D atom; this will skip the angle calc.
         plMask_.AddSelectedAtom( *at );
-        plTypes_.push_back( VDONOR );
+        plTypes_.push_back( ACCEPTOR );
+        plHtypes_.push_back( ION );
         plId_.push_back( atid );
         // TODO check charge to see if it can be an acceptor?
-        plHatoms_.push_back( Iarray(1, *at) );
+        //plHatoms_.push_back( Iarray(1, *at) );
+        plHatoms_.push_back( Iarray() );
         NIons++;
         nsites++;
       } // END atom has no bonds
@@ -280,7 +287,7 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
       //mprintf("\t%8i %4s %s\n", plMask_[idx]+1, *(topIn[plMask_[idx]].Name()), TypeStr_[plTypes_[idx]]);
       mprintf("\t%8i", plMask_[idx]+1);
       mprintf(" %4s", *(topIn[plMask_[idx]].Name()));
-      mprintf(" %s\n", TypeStr_[plTypes_[idx]]);
+      mprintf(" %s %s\n", HbTypeStr(plHtypes_[idx]), SiteTypeStr(plTypes_[idx]));
     }
   }
 
@@ -288,11 +295,11 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
 }
 
 /** Determine if the interaction is valid. */
-bool HbCalc::validInteraction(Type t0, Type t1) {
-  if (t0 == BOTH || t0 == VBOTH || t1 == BOTH || t1 == VBOTH) return true;
+bool HbCalc::validInteraction(SiteType t0, SiteType t1) {
+  if (t0 == BOTH || t1 == BOTH) return true;
   // If we are here, t0/t1 must be either a DONOR or ACCEPTOR.
-  if ((t0 == DONOR    || t0 == VDONOR)    && (t1 == ACCEPTOR || t1 == VACCEPTOR)) return true;
-  if ((t0 == ACCEPTOR || t0 == VACCEPTOR) && (t1 == DONOR    || t1 == VDONOR)   ) return true;
+  if (t0 == DONOR    && t1 == ACCEPTOR) return true;
+  if (t0 == ACCEPTOR && t1 == DONOR   ) return true;
   return false;
 }
 
