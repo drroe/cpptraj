@@ -3,5 +3,6 @@ HB_SOURCES= \
   Bridge.cpp \
   HbCalc.cpp \
   HbData.cpp \
+  HbEnum.cpp \
   Hbond.cpp \
   SiteCount.cpp
