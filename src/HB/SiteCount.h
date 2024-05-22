@@ -1,17 +1,17 @@
 #ifndef INC_HB_SITECOUNT_H
 #define INC_HB_SITECOUNT_H
-#include <vector>
 #include "HbEnum.h"
 namespace Cpptraj {
 namespace HB {
 /// Hold count of hydrogen bond heavy atom sites
 class SiteCount {
-    typedef std::vector<int> Iarray;
   public:
     /// CONSTRUCTOR
     SiteCount();
-    /// Add site of specified type
-    void AddSite(Type, Iarray const&);
+    /// Add site of specified type with number of bonded hydrogens
+    void AddSite(Type, unsigned int);
+    /// Add ion site
+    void AddIon();
   private:
     unsigned int nsites_;
     unsigned int NacceptorOnly_;

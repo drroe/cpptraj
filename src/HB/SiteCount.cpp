@@ -17,15 +17,21 @@ SiteCount::SiteCount() :
 {}
 
 /** Add site of given type */
-void SiteCount::AddSite(Type currentType, Iarray const& h_atoms) {
+void SiteCount::AddSite(Type currentType, unsigned int nH) {
   switch (currentType) {
     case VACCEPTOR : NV_acceptorOnly_++; break;
     case ACCEPTOR  : NacceptorOnly_++; break;
-    case VDONOR    : NV_donorOnly_++; NV_H_ += h_atoms.size(); break;
-    case DONOR     : NdonorOnly_++;   NumH_ += h_atoms.size(); break;
-    case VBOTH     : NV_both_++;      NV_H_ += h_atoms.size(); break;
-    case BOTH      : Nboth_++;        NumH_ += h_atoms.size(); break;
+    case VDONOR    : NV_donorOnly_++; NV_H_ += nH; break;
+    case DONOR     : NdonorOnly_++;   NumH_ += nH; break;
+    case VBOTH     : NV_both_++;      NV_H_ += nH; break;
+    case BOTH      : Nboth_++;        NumH_ += nH; break;
     case UNKNOWN   : return;
   }
+  nsites_++;
+}
+
+/** Add Ion site. */
+void SiteCount::AddIon() {
+  NIons_++;
   nsites_++;
 }
