@@ -59,5 +59,6 @@ unsigned int SiteCount::UUsize() const {
 
 /** \return Potential number of solute-solvent interactions. */
 unsigned int SiteCount::UVsize() const {
-  return (NumH_ * (NV_both_ + NV_acceptorOnly_ + NIons_));
+  return ((NumH_ * (NV_both_ + NV_acceptorOnly_ + NIons_)) +
+          (Nboth_ + NacceptorOnly_));
 }

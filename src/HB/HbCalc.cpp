@@ -1,11 +1,12 @@
 #include "HbCalc.h"
-#include <cmath> //sqrt
+#include "SiteCount.h"
 #include "../ArgList.h"
 #include "../Constants.h"
 #include "../CpptrajStdio.h"
 #include "../DataFileList.h"
 #include "../DistRoutines.h"
 #include "../Topology.h"
+#include <cmath> //sqrt
 #ifdef _OPENMP
 # include <omp.h>
 #endif
@@ -163,7 +164,8 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
 //  plNames_.clear();
   plHatoms_.clear();
 
-  int nsites = 0;
+  SiteCount count;
+  /*int nsites = 0;
   unsigned int NacceptorOnly = 0;
   unsigned int Nboth = 0;
   unsigned int NdonorOnly = 0;
@@ -172,7 +174,7 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
   unsigned int NV_both = 0;
   unsigned int NV_donorOnly = 0;
   unsigned int NV_H = 0;
-  unsigned int NIons = 0;
+  unsigned int NIons = 0;*/
   for (AtomMask::const_iterator at = generalMask_.begin(); at != generalMask_.end(); ++at) {
     Atom const& currentAtom = topIn[*at];
     int molnum = currentAtom.MolNum();
@@ -199,34 +201,34 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
         if (h_atoms.empty())
           currentType = VACCEPTOR;
         else {
-          NV_H += h_atoms.size();
+          //NV_H += h_atoms.size();
           currentType = VBOTH;
         }
         // Solvent count
-        if (currentType == VACCEPTOR)
-          NV_acceptorOnly++;
-        else if (currentType == VBOTH)
-          NV_both++;
-        else if (currentType == VDONOR)
-          NV_donorOnly++;
+        //if (currentType == VACCEPTOR)
+        //  NV_acceptorOnly++;
+        //else if (currentType == VBOTH)
+        //  NV_both++;
+        //else if (currentType == VDONOR)
+        //  NV_donorOnly++;
       } else {
         // Solute atom
         if (h_atoms.empty())
           currentType = ACCEPTOR;
          else {
-          NumH += h_atoms.size();
+          //NumH += h_atoms.size();
           currentType = BOTH;
         }
         // Solute Count
-        if (currentType == ACCEPTOR)
-          NacceptorOnly++;
-        else if (currentType == BOTH)
-          Nboth++;
-        else if (currentType == DONOR)
-          NdonorOnly++;
+        //if (currentType == ACCEPTOR)
+        //  NacceptorOnly++;
+        //else if (currentType == BOTH)
+        //  Nboth++;
+        //else if (currentType == DONOR)
+        //  NdonorOnly++;
       }
-      nsites++;
-
+      //nsites++;
+      count.AddSite(currentType, h_atoms.size());
       //IdxTypes.push_back( Ptype(*at, currentType) );
       plMask_.AddSelectedAtom( *at );
       plTypes_.push_back( currentType );
@@ -242,29 +244,31 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
         plId_.push_back( atid );
         // TODO check charge to see if it can be an acceptor?
         plHatoms_.push_back( Iarray(1, *at) );
-        NIons++;
-        nsites++;
+        count.AddIon();
+        //NIons++;
+        //nsites++;
       } // END atom has no bonds
     } 
   }
-  mprintf("\tTotal Number of heavy atom sites: %i\n", nsites);
-  mprintf("\t  Solute acceptor-only atoms: %u\n", NacceptorOnly);
-  mprintf("\t  Solute donor/acceptor sites: %u\n", Nboth);
-  mprintf("\t  Solute donor-only sites: %u\n", NdonorOnly);
-  mprintf("\t  %u solute hydrogens.\n", NumH);
-  if (hbdata_.CalcSolvent()) {
-    mprintf("\t  Solvent acceptor-only atoms: %u\n", NV_acceptorOnly);
-    mprintf("\t  Solvent donor/acceptor sites: %u\n", NV_both);
-    mprintf("\t  Solvent donor-only sites: %u\n", NV_donorOnly);
-    mprintf("\t  %u solvent hydrogens, %u ions.\n", NV_H, NIons);
-  }
+  count.PrintCounts( hbdata_.CalcSolvent() );
+//  mprintf("\tTotal Number of heavy atom sites: %i\n", nsites);
+//  mprintf("\t  Solute acceptor-only atoms: %u\n", NacceptorOnly);
+//  mprintf("\t  Solute donor/acceptor sites: %u\n", Nboth);
+//  mprintf("\t  Solute donor-only sites: %u\n", NdonorOnly);
+//  mprintf("\t  %u solute hydrogens.\n", NumH);
+//  if (hbdata_.CalcSolvent()) {
+//    mprintf("\t  Solvent acceptor-only atoms: %u\n", NV_acceptorOnly);
+//    mprintf("\t  Solvent donor/acceptor sites: %u\n", NV_both);
+//    mprintf("\t  Solvent donor-only sites: %u\n", NV_donorOnly);
+//    mprintf("\t  %u solvent hydrogens, %u ions.\n", NV_H, NIons);
+//  }
 
-  unsigned int uuSize = NumH * (Nboth + NacceptorOnly);
-  unsigned int uvSize = NumH * (NV_both + NV_acceptorOnly + NIons);
-  uvSize += (Nboth + NacceptorOnly);
+//  unsigned int uuSize = NumH * (Nboth + NacceptorOnly);
+//  unsigned int uvSize = NumH * (NV_both + NV_acceptorOnly + NIons);
+//  uvSize += (Nboth + NacceptorOnly);
   mprintf("\tEstimated max potential memory usage: %s\n",
-          hbdata_.MemoryUsage( uuSize,
-                               uvSize,
+          hbdata_.MemoryUsage( count.UUsize(),
+                               count.UVsize(),
                                0 ).c_str());
 //  std::sort( IdxTypes.begin(), IdxTypes.end() );
 
