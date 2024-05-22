@@ -152,29 +152,14 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
     return 1;
   }
   generalMask_.MaskInfo();
-  // Decide what each atom is
-  //typedef std::pair<int, Type> Ptype;
-  //typedef std::vector<Ptype> Parray;
-  //Parray IdxTypes;
-  //IdxTypes.reserve( generalMask_.Nselected() ); // TODO not reserve?
 
   plMask_ = AtomMask( std::vector<int>(), topIn.Natom() );
   plTypes_.clear();
   plId_.clear();
-//  plNames_.clear();
   plHatoms_.clear();
 
   SiteCount count;
-  /*int nsites = 0;
-  unsigned int NacceptorOnly = 0;
-  unsigned int Nboth = 0;
-  unsigned int NdonorOnly = 0;
-  unsigned int NumH = 0;
-  unsigned int NV_acceptorOnly = 0;
-  unsigned int NV_both = 0;
-  unsigned int NV_donorOnly = 0;
-  unsigned int NV_H = 0;
-  unsigned int NIons = 0;*/
+  // Loop over selected atoms
   for (AtomMask::const_iterator at = generalMask_.begin(); at != generalMask_.end(); ++at) {
     Atom const& currentAtom = topIn[*at];
     int molnum = currentAtom.MolNum();
@@ -200,40 +185,19 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
         // Solvent atom
         if (h_atoms.empty())
           currentType = VACCEPTOR;
-        else {
-          //NV_H += h_atoms.size();
+        else
           currentType = VBOTH;
-        }
-        // Solvent count
-        //if (currentType == VACCEPTOR)
-        //  NV_acceptorOnly++;
-        //else if (currentType == VBOTH)
-        //  NV_both++;
-        //else if (currentType == VDONOR)
-        //  NV_donorOnly++;
       } else {
         // Solute atom
         if (h_atoms.empty())
           currentType = ACCEPTOR;
-         else {
-          //NumH += h_atoms.size();
+        else
           currentType = BOTH;
-        }
-        // Solute Count
-        //if (currentType == ACCEPTOR)
-        //  NacceptorOnly++;
-        //else if (currentType == BOTH)
-        //  Nboth++;
-        //else if (currentType == DONOR)
-        //  NdonorOnly++;
       }
-      //nsites++;
       count.AddSite(currentType, h_atoms.size());
-      //IdxTypes.push_back( Ptype(*at, currentType) );
       plMask_.AddSelectedAtom( *at );
       plTypes_.push_back( currentType );
       plId_.push_back( atid );
-//      plNames_.push_back( topIn.TruncResAtomName( *at ) );
       plHatoms_.push_back( h_atoms );
     } else if (hbdata_.CalcSolvent()) {
       if (calcIons_ && currentAtom.Nbonds() == 0) {
@@ -245,39 +209,15 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
         // TODO check charge to see if it can be an acceptor?
         plHatoms_.push_back( Iarray(1, *at) );
         count.AddIon();
-        //NIons++;
-        //nsites++;
       } // END atom has no bonds
     } 
   }
   count.PrintCounts( hbdata_.CalcSolvent() );
-//  mprintf("\tTotal Number of heavy atom sites: %i\n", nsites);
-//  mprintf("\t  Solute acceptor-only atoms: %u\n", NacceptorOnly);
-//  mprintf("\t  Solute donor/acceptor sites: %u\n", Nboth);
-//  mprintf("\t  Solute donor-only sites: %u\n", NdonorOnly);
-//  mprintf("\t  %u solute hydrogens.\n", NumH);
-//  if (hbdata_.CalcSolvent()) {
-//    mprintf("\t  Solvent acceptor-only atoms: %u\n", NV_acceptorOnly);
-//    mprintf("\t  Solvent donor/acceptor sites: %u\n", NV_both);
-//    mprintf("\t  Solvent donor-only sites: %u\n", NV_donorOnly);
-//    mprintf("\t  %u solvent hydrogens, %u ions.\n", NV_H, NIons);
-//  }
 
-//  unsigned int uuSize = NumH * (Nboth + NacceptorOnly);
-//  unsigned int uvSize = NumH * (NV_both + NV_acceptorOnly + NIons);
-//  uvSize += (Nboth + NacceptorOnly);
   mprintf("\tEstimated max potential memory usage: %s\n",
           hbdata_.MemoryUsage( count.UUsize(),
                                count.UVsize(),
                                0 ).c_str());
-//  std::sort( IdxTypes.begin(), IdxTypes.end() );
-
-//  plTypes_.reserve( IdxTypes.size() );
-//  for (Parray::const_iterator it = IdxTypes.begin(); it != IdxTypes.end(); ++it) {
-//    plMask_.AddSelectedAtom( it->first );
-//    plTypes_.push_back( it->second );
-//    plNames_.push_back( topIn.TruncResAtomName(it->first) );
-//  }
 
   if (hbdata_.Debug() > 1) {
     for (int idx = 0; idx != plMask_.Nselected(); idx++) {
