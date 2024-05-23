@@ -327,7 +327,7 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
         }
         if (hatoms.empty()) {
           mprintf("Warning: Specified solute donor atom %s has no bonded hydrogens, skipping.\n",
-                  topIn.AtomMaskName( donorMask_[idx] ));
+                  topIn.AtomMaskName( donorMask_[idx] ).c_str());
         } else {
           atomTypes[ donorMask_[idx] ] = DONOR;
           donorHatoms[idx] = hatoms;
@@ -357,6 +357,40 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
       } // END solute
     } // END loop over atoms
   } // END donor mask is set
+
+  // SOLUTE ACCEPTOR
+  if (acceptorMask_.MaskStringSet()) {
+    if (topIn.SetupIntegerMask( acceptorMask_ )) {
+      mprinterr("Error: Could not set up solute acceptor mask '%s'\n", acceptorMask_.MaskString());
+      return 1;
+    }
+    for (AtomMask::const_iterator at = acceptorMask_.begin(); at != acceptorMask_.end(); ++at) {
+      if (atomTypes[*at] == UNKNOWN)
+        atomTypes[*at] = ACCEPTOR;
+      else if (atomTypes[*at] == DONOR)
+        atomTypes[*at] = BOTH;
+      else {
+        mprinterr("Error: Atom %s is already set to %s\n", topIn.AtomMaskName(*at).c_str(),
+                  TypeStr(atomTypes[*at]));
+        return 1;
+      }
+    }
+  } else {
+    // Find solute acceptors in the general mask
+    for (int at = 0; at != topIn.Natom(); ++at) {
+      Atom const& currentAtom = topIn[at];
+      int molnum = currentAtom.MolNum();
+      // Only want solute 
+      if (!topIn.Mol(molnum).IsSolvent()) {
+        if (IsFON( currentAtom )) {
+          if (atomTypes[at] == UNKNOWN)
+            atomTypes[at] = ACCEPTOR;
+          else if (atomTypes[at] == DONOR)
+            atomTypes[at] = BOTH;
+        }
+      }
+    } // END loop over atoms
+  } // END acceptor mask is set
 
   return 0;
 }
