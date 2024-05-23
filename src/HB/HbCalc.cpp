@@ -47,11 +47,30 @@ int HbCalc::InitHbCalc(ArgList& argIn, DataSetList* masterDslPtr, DataFileList& 
   plcut_ = argIn.getKeyDouble("plcut", 8.0);
   calcIons_ = argIn.hasKey("ions");
 
-  if (hbdata_.ProcessArgs(argIn, DFL)) {
+  bool needToCalcSolvent = false;
+  // Determine if we have solvent-specific masks
+  if (argIn.Contains("solventdonor")) {
+    if (solventDonorMask_.SetMaskString( argIn.GetStringKey("solventdonor") )) {
+      mprinterr("Error: Could not initialize solvent donor atom mask.\n");
+      return 1;
+    }
+    needToCalcSolvent = true;
+  }
+  if (argIn.Contains("solventacceptor")) {
+    if (solventAcceptorMask_.SetMaskString( argIn.GetStringKey("solventacceptor") )) {
+      mprinterr("Error: Could not initialize solvent acceptor atom mask.\n");
+      return 1;
+    }
+    needToCalcSolvent = true;
+  }
+
+  // Data-related options
+  if (hbdata_.ProcessArgs(argIn, DFL, needToCalcSolvent)) {
     mprinterr("Error: Could not process hydrogen bond data args.\n");
     return 1;
-  } 
+  }
 
+  // Solute-specific masks
   if (argIn.Contains("donormask")) {
     if (donorMask_.SetMaskString( argIn.GetStringKey("donormask") )) {
       mprinterr("Error: Could not initialize solute donor atom mask.\n");
@@ -74,19 +93,8 @@ int HbCalc::InitHbCalc(ArgList& argIn, DataSetList* masterDslPtr, DataFileList& 
       return 1;
     }
   }
-  if (argIn.Contains("solventdonor")) {
-    if (solventDonorMask_.SetMaskString( argIn.GetStringKey("solventdonor") )) {
-      mprinterr("Error: Could not initialize solvent donor atom mask.\n");
-      return 1;
-    }
-  }
-  if (argIn.Contains("solventacceptor")) {
-    if (solventAcceptorMask_.SetMaskString( argIn.GetStringKey("solventacceptor") )) {
-      mprinterr("Error: Could not initialize solvent acceptor atom mask.\n");
-      return 1;
-    }
-  }
 
+  // General mask
   if (generalMask_.SetMaskString( argIn.GetMaskNext() )) {
     mprinterr("Error: Could not initialize hydrogen bond atom mask.\n");
     return 1;
@@ -284,7 +292,8 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
   */
 int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
   Tarray atomTypes(topIn.Natom(), UNKNOWN);
-  Xarray donorHatoms;
+  Xarray UdonorHatoms;
+  Xarray VdonorHatoms;
 
   // Set up the general mask
   if (topIn.SetupIntegerMask( generalMask_ )) {
@@ -298,7 +307,7 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
       mprinterr("Error: Could not set up solute donor mask '%s'\n", donorMask_.MaskString());
       return 1;
     }
-    donorHatoms = Xarray( donorMask_.Nselected() );
+    UdonorHatoms = Xarray( donorMask_.Nselected() );
     if (donorHmask_.MaskStringSet()) {
       // Donor hydrogen mask also specified
       if (topIn.SetupIntegerMask( donorHmask_ )) {
@@ -313,14 +322,14 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
       }
       for (int idx = 0; idx < donorMask_.Nselected(); idx++) {
         atomTypes[ donorMask_[idx] ] = DONOR;
-        donorHatoms[idx].assign(1, donorHmask_[idx]);
+        UdonorHatoms[idx].assign(1, donorHmask_[idx]);
       }
     } else {
       // No donor hydrogen mask; use any hydrogens bonded to donor heavy atoms.
       for (int idx = 0; idx < donorMask_.Nselected(); idx++) {
+        Atom const& currentAtom = topIn[ donorMask_[idx] ];
         Iarray hatoms;
-        for (Atom::bond_iterator bat = topIn[ donorMask_[idx] ].bondbegin();
-                                 bat != topIn[ donorMask_[idx] ].bondend(); ++bat)
+        for (Atom::bond_iterator bat = currentAtom.bondbegin(); bat != currentAtom.bondend(); ++bat)
         {
           if ( topIn[*bat].Element() == Atom::HYDROGEN )
             hatoms.push_back( *bat );
@@ -330,7 +339,7 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
                   topIn.AtomMaskName( donorMask_[idx] ).c_str());
         } else {
           atomTypes[ donorMask_[idx] ] = DONOR;
-          donorHatoms[idx] = hatoms;
+          UdonorHatoms[idx] = hatoms;
         }
       }
     }
@@ -351,7 +360,7 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
           }
           if (!h_atoms.empty()) {
             atomTypes[at] = DONOR;
-            donorHatoms.push_back( h_atoms );
+            UdonorHatoms.push_back( h_atoms );
           }
         } // END IsFON
       } // END solute
@@ -391,6 +400,40 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
       }
     } // END loop over atoms
   } // END acceptor mask is set
+
+  // SOLVENT DONOR
+  if (solventDonorMask_.MaskStringSet()) {
+    if (topIn.SetupIntegerMask( solventDonorMask_ )) {
+      mprinterr("Error: Could not set up solvent donor mask '%s'\n", solventDonorMask_.MaskString());
+      return 1;
+    }
+    VdonorHatoms = Xarray( solventDonorMask_.Nselected() );
+    // Use any hydrogens bonded to solvent donor heavy atoms.
+    for (int idx = 0; idx < solventDonorMask_.Nselected(); idx++) {
+      Atom const& currentAtom = topIn[ solventDonorMask_[idx] ];
+      if (currentAtom.Nbonds() == 0) {
+        // No bonds, assume ion. Set H atom to be same as D atom to
+        // skip the angle calc
+        atomTypes[ solventDonorMask_[idx] ] = VDONOR;
+        VdonorHatoms[idx].assign(1, solventDonorMask_[idx]);
+      } else {
+        Iarray hatoms;
+        for (Atom::bond_iterator bat = currentAtom.bondbegin(); bat != currentAtom.bondend(); ++bat)
+        {
+          if ( topIn[*bat].Element() == Atom::HYDROGEN )
+            hatoms.push_back( *bat );
+        }
+        if (hatoms.empty()) {
+          mprintf("Warning: Specified solvent donor atom %s has no bonded hydrogens, skipping.\n",
+                  topIn.AtomMaskName( solventDonorMask_[idx] ).c_str());
+        } else {
+          atomTypes[ solventDonorMask_[idx] ] = VDONOR;
+          VdonorHatoms[idx] = hatoms;
+        }
+      }
+    }
+  }
+
 
   return 0;
 }
