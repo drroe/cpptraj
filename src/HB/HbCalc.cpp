@@ -284,6 +284,13 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
   */
 int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
   Tarray atomTypes(topIn.Natom(), UNKNOWN);
+  Xarray donorHatoms;
+
+  // Set up the general mask
+  if (topIn.SetupIntegerMask( generalMask_ )) {
+    mprinterr("Error: Could not set up mask '%s'\n", generalMask_.MaskString());
+    return 1;
+  }
 
   // SOLUTE DONOR SETUP
   if (donorMask_.MaskStringSet()) {
@@ -291,7 +298,7 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
       mprinterr("Error: Could not set up solute donor mask '%s'\n", donorMask_.MaskString());
       return 1;
     }
-    Xarray donorHatoms( donorMask_.Nselected() );
+    donorHatoms = Xarray( donorMask_.Nselected() );
     if (donorHmask_.MaskStringSet()) {
       // Donor hydrogen mask also specified
       if (topIn.SetupIntegerMask( donorHmask_ )) {
@@ -327,6 +334,28 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
         }
       }
     }
+  } else {
+    // Find solute donors in the general mask
+    for (int at = 0; at != topIn.Natom(); ++at) {
+      Atom const& currentAtom = topIn[at];
+      int molnum = currentAtom.MolNum();
+      // Only want solute 
+      if (!topIn.Mol(molnum).IsSolvent()) {
+        if (IsFON( currentAtom )) {
+          // Check if there are any hydrogens bonded to this atom
+          Iarray h_atoms;
+          for (Atom::bond_iterator bat = currentAtom.bondbegin(); bat != currentAtom.bondend(); ++bat) {
+            if (topIn[*bat].Element() == Atom::HYDROGEN) {
+              h_atoms.push_back( *bat );
+            }
+          }
+          if (!h_atoms.empty()) {
+            atomTypes[at] = DONOR;
+            donorHatoms.push_back( h_atoms );
+          }
+        } // END IsFON
+      } // END solute
+    } // END loop over atoms
   } // END donor mask is set
 
   return 0;
