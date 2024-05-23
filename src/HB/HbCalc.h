@@ -43,7 +43,7 @@ class HbCalc {
     /// Different atom types
     //enum Type { DONOR=0, ACCEPTOR, BOTH, VDONOR, VACCEPTOR, VBOTH, UNKNOWN };
     /// Strings for different atom types
-    static const char* TypeStr_[];
+    //static const char* TypeStr_[];
 
     typedef std::vector<Type> Tarray;
 //    typedef std::vector<std::string> Sarray;

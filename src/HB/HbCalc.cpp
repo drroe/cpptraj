@@ -21,7 +21,7 @@ HbCalc::HbCalc() :
   calcIons_(false)
 {}
 
-const char* HbCalc::TypeStr_[] = {
+/*const char* HbCalc::TypeStr_[] = {
   "Solute Donor",
   "Solute Acceptor",
   "Solute Both",
@@ -29,7 +29,7 @@ const char* HbCalc::TypeStr_[] = {
   "Solvent Acceptor",
   "Solvent Both",
   "Unknown"
-};
+};*/
 
 /** Set debug level. */
 void HbCalc::SetDebug(int debugIn) {
@@ -272,7 +272,7 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
       //mprintf("\t%8i %4s %s\n", plMask_[idx]+1, *(topIn[plMask_[idx]].Name()), TypeStr_[plTypes_[idx]]);
       mprintf("\t%8i", plMask_[idx]+1);
       mprintf(" %4s", *(topIn[plMask_[idx]].Name()));
-      mprintf(" %s\n", TypeStr_[plTypes_[idx]]);
+      mprintf(" %s\n", TypeStr(plTypes_[idx]));
     }
   }
 

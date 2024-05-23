@@ -1,6 +1,19 @@
 #include "HbEnum.h"
 
-const char* Cpptraj::HB::SiteTypeStr(SiteType siteType) {
+const char* Cpptraj::HB::TypeStr(Type siteType) {
+  switch (siteType) {
+    case DONOR     : return "Solute Donor";
+    case ACCEPTOR  : return "Solute Acceptor";
+    case BOTH      : return "Solute Both";
+    case VDONOR    : return "Solvent Donor";
+    case VACCEPTOR : return "Solvent Acceptor";
+    case VBOTH     : return "Solvent Both";
+    case UNKNOWN   : return "Unknown";
+  }
+  return 0;
+}
+
+/*const char* Cpptraj::HB::SiteTypeStr(SiteType siteType) {
   switch (siteType) {
     case DONOR : return "Donor";
     case ACCEPTOR : return "Acceptor";
@@ -18,4 +31,4 @@ const char* Cpptraj::HB::HbTypeStr(HbType hbtype) {
     case UNKNOWN_HB : break;
   }
   return 0;
-}
+}*/
