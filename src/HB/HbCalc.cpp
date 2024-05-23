@@ -434,6 +434,26 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
     }
   }
 
+  // SOLVENT ACCEPTOR
+  if (solventAcceptorMask_.MaskStringSet()) {
+    if (topIn.SetupIntegerMask( solventAcceptorMask_ )) {
+      mprinterr("Error: Could not set up solvent acceptor mask '%s'\n", solventAcceptorMask_.MaskString());
+      return 1;
+    }
+    for (AtomMask::const_iterator at = solventAcceptorMask_.begin(); at != solventAcceptorMask_.end(); ++at)
+    {
+      if (atomTypes[*at] == UNKNOWN)
+        atomTypes[*at] = VACCEPTOR;
+      else if (atomTypes[*at] == VDONOR)
+        atomTypes[*at] = VBOTH;
+      else {
+        mprinterr("Error: Atom %s is already set to %s\n", topIn.AtomMaskName(*at).c_str(),
+                  TypeStr(atomTypes[*at]));
+        return 1;
+      }
+    }
+  }
+
 
   return 0;
 }
