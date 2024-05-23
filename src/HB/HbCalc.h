@@ -73,6 +73,11 @@ class HbCalc {
     Iarray plId_;          ///< ID of each atom in plMask_; set to atom index, res index, or mol index
 //    Sarray plNames_;       ///< Name of each atom in plMask_
     Xarray plHatoms_;      ///< Indices of any hydrogens bonded to each atom in plMask_
+    AtomMask acceptorMask_; ///< Explicit acceptor atom mask
+    AtomMask donorMask_;    ///< Explicit donor atom mask
+    AtomMask donorHmask_;   ///< Explicit donor hydrogen atom mask
+    AtomMask solventDonorMask_;  ///< Explicit solvent donor mask
+    AtomMask solventAcceptorMask_; ///< Explicit solvent acceptor mask
     double dcut2_;         ///< Heavy atom distance cutoff (Ang) squared
     double acut_;          ///< Angle cutoff in radians
     double plcut_;         ///< Pair list cutoff in Angstroms

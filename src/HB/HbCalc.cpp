@@ -52,7 +52,45 @@ int HbCalc::InitHbCalc(ArgList& argIn, DataSetList* masterDslPtr, DataFileList& 
     return 1;
   } 
 
-  generalMask_.SetMaskString( argIn.GetMaskNext() );
+  if (argIn.Contains("donormask")) {
+    if (donorMask_.SetMaskString( argIn.GetStringKey("donormask") )) {
+      mprinterr("Error: Could not initialize solute donor atom mask.\n");
+      return 1;
+    }
+  }
+  if (argIn.Contains("donorhmask")) {
+    if (donorHmask_.SetMaskString( argIn.GetStringKey("donorhmask") )) {
+      mprinterr("Error: Could not initialize solute donor hydrogen atom mask.\n");
+      return 1;
+    }
+  }
+  if (donorHmask_.MaskStringSet() && !donorMask_.MaskStringSet()) {
+    mprinterr("Error: 'donorhmask' requires 'donormask' to be specified.\n");
+    return 1;
+  }
+  if (argIn.Contains("acceptormask")) {
+    if (acceptorMask_.SetMaskString( argIn.GetStringKey("acceptormask") )) {
+      mprinterr("Error: Could not initialize acceptor atom mask.\n");
+      return 1;
+    }
+  }
+  if (argIn.Contains("solventdonor")) {
+    if (solventDonorMask_.SetMaskString( argIn.GetStringKey("solventdonor") )) {
+      mprinterr("Error: Could not initialize solvent donor atom mask.\n");
+      return 1;
+    }
+  }
+  if (argIn.Contains("solventacceptor")) {
+    if (solventAcceptorMask_.SetMaskString( argIn.GetStringKey("solventacceptor") )) {
+      mprinterr("Error: Could not initialize solvent acceptor atom mask.\n");
+      return 1;
+    }
+  }
+
+  if (generalMask_.SetMaskString( argIn.GetMaskNext() )) {
+    mprinterr("Error: Could not initialize hydrogen bond atom mask.\n");
+    return 1;
+  }
 
   // Setup datasets
   std::string hbsetname = argIn.GetStringNext();
@@ -86,6 +124,16 @@ void HbCalc::PrintHbCalcOpts() const {
     mprintf("\tParallelizing calculation with %zu threads.\n", thread_HBs_.size());
 # endif
   mprintf("\tSearching for atoms in mask '%s'\n", generalMask_.MaskString());
+  if (donorMask_.MaskStringSet())
+    mprintf("\tSolute donor atom mask: %s\n", donorMask_.MaskString());
+  if (donorHmask_.MaskStringSet())
+    mprintf("\tSolute donor hydrogen atom mask: %s\n", donorHmask_.MaskString());
+  if (acceptorMask_.MaskStringSet())
+    mprintf("\tAcceptor atom mask: %s\n", acceptorMask_.MaskString());
+  if (solventDonorMask_.MaskStringSet())
+    mprintf("\tSolvent donor atom mask: %s\n", solventDonorMask_.MaskString());
+  if (solventAcceptorMask_.MaskStringSet())
+    mprintf("\tSolvent acceptor atom mask: %s\n", solventAcceptorMask_.MaskString());
   mprintf("\tHeavy atom distance cutoff= %g Ang.\n", sqrt(dcut2_));
   if (acut_ > -1)
     mprintf("\tAngle cutoff= %g deg.\n", acut_*Constants::RADDEG);
