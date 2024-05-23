@@ -56,6 +56,8 @@ class HbCalc {
     static inline bool validInteraction(Type, Type);
     /// Set up pair list for generalMask_ and given Topology
     int setupPairlistAtomMask(Topology const&);
+    /// Set up with one or more specified individual atom masks
+    int setupIndividualAtomMasks(Topology const&);
     /// Calculate hydrogen bonds between solute donor site and solute acceptor
     void calc_UU_Hbonds(int, double, int, Iarray const&, int, Frame const&, int&, int);
     /// Calculate hydrogen bonds between solute and solvent

@@ -279,6 +279,59 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
   return 0;
 }
 
+/** Set up atoms using individual masks. 
+  * This is a separate routine because it is more memory hungry than setupPairlistAtomMask()
+  */
+int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
+  Tarray atomTypes(topIn.Natom(), UNKNOWN);
+
+  // SOLUTE DONOR SETUP
+  if (donorMask_.MaskStringSet()) {
+    if (topIn.SetupIntegerMask( donorMask_ )) {
+      mprinterr("Error: Could not set up solute donor mask '%s'\n", donorMask_.MaskString());
+      return 1;
+    }
+    Xarray donorHatoms( donorMask_.Nselected() );
+    if (donorHmask_.MaskStringSet()) {
+      // Donor hydrogen mask also specified
+      if (topIn.SetupIntegerMask( donorHmask_ )) {
+        mprinterr("Error: Could not set up solute donor hydrogen mask '%s'\n", donorHmask_.MaskString());
+        return 1;
+      }
+      if (donorMask_.Nselected() != donorHmask_.Nselected()) {
+        mprinterr("Error: There is not a 1 to 1 correspondance between donor and donorH masks.\n");
+        mprinterr("Error: donor (%i atoms), donorH (%i atoms).\n", donorMask_.Nselected(),
+                  donorHmask_.Nselected());
+        return 1;
+      }
+      for (int idx = 0; idx < donorMask_.Nselected(); idx++) {
+        atomTypes[ donorMask_[idx] ] = DONOR;
+        donorHatoms[idx].assign(1, donorHmask_[idx]);
+      }
+    } else {
+      // No donor hydrogen mask; use any hydrogens bonded to donor heavy atoms.
+      for (int idx = 0; idx < donorMask_.Nselected(); idx++) {
+        Iarray hatoms;
+        for (Atom::bond_iterator bat = topIn[ donorMask_[idx] ].bondbegin();
+                                 bat != topIn[ donorMask_[idx] ].bondend(); ++bat)
+        {
+          if ( topIn[*bat].Element() == Atom::HYDROGEN )
+            hatoms.push_back( *bat );
+        }
+        if (hatoms.empty()) {
+          mprintf("Warning: Specified solute donor atom %s has no bonded hydrogens, skipping.\n",
+                  topIn.AtomMaskName( donorMask_[idx] ));
+        } else {
+          atomTypes[ donorMask_[idx] ] = DONOR;
+          donorHatoms[idx] = hatoms;
+        }
+      }
+    }
+  } // END donor mask is set
+
+  return 0;
+}
+
 /** Determine if the interaction is valid. */
 bool HbCalc::validInteraction(Type t0, Type t1) {
   if (t0 == BOTH || t0 == VBOTH || t1 == BOTH || t1 == VBOTH) return true;
