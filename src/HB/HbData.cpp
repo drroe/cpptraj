@@ -60,7 +60,7 @@ void HbData::SetDebug(int debugIn) {
 }
 
 /** Process data-related args */
-int HbData::ProcessArgs(ArgList& actionArgs, DataFileList& DFL) {
+int HbData::ProcessArgs(ArgList& actionArgs, DataFileList& DFL, bool needToCalcSolvent) {
   nhbout_ = DFL.AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   series_ = actionArgs.hasKey("series");
   if (series_) {
@@ -93,6 +93,8 @@ int HbData::ProcessArgs(ArgList& actionArgs, DataFileList& DFL) {
   }
 
   calcSolvent_ = actionArgs.hasKey("solvent");
+  if (needToCalcSolvent)
+    calcSolvent_ = true;
 
   std::string avgname = actionArgs.GetStringKey("avgout");
   std::string solvname = actionArgs.GetStringKey("solvout");

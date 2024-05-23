@@ -30,7 +30,7 @@ class HbData {
     /// Set debug level
     void SetDebug(int);
     /// Process data-related args
-    int ProcessArgs(ArgList&, DataFileList&);
+    int ProcessArgs(ArgList&, DataFileList&, bool);
     /// Initialize hydrogen bond data 
     int InitHbData(DataSetList*, std::string const&);
     /// Set pointer to current Topology
