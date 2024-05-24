@@ -476,7 +476,7 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
   Xarray::const_iterator vh = VdonorHatoms.begin();
   for (int at = 0; at < topIn.Natom(); at++) {
     if (atomTypes[at] != UNKNOWN) {
-      mprintf("DEBUG: %12s %16s", topIn.AtomMaskName(at).c_str(), TypeStr(atomTypes[at]));
+      //mprintf("DEBUG: %12s %16s", topIn.AtomMaskName(at).c_str(), TypeStr(atomTypes[at]));
       plMask_.AddSelectedAtom( at );
       plTypes_.push_back( atomTypes[at] );
       // Determine atom ID
@@ -487,18 +487,18 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
         atid = at;
       plId_.push_back( atid );
       if (atomTypes[at] == DONOR || atomTypes[at] == BOTH) {
-        mprintf(" %3zu hydrogens", uh->size());
+        //mprintf(" %3zu hydrogens", uh->size());
         plHatoms_.push_back( *(uh++) );
       } else if (atomTypes[at] == VDONOR || atomTypes[at] == VBOTH) {
-        if (vh->size() == 1 && vh->front() == at)
-          mprintf(" ion");
-        else
-          mprintf(" %3zu hydrogens", vh->size());
+        //if (vh->size() == 1 && vh->front() == at)
+        //  mprintf(" ion");
+        //else
+        //  mprintf(" %3zu hydrogens", vh->size());
         plHatoms_.push_back( *(vh++) );
       } else {
         plHatoms_.push_back( Iarray() );
       }
-      mprintf("\n"); // DEBUG
+      //mprintf("\n"); // DEBUG
       // TODO better way to determine ion
       if ( (atomTypes[at] == VDONOR || atomTypes[at] == VACCEPTOR) &&
            topIn[at].Nbonds() == 0 )
