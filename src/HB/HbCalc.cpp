@@ -46,6 +46,8 @@ int HbCalc::InitHbCalc(ArgList& argIn, DataSetList* masterDslPtr, DataFileList& 
   acut_ *= Constants::DEGRAD;
   plcut_ = argIn.getKeyDouble("plcut", 8.0);
   calcIons_ = argIn.hasKey("ions");
+  if (argIn.hasKey("image"))
+    mprintf("Info: Imaging is always on for pair list hbond calc; no need to specify 'image'.\n");
 
   bool needToCalcSolvent = false;
   // Determine if we have solvent-specific masks
@@ -155,7 +157,17 @@ void HbCalc::PrintHbCalcOpts() const {
 
 /** Set up calculation */
 int HbCalc::SetupHbCalc(Topology const& topIn, Box const& boxIn) {
-  if (setupPairlistAtomMask( topIn )) return 1;
+  int err = 0;
+  if (donorMask_.MaskStringSet() ||
+      acceptorMask_.MaskStringSet() ||
+      solventDonorMask_.MaskStringSet() ||
+      solventAcceptorMask_.MaskStringSet())
+  {
+    err = setupIndividualAtomMasks( topIn );
+  } else {
+    err = setupPairlistAtomMask( topIn );
+  }
+  if (err != 0) return 1;
 
   if (pairList_.SetupPairList( boxIn )) return 1;
 
@@ -300,6 +312,7 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
     mprinterr("Error: Could not set up mask '%s'\n", generalMask_.MaskString());
     return 1;
   }
+  generalMask_.MaskInfo();
 
   // SOLUTE DONOR SETUP
   if (donorMask_.MaskStringSet()) {
@@ -307,6 +320,7 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
       mprinterr("Error: Could not set up solute donor mask '%s'\n", donorMask_.MaskString());
       return 1;
     }
+    donorMask_.MaskInfo();
     UdonorHatoms = Xarray( donorMask_.Nselected() );
     if (donorHmask_.MaskStringSet()) {
       // Donor hydrogen mask also specified
@@ -314,6 +328,7 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
         mprinterr("Error: Could not set up solute donor hydrogen mask '%s'\n", donorHmask_.MaskString());
         return 1;
       }
+      donorHmask_.MaskInfo();
       if (donorMask_.Nselected() != donorHmask_.Nselected()) {
         mprinterr("Error: There is not a 1 to 1 correspondance between donor and donorH masks.\n");
         mprinterr("Error: donor (%i atoms), donorH (%i atoms).\n", donorMask_.Nselected(),
@@ -373,6 +388,7 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
       mprinterr("Error: Could not set up solute acceptor mask '%s'\n", acceptorMask_.MaskString());
       return 1;
     }
+    acceptorMask_.MaskInfo();
     for (AtomMask::const_iterator at = acceptorMask_.begin(); at != acceptorMask_.end(); ++at) {
       if (atomTypes[*at] == UNKNOWN)
         atomTypes[*at] = ACCEPTOR;
@@ -407,15 +423,18 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
       mprinterr("Error: Could not set up solvent donor mask '%s'\n", solventDonorMask_.MaskString());
       return 1;
     }
-    VdonorHatoms = Xarray( solventDonorMask_.Nselected() );
+    solventDonorMask_.MaskInfo();
     // Use any hydrogens bonded to solvent donor heavy atoms.
     for (int idx = 0; idx < solventDonorMask_.Nselected(); idx++) {
       Atom const& currentAtom = topIn[ solventDonorMask_[idx] ];
+      // Ignore selected hydrogen atoms
+      if (currentAtom.Element() == Atom::HYDROGEN) continue;
       if (currentAtom.Nbonds() == 0) {
         // No bonds, assume ion. Set H atom to be same as D atom to
         // skip the angle calc
+        // TODO check charge to see if it can be an acceptor?
         atomTypes[ solventDonorMask_[idx] ] = VDONOR;
-        VdonorHatoms[idx].assign(1, solventDonorMask_[idx]);
+        VdonorHatoms.push_back( Iarray(1, solventDonorMask_[idx]) );
       } else {
         Iarray hatoms;
         for (Atom::bond_iterator bat = currentAtom.bondbegin(); bat != currentAtom.bondend(); ++bat)
@@ -428,7 +447,7 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
                   topIn.AtomMaskName( solventDonorMask_[idx] ).c_str());
         } else {
           atomTypes[ solventDonorMask_[idx] ] = VDONOR;
-          VdonorHatoms[idx] = hatoms;
+          VdonorHatoms.push_back( hatoms );
         }
       }
     }
@@ -440,6 +459,7 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
       mprinterr("Error: Could not set up solvent acceptor mask '%s'\n", solventAcceptorMask_.MaskString());
       return 1;
     }
+    solventAcceptorMask_.MaskInfo();
     for (AtomMask::const_iterator at = solventAcceptorMask_.begin(); at != solventAcceptorMask_.end(); ++at)
     {
       if (atomTypes[*at] == UNKNOWN)
@@ -454,6 +474,54 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
     }
   }
 
+  // Set up pair list mask
+  plMask_ = AtomMask( std::vector<int>(), topIn.Natom() );
+  plTypes_.clear();
+  plId_.clear();
+  plHatoms_.clear();
+
+  SiteCount count;
+  Xarray::const_iterator uh = UdonorHatoms.begin();
+  Xarray::const_iterator vh = VdonorHatoms.begin();
+  for (int at = 0; at < topIn.Natom(); at++) {
+    if (atomTypes[at] != UNKNOWN) {
+      mprintf("DEBUG: %12s %16s", topIn.AtomMaskName(at).c_str(), TypeStr(atomTypes[at]));
+      plMask_.AddSelectedAtom( at );
+      plTypes_.push_back( atomTypes[at] );
+      // Determine atom ID
+      int atid;
+      if (hbdata_.NoIntramol())
+        atid = topIn[at].MolNum();
+      else
+        atid = at;
+      plId_.push_back( atid );
+      if (atomTypes[at] == DONOR || atomTypes[at] == BOTH) {
+        mprintf(" %3zu hydrogens", uh->size());
+        plHatoms_.push_back( *(uh++) );
+      } else if (atomTypes[at] == VDONOR || atomTypes[at] == VBOTH) {
+        if (vh->size() == 1 && vh->front() == at)
+          mprintf(" ion");
+        else
+          mprintf(" %3zu hydrogens", vh->size());
+        plHatoms_.push_back( *(vh++) );
+      } else {
+        plHatoms_.push_back( Iarray() );
+      }
+      mprintf("\n"); // DEBUG
+      // TODO better way to determine ion
+      if ( (atomTypes[at] == VDONOR || atomTypes[at] == VACCEPTOR) &&
+           topIn[at].Nbonds() == 0 )
+        count.AddIon();
+      else
+        count.AddSite(plTypes_.back(), plHatoms_.back().size());
+    }
+  }
+  count.PrintCounts( hbdata_.CalcSolvent() );
+
+  mprintf("\tEstimated max potential memory usage: %s\n",
+          hbdata_.MemoryUsage( count.UUsize(),
+                               count.UVsize(),
+                               0 ).c_str());
 
   return 0;
 }
