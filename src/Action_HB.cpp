@@ -37,7 +37,7 @@ Action::RetType Action_HB::Setup(ActionSetup& setup)
 // Action_HB::DoAction()
 Action::RetType Action_HB::DoAction(int frameNum, ActionFrame& frm)
 {
-  if (hbcalc_.RunCalc_PL( frm.Frm(), frameNum, frm.TrajoutNum() ))
+  if (hbcalc_.RunCalc( frm.Frm(), frameNum, frm.TrajoutNum() ))
     return Action::ERR;
   return Action::OK;
 }

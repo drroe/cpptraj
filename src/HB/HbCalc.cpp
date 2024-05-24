@@ -19,7 +19,8 @@ HbCalc::HbCalc() :
   dcut2_(0),
   acut_(0),
   plcut_(0),
-  calcIons_(false)
+  calcIons_(false),
+  use_pl_(false)
 {}
 
 /** Set debug level. */
@@ -160,7 +161,14 @@ int HbCalc::SetupHbCalc(Topology const& topIn, Box const& boxIn) {
   }
   if (err != 0) return 1;
 
-  if (pairList_.SetupPairList( boxIn )) return 1;
+  if (boxIn.HasBox()) {
+    if (pairList_.SetupPairList( boxIn )) return 1;
+    use_pl_ = true;
+    mprintf("\tBox info present; pair list in use.\n");
+  } else {
+    use_pl_ = false;
+    mprintf("\tNo box info present; not using pair list.\n");
+  }
 
   // For backwards compatibility, if saving time series we need to store
   // the donor hydrogen indices and acceptor heavy atom indices.
@@ -871,6 +879,14 @@ int HbCalc::RunCalc_NoPL(Frame const& currentFrame, int frameNum, int trajoutNum
   t_action_.Stop();
 # endif
   return 0;
+}
+/** Run calculation on given frame. */
+int HbCalc::RunCalc(Frame const& currentFrame, int frameNum, int trajoutNum)
+{
+  if (use_pl_ && currentFrame.BoxCrd().HasBox())
+    return RunCalc_PL(currentFrame, frameNum, trajoutNum);
+  else
+    return RunCalc_NoPL(currentFrame, frameNum, trajoutNum);
 }
 
 /** Finish HB calc and do output. */

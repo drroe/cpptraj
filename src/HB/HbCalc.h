@@ -27,10 +27,8 @@ class HbCalc {
     int SetupHbCalc(Topology const&, Box const&);
     /// Print hydrogen bond calc options to stdout
     void PrintHbCalcOpts() const;
-    /// Run hydrogen bond calc on a frame using pairlist
-    int RunCalc_PL(Frame const&, int, int);
-    /// Run hydrogen bond calc on a frame, no pairlist
-    int RunCalc_NoPL(Frame const&, int, int);
+    /// Run the hydrogen bond calc on given frame
+    int RunCalc(Frame const&, int, int);
     /// Finalize the hydrogen bond calculation
     void FinishHbCalc();
     /// Set hydrogen bond calculation debug level
@@ -69,6 +67,10 @@ class HbCalc {
     double Angle(const double*, const double*, const double*, Box const&) const;
     /// Calculate hydrogen bonds between two atoms
     void CalcHbonds(int, double, int, int, Frame const&, int&, int);
+    /// Run hydrogen bond calc on a frame using pairlist
+    int RunCalc_PL(Frame const&, int, int);
+    /// Run hydrogen bond calc on a frame, no pairlist
+    int RunCalc_NoPL(Frame const&, int, int);
 
     PairList pairList_;    ///< Pair list for atoms involved in hydrogen bond calc
     AtomMask generalMask_; ///< Mask of atoms to potentially calculate hydrogen bonds for
@@ -87,6 +89,7 @@ class HbCalc {
     double plcut_;         ///< Pair list cutoff in Angstroms
     HbData hbdata_;        ///< Hold hydrogen bond calculation data.
     bool calcIons_;        ///< If true calculate hydrogen bonds to ions in generalMask
+    bool use_pl_;          ///< If true, box info present and can use the pairlist
 #   ifdef TIMER
     Timer t_action_;       ///< Total time taken by RunCalc_PL
     Timer t_hbcalc_;       ///< Time taken by pairlist loop in RunCalc_PL
