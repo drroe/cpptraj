@@ -27,8 +27,10 @@ class HbCalc {
     int SetupHbCalc(Topology const&, Box const&);
     /// Print hydrogen bond calc options to stdout
     void PrintHbCalcOpts() const;
-    /// Run hydrogen bond calc on a frame
+    /// Run hydrogen bond calc on a frame using pairlist
     int RunCalc_PL(Frame const&, int, int);
+    /// Run hydrogen bond calc on a frame, no pairlist
+    int RunCalc_NoPL(Frame const&, int, int);
     /// Finalize the hydrogen bond calculation
     void FinishHbCalc();
     /// Set hydrogen bond calculation debug level

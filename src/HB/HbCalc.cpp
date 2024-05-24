@@ -6,6 +6,7 @@
 #include "../DataFileList.h"
 #include "../DistRoutines.h"
 #include "../Topology.h"
+#include "../TorsionRoutines.h"
 #include <cmath> //sqrt
 #ifdef _OPENMP
 # include <omp.h>
@@ -20,16 +21,6 @@ HbCalc::HbCalc() :
   plcut_(0),
   calcIons_(false)
 {}
-
-/*const char* HbCalc::TypeStr_[] = {
-  "Solute Donor",
-  "Solute Acceptor",
-  "Solute Both",
-  "Solvent Donor",
-  "Solvent Acceptor",
-  "Solvent Both",
-  "Unknown"
-};*/
 
 /** Set debug level. */
 void HbCalc::SetDebug(int debugIn) {
@@ -538,9 +529,9 @@ bool HbCalc::validInteraction(Type t0, Type t1) {
 /** Calculate angle in radians between 3 atoms with imaging. */
 double HbCalc::Angle(const double* XA, const double* XH, const double* XD, Box const& boxIn) const
 { 
-  //if (imageOpt_.ImagingType() == ImageOption::NO_IMAGE)
-  //  return (CalcAngle(XA, XH, XD));
-  //else {
+  if (!boxIn.HasBox())
+    return (CalcAngle(XA, XH, XD));
+  else {
     double angle;
     Vec3 VH = Vec3(XH);
     Vec3 H_A = MinImagedVec(VH, Vec3(XA), boxIn.UnitCell(), boxIn.FracCell());
@@ -555,7 +546,7 @@ double HbCalc::Angle(const double* XA, const double* XH, const double* XD, Box c
     } else
       angle = 0.0;
     return angle;
-  //}
+  }
 }
 
 /** Calculate hydrogen bonds between given solute donor site and 
@@ -813,6 +804,65 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame, int frameNum, int trajoutNum)
   }
 # endif /* _OPENMP */
 //  mprintf("DEBUG: %i interactions.\n", Ninteractions);
+# ifdef TIMER
+  t_hbcalc_.Stop();
+# endif
+  hbdata_.IncrementNframes(frameNum, trajoutNum);
+# ifdef TIMER
+  t_action_.Stop();
+# endif
+  return 0;
+}
+
+/** Run calculation without the pairlist */
+int HbCalc::RunCalc_NoPL(Frame const& currentFrame, int frameNum, int trajoutNum)
+{
+# ifdef TIMER
+  t_action_.Start();
+  t_hbcalc_.Start();
+# endif
+
+  int idx0;
+  int numHB = 0;
+  int maxidx = plMask_.Nselected();
+# ifdef _OPENMP
+# pragma omp parallel private(idx0, numHB)
+  {
+  numHB = omp_get_thread_num();
+# pragma omp for
+# endif
+  for (idx0 = 0; idx0 < maxidx; idx0++)
+  {
+    int at0 = plMask_[idx0];
+    for (int idx1 = idx0 + 1; idx1 < maxidx; idx1++)
+    {
+      if ( plId_[idx0] != plId_[idx1] &&
+           validInteraction(plTypes_[idx0], plTypes_[idx1]) )
+      {
+        int at1 = plMask_[idx1];
+        double dist2 = DIST2_NoImage( currentFrame.XYZ(at0), currentFrame.XYZ(at1) );
+        if (dist2 < dcut2_) {
+          CalcHbonds(frameNum, dist2, idx0, idx1, currentFrame, numHB, trajoutNum);
+        }
+      }
+    }
+  }
+# ifdef _OPENMP
+  } // END omp parallel
+  // Add all found hydrogen bonds
+  for (std::vector<Harray>::iterator it = thread_HBs_.begin();
+                                     it != thread_HBs_.end(); ++it)
+  {
+    for (Harray::const_iterator hb = it->begin(); hb != it->end(); ++hb)
+    {
+      if (hb->Frames() < 0)
+        hbdata_.AddUU(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), trajoutNum);
+      else
+        hbdata_.AddUV(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), (bool)hb->Frames(), trajoutNum);
+    }
+    it->clear();
+  }
+# endif /* _OPENMP */
 # ifdef TIMER
   t_hbcalc_.Stop();
 # endif
