@@ -159,6 +159,19 @@ int HbCalc::SetupHbCalc(Topology const& topIn, Box const& boxIn) {
   } else {
     err = setupPairlistAtomMask( topIn );
   }
+  if (hbdata_.Debug() > 1) {
+    for (int idx = 0; idx != plMask_.Nselected(); idx++) {
+      //mprintf("\t%8i %4s %s\n", plMask_[idx]+1, *(topIn[plMask_[idx]].Name()), TypeStr_[plTypes_[idx]]);
+      mprintf("\t  %20s %8i", topIn.TruncResAtomName(plMask_[idx]).c_str(), plMask_[idx]+1);
+      //mprintf(" %4s", *(topIn[plMask_[idx]].Name()));
+      mprintf(" %16s", TypeStr(plTypes_[idx]));
+      if (!plHatoms_[idx].empty()) {
+        for (Iarray::const_iterator at = plHatoms_[idx].begin(); at != plHatoms_[idx].end(); ++at)
+          mprintf(" %s", topIn[*at].c_str());
+      }
+      mprintf("\n");
+    }
+  }
   if (err != 0) return 1;
 
   if (boxIn.HasBox()) {
@@ -286,15 +299,6 @@ int HbCalc::setupPairlistAtomMask(Topology const& topIn) {
                                count.UVsize(),
                                0 ).c_str());
 
-  if (hbdata_.Debug() > 1) {
-    for (int idx = 0; idx != plMask_.Nselected(); idx++) {
-      //mprintf("\t%8i %4s %s\n", plMask_[idx]+1, *(topIn[plMask_[idx]].Name()), TypeStr_[plTypes_[idx]]);
-      mprintf("\t%8i", plMask_[idx]+1);
-      mprintf(" %4s", *(topIn[plMask_[idx]].Name()));
-      mprintf(" %s\n", TypeStr(plTypes_[idx]));
-    }
-  }
-
   return 0;
 }
 
@@ -320,7 +324,7 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
       return 1;
     }
     donorMask_.MaskInfo();
-    UdonorHatoms = Xarray( donorMask_.Nselected() );
+    UdonorHatoms.reserve( donorMask_.Nselected() );
     if (donorHmask_.MaskStringSet()) {
       // Donor hydrogen mask also specified
       if (topIn.SetupIntegerMask( donorHmask_ )) {
@@ -336,7 +340,7 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
       }
       for (int idx = 0; idx < donorMask_.Nselected(); idx++) {
         atomTypes[ donorMask_[idx] ] = DONOR;
-        UdonorHatoms[idx].assign(1, donorHmask_[idx]);
+        UdonorHatoms.push_back( Iarray(1, donorHmask_[idx]) );
       }
     } else {
       // No donor hydrogen mask; use any hydrogens bonded to donor heavy atoms.
@@ -353,7 +357,7 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
                   topIn.AtomMaskName( donorMask_[idx] ).c_str());
         } else {
           atomTypes[ donorMask_[idx] ] = DONOR;
-          UdonorHatoms[idx] = hatoms;
+          UdonorHatoms.push_back( hatoms );
         }
       }
     }
@@ -423,6 +427,7 @@ int HbCalc::setupIndividualAtomMasks(Topology const& topIn) {
       return 1;
     }
     solventDonorMask_.MaskInfo();
+    VdonorHatoms.reserve( solventDonorMask_.Nselected() );
     // Use any hydrogens bonded to solvent donor heavy atoms.
     for (int idx = 0; idx < solventDonorMask_.Nselected(); idx++) {
       Atom const& currentAtom = topIn[ solventDonorMask_[idx] ];
