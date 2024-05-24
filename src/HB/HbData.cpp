@@ -436,13 +436,13 @@ void HbData::AddUV(double dist, double angle, int fnum,
 {
   int hb_id;
   std::string aspect;
-  if (d_atom == h_atom) {
-    hb_id = ID_ION_;
-    aspect = "ionhb";
-  } else {
+//  if (d_atom == h_atom) {
+//    hb_id = ID_ION_;
+//    aspect = "ionhb";
+//  } else {
     hb_id = ID_SOLVENT_;
     aspect = "solventhb";
-  }
+//  }
   // TODO return if not calcSolvent_?
   int hbidx, solventres, soluteres;
   // TODO: Option to use solvent mol num?
