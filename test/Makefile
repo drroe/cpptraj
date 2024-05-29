@@ -545,6 +545,9 @@ test.refinetrajectory:
 test.readamberff:
 	@-cd Test_ReadAmberFF && ./RunTest.sh $(OPT)
 
+test.tica:
+	@-cd Test_TICA && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -717,7 +720,8 @@ COMPLETETESTS=test.general \
               test.readoff \
               test.sequence \
               test.refinetrajectory \
-              test.readamberff
+              test.readamberff \
+              test.tica
 
 test.all:
 	$(MAKE) test.complete summary

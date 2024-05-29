@@ -3,7 +3,7 @@
 namespace Cpptraj {
 namespace Structure {
 
-enum ChiralType { IS_S = 0, IS_R, IS_UNKNOWN_CHIRALITY };
+enum ChiralType { CHIRALITY_ERR = 0, IS_S, IS_R, IS_UNKNOWN_CHIRALITY };
 /// \return String corresponding to ChiralType
 const char* chiralStr(ChiralType);
 

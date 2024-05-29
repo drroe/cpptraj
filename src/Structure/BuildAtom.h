@@ -30,11 +30,6 @@ class BuildAtom {
     /// \return Value of the orientation torsion around atom (in radians).
     double TorsionVal()                const { return tors_; }
   private:
-    /// Total priority (i.e. sum of atomic numbers) of atoms bonded to given atom.
-    static int totalPriority(Topology const&, int, int, int, int, std::vector<bool>&);
-    /// Determine priority and optionally chirality as well
-    int determineChirality(int, Topology const&, Frame const&, int, bool);
-
     double tors_;               ///< Torsion around the atom in radians (via priority, 1-2-3-0, where 0 is this atom).
     ChiralType ctype_;          ///< Chirality around atom.
     ChiralType orientation_;    ///< Orientation when chirality cannot be determined.
