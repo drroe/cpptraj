@@ -3,7 +3,7 @@
 #include "TorsionRoutines.h"
 #include "DataSet_Mesh.h"
 //#incl ude "Constants.h"
-#include "Structure/BuildAtom.h"
+#include "Structure/Chirality.h"
 
 void Action_CheckChirality::Help() const {
   mprintf("\t[<name>] [<mask1>] [out <filename>] [byatom]\n"
@@ -198,13 +198,14 @@ Action::RetType Action_CheckChirality::DoAction(int frameNum, ActionFrame& frm) 
       if (*it != 0) {
         DataSet* ds = *it;
         int iat = ds->Meta().Idx() - 1;
-        Cpptraj::Structure::BuildAtom AtomC;
-        if (AtomC.DetermineChirality(iat, *currentTop_, frm.Frm(), debug_))
+        Cpptraj::Structure::ChiralType chirality =
+          Cpptraj::Structure::DetermineChirality(iat, *currentTop_, frm.Frm(), debug_);
+        if (chirality == Cpptraj::Structure::CHIRALITY_ERR)
           return Action::ERR;
         //double tval_degrees = AtomC.TorsionVal() * Constants::RADDEG;
         //float ftval = (float)tval_degrees;
         //ds->Add( frameNum, &ftval );
-        const char* chiralstr = Cpptraj::Structure::chiralStr( AtomC.Chirality() );
+        const char* chiralstr = Cpptraj::Structure::chiralStr( chirality );
         ds->Add( frameNum, chiralstr );
       }
     }
