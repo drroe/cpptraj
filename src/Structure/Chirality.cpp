@@ -205,7 +205,7 @@ Cpptraj::Structure::ChiralType
 // ===== LEaP Chirality routines ===============================================
 /** LEaP routine for determining atom chirality.
   * This is done by crossing A to B and then dotting the
-  * result with C. TODO use Chirality in BuildAtom? Use an Enum?
+  * result with C. TODO use Chirality in StructureEnum?
   * The chirality of the vectors is determined by the sign of
   * the result, which is determined by whether or not C has
   * a component in the direction AxB or in the opposite direction.
