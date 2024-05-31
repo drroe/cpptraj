@@ -1,6 +1,5 @@
 # Files for Structure subdirectory.
 STRUCTURE_SOURCES= \
-  BuildAtom.cpp \
   Builder.cpp \
   Chirality.cpp \
   Creator.cpp \

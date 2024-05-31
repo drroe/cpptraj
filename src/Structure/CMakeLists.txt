@@ -1,6 +1,5 @@
 #CMake buildfile for CPPTRAJ Structure subdirectory.
 target_sources(cpptraj_common_obj PRIVATE
-  ${CMAKE_CURRENT_LIST_DIR}/BuildAtom.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Builder.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Chirality.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Creator.cpp
