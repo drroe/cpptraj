@@ -361,6 +361,12 @@ const
   return 0;
 }
 
+/** Load mol2 as a COORDS set */
+int DataIO_LeapRC::LoadMol2(ArgList& argIn, DataSetList& dsl) const {
+  mprintf("DEBUG: LoadMol2\n");
+  argIn.PrintList();
+  return 0;
+}
 
 /// Move sets from paramDSL to dsl
 static inline int addSetsToList(DataSetList& dsl, DataSetList& paramDSL)
@@ -408,6 +414,8 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
   PdbResMapArray pdbResMap;
   int err = 0;
   const char* ptr = infile.Line();
+  // FIXME need to convert to all lowercase for matching commands; leap allows
+  //       mixed case
   while (ptr != 0) {
     if (ptr[0] != '\0' && ptr[0] != '#') {
       ArgList line( ptr, " \t" );
@@ -429,6 +437,8 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
         err = AddPdbResMap(pdbResMap, infile);
       else if (line.Contains("addPdbAtomMap") || line.Contains("addpdbatommap"))
         err = AddPdbAtomMap(dsname, dsl, infile);
+      else if (line.Contains("loadmol2") || line.Contains("loadMol2"))
+        err = LoadMol2(line, dsl);
       else {
         // Does this line contain an equals sign?
         bool has_equals = false;
