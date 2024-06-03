@@ -40,8 +40,7 @@ Exec::RetType Exec_Source::Execute(CpptrajState& State, ArgList& argIn)
   CpptrajFile tmp;
   tmp.SetupRead( fileName, State.Debug() );
   if (!infile.ID_DataFormat( tmp )) {
-    mprinterr("Error: %s does not appear to be a leaprc file.\n", fileName.full());
-    return CpptrajState::ERR;
+    mprintf("Warning: %s does not appear to be a leaprc file.\n", fileName.full());
   }
   if (infile.processReadArgs( argIn )) {
     mprinterr("Error: Could not process read args for leaprc file %s\n", fileName.full());

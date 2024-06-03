@@ -36,6 +36,8 @@ class DataIO_LeapRC : public DataIO {
     int AddPdbAtomMap(std::string const&, DataSetList&, BufferedLine&) const;
     /// Used to check if a parm/lib file was already loaded.
     static inline bool check_already_loaded(Sarray const&, std::string const&);
+    /// \return either file or Amberhome/dir/file
+    std::string find_path(std::string const&, std::string const&) const;
 
     std::string amberhome_;
     static Sarray paramFiles_; ///< Track amber FF param files loaded from leaprc files

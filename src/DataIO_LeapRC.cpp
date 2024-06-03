@@ -68,6 +68,22 @@ bool DataIO_LeapRC::check_already_loaded(Sarray const& files, std::string const&
   return false;
 }
 
+/** First look for filename, then look for AMBERHOME/dir/filename. */
+std::string DataIO_LeapRC::find_path(std::string const& filename,
+                                     std::string const& dir)
+const
+{
+  if (File::Exists( filename )) return filename;
+  if (amberhome_.empty()) {
+    mprinterr("Error: '%s' not found.\n", filename.c_str());
+    return filename;
+  }
+  std::string amberpath = amberhome_ + dir + filename;
+  if (File::Exists( amberpath )) return amberpath;
+  mprinterr("Error: '%s' not found.\n", amberpath.c_str());
+  return amberpath;
+}
+
 /** LEaP loadAmberParams command. */
 int DataIO_LeapRC::LoadAmberParams(std::string const& filename, DataSetList& dsl, std::string const& dsname) const {
   // TODO detect this better
@@ -76,7 +92,7 @@ int DataIO_LeapRC::LoadAmberParams(std::string const& filename, DataSetList& dsl
     mprintf("\tLoading force field modifications from '%s'\n", filename.c_str());
     DataIO_AmberFrcmod infile;
     infile.SetDebug( debug_ );
-    if (infile.ReadData(amberhome_ + "parm/" + filename, dsl, dsname)) {
+    if (infile.ReadData( find_path(filename, "parm/"), dsl, dsname)) {
       mprinterr("Error: Could not load force field modifications from '%s'\n", filename.c_str());
       return 1;
     }
@@ -86,7 +102,7 @@ int DataIO_LeapRC::LoadAmberParams(std::string const& filename, DataSetList& dsl
     } else {
       mprintf("\tLoading force field from '%s'\n", filename.c_str());
       DataIO_AmberFF infile;
-      if (infile.ReadData(amberhome_ + "parm/" + filename, dsl, dsname)) {
+      if (infile.ReadData( find_path(filename, "parm/"), dsl, dsname)) {
         mprinterr("Error: Could not load force field from '%s'\n", filename.c_str());
         return 1;
       }
@@ -106,7 +122,7 @@ int DataIO_LeapRC::LoadOFF(std::string const& filename, DataSetList& dsl, std::s
     // Allow lib to overwrite e.g. something from previous prep
     ArgList tmpArgs("allowoverwrite");
     infile.processReadArgs(tmpArgs);
-    if (infile.ReadData(amberhome_ + "lib/" + filename, dsl, dsname)) {
+    if (infile.ReadData( find_path(filename, "lib/"), dsl, dsname)) {
       mprinterr("Error: Could not load library file '%s'\n", filename.c_str());
       return 1;
     }
@@ -122,7 +138,7 @@ int DataIO_LeapRC::LoadAmberPrep(std::string const& filename, DataSetList& dsl, 
   } else {
     DataIO_AmberPrep infile;
     infile.SetDebug( debug_ );
-    if (infile.ReadData(amberhome_ + "prep/" + filename, dsl, dsname)) {
+    if (infile.ReadData( find_path(filename, "prep/"), dsl, dsname)) {
       mprinterr("Error: Could not load prep file '%s'\n", filename.c_str());
       return 1;
     }
@@ -379,7 +395,8 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
     } else
       amberhome_ = leapcmddir.DirPrefix();
   }
-  mprintf("\tForce field files located in '%s'\n", amberhome_.c_str());
+  if (!amberhome_.empty())
+    mprintf("\tForce field files located in '%s'\n", amberhome_.c_str());
   BufferedLine infile;
   if (infile.OpenFileRead(fname)) {
     mprinterr("Error: Could not open leaprc file '%s'\n", fname.full());
