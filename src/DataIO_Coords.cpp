@@ -48,6 +48,19 @@ static inline bool can_append(DataSet::DataType typeIn) {
 int DataIO_Coords::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
   DataSet::DataType setType = DataSet::COORDS; // FIXME make user option
+  if (!is_parm_fmt_ && !is_traj_fmt_) {
+    // Assume that ID_DataFormat() has not been called.
+    CpptrajFile tmpfile;
+    if (tmpfile.SetupWrite( fname, debug_ )) {
+      mprinterr("Error: Could not setup check for parm/coords info in '%s'.\n",
+                fname.full());
+      return 1;
+    }
+    if (!ID_DataFormat(tmpfile)) {
+      mprinterr("Error: '%s' does not have parm/coords info.\n", fname.full());
+      return 1;
+    }
+  }
 
   DataSet* dset = 0;
   if (!dsname.empty()) {

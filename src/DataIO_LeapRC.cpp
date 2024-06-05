@@ -6,6 +6,7 @@
 #include "DataIO_AmberFrcmod.h"
 #include "DataIO_AmberLib.h"
 #include "DataIO_AmberPrep.h"
+#include "DataIO_Coords.h"
 #include "DataSet_NameMap.h"
 #include "DataSet_Parameters.h"
 #include <cstdlib> //getenv
@@ -362,9 +363,24 @@ const
 }
 
 /** Load mol2 as a COORDS set */
-int DataIO_LeapRC::LoadMol2(ArgList& argIn, DataSetList& dsl) const {
-  mprintf("DEBUG: LoadMol2\n");
-  argIn.PrintList();
+int DataIO_LeapRC::LoadMol2(ArgList const& argIn, DataSetList& dsl) const {
+  ArgList args( argIn.ArgLineStr(), " =" );
+  //mprintf("DEBUG: LoadMol2\n");
+  //args.PrintList();
+  // Should be at least 3 args: NAME loadmol2 FILE
+  if (args.Nargs() < 3) {
+    mprinterr("Error: Expected at least <NAME> = loadmol2 <FILE>, got: %s\n", argIn.ArgLine());
+    return 1;
+  }
+  DataIO_Coords coordsIn;
+  coordsIn.SetDebug( debug_ );
+  if (coordsIn.ReadData( args[2], dsl, args[0] )) {
+    mprinterr("Error: Could not load structure from '%s' into '%s'\n",
+              args[2].c_str(), args[0].c_str());
+    return 1;
+  }
+  mprintf("\tLoaded file '%s' into '%s'\n",
+          args[2].c_str(), args[0].c_str());
   return 0;
 }
 
