@@ -37,6 +37,7 @@
 #include "DataIO_AmberFF.h"
 #include "DataIO_AmberFrcmod.h"
 #include "DataIO_LeapRC.h"
+#include "DataIO_Coords.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -95,6 +96,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Amber Force Field",  DataIO_AmberFF::ReadHelp,      0,            DataIO_AmberFF::Alloc},
   { "Amber Frcmod File",  0,                             0,            DataIO_AmberFrcmod::Alloc},
   { "Amber LEaP RC File", 0,                             0,            DataIO_LeapRC::Alloc},
+  { "Coordinates",        0,                             0,            DataIO_Coords::Alloc},
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
@@ -127,6 +129,7 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { AMBERFF,      "amberff",      ".parm" },
   { AMBERFRCMOD,  "frcmod",       ".frcmod" },
   { AMBERLEAPRC,  "leaprc",       ".leaprc" },
+  { COORDSDATA,   "coords",       ".coords" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
