@@ -661,7 +661,13 @@ void Exec_Build::Help() const
 // Exec_Build::Execute()
 Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
 {
-  debug_ = State.Debug();
+  return BuildStructure(State.DSL(), State.Debug(), argIn);
+}
+
+/** Standalone execute. For DataIO_LeapRC. */
+Exec::RetType Exec_Build::BuildStructure(DataSetList& DSL, int debugIn, ArgList& argIn)
+{
+  debug_ = debugIn;
   std::string title = argIn.GetStringKey("title");
 
   // Get input coords
@@ -670,7 +676,7 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: Must specify input COORDS set with 'crdset'\n");
     return CpptrajState::ERR;
   }
-  DataSet* inCrdPtr = State.DSL().FindSetOfGroup( crdset, DataSet::COORDINATES );
+  DataSet* inCrdPtr = DSL.FindSetOfGroup( crdset, DataSet::COORDINATES );
   if (inCrdPtr == 0) {
     mprinterr("Error: No COORDS set found matching %s\n", crdset.c_str());
     return CpptrajState::ERR;
@@ -731,7 +737,7 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: Must specify output COORDS set with 'name'\n");
     return CpptrajState::ERR;
   }
-  DataSet* outCrdPtr = State.DSL().AddSet( DataSet::COORDS, outset );
+  DataSet* outCrdPtr = DSL.AddSet( DataSet::COORDS, outset );
   if (outCrdPtr == 0) {
     mprinterr("Error: Could not allocate output COORDS set with name '%s'\n", outset.c_str());
     return CpptrajState::ERR;
@@ -753,7 +759,7 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
 
   // Get templates and parameter sets.
   Cpptraj::Structure::Creator creator( debug_ );
-  if (creator.InitCreator(argIn, State.DSL(), debug_)) {
+  if (creator.InitCreator(argIn, DSL, debug_)) {
     return CpptrajState::ERR;
   }
   if (!creator.HasTemplates()) {
