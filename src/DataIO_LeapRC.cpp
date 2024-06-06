@@ -86,7 +86,12 @@ const
 }
 
 /** LEaP loadAmberParams command. */
-int DataIO_LeapRC::LoadAmberParams(std::string const& filename, DataSetList& dsl, std::string const& dsname) const {
+int DataIO_LeapRC::LoadAmberParams(std::string const& filename, DataSetList& dsl,
+                                   std::string const& dsname,
+                                   NHarrayType const& atomHybridizations)
+const
+{
+  DataSet* paramSet = 0;
   // TODO detect this better
   ArgList fargs( filename, "." );
   if (fargs.hasKey("frcmod")) {
@@ -97,6 +102,11 @@ int DataIO_LeapRC::LoadAmberParams(std::string const& filename, DataSetList& dsl
       mprinterr("Error: Could not load force field modifications from '%s'\n", filename.c_str());
       return 1;
     }
+    if (infile.Nadded() != 1) {
+      mprinterr("Internal Error: DataIO_LeapRC::LoadAmberParams(): Expected only 1 parameter set added, got %u\n", infile.Nadded());
+      return 1;
+    }
+    paramSet = infile.added_back();
   } else {
     if (check_already_loaded(paramFiles_, filename)) {
       mprintf("Warning: Force field %s has already been loaded, skipping.\n", filename.c_str());
@@ -108,8 +118,37 @@ int DataIO_LeapRC::LoadAmberParams(std::string const& filename, DataSetList& dsl
         return 1;
       }
       paramFiles_.push_back( filename );
+      if (infile.Nadded() != 1) {
+        mprinterr("Internal Error: DataIO_LeapRC::LoadAmberParams(): Expected only 1 parameter set added, got %u\n", infile.Nadded());
+        return 1;
+      }
+      paramSet = infile.added_back();
     }
   }
+  if (paramSet == 0) {
+    mprinterr("Internal Error: DataIO_LeapRC::LoadAmberParams(): Parameter set is null.\n");
+    return 1;
+  }
+  // Update hybridizations for parameter atom types
+  //for (DataIO::set_iterator ds = paramDSL.begin(); ds != paramDSL.end(); ++ds)
+  //{
+    if ( paramSet->Type() == DataSet::PARAMETERS ) {
+      DataSet_Parameters& param = static_cast<DataSet_Parameters&>( *paramSet );
+      mprintf("\tUpdating atom hybridizations in set %s\n", param.legend());
+      for (ParmHolder<AtomType>::iterator it = param.AT().begin();
+                                          it != param.AT().end(); ++it)
+      {
+        NHarrayType::const_iterator ah = atomHybridizations.find( it->first[0] );
+        if (ah == atomHybridizations.end())
+          mprintf("Warning: No hybridization set for atom type '%s'\n", *(it->first[0]));
+        else
+          it->second.SetHybridization( ah->second );
+      }
+    } else {
+      mprinterr("Internal Error: DataIO_LeapRC::LoadAmberParams(): Set %s is not parameter set.\n",
+                paramSet->legend());
+    }
+  //}
   return 0;
 }
 
@@ -452,9 +491,9 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
     mprinterr("Error: Could not open leaprc file '%s'\n", fname.full());
     return 1;
   }
-  DataSetList paramDSL;
+  //DataSetList paramDSL;
   DataSetList unitDSL;
-  NHarrayType atomHybridizations;
+  //NHarrayType atomHybridizations;
   PdbResMapArray pdbResMap;
   int err = 0;
   const char* ptr = infile.Line();
@@ -464,9 +503,9 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
     if (ptr[0] != '\0' && ptr[0] != '#') {
       ArgList line( ptr, " \t" );
       if (line.Contains("loadAmberParams"))
-        err = LoadAmberParams( line.GetStringKey("loadAmberParams"), paramDSL, dsname );
+        err = LoadAmberParams( line.GetStringKey("loadAmberParams"), dsl, dsname, atomHybridizations_ );
       else if (line.Contains("loadamberparams"))
-        err = LoadAmberParams( line.GetStringKey("loadamberparams"), paramDSL, dsname );
+        err = LoadAmberParams( line.GetStringKey("loadamberparams"), dsl, dsname, atomHybridizations_ );
       else if (line.Contains("loadOff"))
         err = LoadOFF( line.GetStringKey("loadOff"), unitDSL, dsname );
       else if (line.Contains("loadoff"))
@@ -476,7 +515,7 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
       else if (line.Contains("loadamberprep"))
         err = LoadAmberPrep( line.GetStringKey("loadamberprep"), unitDSL, dsname );
       else if (line.Contains("addAtomTypes") || line.Contains("addatomtypes"))
-        err = AddAtomTypes(atomHybridizations, infile);
+        err = AddAtomTypes(atomHybridizations_, infile);
       else if (line.Contains("addPdbResMap") || line.Contains("addpdbresmap"))
         err = AddPdbResMap(pdbResMap, infile);
       else if (line.Contains("addPdbAtomMap") || line.Contains("addpdbatommap"))
@@ -534,23 +573,7 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
   }
   infile.CloseFile();
 
-  // Update hybridizations for parameter atom types
-  for (DataSetList::const_iterator ds = paramDSL.begin(); ds != paramDSL.end(); ++ds)
-  {
-    if ( (*ds)->Type() == DataSet::PARAMETERS ) {
-      DataSet_Parameters& param = static_cast<DataSet_Parameters&>( *(*ds) );
-      mprintf("\tUpdating atom hybridizations in set %s\n", param.legend());
-      for (ParmHolder<AtomType>::iterator it = param.AT().begin();
-                                          it != param.AT().end(); ++it)
-      {
-        NHarrayType::const_iterator ah = atomHybridizations.find( it->first[0] );
-        if (ah == atomHybridizations.end())
-          mprintf("Warning: No hybridization set for atom type '%s'\n", *(it->first[0]));
-        else
-          it->second.SetHybridization( ah->second );
-      }
-    }
-  }
+
   // Update units with pdb residue map info
   //for (DataSetList::const_iterator ds = unitDSL.begin(); ds != paramDSL.end(); ++ds)
   //{
@@ -575,7 +598,7 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
   }
 
   // Add data sets to the main data set list
-  if (addSetsToList(dsl, paramDSL)) return err+1;
+  //if (addSetsToList(dsl, paramDSL)) return err+1;
 
   if (addSetsToList(dsl, unitDSL)) return err+1;
 

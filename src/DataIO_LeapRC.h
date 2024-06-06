@@ -28,7 +28,7 @@ class DataIO_LeapRC : public DataIO {
     };
     typedef std::vector<PdbResMapType> PdbResMapArray;
 
-    int LoadAmberParams(std::string const&, DataSetList&, std::string const&) const;
+    int LoadAmberParams(std::string const&, DataSetList&, std::string const&, NHarrayType const&) const;
     int LoadOFF(std::string const&, DataSetList&, std::string const&) const;
     int LoadAmberPrep(std::string const&, DataSetList&, std::string const&) const;
     int AddAtomTypes(NHarrayType&, BufferedLine&) const;
@@ -43,6 +43,7 @@ class DataIO_LeapRC : public DataIO {
     std::string find_path(std::string const&, std::string const&) const;
 
     std::string amberhome_;
+    NHarrayType atomHybridizations_; ///< Store hybridizations for atom types
     static Sarray paramFiles_; ///< Track amber FF param files loaded from leaprc files
     static Sarray libFiles_;   ///< Track amber library/prep files loaded from leaprc files
 };

@@ -36,6 +36,7 @@ int DataIO_AmberFF::processReadArgs(ArgList& argIn)
 // DataIO_AmberFF::ReadData()
 int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
+  ClearAddedByMe();
   // Allocate data set
   MetaData md( dsname );
   DataSet* ds = dsl.CheckForSet( md );
@@ -49,6 +50,7 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
     ds = dsl.AddSet( DataSet::PARAMETERS, md );
     if (ds == 0) return 1;
   }
+  AddedByMe( ds );
   DataSet_Parameters& prm = static_cast<DataSet_Parameters&>( *ds ); 
 
   AmberParamFile infile;
