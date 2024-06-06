@@ -35,6 +35,8 @@ class DataIO_LeapRC : public DataIO {
     int AddPdbResMap(PdbResMapArray&, BufferedLine&) const;
     int AddPdbAtomMap(std::string const&, DataSetList&, BufferedLine&) const;
     int LoadMol2(ArgList const&, DataSetList&) const;
+    int LoadPDB(ArgList const&, DataSetList&) const;
+    int Source(FileName const&, DataSetList&, std::string const&);
     /// Used to check if a parm/lib file was already loaded.
     static inline bool check_already_loaded(Sarray const&, std::string const&);
     /// \return either file or Amberhome/dir/file

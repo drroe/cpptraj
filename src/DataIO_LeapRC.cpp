@@ -384,6 +384,27 @@ int DataIO_LeapRC::LoadMol2(ArgList const& argIn, DataSetList& dsl) const {
   return 0;
 }
 
+/** Load PDB and build it. */
+int DataIO_LeapRC::LoadPDB(ArgList const& argIn, DataSetList& dsl) const {
+  ArgList args( argIn.ArgLineStr(), " =" );
+  // Should be at least 3 args: NAME loadpdb FILE
+  if (args.Nargs() < 3) {
+    mprinterr("Error: Expected at least <NAME> = loadpdb <FILE>, got: %s\n", argIn.ArgLine());
+    return 1;
+  }
+  DataIO_Coords coordsIn;
+  coordsIn.SetDebug( debug_ );
+  DataSetList tmpdsl;
+  if (coordsIn.ReadData( args[2], tmpdsl, args[0] )) {
+    mprinterr("Error: Could not load structure from '%s' into '%s'\n",
+              args[2].c_str(), args[0].c_str());
+    return 1;
+  }
+  mprintf("\tLoaded file '%s' into '%s'\n",
+          args[2].c_str(), args[0].c_str());
+  return 0;
+}
+
 /// Move sets from paramDSL to dsl
 static inline int addSetsToList(DataSetList& dsl, DataSetList& paramDSL)
 {
@@ -400,7 +421,7 @@ static inline int addSetsToList(DataSetList& dsl, DataSetList& paramDSL)
   return 0;
 }
 
-// DataIO_LeapRC::ReadData()
+/** Read (source) a leaprc (input) file. */
 int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
   // First, need to determine where the Amber FF files are
@@ -419,6 +440,13 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
   }
   if (!amberhome_.empty())
     mprintf("\tForce field files located in '%s'\n", amberhome_.c_str());
+
+  return Source(fname, dsl, dsname);
+}
+
+/** Execute leap source command */
+int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string const& dsname)
+{
   BufferedLine infile;
   if (infile.OpenFileRead(fname)) {
     mprinterr("Error: Could not open leaprc file '%s'\n", fname.full());
@@ -455,6 +483,8 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
         err = AddPdbAtomMap(dsname, dsl, infile);
       else if (line.Contains("loadmol2") || line.Contains("loadMol2"))
         err = LoadMol2(line, dsl);
+      else if (line.Contains("loadpdb") || line.Contains("loadPdb"))
+        err = LoadPDB(line, dsl);
       else {
         // Does this line contain an equals sign?
         bool has_equals = false;
