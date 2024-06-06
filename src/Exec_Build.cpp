@@ -661,26 +661,34 @@ void Exec_Build::Help() const
 // Exec_Build::Execute()
 Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
 {
-  return BuildStructure(State.DSL(), State.Debug(), argIn);
-}
-
-/** Standalone execute. For DataIO_LeapRC. */
-Exec::RetType Exec_Build::BuildStructure(DataSetList& DSL, int debugIn, ArgList& argIn)
-{
-  debug_ = debugIn;
-  std::string title = argIn.GetStringKey("title");
-
   // Get input coords
   std::string crdset = argIn.GetStringKey("crdset");
   if (crdset.empty()) {
     mprinterr("Error: Must specify input COORDS set with 'crdset'\n");
     return CpptrajState::ERR;
   }
-  DataSet* inCrdPtr = DSL.FindSetOfGroup( crdset, DataSet::COORDINATES );
+  DataSet* inCrdPtr = State.DSL().FindSetOfGroup( crdset, DataSet::COORDINATES );
   if (inCrdPtr == 0) {
     mprinterr("Error: No COORDS set found matching %s\n", crdset.c_str());
     return CpptrajState::ERR;
   }
+  return BuildStructure(inCrdPtr, State.DSL(), State.Debug(), argIn);
+}
+
+/** Standalone execute. For DataIO_LeapRC. */
+Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, int debugIn, ArgList& argIn)
+{
+  if (inCrdPtr == 0) {
+    mprinterr("Internal Error: Exec_Build::BuildStructure(): Null input coordinates.\n");
+    return CpptrajState::ERR;
+  }
+  if (inCrdPtr->Group() != DataSet::COORDINATES) {
+    mprinterr("Error: Set '%s' is not coordinates, cannot use for building.\n", inCrdPtr->legend());
+    return CpptrajState::ERR;
+  }
+  debug_ = debugIn;
+  std::string title = argIn.GetStringKey("title");
+
   // TODO make it so this can be const (cant bc GetFrame)
   DataSet_Coords& coords = static_cast<DataSet_Coords&>( *((DataSet_Coords*)inCrdPtr) );
   // Get frame from input coords

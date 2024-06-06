@@ -16,7 +16,7 @@ class Exec_Build : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Build(); }
     RetType Execute(CpptrajState&, ArgList&);
     /// Stand-alone execution
-    RetType BuildStructure(DataSetList&, int, ArgList&);
+    RetType BuildStructure(DataSet*, DataSetList&, int, ArgList&);
   private:
     typedef std::vector<int> Iarray;
     // Keep track of which residues are connected to each other
