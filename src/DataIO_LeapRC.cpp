@@ -110,6 +110,7 @@ const
   } else {
     if (check_already_loaded(paramFiles_, filename)) {
       mprintf("Warning: Force field %s has already been loaded, skipping.\n", filename.c_str());
+      return 0;
     } else {
       mprintf("\tLoading force field from '%s'\n", filename.c_str());
       DataIO_AmberFF infile;
