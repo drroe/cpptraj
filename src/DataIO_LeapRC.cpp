@@ -463,6 +463,7 @@ static inline int addSetsToList(DataSetList& dsl, DataSetList& paramDSL)
 /** Read (source) a leaprc (input) file. */
 int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
+  atomHybridizations_.clear();
   // First, need to determine where the Amber FF files are
   const char* env = getenv("AMBERHOME");
   if (env != 0)
