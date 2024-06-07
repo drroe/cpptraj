@@ -153,7 +153,7 @@ const
 }
 
 /** LEaP loadOff command. */
-int DataIO_LeapRC::LoadOFF(std::string const& filename, DataSetList& dsl, std::string const& dsname) const {
+int DataIO_LeapRC::LoadOFF(std::string const& filename, DataSetList& dsl, std::string const& dsname, DSarray& units) const {
   if (check_already_loaded(libFiles_, filename)) {
     mprintf("Warning: Library %s has already been loaded, skipping.\n", filename.c_str());
   } else {
@@ -166,13 +166,19 @@ int DataIO_LeapRC::LoadOFF(std::string const& filename, DataSetList& dsl, std::s
       mprinterr("Error: Could not load library file '%s'\n", filename.c_str());
       return 1;
     }
+    if (infile.Nadded() < 1) {
+      mprinterr("Internal Error: DataIO_LeapRC::LoadOFF(): No unit sets added.\n");
+      return 1;
+    }
+    for (DataIO::set_iterator it = infile.added_begin(); it != infile.added_end(); ++it)
+      units.push_back( *it );
     libFiles_.push_back( filename );
   }
   return 0;
 }
 
 /** LEaP loadAmberPrep command. */
-int DataIO_LeapRC::LoadAmberPrep(std::string const& filename, DataSetList& dsl, std::string const& dsname) const {
+int DataIO_LeapRC::LoadAmberPrep(std::string const& filename, DataSetList& dsl, std::string const& dsname, DSarray& units) const {
   if (check_already_loaded(libFiles_, filename)) {
     mprintf("Warning: Prep file %s has already been loaded, skipping.\n", filename.c_str());
   } else {
@@ -182,6 +188,12 @@ int DataIO_LeapRC::LoadAmberPrep(std::string const& filename, DataSetList& dsl, 
       mprinterr("Error: Could not load prep file '%s'\n", filename.c_str());
       return 1;
     }
+    if (infile.Nadded() < 1) {
+      mprinterr("Internal Error: DataIO_LeapRC::LoadAmberPrep(): No unit sets added.\n");
+      return 1;
+    }
+    for (DataIO::set_iterator it = infile.added_begin(); it != infile.added_end(); ++it)
+      units.push_back( *it );
     libFiles_.push_back( filename );
   }
   return 0;
@@ -269,6 +281,25 @@ const
   return 0;
 }
 
+/** Find unit among loaded units. */
+DataSet* DataIO_LeapRC::findUnit(std::string const& unitName) const {
+  for (DSarray::const_iterator it = units_.begin(); it != units_.end(); ++it)
+  {
+    if ( (*it)->Meta().Aspect() == unitName ) {
+      mprintf("DEBUG: findUnit: Aspect match: %s %s\n", unitName.c_str(), (*it)->legend());
+      return *it;
+    }
+  }
+  for (DSarray::const_iterator it = units_.begin(); it != units_.end(); ++it)
+  {
+    if ( (*it)->Meta().Name() == unitName ) { 
+      mprintf("DEBUG: findUnit: Name match: %s %s\n", unitName.c_str(), (*it)->legend());
+      return *it;
+    }
+  }
+  return 0;
+}
+
 /** LEaP addPdbResMap command. */
 int DataIO_LeapRC::AddPdbResMap(PdbResMapArray& pdbResMap, BufferedLine& infile)
 const
@@ -315,6 +346,8 @@ const
             prm.pdbName_ = aline[pdbidx];
             prm.unitName_ = aline[unitidx];
             pdbResMap.push_back( prm );
+            // Find among loaded units
+            DataSet* unitSet = findUnit( aline[unitidx] );
           //}
           tmp.clear();
         }
@@ -464,6 +497,7 @@ static inline int addSetsToList(DataSetList& dsl, DataSetList& paramDSL)
 int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
   atomHybridizations_.clear();
+  units_.clear();
   // First, need to determine where the Amber FF files are
   const char* env = getenv("AMBERHOME");
   if (env != 0)
@@ -508,13 +542,13 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
       else if (line.Contains("loadamberparams"))
         err = LoadAmberParams( line.GetStringKey("loadamberparams"), dsl, dsname, atomHybridizations_ );
       else if (line.Contains("loadOff"))
-        err = LoadOFF( line.GetStringKey("loadOff"), unitDSL, dsname );
+        err = LoadOFF( line.GetStringKey("loadOff"), unitDSL, dsname, units_ );
       else if (line.Contains("loadoff"))
-        err = LoadOFF( line.GetStringKey("loadoff"), unitDSL, dsname );
+        err = LoadOFF( line.GetStringKey("loadoff"), unitDSL, dsname, units_ );
       else if (line.Contains("loadAmberPrep"))
-        err = LoadAmberPrep( line.GetStringKey("loadAmberPrep"), unitDSL, dsname );
+        err = LoadAmberPrep( line.GetStringKey("loadAmberPrep"), unitDSL, dsname, units_ );
       else if (line.Contains("loadamberprep"))
-        err = LoadAmberPrep( line.GetStringKey("loadamberprep"), unitDSL, dsname );
+        err = LoadAmberPrep( line.GetStringKey("loadamberprep"), unitDSL, dsname, units_ );
       else if (line.Contains("addAtomTypes") || line.Contains("addatomtypes"))
         err = AddAtomTypes(atomHybridizations_, infile);
       else if (line.Contains("addPdbResMap") || line.Contains("addpdbresmap"))

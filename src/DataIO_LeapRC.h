@@ -20,6 +20,7 @@ class DataIO_LeapRC : public DataIO {
     typedef std::pair<NameType, AtomType::HybridizationType> NHpairType;
     typedef std::map<NameType, AtomType::HybridizationType> NHarrayType;
     typedef std::vector<std::string> Sarray;
+    typedef std::vector<DataSet*> DSarray;
 
     struct PdbResMapType {
       std::string unitName_;
@@ -29,14 +30,16 @@ class DataIO_LeapRC : public DataIO {
     typedef std::vector<PdbResMapType> PdbResMapArray;
 
     int LoadAmberParams(std::string const&, DataSetList&, std::string const&, NHarrayType const&) const;
-    int LoadOFF(std::string const&, DataSetList&, std::string const&) const;
-    int LoadAmberPrep(std::string const&, DataSetList&, std::string const&) const;
+    int LoadOFF(std::string const&, DataSetList&, std::string const&, DSarray&) const;
+    int LoadAmberPrep(std::string const&, DataSetList&, std::string const&, DSarray&) const;
     int AddAtomTypes(NHarrayType&, BufferedLine&) const;
     int AddPdbResMap(PdbResMapArray&, BufferedLine&) const;
     int AddPdbAtomMap(std::string const&, DataSetList&, BufferedLine&) const;
     int LoadMol2(ArgList const&, DataSetList&) const;
     int LoadPDB(ArgList const&, DataSetList&) const;
     int Source(FileName const&, DataSetList&, std::string const&);
+    /// \return Previously loaded unit set with given name
+    DataSet* findUnit(std::string const&) const;
     /// Used to check if a parm/lib file was already loaded.
     static inline bool check_already_loaded(Sarray const&, std::string const&);
     /// \return either file or Amberhome/dir/file
@@ -44,6 +47,7 @@ class DataIO_LeapRC : public DataIO {
 
     std::string amberhome_;
     NHarrayType atomHybridizations_; ///< Store hybridizations for atom types
+    DSarray units_;            ///< Hold COORDS sets which have been added as units
     static Sarray paramFiles_; ///< Track amber FF param files loaded from leaprc files
     static Sarray libFiles_;   ///< Track amber library/prep files loaded from leaprc files
 };
