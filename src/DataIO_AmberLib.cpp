@@ -37,6 +37,7 @@ int DataIO_AmberLib::processReadArgs(ArgList& argIn)
 // DataIO_AmberLib::ReadData()
 int DataIO_AmberLib::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
+  ClearAddedByMe();
   BufferedLine infile;
   if (infile.OpenFileRead( fname )) {
     mprinterr("Error: Could not open Amber lib file '%s' for reading.\n", fname.full());
@@ -110,6 +111,7 @@ int DataIO_AmberLib::ReadData(FileName const& fname, DataSetList& dsl, std::stri
       mprinterr("Error: Reading unit '%s'\n", currentName.c_str());
       return 1;
     }
+    AddedByMe( ds );
     units_read++;
   }
   mprintf("\tRead %zu units from Amber OFF file %s.\n", UnitNames.size(), fname.base());

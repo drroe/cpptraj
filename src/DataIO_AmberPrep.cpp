@@ -80,7 +80,6 @@ int DataIO_AmberPrep::readIMPROPER(BufferedLine& infile) const {
   * \return 1 if error, -1 if STOP/EOF, 0 if more residues to be read.
   */
 int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std::string const& dsname)
-const
 {
   // 3 - Title
   // Descriptive header for the residue
@@ -360,6 +359,7 @@ const
     return 1;
   }
   CRD->SetCRD(0, frm);
+  AddedByMe( ds );
 
   return 0;
 }
@@ -367,6 +367,7 @@ const
 // DataIO_AmberPrep::ReadData()
 int DataIO_AmberPrep::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
+  ClearAddedByMe();
   BufferedLine infile;
 
   if (infile.OpenFileRead(fname)) {
