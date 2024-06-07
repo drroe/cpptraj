@@ -37,6 +37,7 @@ Exec::RetType Exec_Source::Execute(CpptrajState& State, ArgList& argIn)
   mprintf("\tReading %s\n", fileName.full());
 
   DataIO_LeapRC infile;
+  infile.SetDebug( State.Debug() );
   CpptrajFile tmp;
   tmp.SetupRead( fileName, State.Debug() );
   if (!infile.ID_DataFormat( tmp )) {

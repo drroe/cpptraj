@@ -22,18 +22,18 @@ class DataIO_LeapRC : public DataIO {
     typedef std::vector<std::string> Sarray;
     typedef std::vector<DataSet*> DSarray;
 
-    struct PdbResMapType {
-      std::string unitName_;
-      NameType pdbName_;
-      Cpptraj::Structure::TerminalType termType_;
-    };
-    typedef std::vector<PdbResMapType> PdbResMapArray;
+//    struct PdbResMapType {
+//      std::string unitName_;
+//      NameType pdbName_;
+//      Cpptraj::Structure::TerminalType termType_;
+//    };
+//    typedef std::vector<PdbResMapType> PdbResMapArray;
 
     int LoadAmberParams(std::string const&, DataSetList&, std::string const&, NHarrayType const&) const;
     int LoadOFF(std::string const&, DataSetList&, std::string const&, DSarray&) const;
     int LoadAmberPrep(std::string const&, DataSetList&, std::string const&, DSarray&) const;
     int AddAtomTypes(NHarrayType&, BufferedLine&) const;
-    int AddPdbResMap(PdbResMapArray&, BufferedLine&) const;
+    int AddPdbResMap(BufferedLine&) const;
     int AddPdbAtomMap(std::string const&, DataSetList&, BufferedLine&) const;
     int LoadMol2(ArgList const&, DataSetList&) const;
     int LoadPDB(ArgList const&, DataSetList&) const;

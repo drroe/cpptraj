@@ -301,7 +301,7 @@ DataSet* DataIO_LeapRC::findUnit(std::string const& unitName) const {
 }
 
 /** LEaP addPdbResMap command. */
-int DataIO_LeapRC::AddPdbResMap(PdbResMapArray& pdbResMap, BufferedLine& infile)
+int DataIO_LeapRC::AddPdbResMap(BufferedLine& infile)
 const
 {
   int bracketCount = 0;
@@ -341,13 +341,26 @@ const
             unitidx = 2;
           }
           //if (termType != Cpptraj::Structure::NON_TERMINAL) {
-            PdbResMapType prm;
-            prm.termType_ = termType;
-            prm.pdbName_ = aline[pdbidx];
-            prm.unitName_ = aline[unitidx];
-            pdbResMap.push_back( prm );
+            //PdbResMapType prm;
+            //prm.termType_ = termType;
+            //prm.pdbName_ = aline[pdbidx];
+            //prm.unitName_ = aline[unitidx];
+            //pdbResMap.push_back( prm );
             // Find among loaded units
             DataSet* unitSet = findUnit( aline[unitidx] );
+            if (unitSet == 0) {
+              mprintf("Warning: Unit '%s' was not found among loaded units.\n",
+                      aline[unitidx].c_str());
+            } else {
+              //DataSet_Coords& crd = static_cast<DataSet_Coords&>( *ds );
+              AssociatedData_ResId resid( aline[pdbidx], termType );
+              unitSet->AssociateData( &resid );
+              if (debug_ > 0) {
+                mprintf("DEBUG: Found unit %s", unitSet->legend());
+                resid.Ainfo();
+                mprintf("\n");
+              }
+            }
           //}
           tmp.clear();
         }
@@ -527,9 +540,9 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
     return 1;
   }
   //DataSetList paramDSL;
-  DataSetList unitDSL;
+  //DataSetList unitDSL;
   //NHarrayType atomHybridizations;
-  PdbResMapArray pdbResMap;
+  //PdbResMapArray pdbResMap;
   int err = 0;
   const char* ptr = infile.Line();
   // FIXME need to convert to all lowercase for matching commands; leap allows
@@ -542,17 +555,17 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
       else if (line.Contains("loadamberparams"))
         err = LoadAmberParams( line.GetStringKey("loadamberparams"), dsl, dsname, atomHybridizations_ );
       else if (line.Contains("loadOff"))
-        err = LoadOFF( line.GetStringKey("loadOff"), unitDSL, dsname, units_ );
+        err = LoadOFF( line.GetStringKey("loadOff"), dsl, dsname, units_ );
       else if (line.Contains("loadoff"))
-        err = LoadOFF( line.GetStringKey("loadoff"), unitDSL, dsname, units_ );
+        err = LoadOFF( line.GetStringKey("loadoff"), dsl, dsname, units_ );
       else if (line.Contains("loadAmberPrep"))
-        err = LoadAmberPrep( line.GetStringKey("loadAmberPrep"), unitDSL, dsname, units_ );
+        err = LoadAmberPrep( line.GetStringKey("loadAmberPrep"), dsl, dsname, units_ );
       else if (line.Contains("loadamberprep"))
-        err = LoadAmberPrep( line.GetStringKey("loadamberprep"), unitDSL, dsname, units_ );
+        err = LoadAmberPrep( line.GetStringKey("loadamberprep"), dsl, dsname, units_ );
       else if (line.Contains("addAtomTypes") || line.Contains("addatomtypes"))
         err = AddAtomTypes(atomHybridizations_, infile);
       else if (line.Contains("addPdbResMap") || line.Contains("addpdbresmap"))
-        err = AddPdbResMap(pdbResMap, infile);
+        err = AddPdbResMap(infile);
       else if (line.Contains("addPdbAtomMap") || line.Contains("addpdbatommap"))
         err = AddPdbAtomMap(dsname, dsl, infile);
       else if (line.Contains("loadmol2") || line.Contains("loadMol2"))
@@ -574,14 +587,14 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
           if (equals.Nargs() == 2) {
             mprintf("DEBUG: %s = %s\n", equals[0].c_str(), equals[1].c_str());
             // Find the unit to make a copy of
-            DataSet* ds0 = unitDSL.CheckForSet( MetaData(dsname, equals[1]) );
+            DataSet* ds0 = dsl.CheckForSet( MetaData(dsname, equals[1]) );
             if (ds0 == 0) {
               mprinterr("Error: Could not find unit '%s' to copy to '%s'\n", equals[1].c_str(), equals[0].c_str());
               return 1;
             }
             DataSet_Coords& crd0 = static_cast<DataSet_Coords&>( *ds0 );
             // Allocate copy
-            DataSet* ds1 = unitDSL.AddSet( DataSet::COORDS, MetaData(dsname, equals[0]) );
+            DataSet* ds1 = dsl.AddSet( DataSet::COORDS, MetaData(dsname, equals[0]) );
             if (ds1 == 0) {
               mprinterr("Error: Could not allocate unit '%s' for '%s'\n", equals[0].c_str(), equals[1].c_str());
               return 1;
@@ -613,7 +626,7 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
   //for (DataSetList::const_iterator ds = unitDSL.begin(); ds != paramDSL.end(); ++ds)
   //{
   //  if ( (*ds)->Group() == DataSet::COORDINATES ) {
-  for (PdbResMapArray::const_iterator it = pdbResMap.begin();
+/*  for (PdbResMapArray::const_iterator it = pdbResMap.begin();
                                       it != pdbResMap.end(); ++it)
   {
     // Find the unit in unit DSL
@@ -630,12 +643,12 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
         mprintf("\n");
       }
     }
-  }
+  }*/
 
   // Add data sets to the main data set list
   //if (addSetsToList(dsl, paramDSL)) return err+1;
 
-  if (addSetsToList(dsl, unitDSL)) return err+1;
+  //if (addSetsToList(dsl, unitDSL)) return err+1;
 
   return err;
 }
