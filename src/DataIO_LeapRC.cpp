@@ -573,7 +573,18 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
         err = LoadMol2(line, dsl);
       else if (line.Contains("loadpdb") || line.Contains("loadPdb"))
         err = LoadPDB(line, dsl);
-      else {
+      else if (line.Contains("source")) {
+        std::string fname1 = line.GetStringKey("source");
+        if (fname1.empty()) {
+          mprinterr("Error: No filename given for 'source'\n");
+          return 1;
+        } else if (fname1 == fname.Full()) {
+          mprinterr("Error: File '%s' attempting to source itself '%s'\n", 
+                    fname.full(), fname1.c_str());
+          return 1;
+        }
+        err = Source(fname1, dsl, dsname);
+      } else {
         // Does this line contain an equals sign?
         bool has_equals = false;
         for (const char* p = ptr; *p != '\0'; ++p) {
