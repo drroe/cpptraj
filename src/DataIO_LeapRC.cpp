@@ -536,7 +536,7 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
 int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
   BufferedLine infile;
-  if (infile.OpenFileRead(fname)) {
+  if (infile.OpenFileRead( find_path(fname.Full(), "cmd/") )) {
     mprinterr("Error: Could not open leaprc file '%s'\n", fname.full());
     return 1;
   }
