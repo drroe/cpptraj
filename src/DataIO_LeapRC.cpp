@@ -558,6 +558,7 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
     mprinterr("Error: Could not open leaprc file '%s'\n", fname.full());
     return 1;
   }
+  mprintf("\tReading LEaP input from '%s'\n", fname.base());
   //DataSetList paramDSL;
   //DataSetList unitDSL;
   //NHarrayType atomHybridizations;
@@ -569,6 +570,7 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
   while (ptr != 0) {
     if (ptr[0] != '\0' && ptr[0] != '#') {
       ArgList line( ptr, " \t" );
+      mprintf("\tLEAP> %s\n", ptr);
       if (line.Contains("loadAmberParams"))
         err = LoadAmberParams( line.GetStringKey("loadAmberParams"), dsl, dsname, atomHybridizations_ );
       else if (line.Contains("loadamberparams"))
@@ -643,6 +645,8 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
             crd1.CopyAssociatedDataFrom( crd0 );
             mprintf("DEBUG: Created unit set %s\n", crd1.legend());
           }
+        } else {
+          mprintf("Warning: Skipping unhandled LEaP command line: %s\n", ptr);
         }
       }
     }
