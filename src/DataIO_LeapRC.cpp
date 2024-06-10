@@ -564,7 +564,7 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
   mprintf("\tReading LEaP input from '%s'\n", fname.base());
   enum LeapCmdType { LOADAMBERPARAMS = 0, LOADOFF, LOADAMBERPREP, ADDATOMTYPES,
                      ADDPDBRESMAP, ADDPDBATOMMAP, LOADMOL2, LOADPDB, SOURCE,
-                     UNKNOWN_CMD };
+                     QUIT, UNKNOWN_CMD };
   //DataSetList paramDSL;
   //DataSetList unitDSL;
   //NHarrayType atomHybridizations;
@@ -601,6 +601,7 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
         else if (argStr == "loadmol2"       ) { pos = arg; leapcmd = LOADMOL2; break; }
         else if (argStr == "loadpdb"        ) { pos = arg; leapcmd = LOADPDB; break; }
         else if (argStr == "source"         ) { pos = arg; leapcmd = SOURCE; break; }
+        else if (argStr == "quit"           ) { pos = arg; leapcmd = QUIT; break; }
       }
 
       err = 0;
@@ -631,6 +632,10 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
           return 1;
         }
         err = Source(fname1, dsl, dsname);
+      } else if (leapcmd == QUIT) {
+        // Do not read any more.
+        mprintf("\tEncountered 'quit' in leaprc file, not reading any more.\n");
+        break;
       } else {
         // Unrecognized so far. See if this is a unit alias (interpret as 'alias = unit')
         if (has_equals) {
