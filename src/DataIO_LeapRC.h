@@ -37,6 +37,7 @@ class DataIO_LeapRC : public DataIO {
     int AddPdbAtomMap(std::string const&, DataSetList&, BufferedLine&) const;
     int LoadMol2(ArgList const&, DataSetList&) const;
     int LoadPDB(ArgList const&, DataSetList&) const;
+    int SaveAmberParm(std::string const&, ArgList&, DataSetList const& dsl) const;
     int Source(FileName const&, DataSetList&, std::string const&);
     /// \return Previously loaded unit set with given name
     DataSet* findUnit(std::string const&) const;

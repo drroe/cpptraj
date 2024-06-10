@@ -512,6 +512,30 @@ int DataIO_LeapRC::LoadPDB(ArgList const& argIn, DataSetList& dsl) const {
   return 0;
 }
 
+/** Save specified unit to a topology and restart file. */
+int DataIO_LeapRC::SaveAmberParm(std::string const& unitName, ArgList& line, DataSetList const& dsl)
+const
+{
+  // saveamberparm <unit> <topfile> <restartfile>
+  if (unitName.empty()) {
+    mprinterr("Error: 'saveamberparm' : Unit name missing.\n");
+    return 1;
+  }
+  std::string topName = line.GetStringNext();
+  if (topName.empty()) {
+    mprinterr("Error: 'saveamberparm' : Topology name missing.\n");
+    return 1;
+  }
+  std::string crdName = line.GetStringNext();
+  if (crdName.empty()) {
+    mprinterr("Error: 'saveamberparm' : Coordinates name missing.\n");
+    return 1;
+  }
+  mprintf("\tSaving unit '%s' to topology '%s' and coordinates '%s'\n",
+          unitName.c_str(), topName.c_str(), crdName.c_str());
+  return 0;
+}
+
 /// Move sets from paramDSL to dsl
 /*static inline int addSetsToList(DataSetList& dsl, DataSetList& paramDSL)
 {
@@ -564,7 +588,7 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
   mprintf("\tReading LEaP input from '%s'\n", fname.base());
   enum LeapCmdType { LOADAMBERPARAMS = 0, LOADOFF, LOADAMBERPREP, ADDATOMTYPES,
                      ADDPDBRESMAP, ADDPDBATOMMAP, LOADMOL2, LOADPDB, SOURCE,
-                     QUIT, UNKNOWN_CMD };
+                     QUIT, SAVEAMBERPARM, UNKNOWN_CMD };
   //DataSetList paramDSL;
   //DataSetList unitDSL;
   //NHarrayType atomHybridizations;
@@ -602,11 +626,14 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
         else if (argStr == "loadpdb"        ) { pos = arg; leapcmd = LOADPDB; break; }
         else if (argStr == "source"         ) { pos = arg; leapcmd = SOURCE; break; }
         else if (argStr == "quit"           ) { pos = arg; leapcmd = QUIT; break; }
+        else if (argStr == "saveamberparm"  ) { pos = arg; leapcmd = SAVEAMBERPARM; break; }
       }
 
       err = 0;
       if (leapcmd == LOADAMBERPARAMS)
         err = LoadAmberParams(line.GetStringKey(line[pos]), dsl, dsname, atomHybridizations_ );
+      else if (leapcmd == SAVEAMBERPARM)
+        err = SaveAmberParm(line.GetStringKey(line[pos]), line, dsl);
       else if (leapcmd == LOADOFF)
         err = LoadOFF( line.GetStringKey(line[pos]), dsl, dsname, units_ );
       else if (leapcmd == LOADAMBERPREP)
