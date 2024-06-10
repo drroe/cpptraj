@@ -47,6 +47,7 @@ static inline bool can_append(DataSet::DataType typeIn) {
 // DataIO_Coords::ReadData()
 int DataIO_Coords::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
+  ClearAddedByMe();
   DataSet::DataType setType = DataSet::COORDS; // FIXME make user option
   if (!is_parm_fmt_ && !is_traj_fmt_) {
     // Assume that ID_DataFormat() has not been called.
@@ -131,6 +132,7 @@ int DataIO_Coords::ReadData(FileName const& fname, DataSetList& dsl, std::string
       ((DataSet_Coords*)dset)->AddFrame( frameIn );
     trajin.EndTraj();
   }
+  AddedByMe( dset );
 
   return 0;
 }

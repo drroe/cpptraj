@@ -9,6 +9,7 @@
 #include "DataIO_Coords.h"
 #include "DataSet_NameMap.h"
 #include "DataSet_Parameters.h"
+#include "Exec_Build.h"
 #include <cstdlib> //getenv
 
 /// CONSTRUCTOR
@@ -486,13 +487,30 @@ int DataIO_LeapRC::LoadPDB(ArgList const& argIn, DataSetList& dsl) const {
               args[2].c_str(), args[0].c_str());
     return 1;
   }
-  mprintf("\tLoaded file '%s' into '%s'\n",
-          args[2].c_str(), args[0].c_str());
+  if (coordsIn.Nadded() != 1) {
+    mprinterr("Internal Error: DataIO_LeapRC::LoadPDB(): Expected 1 COORDS set loaded from PDB, got %u\n", coordsIn.Nadded());
+    return 1;
+  }
+  mprintf("\tLoaded file '%s' into '%s'\n", args[2].c_str(), args[0].c_str());
+
+  // Assume we want the remaining args to be passed to the builder.
+  args.MarkArg(0);
+  args.MarkArg(1);
+  args.MarkArg(2);
+  ArgList tmparg = args.RemainingArgs();
+
+  tmparg.AddArg("name " + args[0]);
+  Exec_Build build;
+  Exec::RetType ret = build.BuildStructure( coordsIn.added_back(), dsl, debug_, tmparg );
+  if (ret == CpptrajState::ERR) {
+    mprinterr("Error: Build of '%s' failed.\n", args[2].c_str());
+    return 1;
+  }
   return 0;
 }
 
 /// Move sets from paramDSL to dsl
-static inline int addSetsToList(DataSetList& dsl, DataSetList& paramDSL)
+/*static inline int addSetsToList(DataSetList& dsl, DataSetList& paramDSL)
 {
   // Add data sets to the main data set list
   for (DataSetList::const_iterator ds = paramDSL.begin(); ds != paramDSL.end(); ++ds) {
@@ -505,7 +523,7 @@ static inline int addSetsToList(DataSetList& dsl, DataSetList& paramDSL)
   }
   paramDSL.SetHasCopies( true );
   return 0;
-}
+}*/
 
 /** Read (source) a leaprc (input) file. */
 int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
