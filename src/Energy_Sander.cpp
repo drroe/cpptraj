@@ -1,10 +1,10 @@
 #if defined(USE_SANDERLIB) && !defined(LIBCPPTRAJ)
-#include <locale>
-#include <cstdio> // remove()
 #include "Energy_Sander.h"
 #include "CpptrajStdio.h"
-#include "ParmFile.h" // For writing temporary top
 #include "File_TempName.h"
+#include "ParmFile.h" // For writing temporary top
+#include "StringRoutines.h" // ToLower
+#include <cstdio> // remove()
 
 Energy_Sander::Energy_Sander() :
   debug_(0),
@@ -43,11 +43,11 @@ const char* Energy_Sander::Estring_[] = {
 // Energy_Sander::Easpect()
 std::string Energy_Sander::Easpect(Etype typeIn) {
   if (typeIn == N_ENERGYTYPES) return std::string();
-  std::locale loc;
+/*  std::locale loc;
   std::string aspect( Estring_[typeIn] );
   for (std::string::iterator it = aspect.begin(); it != aspect.end(); ++it)
-    *it = std::tolower( *it, loc );
-  return aspect;
+    *it = std::tolower( *it, loc );*/
+  return ToLower( std::string(Estring_[typeIn]) );
 }
 
 // Energy_Sander::Energy()

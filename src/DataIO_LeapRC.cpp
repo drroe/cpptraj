@@ -10,6 +10,7 @@
 #include "DataSet_NameMap.h"
 #include "DataSet_Parameters.h"
 #include "Exec_Build.h"
+#include "StringRoutines.h" // ToLower
 #include <cstdlib> //getenv
 
 /// CONSTRUCTOR
@@ -36,14 +37,16 @@ bool DataIO_LeapRC::ID_DataFormat(CpptrajFile& infile)
     if (ptr == 0) break;
     if (ptr[0] == '\0' || ptr[0] == '#') continue;
     nLinesScanned++;
-    ArgList line(ptr, " \t");
+    // LEaP commands are case-insensitive
+    ArgList line(ToLower(std::string(ptr)), " \t");
     if (line.Nargs() > 0) {
-      if (line[0] == "logFile" || line[0] == "logfile")
+      if (line[0] == "logfile")
         isLeaprc = true;
       else if (line[0] == "source")
         isLeaprc = true;
-      else if (line[0] == "addAtomTypes" || line[0] == "addatomtypes")
+      else if (line[0] == "addatomtypes")
         isLeaprc = true;
+      // TODO more commands
     }
   }
   infile.CloseFile();
@@ -559,6 +562,9 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
     return 1;
   }
   mprintf("\tReading LEaP input from '%s'\n", fname.base());
+  enum LeapCmdType { LOADAMBERPARAMS = 0, LOADOFF, LOADAMBERPREP, ADDATOMTYPES,
+                     ADDPDBRESMAP, ADDPDBATOMMAP, LOADMOL2, LOADPDB, SOURCE,
+                     UNKNOWN_CMD };
   //DataSetList paramDSL;
   //DataSetList unitDSL;
   //NHarrayType atomHybridizations;
@@ -569,31 +575,52 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
   //       mixed case
   while (ptr != 0) {
     if (ptr[0] != '\0' && ptr[0] != '#') {
-      ArgList line( ptr, " \t" );
+      // Note if this line contains an equals sign.
+      bool has_equals = false;
+      for (const char* p = ptr; *p != '\0'; ++p) {
+        if (*p == '=') {
+          has_equals = true;
+          break;
+        }
+      }
+
+      ArgList line( ptr, " =\t" );
       mprintf("\tLEAP> %s\n", ptr);
-      if (line.Contains("loadAmberParams"))
-        err = LoadAmberParams( line.GetStringKey("loadAmberParams"), dsl, dsname, atomHybridizations_ );
-      else if (line.Contains("loadamberparams"))
-        err = LoadAmberParams( line.GetStringKey("loadamberparams"), dsl, dsname, atomHybridizations_ );
-      else if (line.Contains("loadOff"))
-        err = LoadOFF( line.GetStringKey("loadOff"), dsl, dsname, units_ );
-      else if (line.Contains("loadoff"))
-        err = LoadOFF( line.GetStringKey("loadoff"), dsl, dsname, units_ );
-      else if (line.Contains("loadAmberPrep"))
-        err = LoadAmberPrep( line.GetStringKey("loadAmberPrep"), dsl, dsname, units_ );
-      else if (line.Contains("loadamberprep"))
-        err = LoadAmberPrep( line.GetStringKey("loadamberprep"), dsl, dsname, units_ );
-      else if (line.Contains("addAtomTypes") || line.Contains("addatomtypes"))
+
+      LeapCmdType leapcmd = UNKNOWN_CMD;
+      // Look through all args, lowercase, for recognized commands.
+      int pos = -1;
+      for (int arg = 0; arg != line.Nargs(); arg++) {
+        std::string argStr = ToLower( line[arg] );
+        if      (argStr == "loadamberparams") { pos = arg; leapcmd = LOADAMBERPARAMS; break; }
+        else if (argStr == "loadoff"        ) { pos = arg; leapcmd = LOADOFF; break; }
+        else if (argStr == "loadamberprep"  ) { pos = arg; leapcmd = LOADAMBERPREP; break; }
+        else if (argStr == "addatomtypes"   ) { pos = arg; leapcmd = ADDATOMTYPES; break; }
+        else if (argStr == "addpdbresmap"   ) { pos = arg; leapcmd = ADDPDBRESMAP; break; }
+        else if (argStr == "addpdbatommap"  ) { pos = arg; leapcmd = ADDPDBATOMMAP; break; }
+        else if (argStr == "loadmol2"       ) { pos = arg; leapcmd = LOADMOL2; break; }
+        else if (argStr == "loadpdb"        ) { pos = arg; leapcmd = LOADPDB; break; }
+        else if (argStr == "source"         ) { pos = arg; leapcmd = SOURCE; break; }
+      }
+
+      err = 0;
+      if (leapcmd == LOADAMBERPARAMS)
+        err = LoadAmberParams(line.GetStringKey(line[pos]), dsl, dsname, atomHybridizations_ );
+      else if (leapcmd == LOADOFF)
+        err = LoadOFF( line.GetStringKey(line[pos]), dsl, dsname, units_ );
+      else if (leapcmd == LOADAMBERPREP)
+        err = LoadAmberPrep( line.GetStringKey(line[pos]), dsl, dsname, units_ );
+      else if (leapcmd == ADDATOMTYPES)
         err = AddAtomTypes(atomHybridizations_, infile);
-      else if (line.Contains("addPdbResMap") || line.Contains("addpdbresmap"))
+      else if (leapcmd == ADDPDBRESMAP)
         err = AddPdbResMap(infile);
-      else if (line.Contains("addPdbAtomMap") || line.Contains("addpdbatommap"))
+      else if (leapcmd == ADDPDBATOMMAP)
         err = AddPdbAtomMap(dsname, dsl, infile);
-      else if (line.Contains("loadmol2") || line.Contains("loadMol2"))
+      else if (leapcmd == LOADMOL2)
         err = LoadMol2(line, dsl);
-      else if (line.Contains("loadpdb") || line.Contains("loadPdb"))
+      else if (leapcmd == LOADPDB)
         err = LoadPDB(line, dsl);
-      else if (line.Contains("source")) {
+      else if (leapcmd == SOURCE) {
         std::string fname1 = line.GetStringKey("source");
         if (fname1.empty()) {
           mprinterr("Error: No filename given for 'source'\n");
@@ -605,35 +632,26 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
         }
         err = Source(fname1, dsl, dsname);
       } else {
-        // Does this line contain an equals sign?
-        bool has_equals = false;
-        for (const char* p = ptr; *p != '\0'; ++p) {
-          if (*p == '=') {
-            has_equals = true;
-            break;
-          }
-        }
-        // See if this is a unit alias (interpret as 'alias = unit')
+        // Unrecognized so far. See if this is a unit alias (interpret as 'alias = unit')
         if (has_equals) {
-          ArgList equals(ptr, " =\t");
-          if (equals.Nargs() == 2) {
-            mprintf("DEBUG: %s = %s\n", equals[0].c_str(), equals[1].c_str());
+          if (line.Nargs() == 2) {
+            mprintf("DEBUG: %s = %s\n", line[0].c_str(), line[1].c_str());
             // Find the unit to make a copy of
-            DataSet* ds0 = dsl.CheckForSet( MetaData(dsname, equals[1]) );
+            DataSet* ds0 = dsl.CheckForSet( MetaData(dsname, line[1]) );
             if (ds0 == 0) {
-              mprinterr("Error: Could not find unit '%s' to copy to '%s'\n", equals[1].c_str(), equals[0].c_str());
+              mprinterr("Error: Could not find unit '%s' to copy to '%s'\n", line[1].c_str(), line[0].c_str());
               return 1;
             }
             DataSet_Coords& crd0 = static_cast<DataSet_Coords&>( *ds0 );
             // Allocate copy
-            DataSet* ds1 = dsl.AddSet( DataSet::COORDS, MetaData(dsname, equals[0]) );
+            DataSet* ds1 = dsl.AddSet( DataSet::COORDS, MetaData(dsname, line[0]) );
             if (ds1 == 0) {
-              mprinterr("Error: Could not allocate unit '%s' for '%s'\n", equals[0].c_str(), equals[1].c_str());
+              mprinterr("Error: Could not allocate unit '%s' for '%s'\n", line[0].c_str(), line[1].c_str());
               return 1;
             }
             DataSet_Coords& crd1 = static_cast<DataSet_Coords&>( *ds1 );
             if (crd1.CoordsSetup( crd0.Top(), crd0.CoordsInfo() )) {
-              mprinterr("Error: Could not set up unit '%s' for '%s'\n", equals[0].c_str(), equals[1].c_str());
+              mprinterr("Error: Could not set up unit '%s' for '%s'\n", line[0].c_str(), line[1].c_str());
               return 1;
             }
             crd1.Allocate( DataSet::SizeArray(1, 1) );
