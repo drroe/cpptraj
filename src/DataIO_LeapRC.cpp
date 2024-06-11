@@ -287,7 +287,7 @@ const
 }
 
 /** Find unit among loaded units. */
-DataSet* DataIO_LeapRC::findUnit(std::string const& unitName) const {
+/*DataSet* DataIO_LeapRC::findUnit(std::string const& unitName) const {
   for (DSarray::const_iterator it = units_.begin(); it != units_.end(); ++it)
   {
     if ( (*it)->Meta().Aspect() == unitName ) {
@@ -303,10 +303,32 @@ DataSet* DataIO_LeapRC::findUnit(std::string const& unitName) const {
     }
   }
   return 0;
+}*/
+
+/** Associate PDB residue name map with COORDS set. */ // TODO call every time a new unit is loaded?
+void DataIO_LeapRC::addPdbResMapToUnit(DataSet_Coords* unit, PdbResMapType const& prm)
+const
+{
+  // Does this unit already have associated ResId?
+  AssociatedData* ad = unit->GetAssociatedData( AssociatedData::RESID );
+  if (ad == 0) {
+    AssociatedData_ResId resid( prm.pdbName_, prm.termType_ );
+    unit->AssociateData( &resid );
+    //if (debug_ > 0) {
+      mprintf("DEBUG: Found unit %s", unit->legend());
+      resid.Ainfo();
+      mprintf("\n");
+    //}
+  } else {
+    // TODO check if map is different
+    mprintf("DEBUG: Unit %s already has resmap. ", unit->legend());
+    ad->Ainfo();
+    mprintf("\n");
+  }
 }
 
 /** LEaP addPdbResMap command. */
-int DataIO_LeapRC::AddPdbResMap(BufferedLine& infile)
+int DataIO_LeapRC::AddPdbResMap(BufferedLine& infile, PdbResMapArray& pdbResMapIn)
 const
 {
   int bracketCount = 0;
@@ -346,26 +368,26 @@ const
             unitidx = 2;
           }
           //if (termType != Cpptraj::Structure::NON_TERMINAL) {
-            //PdbResMapType prm;
-            //prm.termType_ = termType;
-            //prm.pdbName_ = aline[pdbidx];
-            //prm.unitName_ = aline[unitidx];
-            //pdbResMap.push_back( prm );
+            PdbResMapType prm;
+            prm.termType_ = termType;
+            prm.pdbName_ = aline[pdbidx];
+            prm.unitName_ = aline[unitidx];
+            pdbResMapIn.push_back( prm );
             // Find among loaded units
-            DataSet* unitSet = findUnit( aline[unitidx] );
-            if (unitSet == 0) {
-              mprintf("Warning: Unit '%s' was not found among loaded units.\n",
-                      aline[unitidx].c_str());
-            } else {
-              //DataSet_Coords& crd = static_cast<DataSet_Coords&>( *ds );
-              AssociatedData_ResId resid( aline[pdbidx], termType );
-              unitSet->AssociateData( &resid );
-              if (debug_ > 0) {
-                mprintf("DEBUG: Found unit %s", unitSet->legend());
-                resid.Ainfo();
-                mprintf("\n");
-              }
-            }
+            //DataSet* unitSet = findUnit( aline[unitidx] );
+            //if (unitSet == 0) {
+            //  mprintf("Warning: Unit '%s' was not found among loaded units.\n",
+            //          aline[unitidx].c_str());
+            //} else {
+            //  //DataSet_Coords& crd = static_cast<DataSet_Coords&>( *ds );
+            //  AssociatedData_ResId resid( aline[pdbidx], termType );
+            //  unitSet->AssociateData( &resid );
+            //  if (debug_ > 0) {
+            //    mprintf("DEBUG: Found unit %s", unitSet->legend());
+            //    resid.Ainfo();
+            //    mprintf("\n");
+            //  }
+            //}
           //}
           tmp.clear();
         }
@@ -533,6 +555,7 @@ const
   }
   mprintf("\tSaving unit '%s' to topology '%s' and coordinates '%s'\n",
           unitName.c_str(), topName.c_str(), crdName.c_str());
+  // Get the unit
   return 0;
 }
 
@@ -574,7 +597,12 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
   if (!amberhome_.empty())
     mprintf("\tForce field files located in '%s'\n", amberhome_.c_str());
 
-  return Source(fname, dsl, dsname);
+  if (Source(fname, dsl, dsname)) {
+    mprinterr("Error: Could not read LEaP input from '%s'\n", fname.full());
+    return 1;
+  }
+
+  return 0;
 }
 
 /** Execute leap source command */
@@ -640,9 +668,36 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
         err = LoadAmberPrep( line.GetStringKey(line[pos]), dsl, dsname, units_ );
       else if (leapcmd == ADDATOMTYPES)
         err = AddAtomTypes(atomHybridizations_, infile);
-      else if (leapcmd == ADDPDBRESMAP)
-        err = AddPdbResMap(infile);
-      else if (leapcmd == ADDPDBATOMMAP)
+      else if (leapcmd == ADDPDBRESMAP) {
+        err = AddPdbResMap(infile, pdbResMap_);
+        if (err == 0) {
+          // Update units with pdb residue map info
+          //for (DataSetList::const_iterator ds = unitDSL.begin(); ds != paramDSL.end(); ++ds)
+          //{
+          //  if ( (*ds)->Group() == DataSet::COORDINATES ) {
+          for (PdbResMapArray::const_iterator it = pdbResMap_.begin();
+                                              it != pdbResMap_.end(); ++it)
+          {
+            // Find the unit in unit DSL
+            DataSet* ds = dsl.CheckForSet( MetaData(dsname, it->unitName_) );
+            if (ds != 0 && ds->Group() == DataSet::COORDINATES) {
+              addPdbResMapToUnit( static_cast<DataSet_Coords*>(ds), *it );
+            }
+            /*if (ds == 0) {
+              mprintf("Warning: Unit '%s' was not found among loaded units.\n", it->unitName_.c_str());
+            } else {
+              DataSet_Coords& crd = static_cast<DataSet_Coords&>( *ds );
+              AssociatedData_ResId resid( it->pdbName_, it->termType_ );
+              crd.AssociateData( &resid );
+              if (debug_ > 0) {
+                mprintf("DEBUG: Found unit %s", crd.legend());
+                resid.Ainfo();
+                mprintf("\n");
+              }
+            }*/
+          }
+        }
+      } else if (leapcmd == ADDPDBATOMMAP)
         err = AddPdbAtomMap(dsname, dsl, infile);
       else if (leapcmd == LOADMOL2)
         err = LoadMol2(line, dsl);
@@ -694,6 +749,15 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
             // Copy associated data
             crd1.CopyAssociatedDataFrom( crd0 );
             mprintf("DEBUG: Created unit set %s\n", crd1.legend());
+            // See if there is a PDB residue name map
+            for (PdbResMapArray::const_iterator it = pdbResMap_.begin();
+                                                it != pdbResMap_.end(); ++it)
+            {
+              if (it->unitName_ == line[0]) {
+                addPdbResMapToUnit( &crd1, *it );
+                break;
+              }
+            }
           }
         } else {
           mprintf("Warning: Skipping unhandled LEaP command line: %s\n", ptr);
@@ -706,28 +770,6 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
   infile.CloseFile();
 
 
-  // Update units with pdb residue map info
-  //for (DataSetList::const_iterator ds = unitDSL.begin(); ds != paramDSL.end(); ++ds)
-  //{
-  //  if ( (*ds)->Group() == DataSet::COORDINATES ) {
-/*  for (PdbResMapArray::const_iterator it = pdbResMap.begin();
-                                      it != pdbResMap.end(); ++it)
-  {
-    // Find the unit in unit DSL
-    DataSet* ds = unitDSL.CheckForSet( MetaData(dsname, it->unitName_) );
-    if (ds == 0) {
-      mprintf("Warning: Unit '%s' was not found among loaded units.\n", it->unitName_.c_str());
-    } else {
-      DataSet_Coords& crd = static_cast<DataSet_Coords&>( *ds );
-      AssociatedData_ResId resid( it->pdbName_, it->termType_ );
-      crd.AssociateData( &resid );
-      if (debug_ > 0) {
-        mprintf("DEBUG: Found unit %s", crd.legend());
-        resid.Ainfo();
-        mprintf("\n");
-      }
-    }
-  }*/
 
   // Add data sets to the main data set list
   //if (addSetsToList(dsl, paramDSL)) return err+1;
