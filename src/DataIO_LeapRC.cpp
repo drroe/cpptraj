@@ -747,7 +747,7 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
             crd0.GetFrame(0, tmpFrm);
             crd1.SetCRD(0, tmpFrm );
             // Copy associated data
-            crd1.CopyAssociatedDataFrom( crd0 );
+            //crd1.CopyAssociatedDataFrom( crd0 );
             mprintf("DEBUG: Created unit set %s\n", crd1.legend());
             // See if there is a PDB residue name map
             for (PdbResMapArray::const_iterator it = pdbResMap_.begin();
