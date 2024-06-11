@@ -12,6 +12,7 @@
 #include "Exec_Build.h"
 #include "Parm_Amber.h"
 #include "StringRoutines.h" // ToLower
+#include "Trajout_Single.h"
 #include <cstdlib> //getenv
 
 /// CONSTRUCTOR
@@ -567,7 +568,11 @@ const
     return 1;
   }
   mprintf("\tCOORDINATES set %s\n", ds->legend());
-  DataSet_Coords const& crd = static_cast<DataSet_Coords const&>( *ds );
+  DataSet_Coords& crd = static_cast<DataSet_Coords&>( *ds ); // FIXME this really should be const
+  if (crd.Size() < 1) {
+    mprinterr("Error: '%s' is empty.\n", crd.legend());
+    return 1;
+  }
 
   Parm_Amber parmOut;
   parmOut.SetDebug( debug_ );
@@ -575,6 +580,26 @@ const
     mprinterr("Error: Write of '%s' failed.\n", topName.c_str());
     return 1;
   }
+
+  if (crd.Size() > 1)
+    mprintf("Warning: '%s' has more than 1 frame. Only using first frame.\n");
+
+  Trajout_Single trajOut;
+  ArgList tmpargs;
+  if (trajOut.PrepareTrajWrite( crdName, tmpargs, dsl, crd.TopPtr(), crd.CoordsInfo(),
+                                1, TrajectoryFile::UNKNOWN_TRAJ ))
+  {
+    mprinterr("Error: Could not set up '%s' for write.\n", crdName.c_str());
+    return 1;
+  }
+  trajOut.PrintInfo(0);
+  Frame currentFrame = crd.AllocateFrame();
+  crd.GetFrame( 0, currentFrame );
+  if ( trajOut.WriteSingle( 0, currentFrame )) {
+    mprinterr("Error: Could not write frame to '%s'\n", crdName.c_str());
+    return 1;
+  }
+  trajOut.EndTraj();
 
   return 0;
 }
