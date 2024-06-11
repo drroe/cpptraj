@@ -10,6 +10,7 @@
 #include "DataSet_NameMap.h"
 #include "DataSet_Parameters.h"
 #include "Exec_Build.h"
+#include "Parm_Amber.h"
 #include "StringRoutines.h" // ToLower
 #include <cstdlib> //getenv
 
@@ -556,6 +557,25 @@ const
   mprintf("\tSaving unit '%s' to topology '%s' and coordinates '%s'\n",
           unitName.c_str(), topName.c_str(), crdName.c_str());
   // Get the unit
+  DataSet* ds = dsl.CheckForSet( MetaData(unitName) );
+  if (ds == 0) {
+    mprinterr("Error: Set '%s' not found.\n", unitName.c_str());
+    return 1;
+  }
+  if (ds->Group() != DataSet::COORDINATES) {
+    mprinterr("Error: Set '%s' is not COORDINATES.\n", ds->legend());
+    return 1;
+  }
+  mprintf("\tCOORDINATES set %s\n", ds->legend());
+  DataSet_Coords const& crd = static_cast<DataSet_Coords const&>( *ds );
+
+  Parm_Amber parmOut;
+  parmOut.SetDebug( debug_ );
+  if (parmOut.WriteParm( topName, crd.Top() )) {
+    mprinterr("Error: Write of '%s' failed.\n", topName.c_str());
+    return 1;
+  }
+
   return 0;
 }
 
