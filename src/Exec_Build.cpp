@@ -154,7 +154,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
       resTermType = Cpptraj::Structure::END_TERMINAL;
     } else if (pres > -1 && topIn.Res(pres).IsTerminal()) {
       resTermType = Cpptraj::Structure::BEG_TERMINAL;
-    } else if (nres < topIn.Nres() && topIn.Res(nres).ChainId() != currentRes.ChainId()) {
+    } else if (nres < topIn.Nres() && topIn.Res(nres).ChainID() != currentRes.ChainID()) {
       resTermType = Cpptraj::Structure::END_TERMINAL;
     } else {
       resTermType = Cpptraj::Structure::NON_TERMINAL;
