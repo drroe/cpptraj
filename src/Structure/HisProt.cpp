@@ -90,7 +90,7 @@ int HisProt::determineHisProt( Topology& topIn,
                               rnum != resIdxs.end(); ++rnum)
   {
     if (StructureDebugLevel() > 1)
-      mprintf("DEBUG: %s (%i) (%c)\n", topIn.TruncResNameOnumId(*rnum).c_str(), topIn.Res(*rnum).OriginalResNum(), topIn.Res(*rnum).ChainId());
+      mprintf("DEBUG: %s (%i) (%s)\n", topIn.TruncResNameOnumId(*rnum).c_str(), topIn.Res(*rnum).OriginalResNum(), topIn.Res(*rnum).chainID());
     int nd1idx = -1;
     int ne2idx = -1;
     Residue const& hisRes = topIn.Res( *rnum );

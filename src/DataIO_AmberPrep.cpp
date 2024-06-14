@@ -194,7 +194,7 @@ int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std:
   Topology top;
   top.SetParmName( resName, infile.Filename() );
   // Residue
-  Residue res(resName, 1, ' ', ' ');
+  Residue res(resName, 1, ' ', "");
   // Loop over entries
   line = infile.Line();
   if (CheckLine(line)) return 1;
