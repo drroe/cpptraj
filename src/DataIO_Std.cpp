@@ -18,6 +18,7 @@
 #include "DataSet_Vector.h" // For reading TODO remove dependency?
 #include "DataSet_Mat3x3.h" // For reading TODO remove dependency?
 #include "DataSet_PairwiseCache_MEM.h" // For reading
+#include "DataSet_NameMap.h" // For reading
 #include "DataSet_2D.h"
 #include "DataSet_MatrixFlt.h"
 #include "DataSet_MatrixDbl.h"
@@ -94,7 +95,9 @@ void DataIO_Std::ReadHelp() {
           "\t\tprec {dbl|flt*}       : Grid precision; double or float (default float).\n"
           "\t\tbin {center|corner*}  : Coords specify bin centers or corners (default corners).\n"
           "\tvector         : Read data as vector: VX VY VZ [OX OY OZ]\n"
-          "\tmat3x3         : Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n");
+          "\tmat3x3         : Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n"
+          "\tnamemap        : Read data as atom name map (#TgtAt Tgt RefAt Ref)\n"
+         );
 
 }
 
@@ -107,6 +110,7 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
   else if (argIn.hasKey("read3d")) mode_ = READ3D;
   else if (argIn.hasKey("vector")) mode_ = READVEC;
   else if (argIn.hasKey("mat3x3")) mode_ = READMAT3X3;
+  else if (argIn.hasKey("namemap")) mode_ = READNAMEMAP;
   indexcol_ = argIn.getKeyInt("index", -1);
   // Column user args start from 1.
   if (indexcol_ == 0) {
@@ -218,6 +222,7 @@ int DataIO_Std::ReadData(FileName const& fname,
     case READ3D: err = Read_3D(fname.Full(), dsl, dsname); break;
     case READVEC: err = Read_Vector(fname.Full(), dsl, dsname); break;
     case READMAT3X3: err = Read_Mat3x3(fname.Full(), dsl, dsname); break;
+    case READNAMEMAP: err = Read_NameMap(fname.Full(), dsl, dsname); break;
   }
   return err;
 }
@@ -844,6 +849,7 @@ int DataIO_Std::Read_3D(std::string const& fname,
 // DataIO_Std::Read_Vector()
 int DataIO_Std::Read_Vector(std::string const& fname, 
                             DataSetList& datasetlist, std::string const& dsname)
+const
 {
   // See if set exists
   DataSet* ds = datasetlist.CheckForSet( dsname );
@@ -953,6 +959,7 @@ int DataIO_Std::Read_Vector(std::string const& fname,
 // DataIO_Std::Read_Mat3x3()
 int DataIO_Std::Read_Mat3x3(std::string const& fname, 
                             DataSetList& datasetlist, std::string const& dsname)
+const
 {
   // Buffer file
   BufferedLine buffer;
@@ -1003,6 +1010,66 @@ int DataIO_Std::Read_Mat3x3(std::string const& fname,
     linebuffer = buffer.Line();
   }
   return (datasetlist.AddOrAppendSets("", DataSetList::Darray(), DataSetList::DataListType(1, ds)));
+}
+
+/** Read an atom name map. */
+int DataIO_Std::Read_NameMap(std::string const& fname, 
+                            DataSetList& dsl, std::string const& dsname)
+const
+{
+  // Buffer file
+  BufferedLine buffer;
+  if (buffer.OpenFileRead( fname )) return 1;
+  mprintf("\tAttempting to read atom name map data.\n");
+  // Read through file 
+  const char* linebuffer = buffer.Line();
+  int ncols = 0;
+  int tgtcol = 0;
+  int refcol = 0;
+  DataSet_NameMap* namemap = 0;
+  while (linebuffer != 0) {
+    // Skip comments
+    if (linebuffer[0] != '#') {
+      int ntokens = buffer.TokenizeLine(" \t\n\r");
+      if (ncols == 0) {
+        // First non-comment line. Determine num columns
+        ncols = ntokens;
+        if (ncols != 4) {
+          mprinterr("Error: For atom name map, expect 4 columns (#TgtAt Tgt RefAt Ref), got %i\n");
+          return 1;
+        }
+        tgtcol = 1;
+        refcol = 3;
+        // Allocate the name map
+        namemap = (DataSet_NameMap*)dsl.AddSet(DataSet::NAMEMAP, MetaData(dsname));
+        if (namemap == 0) {
+          mprinterr("Error: Could not allocate name map set '%s'\n", dsname.c_str());
+          return 1;
+        }
+      } else if (ncols != ntokens) {
+        mprinterr("Error: Number of columns has changed at line %i from %i to %i\n",
+                  buffer.LineNumber(), ncols, ntokens);
+        mprinterr("Error: '%s'\n", linebuffer);
+        return 1;
+      } else {
+        std::string tgt, ref;
+        for (int col = 0; col != ntokens; col++) {
+          const char* ptr = buffer.NextToken();
+          if (col == tgtcol)
+            tgt.assign( ptr );
+          else if (col == refcol)
+            ref.assign( ptr );
+        }
+        // Skip mapping if tgt == ref
+        if (tgt != ref) {
+          mprintf("DEBUG: Map ref %s to tgt %s\n", ref.c_str(), tgt.c_str());
+          namemap->AddNameMap(ref, tgt);
+        }
+      }
+    } // END if not comment
+    linebuffer = buffer.Line();
+  } // END loop over file
+  return 0;
 }
 
 // -----------------------------------------------------------------------------

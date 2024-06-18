@@ -18,7 +18,7 @@ class DataIO_Std : public DataIO {
     static const int IS_ASCII_CMATRIX;
 
     enum GroupType { NO_TYPE = 0, BY_NAME, BY_ASPECT, BY_IDX, BY_ENS, BY_DIM };
-    enum modeType {READ1D=0, READ2D, READ3D, READVEC, READMAT3X3};
+    enum modeType {READ1D=0, READ2D, READ3D, READVEC, READMAT3X3, READNAMEMAP};
     enum precType {UNSPEC, FLOAT, DOUBLE};
 
     static int Get3Double(std::string const&, Vec3&, bool&);
@@ -27,8 +27,9 @@ class DataIO_Std : public DataIO {
     int Read_2D(std::string const&,DataSetList&,std::string const&);
     int Read_2D_XYZ(FileName const&,DataSetList&,std::string const&);
     int Read_3D(std::string const&,DataSetList&,std::string const&);
-    int Read_Vector(std::string const&,DataSetList&,std::string const&);
-    int Read_Mat3x3(std::string const&,DataSetList&,std::string const&);
+    int Read_Vector(std::string const&,DataSetList&,std::string const&) const;
+    int Read_Mat3x3(std::string const&,DataSetList&,std::string const&) const;
+    int Read_NameMap(std::string const&,DataSetList&,std::string const&) const;
     static void WriteNameToBuffer(CpptrajFile&, std::string const&, int,  bool);
     int WriteByGroup(CpptrajFile&, DataSetList const&, GroupType);
     int WriteStringVars(CpptrajFile&, DataSetList const&) const;
