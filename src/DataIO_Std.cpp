@@ -49,6 +49,7 @@ DataIO_Std::DataIO_Std() :
   dims_[2] = 0;
   SetValid( DataSet::PARAMETERS );
   SetValid( DataSet::STRINGVAR );
+  SetValid( DataSet::NAMEMAP );
 }
 
 static void PrintColumnError(int idx) {
@@ -96,7 +97,7 @@ void DataIO_Std::ReadHelp() {
           "\t\tbin {center|corner*}  : Coords specify bin centers or corners (default corners).\n"
           "\tvector         : Read data as vector: VX VY VZ [OX OY OZ]\n"
           "\tmat3x3         : Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n"
-          "\tnamemap        : Read data as atom name map ('#TgtAt Tgt RefAt Ref' or '#TgtAt RefAt')\n"
+          "\tnamemap        : Read data as atom name map ('#TgtAt Tgt RefAt Ref' or '#Tgt Ref')\n"
          );
 
 }
@@ -1056,20 +1057,20 @@ const
                   buffer.LineNumber(), ncols, ntokens);
         mprinterr("Error: '%s'\n", linebuffer);
         return 1;
-      } else {
-        std::string tgt, ref;
-        for (int col = 0; col != ntokens; col++) {
-          const char* ptr = buffer.NextToken();
-          if (col == tgtcol)
-            tgt.assign( ptr );
-          else if (col == refcol)
-            ref.assign( ptr );
-        }
-        // Skip mapping if tgt == ref
-        if (tgt != ref) {
-          mprintf("DEBUG: Map ref %s to tgt %s\n", ref.c_str(), tgt.c_str());
-          namemap->AddNameMap(ref, tgt);
-        }
+      }
+      // Read map line
+      std::string tgt, ref;
+      for (int col = 0; col != ntokens; col++) {
+        const char* ptr = buffer.NextToken();
+        if (col == tgtcol)
+          tgt.assign( ptr );
+        else if (col == refcol)
+          ref.assign( ptr );
+      }
+      // Skip mapping if tgt == ref
+      if (tgt != ref) {
+        mprintf("DEBUG: Map ref %s to tgt %s\n", ref.c_str(), tgt.c_str());
+        namemap->AddNameMap(ref, tgt);
       }
     } // END if not comment
     linebuffer = buffer.Line();
@@ -1314,6 +1315,19 @@ int DataIO_Std::WriteNameMap(CpptrajFile& file, DataSetList const& Sets) const {
               file.Filename().full(), (*ds)->legend());
     } else {
       DataSet_NameMap const& namemap = static_cast<DataSet_NameMap const&>( *(*ds) );
+      // Figure out column widths
+      int colwidth = 4;
+      for (DataSet_NameMap::const_iterator it = namemap.begin(); it != namemap.end(); ++it) {
+        if ( (int)it->first.len() > colwidth )
+          colwidth = it->first.len();
+        if ( (int)it->second.len() > colwidth )
+          colwidth = it->second.len();
+      }
+      // Write header
+      if (writeHeader_)
+        file.Printf("%-*s %-*s\n", colwidth, "#Tgt", colwidth, "Ref");
+      for (DataSet_NameMap::const_iterator it = namemap.begin(); it != namemap.end(); ++it)
+        file.Printf("%-*s %-*s\n", colwidth, *(it->second), colwidth, *(it->first));
     }
   }
   return 0;

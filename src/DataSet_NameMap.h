@@ -22,15 +22,23 @@ class DataSet_NameMap : public DataSet {
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
 #   endif
     // -------------------------------------------
+    /// Add mapping of newName to oldName
     void AddNameMap(NameType const& oldName, NameType const& newName) {
       nameMap_.insert( AmapPair(oldName, newName) );
     }
+    /// \return True if oldName was found in map and newName is set, false otherwise.
     bool GetName(NameType& newName, NameType const& oldName) const {
       AmapType::const_iterator it = nameMap_.find( oldName );
       if (it == nameMap_.end()) return false;
       newName = it->second;
       return true;
     }
+    /// Const iterator
+    typedef AmapType::const_iterator const_iterator;
+    /// Const iterator to beginning
+    const_iterator begin() const { return nameMap_.begin(); }
+    /// Const interator to end
+    const_iterator end()   const { return nameMap_.end(); }
   private:
     AmapType nameMap_;
 };
