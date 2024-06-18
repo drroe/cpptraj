@@ -33,6 +33,7 @@ class DataIO_Std : public DataIO {
     static void WriteNameToBuffer(CpptrajFile&, std::string const&, int,  bool);
     int WriteByGroup(CpptrajFile&, DataSetList const&, GroupType);
     int WriteStringVars(CpptrajFile&, DataSetList const&) const;
+    int WriteNameMap(CpptrajFile&, DataSetList const&) const;
     int WriteCmatrix(CpptrajFile&, DataSetList const&);
     int WriteDataNormal(CpptrajFile&,DataSetList const&);
     int WriteDataInverted(CpptrajFile&,DataSetList const&);

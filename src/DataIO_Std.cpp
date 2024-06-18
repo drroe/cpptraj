@@ -96,7 +96,7 @@ void DataIO_Std::ReadHelp() {
           "\t\tbin {center|corner*}  : Coords specify bin centers or corners (default corners).\n"
           "\tvector         : Read data as vector: VX VY VZ [OX OY OZ]\n"
           "\tmat3x3         : Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n"
-          "\tnamemap        : Read data as atom name map (#TgtAt Tgt RefAt Ref)\n"
+          "\tnamemap        : Read data as atom name map ('#TgtAt Tgt RefAt Ref' or '#TgtAt RefAt')\n"
          );
 
 }
@@ -1034,12 +1034,17 @@ const
       if (ncols == 0) {
         // First non-comment line. Determine num columns
         ncols = ntokens;
-        if (ncols != 4) {
-          mprinterr("Error: For atom name map, expect 4 columns (#TgtAt Tgt RefAt Ref), got %i\n");
+        if (ncols == 4) {
+          tgtcol = 1;
+          refcol = 3;
+        } else if (ncols == 2) {
+          tgtcol = 0;
+          refcol = 1;
+        } else {
+          mprinterr("Error: For atom name map, expect 4 columns (#TgtAt Tgt RefAt Ref)\n"
+                    "Error:  or 2 columns (#TgtAt RefAt), got %i\n", ntokens);
           return 1;
         }
-        tgtcol = 1;
-        refcol = 3;
         // Allocate the name map
         namemap = (DataSet_NameMap*)dsl.AddSet(DataSet::NAMEMAP, MetaData(dsname));
         if (namemap == 0) {
@@ -1235,6 +1240,8 @@ int DataIO_Std::WriteData(FileName const& fname, DataSetList const& SetList)
     } else if (SetList[0]->Type() == DataSet::STRINGVAR) {
       // For debugging string variables
       err = WriteStringVars(file, SetList);
+    } else if (SetList[0]->Type() == DataSet::NAMEMAP) {
+      err = WriteNameMap(file, SetList);
     } else if (SetList[0]->Ndim() == 1) {
       if (group_ == NO_TYPE) {
         if (isInverted_)
@@ -1293,6 +1300,20 @@ int DataIO_Std::WriteStringVars(CpptrajFile& file, DataSetList const& Sets) cons
       file.Printf(" = ");
       file.Write( var.Value().c_str(), var.Value().size() );
       file.Printf("\n");
+    }
+  }
+  return 0;
+}
+
+/** Write atom name map to file. */
+int DataIO_Std::WriteNameMap(CpptrajFile& file, DataSetList const& Sets) const {
+  for (DataSetList::const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds)
+  {
+    if ( (*ds)->Type() != DataSet::NAMEMAP ) {
+      mprintf("Warning: First variable written to %s was a name map, skipping '%s'\n",
+              file.Filename().full(), (*ds)->legend());
+    } else {
+      DataSet_NameMap const& namemap = static_cast<DataSet_NameMap const&>( *(*ds) );
     }
   }
   return 0;
