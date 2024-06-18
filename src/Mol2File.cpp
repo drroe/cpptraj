@@ -189,7 +189,7 @@ int Mol2File::Mol2Atom(Atom& atom, Residue& res, double* XYZ) {
     mol2resname = field6;
     mol2charge = field7;
   } else {
-    mprinterr("Error: Malformed mol2 line: %s\n", linebuffer_);
+    mprinterr("Error: Malformed mol2 line (%i fields read): %s\n", nread, linebuffer_);
     return 1;
   }
 
