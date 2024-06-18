@@ -308,7 +308,7 @@ const
 }*/
 
 /** Associate PDB residue name map with COORDS set. */ // TODO call every time a new unit is loaded?
-void DataIO_LeapRC::addPdbResMapToUnit(DataSet_Coords* unit, PdbResMapType const& prm)
+void DataIO_LeapRC::addPdbResMapToUnit(DataSet_Coords* unit, PdbResMapType const& prm, bool allowUpdate)
 const
 {
   // Does this unit already have associated ResId?
@@ -321,12 +321,27 @@ const
       resid.Ainfo();
       mprintf("\n");
     //}
+  } else if (allowUpdate) {
+    *ad = AssociatedData_ResId( prm.pdbName_, prm.termType_ );
+    mprintf("DEBUG: Updated unit %s resmap. ", unit->legend());
+    ad->Ainfo();
+    mprintf("\n");
   } else {
     // TODO check if map is different
     mprintf("DEBUG: Unit %s already has resmap. ", unit->legend());
     ad->Ainfo();
     mprintf("\n");
   }
+}
+
+/** Associate PDB residue name map with COORDS set, no update allowed. */
+void DataIO_LeapRC::addPdbResMapToUnit(DataSet_Coords* unit, PdbResMapType const& prm) const {
+  addPdbResMapToUnit(unit, prm, false);
+}
+
+/** Associate PDB residue name map with COORDS set, allow update. */
+void DataIO_LeapRC::updatePdbResMapToUnit(DataSet_Coords* unit, PdbResMapType const& prm) const {
+  addPdbResMapToUnit(unit, prm, true);
 }
 
 /** LEaP addPdbResMap command. */
@@ -792,14 +807,14 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
             crd0.GetFrame(0, tmpFrm);
             crd1.SetCRD(0, tmpFrm );
             // Copy associated data
-            //crd1.CopyAssociatedDataFrom( crd0 );
+            crd1.CopyAssociatedDataFrom( crd0 );
             mprintf("DEBUG: Created unit set %s\n", crd1.legend());
             // See if there is a PDB residue name map
             for (PdbResMapArray::const_iterator it = pdbResMap_.begin();
                                                 it != pdbResMap_.end(); ++it)
             {
               if (it->unitName_ == line[0]) {
-                addPdbResMapToUnit( &crd1, *it );
+                updatePdbResMapToUnit( &crd1, *it );
                 break;
               }
             }

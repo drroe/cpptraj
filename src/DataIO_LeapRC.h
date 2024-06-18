@@ -40,7 +40,11 @@ class DataIO_LeapRC : public DataIO {
     int SaveAmberParm(std::string const&, ArgList&, DataSetList const& dsl) const;
     int Source(FileName const&, DataSetList&, std::string const&);
     /// Add PDB residue map to COORDS unit
+    void addPdbResMapToUnit(DataSet_Coords*, PdbResMapType const&, bool) const;
+    /// Add PDB residue map to COORDS unit, no update
     void addPdbResMapToUnit(DataSet_Coords*, PdbResMapType const&) const;
+    /// Add PDB residue map to COORDS unit, allow update
+    void updatePdbResMapToUnit(DataSet_Coords*, PdbResMapType const&) const;
     /// \return Previously loaded unit set with given name
     //DataSet* findUnit(std::string const&) const;
     /// Used to check if a parm/lib file was already loaded.
