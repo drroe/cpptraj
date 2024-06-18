@@ -19,7 +19,7 @@ class Exec_Change : public Exec {
     int ChangeOresNums(Topology&, ArgList&) const;
     int ChangeIcodes(Topology&, ArgList&) const;
     int ChangeChainID(Topology&, ArgList&) const;
-    int ChangeAtomName(Topology&, ArgList&) const;
+    int ChangeAtomName(Topology&, ArgList&, DataSetList const&) const;
     static inline int Setup1atomMask(AtomMask&, Topology const&, std::string const&);
     static inline int FindBondTypeIdx(Topology const&, BondArray const&, TypeNameHolder const&);
     int AddBond(Topology&, ArgList&) const;

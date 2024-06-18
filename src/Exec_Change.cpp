@@ -4,6 +4,7 @@
 #include "TypeNameHolder.h"
 #include "ParameterTypes.h"
 #include "DataSet_1D.h"
+#include "DataSet_NameMap.h"
 
 // Exec_Change::Help()
 void Exec_Change::Help() const
@@ -14,7 +15,7 @@ void Exec_Change::Help() const
           "\t  chainid of <mask> to <value> |\n"
           "\t  oresnums of <mask> min <range min> max <range max> |\n"
           "\t  icodes of <mask> min <char min> max <char max> resnum <#> |\n"
-          "\t  atomname from <mask> to <value> |\n"
+          "\t  atomname from <mask> {to <value>|namemap <mapset>} |\n"
           "\t  addbond <mask1> <mask2> [req <length> <rk> <force constant>] |\n"
           "\t  removebonds <mask1> [<mask2>] [out <file>] |\n"
           "\t  bondparm <mask1> [<mask2>] {setrk|scalerk|setreq|scalereq} <value> |\n"
@@ -84,7 +85,7 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     case CHAINID  : err = ChangeChainID(*parm, argIn); break;
     case ORESNUMS : err = ChangeOresNums(*parm, argIn); break;
     case ICODES   : err = ChangeIcodes(*parm, argIn); break;
-    case ATOMNAME : err = ChangeAtomName(*parm, argIn); break;
+    case ATOMNAME : err = ChangeAtomName(*parm, argIn, State.DSL()); break;
     case ADDBOND  : err = AddBond(*parm, argIn); break;
     case REMOVEBONDS : err = RemoveBonds(State, *parm, argIn); break;
     case BONDPARM    : err = ChangeBondParameters(*parm, argIn); break;
@@ -319,16 +320,31 @@ const
 }
 
 // Exec_Change::ChangeAtomName()
-int Exec_Change::ChangeAtomName(Topology& topIn, ArgList& argIn)
+int Exec_Change::ChangeAtomName(Topology& topIn, ArgList& argIn, DataSetList const& dsl)
 const
 {
-  // Name to change to.
-  std::string name = argIn.GetStringKey("to");
-  if (name.empty()) {
-    mprinterr("Error: Specify atom name to change to ('to <name>').\n");
-    return 1;
+  // Get Name/Names to change to.
+  // Name map set.
+  DataSet_NameMap* namemap = 0;
+  std::string name = argIn.GetStringKey("namemap");
+  if (!name.empty()) {
+    DataSet* ds = dsl.FindSetOfType(name, DataSet::NAMEMAP);
+    if (ds == 0) {
+      mprinterr("Error: No name map set with name '%s' found.\n", name.c_str());
+      return 1;
+    }
+    namemap = static_cast<DataSet_NameMap*>( ds );
   }
-  NameType aname( name );
+  // Single name
+  NameType aname;
+  if (namemap == 0) {
+    name = argIn.GetStringKey("to");
+    if (name.empty()) {
+      mprinterr("Error: Specify atom name to change to ('to <name>').\n");
+      return 1;
+    }
+    aname = NameType( name );
+  }
   // Atoms to change
   std::string mexpr = argIn.GetStringKey("from");
   if (mexpr.empty()) {
@@ -342,10 +358,23 @@ const
     mprintf("Warning: No atoms selected by mask.\n");
     return 1;
   }
-  for (AtomMask::const_iterator it = mask.begin(); it != mask.end(); ++it)
-  {
-    mprintf("\tChanging atom %s to %s\n", topIn[*it].c_str(), *aname);
-    topIn.SetAtom(*it).SetName( aname );
+  if (namemap == 0) {
+    // Change to a single name
+    for (AtomMask::const_iterator it = mask.begin(); it != mask.end(); ++it)
+    {
+      mprintf("\tChanging atom %s to %s\n", topIn[*it].c_str(), *aname);
+      topIn.SetAtom(*it).SetName( aname );
+    }
+  } else {
+    // Use a name map
+    for (AtomMask::const_iterator it = mask.begin(); it != mask.end(); ++it)
+    {
+      bool nameMatch = namemap->GetName(aname, topIn[*it].Name());
+      if (nameMatch) {
+        mprintf("\tChanging atom %s to %s\n", topIn[*it].c_str(), *aname);
+        topIn.SetAtom(*it).SetName( aname );
+      }
+    }
   }
   return 0;
 }
