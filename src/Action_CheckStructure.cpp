@@ -2,6 +2,7 @@
 
 #include "Action_CheckStructure.h"
 #include "CpptrajStdio.h"
+#include "Structure/RingFinder.h"
 #ifdef MPI
 # include "DataSet_integer.h"
 # include "DataSet_double.h"
@@ -158,6 +159,13 @@ Action::RetType Action_CheckStructure::Setup(ActionSetup& setup) {
     mprintf("\tImaging on.\n");
   else
     mprintf("\timaging off.\n");
+
+  // Find rings
+  Cpptraj::Structure::RingFinder ringFinder;
+  if (ringFinder.SetupRingFinder(setup.Top())) {
+    mprinterr("Error: Could not set up ring finder.\n");
+    return Action::ERR;
+  }
 
   return Action::OK;
 }

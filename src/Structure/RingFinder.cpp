@@ -14,17 +14,17 @@ int RingFinder::InitRingFinder(ArgList& argIn) {
   return 0;
 }
 
-static inline void visitAtom( int at, int previousAt, int res, Topology const& topIn, std::vector<bool>& Visited )
+static inline void visitAtom( int at, int previousAt, int res, Topology const& topIn, std::vector<bool>& Visited, int dist )
 {
   if (Visited[at]) {
-    mprintf("Already visited %s\n", topIn.AtomMaskName(at).c_str());
+    mprintf("Already visited %s %i\n", topIn.AtomMaskName(at).c_str(), dist);
   } else {
     Visited[at] = true;
     Atom const& currentAt = topIn[at];
     for (Atom::bond_iterator bat = currentAt.bondbegin(); bat != currentAt.bondend(); ++bat)
     {
-      if (*bat != previousAt && topIn[*bat].ResNum() == res) {
-        visitAtom( *bat, at, res, topIn, Visited );
+      if (*bat != previousAt && topIn[*bat].Nbonds() > 1 && topIn[*bat].ResNum() == res) {
+        visitAtom( *bat, at, res, topIn, Visited, dist+1 );
       }
     }
   }
@@ -41,14 +41,16 @@ int RingFinder::SetupRingFinder(Topology const& topIn) {
     int idx = 0;
     for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); at++, idx++)
     {
-      mprintf("Starting at %s\n", topIn.AtomMaskName(at).c_str());
-      Visited.assign( topIn.Natom(), false );
-      Visited[at] = true;
       Atom const& currentAt = topIn[at];
-      for (Atom::bond_iterator bat = currentAt.bondbegin(); bat != currentAt.bondend(); ++bat)
-      {
-        if (topIn[*bat].ResNum() == res) {
-          visitAtom( *bat, at, res, topIn, Visited );
+      if (currentAt.Nbonds() > 1) {
+        mprintf("Starting at %s\n", topIn.AtomMaskName(at).c_str());
+        Visited.assign( topIn.Natom(), false );
+        Visited[at] = true;
+        for (Atom::bond_iterator bat = currentAt.bondbegin(); bat != currentAt.bondend(); ++bat)
+        {
+          if (topIn[*bat].Nbonds() > 1 && topIn[*bat].ResNum() == res) {
+            visitAtom( *bat, at, res, topIn, Visited, 1 );
+          }
         }
       }
     }
