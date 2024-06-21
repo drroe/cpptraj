@@ -68,6 +68,19 @@ EOF
   RunCpptraj "Structure Check with Around"
   DoTest around.dat.save around.dat
 fi
+
+UNITNAME='Check for entangled rings'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > check.in <<EOF
+parm EntangledRings.mol2
+trajin EntangledRings.mol2
+check reportfile entangled.dat
+run
+EOF
+  RunCpptraj "$UNITNAME"
+fi
+
 EndTest
 
 exit 0
