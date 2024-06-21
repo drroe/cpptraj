@@ -9,6 +9,7 @@ STRUCTURE_SOURCES= \
   GenerateConnectivityArrays.cpp \
   HisProt.cpp \
   InternalCoords.cpp \
+  LeastSquaresPlane.cpp \
   PdbCleaner.cpp \
   RingFinder.cpp \
   StructureEnum.cpp \
