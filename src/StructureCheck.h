@@ -5,6 +5,7 @@
 #include "ExclusionArray.h"
 #include "AtomMask.h"
 #include "ParameterTypes.h"
+#include "Structure/RingFinder.h"
 // Forward declares
 class Topology;
 class CharMask;
@@ -97,6 +98,7 @@ class StructureCheck {
     PairList pairList_;     ///< Atom pair list
     ExclusionArray Excluded_; ///< Hold excluded atoms for pair list.
     ImageOption imageOpt_;    ///< Used to determine if imaging should be used.
+    Cpptraj::Structure::RingFinder rings_; ///< Used to find rings
     Parray bondList_;       ///< Array of bonds to check.
     AtomMask Mask1_;        ///< Mask of atoms to check.
     AtomMask Mask2_;        ///< Optional mask of atoms to check against atoms in Mask1

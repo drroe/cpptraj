@@ -166,6 +166,13 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
     mprintf("\tNot using exclusions.\n");
   // Sort bond list
   if (bondcheck_) std::sort(bondList_.begin(), bondList_.end());
+  // Find rings
+  if (rings_.SetupRingFinder(topIn, Mask1_)) {
+    mprinterr("Error: Could not set up ring finder.\n");
+    return 1;
+  }
+  rings_.PrintRings(topIn);
+
   return 0;
 }
 

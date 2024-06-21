@@ -11,7 +11,7 @@ class RingFinder {
   public:
     RingFinder();
     int InitRingFinder(ArgList&);
-    int SetupRingFinder(Topology const&);
+    int SetupRingFinder(Topology const&, AtomMask const&);
     void PrintRings(Topology const&) const;
   private:
     typedef std::vector<AtomMask> Marray;

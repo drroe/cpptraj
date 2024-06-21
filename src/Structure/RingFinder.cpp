@@ -1,5 +1,6 @@
 #include "RingFinder.h"
 #include "../AtomMask.h"
+#include "../CharMask.h"
 #include "../CpptrajStdio.h"
 #include "../Topology.h"
 
@@ -69,8 +70,10 @@ static std::vector<int> findCycle(int at, int tgtAt, int previousAt, int res, To
 }
 
 /** Set up ring finder for topology. */
-int RingFinder::SetupRingFinder(Topology const& topIn) {
+int RingFinder::SetupRingFinder(Topology const& topIn, AtomMask const& maskIn) {
   rings_.clear();
+
+  CharMask cmask( maskIn.ConvertToCharMask(), maskIn.Nselected() );
 
   std::vector<bool> Visited(topIn.Natom(), false); // TODO only have visited for residue atoms
   // Do not look for rings that span residues.
@@ -81,20 +84,22 @@ int RingFinder::SetupRingFinder(Topology const& topIn) {
     // Initial scan for start atoms
     for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); at++, idx++)
     {
-      Atom const& currentAt = topIn[at];
-      if (currentAt.Nbonds() > 1) {
-        //mprintf("Starting at %s\n", topIn.AtomMaskName(at).c_str());
-        Visited.assign( topIn.Natom(), false );
-        Visited[at] = true;
-        for (Atom::bond_iterator bat = currentAt.bondbegin(); bat != currentAt.bondend(); ++bat)
-        {
-          if (topIn[*bat].Nbonds() > 1 && topIn[*bat].ResNum() == res) {
-            visitAtom( *bat, at, res, topIn, Visited, startAtoms );
-            if (!startAtoms.empty()) break;
+      if (cmask.AtomInCharMask( at )) {
+        Atom const& currentAt = topIn[at];
+        if (currentAt.Nbonds() > 1) {
+          //mprintf("Starting at %s\n", topIn.AtomMaskName(at).c_str());
+          Visited.assign( topIn.Natom(), false );
+          Visited[at] = true;
+          for (Atom::bond_iterator bat = currentAt.bondbegin(); bat != currentAt.bondend(); ++bat)
+          {
+            if (topIn[*bat].Nbonds() > 1 && topIn[*bat].ResNum() == res) {
+              visitAtom( *bat, at, res, topIn, Visited, startAtoms );
+              if (!startAtoms.empty()) break;
+            }
           }
         }
+        if (!startAtoms.empty()) break;
       }
-      if (!startAtoms.empty()) break;
     }
     if (!startAtoms.empty()) {
       mprintf("Potential start atoms:");
@@ -106,6 +111,7 @@ int RingFinder::SetupRingFinder(Topology const& topIn) {
     Visited.assign( topIn.Natom(), false );
     for (std::vector<int>::const_iterator it = startAtoms.begin(); it != startAtoms.end(); ++it)
     {
+      if (!cmask.AtomInCharMask( *it )) continue;
       Atom const& startAt = topIn[*it];
       // Need to have at least 2 bonds
       if (startAt.Nbonds() > 1) {
@@ -133,11 +139,16 @@ int RingFinder::SetupRingFinder(Topology const& topIn) {
                   Visited[at2] = true;
                   for (std::vector<int>::const_iterator rt = ringAtoms.begin(); rt != ringAtoms.end(); ++rt)
                     Visited[*rt] = true;
+                  // Only add the ring if all atoms were found
+                  bool allfound = true;
                   mprintf("RING FOUND (%zu): {", ringAtoms.size());
-                  for (std::vector<int>::const_iterator rt = ringAtoms.begin(); rt != ringAtoms.end(); ++rt)
+                  for (std::vector<int>::const_iterator rt = ringAtoms.begin(); rt != ringAtoms.end(); ++rt) {
                     mprintf(" %s", topIn.AtomMaskName(*rt).c_str());
+                    if (!cmask.AtomInCharMask( *rt )) allfound = false;
+                  }
                   mprintf(" }\n");
-                  rings_.push_back( AtomMask(ringAtoms, topIn.Natom()) );
+                  if (allfound)
+                    rings_.push_back( AtomMask(ringAtoms, topIn.Natom()) );
                 }
               } // END bond atom 2 in residue
             } // END inner loop over bonds
