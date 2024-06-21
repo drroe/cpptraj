@@ -301,12 +301,15 @@ int StructureCheck::CheckRings(Frame const& currentFrame)
             mprintf("DEBUG: Bond intersects ring.\n");
             ++Nproblems;
             if (saveProblems_) {
+              // Do not use constructor since we do not want to sort atoms
+              Problem newProb;
+              newProb.SetProb( bondList_[idx].A1(), ringMask.back(), sqrt(dist2) );
 #             ifdef _OPENMP
               thread_problemAtoms_[mythread]
 #             else
               problemAtoms_
 #             endif
-                .push_back(Problem(bondList_[idx].A1(), ringMask.back(), sqrt(dist2)));
+                .push_back( newProb );
             }
           } // END angle cutoff satisfied
         } // END distance cutoff satisfied

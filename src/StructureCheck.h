@@ -56,6 +56,8 @@ class StructureCheck {
           else
             return (atom1_ < rhs.atom1_);
         }
+        /// Set problem atoms and distance, do not sort atoms
+        void SetProb(int a1, int a2, double d) { atom1_ = a1; atom2_ = a2; dist_ = d; }
         double D()  const { return dist_;  }
         int A1()    const { return atom1_; }
         int A2()    const { return atom2_; }
