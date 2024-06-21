@@ -17,7 +17,7 @@ int RingFinder::InitRingFinder(ArgList& argIn) {
 static void visitAtom( int at, int previousAt, int res, Topology const& topIn, std::vector<bool>& Visited, std::vector<int>& startAtoms )
 {
   if (Visited[at]) {
-    mprintf("Already visited %s %zu\n", topIn.AtomMaskName(at).c_str(), startAtoms.size());
+    //mprintf("Already visited %s %zu\n", topIn.AtomMaskName(at).c_str(), startAtoms.size());
     startAtoms.push_back( at );
   } else {
     Visited[at] = true;
@@ -83,7 +83,7 @@ int RingFinder::SetupRingFinder(Topology const& topIn) {
     {
       Atom const& currentAt = topIn[at];
       if (currentAt.Nbonds() > 1) {
-        mprintf("Starting at %s\n", topIn.AtomMaskName(at).c_str());
+        //mprintf("Starting at %s\n", topIn.AtomMaskName(at).c_str());
         Visited.assign( topIn.Natom(), false );
         Visited[at] = true;
         for (Atom::bond_iterator bat = currentAt.bondbegin(); bat != currentAt.bondend(); ++bat)
@@ -96,10 +96,12 @@ int RingFinder::SetupRingFinder(Topology const& topIn) {
       }
       if (!startAtoms.empty()) break;
     }
-    mprintf("Potential start atoms:");
-    for (std::vector<int>::const_iterator it = startAtoms.begin(); it != startAtoms.end(); ++it)
-      mprintf(" %s", topIn.AtomMaskName(*it).c_str());
-    mprintf("\n");
+    if (!startAtoms.empty()) {
+      mprintf("Potential start atoms:");
+      for (std::vector<int>::const_iterator it = startAtoms.begin(); it != startAtoms.end(); ++it)
+        mprintf(" %s", topIn.AtomMaskName(*it).c_str());
+      mprintf("\n");
+    }
     // Loop over potential start atoms
     Visited.assign( topIn.Natom(), false );
     for (std::vector<int>::const_iterator it = startAtoms.begin(); it != startAtoms.end(); ++it)
@@ -112,33 +114,49 @@ int RingFinder::SetupRingFinder(Topology const& topIn) {
         // at1 - startAt - at2 TODO check that bonded atoms are in the same residue
         for (int bidx1 = 0; bidx1 != startAt.Nbonds(); bidx1++) {
           int at1 = startAt.Bond(bidx1);
-          for (int bidx2 = bidx1 + 1; bidx2 != startAt.Nbonds(); bidx2++) {
-            int at2 = startAt.Bond(bidx2);
-            mprintf("Check <- %s - %s - %s ->\n",
-                    topIn.AtomMaskName(at1).c_str(),
-                    topIn.AtomMaskName(*it).c_str(),
-                    topIn.AtomMaskName(at2).c_str());
-            Visited[*it] = true;
-            std::vector<int> tmpAtoms;
-            std::vector<int> ringAtoms = findCycle(at1, at2, *it, res, topIn, Visited, tmpAtoms);
-            if (!ringAtoms.empty()) {
-              // Fill in the rest of the atoms
-              ringAtoms.push_back( at2 );
-              ringAtoms.push_back( *it );
-              // Mark the ring atoms as visited
-              Visited[at2] = true;
-              for (std::vector<int>::const_iterator rt = ringAtoms.begin(); rt != ringAtoms.end(); ++rt)
-                Visited[*rt] = true;
-              mprintf("RING FOUND (%zu): {", ringAtoms.size());
-              for (std::vector<int>::const_iterator rt = ringAtoms.begin(); rt != ringAtoms.end(); ++rt)
-                mprintf(" %s", topIn.AtomMaskName(*rt).c_str());
-              mprintf(" }\n");
-            }
-          } // END inner loop over bonds
+          if (topIn[at1].ResNum() == res) {
+            for (int bidx2 = bidx1 + 1; bidx2 != startAt.Nbonds(); bidx2++) {
+              int at2 = startAt.Bond(bidx2);
+              if (topIn[at2].ResNum() == res) {
+                //mprintf("Check <- %s - %s - %s ->\n",
+                //        topIn.AtomMaskName(at1).c_str(),
+                //        topIn.AtomMaskName(*it).c_str(),
+                //        topIn.AtomMaskName(at2).c_str());
+                Visited[*it] = true;
+                std::vector<int> tmpAtoms;
+                std::vector<int> ringAtoms = findCycle(at1, at2, *it, res, topIn, Visited, tmpAtoms);
+                if (!ringAtoms.empty()) {
+                  // Fill in the rest of the atoms
+                  ringAtoms.push_back( at2 );
+                  ringAtoms.push_back( *it );
+                  // Mark the ring atoms as visited
+                  Visited[at2] = true;
+                  for (std::vector<int>::const_iterator rt = ringAtoms.begin(); rt != ringAtoms.end(); ++rt)
+                    Visited[*rt] = true;
+                  mprintf("RING FOUND (%zu): {", ringAtoms.size());
+                  for (std::vector<int>::const_iterator rt = ringAtoms.begin(); rt != ringAtoms.end(); ++rt)
+                    mprintf(" %s", topIn.AtomMaskName(*rt).c_str());
+                  mprintf(" }\n");
+                  rings_.push_back( AtomMask(ringAtoms, topIn.Natom()) );
+                }
+              } // END bond atom 2 in residue
+            } // END inner loop over bonds
+          } // END bond atom 1 in residue
         } // END outer loop over bonds
       } // END # bonds > 1
     } // END loop over potential start atoms
   } // END loop over all residues
 
   return 0;
+}
+
+/** Print found rings to stdout. */
+void RingFinder::PrintRings(Topology const& topIn) const {
+  mprintf("\t%zu rings found.\n", rings_.size());
+  for (Marray::const_iterator mask = rings_.begin(); mask != rings_.end(); ++mask) {
+    mprintf("\t  %i atoms:", mask->Nselected());
+    for (AtomMask::const_iterator it = mask->begin(); it != mask->end(); ++it)
+      mprintf(" %s", topIn.AtomMaskName(*it).c_str());
+    mprintf("\n");
+  }
 }

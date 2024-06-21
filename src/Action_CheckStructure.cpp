@@ -166,6 +166,7 @@ Action::RetType Action_CheckStructure::Setup(ActionSetup& setup) {
     mprinterr("Error: Could not set up ring finder.\n");
     return Action::ERR;
   }
+  ringFinder.PrintRings(setup.Top());
 
   return Action::OK;
 }
