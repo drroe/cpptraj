@@ -12,7 +12,10 @@ class RingFinder {
     RingFinder();
     int InitRingFinder(ArgList&);
     int SetupRingFinder(Topology const&, AtomMask const&);
+
+    unsigned int Nrings() const { return rings_.size(); }
     void PrintRings(Topology const&) const;
+    AtomMask const& operator[](int idx) const { return rings_[idx]; }
   private:
     typedef std::vector<AtomMask> Marray;
 

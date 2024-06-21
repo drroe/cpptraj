@@ -200,6 +200,7 @@ Action::RetType Action_CheckStructure::DoAction(int frameNum, ActionFrame& frm) 
     total_problems += check_.CheckBonds(frm.Frm());
     if (outfile_ != 0) WriteProblems(F_BOND, fnum, *CurrentParm_);
   }
+  check_.CheckRings(frm.Frm()); // FIXME
   num_problems_->Add( frameNum, &total_problems );
   if (total_problems > 0 && skipBadFrames_)
     return Action::SUPPRESS_COORD_OUTPUT;

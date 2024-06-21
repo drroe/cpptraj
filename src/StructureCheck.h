@@ -22,6 +22,8 @@ class StructureCheck {
     int CheckBonds(Frame const&);
     /// \return Number of atomic overlaps.
     int CheckOverlaps(Frame const&);
+    /// Check if any bonds are passing through rings.
+    int CheckRings(Frame const&);
 
     AtomMask const& Mask1()     const { return Mask1_; }
     AtomMask const& Mask2()     const { return Mask2_; }
@@ -90,6 +92,7 @@ class StructureCheck {
     void ConsolidateProblems();
     /// Check for/record non-bonded interaction problem
     inline void DistanceCheck(Frame const&, int, int, Parray&, int&) const;
+
 #   ifdef _OPENMP
     std::vector<Parray> thread_problemAtoms_;
 #   endif

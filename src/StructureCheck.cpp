@@ -5,6 +5,7 @@
 #include "CpptrajStdio.h"
 #include "CharMask.h"
 #include "DistRoutines.h"
+#include "Structure/LeastSquaresPlane.h"
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
@@ -229,6 +230,52 @@ int StructureCheck::CheckBonds(Frame const& currentFrame)
   ConsolidateProblems();
 
   return Nproblems;
+}
+
+/** Check if any bonds are passing through rings. */
+int StructureCheck::CheckRings(Frame const& currentFrame) {
+  int Nproblems = 0;
+  // Get all ring vectors
+  typedef std::vector<Cpptraj::Structure::LeastSquaresPlane> Larray;
+  Larray RingVecs;
+  RingVecs.resize( rings_.Nrings() );
+  int idx = 0;
+  int ring_max = (int)rings_.Nrings();
+  for (idx = 0; idx < ring_max; idx++)
+  {
+    RingVecs[idx].CalcLeastSquaresPlane( currentFrame, rings_[idx] );
+  }
+
+  // Loop over bonds
+  int bond_max = (int)bondList_.size();
+  for (idx = 0; idx < bond_max; idx++)
+  {
+    const double* xyz1 = currentFrame.XYZ( bondList_[idx].A1() );
+    const double* xyz2 = currentFrame.XYZ( bondList_[idx].A2() );
+    Vec3 vbond( xyz2[0] - xyz1[0],
+                xyz2[1] - xyz1[1],
+                xyz2[2] - xyz1[2] );
+    Vec3 vmid = Vec3(xyz1) + (vbond * 0.5);
+    //vbond.Normalize();
+    // Loop over rings
+    for (int jdx = 0; jdx < ring_max; jdx++)
+    {
+      // Make sure this bond is not in this ring
+      AtomMask const& ringMask = rings_[jdx];
+      if ( !ringMask.IsSelected(bondList_[idx].A1()) &&
+           !ringMask.IsSelected(bondList_[idx].A2()) )
+      {
+        // Get the center distance
+        Cpptraj::Structure::LeastSquaresPlane const& ringVec = RingVecs[jdx];
+        double dist2 = DIST2_NoImage( vmid.Dptr(), ringVec.Cxyz().Dptr() );
+        if (dist2 < 9.0) { // 3 ang cutoff
+          mprintf("DEBUG: Bond %i - %i near ring %i (%f)\n", bondList_[idx].A1()+1, bondList_[idx].A2()+1, jdx, sqrt(dist2));
+        }
+      }
+    }
+  }
+
+  return 0;
 }
 
 /** Check for bad overlaps; use a pair list to speed things up.
