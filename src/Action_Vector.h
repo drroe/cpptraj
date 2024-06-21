@@ -1,12 +1,12 @@
 #ifndef INC_ACTION_VECTOR_H
 #define INC_ACTION_VECTOR_H
 #include "Action.h"
+#include "Structure/LeastSquaresPlane.h" // For CORRPLANE
 class DataSet_Vector;
 class DataSet_3D;
 class Action_Vector : public Action {
   public:
     Action_Vector();
-    ~Action_Vector();
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_Vector(); }
     void Help() const;
   private:
@@ -24,8 +24,6 @@ class Action_Vector : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
 
-    static double solve_cubic_eq(double,double,double,double);
-    static Vec3 leastSquaresPlane(int,const double*);
     void Mask(Frame const&);
     void Dipole(Frame const&);
     void Principal(Frame const&);
@@ -37,7 +35,7 @@ class Action_Vector : public Action {
     DataSet_Vector* Vec_;   ///< Hold vector values
     DataSet* Magnitude_;    ///< Hold vector magnitudes if requested
     DataSet_3D* gridSet_;   ///< Hold grid set for getting box vectors from grid.
-    double* vcorr_;         ///< Temp. space for calculating CorrPlane
+    Cpptraj::Structure::LeastSquaresPlane vcorr_; ///< Temp. space for calculating CorrPlane
     vectorMode mode_;       ///< Vector calculation mode
     bool ptrajoutput_;      ///< If true output in ptraj format
     bool needBoxInfo_;      ///< If true box info required. 

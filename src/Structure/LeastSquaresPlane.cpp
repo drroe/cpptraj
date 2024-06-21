@@ -3,7 +3,7 @@
 #include "../Constants.h"
 #include "../Frame.h"
 #include <algorithm> // sort
-#include <cmath> // sqrt, acos, pow
+#include <cmath> // sqrt, acos, cos, pow
 
 using namespace Cpptraj::Structure;
 

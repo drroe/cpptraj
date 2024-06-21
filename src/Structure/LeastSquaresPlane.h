@@ -12,6 +12,10 @@ class LeastSquaresPlane {
   public:
     LeastSquaresPlane();
     void CalcLeastSquaresPlane(Frame const&, AtomMask const&);
+    /// \return Vector normal to plane
+    Vec3 const& Nxyz() const { return nxyz_; }
+    /// \return Origin of vector normal to plane (plane center)
+    Vec3 const& Cxyz() const { return cxyz_; }
   private:
     static double solve_cubic_eq(double,double,double,double);
     static Vec3 leastSquaresPlane(unsigned int, const double*);
