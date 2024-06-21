@@ -233,8 +233,10 @@ int StructureCheck::CheckBonds(Frame const& currentFrame)
 }
 
 /** Check if any bonds are passing through rings. */
-int StructureCheck::CheckRings(Frame const& currentFrame) {
+int StructureCheck::CheckRings(Frame const& currentFrame)
+{
   int Nproblems = 0;
+  problemAtoms_.clear();
   static const double ring_dcut2 = 9.0; // 3 Ang distance cutoff
   static const double ring_acut  = 0.174533; // 10 deg. angle cutoff
   // Get all ring vectors
@@ -250,6 +252,14 @@ int StructureCheck::CheckRings(Frame const& currentFrame) {
 
   // Loop over bonds
   int bond_max = (int)bondList_.size();
+# ifdef _OPENMP
+  int mythread;
+# pragma omp parallel private(idx,mythread) reduction(+: Nproblems)
+  {
+  mythread = omp_get_thread_num();
+  thread_problemAtoms_[mythread].clear();
+# pragma omp for
+# endif
   for (idx = 0; idx < bond_max; idx++)
   {
     const double* xyz1 = currentFrame.XYZ( bondList_[idx].A1() );
@@ -281,13 +291,26 @@ int StructureCheck::CheckRings(Frame const& currentFrame) {
                   Constants::RADDEG*ang_in_rad);
           if (ang_in_rad < ring_acut) {
             mprintf("DEBUG: Bond intersects ring.\n");
-          }
-        }
-      }
-    }
-  }
+            ++Nproblems;
+            if (saveProblems_) {
+#             ifdef _OPENMP
+              thread_problemAtoms_[mythread]
+#             else
+              problemAtoms_
+#             endif
+                .push_back(Problem(bondList_[idx].A1(), ringMask.back(), sqrt(dist2)));
+            }
+          } // END angle cutoff satisfied
+        } // END distance cutoff satisfied
+      } // END both bond atoms are not part of this ring
+    } // END loop over rings
+  } // END loop over bonds
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
+  ConsolidateProblems();
 
-  return 0;
+  return Nproblems;
 }
 
 /** Check for bad overlaps; use a pair list to speed things up.
