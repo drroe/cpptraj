@@ -16,7 +16,7 @@ class Action_CheckStructure : public Action {
     int SyncAction();
 #   endif
 
-    enum FmtType { F_ATOM =0, F_BOND };
+    enum FmtType { F_ATOM =0, F_BOND, F_RING };
 
     void WriteProblems(FmtType, int, Topology const&);
 

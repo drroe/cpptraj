@@ -164,8 +164,9 @@ Action::RetType Action_CheckStructure::Setup(ActionSetup& setup) {
 
 /// Output format strings for warnings.
 const char* Action_CheckStructure::Fmt_[] = {
-  "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2f)\n",
-  "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2f)\n"
+  "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2f)\n",    ///< F_ATOM
+  "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2f)\n", ///< F_BOND
+  "%i\t Warning: Bond involving atom %i:%s intersects ring involving atom %i:%s (%.2f)\n" ///< F_RING
 };
 
 /** Consolidate problems from different threads if necessary and write out. */
@@ -199,8 +200,9 @@ Action::RetType Action_CheckStructure::DoAction(int frameNum, ActionFrame& frm) 
   if (check_.CheckBonds()) {
     total_problems += check_.CheckBonds(frm.Frm());
     if (outfile_ != 0) WriteProblems(F_BOND, fnum, *CurrentParm_);
+    total_problems += check_.CheckRings(frm.Frm()); // FIXME
+    if (outfile_ != 0) WriteProblems(F_RING, fnum, *CurrentParm_);
   }
-  check_.CheckRings(frm.Frm()); // FIXME
   num_problems_->Add( frameNum, &total_problems );
   if (total_problems > 0 && skipBadFrames_)
     return Action::SUPPRESS_COORD_OUTPUT;
