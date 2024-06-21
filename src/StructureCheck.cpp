@@ -235,6 +235,8 @@ int StructureCheck::CheckBonds(Frame const& currentFrame)
 /** Check if any bonds are passing through rings. */
 int StructureCheck::CheckRings(Frame const& currentFrame) {
   int Nproblems = 0;
+  static const double ring_dcut2 = 9.0; // 3 Ang distance cutoff
+  static const double ring_acut  = 0.174533; // 10 deg. angle cutoff
   // Get all ring vectors
   typedef std::vector<Cpptraj::Structure::LeastSquaresPlane> Larray;
   Larray RingVecs;
@@ -256,7 +258,7 @@ int StructureCheck::CheckRings(Frame const& currentFrame) {
                 xyz2[1] - xyz1[1],
                 xyz2[2] - xyz1[2] );
     Vec3 vmid = Vec3(xyz1) + (vbond * 0.5);
-    //vbond.Normalize();
+    vbond.Normalize();
     // Loop over rings
     for (int jdx = 0; jdx < ring_max; jdx++)
     {
@@ -268,8 +270,18 @@ int StructureCheck::CheckRings(Frame const& currentFrame) {
         // Get the center distance
         Cpptraj::Structure::LeastSquaresPlane const& ringVec = RingVecs[jdx];
         double dist2 = DIST2_NoImage( vmid.Dptr(), ringVec.Cxyz().Dptr() );
-        if (dist2 < 9.0) { // 3 ang cutoff
-          mprintf("DEBUG: Bond %i - %i near ring %i (%f)\n", bondList_[idx].A1()+1, bondList_[idx].A2()+1, jdx, sqrt(dist2));
+        if (dist2 < ring_dcut2) {
+          // Get the angle
+          double ang_in_rad = vbond.Angle( ringVec.Nxyz() );
+          // Wrap the angle between 0-90 degrees
+          if (ang_in_rad > Constants::PIOVER2)
+            ang_in_rad = Constants::PI - ang_in_rad;
+          mprintf("DEBUG: Bond %i - %i near ring %i (%f) Ang= %f deg.\n",
+                  bondList_[idx].A1()+1, bondList_[idx].A2()+1, jdx, sqrt(dist2),
+                  Constants::RADDEG*ang_in_rad);
+          if (ang_in_rad < ring_acut) {
+            mprintf("DEBUG: Bond intersects ring.\n");
+          }
         }
       }
     }
