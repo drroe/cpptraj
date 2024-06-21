@@ -95,6 +95,19 @@ class StructureCheck {
     /// Check for/record non-bonded interaction problem
     inline void DistanceCheck(Frame const&, int, int, Parray&, int&) const;
 
+    /// Cache heavy atom bond indices for checking with rings
+    class Btype {
+      public:
+        Btype(int a1, int a2) : a1_(a1), a2_(a2) {}
+        int A1() const { return a1_; }
+        int A2() const { return a2_; }
+      private:
+        int a1_;
+        int a2_;
+    };
+
+    std::vector<Btype> ringBonds_;
+
 #   ifdef _OPENMP
     std::vector<Parray> thread_problemAtoms_;
 #   endif

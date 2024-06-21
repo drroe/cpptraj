@@ -78,8 +78,10 @@ int RingFinder::SetupRingFinder(Topology const& topIn, AtomMask const& maskIn) {
   std::vector<bool> Visited(topIn.Natom(), false); // TODO only have visited for residue atoms
   // Do not look for rings that span residues.
   for (int res = 0; res < topIn.Nres(); res++) {
-    std::vector<int> startAtoms;
     Residue const& currentRes = topIn.Res(res);
+    // Ignore solvent
+    if (topIn.Mol( topIn[currentRes.FirstAtom()].MolNum() ).IsSolvent()) continue;
+    std::vector<int> startAtoms;
     int idx = 0;
     // Initial scan for start atoms
     for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); at++, idx++)

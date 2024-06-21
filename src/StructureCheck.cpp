@@ -82,6 +82,15 @@ void StructureCheck::SetupBondList(AtomMask const& iMask, Topology const& top) {
  
   ProcessBondArray(top.Bonds(),  top.BondParm(), cMask);
   ProcessBondArray(top.BondsH(), top.BondParm(), cMask);
+  // Only look at bonds to heavy atoms for rings
+  ringBonds_.clear();
+  ringBonds_.reserve( top.Bonds().size() );
+  for (BondArray::const_iterator bnd = top.Bonds().begin(); bnd != top.Bonds().end(); ++bnd)
+  {
+    if ( cMask.AtomInCharMask(bnd->A1()) && cMask.AtomInCharMask(bnd->A2()) ) {
+      ringBonds_.push_back( Btype(bnd->A1(), bnd->A2()) );
+    }
+  }
 }
 
 // StructureCheck::Setup()
@@ -259,7 +268,7 @@ int StructureCheck::CheckRings(Frame const& currentFrame)
 # endif
 
   // Loop over bonds
-  int bond_max = (int)bondList_.size();
+  int bond_max = (int)ringBonds_.size();
 # ifdef _OPENMP
   int mythread;
 # pragma omp parallel private(idx,mythread) reduction(+: Nproblems)
@@ -270,8 +279,8 @@ int StructureCheck::CheckRings(Frame const& currentFrame)
 # endif
   for (idx = 0; idx < bond_max; idx++)
   {
-    const double* xyz1 = currentFrame.XYZ( bondList_[idx].A1() );
-    const double* xyz2 = currentFrame.XYZ( bondList_[idx].A2() );
+    const double* xyz1 = currentFrame.XYZ( ringBonds_[idx].A1() );
+    const double* xyz2 = currentFrame.XYZ( ringBonds_[idx].A2() );
     Vec3 vbond( xyz2[0] - xyz1[0],
                 xyz2[1] - xyz1[1],
                 xyz2[2] - xyz1[2] );
@@ -282,8 +291,8 @@ int StructureCheck::CheckRings(Frame const& currentFrame)
     {
       // Make sure this bond is not in this ring
       AtomMask const& ringMask = rings_[jdx];
-      if ( !ringMask.IsSelected(bondList_[idx].A1()) &&
-           !ringMask.IsSelected(bondList_[idx].A2()) )
+      if ( !ringMask.IsSelected(ringBonds_[idx].A1()) &&
+           !ringMask.IsSelected(ringBonds_[idx].A2()) )
       {
         // Get the center distance
         Cpptraj::Structure::LeastSquaresPlane const& ringVec = RingVecs[jdx];
@@ -295,7 +304,7 @@ int StructureCheck::CheckRings(Frame const& currentFrame)
           if (ang_in_rad > Constants::PIOVER2)
             ang_in_rad = Constants::PI - ang_in_rad;
           mprintf("DEBUG: Bond %i - %i near ring %i (%f) Ang= %f deg.\n",
-                  bondList_[idx].A1()+1, bondList_[idx].A2()+1, jdx, sqrt(dist2),
+                  ringBonds_[idx].A1()+1, ringBonds_[idx].A2()+1, jdx, sqrt(dist2),
                   Constants::RADDEG*ang_in_rad);
           if (ang_in_rad < ring_acut) {
             mprintf("DEBUG: Bond intersects ring.\n");
@@ -303,7 +312,7 @@ int StructureCheck::CheckRings(Frame const& currentFrame)
             if (saveProblems_) {
               // Do not use constructor since we do not want to sort atoms
               Problem newProb;
-              newProb.SetProb( bondList_[idx].A1(), ringMask.back(), sqrt(dist2) );
+              newProb.SetProb( ringBonds_[idx].A1(), ringMask.back(), sqrt(dist2) );
 #             ifdef _OPENMP
               thread_problemAtoms_[mythread]
 #             else
