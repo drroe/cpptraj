@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles check.in report.dat nprob.dat tz2.dat skip.dat around.dat d1.dat \
-           partial.report.dat tz2.cut0.9.dat
+           partial.report.dat tz2.cut0.9.dat entangled.dat
 
 INPUT="-i check.in"
 
@@ -79,6 +79,7 @@ check reportfile entangled.dat
 run
 EOF
   RunCpptraj "$UNITNAME"
+  DoTest entangled.dat.save entangled.dat
 fi
 
 EndTest
