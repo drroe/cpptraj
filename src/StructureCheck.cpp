@@ -245,10 +245,18 @@ int StructureCheck::CheckRings(Frame const& currentFrame)
   RingVecs.resize( rings_.Nrings() );
   int idx = 0;
   int ring_max = (int)rings_.Nrings();
+# ifdef _OPENMP
+# pragma omp parallel private(idx)
+  {
+# pragma omp for
+# endif
   for (idx = 0; idx < ring_max; idx++)
   {
     RingVecs[idx].CalcLeastSquaresPlane( currentFrame, rings_[idx] );
   }
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
 
   // Loop over bonds
   int bond_max = (int)bondList_.size();
