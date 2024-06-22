@@ -13,15 +13,22 @@ DataIO_Coords::DataIO_Coords() :
 }
 
 // DataIO_Coords::ID_DataFormat()
+/** NOTE: This is disabled intentionally. The problem is that some
+  *       data formats looks very similar to trajectory formats,
+  *       so that e.g. a cpptraj vector data file can look like
+  *       an Amber ASCII trajectory.
+  *       Users can use commands like 'loadcrd', or force the read
+  *       with the 'as' keyword.
+  */
 bool DataIO_Coords::ID_DataFormat(CpptrajFile& infile)
 {
   // Needs to be either a topology format or a coords format
-  ParmFile::ParmFormatType parm_format = ParmFile::DetectFormat(infile.Filename());
+/*  ParmFile::ParmFormatType parm_format = ParmFile::DetectFormat(infile.Filename());
   TrajectoryFile::TrajFormatType traj_format = TrajectoryFile::DetectFormat(infile.Filename());
   is_parm_fmt_ = (parm_format != ParmFile::UNKNOWN_PARM);
   is_traj_fmt_ = (traj_format != TrajectoryFile::UNKNOWN_TRAJ);
   if (is_parm_fmt_ || is_traj_fmt_)
-    return true;
+    return true;*/
   return false;
 }
 
