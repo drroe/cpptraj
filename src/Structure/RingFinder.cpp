@@ -7,8 +7,14 @@
 using namespace Cpptraj::Structure;
 
 /** CONSTRUCTOR */
-RingFinder::RingFinder()
+RingFinder::RingFinder() :
+  debug_(0)
 {}
+
+/** Set debug level */
+void RingFinder::SetDebug(int debugIn) {
+  debug_ = debugIn;
+}
 
 /** Init ring finder. */
 int RingFinder::InitRingFinder(ArgList& argIn) {
@@ -36,10 +42,10 @@ static std::vector<int> findCycle(int at, int tgtAt, int previousAt, int res, To
                                   std::vector<bool> Visited, std::vector<int> ringAtoms)
 {
   if (at == tgtAt) {
-    mprintf("CYCLE FOUND (%zu).", ringAtoms.size());
-    for (std::vector<int>::const_iterator it = ringAtoms.begin(); it != ringAtoms.end(); ++it)
-      mprintf(" %s", topIn.AtomMaskName(*it).c_str());
-    mprintf("\n");
+    //mprintf("CYCLE FOUND (%zu).", ringAtoms.size());
+    //for (std::vector<int>::const_iterator it = ringAtoms.begin(); it != ringAtoms.end(); ++it)
+    //  mprintf(" %s", topIn.AtomMaskName(*it).c_str());
+    //mprintf("\n");
     return ringAtoms;
   }
   Visited[at] = true;
@@ -103,7 +109,7 @@ int RingFinder::SetupRingFinder(Topology const& topIn, AtomMask const& maskIn) {
         if (!startAtoms.empty()) break;
       }
     }
-    if (!startAtoms.empty()) {
+    if (debug_ > 0 && !startAtoms.empty()) {
       mprintf("Potential start atoms:");
       for (std::vector<int>::const_iterator it = startAtoms.begin(); it != startAtoms.end(); ++it)
         mprintf(" %s", topIn.AtomMaskName(*it).c_str());
@@ -143,12 +149,12 @@ int RingFinder::SetupRingFinder(Topology const& topIn, AtomMask const& maskIn) {
                     Visited[*rt] = true;
                   // Only add the ring if all atoms were found
                   bool allfound = true;
-                  mprintf("RING FOUND (%zu): {", ringAtoms.size());
+                  if (debug_ > 0) mprintf("RING FOUND (%zu): {", ringAtoms.size());
                   for (std::vector<int>::const_iterator rt = ringAtoms.begin(); rt != ringAtoms.end(); ++rt) {
-                    mprintf(" %s", topIn.AtomMaskName(*rt).c_str());
+                    if (debug_ > 0) mprintf(" %s", topIn.AtomMaskName(*rt).c_str());
                     if (!cmask.AtomInCharMask( *rt )) allfound = false;
                   }
-                  mprintf(" }\n");
+                  if (debug_ > 0) mprintf(" }\n");
                   if (allfound)
                     rings_.push_back( AtomMask(ringAtoms, topIn.Natom()) );
                 }

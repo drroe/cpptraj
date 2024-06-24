@@ -10,6 +10,7 @@ namespace Structure {
 class RingFinder {
   public:
     RingFinder();
+    void SetDebug(int);
     int InitRingFinder(ArgList&);
     int SetupRingFinder(Topology const&, AtomMask const&);
 
@@ -20,6 +21,7 @@ class RingFinder {
     typedef std::vector<AtomMask> Marray;
 
     Marray rings_; ///< Array of masks corresponding to rings
+    int debug_;
 };
 }
 }

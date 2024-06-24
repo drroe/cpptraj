@@ -51,6 +51,7 @@ int StructureCheck::SetOptions(bool imageOn, bool checkBonds, bool saveProblemsI
   }
   }
 # endif
+  rings_.SetDebug( debug_ );
   return 0;
 }
 
