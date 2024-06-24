@@ -247,8 +247,10 @@ int StructureCheck::CheckRings(Frame const& currentFrame)
 {
   int Nproblems = 0;
   problemAtoms_.clear();
-  static const double ring_dcut2 = 2.25; // 1.5 Ang distance cutoff
-  static const double ring_acut  = 0.174533; // 10 deg. angle cutoff
+  //static const double ring_dcut2 = 2.25; // 1.5 Ang distance cutoff
+  //static const double ring_acut  = 0.174533; // 10 deg. angle cutoff
+  static const double ring_dcut2 = 1.562500; // 1.25 Ang distance cutoff
+  static const double ring_acut = 0.7853981634; // 45 deg. angle cutoff
   // Get all ring vectors
   typedef std::vector<Cpptraj::Structure::LeastSquaresPlane> Larray;
   Larray RingVecs;
