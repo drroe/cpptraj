@@ -31,9 +31,9 @@ Exec_PermuteDihedrals::Exec_PermuteDihedrals() : Exec(COORDS),
 // Exec_PermuteDihedrals::Help()
 void Exec_PermuteDihedrals::Help() const {
   mprintf("\tcrdset <COORDS set> resrange <range> [{interval | random}]\n"
-          "\t[outtraj <filename> [<outfmt>]] [crdout <output COORDS>] [<dihedral types>]\n"
+          "\t{[outtraj <filename> [<outfmt>]] [crdout <output COORDS>]} [<dihedral types>]\n"
           "  Options for 'random':\n"
-          "\t[rseed <rseed>] [out <# problems file> [<set name>]]\n"
+          "\t[rseed <rseed>] [out <# problems file> [<set name>]] [noimage]\n"
           "\t[ check [cutoff <cutoff>] [rescutoff <rescutoff>] [maxfactor <max_factor>]\n"
           "\t  [backtrack <backtrack> [checkallresidues] [increment <increment>]] ]\n"
           "  Options for 'interval':\n"
