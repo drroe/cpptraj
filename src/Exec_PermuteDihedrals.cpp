@@ -141,6 +141,7 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
     increment_ = argIn.getKeyInt("increment",1);
     max_factor_ = argIn.getKeyDouble("maxfactor", 2);
     int iseed = argIn.getKeyInt("rseed",-1);
+    bool imageOn = !(argIn.hasKey("noimage"));
     // Output file for # of problems
     DataFile* problemFile = State.DFL().AddDataFile(argIn.GetStringKey("out"), argIn);
     // Dataset to store number of problems
@@ -197,7 +198,7 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
     // Increment backtrack by 1 since we need to skip over current res
     ++backtrack_;
     // Initialize CheckStructure
-    if (checkStructure_.SetOptions( false, false, false, State.Debug(), "*", "", 0.8, 1.15, 0.5, 8.0 )) {
+    if (checkStructure_.SetOptions( imageOn, false, false, State.Debug(), "*", "", 0.8, 1.15, 0.5, -1 )) {
       mprinterr("Error: Could not set up structure check.\n");
       return CpptrajState::ERR;
     }
