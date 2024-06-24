@@ -181,7 +181,7 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
     mprinterr("Error: Could not set up ring finder.\n");
     return 1;
   }
-  rings_.PrintRings(topIn);
+  if (debug_ > 0) rings_.PrintRings(topIn);
 
   return 0;
 }
