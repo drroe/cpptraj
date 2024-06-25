@@ -243,20 +243,27 @@ int StructureCheck::CheckBonds(Frame const& currentFrame)
 }
 
 /** Check if any bonds are passing through rings. */
-int StructureCheck::CheckRings(Frame const& currentFrame)
+int StructureCheck::CheckRings(Frame const& currentFrame) {
+  return CheckRings(currentFrame, rings_, ringBonds_);
+}
+
+/** Check if any bonds are passing through rings. */
+int StructureCheck::CheckRings(Frame const& currentFrame, Cpptraj::Structure::RingFinder const& rings, std::vector<Btype> const& ringBonds)
 {
   int Nproblems = 0;
   problemAtoms_.clear();
-  //static const double ring_dcut2 = 2.25; // 1.5 Ang distance cutoff
+  static const double ring_dcut2 = 1.3225; // Initial 1.15 Ang distance cutoff
+  static const double ring_shortd2 = 0.25; // Short 0.5 Ang distance cutoff
+  static const double ring_acut = 1.0471975512; // 60 deg. Ang cutoff
   //static const double ring_acut  = 0.174533; // 10 deg. angle cutoff
-  static const double ring_dcut2 = 1.562500; // 1.25 Ang distance cutoff
-  static const double ring_acut = 0.7853981634; // 45 deg. angle cutoff
+  //static const double ring_dcut2 = 1.562500; // 1.25 Ang distance cutoff
+/*  static const double ring_acut = 0.7853981634; // 45 deg. angle cutoff for ring_dcut2 > dist2 > ring_shortd2*/
   // Get all ring vectors
   typedef std::vector<Cpptraj::Structure::LeastSquaresPlane> Larray;
   Larray RingVecs;
-  RingVecs.resize( rings_.Nrings() );
+  RingVecs.resize( rings.Nrings() );
   int idx = 0;
-  int ring_max = (int)rings_.Nrings();
+  int ring_max = (int)rings.Nrings();
 # ifdef _OPENMP
 # pragma omp parallel private(idx)
   {
@@ -264,14 +271,14 @@ int StructureCheck::CheckRings(Frame const& currentFrame)
 # endif
   for (idx = 0; idx < ring_max; idx++)
   {
-    RingVecs[idx].CalcLeastSquaresPlane( currentFrame, rings_[idx] );
+    RingVecs[idx].CalcLeastSquaresPlane( currentFrame, rings[idx] );
   }
 # ifdef _OPENMP
   } // END pragma omp parallel
 # endif
 
   // Loop over bonds
-  int bond_max = (int)ringBonds_.size();
+  int bond_max = (int)ringBonds.size();
 # ifdef _OPENMP
   int mythread;
 # pragma omp parallel private(idx,mythread) reduction(+: Nproblems)
@@ -282,8 +289,8 @@ int StructureCheck::CheckRings(Frame const& currentFrame)
 # endif
   for (idx = 0; idx < bond_max; idx++)
   {
-    const double* xyz1 = currentFrame.XYZ( ringBonds_[idx].A1() );
-    const double* xyz2 = currentFrame.XYZ( ringBonds_[idx].A2() );
+    const double* xyz1 = currentFrame.XYZ( ringBonds[idx].A1() );
+    const double* xyz2 = currentFrame.XYZ( ringBonds[idx].A2() );
     Vec3 vbond( xyz2[0] - xyz1[0],
                 xyz2[1] - xyz1[1],
                 xyz2[2] - xyz1[2] );
@@ -293,29 +300,41 @@ int StructureCheck::CheckRings(Frame const& currentFrame)
     for (int jdx = 0; jdx < ring_max; jdx++)
     {
       // Make sure this bond is not in this ring
-      AtomMask const& ringMask = rings_[jdx];
-      if ( !ringMask.IsSelected(ringBonds_[idx].A1()) &&
-           !ringMask.IsSelected(ringBonds_[idx].A2()) )
+      AtomMask const& ringMask = rings[jdx];
+      if ( !ringMask.IsSelected(ringBonds[idx].A1()) &&
+           !ringMask.IsSelected(ringBonds[idx].A2()) )
       {
         // Get the center distance
         Cpptraj::Structure::LeastSquaresPlane const& ringVec = RingVecs[jdx];
         double dist2 = DIST2_NoImage( vmid.Dptr(), ringVec.Cxyz().Dptr() );
         if (dist2 < ring_dcut2) {
-          // Get the angle
-          double ang_in_rad = vbond.Angle( ringVec.Nxyz() );
-          // Wrap the angle between 0-90 degrees
-          if (ang_in_rad > Constants::PIOVER2)
-            ang_in_rad = Constants::PI - ang_in_rad;
-          mprintf("DEBUG: Bond %i - %i near ring %i (%f) Ang= %f deg.\n",
-                  ringBonds_[idx].A1()+1, ringBonds_[idx].A2()+1, jdx, sqrt(dist2),
-                  Constants::RADDEG*ang_in_rad);
-          if (ang_in_rad < ring_acut) {
+          bool ring_intersect = false;
+          // Bond intersects ring if it meets the short cutoff or if the angle
+          // between the bond and the ring normal is less than a cutoff.
+          if (dist2 < ring_shortd2) {
+            mprintf("DEBUG: Bond %i - %i near ring %i (%f).\n",
+                    ringBonds[idx].A1(), ringBonds[idx].A2(), jdx, sqrt(dist2));
+            ring_intersect = true;
+          } else {
+            // Get the angle
+            double ang_in_rad = vbond.Angle( ringVec.Nxyz() );
+            // Wrap the angle between 0-90 degrees
+            if (ang_in_rad > Constants::PIOVER2)
+              ang_in_rad = Constants::PI - ang_in_rad;
+            if (ang_in_rad < ring_acut) {
+              mprintf("DEBUG: Bond %i - %i near ring %i (%f) Ang= %f deg.\n",
+                      ringBonds[idx].A1(), ringBonds[idx].A2(), jdx, sqrt(dist2),
+                      Constants::RADDEG*ang_in_rad);
+              ring_intersect = true;
+            }
+          }
+          if (ring_intersect) {
             mprintf("DEBUG: Bond intersects ring.\n");
             ++Nproblems;
             if (saveProblems_) {
               // Do not use constructor since we do not want to sort atoms
               Problem newProb;
-              newProb.SetProb( ringBonds_[idx].A1(), ringMask.back(), sqrt(dist2) );
+              newProb.SetProb( ringBonds[idx].A1(), ringMask.back(), sqrt(dist2) );
 #             ifdef _OPENMP
               thread_problemAtoms_[mythread]
 #             else

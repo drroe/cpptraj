@@ -12,6 +12,19 @@ class CharMask;
 /// Used to count potential structure problems.
 class StructureCheck {
   public:
+    // -------------------------------------------
+    /// Cache heavy atom bond indices for checking with rings
+    class Btype {
+      public:
+        Btype(int a1, int a2) : a1_(a1), a2_(a2) {}
+        int A1() const { return a1_; }
+        int A2() const { return a2_; }
+      private:
+        int a1_;
+        int a2_;
+    };
+    // -------------------------------------------
+    /// CONSTRUCTOR
     StructureCheck();
     /// Options: imageOn, checkBonds, saveProblems, debug, mask1, mask2, ovrlpCut, bndLenOffset, minBndLenOffset, PListCut
     int SetOptions(bool, bool, bool, int, std::string const&, std::string const&,
@@ -24,6 +37,7 @@ class StructureCheck {
     int CheckOverlaps(Frame const&);
     /// Check if any bonds are passing through rings.
     int CheckRings(Frame const&);
+    int CheckRings(Frame const&, Cpptraj::Structure::RingFinder const&, std::vector<Btype> const&);
 
     AtomMask const& Mask1()     const { return Mask1_; }
     AtomMask const& Mask2()     const { return Mask2_; }
@@ -94,17 +108,6 @@ class StructureCheck {
     void ConsolidateProblems();
     /// Check for/record non-bonded interaction problem
     inline void DistanceCheck(Frame const&, int, int, Parray&, int&) const;
-
-    /// Cache heavy atom bond indices for checking with rings
-    class Btype {
-      public:
-        Btype(int a1, int a2) : a1_(a1), a2_(a2) {}
-        int A1() const { return a1_; }
-        int A2() const { return a2_; }
-      private:
-        int a1_;
-        int a2_;
-    };
 
     std::vector<Btype> ringBonds_;
 
