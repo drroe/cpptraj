@@ -247,6 +247,11 @@ int StructureCheck::CheckRings(Frame const& currentFrame) {
   return CheckRings(currentFrame, rings_, ringBonds_);
 }
 
+static inline void printRingAtoms(AtomMask const& maskIn) {
+  for (AtomMask::const_iterator it = maskIn.begin(); it != maskIn.end(); ++it)
+    mprintf(" %i", *it);
+}
+
 /** Check if any bonds are passing through rings. */
 int StructureCheck::CheckRings(Frame const& currentFrame, Cpptraj::Structure::RingFinder const& rings, std::vector<Btype> const& ringBonds)
 {
@@ -312,8 +317,10 @@ int StructureCheck::CheckRings(Frame const& currentFrame, Cpptraj::Structure::Ri
           // Bond intersects ring if it meets the short cutoff or if the angle
           // between the bond and the ring normal is less than a cutoff.
           if (dist2 < ring_shortd2) {
-            mprintf("DEBUG: Bond %i - %i near ring %i (%f).\n",
+            mprintf("DEBUG: Bond %i - %i near ring %i (%f).",
                     ringBonds[idx].A1(), ringBonds[idx].A2(), jdx, sqrt(dist2));
+            printRingAtoms(ringMask);
+            mprintf("\n");
             ring_intersect = true;
           } else {
             // Get the angle
@@ -322,9 +329,11 @@ int StructureCheck::CheckRings(Frame const& currentFrame, Cpptraj::Structure::Ri
             if (ang_in_rad > Constants::PIOVER2)
               ang_in_rad = Constants::PI - ang_in_rad;
             if (ang_in_rad < ring_acut) {
-              mprintf("DEBUG: Bond %i - %i near ring %i (%f) Ang= %f deg.\n",
+              mprintf("DEBUG: Bond %i - %i near ring %i (%f) Ang= %f deg.",
                       ringBonds[idx].A1(), ringBonds[idx].A2(), jdx, sqrt(dist2),
                       Constants::RADDEG*ang_in_rad);
+              printRingAtoms(ringMask);
+              mprintf("\n");
               ring_intersect = true;
             }
           }
