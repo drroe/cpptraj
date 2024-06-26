@@ -787,12 +787,15 @@ void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology cons
       // Check rings
       if (checkRings_ && !clash) {
         Cpptraj::Structure::RingFinder resRings;
+        Cpptraj::Structure::RingFinder otherRings;
         // Select atoms in residues to search for rings
-        AtomMask resMask(std::vector<int>(), topIn.Natom());//( topIn.Res(dih->resnum).FirstAtom(), topIn.Res(dih->resnum).LastAtom() );
+        AtomMask resMask(std::vector<int>(), topIn.Natom());
+        AtomMask otherMask(std::vector<int>(), topIn.Natom());
         //resRings.SetupRingFinder(topIn, resMask);
         // Add ring bonds
-        std::vector<StructureCheck::Btype> ringBonds;
-        for (unsigned int idx = 0; idx != checkRingBonds.size(); idx++)
+        std::vector<StructureCheck::Btype> resBonds;
+        std::vector<StructureCheck::Btype> otherBonds;
+        for (int idx = 0; idx != topIn.Nres(); idx++)
         {
           if (checkRingBonds[idx]) {
             Residue const& ringRes = topIn.Res(idx);
@@ -800,20 +803,28 @@ void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology cons
             for (int rat = ringRes.FirstAtom(); rat != ringRes.LastAtom(); rat++) {
               Atom const& resAt = topIn[rat];
               if (resAt.Nbonds() > 1) {
-                resMask.AddSelectedAtom( rat );
+                if (idx == dih->resnum)
+                  resMask.AddSelectedAtom( rat );
+                else
+                  otherMask.AddSelectedAtom( rat );
               }
               for (Atom::bond_iterator bat = resAt.bondbegin(); bat != resAt.bondend(); ++bat) {
-                if (*bat > rat)
-                  ringBonds.push_back( StructureCheck::Btype(rat, *bat) );
+                if (*bat > rat) {
+                  if (idx == dih->resnum)
+                    resBonds.push_back( StructureCheck::Btype(rat, *bat) );
+                  else
+                    otherBonds.push_back( StructureCheck::Btype(rat, *bat) );
+                }
               }
             }
           }
         } // END loop over residues for adding bonds to check
         resRings.SetupRingFinder(topIn, resMask);
-        if (resRings.Nrings() > 0) {
+        otherRings.SetupRingFinder(topIn, otherMask);
+        if (resRings.Nrings() > 0 || otherRings.Nrings() > 0) {
           mprintf("DEBUG: Ring check, residue %i (%u rings).\n", dih->resnum+1, resRings.Nrings());
           //resRings.PrintRings(topIn);
-          mprintf("DEBUG:\t\tChecking against %zu bonds.\n", ringBonds.size());
+          mprintf("DEBUG:\t\tChecking against %zu bonds.\n", otherBonds.size());
           //int icol = 0;
           //for (std::vector<StructureCheck::Btype>::const_iterator bt = ringBonds.begin(); bt != ringBonds.end(); ++bt)
           //{
@@ -823,8 +834,11 @@ void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology cons
           //  //  icol = 0;
           //  //}
           //}
-            
-          int nRingProblems = checkStructure_.CheckRings(currentFrame, resRings, ringBonds);
+          int nRingProblems = checkStructure_.CheckRings(currentFrame, resRings, otherBonds);
+          mprintf("DEBUG:\t\t%u other rings, %zu residue bonds.\n", otherRings.Nrings(), resBonds.size());
+          nRingProblems += checkStructure_.CheckRings(currentFrame, otherRings, resBonds);
+          // Check self
+          nRingProblems += checkStructure_.CheckRings(currentFrame, resRings, resBonds);
           if (nRingProblems > 0) {
             mprintf("DEBUG: %i ring problems.\n", nRingProblems);
             clash = true;
