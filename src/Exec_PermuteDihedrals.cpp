@@ -22,7 +22,8 @@ Exec_PermuteDihedrals::Exec_PermuteDihedrals() : Exec(COORDS),
   checkRings_(false),
   max_factor_(2),
   cutoff_(0.64), // 0.8^2
-  rescutoff_(100.0), // 10.0^2
+  //rescutoff_(100.0), // 10.0^2
+  rescutoff_(225.0), // 15.0^2
   backtrack_(5),
   increment_(1),
   max_increment_(360),
@@ -136,7 +137,7 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
       resCutoffDefault = 10.0;
       use_random2 = false;
     } else {
-      resCutoffDefault = 12.0;
+      resCutoffDefault = 15.0;
       use_random2 = true;
     }
     check_for_clashes_ = argIn.hasKey("check");
