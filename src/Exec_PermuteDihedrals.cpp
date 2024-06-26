@@ -37,8 +37,8 @@ void Exec_PermuteDihedrals::Help() const {
   mprintf("  Options for 'random':\n"
           "\t[rseed <rseed>] [out <# problems file> [<set name>]] [noimage]\n"
           "\t[ check [cutoff <cutoff>] [rescutoff <rescutoff>] [maxfactor <max_factor>]\n"
-          "\t  [backtrack <backtrack> [checkallresidues] [checkrings]\n"
-          "\t  [increment <increment>]] ]\n"
+          "\t  [checkrings] [backtrack <backtrack> [checkallresidues]\n"
+          "\t                [increment <increment>]] ]\n"
           "  Options for 'interval':\n"
           "\t<interval deg>\n"
           "  <dihedral types> = ");

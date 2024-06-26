@@ -8153,7 +8153,7 @@ permutedihedrals crdset <COORDS set> resrange <range> [{interval | random}]
 \end_layout
 
 \begin_layout LyX-Code
-                 [<dihedral types>]
+                 [<dihedral types>] [dihtype <name>:<a0>:<a1>:<a2>:<a3>[:<offset>] ...]
 \end_layout
 
 \begin_layout LyX-Code
@@ -8169,7 +8169,11 @@ permutedihedrals crdset <COORDS set> resrange <range> [{interval | random}]
 \end_layout
 
 \begin_layout LyX-Code
-	 [backtrack <backtrack> [checkallresidues] [increment <increment>]] ]
+	  [checkrings] [backtrack <backtrack> [checkallresidues]
+\end_layout
+
+\begin_layout LyX-Code
+                    [increment <increment>]] ]
 \end_layout
 
 \begin_layout LyX-Code
@@ -8260,6 +8264,32 @@ COORDS>] COORDS data set to write coordinates to.
 type> One or more dihedral types to search for.
 \end_layout
 
+\begin_layout Description
+[dihtype
+\begin_inset space ~
+\end_inset
+
+<name>:<a0>:<a1>:<a2>:<a3>[:<offset>] Search for a custom dihedral type called <name> using atom names <a0>,
+ <a1>,
+ <a2>,
+ and <a3>.
+\begin_inset Separator latexpar
+\end_inset
+
+
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+Offset:
+ -2=<a0><a1> in previous res,
+ -1=<a0> in previous res,
+ 0=All <aX> in single res,
+ 1=<a3> in next res,
+ 2=<a2><a3> in next res.
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 Options for 'interval:
 \end_layout
@@ -8343,6 +8373,13 @@ name>] Number of problems data set name.
 \end_inset
 
 <max_factor>] The maximum number of total attempted rotations will be <max_factor> * <total # of dihedrals> (default 2).
+\end_layout
+
+\begin_layout Description
+[checkrings] If specified,
+ look to see if any rings in the residue to which the dihedral being rotated belongs to have a bond running through them,
+ which counts as a clash.
+ May be slow.
 \end_layout
 
 \begin_layout Description
