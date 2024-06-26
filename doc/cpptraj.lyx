@@ -8291,7 +8291,7 @@ Offset:
 
 \end_deeper
 \begin_layout Standard
-Options for 'interval:
+Options for 'interval':
 \end_layout
 
 \begin_layout Description
@@ -8364,7 +8364,7 @@ name>] Number of problems data set name.
 \begin_inset space ~
 \end_inset
 
-<cutoff>] Residue cutoff for checking for clashes (defualt 10.0 Å).
+<cutoff>] Residue cutoff for checking for clashes (default 10.0 Å).
 \end_layout
 
 \begin_layout Description
