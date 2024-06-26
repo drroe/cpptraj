@@ -787,34 +787,49 @@ void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology cons
       // Check rings
       if (checkRings_ && !clash) {
         Cpptraj::Structure::RingFinder resRings;
-        // Select the dihedral residue
-        AtomMask resMask( topIn.Res(dih->resnum).FirstAtom(), topIn.Res(dih->resnum).LastAtom() );
+        // Select atoms in residues to search for rings
+        AtomMask resMask(std::vector<int>(), topIn.Natom());//( topIn.Res(dih->resnum).FirstAtom(), topIn.Res(dih->resnum).LastAtom() );
+        //resRings.SetupRingFinder(topIn, resMask);
+        // Add ring bonds
+        std::vector<StructureCheck::Btype> ringBonds;
+        for (unsigned int idx = 0; idx != checkRingBonds.size(); idx++)
+        {
+          if (checkRingBonds[idx]) {
+            Residue const& ringRes = topIn.Res(idx);
+            // Add heavy atom bonds
+            for (int rat = ringRes.FirstAtom(); rat != ringRes.LastAtom(); rat++) {
+              Atom const& resAt = topIn[rat];
+              if (resAt.Nbonds() > 1) {
+                resMask.AddSelectedAtom( rat );
+              }
+              for (Atom::bond_iterator bat = resAt.bondbegin(); bat != resAt.bondend(); ++bat) {
+                if (*bat > rat)
+                  ringBonds.push_back( StructureCheck::Btype(rat, *bat) );
+              }
+            }
+          }
+        } // END loop over residues for adding bonds to check
         resRings.SetupRingFinder(topIn, resMask);
         if (resRings.Nrings() > 0) {
           mprintf("DEBUG: Ring check, residue %i (%u rings).\n", dih->resnum+1, resRings.Nrings());
-          // Add ring bonds
-          std::vector<StructureCheck::Btype> ringBonds;
-          for (unsigned int idx = 0; idx != checkRingBonds.size(); idx++)
-          {
-            if (checkRingBonds[idx]) {
-              Residue const& ringRes = topIn.Res(idx);
-              for (int rat = ringRes.FirstAtom(); rat != ringRes.LastAtom(); rat++) {
-                Atom const& resAt = topIn[rat];
-                for (Atom::bond_iterator bat = resAt.bondbegin(); bat != resAt.bondend(); ++bat) {
-                  if (*bat > rat)
-                    ringBonds.push_back( StructureCheck::Btype(rat, *bat) );
-                }
-              }
-            }
-          } // END loop over residues for adding bonds to check
+          //resRings.PrintRings(topIn);
           mprintf("DEBUG:\t\tChecking against %zu bonds.\n", ringBonds.size());
-        
+          //int icol = 0;
+          //for (std::vector<StructureCheck::Btype>::const_iterator bt = ringBonds.begin(); bt != ringBonds.end(); ++bt)
+          //{
+          //  mprintf(" %s-%s\n", topIn.AtomMaskName(bt->A1()).c_str(), topIn.AtomMaskName(bt->A2()).c_str());
+          //  //if (icol == 5 || (bt+1) == ringBonds.end()) { 
+          //  //  mprintf("\n");
+          //  //  icol = 0;
+          //  //}
+          //}
+            
           int nRingProblems = checkStructure_.CheckRings(currentFrame, resRings, ringBonds);
           if (nRingProblems > 0) {
             mprintf("DEBUG: %i ring problems.\n", nRingProblems);
             clash = true;
           }
-        } // END residue has rings
+        } // END rings are present
       }
       if (!clash) {
         // No clash, all done
