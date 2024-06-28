@@ -688,8 +688,15 @@ class NonbondParmType {
     void SetNLJCterms(int n)     { ccoef_.assign( n, 0 ); }
     /// Set specified LJ term
     NonbondType& SetLJ(int i)    { return nbarray_[i];                  }
-    /// Set specified LJ 1-4 term
-    NonbondType& SetLJ14(int i)  { return lj14_[i];    }
+    /// Set specified LJ 1-4 term.
+    /** Reserve space if not yet allocated, allows it to be used in conjunction
+      * with AddLJterm.
+      */
+    NonbondType& SetLJ14(int ndx)  {
+      if (ndx >= (int)lj14_.size())
+        lj14_.resize(ndx+1);
+      return lj14_[ndx];
+    }
     /// Set specified LJC term
     void SetLJC(int i, double ljc) { ccoef_[i] = ljc; }
     /// Set number of HB terms and init HB array TODO combine with SetNtypes?
