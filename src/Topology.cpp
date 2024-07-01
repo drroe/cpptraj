@@ -2763,6 +2763,24 @@ int Topology::AppendTop(Topology const& NewTop) {
   // molecules and number of solvent molecules.
   // Just need to determine the number of extra points.
   DetermineNumExtraPoints();
+
+  // GB radii set string
+  if (!NewTop.GBradiiSet().empty()) {
+    if (radius_set_.empty())
+      radius_set_ = NewTop.GBradiiSet();
+    else {
+      // Do not repeat a GB radius string
+      std::size_t pos = radius_set_.find( NewTop.GBradiiSet() );
+      if (pos == std::string::npos) {
+        std::string newName = radius_set_ + "+" + NewTop.GBradiiSet();
+        if (newName.size() > 80) {
+          mprintf("Warning: New radius set name is > 80 characters: '%s'\n", newName.c_str());
+          mprintf("Warning: This will be truncated to 80 characters in an Amber Topology.\n");
+        }
+        radius_set_ = newName;
+      }
+    }
+  }
   return 0;
 }
 

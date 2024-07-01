@@ -39,7 +39,7 @@ Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
   mprintf("\n");
   // Only add the topology to the list if parmname specified
   bool addTop = true;
-  Topology CombinedTop;
+  Topology CombinedTop; // FIXME should the initial append just be a straight copy?
   CombinedTop.SetDebug( State.Debug() );
   if (parmname.empty()) {
     for (std::vector<DataSet_Coords*>::const_iterator it = CRD.begin();
@@ -62,6 +62,7 @@ Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
   for (unsigned int setnum = 0; setnum != CRD.size(); ++setnum) {
     if (CRD[setnum]->Size() < minSize)
       minSize = CRD[setnum]->Size();
+    // Box
     if (CRD[setnum]->CoordsInfo().HasBox()) {
       if (boxStatus == NOT_SET) {
         combinedBox = CRD[setnum]->CoordsInfo().TrajBox();
@@ -77,6 +78,7 @@ Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
         }
       }
     }
+    // Append
     CombinedTop.AppendTop( CRD[setnum]->Top() );
   }
   CombinedTop.SetParmBox( combinedBox );
