@@ -2757,7 +2757,7 @@ int Topology::AppendTop(Topology const& NewTop) {
 
   // Need to regenerate nonbonded info
   mprintf("\tRegenerating nonbond parameters.\n");
-  AssignNonbondParams( myAtomTypes, myNB, my14, myLJC, myHB, 1 ); // FIXME verbose TODO LJC
+  AssignNonbondParams( myAtomTypes, myNB, my14, myLJC, myHB, 1 ); // FIXME verbose
 
   // The version of AddTopAtom() with molecule number already determines
   // molecules and number of solvent molecules.
@@ -3772,7 +3772,6 @@ int Topology::AssignParams(ParameterSet const& set0) {
   mprintf("\tAssigning nonbond parameters.\n");
   AssignNonbondParams( set0.AT(), set0.NB(), set0.NB14(), set0.LJC(), set0.HB(), debug_ );
   mprintf("DEBUG: CMAP size %zu\n", set0.CMAP().size());
-  // TODO LJ14, LJC
 
   return 0;
 }
