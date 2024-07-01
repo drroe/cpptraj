@@ -1,4 +1,4 @@
-%VERSION  VERSION_STAMP = V0001.000  DATE = 07/01/24 12:33:32                  
+%VERSION  VERSION_STAMP = V0001.000  DATE = 07/01/24 14:59:12                  
 %FLAG TITLE                                                                     
 %FORMAT(20a4)                                                                   
 combinedParm                                                                    
@@ -1356,6 +1356,9 @@ BLA BLA BLA BLA
 %FLAG BOX_DIMENSIONS                                                            
 %FORMAT(5E16.8)                                                                 
   1.09471222E+02  4.24388504E+01  4.24388504E+01  4.24388504E+01
+%FLAG RADIUS_SET                                                                
+%FORMAT(1a80)                                                                   
+modified Bondi radii (mbondi)                                                   
 %FLAG RADII                                                                     
 %FORMAT(5E16.8)                                                                 
   1.55000000E+00  1.30000000E+00  1.30000000E+00  1.30000000E+00  1.70000000E+00
