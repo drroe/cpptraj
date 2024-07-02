@@ -481,8 +481,16 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
     }
   }
   mprintf("\tAsymmetric masks:\n");
-  for (int ii = 1; ii < nops_; ii++)
+  bool has_empty_masks = false;
+  for (int ii = 1; ii < nops_; ii++) {
     mprintf("\t  Subunit %i : %i atoms.\n", ii, Masks_[ii].Nselected());
+    if (Masks_[ii].None())
+      has_empty_masks = true;
+  }
+  if (has_empty_masks) {
+    mprinterr("Error: One or more subunits have no atoms.\n");
+    return Action::ERR;
+  }
 
   // Determine which rotations are identity matrices
   rotIdentity_.clear();
