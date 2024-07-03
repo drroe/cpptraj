@@ -257,11 +257,11 @@ int StructureCheck::CheckRings(Frame const& currentFrame, Cpptraj::Structure::Ri
 {
   int Nproblems = 0;
   problemAtoms_.clear();
-  static const double ring_dcut2 = 1.3225; // Initial 1.15 Ang distance cutoff
+  //static const double ring_dcut2 = 1.3225; // Initial 1.15 Ang distance cutoff
   static const double ring_shortd2 = 0.25; // Short 0.5 Ang distance cutoff
   static const double ring_acut = 1.0471975512; // 60 deg. Ang cutoff
   //static const double ring_acut  = 0.174533; // 10 deg. angle cutoff
-  //static const double ring_dcut2 = 1.562500; // 1.25 Ang distance cutoff
+  static const double ring_dcut2 = 1.562500; // 1.25 Ang distance cutoff
 /*  static const double ring_acut = 0.7853981634; // 45 deg. angle cutoff for ring_dcut2 > dist2 > ring_shortd2*/
   // Get all ring vectors
   typedef std::vector<Cpptraj::Structure::LeastSquaresPlane> Larray;
