@@ -259,7 +259,8 @@ int StructureCheck::CheckRings(Frame const& currentFrame, Cpptraj::Structure::Ri
   problemAtoms_.clear();
   //static const double ring_dcut2 = 1.3225; // Initial 1.15 Ang distance cutoff
   static const double ring_shortd2 = 0.25; // Short 0.5 Ang distance cutoff
-  static const double ring_acut = 1.0471975512; // 60 deg. Ang cutoff
+  //static const double ring_acut = 1.0471975512; // 60 deg. Ang cutoff
+  static const double ring_acut = 1.1344640138; // 65 deg. Ang cutoff
   //static const double ring_acut  = 0.174533; // 10 deg. angle cutoff
   static const double ring_dcut2 = 1.562500; // 1.25 Ang distance cutoff
 /*  static const double ring_acut = 0.7853981634; // 45 deg. angle cutoff for ring_dcut2 > dist2 > ring_shortd2*/
@@ -323,16 +324,21 @@ int StructureCheck::CheckRings(Frame const& currentFrame, Cpptraj::Structure::Ri
             mprintf("\n");
             ring_intersect = true;
           } else {
+            mprintf("DEBUG: Bond %i - %i near ring %i (%f), doing angle check.",
+                    ringBonds[idx].A1(), ringBonds[idx].A2(), jdx, sqrt(dist2));
+            printRingAtoms(ringMask);
+            mprintf("\n");
             // Get the angle
             double ang_in_rad = vbond.Angle( ringVec.Nxyz() );
             // Wrap the angle between 0-90 degrees
             if (ang_in_rad > Constants::PIOVER2)
               ang_in_rad = Constants::PI - ang_in_rad;
+            mprintf("DEBUG:\t\tWrapped angle is %f deg.\n", Constants::RADDEG*ang_in_rad);
             if (ang_in_rad < ring_acut) {
               mprintf("DEBUG: Bond %i - %i near ring %i (%f) Ang= %f deg.",
                       ringBonds[idx].A1(), ringBonds[idx].A2(), jdx, sqrt(dist2),
                       Constants::RADDEG*ang_in_rad);
-              printRingAtoms(ringMask);
+              //printRingAtoms(ringMask);
               mprintf("\n");
               ring_intersect = true;
             }
