@@ -50,7 +50,8 @@ int DataIO_AmberFrcmod::ReadData(FileName const& fname, DataSetList& dsl, std::s
   DataSet_Parameters& prm = static_cast<DataSet_Parameters&>( *ds );
 
   AmberParamFile infile;
-  if (infile.ReadFrcmod(prm, fname, debug_)) {
+  infile.SetDebug( debug_ );
+  if (infile.ReadFrcmod(prm, fname)) {
     mprinterr("Error: Could not read Amber frcmod file '%s'\n", fname.full());
     return 1;
   }

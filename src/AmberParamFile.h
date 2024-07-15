@@ -11,11 +11,11 @@ class AmberParamFile {
   public:
     AmberParamFile();
     /// Read main Amber FF file
-    int ReadParams(ParameterSet&, FileName const&, std::string const&, int) const;
+    int ReadParams(ParameterSet&, FileName const&, std::string const&) const;
     /// Read Amber frcmod file
-    int ReadFrcmod(ParameterSet&, FileName const&, int) const;
+    int ReadFrcmod(ParameterSet&, FileName const&) const;
     /// Write main Amber FF file
-    int WriteParams(ParameterSet&, FileName const&, int) const;
+    int WriteParams(ParameterSet&, FileName const&) const;
     /// Set debug level
     void SetDebug(int);
   private:

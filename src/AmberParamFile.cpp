@@ -510,7 +510,7 @@ int AmberParamFile::assign_offdiag(ParameterSet& prm, Oarray const& Offdiag) con
 }
 
 /** Read parametrers from Amber frcmod file. */
-int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int debugIn) const
+int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname) const
 {
   // Set wildcard character for dihedrals and impropers
   prm.DP().SetWildcard('X');
@@ -607,7 +607,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname, int deb
 
 /** Read parameters from Amber main FF parameter file. */
 int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
-                               std::string const& nbsetnameIn, int debugIn) const
+                               std::string const& nbsetnameIn) const
 {
   // Set wildcard character for dihedrals and impropers
   prm.DP().SetWildcard('X');
@@ -806,7 +806,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
 }
 
 // DataIO_AmberFF::WriteData()
-int AmberParamFile::WriteParams(ParameterSet& prm, FileName const& fname, int debugIn) const
+int AmberParamFile::WriteParams(ParameterSet& prm, FileName const& fname) const
 {
   CpptrajFile outfile;
   if (outfile.OpenWrite(fname)) return 1;
