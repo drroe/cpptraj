@@ -1,6 +1,7 @@
 #include "MetalCenter.h"
 #include "../ArgList.h"
 #include "../CpptrajStdio.h"
+#include "../Topology.h"
 
 using namespace Cpptraj::Structure;
 
@@ -37,4 +38,30 @@ int MetalCenter::InitMetalCenters(ArgList& argIn)
 void MetalCenter::PrintMetalCenterInfo() const {
   mprintf("\tMetal center mask: %s\n", metalMask_.MaskString());
   mprintf("\tCoordinating atom mask: %s\n", coordAtomMask_.MaskString());
+}
+
+/** Find metal centers. */
+int MetalCenter::FindMetalCenters(Topology const& topIn, Frame const& frameIn)
+{
+  if (topIn.SetupIntegerMask( metalMask_, frameIn )) {
+    mprinterr("Error: Could not set up metal center mask '%s'\n", metalMask_.MaskString());
+    return 1;
+  }
+  if (metalMask_.None()) {
+    mprintf("Warning: Nothing selected by metal center mask '%s'\n", metalMask_.MaskString());
+    return 0;
+  }
+  metalMask_.MaskInfo();
+
+  if (topIn.SetupIntegerMask( coordAtomMask_, frameIn )) {
+    mprinterr("Error: Could not set up metal center mask '%s'\n", coordAtomMask_.MaskString());
+    return 1;
+  }
+  if (coordAtomMask_.None()) {
+    mprintf("Warning: Nothing selected by coordinating atom mask '%s'\n", coordAtomMask_.MaskString());
+    return 0;
+  }
+  coordAtomMask_.MaskInfo();
+
+  return 0;
 }
