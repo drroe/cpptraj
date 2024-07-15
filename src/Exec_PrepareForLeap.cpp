@@ -857,6 +857,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       mprinterr("Error: Metal center search failed.\n");
       return CpptrajState::ERR;
     }
+    MC.PrintMetalCenters(topIn);
   } else {
     mprintf("\tNot searching for metal centers.\n");
   }

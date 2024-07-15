@@ -57,6 +57,8 @@ void MetalCenterFinder::PrintMetalCenterInfo() const {
 /** Find metal centers. */
 int MetalCenterFinder::FindMetalCenters(Topology const& topIn, Frame const& frameIn)
 {
+  metalCenters_.clear();
+
   if (topIn.SetupIntegerMask( metalMask_, frameIn )) {
     mprinterr("Error: Could not set up metal center mask '%s'\n", metalMask_.MaskString());
     return 1;
@@ -94,9 +96,31 @@ int MetalCenterFinder::FindMetalCenters(Topology const& topIn, Frame const& fram
                 topIn.AtomMaskName(metalAt).c_str(),
                 topIn.AtomMaskName(coordAt).c_str(),
                 sqrt(dist2));
+        MCmap::iterator it = metalCenters_.lower_bound( metalAt );
+        if (it == metalCenters_.end() || it->first != metalAt) {
+          mprintf("DEBUG: New metal center.\n");
+          it = metalCenters_.insert(it, MCpair(metalAt, Iarray(1, coordAt)));
+        } else {
+          mprintf("DEBUG: Existing metal center.\n");
+          it->second.push_back( coordAt );
+        }
       }
     } // END inner loop over metal center atoms
   } // END outer loop over coordinating atoms
 
   return 0;
 }
+
+/** Print metal centers to stdout */
+void MetalCenterFinder::PrintMetalCenters(Topology const& topIn) const {
+  mprintf("\t%zu metal centers.\n", metalCenters_.size());
+  for (MCmap::const_iterator it = metalCenters_.begin(); it != metalCenters_.end(); ++it)
+  {
+    mprintf("\t  %s (%zu coordinating atoms):",
+            topIn.TruncAtomResNameOnumId(it->first).c_str(),
+            it->second.size());
+    for (Iarray::const_iterator jt = it->second.begin(); jt != it->second.end(); ++jt)
+      mprintf(" %s", topIn.TruncAtomResNameOnumId(*jt).c_str());
+    mprintf("\n");
+  }
+} 
