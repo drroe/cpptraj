@@ -8,7 +8,7 @@
 #include "StringRoutines.h"
 #include "Structure/Disulfide.h"
 #include "Structure/HisProt.h"
-#include "Structure/MetalCenter.h"
+#include "Structure/MetalCenterFinder.h"
 #include "Structure/PdbCleaner.h"
 #include "Structure/ResStatArray.h"
 #include "Structure/SugarBuilder.h"
@@ -848,7 +848,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Metal center search
   if (!argIn.hasKey("nometals")) {
-    Cpptraj::Structure::MetalCenter MC;
+    Cpptraj::Structure::MetalCenterFinder MC;
     if (MC.InitMetalCenters( argIn, debug_ )) {
       mprinterr("Error: Could not init metal center search.\n");
       return CpptrajState::ERR;

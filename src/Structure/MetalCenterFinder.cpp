@@ -1,4 +1,4 @@
-#include "MetalCenter.h"
+#include "MetalCenterFinder.h"
 #include "../ArgList.h"
 #include "../CpptrajStdio.h"
 #include "../DistRoutines.h"
@@ -8,13 +8,13 @@
 using namespace Cpptraj::Structure;
 
 /** CONSTRUCTOR */
-MetalCenter::MetalCenter() :
+MetalCenterFinder::MetalCenterFinder() :
   dcut2_(9.0),
   debug_(0)
 {}
 
 /** Init with args */
-int MetalCenter::InitMetalCenters(ArgList& argIn, int debugIn)
+int MetalCenterFinder::InitMetalCenters(ArgList& argIn, int debugIn)
 {
   debug_ = debugIn;
   std::string metalMaskStr = argIn.GetStringKey("metalmask");
@@ -48,14 +48,14 @@ int MetalCenter::InitMetalCenters(ArgList& argIn, int debugIn)
 }
 
 /** Print info to stdout */
-void MetalCenter::PrintMetalCenterInfo() const {
+void MetalCenterFinder::PrintMetalCenterInfo() const {
   mprintf("\tMetal center mask: %s\n", metalMask_.MaskString());
   mprintf("\tCoordinating atom mask: %s\n", coordAtomMask_.MaskString());
   mprintf("\tDistance cutoff: %g Ang.\n", sqrt(dcut2_));
 }
 
 /** Find metal centers. */
-int MetalCenter::FindMetalCenters(Topology const& topIn, Frame const& frameIn)
+int MetalCenterFinder::FindMetalCenters(Topology const& topIn, Frame const& frameIn)
 {
   if (topIn.SetupIntegerMask( metalMask_, frameIn )) {
     mprinterr("Error: Could not set up metal center mask '%s'\n", metalMask_.MaskString());

@@ -1,5 +1,5 @@
-#ifndef INC_STRUCTURE_METALCENTER_H
-#define INC_STRUCTURE_METALCENTER_H
+#ifndef INC_STRUCTURE_METALCENTERFINDER_H
+#define INC_STRUCTURE_METALCENTERFINDER_H
 #include "../AtomMask.h"
 class ArgList;
 class Frame;
@@ -7,10 +7,10 @@ class Topology;
 namespace Cpptraj {
 namespace Structure {
 /// Used for finding and preparing metal centers
-class MetalCenter {
+class MetalCenterFinder {
   public:
     /// CONSTRUCTOR
-    MetalCenter();
+    MetalCenterFinder();
     /// Init with arguments
     int InitMetalCenters(ArgList&, int);
     /// Find metal centers
