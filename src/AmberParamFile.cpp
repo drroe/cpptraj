@@ -7,6 +7,7 @@
 #include "ParameterSet.h"
 #include "Constants.h"
 #include <cstdio> // sscanf
+#include <cctype> // isspace
 
 const int AmberParamFile::MAXSYMLEN = 16;
 
@@ -541,7 +542,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname) const
   while (ptr != 0) {
     bool first_char_is_space = (*ptr == ' ');
     // Advance to first non-space char
-    while (*ptr == ' ' && *ptr != '\0') ++ptr;
+    while (isspace(*ptr) && *ptr != '\0') ++ptr;
     // Is this a recognized section keyword?
     if (*ptr != '\0') {
       std::string line(ptr);
