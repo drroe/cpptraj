@@ -20,6 +20,7 @@ class MetalCenter {
   private:
     AtomMask metalMask_; ///< Mask containing potential metal centers
     AtomMask coordAtomMask_; ///< Mask containing potential coordinating atoms
+    double dcut2_;           ///< Distance cutoff in Ang^2
 };
 }
 }

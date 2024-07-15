@@ -1,12 +1,16 @@
 #include "MetalCenter.h"
 #include "../ArgList.h"
 #include "../CpptrajStdio.h"
+#include "../DistRoutines.h"
 #include "../Topology.h"
+#include <cmath>
 
 using namespace Cpptraj::Structure;
 
 /** CONSTRUCTOR */
-MetalCenter::MetalCenter() {}
+MetalCenter::MetalCenter() :
+  dcut2_(9.0)
+{}
 
 /** Init with args */
 int MetalCenter::InitMetalCenters(ArgList& argIn)
@@ -31,6 +35,13 @@ int MetalCenter::InitMetalCenters(ArgList& argIn)
     return 1;
   }
 
+  double distcut = argIn.getKeyDouble("mcdist", 3.0);
+  if (distcut <= 0) {
+    mprinterr("Error: Invalid distance cutoff: %g\n", distcut);
+    return 1;
+  }
+  dcut2_ = distcut*distcut;
+
   return 0;
 }
 
@@ -38,6 +49,7 @@ int MetalCenter::InitMetalCenters(ArgList& argIn)
 void MetalCenter::PrintMetalCenterInfo() const {
   mprintf("\tMetal center mask: %s\n", metalMask_.MaskString());
   mprintf("\tCoordinating atom mask: %s\n", coordAtomMask_.MaskString());
+  mprintf("\tDistance cutoff: %g Ang.\n", sqrt(dcut2_));
 }
 
 /** Find metal centers. */
@@ -62,6 +74,27 @@ int MetalCenter::FindMetalCenters(Topology const& topIn, Frame const& frameIn)
     return 0;
   }
   coordAtomMask_.MaskInfo();
+
+  // OUTER loop over coordinating atoms
+  for (int idx0 = 0; idx0 != coordAtomMask_.Nselected(); idx0++)
+  {
+    int coordAt = coordAtomMask_[idx0];
+    const double* xyz0 = frameIn.XYZ( coordAt );
+    // INNER loop over metal center atoms
+    for (int idx1 = 0; idx1 != metalMask_.Nselected(); idx1++)
+    {
+      int metalAt = metalMask_[idx1];
+      const double* xyz1 = frameIn.XYZ( metalAt );
+
+      double dist2 = DIST2_NoImage( xyz0, xyz1 );
+      if (dist2 < dcut2_) {
+        mprintf("DEBUG: Potential metal center at %s, coordinating atom %s, dist %f Ang\n",
+                topIn.AtomMaskName(metalAt).c_str(),
+                topIn.AtomMaskName(coordAt).c_str(),
+                sqrt(dist2));
+      }
+    } // END inner loop over metal center atoms
+  } // END outer loop over coordinating atoms
 
   return 0;
 }

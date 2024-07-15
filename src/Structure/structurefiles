@@ -10,12 +10,13 @@ STRUCTURE_SOURCES= \
   HisProt.cpp \
   InternalCoords.cpp \
   LeastSquaresPlane.cpp \
+  MetalCenter.cpp \
   PdbCleaner.cpp \
   RingFinder.cpp \
   StructureEnum.cpp \
   StructureRoutines.cpp \
-  SugarBuilder.cpp \
   Sugar.cpp \
+  SugarBuilder.cpp \
   SugarLinkAtoms.cpp \
   SugarToken.cpp \
   Zmatrix.cpp
