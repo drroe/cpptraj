@@ -9,12 +9,14 @@ using namespace Cpptraj::Structure;
 
 /** CONSTRUCTOR */
 MetalCenter::MetalCenter() :
-  dcut2_(9.0)
+  dcut2_(9.0),
+  debug_(0)
 {}
 
 /** Init with args */
-int MetalCenter::InitMetalCenters(ArgList& argIn)
+int MetalCenter::InitMetalCenters(ArgList& argIn, int debugIn)
 {
+  debug_ = debugIn;
   std::string metalMaskStr = argIn.GetStringKey("metalmask");
   if (metalMaskStr.empty()) {
     metalMaskStr.assign("@ZN,MG");

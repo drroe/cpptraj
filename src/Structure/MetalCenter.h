@@ -12,7 +12,7 @@ class MetalCenter {
     /// CONSTRUCTOR
     MetalCenter();
     /// Init with arguments
-    int InitMetalCenters(ArgList&);
+    int InitMetalCenters(ArgList&, int);
     /// Find metal centers
     int FindMetalCenters(Topology const&, Frame const&);
     /// Print Info to stdout
@@ -21,6 +21,7 @@ class MetalCenter {
     AtomMask metalMask_; ///< Mask containing potential metal centers
     AtomMask coordAtomMask_; ///< Mask containing potential coordinating atoms
     double dcut2_;           ///< Distance cutoff in Ang^2
+    int debug_;
 };
 }
 }

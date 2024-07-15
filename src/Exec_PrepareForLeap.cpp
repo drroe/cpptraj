@@ -8,6 +8,7 @@
 #include "StringRoutines.h"
 #include "Structure/Disulfide.h"
 #include "Structure/HisProt.h"
+#include "Structure/MetalCenter.h"
 #include "Structure/PdbCleaner.h"
 #include "Structure/ResStatArray.h"
 #include "Structure/SugarBuilder.h"
@@ -843,6 +844,21 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     }
   } else {
     mprintf("\tNot searching for disulfides.\n");
+  }
+
+  // Metal center search
+  if (!argIn.hasKey("nometals")) {
+    Cpptraj::Structure::MetalCenter MC;
+    if (MC.InitMetalCenters( argIn, debug_ )) {
+      mprinterr("Error: Could not init metal center search.\n");
+      return CpptrajState::ERR;
+    }
+    if (MC.FindMetalCenters( topIn, frameIn )) {
+      mprinterr("Error: Metal center search failed.\n");
+      return CpptrajState::ERR;
+    }
+  } else {
+    mprintf("\tNot searching for metal centers.\n");
   }
 
   // Prepare sugars
