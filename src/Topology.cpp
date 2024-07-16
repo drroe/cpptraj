@@ -1568,7 +1568,7 @@ int Topology::scale_dihedral_K(DihedralArray& dihedrals, CharMask const& Mask,
       if (newidx == -1) {
         // Scale and add new dihedral parameter type.
         DihedralParmType newparm = dihedralparm_[oldidx];
-        newparm.Pk() *= scale_factor;
+        newparm.SetPk( newparm.Pk() * scale_factor ); //newparm.Pk() *= scale_factor;
         newidx = (int)dihedralparm_.size();
         dihedralparm_.push_back( newparm );
         newDihedralParms[oldidx] = newidx;
@@ -1592,7 +1592,7 @@ int Topology::ScaleDihedralK(double scale_factor, std::string const& maskExpr, b
     // Scale all
     for (DihedralParmArray::iterator dk = dihedralparm_.begin();
                                      dk != dihedralparm_.end(); ++dk)
-      dk->Pk() *= scale_factor;
+      dk->SetPk( dk->Pk() * scale_factor ); //dk->Pk() *= scale_factor;
   } else {
     // Scale only dihedrals with atoms in mask. Requires adding new types.
     CharMask Mask( maskExpr );

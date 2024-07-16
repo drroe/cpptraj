@@ -278,15 +278,19 @@ class AngleArray {
 /// Hold dihedral parameters
 class DihedralParmType {
   public:
+    /// CONSTRUCTOR
     DihedralParmType() : pk_(0), pn_(0), phase_(0), scee_(0), scnb_(0) {}
+    /// CONSTRUCTOR - PK, PN, Phase, SCEE, SCNB (Amber parameter file proper)
     DihedralParmType(double k, double n, double p, double e, double b) :
                          pk_(k), pn_(n), phase_(p), scee_(e), scnb_(b) {}
-    DihedralParmType(double k, double p) :
-                         pk_(k), pn_(0), phase_(p), scee_(0), scnb_(0) {}
+    /// CONSTRUCTOR - PK, Phase
+    //DihedralParmType(double k, double p) :
+    //                     pk_(k), pn_(0), phase_(p), scee_(0), scnb_(0) {}
+    /// CONSTRUCTOR - PK, PN, Phase (Amber parameter file improper)
     DihedralParmType(double k, double n, double p) :
                          pk_(k), pn_(n), phase_(p), scee_(0), scnb_(0) {}
     inline double Pk()    const { return pk_;    }
-    inline double& Pk()         { return pk_;    }
+    //inline double& Pk()         { return pk_;    }
     inline double Pn()    const { return pn_;    }
     inline double Phase() const { return phase_; }
     inline double SCEE()  const { return scee_;  }
