@@ -54,7 +54,8 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
   DataSet_Parameters& prm = static_cast<DataSet_Parameters&>( *ds ); 
 
   AmberParamFile infile;
-  int err = infile.ReadParams(prm, fname, nbsetname_, debug_);
+  infile.SetDebug( debug_ );
+  int err = infile.ReadParams(prm, fname, nbsetname_);
   if (err != 0) {
     mprinterr("Error: Could not read '%s'\n", fname.full());
   }
@@ -79,6 +80,7 @@ int DataIO_AmberFF::processWriteArgs(ArgList& argIn)
 int DataIO_AmberFF::WriteData(FileName const& fname, DataSetList const& dsl)
 {
   AmberParamFile outfile;
+  outfile.SetDebug( debug_ );
   std::vector<DataSet_Parameters*> toWrite;
   for (DataSetList::const_iterator it = dsl.begin(); it != dsl.end(); ++it)
   {
@@ -89,7 +91,7 @@ int DataIO_AmberFF::WriteData(FileName const& fname, DataSetList const& dsl)
     mprinterr("Error: No parameter sets to write.\n");
     return 1;
   } else if (toWrite.size() == 1) {
-    return outfile.WriteParams( *(toWrite.front()), fname, debug_ );
+    return outfile.WriteParams( *(toWrite.front()), fname );
   } else {
     // Create a combined parameter set
     ParameterSet prm;
@@ -99,7 +101,7 @@ int DataIO_AmberFF::WriteData(FileName const& fname, DataSetList const& dsl)
       ParameterSet::UpdateCount UC;
       prm.UpdateParamSet( *(*it), UC, debug_, debug_ ); // FIXME verbose
     }
-    return outfile.WriteParams( prm, fname, debug_ );
+    return outfile.WriteParams( prm, fname );
   }
 
   return 1;

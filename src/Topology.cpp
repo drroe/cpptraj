@@ -371,6 +371,20 @@ std::string Topology::TruncResNameOnumId(int res) const {
   return name;
 }
 
+/** Given an atom index, return a string containing the residue name,
+  * original residue number, an optional chain ID, and the atom
+  * name with format:
+  * "<resname>_<onum>[_<id>]@<atom name>".
+  * Truncate residue and atom names so there are no blanks.
+  */
+std::string Topology::TruncAtomResNameOnumId(int at) const {
+  if (at < 0 || at >= (int)atoms_.size()) return std::string("");
+  Atom const& thisAtom = atoms_[at];
+  std::string name = TruncResNameOnumId( thisAtom.ResNum() );
+  name.append( "@" + thisAtom.Name().Truncated() );
+  return name;
+}
+
 // Topology::FindAtomInResidue()
 /** Find the atom # of the specified atom name in the given residue.
   * \param res Residue number to search.

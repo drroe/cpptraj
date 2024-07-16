@@ -10,12 +10,13 @@ target_sources(cpptraj_common_obj PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}/HisProt.cpp
   ${CMAKE_CURRENT_LIST_DIR}/InternalCoords.cpp
   ${CMAKE_CURRENT_LIST_DIR}/LeastSquaresPlane.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/MetalCenterFinder.cpp
   ${CMAKE_CURRENT_LIST_DIR}/PdbCleaner.cpp
   ${CMAKE_CURRENT_LIST_DIR}/RingFinder.cpp
   ${CMAKE_CURRENT_LIST_DIR}/StructureEnum.cpp
   ${CMAKE_CURRENT_LIST_DIR}/StructureRoutines.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/SugarBuilder.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Sugar.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/SugarBuilder.cpp
   ${CMAKE_CURRENT_LIST_DIR}/SugarLinkAtoms.cpp
   ${CMAKE_CURRENT_LIST_DIR}/SugarToken.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Zmatrix.cpp
