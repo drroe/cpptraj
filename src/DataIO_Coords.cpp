@@ -5,9 +5,9 @@
 #include "Trajin_Single.h"
 
 /// CONSTRUCTOR
-DataIO_Coords::DataIO_Coords() :
-  is_parm_fmt_(false),
-  is_traj_fmt_(false)
+DataIO_Coords::DataIO_Coords() //:
+  //is_parm_fmt_(false),
+  //is_traj_fmt_(false)
 {
 
 }
@@ -22,13 +22,6 @@ DataIO_Coords::DataIO_Coords() :
   */
 bool DataIO_Coords::ID_DataFormat(CpptrajFile& infile)
 {
-  // Needs to be either a topology format or a coords format
-/*  ParmFile::ParmFormatType parm_format = ParmFile::DetectFormat(infile.Filename());
-  TrajectoryFile::TrajFormatType traj_format = TrajectoryFile::DetectFormat(infile.Filename());
-  is_parm_fmt_ = (parm_format != ParmFile::UNKNOWN_PARM);
-  is_traj_fmt_ = (traj_format != TrajectoryFile::UNKNOWN_TRAJ);
-  if (is_parm_fmt_ || is_traj_fmt_)
-    return true;*/
   return false;
 }
 
@@ -56,19 +49,26 @@ int DataIO_Coords::ReadData(FileName const& fname, DataSetList& dsl, std::string
 {
   ClearAddedByMe();
   DataSet::DataType setType = DataSet::COORDS; // FIXME make user option
-  if (!is_parm_fmt_ && !is_traj_fmt_) {
+  //if (!is_parm_fmt_ && !is_traj_fmt_) {
+    bool is_parm_fmt_ = false;
+    bool is_traj_fmt_ = false;
     // Assume that ID_DataFormat() has not been called.
-    CpptrajFile tmpfile;
-    if (tmpfile.SetupWrite( fname, debug_ )) {
-      mprinterr("Error: Could not setup check for parm/coords info in '%s'.\n",
-                fname.full());
-      return 1;
-    }
-    if (!ID_DataFormat(tmpfile)) {
+    //CpptrajFile tmpfile;
+    //if (tmpfile.SetupWrite( fname, debug_ )) {
+    //  mprinterr("Error: Could not setup check for parm/coords info in '%s'.\n",
+    //            fname.full());
+    //  return 1;
+    //}
+    // Needs to be either a topology format or a coords format
+    ParmFile::ParmFormatType parm_format = ParmFile::DetectFormat( fname );
+    TrajectoryFile::TrajFormatType traj_format = TrajectoryFile::DetectFormat( fname );
+    is_parm_fmt_ = (parm_format != ParmFile::UNKNOWN_PARM);
+    is_traj_fmt_ = (traj_format != TrajectoryFile::UNKNOWN_TRAJ);
+    if (!is_parm_fmt_ && !is_traj_fmt_) {
       mprinterr("Error: '%s' does not have parm/coords info.\n", fname.full());
       return 1;
     }
-  }
+  //}
 
   DataSet* dset = 0;
   if (!dsname.empty()) {
