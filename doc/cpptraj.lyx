@@ -15697,7 +15697,7 @@ dihedralinfo [parm <name> | parmindex <#> | <#>]
 \end_layout
 
 \begin_layout LyX-Code
-             [<mask1>] [<mask2> <mask3> <mask4>] [noindices]
+             {[<mask1>] [<mask2> <mask3> <mask4>] | tgtidx <#>} [noindices]
 \end_layout
 
 \begin_layout LyX-Code
@@ -15749,6 +15749,15 @@ parmindex
 
 <mask4>] If specified,
  dihedrals must match all masks.
+\end_layout
+
+\begin_layout Description
+tgtidx
+\begin_inset space ~
+\end_inset
+
+<#> If specified,
+ print dihedrals only with specified parameter index (starting from 1).
 \end_layout
 
 \begin_layout Description
@@ -15922,7 +15931,7 @@ improperinfo [parm <name> | parmindex <#> | <#>]
 \end_layout
 
 \begin_layout LyX-Code
-             [<mask1>] [<mask2> <mask3> <mask4>] [noindices]
+             {[<mask1>] [<mask2> <mask3> <mask4>] | tgtidx <#>} [noindices]
 \end_layout
 
 \begin_layout LyX-Code
@@ -15974,6 +15983,15 @@ parmindex
 
 <mask4>] If specified,
  impropers must match all masks.
+\end_layout
+
+\begin_layout Description
+tgtidx
+\begin_inset space ~
+\end_inset
+
+<#> If specified,
+ print impropers only with specified parameter index (starting from 1).
 \end_layout
 
 \begin_layout Description
