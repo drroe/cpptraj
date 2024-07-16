@@ -630,7 +630,7 @@ int TopInfo::PrintAngleInfo(std::string const& mask1exp, std::string const& mask
 void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray const& dihedralparm,
                              CharMask const& mask1, CharMask const& mask2,
                              CharMask const& mask3, CharMask const& mask4, int nw, int& nd,
-                             bool printExtraInfo) const
+                             bool printExtraInfo, int tgtidx) const
 {
   if (darray.empty()) return;
   for (DihedralArray::const_iterator dih = darray.begin();
@@ -641,7 +641,9 @@ void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray cons
     int atom3 = dih->A3();
     int atom4 = dih->A4();
     bool printDihedral = false;
-    if (mask2.MaskStringSet() && mask3.MaskStringSet() && mask4.MaskStringSet())
+    if (tgtidx != -1)
+      printDihedral = (tgtidx == dih->Idx());
+    else if (mask2.MaskStringSet() && mask3.MaskStringSet() && mask4.MaskStringSet())
       printDihedral = (mask1.AtomInCharMask(atom1) &&
                        mask2.AtomInCharMask(atom2) &&
                        mask3.AtomInCharMask(atom3) &&
@@ -701,19 +703,18 @@ void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray cons
 // TopInfo::PrintDihedralInfo()
 int TopInfo::PrintDihedralInfo(std::string const& mask1exp, std::string const& mask2exp,
                                std::string const& mask3exp, std::string const& mask4exp,
-                               bool printImpropers, bool printExtraInfo) const
+                               bool printImpropers, bool printExtraInfo, int tgtidx) const
 {
-  CharMask mask1( mask1exp );
-  if (SetupMask( mask1 )) return 1;
-  CharMask mask2;
-  CharMask mask3;
-  CharMask mask4;
-  if (!mask2exp.empty() && SetupMask( mask2exp, mask2 )) return 1;
-  if (!mask3exp.empty() && SetupMask( mask3exp, mask3 )) return 1;
-  if (!mask4exp.empty() && SetupMask( mask4exp, mask4 )) return 1;
-  if (mask2exp.empty() != mask3exp.empty() || mask2exp.empty() != mask4exp.empty()) {
-    mprinterr("Error: Require either 1 mask or 4 masks.\n");
-    return 1;
+  CharMask mask1, mask2, mask3, mask4;
+  if (tgtidx == -1) {
+    if (!mask1exp.empty() && SetupMask( mask1exp, mask1 )) return 1;
+    if (!mask2exp.empty() && SetupMask( mask2exp, mask2 )) return 1;
+    if (!mask3exp.empty() && SetupMask( mask3exp, mask3 )) return 1;
+    if (!mask4exp.empty() && SetupMask( mask4exp, mask4 )) return 1;
+    if (mask2exp.empty() != mask3exp.empty() || mask2exp.empty() != mask4exp.empty()) {
+      mprinterr("Error: Require either 1 mask or 4 masks.\n");
+      return 1;
+    }
   }
   size_t n_torsions;
   const char* label = "Dih";
@@ -744,10 +745,10 @@ int TopInfo::PrintDihedralInfo(std::string const& mask1exp, std::string const& m
                    max_type_len_, "T3", max_type_len_, "T4");
   int nd = 1;
   if (printImpropers) {
-    PrintDihedrals( parm_->Impropers(), parm_->ImproperParm(), mask1, mask2, mask3, mask4, nw, nd, printExtraInfo );
+    PrintDihedrals( parm_->Impropers(), parm_->ImproperParm(), mask1, mask2, mask3, mask4, nw, nd, printExtraInfo, tgtidx );
   } else {
-    PrintDihedrals( parm_->DihedralsH(), parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd, printExtraInfo );
-    PrintDihedrals( parm_->Dihedrals(),  parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd, printExtraInfo );
+    PrintDihedrals( parm_->DihedralsH(), parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd, printExtraInfo, tgtidx );
+    PrintDihedrals( parm_->Dihedrals(),  parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd, printExtraInfo, tgtidx );
   }
   return 0;
 }

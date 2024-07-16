@@ -4,7 +4,7 @@
 
 CleanFiles info.in atoms.dat residues.dat bonds.dat angles.dat dihedrals.dat \
            molecules.dat masscharge.dat values.dat molshort.dat molselect.dat \
-           molselect2.dat ChargeMass.dat
+           molselect2.dat ChargeMass.dat tz2.dihedrals.24.dat
 
 INPUT="-i info.in"
 cat > info.in <<EOF
@@ -31,6 +31,7 @@ dihedralinfo @1
 dihedralinfo @1 out dihedrals.dat
 dihedralinfo @N @CA @CB @%H1
 dihedralinfo @N @CA @CB @%H1 out dihedrals.dat
+dihedrals tgtidx 24 out tz2.dihedrals.24.dat
 
 mass out masscharge.dat name Mass *
 charge out masscharge.dat name Charge *
@@ -57,6 +58,7 @@ DoTest molshort.dat.save molshort.dat
 DoTest molselect.dat.save molselect.dat
 DoTest molselect2.dat.save molselect2.dat
 DoTest ChargeMass.dat.save ChargeMass.dat
+DoTest tz2.dihedrals.24.dat.save tz2.dihedrals.24.dat
 
 UNITNAME='Topology info with reference coords test'
 CheckFor netcdf

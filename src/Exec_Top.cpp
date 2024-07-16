@@ -107,7 +107,7 @@ Exec::RetType Exec_AngleInfo::Execute(CpptrajState& State, ArgList& argIn) {
 // -----------------------------------------------------------------------------
 void Exec_DihedralInfo::Help() const {
   mprintf("\t[%s]\n"
-          "\t[<mask1>] [<mask2> <mask3> <mask4>] [noindices]\n"
+          "\t{[<mask1>] [<mask2> <mask3> <mask4>] | tgtidx <#>} [noindices]\n"
           "\t[out <file>] [extra]\n", DataSetList::TopIdxArgs);
   mprintf("  For specified topology (first by default) either print dihedral info for all\n"
           "  atoms in <mask1>, or print info for dihedrals with first atom in <mask1>,\n"
@@ -122,12 +122,17 @@ Exec::RetType Exec_DihedralInfo::Execute(CpptrajState& State, ArgList& argIn) {
     return CpptrajState::ERR;
   }
   bool printExtraInfo = argIn.hasKey("extra");
+  int tgtidx = argIn.getKeyInt("tgtidx", 0) - 1;
   TopInfo info;
   if (CommonSetup(info, State, argIn, "Dihedral info")) return CpptrajState::ERR;
-  std::string mask1 = argIn.GetMaskNext();
-  std::string mask2 = argIn.GetMaskNext();
-  std::string mask3 = argIn.GetMaskNext();
-  if (info.PrintDihedralInfo( mask1, mask2, mask3, argIn.GetMaskNext(), false, printExtraInfo ))
+  std::string mask1, mask2, mask3, mask4;
+  if (tgtidx == -1) {
+    mask1 = argIn.GetMaskNext();
+    mask2 = argIn.GetMaskNext();
+    mask3 = argIn.GetMaskNext();
+    mask4 = argIn.GetMaskNext();
+  }
+  if (info.PrintDihedralInfo( mask1, mask2, mask3, mask4, false, printExtraInfo, tgtidx ))
     return CpptrajState::ERR;
   return CpptrajState::OK;
 }
@@ -135,7 +140,7 @@ Exec::RetType Exec_DihedralInfo::Execute(CpptrajState& State, ArgList& argIn) {
 // -----------------------------------------------------------------------------
 void Exec_ImproperInfo::Help() const {
   mprintf("\t[%s]\n"
-          "\t[<mask1>] [<mask2> <mask3> <mask4>] [noindices]\n"
+          "\t{[<mask1>] [<mask2> <mask3> <mask4>] | tgtidx <#>} [noindices]\n"
           "\t[out <file>]\n", DataSetList::TopIdxArgs);
   mprintf("  For specified topology (first by default) either print CHARMM improper info\n"
           "  for all atoms in <mask1>, or print info for dihedrals with first atom in <mask1>,\n"
@@ -148,12 +153,17 @@ Exec::RetType Exec_ImproperInfo::Execute(CpptrajState& State, ArgList& argIn) {
               "Error:   selection please use 4 masks.\n");
     return CpptrajState::ERR;
   }
+  int tgtidx = argIn.getKeyInt("tgtidx", 0) - 1;
   TopInfo info;
   if (CommonSetup(info, State, argIn, "Improper info")) return CpptrajState::ERR;
-  std::string mask1 = argIn.GetMaskNext();
-  std::string mask2 = argIn.GetMaskNext();
-  std::string mask3 = argIn.GetMaskNext();
-  if (info.PrintDihedralInfo( mask1, mask2, mask3, argIn.GetMaskNext(), true, false ))
+  std::string mask1, mask2, mask3, mask4;
+  if (tgtidx == -1) {
+    mask1 = argIn.GetMaskNext();
+    mask2 = argIn.GetMaskNext();
+    mask3 = argIn.GetMaskNext();
+    mask4 = argIn.GetMaskNext();
+  }
+  if (info.PrintDihedralInfo( mask1, mask2, mask3, mask4, true, false, tgtidx ))
     return CpptrajState::ERR;
   return CpptrajState::OK;
 }
