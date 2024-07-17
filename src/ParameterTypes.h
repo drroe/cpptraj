@@ -276,6 +276,10 @@ class AngleArray {
     AArray angles_;
 };
 /// Hold dihedral parameters
+/** Note that for the '==' and '<' operators, direct comparisons are used
+  * instead of the FEQ() function in order to match how LEaP would compare
+  * dihedrals.
+  */
 class DihedralParmType {
   public:
     /// CONSTRUCTOR
@@ -283,24 +287,50 @@ class DihedralParmType {
     /// CONSTRUCTOR - PK, PN, Phase, SCEE, SCNB (Amber parameter file proper)
     DihedralParmType(double k, double n, double p, double e, double b) :
                          pk_(k), pn_(n), phase_(p), scee_(e), scnb_(b) {}
-    /// CONSTRUCTOR - PK, Phase
-    //DihedralParmType(double k, double p) :
-    //                     pk_(k), pn_(0), phase_(p), scee_(0), scnb_(0) {}
     /// CONSTRUCTOR - PK, PN, Phase (Amber parameter file improper)
     DihedralParmType(double k, double n, double p) :
                          pk_(k), pn_(n), phase_(p), scee_(0), scnb_(0) {}
+    /// \return Dihedral force constant
     inline double Pk()    const { return pk_;    }
-    //inline double& Pk()         { return pk_;    }
+    /// \return Dihedral periodicity
     inline double Pn()    const { return pn_;    }
+    /// \return Dihedral phase
     inline double Phase() const { return phase_; }
+    /// \return 1-4 electrostatics scaling constant
     inline double SCEE()  const { return scee_;  }
+    /// \return 1-4 vdW scaling constant
     inline double SCNB()  const { return scnb_;  }
+    /// Set dihedral force constant
     void SetPk(double k)        { pk_ = k;       }
+    /// Set dihedral periodicity
     void SetPn(double n)        { pn_ = n;       }
+    /// Set dihedral phase
     void SetPhase(double p)     { phase_ = p;    }
+    /// Set 1-4 electrostatics scaling constant
     void SetSCEE(double s)      { scee_ = s;     }
+    /// Set 1-4 vdW scaling constant
     void SetSCNB(double s)      { scnb_ = s;     }
+    /// \return True if two dihedral parameters are equal
     bool operator==(DihedralParmType const& rhs) const {
+      return ( pn_    == rhs.pn_    &&
+               pk_    == rhs.pk_    &&
+               phase_ == rhs.phase_ &&
+               scee_  == rhs.scee_  &&
+               scnb_  == rhs.scnb_ );
+    }
+    /// \return True if this dihedral parameter should come before the given one
+    bool operator<(DihedralParmType const& rhs) const {
+      if ( pn_ == rhs.pn_ ) {
+        if ( pk_ == rhs.pk_ ) {
+          if ( phase_ == rhs.phase_ ) {
+            if ( scee_ == rhs.scee_ ) {
+              return ( scnb_ < rhs.scnb_ );
+            } else return (scee_ < rhs.scee_);
+          } else return (phase_ < rhs.phase_);
+        } else return (pk_ < rhs.pk_);
+      } else return (pn_ < rhs.pn_);
+    }
+/*    bool operator==(DihedralParmType const& rhs) const {
       return ( FEQ(pk_, rhs.pk_) &&
                FEQ(pn_, rhs.pn_) &&
                FEQ(phase_, rhs.phase_) &&
@@ -317,13 +347,13 @@ class DihedralParmType {
           } else return (phase_ < rhs.phase_);
         } else return (pn_ < rhs.pn_);
       } else return (pk_ < rhs.pk_);
-    }
+    }*/
   private:
-    double pk_;
-    double pn_;
-    double phase_;
-    double scee_;
-    double scnb_;
+    double pk_;    ///< Dihedral force constant
+    double pn_;    ///< Dihedral periodicity
+    double phase_; ///< Dihedral phase shift
+    double scee_;  ///< 1-4 electrostatics scale factor
+    double scnb_;  ///< 1-4 vdW scale factor
 };
 /// Hold Array of dihedral parameters
 class DihedralParmArray {
