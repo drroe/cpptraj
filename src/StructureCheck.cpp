@@ -341,30 +341,15 @@ void StructureCheck::ring_bond_check(int& Nproblems,
   } // END angle cutoff satisfied
 }
 
-/** Check if any bonds are passing through rings. */
-int StructureCheck::CheckRings(Frame const& currentFrame, Cpptraj::Structure::RingFinder const& rings, std::vector<Btype> const& ringBonds)
+/** Check if any bonds are passing through rings, no pairlist. */
+int StructureCheck::checkRings_NoPL(Frame const& currentFrame,
+                                    Cpptraj::Structure::RingFinder const& rings,
+                                    std::vector<Btype> const& ringBonds,
+                                    std::vector<Cpptraj::Structure::LeastSquaresPlane> const& RingVecs)
 {
   int Nproblems = 0;
-  problemAtoms_.clear();
-  // Get all ring vectors
-  typedef std::vector<Cpptraj::Structure::LeastSquaresPlane> Larray;
-  Larray RingVecs;
-  RingVecs.resize( rings.Nrings() );
   int idx = 0;
   int ring_max = (int)rings.Nrings();
-# ifdef _OPENMP
-# pragma omp parallel private(idx)
-  {
-# pragma omp for
-# endif
-  for (idx = 0; idx < ring_max; idx++)
-  {
-    RingVecs[idx].CalcLeastSquaresPlane( currentFrame, rings[idx] );
-  }
-# ifdef _OPENMP
-  } // END pragma omp parallel
-# endif
-
   // Loop over bonds
   int bond_max = (int)ringBonds.size();
 # ifdef _OPENMP
@@ -454,6 +439,34 @@ int StructureCheck::CheckRings(Frame const& currentFrame, Cpptraj::Structure::Ri
 # ifdef _OPENMP
   } // END pragma omp parallel
 # endif
+  return Nproblems;
+}
+
+/** Check if any bonds are passing through rings. */
+int StructureCheck::CheckRings(Frame const& currentFrame, Cpptraj::Structure::RingFinder const& rings, std::vector<Btype> const& ringBonds)
+{
+  problemAtoms_.clear();
+  // Get all ring vectors
+  typedef std::vector<Cpptraj::Structure::LeastSquaresPlane> Larray;
+  Larray RingVecs;
+  RingVecs.resize( rings.Nrings() );
+  int idx = 0;
+  int ring_max = (int)rings.Nrings();
+# ifdef _OPENMP
+# pragma omp parallel private(idx)
+  {
+# pragma omp for
+# endif
+  for (idx = 0; idx < ring_max; idx++)
+  {
+    RingVecs[idx].CalcLeastSquaresPlane( currentFrame, rings[idx] );
+  }
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
+
+  int Nproblems = checkRings_NoPL(currentFrame, rings,  ringBonds, RingVecs);
+
   ConsolidateProblems();
 
   return Nproblems;
