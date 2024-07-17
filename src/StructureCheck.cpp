@@ -341,6 +341,48 @@ void StructureCheck::ring_bond_check(int& Nproblems,
   } // END angle cutoff satisfied
 }
 
+/** Check if any bonds are passing through rings, use pairlist. */
+int StructureCheck::checkRings_PL(Frame const& currentFrame,
+                                  Cpptraj::Structure::RingFinder const& rings,
+                                  std::vector<Btype> const& ringBonds,
+                                  std::vector<Cpptraj::Structure::LeastSquaresPlane> const& RingVecs)
+{
+  int Nproblems = 0;
+  // Need to create a pseudo-frame containing bond midpoints and
+  // ring centers.
+  unsigned int pseudo_natom = ringBonds.size() + rings.Nrings();
+
+  Frame pseudoFrame( pseudo_natom );
+  //pseudoFrame.ClearAtoms();
+
+  // Bonds first
+  int idx = 0;
+  int bond_max = (int)ringBonds.size();
+  std::vector<Vec3> Vbonds( ringBonds.size() );
+# ifdef _OPENMP
+# pragma omp parallel private(idx)
+  {
+# pragma omp for
+# endif
+  for (idx = 0; idx < bond_max; idx++)
+  {
+    const double* xyz1 = currentFrame.XYZ( ringBonds[idx].A1() );
+    const double* xyz2 = currentFrame.XYZ( ringBonds[idx].A2() );
+    Vec3 vbond( xyz2[0] - xyz1[0],
+                xyz2[1] - xyz1[1],
+                xyz2[2] - xyz1[2] );
+    Vec3 vmid = Vec3(xyz1) + (vbond * 0.5);
+    vbond.Normalize();
+    pseudoFrame.SetXYZ(idx, vmid);
+    Vbonds[idx] = vbond;
+  }
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
+
+  return Nproblems;
+}
+
 /** Check if any bonds are passing through rings, no pairlist. */
 int StructureCheck::checkRings_NoPL(Frame const& currentFrame,
                                     Cpptraj::Structure::RingFinder const& rings,

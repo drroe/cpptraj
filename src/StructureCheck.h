@@ -119,6 +119,10 @@ class StructureCheck {
     int checkRings_NoPL(Frame const&, Cpptraj::Structure::RingFinder const&,
                         std::vector<Btype> const&,
                         std::vector<Cpptraj::Structure::LeastSquaresPlane> const&);
+    /// Check for intersections between bonds and rings, use pair list
+    int checkRings_PL(Frame const&, Cpptraj::Structure::RingFinder const&,
+                      std::vector<Btype> const&,
+                      std::vector<Cpptraj::Structure::LeastSquaresPlane> const&);
     /// PairList version of CheckOverlap, 1 mask
     int PL1_CheckOverlap(Frame const&);
     /// Non-pairlist version of CheckOverlap, 1 mask
