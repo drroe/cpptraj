@@ -353,6 +353,7 @@ int StructureCheck::checkRings_PL(Frame const& currentFrame,
   unsigned int pseudo_natom = ringBonds.size() + rings.Nrings();
 
   Frame pseudoFrame( pseudo_natom );
+  pseudoFrame.SetBox( currentFrame.BoxCrd() );
   //pseudoFrame.ClearAtoms();
 
   // Bonds first
@@ -387,6 +388,78 @@ int StructureCheck::checkRings_PL(Frame const& currentFrame,
     pseudoFrame.SetXYZ(idx, ringVec.Cxyz());
   }
 
+  // Pseudo mask selecting everything
+  AtomMask pseudoMask(0, pseudo_natom);
+
+  // Set up the pair list
+  int retVal = pairList_.CreatePairList(pseudoFrame,
+                                        pseudoFrame.BoxCrd().UnitCell(),
+                                        pseudoFrame.BoxCrd().FracCell(), pseudoMask);
+  if (retVal < 0) {
+    // Treat grid setup failure as one problem.
+    mprinterr("Error: Grid setup for ring-bond check failed.\n");
+    return 1;
+  } else if (retVal > 0) {
+    // Atoms off the grid should count as problems as well.
+    Nproblems = retVal;
+  }
+
+  // Loop over pairlist cells
+  int cidx;
+# ifdef _OPENMP
+  int mythread;
+# pragma omp parallel private(cidx,mythread) reduction(+: Nproblems)
+  {
+  mythread = omp_get_thread_num();
+  thread_problemAtoms_[mythread].clear();
+# pragma omp for
+# endif
+  for (cidx = 0; cidx < pairList_.NGridMax(); cidx++)
+  {
+    PairList::CellType const& thisCell = pairList_.Cell( cidx );
+    if (thisCell.NatomsInGrid() > 0)
+    {
+      // cellList contains this cell index and all neighbors.
+      PairList::Iarray const& cellList = thisCell.CellList();
+      // transList contains index to translation for the neighbor.
+      PairList::Iarray const& transList = thisCell.TransList();
+      // Loop over all atoms of thisCell.
+      for (PairList::CellType::const_iterator it0 = thisCell.begin();
+                                              it0 != thisCell.end(); ++it0)
+      {
+        Vec3 const& xyz0 = it0->ImageCoords();
+        bool it0_is_bond = (it0->Idx() < bond_max);
+        // Calc interaction of atom to all other atoms in thisCell.
+        for (PairList::CellType::const_iterator it1 = it0 + 1;
+                                                it1 != thisCell.end(); ++it1)
+        {
+          bool it1_is_bond = (it1->Idx() < bond_max);
+          if (it0_is_bond != it1_is_bond) {
+
+          } // END it0 and it1 are not the same type
+        } // END loop over all other atoms of thisCell.
+        // Loop over all neighbor cells
+        for (unsigned int nidx = 1; nidx != cellList.size(); nidx++)
+        {
+          PairList::CellType const& nbrCell = pairList_.Cell( cellList[nidx] );
+          // Translate vector for neighbor cell
+          Vec3 const& tVec = pairList_.TransVec( transList[nidx] );
+          // Loop over every atom in nbrCell
+          for (PairList::CellType::const_iterator it1 = nbrCell.begin();
+                                                  it1 != nbrCell.end(); ++it1)
+          {
+            bool it1_is_bond = (it1->Idx() < bond_max);
+            if (it0_is_bond != it1_is_bond) {
+
+            } // END it0 and it1 are not the same type
+          } // END loop over every atom in neighbor cell
+        } // END loop over all neighbor cells
+      } // END loop over all atoms of thisCell
+    } // END thisCell has atoms
+  } // END loop over pairlist cells
+# ifdef _OPENMP
+  } // END omp parallel
+# endif
 
   return Nproblems;
 }
