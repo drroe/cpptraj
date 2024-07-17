@@ -25126,6 +25126,14 @@ check
 
 \end_layout
 
+\begin_layout LyX-Code
+       [{noringcheck | [ringshortdist <rsdist>] [ringdcut <ringdcut>]
+\end_layout
+
+\begin_layout LyX-Code
+                       [ringacut <ringacut>]}]
+\end_layout
+
 \begin_deeper
 \begin_layout Description
 [<mask>] Check structure of atoms in <mask> (all if not specified).
@@ -25202,9 +25210,50 @@ skipbadframes
  only matters if box is present.
 \end_layout
 
+\begin_layout Description
+[noringcheck] If specified,
+ do not check for ring-bond intersections.
+\end_layout
+
+\begin_layout Description
+[ringshortdist
+\begin_inset space ~
+\end_inset
+
+<rsdist>] Report ring-bond intersection when ring to bond center distance is less than 
+\series bold
+<rsdist>
+\series default
+ (default 0.5 Ang).
+\end_layout
+
+\begin_layout Description
+[ringdcut
+\begin_inset space ~
+\end_inset
+
+<ringdcut>]
+\begin_inset space ~
+\end_inset
+
+[ringacut
+\begin_inset space ~
+\end_inset
+
+<ringacut>] Report ring-bond intersection when ring to bond center distance is less than 
+\series bold
+<ringdcut>
+\series default
+ (default 1.25 Ang.) and the angle between the bond vector and perpendicular ring vector is less than 
+\series bold
+<ringacut>
+\series default
+ (default 65 degrees).
+\end_layout
+
 \end_deeper
 \begin_layout Standard
-Check the structure and report problems related to atomic overlap/unusual bond length.
+Check the structure and report problems related to atomic overlap/unusual bond length/ring-bond intersections.
  Problems are reported when any two atoms in 
 \series bold
 <mask>
@@ -25240,6 +25289,20 @@ Check the structure and report problems related to atomic overlap/unusual bond l
 <minoffset>
 \series default
  are reported as well.
+ If ring-bond intersections are being checked for they will be reported when the ring center to bond center is less than 
+\series bold
+<rsdist>
+\series default
+,
+ or less than 
+\series bold
+<ringdcut>
+\series default
+ and the angle between the bond vector and ring perpendicular vector is less than 
+\series bold
+<ringacut>
+\series default
+.
  If box information is present and not using the 
 \series bold
 'around'
