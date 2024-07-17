@@ -646,7 +646,13 @@ int StructureCheck::CheckRings(Frame const& currentFrame, Cpptraj::Structure::Ri
   } // END pragma omp parallel
 # endif
 
-  int Nproblems = checkRings_NoPL(currentFrame, rings,  ringBonds, RingVecs);
+  int Nproblems = 0;
+  if (checkType_ == PL_1_MASK) {
+    // TODO check for valid box
+    Nproblems = checkRings_PL(currentFrame, rings,  ringBonds, RingVecs);
+  } else {
+    Nproblems = checkRings_NoPL(currentFrame, rings,  ringBonds, RingVecs);
+  }
 
   ConsolidateProblems();
 
