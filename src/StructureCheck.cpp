@@ -285,6 +285,58 @@ static inline void printRingAtoms(AtomMask const& maskIn) {
     mprintf(" %i", *it);
 }
 
+/** Check ring and bond */
+void StructureCheck::ring_bond_check(int& Nproblems,
+                                     double dist2, Btype const& bnd, Vec3 const& vbond,
+                                     AtomMask const& ringMask,
+                                     Cpptraj::Structure::LeastSquaresPlane const& ringVec)
+{
+  bool ring_intersect = false;
+  // Bond intersects ring if it meets the short cutoff or if the angle
+  // between the bond and the ring normal is less than a cutoff.
+  if (dist2 < ring_shortd2_) {
+    mprintf("DEBUG: Bond %i - %i near ring (%f).",
+            bnd.A1(), bnd.A2(), sqrt(dist2));
+    printRingAtoms(ringMask);
+    mprintf("\n");
+    ring_intersect = true;
+  } else {
+    mprintf("DEBUG: Bond %i - %i near ring (%f), doing angle check.",
+            bnd.A1(), bnd.A2(), sqrt(dist2));
+    printRingAtoms(ringMask);
+    mprintf("\n");
+    // Get the angle
+    double ang_in_rad = vbond.Angle( ringVec.Nxyz() );
+    // Wrap the angle between 0-90 degrees
+    if (ang_in_rad > Constants::PIOVER2)
+      ang_in_rad = Constants::PI - ang_in_rad;
+    mprintf("DEBUG:\t\tWrapped angle is %f deg.\n", Constants::RADDEG*ang_in_rad);
+    if (ang_in_rad < ring_acut_) {
+      mprintf("DEBUG: Bond %i - %i near ring (%f) Ang= %f deg.",
+              bnd.A1(), bnd.A2(), sqrt(dist2),
+              Constants::RADDEG*ang_in_rad);
+      //printRingAtoms(ringMask);
+      mprintf("\n");
+      ring_intersect = true;
+    }
+  }
+  if (ring_intersect) {
+    mprintf("DEBUG: Bond intersects ring.\n");
+    ++Nproblems;
+    if (saveProblems_) {
+      // Do not use constructor since we do not want to sort atoms
+      Problem newProb;
+      newProb.SetProb( bnd.A1(), ringMask.back(), sqrt(dist2) );
+#     ifdef _OPENMP
+      thread_problemAtoms_[mythread]
+#     else
+      problemAtoms_
+#     endif
+        .push_back( newProb );
+    }
+  } // END angle cutoff satisfied
+}
+
 /** Check if any bonds are passing through rings. */
 int StructureCheck::CheckRings(Frame const& currentFrame, Cpptraj::Structure::RingFinder const& rings, std::vector<Btype> const& ringBonds)
 {

@@ -9,6 +9,11 @@
 // Forward declares
 class Topology;
 class CharMask;
+namespace Cpptraj {
+namespace Structure {
+class LeastSquaresPlane;
+}
+}
 /// Used to count potential structure problems.
 class StructureCheck {
   public:
@@ -37,6 +42,7 @@ class StructureCheck {
     int CheckOverlaps(Frame const&);
     /// Check if any bonds are passing through rings.
     int CheckRings(Frame const&);
+    /// Check if any of the given bonds are passing through given rings.
     int CheckRings(Frame const&, Cpptraj::Structure::RingFinder const&, std::vector<Btype> const&);
 
     AtomMask const& Mask1()     const { return Mask1_; }
@@ -102,6 +108,9 @@ class StructureCheck {
     void ProcessBondArray(BondArray const&, BondParmArray const&, CharMask const&);
     /// Add selected bonds in topology to list to be checked.
     void SetupBondList(AtomMask const&, Topology const&);
+    /// Check for intersection between bond and ring
+    void ring_bond_check(int&, double, Btype const&, Vec3 const&, AtomMask const&,
+                         Cpptraj::Structure::LeastSquaresPlane const&);
     /// PairList version of CheckOverlap, 1 mask
     int PL1_CheckOverlap(Frame const&);
     /// Non-pairlist version of CheckOverlap, 1 mask
