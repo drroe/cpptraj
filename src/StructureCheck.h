@@ -129,6 +129,9 @@ class StructureCheck {
     double bondMinOffset_;  ///< Report bonds less than Req - bondMinOffset_
     double nonbondcut2_;    ///< Report distance^2 less than nonbondcut2_
     double plcut_;          ///< Pairlist cutoff
+    double ring_shortd2_;   ///< Ring center to bond center short distance (Ang) cutoff squared.
+    double ring_dcut2_;     ///< Ring center to bond center distance (Ang) cutoff squared.
+    double ring_acut_;      ///< Ring perpendicular vector to bond vector angle cutoff (rad).
     CheckType checkType_;   ///< Type of atom overlap check
     int debug_;             ///< Debug level.
     bool bondcheck_;        ///< If true check bonds as well

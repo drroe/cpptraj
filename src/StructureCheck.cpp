@@ -14,8 +14,15 @@
 StructureCheck::StructureCheck() :
   bondoffset_(1.15),
   bondMinOffset_(0.50),
-  nonbondcut2_(0.64), // 0.8^2
+  nonbondcut2_(0.64), // (0.8 Ang)^2
   plcut_(8.0),
+  ring_shortd2_(0.25), // Short ring-bond 0.5 Ang. distance cutoff
+  ring_dcut2_(1.562500), // 1.25 Ang. ring-bond distance cutoff
+  //ring_dcut2_(1.3225), // Initial 1.15 Ang. ring-bond distance cutoff
+  ring_acut_(1.1344640138), // 65 deg. ringvec-bondvec angle cutoff
+  //ring_acut_(1.0471975512), // 60 deg. ringvec-bondvec angle cutoff
+  //ring_acut_(0.174533), // 10 deg. angle cutoff
+  //ring_acut_(0.7853981634), // 45 deg. angle cutoff for ring_dcut2 > dist2 > ring_shortd2
   checkType_(NO_PL_1_MASK),
   debug_(0),
   bondcheck_(true),
@@ -257,13 +264,6 @@ int StructureCheck::CheckRings(Frame const& currentFrame, Cpptraj::Structure::Ri
 {
   int Nproblems = 0;
   problemAtoms_.clear();
-  //static const double ring_dcut2 = 1.3225; // Initial 1.15 Ang distance cutoff
-  static const double ring_shortd2 = 0.25; // Short 0.5 Ang distance cutoff
-  //static const double ring_acut = 1.0471975512; // 60 deg. Ang cutoff
-  static const double ring_acut = 1.1344640138; // 65 deg. Ang cutoff
-  //static const double ring_acut  = 0.174533; // 10 deg. angle cutoff
-  static const double ring_dcut2 = 1.562500; // 1.25 Ang distance cutoff
-/*  static const double ring_acut = 0.7853981634; // 45 deg. angle cutoff for ring_dcut2 > dist2 > ring_shortd2*/
   // Get all ring vectors
   typedef std::vector<Cpptraj::Structure::LeastSquaresPlane> Larray;
   Larray RingVecs;
@@ -313,11 +313,11 @@ int StructureCheck::CheckRings(Frame const& currentFrame, Cpptraj::Structure::Ri
         // Get the center distance
         Cpptraj::Structure::LeastSquaresPlane const& ringVec = RingVecs[jdx];
         double dist2 = DIST2_NoImage( vmid.Dptr(), ringVec.Cxyz().Dptr() );
-        if (dist2 < ring_dcut2) {
+        if (dist2 < ring_dcut2_) {
           bool ring_intersect = false;
           // Bond intersects ring if it meets the short cutoff or if the angle
           // between the bond and the ring normal is less than a cutoff.
-          if (dist2 < ring_shortd2) {
+          if (dist2 < ring_shortd2_) {
             mprintf("DEBUG: Bond %i - %i near ring %i (%f).",
                     ringBonds[idx].A1(), ringBonds[idx].A2(), jdx, sqrt(dist2));
             printRingAtoms(ringMask);
@@ -334,7 +334,7 @@ int StructureCheck::CheckRings(Frame const& currentFrame, Cpptraj::Structure::Ri
             if (ang_in_rad > Constants::PIOVER2)
               ang_in_rad = Constants::PI - ang_in_rad;
             mprintf("DEBUG:\t\tWrapped angle is %f deg.\n", Constants::RADDEG*ang_in_rad);
-            if (ang_in_rad < ring_acut) {
+            if (ang_in_rad < ring_acut_) {
               mprintf("DEBUG: Bond %i - %i near ring %i (%f) Ang= %f deg.",
                       ringBonds[idx].A1(), ringBonds[idx].A2(), jdx, sqrt(dist2),
                       Constants::RADDEG*ang_in_rad);
