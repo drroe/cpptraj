@@ -20463,7 +20463,7 @@ Mod
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="91" columns="3">
+<lyxtabular version="3" rows="92" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="65text%">
@@ -20498,6 +20498,35 @@ Description
 
 \series bold
 Mod
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+addatom
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Temporarily add an atom to the system.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+X
 \end_layout
 
 \end_inset
@@ -23214,6 +23243,164 @@ X
 \end_inset
 
 
+\end_layout
+
+\begin_layout Subsection
+addatom
+\end_layout
+
+\begin_layout LyX-Code
+addatom aname <name> [elt <element>] [rname <res name>]
+\end_layout
+
+\begin_layout LyX-Code
+        [xyz <X> <Y> <Z>] [mass <mass>] [charge <charge>]
+\end_layout
+
+\begin_layout LyX-Code
+        [outprefix <prefix>] [nobox] [parmout <filename>]
+\end_layout
+
+\begin_layout LyX-Code
+        [parmopts <comma-separated-list>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+aname
+\begin_inset space ~
+\end_inset
+
+<name> New atom name.
+ Required.
+\end_layout
+
+\begin_layout Description
+[elt
+\begin_inset space ~
+\end_inset
+
+<element>] One or two character element string (e.g.
+ 'H' is hydrogen etc.).
+ Default is 'H'.
+\end_layout
+
+\begin_layout Description
+[rname
+\begin_inset space ~
+\end_inset
+
+<res
+\begin_inset space ~
+\end_inset
+
+name>] New residue name for the new atom.
+ Default is 'TMP'.
+\end_layout
+
+\begin_layout Description
+[xyz
+\begin_inset space ~
+\end_inset
+
+<X>
+\begin_inset space ~
+\end_inset
+
+<Y>
+\begin_inset space ~
+\end_inset
+
+<Z>] Cartesian XYZ coordinates of the new atom.
+ Default is 0 0 0.
+\end_layout
+
+\begin_layout Description
+[mass
+\begin_inset space ~
+\end_inset
+
+<mass>] Mass of the new atom.
+ Default is based off of the element type.
+\end_layout
+
+\begin_layout Description
+[charge
+\begin_inset space ~
+\end_inset
+
+<charge>] Charge of the new atom.
+ Default is 0.
+\end_layout
+
+\begin_layout Description
+[outprefix
+\begin_inset space ~
+\end_inset
+
+<prefix>] Write out modified topology file with name '<prefix>.<Original Topology Name>'.
+\end_layout
+
+\begin_layout Description
+[nobox] Remove any box information from the modified topology.
+\end_layout
+
+\begin_layout Description
+[parmout
+\begin_inset space ~
+\end_inset
+
+<file>] Write modified topology to file with name <file>.
+\end_layout
+
+\begin_layout Description
+[parmopts
+\begin_inset space ~
+\end_inset
+
+<list>] Options for writing modified topology file.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Temporarily add an atom to the system.
+ This is mostly useful for adding a placeholder 
+\begin_inset Quotes eld
+\end_inset
+
+dummy
+\begin_inset Quotes erd
+\end_inset
+
+ atom for subsequent actions to use.
+ For example,
+ this can be used in conjunction with the 
+\series bold
+\emph on
+'mask'
+\series default
+\emph default
+ command in order to get a list of atoms within a certain distance of a specified point in space.
+ For example,
+ the following input gets a list of atoms within 3.0 Angstroms of coordinates 1,
+ 1,
+ 1:
+\end_layout
+
+\begin_layout LyX-Code
+parm tz2.pdb
+\end_layout
+
+\begin_layout LyX-Code
+trajin tz2.pdb 1 1
+\end_layout
+
+\begin_layout LyX-Code
+addatom aname TEMP rname TMP elt H xyz 1 1 1
+\end_layout
+
+\begin_layout LyX-Code
+mask :TMP<@3.0&!:TMP out tz2.mask.dat name TZ2
 \end_layout
 
 \begin_layout Subsection
