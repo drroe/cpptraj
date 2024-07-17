@@ -30,6 +30,21 @@ StructureCheck::StructureCheck() :
   saveProblems_(false)
 {}
 
+/** \return Ring-bond short distance cutoff in Ang. */
+double StructureCheck::RingShortDist() const {
+  return sqrt(ring_shortd2_);
+}
+
+/** \return Ring-bond distance cutoff in Ang. */
+double StructureCheck::RingDist() const {
+  return sqrt(ring_dcut2_);
+}
+
+/** \return Ring vector-bond vector angle cutoff in degrees. */
+double StructureCheck::RingAngleCut_Deg() const {
+  return ring_acut_ * Constants::RADDEG;
+}
+
 // StructureCheck::SetOptions()
 int StructureCheck::SetOptions(bool imageOn, bool checkBonds, bool saveProblemsIn, int debugIn,
                                std::string const& mask1, std::string const& mask2,

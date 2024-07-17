@@ -206,8 +206,11 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
     rescutoff_ *= rescutoff_;
     // Increment backtrack by 1 since we need to skip over current res
     ++backtrack_;
-    // Initialize CheckStructure
-    if (checkStructure_.SetOptions( imageOn, checkRings_, false, State.Debug(), "*", "", 0.8, 1.15, 0.5, -1 )) {
+    // Initialize CheckStructure. The last 3 args being 0 means use defaults
+    // for the ring check.
+    if (checkStructure_.SetOptions( imageOn, checkRings_, false, State.Debug(), "*", "", 0.8, 1.15, 0.5, -1,
+                                    checkRings_, 0, 0, 0 ))
+    {
       mprinterr("Error: Could not set up structure check.\n");
       return CpptrajState::ERR;
     }

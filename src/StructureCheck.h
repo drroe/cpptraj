@@ -43,9 +43,12 @@ class StructureCheck {
     AtomMask const& Mask2()     const { return Mask2_; }
     ImageOption const& ImageOpt() const { return imageOpt_; }
     bool CheckBonds()           const { return bondcheck_; }
-    bool CheckRings()           const { return ringcheck_; }
     double BondOffset()         const { return bondoffset_; }
     double BondMinOffset()      const { return bondMinOffset_; }
+    bool CheckRings()           const { return ringcheck_; }
+    double RingShortDist() const;
+    double RingDist() const;
+    double RingAngleCut_Deg() const;
     double NonBondCut2()        const { return nonbondcut2_; }
     double PairListCut()        const { return plcut_; }
     unsigned int Nbonds()       const { return bondList_.size(); }

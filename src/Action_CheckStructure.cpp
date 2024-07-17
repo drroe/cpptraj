@@ -62,7 +62,11 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
     nonbondcut,
     actionArgs.getKeyDouble("offset",1.15),
     actionArgs.getKeyDouble("minoffset", 0.5),
-    plcut
+    plcut,
+    !actionArgs.hasKey("noringcheck"),
+    actionArgs.getKeyDouble("ringshortdist", 0), // 0 means use StructureCheck default
+    actionArgs.getKeyDouble("ringdcut", 0),      // 0 means use StructureCheck default
+    actionArgs.getKeyDouble("ringacut", 0)       // 0 means use StructureCheck default
   );
   if (err != 0) return Action::ERR;
   // Remaining keywords
@@ -110,12 +114,21 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
     mprintf("\tNumber of problems each frame will be written to '%s'\n",
             dfile->DataFilename().full());
   if (!check_.CheckBonds())
-    mprintf("\tChecking inter-atomic distances only.\n");
+    mprintf("\tNot checking bond lengths.\n");
   else
     mprintf("\tChecking for bond lengths greater than eq. length + %.2f Ang and\n"
             "\t  less than eq. length - %.2f Ang.\n", check_.BondOffset(),
             check_.BondMinOffset());
-    
+  if (!check_.CheckRings())
+    mprintf("\tNot checking for bond-ring intersections.\n");
+  else {
+    mprintf("\tChecking for bond-ring intersections.\n");
+    mprintf("\t  Ring center to bond center distance < %g Ang. is considered intersecting.\n",
+            check_.RingShortDist());
+    mprintf("\t  Ring center to bond center distance < %g Ang. is considered intersecting\n"
+            "\t    if the angle between the bond and perpendicular ring vectors is < %g deg.\n",
+            check_.RingDist(), check_.RingAngleCut_Deg());
+  }
   mprintf("\tChecking for inter-atomic distances < %.2f Ang.\n",
           nonbondcut);
   if (skipBadFrames_) {
