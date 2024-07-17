@@ -66,7 +66,7 @@ int StructureCheck::SetOptions(bool imageOn, bool checkBonds, bool saveProblemsI
   if (ring_dcut > 0)
     ring_dcut2_ = ring_dcut * ring_dcut;
   if (ring_acut > 0)
-    ring_acut_ = ring_acut;
+    ring_acut_ = ring_acut * Constants::DEGRAD;
   if (Mask1_.SetMaskString( mask1 )) return 1;
   if (!mask2.empty()) {
     if (Mask2_.SetMaskString( mask2 )) return 1;
