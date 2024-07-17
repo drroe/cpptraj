@@ -1594,7 +1594,7 @@ void Action_HydrogenBond::Print() {
 # ifdef TIMER
   t_uu_.WriteTiming(      2,"Solute-Solute   :",t_action_.Total());
   if (calcSolvent_) {
-    t_uv_.WriteTiming(    2,"Solute-Solvent  :",t_uv_.Total());
+    t_uv_.WriteTiming(    2,"Solute-Solvent  :",t_action_.Total());
     t_bridge_.WriteTiming(2,"Bridging waters :",t_action_.Total());
   }
   t_action_.WriteTiming(1,"Total:");
