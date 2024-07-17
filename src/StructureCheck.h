@@ -28,7 +28,7 @@ class StructureCheck {
     StructureCheck();
     /// Options: imageOn, checkBonds, saveProblems, debug, mask1, mask2, ovrlpCut, bndLenOffset, minBndLenOffset, PListCut
     int SetOptions(bool, bool, bool, int, std::string const&, std::string const&,
-                   double, double, double, double);
+                   double, double, double, double, bool, double, double, double);
     /// Setup for given topology and box.
     int Setup(Topology const&, Box const&);
     /// \return Number of abnormal bonds.
@@ -43,6 +43,7 @@ class StructureCheck {
     AtomMask const& Mask2()     const { return Mask2_; }
     ImageOption const& ImageOpt() const { return imageOpt_; }
     bool CheckBonds()           const { return bondcheck_; }
+    bool CheckRings()           const { return ringcheck_; }
     double BondOffset()         const { return bondoffset_; }
     double BondMinOffset()      const { return bondMinOffset_; }
     double NonBondCut2()        const { return nonbondcut2_; }
@@ -135,6 +136,7 @@ class StructureCheck {
     CheckType checkType_;   ///< Type of atom overlap check
     int debug_;             ///< Debug level.
     bool bondcheck_;        ///< If true check bonds as well
+    bool ringcheck_;        ///< If true check bond/ring intersections
     bool saveProblems_;     ///< If true save problems in problemAtoms_
 };
 #endif

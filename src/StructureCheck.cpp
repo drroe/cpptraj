@@ -26,6 +26,7 @@ StructureCheck::StructureCheck() :
   checkType_(NO_PL_1_MASK),
   debug_(0),
   bondcheck_(true),
+  ringcheck_(true),
   saveProblems_(false)
 {}
 
@@ -33,16 +34,24 @@ StructureCheck::StructureCheck() :
 int StructureCheck::SetOptions(bool imageOn, bool checkBonds, bool saveProblemsIn, int debugIn,
                                std::string const& mask1, std::string const& mask2,
                                double overlapCut, double bondLengthOffset, double bondMinOffset,
-                               double pairListCut)
+                               double pairListCut,
+                               bool checkRings, double ring_shortd, double ring_dcut, double ring_acut)
 {
   imageOpt_.InitImaging( imageOn );
   bondcheck_ = checkBonds;
+  ringcheck_ = checkRings;
   saveProblems_ = saveProblemsIn;
   debug_ = debugIn;
   bondoffset_ = bondLengthOffset;
   bondMinOffset_ = bondMinOffset;
   nonbondcut2_ = overlapCut * overlapCut; // Save cutoff squared.
   plcut_ = pairListCut;
+  if (ring_shortd > 0)
+    ring_shortd2_ = ring_shortd * ring_shortd;
+  if (ring_dcut > 0)
+    ring_dcut2_ = ring_dcut * ring_dcut;
+  if (ring_acut > 0)
+    ring_acut_ = ring_acut;
   if (Mask1_.SetMaskString( mask1 )) return 1;
   if (!mask2.empty()) {
     if (Mask2_.SetMaskString( mask2 )) return 1;
@@ -114,7 +123,7 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
   }
   checkType_ = NO_PL_1_MASK;
   // Set up bonds if specified.
-  if (bondcheck_) SetupBondList(Mask1_, topIn);
+  if (bondcheck_ || ringcheck_) SetupBondList(Mask1_, topIn);
   // Set up second mask if specified.
   if ( Mask2_.MaskStringSet() ) {
     if (topIn.SetupIntegerMask( Mask2_ ) ) return 1;
@@ -134,7 +143,7 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
       OuterMask_ = Mask1_;
       InnerMask_ = Mask2_;
     }
-    if (bondcheck_) SetupBondList(Mask2_, topIn);
+    if (bondcheck_ || ringcheck_) SetupBondList(Mask2_, topIn);
     checkType_ = NO_PL_2_MASKS;
   }
   // Check if pairlist should be used.
@@ -183,13 +192,15 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
   } else
     mprintf("\tNot using exclusions.\n");
   // Sort bond list
-  if (bondcheck_) std::sort(bondList_.begin(), bondList_.end());
+  if (bondcheck_ || ringcheck_) std::sort(bondList_.begin(), bondList_.end());
   // Find rings
-  if (rings_.SetupRingFinder(topIn, Mask1_)) {
-    mprinterr("Error: Could not set up ring finder.\n");
-    return 1;
+  if (ringcheck_) {
+    if (rings_.SetupRingFinder(topIn, Mask1_)) {
+      mprinterr("Error: Could not set up ring finder.\n");
+      return 1;
+    }
+    if (debug_ > 0) rings_.PrintRings(topIn);
   }
-  if (debug_ > 0) rings_.PrintRings(topIn);
 
   return 0;
 }
