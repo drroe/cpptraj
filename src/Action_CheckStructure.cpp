@@ -193,17 +193,40 @@ void Action_CheckStructure::WriteProblems(FmtType ft, int frameNum, Topology con
 
 // Action_CheckStructure::DoAction()
 Action::RetType Action_CheckStructure::DoAction(int frameNum, ActionFrame& frm) {
+# ifdef TIMER
+  t_total_.Start();
+# endif
   int fnum = frm.TrajoutNum() + 1;
-
+# ifdef TIMER
+  t_overlap_.Start();
+# endif
   int total_problems = check_.CheckOverlaps(frm.Frm());
+# ifdef TIMER
+  t_overlap_.Stop();
+# endif
   if (outfile_ != 0) WriteProblems(F_ATOM, fnum, *CurrentParm_);
   if (check_.CheckBonds()) {
+#   ifdef TIMER
+    t_bonds_.Start();
+#   endif
     total_problems += check_.CheckBonds(frm.Frm());
+#   ifdef TIMER
+    t_bonds_.Stop();
+#   endif
     if (outfile_ != 0) WriteProblems(F_BOND, fnum, *CurrentParm_);
+#   ifdef TIMER
+    t_rings_.Start();
+#   endif
     total_problems += check_.CheckRings(frm.Frm()); // FIXME
+#   ifdef TIMER
+    t_rings_.Stop();
+#   endif
     if (outfile_ != 0) WriteProblems(F_RING, fnum, *CurrentParm_);
   }
   num_problems_->Add( frameNum, &total_problems );
+# ifdef TIMER
+  t_total_.Stop();
+# endif
   if (total_problems > 0 && skipBadFrames_)
     return Action::SUPPRESS_COORD_OUTPUT;
   return Action::OK;
@@ -236,6 +259,12 @@ int Action_CheckStructure::SyncAction() {
 #endif
 
 void Action_CheckStructure::Print() {
+# ifdef TIMER
+  t_overlap_.WriteTiming(2, "Check overlaps           :", t_total_.Total());
+  t_bonds_.WriteTiming  (2, "Check bond lengths       :", t_total_.Total());
+  t_rings_.WriteTiming  (2, "Check ring intersections :", t_total_.Total());
+  t_total_.WriteTiming(1, "Total check time :");
+# endif
 # ifdef MPI
   if (outfile_ != 0) {
     mprintf("    CHECKSTRUCTURE: Writing to %s\n", outfile_->Filename().full());
