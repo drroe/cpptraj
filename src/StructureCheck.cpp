@@ -380,6 +380,14 @@ int StructureCheck::checkRings_PL(Frame const& currentFrame,
   } // END pragma omp parallel
 # endif
 
+  // Rings second
+  idx = bond_max;
+  for (unsigned int jdx = 0; jdx != rings.Nrings(); jdx++, idx++) {
+    Cpptraj::Structure::LeastSquaresPlane const& ringVec = RingVecs[jdx];
+    pseudoFrame.SetXYZ(idx, ringVec.Cxyz());
+  }
+
+
   return Nproblems;
 }
 
