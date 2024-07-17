@@ -115,6 +115,8 @@ class StructureCheck {
                          , int
 #                        endif
                         );
+    /// \return True if given bond not in given ring mask
+    static inline bool check_bond_not_in_ring(AtomMask const&, Btype const&);
     /// Check for intersections between bonds and rings, no pair list
     int checkRings_NoPL(Frame const&, Cpptraj::Structure::RingFinder const&,
                         std::vector<Btype> const&,

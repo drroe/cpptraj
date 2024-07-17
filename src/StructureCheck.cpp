@@ -341,6 +341,12 @@ void StructureCheck::ring_bond_check(int& Nproblems,
   } // END angle cutoff satisfied
 }
 
+bool StructureCheck::check_bond_not_in_ring(AtomMask const& ringMask, Btype const& bnd)
+{
+  return ( !ringMask.IsSelected(bnd.A1()) &&
+           !ringMask.IsSelected(bnd.A2()) );
+}
+
 /** Check if any bonds are passing through rings, use pairlist. */
 int StructureCheck::checkRings_PL(Frame const& currentFrame,
                                   Cpptraj::Structure::RingFinder const& rings,
@@ -435,7 +441,33 @@ int StructureCheck::checkRings_PL(Frame const& currentFrame,
         {
           bool it1_is_bond = (it1->Idx() < bond_max);
           if (it0_is_bond != it1_is_bond) {
-
+            AtomMask const* ringMask = 0;
+            Cpptraj::Structure::LeastSquaresPlane const* ringVec = 0;
+            Btype const* rbnd = 0;
+            Vec3 const* vbond = 0;
+            if (it0_is_bond) {
+              ringMask = &(rings[it1->Idx() - bond_max]);
+              ringVec = &(RingVecs[it1->Idx() - bond_max]);
+              rbnd = &(ringBonds[it0->Idx()]);
+              vbond = &(Vbonds[it0->Idx()]);
+            } else {
+              ringMask = &(rings[it0->Idx() - bond_max]);
+              ringVec = &(RingVecs[it0->Idx() - bond_max]);
+              rbnd = &(ringBonds[it1->Idx()]);
+              vbond = &(Vbonds[it1->Idx()]);
+            }
+            if (check_bond_not_in_ring( *ringMask, *rbnd )) {
+              Vec3 const& xyz1 = it1->ImageCoords();
+              Vec3 dxyz = xyz1 - xyz0;
+              double dist2 = dxyz.Magnitude2();
+              if (dist2 < ring_dcut2_) {
+                ring_bond_check(Nproblems, dist2, *rbnd, *vbond, *ringMask, *ringVec
+#                               ifdef _OPENMP
+                                , mythread
+#                               endif
+                               );
+              }  // END outer distance cutoff satisfied
+            } // END bond not in ring
           } // END it0 and it1 are not the same type
         } // END loop over all other atoms of thisCell.
         // Loop over all neighbor cells
@@ -450,7 +482,33 @@ int StructureCheck::checkRings_PL(Frame const& currentFrame,
           {
             bool it1_is_bond = (it1->Idx() < bond_max);
             if (it0_is_bond != it1_is_bond) {
-
+              AtomMask const* ringMask = 0;
+              Cpptraj::Structure::LeastSquaresPlane const* ringVec = 0;
+              Btype const* rbnd = 0;
+              Vec3 const* vbond = 0;
+              if (it0_is_bond) {
+                ringMask = &(rings[it1->Idx() - bond_max]);
+                ringVec = &(RingVecs[it1->Idx() - bond_max]);
+                rbnd = &(ringBonds[it0->Idx()]);
+                vbond = &(Vbonds[it0->Idx()]);
+              } else {
+                ringMask = &(rings[it0->Idx() - bond_max]);
+                ringVec = &(RingVecs[it0->Idx() - bond_max]);
+                rbnd = &(ringBonds[it1->Idx()]);
+                vbond = &(Vbonds[it1->Idx()]);
+              }
+              if (check_bond_not_in_ring( *ringMask, *rbnd )) {
+                Vec3 const& xyz1 = it1->ImageCoords();
+                Vec3 dxyz = xyz1 + tVec - xyz0;
+                double dist2 = dxyz.Magnitude2();
+                if (dist2 < ring_dcut2_) {
+                  ring_bond_check(Nproblems, dist2, *rbnd, *vbond, *ringMask, *ringVec
+#                                 ifdef _OPENMP
+                                  , mythread
+#                                 endif
+                                 );
+                } // END outer distance cutoff satisfied
+              } // END bond not in ring
             } // END it0 and it1 are not the same type
           } // END loop over every atom in neighbor cell
         } // END loop over all neighbor cells
