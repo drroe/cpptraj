@@ -392,6 +392,8 @@ int StructureCheck::CheckRings(Frame const& currentFrame, Cpptraj::Structure::Ri
         Cpptraj::Structure::LeastSquaresPlane const& ringVec = RingVecs[jdx];
         double dist2 = DIST2_NoImage( vmid.Dptr(), ringVec.Cxyz().Dptr() );
         if (dist2 < ring_dcut2_) {
+          ring_bond_check(Nproblems, dist2, ringBonds[idx], vbond, ringMask, ringVec);
+/*
           bool ring_intersect = false;
           // Bond intersects ring if it meets the short cutoff or if the angle
           // between the bond and the ring normal is less than a cutoff.
@@ -436,6 +438,7 @@ int StructureCheck::CheckRings(Frame const& currentFrame, Cpptraj::Structure::Ri
                 .push_back( newProb );
             }
           } // END angle cutoff satisfied
+*/
         } // END distance cutoff satisfied
       } // END both bond atoms are not part of this ring
     } // END loop over rings
