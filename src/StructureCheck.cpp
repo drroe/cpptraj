@@ -289,7 +289,11 @@ static inline void printRingAtoms(AtomMask const& maskIn) {
 void StructureCheck::ring_bond_check(int& Nproblems,
                                      double dist2, Btype const& bnd, Vec3 const& vbond,
                                      AtomMask const& ringMask,
-                                     Cpptraj::Structure::LeastSquaresPlane const& ringVec)
+                                     Cpptraj::Structure::LeastSquaresPlane const& ringVec
+#                                    ifdef _OPENMP
+                                     , int mythread
+#                                    endif
+                                    )
 {
   bool ring_intersect = false;
   // Bond intersects ring if it meets the short cutoff or if the angle
@@ -392,7 +396,11 @@ int StructureCheck::CheckRings(Frame const& currentFrame, Cpptraj::Structure::Ri
         Cpptraj::Structure::LeastSquaresPlane const& ringVec = RingVecs[jdx];
         double dist2 = DIST2_NoImage( vmid.Dptr(), ringVec.Cxyz().Dptr() );
         if (dist2 < ring_dcut2_) {
-          ring_bond_check(Nproblems, dist2, ringBonds[idx], vbond, ringMask, ringVec);
+          ring_bond_check(Nproblems, dist2, ringBonds[idx], vbond, ringMask, ringVec
+#                         ifdef _OPENMP
+                          , mythread
+#                         endif
+                         );
 /*
           bool ring_intersect = false;
           // Bond intersects ring if it meets the short cutoff or if the angle

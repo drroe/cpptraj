@@ -110,7 +110,11 @@ class StructureCheck {
     void SetupBondList(AtomMask const&, Topology const&);
     /// Check for intersection between bond and ring
     void ring_bond_check(int&, double, Btype const&, Vec3 const&, AtomMask const&,
-                         Cpptraj::Structure::LeastSquaresPlane const&);
+                         Cpptraj::Structure::LeastSquaresPlane const&
+#                        ifdef _OPENMP
+                         , int
+#                        endif
+                        );
     /// PairList version of CheckOverlap, 1 mask
     int PL1_CheckOverlap(Frame const&);
     /// Non-pairlist version of CheckOverlap, 1 mask
