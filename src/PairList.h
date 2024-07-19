@@ -78,8 +78,10 @@ class PairList {
     void Timing(double, int) const;
     /// Print memory usage.
     void PrintMemory() const;
-    /// Print cells to stdout
+    /// Print cell contents to stdout
     void PrintCells() const;
+    /// Print cell map to stdout
+    void PrintCellMap() const;
     /// \return Number of grid cells.
     int NGridMax()                const { return (int)cells_.size(); }
     /// \return Specified grid cell.
@@ -94,6 +96,8 @@ class PairList {
     int NZ() const { return nGridZ_; }
 #   endif
   private:
+    /// \return True if the given cell index is valid
+    bool validCellIndex(int) const;
     /// Determine neighbors and translation vectors for each cell.
     void CalcGridPointers(int,int);
     /// Check grid dimensions using given recip lengths and (re)allocate mem if necessary.
