@@ -17,6 +17,9 @@ class DataIO_LeapRC : public DataIO {
     int WriteData(FileName const&, DataSetList const&);
     bool ID_DataFormat(CpptrajFile&);
   private:
+    /// Store atom type hybridization and element from leaprc addAtomTypes
+    class LeapEltHybrid;
+
     typedef std::pair<NameType, AtomType::HybridizationType> NHpairType;
     typedef std::map<NameType, AtomType::HybridizationType> NHarrayType;
     typedef std::vector<std::string> Sarray;

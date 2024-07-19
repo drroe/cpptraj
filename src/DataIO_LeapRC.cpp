@@ -15,6 +15,46 @@
 #include "Trajout_Single.h"
 #include <cstdlib> //getenv
 
+// -----------------------------------------------------------------------------
+// LeapEltHybrid class
+/// Store atom type hybridization and element from leaprc addAtomTypes
+class DataIO_LeapRC::LeapEltHybrid {
+  public:
+    //LeapEltHybrid() : hybrid_(AtomType::UNKNOWN_HYBRIDIZATION) { elt_[0]=' '; elt_[1]=' '; }
+    /// CONSTRUCTOR - take hybridization string, element string
+    LeapEltHybrid(std::string const& hybStr, std::string const& eltStr) {
+      // Hybridization
+      if (hybStr == "sp3")
+        hybrid_ = AtomType::SP3;
+      else if (hybStr == "sp2")
+        hybrid_ = AtomType::SP2;
+      else if (hybStr == "sp")
+        hybrid_ = AtomType::SP;
+      else {
+        mprintf("Warning: Unknown hybridization in addAtomTypes entry %s\n", hybStr.c_str());
+        hybrid_ = AtomType::UNKNOWN_HYBRIDIZATION;
+      }
+      elt_[0] = ' ';
+      elt_[1] = ' ';
+      if (eltStr.empty()) {
+        // Assume extra point
+        elt_[0] = 'X'; elt_[1] = 'P';
+      } else if (eltStr.size() == 1) {
+        elt_[0] = eltStr[0];
+      } else {
+        // 2 or more characters
+        elt_[0] = eltStr[0];
+        elt_[1] = eltStr[1];
+        if (eltStr.size() > 2)
+          mprintf("Warning: Element string '%s' has more than 2 chars. Only using first 2 chars.\n", eltStr.c_str());
+      }
+    }
+  private:
+    AtomType::HybridizationType hybrid_;
+    char elt_[2]; ///< Hold 2 char element name
+};
+
+// -----------------------------------------------------------------------------
 /// CONSTRUCTOR
 DataIO_LeapRC::DataIO_LeapRC()
 {
