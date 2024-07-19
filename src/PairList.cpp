@@ -285,7 +285,7 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
             // Wrap ix if necessary
             if (ix < nGridX_) {
 //              mprintf(" %i+0", idx2+ix);
-              if (validCellIndex( idx + ix )) {
+              if (validCellIndex( idx2 + ix )) {
                 Nbr.push_back( idx2 + ix );
                 Ntr.push_back( 4 ); // No translation. 0 0 0
               }
