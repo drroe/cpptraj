@@ -111,7 +111,7 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
   if (box_needs_update) {
     crdOut->UpdateCoordsInfoBox( updateBox );
     mprintf("Info: crdaction: Box for '%s' was modified by action '%s'\n",
-            CRD->legend(), actionargs.Command());
+            crdOut->legend(), actionargs.Command());
     if (State.Debug() > 0)
       crdOut->CoordsInfo().TrajBox().PrintInfo();
   }
