@@ -15,7 +15,8 @@ PairList::PairList() :
   nGridZ_(-1),
   nGridX_0_(-1),
   nGridY_0_(-1),
-  nGridZ_0_(-1)
+  nGridZ_0_(-1),
+  small_grid_(false)
 {}
 
 /** This leads to cellNeighbor_ dimensions of 7x10 */
@@ -247,6 +248,7 @@ bool PairList::validCellIndex(int cidx) const {
   * care about forward direction.
   */
 void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
+  small_grid_ = false;
   // DEBUG - Check for duplicated interactions
 /*  Matrix<int> PairCalcd;
   PairCalcd.resize(cells_.size(), 0); // Half matrix
@@ -406,10 +408,21 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
           }
 */
           // END DEBUG
+          // Check if any of the neighbors is in fact this cell
+          if (!small_grid_) {
+            for (unsigned int nidx = 1; nidx < Nbr.size(); nidx++) {
+              if ( idx == Nbr[nidx] ) {
+                small_grid_ = true;
+                break;
+              }
+            }
+          }
         } // END my cell
       } // nx
     } // ny
   } // nz
+  if (small_grid_)
+    mprintf("Warning: One or more cells is a neighbor of itself. This usually indicates a very small box.\n");
 }
 
 void PairList::Timing(double total) const { Timing(total, 2); }
