@@ -1124,7 +1124,7 @@ int AssignParams::UpdateParameters(Topology& topOut, ParameterSet const& set1) c
   ParameterSet::UpdateCount UC;
   if (set0.UpdateParamSet( set1, UC, debug_, debug_ )) { // FIXME verbose
     mprinterr("Error: Could not merge topology '%s' parameters with '%s' parameters.\n",
-              c_str(), set1.ParamSetName().c_str());
+              topOut.c_str(), set1.ParamSetName().c_str());
     return 1;
   }
   mprintf("DEBUG: Updated parameters.\n");
@@ -1136,19 +1136,19 @@ int AssignParams::UpdateParameters(Topology& topOut, ParameterSet const& set1) c
 //  updateCount = UpdateParameters< ParmHolder<BondParmType> >(set0.BP(), set1.BP(), "bond");
   if (UC.nBondsUpdated_ > 0) {
     mprintf("\tRegenerating bond parameters.\n");
-    AssignBondParams( set0.BP() );
+    AssignBondParams( topOut, set0.BP() );
   }
   // Angle parameters
 //  updateCount = UpdateParameters< ParmHolder<AngleParmType> >(set0.AP(), set1.AP(), "angle");
   if (UC.nAnglesUpdated_ > 0) {
     mprintf("\tRegenerating angle parameters.\n");
-    AssignAngleParams( set0.AP() );
+    AssignAngleParams( topOut, set0.AP() );
   }
   // Dihedral parameters
 //  updateCount = UpdateParameters< DihedralParmHolder >(set0.DP(), set1.DP(), "dihedral");
   if (UC.nDihedralsUpdated_ > 0) {
     mprintf("\tRegenerating dihedral parameters.\n");
-    AssignDihedralParams( set0.DP(), set0.IP(), set0.AT() );
+    AssignDihedralParams( topOut, set0.DP(), set0.IP(), set0.AT() );
   }
   // Urey-Bradley
 //  updateCount = UpdateParameters< ParmHolder<BondParmType> >(set0.UB(), set1.UB(), "Urey-Bradley");
@@ -1160,7 +1160,7 @@ int AssignParams::UpdateParameters(Topology& topOut, ParameterSet const& set1) c
 //  updateCount = UpdateParameters< ParmHolder<DihedralParmType> >(set0.IP(), set1.IP(), "improper");
   if (UC.nImpropersUpdated_ > 0) {
     mprintf("\tRegenerating improper parameters.\n");
-    AssignImproperParams( set0.IP() );
+    AssignImproperParams( topOut, set0.IP() );
   }
   // Atom types
 //  updateCount = UpdateParameters< ParmHolder<AtomType> >(set0.AT(), set1.AT(), "atom type");
@@ -1173,13 +1173,13 @@ int AssignParams::UpdateParameters(Topology& topOut, ParameterSet const& set1) c
       UC.nLJparamsUpdated_ > 0 || UC.nLJ14paramsUpdated_ > 0)
   {
     mprintf("\tRegenerating nonbond parameters.\n");
-    AssignNonbondParams( set0.AT(), set0.NB(), set0.NB14(), set0.LJC(), set0.HB(), debug_ );
+    AssignNonbondParams( topOut, set0.AT(), set0.NB(), set0.NB14(), set0.LJC(), set0.HB(), debug_ );
   }
   // CMAP
   if (UC.nCmapUpdated_ > 0) {
-    cmapGrid_.clear();
+    topOut.ModifyCmapGrid().clear();
     mprintf("\tRegenerating CMAP parameters.\n");
-    AssignCmapParams(cmap_, set0.CMAP(), cmapGrid_);
+    AssignCmapParams(topOut, topOut.ModifyCmap(), set0.CMAP(), topOut.ModifyCmapGrid());
   }
   // TODO LJ14
 
