@@ -6,6 +6,7 @@
 #include "../ParameterHolders.h"
 #include "../Topology.h"
 #include "../TypeNameHolder.h"
+#include <algorithm> //sort
 
 using namespace Cpptraj::Parm;
 
@@ -769,7 +770,8 @@ static inline bool MatchesResName(std::vector<std::string> const& resNames, std:
 }
 
 /// Remap cmap indices
-int AssignParams::remap_cmap_indices(std::vector<int>& originalCmapIndices,
+int AssignParams::remap_cmap_indices(Topology const& topOut,
+                                     std::vector<int>& originalCmapIndices,
                                      CmapGridArray& cmapGrids,
                                      CmapArray& cmapTerms,
                                  CmapParmHolder const& cmapIn)
@@ -779,7 +781,7 @@ const
   for (unsigned int idx = 0; idx < originalCmapIndices.size(); idx++)
     mprintf("DEBUG:\t\tCurrent idx=%i  Actual idx=%u\n", originalCmapIndices[idx], idx);
   if (originalCmapIndices.empty()) {
-    mprintf("DEBUG: No CMAP indices in %s\n", c_str());
+    mprintf("DEBUG: No CMAP indices in %s\n", topOut.c_str());
     return 0;
   }
   std::sort(originalCmapIndices.begin(), originalCmapIndices.end());
@@ -809,7 +811,7 @@ const
 }
 
 /** Assign CMAP parameters to existing CMAP terms. */
-int AssignParams::AssignCmapParams(CmapArray& cmapTerms, CmapParmHolder const& cmapIn,
+int AssignParams::AssignCmapParams(Topology const& topOut, CmapArray& cmapTerms, CmapParmHolder const& cmapIn,
                                CmapGridArray& cmapGrids)
 const
 {
@@ -824,18 +826,18 @@ const
   for (CmapArray::iterator cm = cmapTerms.begin(); cm != cmapTerms.end(); ++cm)
   {
     // Get residue name for A2
-    Atom const& A2 = atoms_[cm->A2()];
+    Atom const& A2 = topOut[cm->A2()];
     // TODO make sure A2-A4 in same residue?
-    NameType const& rn2 = residues_[A2.ResNum()].Name();
+    NameType const& rn2 = topOut.Res( A2.ResNum() ).Name();
     // Is this residue already in cmapGrids?
     int cidx = -1;
     for (unsigned int idx = 0; idx != CmapResNames.size(); idx++) {
       if ( MatchesResName(CmapResNames[idx], rn2.Truncated()) ) {
-        if (atoms_[cm->A1()].Name() == CmapAtomNames[idx][0] &&
-            atoms_[cm->A2()].Name() == CmapAtomNames[idx][1] &&
-            atoms_[cm->A3()].Name() == CmapAtomNames[idx][2] &&
-            atoms_[cm->A4()].Name() == CmapAtomNames[idx][3] &&
-            atoms_[cm->A5()].Name() == CmapAtomNames[idx][4])
+        if (topOut[cm->A1()].Name() == CmapAtomNames[idx][0] &&
+            topOut[cm->A2()].Name() == CmapAtomNames[idx][1] &&
+            topOut[cm->A3()].Name() == CmapAtomNames[idx][2] &&
+            topOut[cm->A4()].Name() == CmapAtomNames[idx][3] &&
+            topOut[cm->A5()].Name() == CmapAtomNames[idx][4])
         {
           cidx = originalCmapIndices[idx];
           break;
@@ -843,7 +845,7 @@ const
       }
     }
     if (cidx > -1) {
-      mprintf("DEBUG: Potential existing cmap %i found for %s (%li)\n", cidx, TruncResNameNum(A2.ResNum()).c_str(), cm-cmapTerms.begin());
+      mprintf("DEBUG: Potential existing cmap %i found for %s (%li)\n", cidx, topOut.TruncResNameNum(A2.ResNum()).c_str(), cm-cmapTerms.begin());
       mprintf("DEBUG:\t\t%i - %i - %i - %i - %i %i\n", cm->A1()+1, cm->A2()+1, cm->A3()+1, cm->A4()+1, cm->A5()+1, cidx+1);
       cm->SetIdx( cidx );
     }
@@ -851,11 +853,11 @@ const
     if (cidx == -1) {
       for (unsigned int idx = 0; idx != cmapIn.size(); idx++) {
         if ( MatchesResName( cmapIn[idx].ResNames(), rn2.Truncated() ) ) {
-          if (atoms_[cm->A1()].Name() == cmapIn[idx].AtomNames()[0] &&
-              atoms_[cm->A2()].Name() == cmapIn[idx].AtomNames()[1] &&
-              atoms_[cm->A3()].Name() == cmapIn[idx].AtomNames()[2] &&
-              atoms_[cm->A4()].Name() == cmapIn[idx].AtomNames()[3] &&
-              atoms_[cm->A5()].Name() == cmapIn[idx].AtomNames()[4])
+          if (topOut[cm->A1()].Name() == cmapIn[idx].AtomNames()[0] &&
+              topOut[cm->A2()].Name() == cmapIn[idx].AtomNames()[1] &&
+              topOut[cm->A3()].Name() == cmapIn[idx].AtomNames()[2] &&
+              topOut[cm->A4()].Name() == cmapIn[idx].AtomNames()[3] &&
+              topOut[cm->A5()].Name() == cmapIn[idx].AtomNames()[4])
           {
             cidx = (int)idx;
             CmapResNames.push_back( cmapIn[idx].ResNames() );
@@ -866,7 +868,7 @@ const
         }
       }
       if (cidx > -1) {
-        mprintf("DEBUG: Potential new cmap %i found for %s (%li)\n", cidx, TruncResNameNum(A2.ResNum()).c_str(), cm-cmapTerms.begin());
+        mprintf("DEBUG: Potential new cmap %i found for %s (%li)\n", cidx, topOut.TruncResNameNum(A2.ResNum()).c_str(), cm-cmapTerms.begin());
         mprintf("DEBUG:\t\t%i - %i - %i - %i - %i %i\n", cm->A1()+1, cm->A2()+1, cm->A3()+1, cm->A4()+1, cm->A5()+1, cidx+1);
         //mprintf("DEBUG:\t\t%s - %s - %s - %s - %s\n",
         //        AtomMaskName(dih->A1()).c_str(),
@@ -879,11 +881,11 @@ const
     }
   } // END loop over cmap terms
 
-  return remap_cmap_indices(originalCmapIndices, cmapGrids, cmapTerms, cmapIn);
+  return remap_cmap_indices(topOut, originalCmapIndices, cmapGrids, cmapTerms, cmapIn);
 }
 
 /** Assign CMAP parameters. Also generates CMAP terms from dihedrals. */
-int AssignParams::AssignCmapParams(DihedralArray const& allDih, CmapParmHolder const& cmapIn,
+int AssignParams::AssignCmapParams(Topology const& topOut, DihedralArray const& allDih, CmapParmHolder const& cmapIn,
                                CmapGridArray& cmapGrids, CmapArray& cmapTerms)
 const
 {
@@ -903,9 +905,9 @@ const
     // Ignore end (repeated) or improper dihedrals
     if (dih->IsImproper() || dih->Skip14()) continue;
     // Get residue name for A2
-    Atom const& A2 = atoms_[dih->A2()];
+    Atom const& A2 = topOut[dih->A2()];
     // TODO make sure A2-A4 in same residue?
-    NameType const& rn2 = residues_[A2.ResNum()].Name();
+    NameType const& rn2 = topOut.Res( A2.ResNum() ).Name();
     // Is this residue already in cmapGrids?
     int cidx = -1;
     int a5 = -1;
@@ -914,7 +916,7 @@ const
     for (unsigned int idx = 0; idx != CmapResNames.size(); idx++) {
       if ( MatchesResName(CmapResNames[idx], rn2.Truncated()) ) {
         //a5 = cmap_anames_match(*dih, atoms_, cmapGrids[idx]);
-        a5 = cmap_anames_match(*dih, atoms_, CmapAtomNames[idx]);
+        a5 = cmap_anames_match(*dih, topOut.Atoms(), CmapAtomNames[idx]);
         if (a5 > -1) {
           //cidx = (int)idx;
           cidx = originalCmapIndices[idx];
@@ -923,7 +925,7 @@ const
       }
     }
     if (cidx > -1) {
-      mprintf("DEBUG: Potential existing cmap %i found for %s (%li)\n", cidx, TruncResNameNum(A2.ResNum()).c_str(), dih-allDih.begin());
+      mprintf("DEBUG: Potential existing cmap %i found for %s (%li)\n", cidx, topOut.TruncResNameNum(A2.ResNum()).c_str(), dih-allDih.begin());
       mprintf("DEBUG:\t\t%i - %i - %i - %i - %i %i\n", dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1, a5+1, cidx+1);
 //      mprintf("DEBUG:\t\t%s - %s - %s - %s - %s\n",
 //              AtomMaskName(dih->A1()).c_str(),
@@ -940,7 +942,7 @@ const
         //if (cmapIn[idx].MatchesResName( rn2.Truncated() )) {
         if ( MatchesResName( cmapIn[idx].ResNames(), rn2.Truncated() ) ) {
           //a5 = cmap_anames_match(*dih, atoms_, cmapIn[idx]);
-          a5 = cmap_anames_match(*dih, atoms_, cmapIn[idx].AtomNames());
+          a5 = cmap_anames_match(*dih, topOut.Atoms(), cmapIn[idx].AtomNames());
           if (a5 > -1) {
             //cidx = (int)cmapGrids.size();
             cidx = (int)idx;
@@ -954,7 +956,7 @@ const
         }
       }
       if (cidx > -1) {
-        mprintf("DEBUG: Potential new cmap %i found for %s (%li)\n", cidx, TruncResNameNum(A2.ResNum()).c_str(), dih-allDih.begin());
+        mprintf("DEBUG: Potential new cmap %i found for %s (%li)\n", cidx, topOut.TruncResNameNum(A2.ResNum()).c_str(), dih-allDih.begin());
         mprintf("DEBUG:\t\t%i - %i - %i - %i - %i %i\n", dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1, a5+1, cidx+1);
       //mprintf("DEBUG:\t\t%s - %s - %s - %s - %s\n",
       //        AtomMaskName(dih->A1()).c_str(),
@@ -966,7 +968,7 @@ const
       }
     }
   } // END loop over dihedrals
-  return remap_cmap_indices(originalCmapIndices, cmapGrids, cmapTerms, cmapIn);
+  return remap_cmap_indices(topOut, originalCmapIndices, cmapGrids, cmapTerms, cmapIn);
 /*  mprintf("DEBUG: Cmap parameter indices:\n");
   for (unsigned int idx = 0; idx < originalCmapIndices.size(); idx++)
     mprintf("DEBUG:\t\tCurrent idx=%i  Actual idx=%u\n", originalCmapIndices[idx], idx);

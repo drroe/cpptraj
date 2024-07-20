@@ -1,6 +1,7 @@
 #ifndef INC_PARM_ASSIGNPARAMS_H
 #define INC_PARM_ASSIGNPARAMS_H
 #include <vector>
+#include <string>
 class AngleArray;
 class AngleParmArray;
 class AngleParmType;
@@ -64,9 +65,9 @@ class AssignParams {
                              int) const; // TODO make int a class vair
 
     static inline int cmap_anames_match(DihedralType const&, AtArray const&, std::vector<std::string> const&);
-    int remap_cmap_indices(std::vector<int>&, CmapGridArray&, CmapArray&, CmapParmHolder const&) const;
-    int AssignCmapParams(CmapArray&, CmapParmHolder const&, CmapGridArray&) const;
-    int AssignCmapParams(DihedralArray const&, CmapParmHolder const&,
+    int remap_cmap_indices(Topology const&, std::vector<int>&, CmapGridArray&, CmapArray&, CmapParmHolder const&) const;
+    int AssignCmapParams(Topology const&, CmapArray&, CmapParmHolder const&, CmapGridArray&) const;
+    int AssignCmapParams(Topology const&, DihedralArray const&, CmapParmHolder const&,
                          CmapGridArray&, CmapArray&) const;
 
 
