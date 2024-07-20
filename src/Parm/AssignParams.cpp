@@ -99,20 +99,21 @@ void AssignParams::AssignUBParams(Topology& topOut, ParmHolder<BondParmType> con
 }
 
 /** Set parameters for angles in given angle array. */
-AngleArray AssignParams::AssignAngleParm(ParmHolder<AngleParmType> const& newAngleParams,
-                                     AngleArray const& angles)
+AngleArray AssignParams::AssignAngleParm(Topology const& topOut,
+                                         ParmHolder<AngleParmType> const& newAngleParams,
+                                         AngleArray const& angles, AngleParmArray& apa)
 const
 {
   AngleArray newAngles;
   ParmHolder<int> currentTypes;
   for (AngleArray::const_iterator ang = angles.begin(); ang != angles.end(); ++ang) {
     TypeNameHolder types(3);
-    types.AddName( atoms_[ang->A1()].Type() );
-    types.AddName( atoms_[ang->A2()].Type() );
-    types.AddName( atoms_[ang->A3()].Type() );
+    types.AddName( topOut[ang->A1()].Type() );
+    types.AddName( topOut[ang->A2()].Type() );
+    types.AddName( topOut[ang->A3()].Type() );
     // Skip extra points // FIXME make this an option
-    if ( atoms_[ang->A1()].Element() == Atom::EXTRAPT ||
-         atoms_[ang->A3()].Element() == Atom::EXTRAPT)
+    if ( topOut[ang->A1()].Element() == Atom::EXTRAPT ||
+         topOut[ang->A3()].Element() == Atom::EXTRAPT)
     {
       mprintf("DEBUG: Skipping angle with extra point: %4i %4i %4i (%2s %2s %2s)\n",
               ang->A1()+1, ang->A2()+1, ang->A3()+1,
@@ -120,12 +121,12 @@ const
       continue;
     }
     // Skip water angles // FIXME make this an option
-    if (atoms_[ang->A1()].Element() == Atom::HYDROGEN &&
-        atoms_[ang->A2()].Element() == Atom::OXYGEN &&
-        atoms_[ang->A3()].Element() == Atom::HYDROGEN)
+    if (topOut[ang->A1()].Element() == Atom::HYDROGEN &&
+        topOut[ang->A2()].Element() == Atom::OXYGEN &&
+        topOut[ang->A3()].Element() == Atom::HYDROGEN)
     {
       // H-O-H Angle. If there is an H-H bond assume this is a rigid water model.
-      if (atoms_[ang->A1()].IsBondedTo( ang->A3() )) {
+      if (topOut[ang->A1()].IsBondedTo( ang->A3() )) {
         mprintf("DEBUG: H-O-H angle, H-H bond detected. Assuming rigid water, skipping angle: "
                 "%4i %4i %4i (%2s %2s %2s)\n",
                 ang->A1()+1, ang->A2()+1, ang->A3()+1,
@@ -133,9 +134,9 @@ const
         continue;
       }
     }
-    if (atoms_[ang->A1()].Element() == Atom::OXYGEN &&
-        atoms_[ang->A2()].Element() == Atom::HYDROGEN &&
-        atoms_[ang->A3()].Element() == Atom::HYDROGEN)
+    if (topOut[ang->A1()].Element() == Atom::OXYGEN &&
+        topOut[ang->A2()].Element() == Atom::HYDROGEN &&
+        topOut[ang->A3()].Element() == Atom::HYDROGEN)
     {
       // O-H-H Angle. Assume rigid water model
       mprintf("DEBUG: O-H-H angle. Assuming rigid water, skipping angle: "
@@ -154,14 +155,14 @@ const
       AngleParmType ap = newAngleParams.FindParam( types, found );
       if (!found) {
         mprintf("Warning: Angle parameter not found for angle %s-%s-%s (%s-%s-%s)\n",
-                TruncResAtomNameNum(ang->A1()).c_str(),
-                TruncResAtomNameNum(ang->A2()).c_str(),
-                TruncResAtomNameNum(ang->A3()).c_str(),
+                topOut.TruncResAtomNameNum(ang->A1()).c_str(),
+                topOut.TruncResAtomNameNum(ang->A2()).c_str(),
+                topOut.TruncResAtomNameNum(ang->A3()).c_str(),
                 *types[0], *types[1], *types[2]);
       } else {
         //idx = addAngleParm( angleparm_, ap ); // TODO uncomment for array packing
-        idx = (int)angleparm_.size();
-        angleparm_.push_back( ap );
+        idx = (int)apa.size();
+        apa.push_back( ap );
         //mprintf("DEBUG: New angle type for %s-%s-%s (Tk=%g Teq=%g) idx=%i\n", *types[0], *types[1], *types[2], ap.Tk(), ap.Teq(), idx);
         currentTypes.AddParm(types, idx, false);
       }
@@ -194,10 +195,10 @@ const
 }
 
 /** Replace any current angle parameters with given angle parameters. */
-void AssignParams::AssignAngleParams(ParmHolder<AngleParmType> const& newAngleParams) const {
-  angleparm_.clear();
-  angles_ = AssignAngleParm( newAngleParams, angles_ );
-  anglesh_ = AssignAngleParm( newAngleParams, anglesh_ );
+void AssignParams::AssignAngleParams(Topology& topOut, ParmHolder<AngleParmType> const& newAngleParams) const {
+  topOut.ModifyAngleParm().clear();
+  topOut.ModifyAngles() = AssignAngleParm( topOut, newAngleParams, topOut.Angles(), topOut.ModifyAngleParm() );
+  topOut.ModifyAnglesH() = AssignAngleParm( topOut, newAngleParams, topOut.AnglesH(), topOut.ModifyAngleParm() );
 }
 
 /** Warn if improper atoms have been reordered so they match the parameter. */

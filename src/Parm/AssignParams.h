@@ -2,6 +2,7 @@
 #define INC_PARM_ASSIGNPARAMS_H
 #include <vector>
 class AngleArray;
+class AngleParmArray;
 class AngleParmType;
 class Atom;
 class AtomType;
@@ -34,12 +35,14 @@ class AssignParams {
     typedef std::vector<Atom> AtArray;
 
     void AssignAtomTypeParm(AtArray&, ParmHolder<AtomType> const&) const;
-    void AssignBondParm(Topology const&, ParmHolder<BondParmType> const&, BondArray&, BondParmArray&, const char*) const;
+    void AssignBondParm(Topology const&, ParmHolder<BondParmType> const&,
+                        BondArray&, BondParmArray&, const char*) const;
     void AssignBondParams(Topology&, ParmHolder<BondParmType> const&) const;
     void AssignUBParams(Topology&, ParmHolder<BondParmType> const&) const;
 
-    AngleArray AssignAngleParm(ParmHolder<AngleParmType> const&, AngleArray const&) const;
-    void AssignAngleParams(ParmHolder<AngleParmType> const&) const;
+    AngleArray AssignAngleParm(Topology const&, ParmHolder<AngleParmType> const&,
+                               AngleArray const&, AngleParmArray&) const;
+    void AssignAngleParams(Topology&, ParmHolder<AngleParmType> const&) const;
 
     void warn_improper_reorder(DihedralType const&, DihedralType const&) const;
     void AssignImproperParm(ImproperParmHolder const&, DihedralArray&, DihedralParmArray&) const ;
