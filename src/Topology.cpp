@@ -3034,6 +3034,15 @@ DihedralArray Topology::AssignDihedralParm(DihedralParmHolder const& newDihedral
     types.AddName( atoms_[dih->A2()].Type() );
     types.AddName( atoms_[dih->A3()].Type() );
     types.AddName( atoms_[dih->A4()].Type() );
+    // Skip extra points // FIXME make this an option
+    if ( atoms_[dih->A1()].Element() == Atom::EXTRAPT ||
+         atoms_[dih->A4()].Element() == Atom::EXTRAPT)
+    {
+      mprintf("DEBUG: Skipping dihedral with extra point: %4i %4i %4i %4i (%2s %2s %2s %2s)\n",
+              dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1,
+              *types[0], *types[1], *types[2], *types[3]);
+      continue;
+    }
 //    mprintf("DEBUG: Assigning dihedral %4i %4i %4i %4i (%2s %2s %2s %2s) isImproper=%i skip14=%i\n",
 //            dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1,
 //            *types[0], *types[1], *types[2], *types[3],
