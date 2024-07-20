@@ -73,6 +73,7 @@ class AssignParams {
                          CmapGridArray&, CmapArray&) const;
     static void AddToBondArrays(Topology&, BondType const&);
     static void AddToAngleArrays(Topology&, AngleType const&);
+    static void AddToDihedralArrays(Topology&, DihedralType const&);
 
     int debug_;
 };

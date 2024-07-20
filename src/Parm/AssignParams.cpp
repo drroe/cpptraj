@@ -1027,6 +1027,19 @@ void AssignParams::AddToAngleArrays(Topology& topOut, AngleType const& ang) {
     topOut.ModifyAngles().push_back( ang );
 }
 
+/** Add to dihedral arrays. Used when regenerating dihedral information
+  * from atom connectivity.
+  */
+void AssignParams::AddToDihedralArrays(Topology& topOut, DihedralType const& dih) {
+  if (topOut[dih.A1()].Element() == Atom::HYDROGEN ||
+      topOut[dih.A4()].Element() == Atom::HYDROGEN ||
+      topOut[dih.A2()].Element() == Atom::HYDROGEN ||
+      topOut[dih.A3()].Element() == Atom::HYDROGEN)
+    topOut.ModifyDihedralsH().push_back( dih );
+  else
+    topOut.ModifyDihedrals().push_back( dih );
+}
+
 /** Replace existing parameters with the given parameter set. */
 int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0) const {
 
@@ -1052,22 +1065,22 @@ int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0) c
     AddToAngleArrays( topOut, *ang );
   // Dihedral parameters
   mprintf("\tAssigning dihedral parameters.\n");
-  dihedralparm_.clear();
+  topOut.ModifyDihedralParm().clear();
   // Regenerate dihedral array in LEaP order
-  dihedrals_.clear();
-  dihedralsh_.clear();
-  DihedralArray allDihedrals = Cpptraj::Structure::GenerateDihedralArray(residues_, atoms_);
+  topOut.ModifyDihedrals().clear();
+  topOut.ModifyDihedralsH().clear();
+  DihedralArray allDihedrals = Cpptraj::Structure::GenerateDihedralArray(topOut.Residues(), topOut.Atoms());
   // If we need CMAP terms, do it here before the dihedrals array is modified
   if (!set0.CMAP().empty()) {
-    cmap_.clear();
-    cmapGrid_.clear();
+    topOut.ModifyCmap().clear();
+    topOut.ModifyCmapGrid().clear();
     mprintf("\tAssigning CMAP parameters.\n");
-    AssignCmapParams( allDihedrals, set0.CMAP(), cmapGrid_, cmap_ );
+    AssignCmapParams( topOut, allDihedrals, set0.CMAP(), topOut.ModifyCmapGrid(), topOut.ModifyCmap() );
   } 
   // Now modify the dihedrals for any multiplicities
-  allDihedrals = AssignDihedralParm( set0.DP(), set0.IP(), set0.AT(), allDihedrals, false );
+  allDihedrals = AssignDihedralParm( topOut, set0.DP(), set0.IP(), set0.AT(), allDihedrals, false );
   for (DihedralArray::const_iterator dih = allDihedrals.begin(); dih != allDihedrals.end(); ++dih)
-    AddToDihedralArrays( *dih );
+    AddToDihedralArrays( topOut, *dih );
   // Urey-Bradley
   mprintf("\tAssigning Urey-Bradley parameters.\n");
   AssignUBParams( set0.UB() );
