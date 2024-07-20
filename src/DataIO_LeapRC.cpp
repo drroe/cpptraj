@@ -209,15 +209,17 @@ const
   //{
     if ( paramSet->Type() == DataSet::PARAMETERS ) {
       DataSet_Parameters& param = static_cast<DataSet_Parameters&>( *paramSet );
-      mprintf("\tUpdating atom hybridizations in set %s\n", param.legend());
+      mprintf("\tUpdating atom hybridizations and elements in set %s\n", param.legend());
       for (ParmHolder<AtomType>::iterator it = param.AT().begin();
                                           it != param.AT().end(); ++it)
       {
         AtypeEltHybridPairMap::const_iterator ah = atomHybridizations.find( it->first[0] );
         if (ah == atomHybridizations.end())
-          mprintf("Warning: No hybridization set for atom type '%s'\n", *(it->first[0]));
-        else
+          mprintf("Warning: No element/hybridization set for atom type '%s'\n", *(it->first[0]));
+        else {
           it->second.SetHybridization( ah->second.AtypeHybridization() );
+          it->second.SetEltStr( ah->second.AtypeElementStr() );
+        }
       }
     } else {
       mprinterr("Internal Error: DataIO_LeapRC::LoadAmberParams(): Set %s is not parameter set.\n",
