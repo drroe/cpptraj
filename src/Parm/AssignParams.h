@@ -3,6 +3,7 @@
 #include <vector>
 class AngleArray;
 class AngleParmType;
+class Atom;
 class AtomType;
 class BondParmType;
 class BondArray;
@@ -18,6 +19,7 @@ class HB_ParmType;
 class ImproperParmHolder;
 class NonbondType;
 class ParameterSet;
+class Topology;
 template<typename Type> class ParmHolder;
 namespace Cpptraj {
 namespace Parm {
@@ -26,13 +28,15 @@ class AssignParams {
   public:
     AssignParams();
 
-    int AssignParameters(ParameterSet const&) const;
-    int UpdateParameters(ParameterSet const&) const;
+    int AssignParameters(Topology&, ParameterSet const&) const;
+    int UpdateParameters(Topology&, ParameterSet const&) const;
   private:
-    void AssignAtomTypeParm(ParmHolder<AtomType> const&) const;
-    void AssignBondParm(ParmHolder<BondParmType> const&, BondArray&, BondParmArray&, const char*) const;
-    void AssignBondParams(ParmHolder<BondParmType> const&) const;
-    void AssignUBParams(ParmHolder<BondParmType> const&) const;
+    typedef std::vector<Atom> AtArray;
+
+    void AssignAtomTypeParm(AtArray&, ParmHolder<AtomType> const&) const;
+    void AssignBondParm(Topology const&, ParmHolder<BondParmType> const&, BondArray&, BondParmArray&, const char*) const;
+    void AssignBondParams(Topology&, ParmHolder<BondParmType> const&) const;
+    void AssignUBParams(Topology&, ParmHolder<BondParmType> const&) const;
 
     AngleArray AssignAngleParm(ParmHolder<AngleParmType> const&, AngleArray const&) const;
     void AssignAngleParams(ParmHolder<AngleParmType> const&) const;

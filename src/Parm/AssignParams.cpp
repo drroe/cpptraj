@@ -1,4 +1,10 @@
 #include "AssignParams.h"
+#include "../Atom.h"
+#include "../AtomType.h"
+#include "../CpptrajStdio.h"
+#include "../ParameterHolders.h"
+#include "../Topology.h"
+#include "../TypeNameHolder.h"
 
 using namespace Cpptraj::Parm;
 
@@ -8,34 +14,35 @@ AssignParams::AssignParams() :
 {}
 
 /** Set parameters for atoms via given atom type parameter holder. */
-void AssignParams::AssignAtomTypeParm(ParmHolder<AtomType> const& newAtomTypeParams)
+void AssignParams::AssignAtomTypeParm(AtArray& atoms, ParmHolder<AtomType> const& newAtomTypeParams)
 const
 {
-  for (unsigned int iat = 0; iat != atoms_.size(); iat++)
+  for (AtArray::iterator iat = atoms.begin(); iat != atoms.end(); ++iat)
   {
     bool found;
-    TypeNameHolder atype( atoms_[iat].Type() );
-    AtomType at = newAtomTypeParams.FindParam( atype, found );
+    TypeNameHolder atype( iat->Type() );
+    AtomType AT = newAtomTypeParams.FindParam( atype, found );
     if (found) {
       // Update mass
-      atoms_[iat].SetMass( at.Mass() );
+      iat->SetMass( AT.Mass() );
       // Update polarizability
-      atoms_[iat].SetPolar( at.Polarizability() );
+      iat->SetPolar( AT.Polarizability() );
     } else
       mprintf("Warning: Atom type parameter not found for %s\n", *atype[0]);
   }
 }
 
 /** Set parameters for bonds in given bond array. */
-void AssignParams::AssignBondParm(ParmHolder<BondParmType> const& newBondParams,
-                              BondArray& bonds, BondParmArray& bpa, const char* desc)
+void AssignParams::AssignBondParm(Topology const& topOut,
+                                  ParmHolder<BondParmType> const& newBondParams,
+                                  BondArray& bonds, BondParmArray& bpa, const char* desc)
 const
 {
   ParmHolder<int> currentTypes;
   for (BondArray::iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd) {
     TypeNameHolder types(2);
-    types.AddName( atoms_[bnd->A1()].Type() );
-    types.AddName( atoms_[bnd->A2()].Type() );
+    types.AddName( topOut[bnd->A1()].Type() );
+    types.AddName( topOut[bnd->A2()].Type() );
     bool found;
     // See if parameter is present.
     int idx = currentTypes.FindParam(types, found);
@@ -45,8 +52,8 @@ const
       BondParmType bp = newBondParams.FindParam( types, found );
       if (!found) {
         mprintf("Warning: parameter not found for %s %s-%s (%s-%s)\n", desc,
-                TruncResAtomNameNum(bnd->A1()).c_str(),
-                TruncResAtomNameNum(bnd->A2()).c_str(),
+                topOut.TruncResAtomNameNum(bnd->A1()).c_str(),
+                topOut.TruncResAtomNameNum(bnd->A2()).c_str(),
                 *types[0], *types[1]);
       } else {
         //idx = addBondParm( bpa, bp ); TODO handle array packing
@@ -79,16 +86,16 @@ const
 }
 
 /** Replace any current bond parameters with given bond parameters. */
-void AssignParams::AssignBondParams(ParmHolder<BondParmType> const& newBondParams) const {
-  bondparm_.clear();
-  AssignBondParm( newBondParams, bonds_,  bondparm_, "bond" );
-  AssignBondParm( newBondParams, bondsh_, bondparm_, "bond" );
+void AssignParams::AssignBondParams(Topology& topOut, ParmHolder<BondParmType> const& newBondParams) const {
+  topOut.ModifyBondParm().clear();
+  AssignBondParm( topOut, newBondParams, topOut.ModifyBonds(),  topOut.ModifyBondParm(), "bond" );
+  AssignBondParm( topOut, newBondParams, topOut.ModifyBondsH(), topOut.ModifyBondParm(), "bond" );
 }
 
 /** Replace any current Urey-Bradley parameters with given UB parameters. */
-void AssignParams::AssignUBParams(ParmHolder<BondParmType> const& newBondParams) const {
-  ubparm_.clear();
-  AssignBondParm( newBondParams, ub_, ubparm_, "UB term" );
+void AssignParams::AssignUBParams(Topology& topOut, ParmHolder<BondParmType> const& newBondParams) const {
+  topOut.ModifyUBparm().clear();
+  AssignBondParm( topOut, newBondParams, topOut.ModifyUB(), topOut.ModifyUBparm(), "UB term" );
 }
 
 /** Set parameters for angles in given angle array. */
@@ -557,7 +564,7 @@ const
   bool hasLJC = !newLJC.empty();
   // Generate array of only the types that are currently in Topology. TODO should this be a permanent part of Topology?
   ParmHolder<AtomType> currentAtomTypes;
-  for (std::vector<Atom>::const_iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
+  for (AtArray::const_iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
   {
     if (atm->HasType()) {
       TypeNameHolder types(1);
@@ -682,7 +689,7 @@ const
     } // END inner loop over current types
   } // END outer loop over current types
   // Reset the atom type indices.
-  for (std::vector<Atom>::iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
+  for (AtArray::iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
   {
     int tidx = -1;
     ParmHolder<AtomType>::const_iterator it = currentAtomTypes.GetParam( TypeNameHolder(atm->Type()) );
@@ -704,7 +711,7 @@ const
 
 /// \return index of 5th cmap atom if atom names match those in dihedral, -1 otherwise
 static inline int cmap_anames_match(DihedralType const& dih,
-                                     std::vector<Atom> const& atoms,
+                                     AtArray const& atoms,
                                      std::vector<std::string> const& cmapAtomNames)
 {
 /*  mprintf("DEBUG: Check res %i %s %s %s %s against %s %s %s %s\n",
@@ -985,7 +992,7 @@ const
 }
 
 /** Replace existing parameters with the given parameter set. */
-int AssignParams::AssignParameters(ParameterSet const& set0) const {
+int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0) const {
 
   // Bond parameters
   mprintf("\tAssigning bond parameters.\n");
@@ -994,7 +1001,7 @@ int AssignParams::AssignParameters(ParameterSet const& set0) const {
   bonds_.clear();
   bondsh_.clear();
   BondArray allBonds = Cpptraj::Structure::GenerateBondArray(residues_, atoms_);
-  AssignBondParm( set0.BP(), allBonds, bondparm_, "bond" );
+  AssignBondParm( topOut, set0.BP(), allBonds, bondparm_, "bond" );
   for (BondArray::const_iterator bnd = allBonds.begin(); bnd != allBonds.end(); ++bnd)
     AddToBondArrays( *bnd );
   // Angle parameters
@@ -1042,7 +1049,7 @@ int AssignParams::AssignParameters(ParameterSet const& set0) const {
   }
   // Atom types
   mprintf("\tAssigning atom type parameters.\n");
-  AssignAtomTypeParm( set0.AT() );
+  AssignAtomTypeParm( topOut.ModifyAtoms(), set0.AT() );
   // LJ 6-12
   mprintf("\tAssigning nonbond parameters.\n");
   AssignNonbondParams( set0.AT(), set0.NB(), set0.NB14(), set0.LJC(), set0.HB(), debug_ );
@@ -1053,8 +1060,8 @@ int AssignParams::AssignParameters(ParameterSet const& set0) const {
 
 /** Update/add to parameters in this topology with those from given set.
   */
-int AssignParams::UpdateParameters(ParameterSet const& set1) const {
-  ParameterSet set0 = GetParameters();
+int AssignParams::UpdateParameters(Topology& topOut, ParameterSet const& set1) const {
+  ParameterSet set0 = topOut.GetParameters();
 
   //set1.Summary(); // DEBUG
   // Check TODO is this necessary?
@@ -1110,7 +1117,7 @@ int AssignParams::UpdateParameters(ParameterSet const& set1) const {
 //  updateCount = UpdateParameters< ParmHolder<AtomType> >(set0.AT(), set1.AT(), "atom type");
   if (UC.nAtomTypeUpdated_ > 0) {
     mprintf("\tRegenerating atom type parameters.\n");
-    AssignAtomTypeParm( set0.AT() );
+    AssignAtomTypeParm( topOut.ModifyAtoms(), set0.AT() );
   }
 //  updateCount += UpdateParameters< ParmHolder<NonbondType> >(set0.NB(), set1.NB(), "LJ A-B");
   if (UC.nAtomTypeUpdated_ > 0 || UC.nLJCUpdated_ > 0 ||
