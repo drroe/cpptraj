@@ -1083,25 +1083,25 @@ int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0) c
     AddToDihedralArrays( topOut, *dih );
   // Urey-Bradley
   mprintf("\tAssigning Urey-Bradley parameters.\n");
-  AssignUBParams( set0.UB() );
-  if (!impropers_.empty()) {
+  AssignUBParams( topOut, set0.UB() );
+  if (!topOut.Impropers().empty()) {
     // Charmm Improper parameters
     mprintf("\tAssigning CHARMM improper parameters.\n");
-    AssignImproperParams( set0.IP() );
+    AssignImproperParams( topOut, set0.IP() );
   } else {
     // Amber improper parameters
     mprintf("\tAssigning improper parameters.\n");
-    DihedralArray allImpropers = Cpptraj::Structure::GenerateImproperArray(residues_, atoms_);
-    allImpropers = AssignDihedralParm( set0.DP(), set0.IP(), set0.AT(), allImpropers, true );
+    DihedralArray allImpropers = Cpptraj::Structure::GenerateImproperArray(topOut.Residues(), topOut.Atoms());
+    allImpropers = AssignDihedralParm( topOut, set0.DP(), set0.IP(), set0.AT(), allImpropers, true );
     for (DihedralArray::const_iterator imp = allImpropers.begin(); imp != allImpropers.end(); ++imp)
-      AddToDihedralArrays( *imp );
+      AddToDihedralArrays( topOut, *imp );
   }
   // Atom types
   mprintf("\tAssigning atom type parameters.\n");
   AssignAtomTypeParm( topOut.ModifyAtoms(), set0.AT() );
   // LJ 6-12
   mprintf("\tAssigning nonbond parameters.\n");
-  AssignNonbondParams( set0.AT(), set0.NB(), set0.NB14(), set0.LJC(), set0.HB(), debug_ );
+  AssignNonbondParams( topOut, set0.AT(), set0.NB(), set0.NB14(), set0.LJC(), set0.HB(), debug_ );
   mprintf("DEBUG: CMAP size %zu\n", set0.CMAP().size());
 
   return 0;
@@ -1115,7 +1115,7 @@ int AssignParams::UpdateParameters(Topology& topOut, ParameterSet const& set1) c
   //set1.Summary(); // DEBUG
   // Check TODO is this necessary?
   if (set0.AT().size() < 1)
-    mprintf("Warning: No atom type information in '%s'\n", c_str());
+    mprintf("Warning: No atom type information in '%s'\n", topOut.c_str());
   if (debug_ > 0) {
     mprintf("DEBUG: Saving original parameters in originalp.dat, new parameters in newp.dat\n");
     set0.Debug("originalp.dat");
@@ -1154,7 +1154,7 @@ int AssignParams::UpdateParameters(Topology& topOut, ParameterSet const& set1) c
 //  updateCount = UpdateParameters< ParmHolder<BondParmType> >(set0.UB(), set1.UB(), "Urey-Bradley");
   if (UC.nUreyBradleyUpdated_ > 0) {
     mprintf("\tRegenerating UB parameters.\n");
-    AssignUBParams( set0.UB() );
+    AssignUBParams( topOut, set0.UB() );
   }
   // Improper parameters
 //  updateCount = UpdateParameters< ParmHolder<DihedralParmType> >(set0.IP(), set1.IP(), "improper");
