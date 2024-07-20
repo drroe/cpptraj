@@ -300,6 +300,7 @@ const
           }
         }
         templateAtom.ClearBonds(); // FIXME AddTopAtom should clear bonds
+        //mprintf("DEBUG: Adding template atom %s (elt %s)\n", templateAtom.c_str(), templateAtom.ElementName());
         topOut.AddTopAtom( templateAtom, currentRes );
         if (map[iref] == -1) {
           // Template atom not in input structure.

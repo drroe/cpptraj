@@ -285,7 +285,7 @@ void Atom::SetElementFromName() {
 
 // Atom::SetElementFromSymbol()
 void Atom::SetElementFromSymbol(char c1, char c2) {
-  if (element_ != UNKNOWN_ELEMENT) return;
+  //if (element_ != UNKNOWN_ELEMENT) return;
   // Attempt to match up 1 or 2 char element name
   char en[2];
   bool oneChar = true;
