@@ -58,10 +58,11 @@ void ParameterSet::Print(CpptrajFile& Out) const {
     Out.Printf("Parameter set: %s\n", ParamSetName().c_str());
   if (!NBname_.empty())
     Out.Printf("Nonbond parameters name: %s\n", NBname_.c_str());
+  static const char* hybStr[] = {"SP ", "SP2", "SP3", "UNK"};
   Out.Printf("Atom Types:\n");
-  Out.Printf("\t%6s %8s %12s %12s %12s %12s\n", "Name", "TypeIdx", "Radius", "Depth", "Mass", "Polar.");
+  Out.Printf("\t%6s %8s %12s %12s %12s %12s %3s %2s\n", "Name", "TypeIdx", "Radius", "Depth", "Mass", "Polar.", "Hyb", "El");
   for (ParmHolder<AtomType>::const_iterator at = atomTypes_.begin(); at != atomTypes_.end(); ++at) {
-    Out.Printf("\t%6s %8li %12.4f %12.4f %12.4f %12.4f\n", *(at->first[0]), at - atomTypes_.begin(), at->second.LJ().Radius(), at->second.LJ().Depth(), at->second.Mass(), at->second.Polarizability());
+    Out.Printf("\t%6s %8li %12.4f %12.4f %12.4f %12.4f %3s %2s\n", *(at->first[0]), at - atomTypes_.begin(), at->second.LJ().Radius(), at->second.LJ().Depth(), at->second.Mass(), at->second.Polarizability(), hybStr[at->second.Hybridization()], at->second.EltStr());
   }
   if (!nbParm_.empty()) {
     Out.Printf("LJ 6-12 parameters:\n");
