@@ -5,11 +5,13 @@
 class AngleArray;
 class AngleParmArray;
 class AngleParmType;
+class AngleType;
 class Atom;
 class AtomType;
-class BondParmType;
 class BondArray;
 class BondParmArray;
+class BondParmType;
+class BondType;
 class CmapArray;
 class CmapGridArray;
 class CmapParmHolder;
@@ -69,8 +71,8 @@ class AssignParams {
     int AssignCmapParams(Topology const&, CmapArray&, CmapParmHolder const&, CmapGridArray&) const;
     int AssignCmapParams(Topology const&, DihedralArray const&, CmapParmHolder const&,
                          CmapGridArray&, CmapArray&) const;
-
-
+    static void AddToBondArrays(Topology&, BondType const&);
+    static void AddToAngleArrays(Topology&, AngleType const&);
 
     int debug_;
 };

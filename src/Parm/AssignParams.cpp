@@ -2,6 +2,7 @@
 #include "../Atom.h"
 #include "../AtomType.h"
 #include "../CpptrajStdio.h"
+#include "../Structure/GenerateConnectivityArrays.h"
 #include "../GuessAtomHybridization.h"
 #include "../ParameterHolders.h"
 #include "../Topology.h"
@@ -1002,29 +1003,53 @@ const
   return 0;*/
 }
 
+/** Add to bond arrays but do not update atom connectivity. Used
+  * when regenerating bond information from atom connectivity.
+  */
+void AssignParams::AddToBondArrays(Topology& topOut, BondType const& bnd) {
+  // TODO enforce H as second atom?
+  if (topOut[bnd.A1()].Element() == Atom::HYDROGEN ||
+      topOut[bnd.A2()].Element() == Atom::HYDROGEN)
+    topOut.ModifyBondsH().push_back( bnd );
+  else
+    topOut.ModifyBonds().push_back( bnd );
+}
+
+/** Add to angle arrays. Used when regenerating angle information
+  * from atom connectivity.
+  */
+void AssignParams::AddToAngleArrays(Topology& topOut, AngleType const& ang) {
+  if (topOut[ang.A1()].Element() == Atom::HYDROGEN ||
+      topOut[ang.A2()].Element() == Atom::HYDROGEN ||
+      topOut[ang.A3()].Element() == Atom::HYDROGEN)
+    topOut.ModifyAnglesH().push_back( ang );
+  else
+    topOut.ModifyAngles().push_back( ang );
+}
+
 /** Replace existing parameters with the given parameter set. */
 int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0) const {
 
   // Bond parameters
   mprintf("\tAssigning bond parameters.\n");
-  bondparm_.clear();
+  topOut.ModifyBondParm().clear();
   // Regenerate bond array in LEaP order
-  bonds_.clear();
-  bondsh_.clear();
-  BondArray allBonds = Cpptraj::Structure::GenerateBondArray(residues_, atoms_);
-  AssignBondParm( topOut, set0.BP(), allBonds, bondparm_, "bond" );
+  topOut.ModifyBonds().clear();
+  topOut.ModifyBondsH().clear();
+  BondArray allBonds = Cpptraj::Structure::GenerateBondArray(topOut.Residues(), topOut.Atoms());
+  AssignBondParm( topOut, set0.BP(), allBonds, topOut.ModifyBondParm(), "bond" );
   for (BondArray::const_iterator bnd = allBonds.begin(); bnd != allBonds.end(); ++bnd)
-    AddToBondArrays( *bnd );
+    AddToBondArrays( topOut, *bnd );
   // Angle parameters
   mprintf("\tAssigning angle parameters.\n");
-  angleparm_.clear();
+  topOut.ModifyAngleParm().clear();
   // Regenerate angle array in LEaP order
-  angles_.clear();
-  anglesh_.clear();
-  AngleArray allAngles = Cpptraj::Structure::GenerateAngleArray(residues_, atoms_);
-  allAngles = AssignAngleParm( set0.AP(), allAngles );
+  topOut.ModifyAngles().clear();
+  topOut.ModifyAnglesH().clear();
+  AngleArray allAngles = Cpptraj::Structure::GenerateAngleArray(topOut.Residues(), topOut.Atoms());
+  allAngles = AssignAngleParm( topOut, set0.AP(), allAngles, topOut.ModifyAngleParm() );
   for (AngleArray::const_iterator ang = allAngles.begin(); ang != allAngles.end(); ++ang)
-    AddToAngleArrays( *ang );
+    AddToAngleArrays( topOut, *ang );
   // Dihedral parameters
   mprintf("\tAssigning dihedral parameters.\n");
   dihedralparm_.clear();
