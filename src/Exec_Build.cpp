@@ -151,12 +151,14 @@ const
     // Identify a template based on the residue name.
     DataSet_Coords* resTemplate = creator.IdTemplateFromResname(currentRes.Name(), resTermType);
     if (resTemplate == 0) {
+      // Residue has no template.
       mprintf("Warning: No template found for residue %s\n", topIn.TruncResNameOnumId(ires).c_str());
       newNatom += currentRes.NumAtoms();
       // Head and tail atoms are blank
       resHeadAtoms.push_back( -1 );
       resTailAtoms.push_back( -1 );
     } else {
+      // Residue has a template.
       if (debug_ > 0)
         mprintf("\tTemplate %s being used for residue %s\n",
                 resTemplate->legend(), topIn.TruncResNameOnumId(ires).c_str());

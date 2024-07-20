@@ -48,6 +48,8 @@ class Creator {
     int getTemplates(ArgList&, DataSetList const&);
     /// Get parameter sets
     int getParameterSets(ArgList&, DataSetList const&);
+    /// Update template atom elements from parameter set
+    void UpdateTemplateElements() const;
 
     DataSet_Parameters* mainParmSet_; ///< Hold optional parameter set.
     Carray Templates_;                ///< Hold unit templates.

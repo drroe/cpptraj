@@ -56,6 +56,7 @@ int Creator::InitCreator(ArgList& argIn, DataSetList const& DSL, int debugIn)
 
   if (getTemplates(argIn, DSL)) return 1;
   if (getParameterSets(argIn, DSL)) return 1;
+  UpdateTemplateElements();
 
   // Get any atom name maps
   DataSetList nameMapSets = DSL.GetSetsOfType("*", DataSet::NAMEMAP);
@@ -67,6 +68,29 @@ int Creator::InitCreator(ArgList& argIn, DataSetList const& DSL, int debugIn)
   }
 
   return 0;
+}
+
+/** Update template atom elements from atom types in parameter set. */
+void Creator::UpdateTemplateElements() const {
+  if (mainParmSet_ == 0) return;
+
+  for (Carray::const_iterator crd = Templates_.begin(); crd != Templates_.end(); ++crd)
+  {
+    mprintf("DEBUG: Updating atom elements in '%s'\n", (*crd)->legend());
+    // Loop over template atoms
+    Topology& templateTop = *((*crd)->TopPtr());
+    for (int at = 0; at != templateTop.Natom(); at++) {
+      ParmHolder<AtomType>::const_iterator it;
+      if (templateTop[at].HasType()) {
+        it = mainParmSet_->AT().GetParam( TypeNameHolder(templateTop[at].Type()) );
+        if (it != mainParmSet_->AT().end()) {
+          mprintf("DEBUG:\t\tSetting atom %s element to %s\n", *(templateTop[at].Name()), it->second.EltStr());
+          templateTop.SetAtom(at).SetElementFromSymbol( it->second.EltStr()[0],
+                                                        it->second.EltStr()[1] );
+        }
+      }
+    } // END loop over template atoms
+  } // END loop over templates
 }
 
 /** Try to identify residue template DataSet from the given name;
