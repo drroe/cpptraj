@@ -272,6 +272,8 @@ class AngleArray {
     AngleType const& operator[](size_t idx) const { return angles_[idx]; }
     /// \return underlying array
     std::vector<AngleType> const& Array() const { return angles_; }
+    /// \return last angle added
+    AngleType& back() { return angles_.back(); }
   private:
     AArray angles_;
 };

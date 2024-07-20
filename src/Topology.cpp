@@ -2883,15 +2883,51 @@ void Topology::AssignUBParams(ParmHolder<BondParmType> const& newBondParams) {
 }
 
 /** Set parameters for angles in given angle array. */
-void Topology::AssignAngleParm(ParmHolder<AngleParmType> const& newAngleParams,
-                              AngleArray& angles)
+AngleArray Topology::AssignAngleParm(ParmHolder<AngleParmType> const& newAngleParams,
+                                     AngleArray const& angles)
 {
+  AngleArray newAngles;
   ParmHolder<int> currentTypes;
-  for (AngleArray::iterator ang = angles.begin(); ang != angles.end(); ++ang) {
+  for (AngleArray::const_iterator ang = angles.begin(); ang != angles.end(); ++ang) {
     TypeNameHolder types(3);
     types.AddName( atoms_[ang->A1()].Type() );
     types.AddName( atoms_[ang->A2()].Type() );
     types.AddName( atoms_[ang->A3()].Type() );
+    // Skip extra points // FIXME make this an option
+    if ( atoms_[ang->A1()].Element() == Atom::EXTRAPT ||
+         atoms_[ang->A3()].Element() == Atom::EXTRAPT)
+    {
+      mprintf("DEBUG: Skipping angle with extra point: %4i %4i %4i (%2s %2s %2s)\n",
+              ang->A1()+1, ang->A2()+1, ang->A3()+1,
+              *types[0], *types[1], *types[2]);
+      continue;
+    }
+    // Skip water angles // FIXME make this an option
+    if (atoms_[ang->A1()].Element() == Atom::HYDROGEN &&
+        atoms_[ang->A2()].Element() == Atom::OXYGEN &&
+        atoms_[ang->A3()].Element() == Atom::HYDROGEN)
+    {
+      // H-O-H Angle. If there is an H-H bond assume this is a rigid water model.
+      if (atoms_[ang->A1()].IsBondedTo( ang->A3() )) {
+        mprintf("DEBUG: H-O-H angle, H-H bond detected. Assuming rigid water, skipping angle: "
+                "%4i %4i %4i (%2s %2s %2s)\n",
+                ang->A1()+1, ang->A2()+1, ang->A3()+1,
+                *types[0], *types[1], *types[2]);
+        continue;
+      }
+    }
+    if (atoms_[ang->A1()].Element() == Atom::OXYGEN &&
+        atoms_[ang->A2()].Element() == Atom::HYDROGEN &&
+        atoms_[ang->A3()].Element() == Atom::HYDROGEN)
+    {
+      // O-H-H Angle. Assume rigid water model
+      mprintf("DEBUG: O-H-H angle. Assuming rigid water, skipping angle: "
+              "%4i %4i %4i (%2s %2s %2s)\n",
+              ang->A1()+1, ang->A2()+1, ang->A3()+1,
+              *types[0], *types[1], *types[2]);
+      continue;
+    }
+
     bool found;
     // See if parameter is present.
     int idx = currentTypes.FindParam( types, found );
@@ -2913,8 +2949,10 @@ void Topology::AssignAngleParm(ParmHolder<AngleParmType> const& newAngleParams,
         currentTypes.AddParm(types, idx, false);
       }
     }
-    ang->SetIdx( idx );
+    newAngles.push_back( *ang );
+    newAngles.back().SetIdx( idx );
   }
+  return newAngles;
 /*
   for (AngleArray::iterator ang = angles.begin(); ang != angles.end(); ++ang) {
     TypeNameHolder types(3);
@@ -2941,8 +2979,8 @@ void Topology::AssignAngleParm(ParmHolder<AngleParmType> const& newAngleParams,
 /** Replace any current angle parameters with given angle parameters. */
 void Topology::AssignAngleParams(ParmHolder<AngleParmType> const& newAngleParams) {
   angleparm_.clear();
-  AssignAngleParm( newAngleParams, angles_ );
-  AssignAngleParm( newAngleParams, anglesh_ );
+  angles_ = AssignAngleParm( newAngleParams, angles_ );
+  anglesh_ = AssignAngleParm( newAngleParams, anglesh_ );
 }
 
 /** Warn if improper atoms have been reordered so they match the parameter. */
@@ -3752,7 +3790,7 @@ int Topology::AssignParams(ParameterSet const& set0) {
   angles_.clear();
   anglesh_.clear();
   AngleArray allAngles = Cpptraj::Structure::GenerateAngleArray(residues_, atoms_);
-  AssignAngleParm( set0.AP(), allAngles );
+  allAngles = AssignAngleParm( set0.AP(), allAngles );
   for (AngleArray::const_iterator ang = allAngles.begin(); ang != allAngles.end(); ++ang)
     AddToAngleArrays( *ang );
   // Dihedral parameters

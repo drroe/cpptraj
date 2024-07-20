@@ -350,7 +350,7 @@ class Topology {
 
     void AssignAtomTypeParm(ParmHolder<AtomType> const&);
     void AssignBondParm(ParmHolder<BondParmType> const&, BondArray&, BondParmArray&, const char*) const;
-    void AssignAngleParm(ParmHolder<AngleParmType> const&, AngleArray&);
+    AngleArray AssignAngleParm(ParmHolder<AngleParmType> const&, AngleArray const&);
     void warn_improper_reorder(DihedralType const&, DihedralType const&) const;
     void AssignImproperParm(ImproperParmHolder const&, DihedralArray&, DihedralParmArray&) const;
     inline DihedralArray get_unique_dihedrals(DihedralArray const&) const;
