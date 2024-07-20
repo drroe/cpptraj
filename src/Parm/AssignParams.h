@@ -57,11 +57,13 @@ class AssignParams {
     void AssignDihedralParams(Topology&, DihedralParmHolder const&, ImproperParmHolder const&,
                               ParmHolder<AtomType> const&) const;
 
-    void AssignNonbondParams(ParmHolder<AtomType> const&,
+    void AssignNonbondParams(Topology&,
+                             ParmHolder<AtomType> const&,
                              ParmHolder<NonbondType> const&, ParmHolder<NonbondType> const&,
                              ParmHolder<double> const&, ParmHolder<HB_ParmType> const&,
                              int) const; // TODO make int a class vair
 
+    static inline int cmap_anames_match(DihedralType const&, AtArray const&, std::vector<std::string> const&);
     int remap_cmap_indices(std::vector<int>&, CmapGridArray&, CmapArray&, CmapParmHolder const&) const;
     int AssignCmapParams(CmapArray&, CmapParmHolder const&, CmapGridArray&) const;
     int AssignCmapParams(DihedralArray const&, CmapParmHolder const&,

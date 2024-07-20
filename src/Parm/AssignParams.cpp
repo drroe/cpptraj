@@ -559,19 +559,20 @@ const
 
 /** Replace current nonbond parameters with given nonbond parameters. */
 //TODO Accept array of atom type names?
-void AssignParams::AssignNonbondParams(ParmHolder<AtomType> const& newTypes,
-                                   ParmHolder<NonbondType> const& newNB,
-                                   ParmHolder<NonbondType> const& new14,
-                                   ParmHolder<double> const& newLJC,
-                                   ParmHolder<HB_ParmType> const& newHB,
-                                   int verbose)
+void AssignParams::AssignNonbondParams(Topology& topOut,
+                                       ParmHolder<AtomType> const& newTypes,
+                                       ParmHolder<NonbondType> const& newNB,
+                                       ParmHolder<NonbondType> const& new14,
+                                       ParmHolder<double> const& newLJC,
+                                       ParmHolder<HB_ParmType> const& newHB,
+                                       int verbose)
 const
 {
   bool hasLJ14 = !new14.empty();
   bool hasLJC = !newLJC.empty();
   // Generate array of only the types that are currently in Topology. TODO should this be a permanent part of Topology?
   ParmHolder<AtomType> currentAtomTypes;
-  for (AtArray::const_iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
+  for (AtArray::const_iterator atm = topOut.begin(); atm != topOut.end(); ++atm)
   {
     if (atm->HasType()) {
       TypeNameHolder types(1);
@@ -594,11 +595,12 @@ const
   }
   if (currentAtomTypes.size() < 1) {
     mprintf("Warning: No atom type information in %s - cannot assign nonbond parameters.\n",
-            c_str());
+            topOut.c_str());
     return;
   }
   // Regenerate nonbond params for existing types
-  nonbond_.Clear();
+  NonbondParmType& nonbond = topOut.SetNonbond();
+  nonbond.Clear();
   // Set type indices in order.
   for (ParmHolder<AtomType>::iterator t1 = currentAtomTypes.begin(); t1 != currentAtomTypes.end(); ++t1)
     t1->second.SetTypeIdx( -1 );
@@ -629,11 +631,11 @@ const
     }
   }
   mprintf("DEBUG: Setting up nonbond array for %i unique LJ types.\n", n_unique_lj_types);
-  nonbond_.SetupLJforNtypes( n_unique_lj_types );
+  nonbond.SetupLJforNtypes( n_unique_lj_types );
   if (hasLJ14)
-    nonbond_.SetNLJ14terms( nonbond_.NBarray().size() );
+    nonbond.SetNLJ14terms( nonbond.NBarray().size() );
   if (hasLJC)
-    nonbond_.SetNLJCterms( nonbond_.NBarray().size() );
+    nonbond.SetNLJCterms( nonbond.NBarray().size() );
   // Loop over all atom type pairs
   for (ParmHolder<AtomType>::const_iterator t1 = currentAtomTypes.begin(); t1 != currentAtomTypes.end(); ++t1)
   {
@@ -653,9 +655,9 @@ const
       ParmHolder<HB_ParmType>::const_iterator hb = newHB.GetParam( types );
       if (hb != newHB.end()) {
         if (verbose > 0) mprintf("LJ 10-12 parameter found for %s %s\n", *name1, *name2);
-        nonbond_.AddHBterm(t1->second.OriginalIdx(), t2->second.OriginalIdx(), hb->second);
+        nonbond.AddHBterm(t1->second.OriginalIdx(), t2->second.OriginalIdx(), hb->second);
         // Also add a blank 6-12 term since that seems to be the convention
-        newnbidx = nonbond_.AddLJterm( t1->second.OriginalIdx(), t2->second.OriginalIdx(), NonbondType() );
+        newnbidx = nonbond.AddLJterm( t1->second.OriginalIdx(), t2->second.OriginalIdx(), NonbondType() );
       } else {
         // See if this parameter exists in the given nonbond array.
         NonbondType LJAB;
@@ -667,7 +669,7 @@ const
           if (verbose > 0) mprintf("Using existing NB parameter for %s %s\n", *name1, *name2);
           LJAB = it->second;
         }
-        newnbidx = nonbond_.AddLJterm(t1->second.OriginalIdx(), t2->second.OriginalIdx(), LJAB);
+        newnbidx = nonbond.AddLJterm(t1->second.OriginalIdx(), t2->second.OriginalIdx(), LJAB);
       }
       // LJ 1-4
       if (hasLJ14) {
@@ -675,10 +677,10 @@ const
         ParmHolder<NonbondType>::const_iterator it = new14.GetParam( types );
         if (it == new14.end()) {
           if (verbose > 0) mprintf("NB 1-4 parameter for %s %s not found. Generating.\n", *name1, *name2);
-          nonbond_.SetLJ14( newnbidx ) = type1.LJ14().Combine_LB( type2.LJ14() );
+          nonbond.SetLJ14( newnbidx ) = type1.LJ14().Combine_LB( type2.LJ14() );
         } else {
           if (verbose > 0) mprintf("Using existing NB 1-4 parameter for %s %s\n", *name1, *name2);
-          nonbond_.SetLJ14( newnbidx ) = it->second;
+          nonbond.SetLJ14( newnbidx ) = it->second;
         }
       } // END hasLJ14
       // LJC
@@ -687,27 +689,27 @@ const
         ParmHolder<double>::const_iterator it = newLJC.GetParam( types );
         if (it == newLJC.end()) {
           mprintf("LJC parameter for %s %s not found. Setting to 0.\n", *name1, *name2); // FIXME generate
-          nonbond_.SetLJC( newnbidx, 0 );
+          nonbond.SetLJC( newnbidx, 0 );
         } else {
           mprintf("Using existing LJC parameter for %s %s\n", *name1, *name2);
-          nonbond_.SetLJC( newnbidx, it->second );
+          nonbond.SetLJC( newnbidx, it->second );
         }
       } // END hasLJC
     } // END inner loop over current types
   } // END outer loop over current types
   // Reset the atom type indices.
-  for (AtArray::iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
+  for (AtArray::iterator atm = topOut.ModifyAtoms().begin(); atm != topOut.ModifyAtoms().end(); ++atm)
   {
     int tidx = -1;
     ParmHolder<AtomType>::const_iterator it = currentAtomTypes.GetParam( TypeNameHolder(atm->Type()) );
     if (it == currentAtomTypes.end()) {
       mprintf("Warning: Atom type not found for %s (type %s)\n",
-              TruncResAtomNameNum( atm - atoms_.begin() ).c_str(),
+              topOut.TruncResAtomNameNum( atm - topOut.ModifyAtoms().begin() ).c_str(),
               *(atm->Type()));
     } else {
       if (it->second.OriginalIdx() < 0 || it->second.OriginalIdx() >= (int)currentAtomTypes.size()) {
         mprinterr("Internal Error: Type index for %s (type %s) out of range: %i\n",
-                  TruncResAtomNameNum( atm - atoms_.begin() ).c_str(),
+                  topOut.TruncResAtomNameNum( atm - topOut.ModifyAtoms().begin() ).c_str(),
                   *(atm->Type()), it->second.OriginalIdx());
       } else
         tidx = it->second.OriginalIdx();
@@ -717,9 +719,9 @@ const
 }
 
 /// \return index of 5th cmap atom if atom names match those in dihedral, -1 otherwise
-static inline int cmap_anames_match(DihedralType const& dih,
-                                     AtArray const& atoms,
-                                     std::vector<std::string> const& cmapAtomNames)
+int AssignParams::cmap_anames_match(DihedralType const& dih,
+                                    AtArray const& atoms,
+                                    std::vector<std::string> const& cmapAtomNames)
 {
 /*  mprintf("DEBUG: Check res %i %s %s %s %s against %s %s %s %s\n",
           atoms[dih.A2()].ResNum()+1,
