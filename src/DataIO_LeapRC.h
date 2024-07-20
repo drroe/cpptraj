@@ -18,11 +18,34 @@ class DataIO_LeapRC : public DataIO {
     bool ID_DataFormat(CpptrajFile&);
   private:
     /// Store atom type hybridization and element from leaprc addAtomTypes
-    class LeapEltHybrid;
+    class LeapEltHybrid {
+      public:
+        /// CONSTRUCTOR
+        LeapEltHybrid();
+        /// COPY CONSTRUCTOR
+        LeapEltHybrid(LeapEltHybrid const&);
+        /// ASSIGNMENT
+        LeapEltHybrid& operator=(const LeapEltHybrid&);
+        /// \return true if not equal.
+        bool operator!=(const LeapEltHybrid& rhs) const;
+        /// Set from hybridization string, element string
+        void SetEltHybrid(std::string const&, std::string const&);
+        /// \return Atom type hybridization
+        AtomType::HybridizationType AtypeHybridization() const;
+        /// \return Atom type element string
+        const char* AtypeElementStr() const;
+      private:
+        AtomType::HybridizationType hybrid_;
+        char elt_[3]; ///< Hold 2 char element name (plus null)
+    };
 
-    typedef std::pair<NameType, AtomType::HybridizationType> NHpairType;
-    typedef std::map<NameType, AtomType::HybridizationType> NHarrayType;
+    /// Pair atom type name to element/hybridization
+    typedef std::pair<NameType, LeapEltHybrid> AtypeEltHybridPairType;
+    /// Map atom type name to element/hybridization
+    typedef std::map<NameType, LeapEltHybrid> AtypeEltHybridPairMap;
+    /// Array of strings
     typedef std::vector<std::string> Sarray;
+    /// Array of data sets
     typedef std::vector<DataSet*> DSarray;
 
     struct PdbResMapType {
@@ -32,10 +55,10 @@ class DataIO_LeapRC : public DataIO {
     };
     typedef std::vector<PdbResMapType> PdbResMapArray;
 
-    int LoadAmberParams(std::string const&, DataSetList&, std::string const&, NHarrayType const&) const;
+    int LoadAmberParams(std::string const&, DataSetList&, std::string const&, AtypeEltHybridPairMap const&) const;
     int LoadOFF(std::string const&, DataSetList&, std::string const&, DSarray&) const;
     int LoadAmberPrep(std::string const&, DataSetList&, std::string const&, DSarray&) const;
-    int AddAtomTypes(NHarrayType&, BufferedLine&) const;
+    int AddAtomTypes(AtypeEltHybridPairMap&, BufferedLine&) const;
     int AddPdbResMap(BufferedLine&, PdbResMapArray&) const;
     int AddPdbAtomMap(std::string const&, DataSetList&, BufferedLine&) const;
     int LoadMol2(ArgList const&, DataSetList&) const;
@@ -56,7 +79,7 @@ class DataIO_LeapRC : public DataIO {
     std::string find_path(std::string const&, std::string const&) const;
 
     std::string amberhome_;
-    NHarrayType atomHybridizations_; ///< Store hybridizations for atom types
+    AtypeEltHybridPairMap atomHybridizations_; ///< Store hybridizations for atom types
     PdbResMapArray pdbResMap_; ///< Hold PDB residue name map
     DSarray units_;            ///< Hold COORDS sets which have been added as units
     static Sarray paramFiles_; ///< Track amber FF param files loaded from leaprc files

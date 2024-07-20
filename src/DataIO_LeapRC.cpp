@@ -17,42 +17,70 @@
 
 // -----------------------------------------------------------------------------
 // LeapEltHybrid class
-/// Store atom type hybridization and element from leaprc addAtomTypes
-class DataIO_LeapRC::LeapEltHybrid {
-  public:
-    //LeapEltHybrid() : hybrid_(AtomType::UNKNOWN_HYBRIDIZATION) { elt_[0]=' '; elt_[1]=' '; }
-    /// CONSTRUCTOR - take hybridization string, element string
-    LeapEltHybrid(std::string const& hybStr, std::string const& eltStr) {
-      // Hybridization
-      if (hybStr == "sp3")
-        hybrid_ = AtomType::SP3;
-      else if (hybStr == "sp2")
-        hybrid_ = AtomType::SP2;
-      else if (hybStr == "sp")
-        hybrid_ = AtomType::SP;
-      else {
-        mprintf("Warning: Unknown hybridization in addAtomTypes entry %s\n", hybStr.c_str());
-        hybrid_ = AtomType::UNKNOWN_HYBRIDIZATION;
-      }
-      elt_[0] = ' ';
-      elt_[1] = ' ';
-      if (eltStr.empty()) {
-        // Assume extra point
-        elt_[0] = 'X'; elt_[1] = 'P';
-      } else if (eltStr.size() == 1) {
-        elt_[0] = eltStr[0];
-      } else {
-        // 2 or more characters
-        elt_[0] = eltStr[0];
-        elt_[1] = eltStr[1];
-        if (eltStr.size() > 2)
-          mprintf("Warning: Element string '%s' has more than 2 chars. Only using first 2 chars.\n", eltStr.c_str());
-      }
-    }
-  private:
-    AtomType::HybridizationType hybrid_;
-    char elt_[2]; ///< Hold 2 char element name
-};
+/// CONSTRUCTOR
+DataIO_LeapRC::LeapEltHybrid::LeapEltHybrid() : hybrid_(AtomType::UNKNOWN_HYBRIDIZATION) {
+  elt_[0]=' ';
+  elt_[1]=' ';
+  elt_[2]='\0';
+}
+
+/// COPY CONSTRUCTOR
+DataIO_LeapRC::LeapEltHybrid::LeapEltHybrid(LeapEltHybrid const& rhs) : hybrid_(rhs.hybrid_) {
+  elt_[0] = rhs.elt_[0];
+  elt_[1] = rhs.elt_[1];
+}
+
+/// ASSIGNMENT
+DataIO_LeapRC::LeapEltHybrid& DataIO_LeapRC::LeapEltHybrid::operator=(const LeapEltHybrid& rhs) {
+  if (&rhs == this) return *this;
+  hybrid_ = rhs.hybrid_;
+  elt_[0] = rhs.elt_[0];
+  elt_[1] = rhs.elt_[1];
+  return *this;
+}
+
+/// \return true if not equal.
+bool DataIO_LeapRC::LeapEltHybrid::operator!=(const LeapEltHybrid& rhs) const {
+  return ( hybrid_ != rhs.hybrid_ ||
+           elt_[0] != rhs.elt_[0] ||
+           elt_[1] != rhs.elt_[1] );
+}
+
+/// Set from hybridization string, element string
+void DataIO_LeapRC::LeapEltHybrid::SetEltHybrid(std::string const& eltStr, std::string const& hybStr) {
+  // Hybridization
+  if (hybStr == "sp3")
+    hybrid_ = AtomType::SP3;
+  else if (hybStr == "sp2")
+    hybrid_ = AtomType::SP2;
+  else if (hybStr == "sp")
+    hybrid_ = AtomType::SP;
+  else {
+    mprintf("Warning: Unknown hybridization in addAtomTypes entry %s\n", hybStr.c_str());
+    hybrid_ = AtomType::UNKNOWN_HYBRIDIZATION;
+  }
+  elt_[0] = ' ';
+  elt_[1] = ' ';
+  elt_[2] = '\0';
+  if (eltStr.empty()) {
+    // Assume extra point
+    elt_[0] = 'X'; elt_[1] = 'P';
+  } else if (eltStr.size() == 1) {
+    elt_[0] = eltStr[0];
+  } else {
+    // 2 or more characters
+    elt_[0] = eltStr[0];
+    elt_[1] = eltStr[1];
+    if (eltStr.size() > 2)
+      mprintf("Warning: Element string '%s' has more than 2 chars. Only using first 2 chars.\n", eltStr.c_str());
+  }
+}
+
+/// \return Atom type hybridization
+AtomType::HybridizationType DataIO_LeapRC::LeapEltHybrid::AtypeHybridization() const { return hybrid_; }
+
+/// \return Atom type element string
+const char* DataIO_LeapRC::LeapEltHybrid::AtypeElementStr() const { return elt_; }
 
 // -----------------------------------------------------------------------------
 /// CONSTRUCTOR
@@ -134,7 +162,7 @@ const
 /** LEaP loadAmberParams command. */
 int DataIO_LeapRC::LoadAmberParams(std::string const& filename, DataSetList& dsl,
                                    std::string const& dsname,
-                                   NHarrayType const& atomHybridizations)
+                                   AtypeEltHybridPairMap const& atomHybridizations)
 const
 {
   DataSet* paramSet = 0;
@@ -185,11 +213,11 @@ const
       for (ParmHolder<AtomType>::iterator it = param.AT().begin();
                                           it != param.AT().end(); ++it)
       {
-        NHarrayType::const_iterator ah = atomHybridizations.find( it->first[0] );
+        AtypeEltHybridPairMap::const_iterator ah = atomHybridizations.find( it->first[0] );
         if (ah == atomHybridizations.end())
           mprintf("Warning: No hybridization set for atom type '%s'\n", *(it->first[0]));
         else
-          it->second.SetHybridization( ah->second );
+          it->second.SetHybridization( ah->second.AtypeHybridization() );
       }
     } else {
       mprinterr("Internal Error: DataIO_LeapRC::LoadAmberParams(): Set %s is not parameter set.\n",
@@ -247,7 +275,7 @@ int DataIO_LeapRC::LoadAmberPrep(std::string const& filename, DataSetList& dsl, 
 }
 
 /** LEaP addAtomTypes command. */
-int DataIO_LeapRC::AddAtomTypes(NHarrayType& atomHybridizations, BufferedLine& infile)
+int DataIO_LeapRC::AddAtomTypes(AtypeEltHybridPairMap& atomHybridizations, BufferedLine& infile)
 const
 {
   int bracketCount = 0;
@@ -270,36 +298,25 @@ const
           ArgList aline( tmp );
           // Some entries (like LP and EP) are not required to have elements.
           // Set the hybridization index to 1 or 2.
-          int hidx;
+          LeapEltHybrid eltHybrid;
           if (aline.Nargs() == 3)
-            hidx = 2;
+            eltHybrid.SetEltHybrid( aline[1], aline[2] );
           else if (aline.Nargs() == 2)
-            hidx = 1;
+            eltHybrid.SetEltHybrid( "", aline[1] );
           else {
             mprinterr("Error: Malformed addAtomTypes entry %s\n", tmp.c_str());
             return 1;
           }
-          AtomType::HybridizationType ht;
-          if (aline[hidx] == "sp3")
-            ht = AtomType::SP3;
-          else if (aline[hidx] == "sp2")
-            ht = AtomType::SP2;
-          else if (aline[hidx] == "sp")
-            ht = AtomType::SP;
-          else {
-            mprintf("Warning: Unknown hybridization in addAtomTypes entry %s\n", tmp.c_str());
-            ht = AtomType::UNKNOWN_HYBRIDIZATION;
-          }
           NameType atype(aline[0]);
-          NHarrayType::iterator it = atomHybridizations.lower_bound( atype );
+          AtypeEltHybridPairMap::iterator it = atomHybridizations.lower_bound( atype );
           if (it == atomHybridizations.end() || it->first != atype) {
-            it = atomHybridizations.insert( it, NHpairType(atype, ht) );
+            it = atomHybridizations.insert( it, AtypeEltHybridPairType(atype, eltHybrid) );
           } else {
             mprintf("Warning: Duplicate entry for '%s' in addAtomTypes.", *atype);
-            if (it->second != ht) {
+            if (it->second != eltHybrid) {
               mprintf(" Overwriting.\n");
               mprintf("Warning: Line is %s\n", tmp.c_str());
-              it->second = ht;
+              it->second = eltHybrid;
             } else
               mprintf("\n");
           }
