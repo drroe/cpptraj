@@ -44,9 +44,11 @@ class AssignParams {
                                AngleArray const&, AngleParmArray&) const;
     void AssignAngleParams(Topology&, ParmHolder<AngleParmType> const&) const;
 
-    void warn_improper_reorder(DihedralType const&, DihedralType const&) const;
-    void AssignImproperParm(ImproperParmHolder const&, DihedralArray&, DihedralParmArray&) const ;
-    void AssignImproperParams(ImproperParmHolder const&) const;
+    void warn_improper_reorder(AtArray const&, DihedralType const&, DihedralType const&) const;
+    void AssignImproperParm(Topology&, ImproperParmHolder const&,
+                            DihedralArray&, DihedralParmArray&) const ;
+    void AssignImproperParams(Topology&, ImproperParmHolder const&) const;
+
     DihedralArray AssignDihedralParm(DihedralParmHolder const&, ImproperParmHolder const&,
                                      ParmHolder<AtomType> const&, DihedralArray const&,
                                      bool) const; // TODO make the bool a class var?

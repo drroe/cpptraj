@@ -202,34 +202,35 @@ void AssignParams::AssignAngleParams(Topology& topOut, ParmHolder<AngleParmType>
 }
 
 /** Warn if improper atoms have been reordered so they match the parameter. */
-void AssignParams::warn_improper_reorder(DihedralType const& imp0, DihedralType const& imp)
+void AssignParams::warn_improper_reorder(AtArray const& atoms, DihedralType const& imp0, DihedralType const& imp)
 const
 {
   if (debug_ < 1) return;
   mprintf("Warning: Improper types have been reordered from %4s %4s %4s %4s",
-          *(atoms_[imp0.A1()].Type()),
-          *(atoms_[imp0.A2()].Type()),
-          *(atoms_[imp0.A3()].Type()),
-          *(atoms_[imp0.A4()].Type()));
+          *(atoms[imp0.A1()].Type()),
+          *(atoms[imp0.A2()].Type()),
+          *(atoms[imp0.A3()].Type()),
+          *(atoms[imp0.A4()].Type()));
   mprintf(" to %4s %4s %4s %4s to match improper parameter.\n",
-          *(atoms_[imp.A1()].Type()),
-          *(atoms_[imp.A2()].Type()),
-          *(atoms_[imp.A3()].Type()),
-          *(atoms_[imp.A4()].Type()));
+          *(atoms[imp.A1()].Type()),
+          *(atoms[imp.A2()].Type()),
+          *(atoms[imp.A3()].Type()),
+          *(atoms[imp.A4()].Type()));
 }
 
 /** Set parameters for improper dihedrals in given improper dihedral array. */
-void AssignParams::AssignImproperParm(ImproperParmHolder const& newImproperParams,
-                                  DihedralArray& impropers,
-                                  DihedralParmArray& dpa)
+void AssignParams::AssignImproperParm(Topology& topOut,
+                                      ImproperParmHolder const& newImproperParams,
+                                      DihedralArray& impropers,
+                                      DihedralParmArray& dpa)
 const
 {
   for (DihedralArray::iterator imp = impropers.begin(); imp != impropers.end(); ++imp) {
     TypeNameHolder types(4);
-    types.AddName( atoms_[imp->A1()].Type() );
-    types.AddName( atoms_[imp->A2()].Type() );
-    types.AddName( atoms_[imp->A3()].Type() );
-    types.AddName( atoms_[imp->A4()].Type() );
+    types.AddName( topOut[imp->A1()].Type() );
+    types.AddName( topOut[imp->A2()].Type() );
+    types.AddName( topOut[imp->A3()].Type() );
+    types.AddName( topOut[imp->A4()].Type() );
     bool found;
     // See if parameter is present.
     int idx = -1;
@@ -238,26 +239,26 @@ const
     DihedralParmArray ipa = newImproperParams.FindParam( types, found, *imp, reordered );
     if (!found) {
       mprintf("Warning: Parameter not found for improper %s-%s-%s-%s (%s-%s-%s-%s)\n",
-              TruncResAtomNameNum(imp->A1()).c_str(),
-              TruncResAtomNameNum(imp->A2()).c_str(),
-              TruncResAtomNameNum(imp->A3()).c_str(),
-              TruncResAtomNameNum(imp->A4()).c_str(),
+              topOut.TruncResAtomNameNum(imp->A1()).c_str(),
+              topOut.TruncResAtomNameNum(imp->A2()).c_str(),
+              topOut.TruncResAtomNameNum(imp->A3()).c_str(),
+              topOut.TruncResAtomNameNum(imp->A4()).c_str(),
               *types[0], *types[1], *types[3], *types[4]);
     } else {
       if (ipa.size() > 1)
         mprintf("Warning: %zu improper parameters found for types %s - %s - %s - %s, expected only one."
                         "Warning: Only using first parameter.\n", ipa.size(), *(types[0]), *(types[1]), *(types[2]), *(types[3]));
-      if (reordered) warn_improper_reorder( imp0, *imp );
-      idx = addTorsionParm( dpa, ipa.front() );
+      if (reordered) warn_improper_reorder( topOut.Atoms(), imp0, *imp );
+      idx = topOut.addTorsionParm( dpa, ipa.front() );
     }
     imp->SetIdx( idx );
   }
 }
 
 /** Replace any current improper parameters with given improper parameters. */
-void AssignParams::AssignImproperParams(ImproperParmHolder const& newImproperParams) const {
-  improperparm_.clear();
-  AssignImproperParm( newImproperParams, impropers_, improperparm_ );
+void AssignParams::AssignImproperParams(Topology& topOut, ImproperParmHolder const& newImproperParams) const {
+  topOut.ModifyImproperParm().clear();
+  AssignImproperParm( topOut, newImproperParams, topOut.ModifyImpropers(), topOut.ModifyImproperParm() );
 }
 
 /** Set parameters for dihedrals in given dihedral array.
