@@ -49,11 +49,12 @@ class AssignParams {
                             DihedralArray&, DihedralParmArray&) const ;
     void AssignImproperParams(Topology&, ImproperParmHolder const&) const;
 
-    DihedralArray AssignDihedralParm(DihedralParmHolder const&, ImproperParmHolder const&,
+    DihedralArray AssignDihedralParm(Topology&,
+                                     DihedralParmHolder const&, ImproperParmHolder const&,
                                      ParmHolder<AtomType> const&, DihedralArray const&,
                                      bool) const; // TODO make the bool a class var?
     DihedralArray get_unique_dihedrals(DihedralArray const&) const;
-    void AssignDihedralParams(DihedralParmHolder const&, ImproperParmHolder const&,
+    void AssignDihedralParams(Topology&, DihedralParmHolder const&, ImproperParmHolder const&,
                               ParmHolder<AtomType> const&) const;
 
     void AssignNonbondParams(ParmHolder<AtomType> const&,

@@ -2,6 +2,7 @@
 #include "../Atom.h"
 #include "../AtomType.h"
 #include "../CpptrajStdio.h"
+#include "../GuessAtomHybridization.h"
 #include "../ParameterHolders.h"
 #include "../Topology.h"
 #include "../TypeNameHolder.h"
@@ -269,11 +270,12 @@ void AssignParams::AssignImproperParams(Topology& topOut, ImproperParmHolder con
   * \param dihedrals Array containing only unique dihedrals.
   * \param sort_improper_cache If true, sort improper types in cache (to match current leap behavior)
   */
-DihedralArray AssignParams::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
-                                           ImproperParmHolder const& newImproperParams,
-                                           ParmHolder<AtomType> const& AT,
-                                           DihedralArray const& dihedrals,
-                                           bool sort_improper_cache)
+DihedralArray AssignParams::AssignDihedralParm(Topology& topOut,
+                                               DihedralParmHolder const& newDihedralParams,
+                                               ImproperParmHolder const& newImproperParams,
+                                               ParmHolder<AtomType> const& AT,
+                                               DihedralArray const& dihedrals,
+                                               bool sort_improper_cache)
 const
 { // TODO skip extra points
   DihedralArray dihedralsIn;
@@ -288,13 +290,13 @@ const
   // Loop over all dihedrals
   for (DihedralArray::const_iterator dih = dihedrals.begin(); dih != dihedrals.end(); ++dih) {
     TypeNameHolder types(4);
-    types.AddName( atoms_[dih->A1()].Type() );
-    types.AddName( atoms_[dih->A2()].Type() );
-    types.AddName( atoms_[dih->A3()].Type() );
-    types.AddName( atoms_[dih->A4()].Type() );
+    types.AddName( topOut[dih->A1()].Type() );
+    types.AddName( topOut[dih->A2()].Type() );
+    types.AddName( topOut[dih->A3()].Type() );
+    types.AddName( topOut[dih->A4()].Type() );
     // Skip extra points // FIXME make this an option
-    if ( atoms_[dih->A1()].Element() == Atom::EXTRAPT ||
-         atoms_[dih->A4()].Element() == Atom::EXTRAPT)
+    if ( topOut[dih->A1()].Element() == Atom::EXTRAPT ||
+         topOut[dih->A4()].Element() == Atom::EXTRAPT)
     {
       mprintf("DEBUG: Skipping dihedral with extra point: %4i %4i %4i %4i (%2s %2s %2s %2s)\n",
               dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1,
@@ -306,15 +308,15 @@ const
 //            *types[0], *types[1], *types[2], *types[3],
 //            (int)dih->IsImproper(), (int)dih->Skip14());
     // Determine improper
-    bool isImproper = (!atoms_[dih->A1()].IsBondedTo(dih->A2())) ||
-                      (!atoms_[dih->A2()].IsBondedTo(dih->A3())) ||
-                      (!atoms_[dih->A3()].IsBondedTo(dih->A4()));
+    bool isImproper = (!topOut[dih->A1()].IsBondedTo(dih->A2())) ||
+                      (!topOut[dih->A2()].IsBondedTo(dih->A3())) ||
+                      (!topOut[dih->A3()].IsBondedTo(dih->A4()));
     if (isImproper != dih->IsImproper()) {
       mprintf("Warning: dihedral %s-%s-%s-%s improper status %i does not match detected (%i)\n",
-              TruncResAtomNameNum(dih->A1()).c_str(),
-              TruncResAtomNameNum(dih->A2()).c_str(),
-              TruncResAtomNameNum(dih->A3()).c_str(),
-              TruncResAtomNameNum(dih->A4()).c_str(),
+              topOut.TruncResAtomNameNum(dih->A1()).c_str(),
+              topOut.TruncResAtomNameNum(dih->A2()).c_str(),
+              topOut.TruncResAtomNameNum(dih->A3()).c_str(),
+              topOut.TruncResAtomNameNum(dih->A4()).c_str(),
               (int)dih->IsImproper(), (int)isImproper);
     }
     bool found;
@@ -393,30 +395,30 @@ const
       if (!found) {
         if (debug_ > 0)
           mprintf("Warning: Improper parameters not found for improper dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
-                  TruncResAtomNameNum(dih->A1()).c_str(),
-                  TruncResAtomNameNum(dih->A2()).c_str(),
-                  TruncResAtomNameNum(dih->A3()).c_str(),
-                  TruncResAtomNameNum(dih->A4()).c_str(),
+                  topOut.TruncResAtomNameNum(dih->A1()).c_str(),
+                  topOut.TruncResAtomNameNum(dih->A2()).c_str(),
+                  topOut.TruncResAtomNameNum(dih->A3()).c_str(),
+                  topOut.TruncResAtomNameNum(dih->A4()).c_str(),
                   *types[0], *types[1], *types[2], *types[3]);
         // Central atom
-        Atom const& AJ = atoms_[dih->A3()];
+        Atom const& AJ = topOut[dih->A3()];
         AtomType::HybridizationType hybrid = AtomType::UNKNOWN_HYBRIDIZATION;
         AtomType atype = AT.FindParam(TypeNameHolder(AJ.Type()), found);
         if (found)
           hybrid = atype.Hybridization();
         if (hybrid == AtomType::UNKNOWN_HYBRIDIZATION) {
-          mprintf("Warning: Guessing hybridization for improper central atom %s\n", AtomMaskName(dih->A3()).c_str());
-          hybrid = Cpptraj::GuessAtomHybridization( AJ, atoms_ );
+          mprintf("Warning: Guessing hybridization for improper central atom %s\n", topOut.AtomMaskName(dih->A3()).c_str());
+          hybrid = Cpptraj::GuessAtomHybridization( AJ, topOut.Atoms() );
         }
         if (hybrid == AtomType::SP2) {
-          mprintf("Warning: No improper parameters for SP2 hybridized atom %s\n", AtomMaskName(dih->A3()).c_str());
+          mprintf("Warning: No improper parameters for SP2 hybridized atom %s\n", topOut.AtomMaskName(dih->A3()).c_str());
         }
       } else {
         if (ipa.size() > 1)
           mprintf("Warning: %zu improper parameters found for types %s - %s - %s - %s, expected only one."
                   "Warning: Only using first parameter.\n", ipa.size(), *(types[0]), *(types[1]), *(types[2]), *(types[3]));
-        if (reordered) warn_improper_reorder( *dih, mydih );
-        idx = addTorsionParm( dihedralparm_, ipa.front() );
+        if (reordered) warn_improper_reorder( topOut.Atoms(), *dih, mydih );
+        idx = topOut.addTorsionParm( topOut.ModifyDihedralParm(), ipa.front() );
         mydih.SetIdx( idx );
         mydih.SetImproper( true );
         // Always skip 1-4 for impropers
@@ -435,10 +437,10 @@ const
       DihedralParmArray dpa = newDihedralParams.FindParam( types, found );
       if (!found) {
         mprintf("Warning: Dihedral parameters not found for dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
-                TruncResAtomNameNum(dih->A1()).c_str(),
-                TruncResAtomNameNum(dih->A2()).c_str(),
-                TruncResAtomNameNum(dih->A3()).c_str(),
-                TruncResAtomNameNum(dih->A4()).c_str(),
+                topOut.TruncResAtomNameNum(dih->A1()).c_str(),
+                topOut.TruncResAtomNameNum(dih->A2()).c_str(),
+                topOut.TruncResAtomNameNum(dih->A3()).c_str(),
+                topOut.TruncResAtomNameNum(dih->A4()).c_str(),
                 *types[0], *types[1], *types[2], *types[3]);
         DihedralType mydih = *dih;
         mydih.SetIdx( -1 );
@@ -448,8 +450,8 @@ const
         // Determine if this is actually a 1-4 interaction by making
         // sure that A4 isnt part of a bond or angle with A1.
         bool skip14 = false;
-        for (Atom::bond_iterator bat1 = atoms_[dih->A1()].bondbegin();
-                                 bat1 != atoms_[dih->A1()].bondend(); ++bat1)
+        for (Atom::bond_iterator bat1 = topOut[dih->A1()].bondbegin();
+                                 bat1 != topOut[dih->A1()].bondend(); ++bat1)
         {
           if (*bat1 != dih->A2()) {
             if (*bat1 == dih->A4()) {
@@ -457,8 +459,8 @@ const
               break;
             }
             // Loop over angles, dih->A1() - bat1 - bat2
-            for (Atom::bond_iterator bat2 = atoms_[*bat1].bondbegin();
-                                     bat2 != atoms_[*bat1].bondend(); ++bat2)
+            for (Atom::bond_iterator bat2 = topOut[*bat1].bondbegin();
+                                     bat2 != topOut[*bat1].bondend(); ++bat2)
             {
               //if (dih->A1() == 442 && dih->A4() == 444) { // DEBUG
               //  mprintf("DEBUG: %4i %4i %4i %4i Checking angle %4i %4i %4i\n", dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1, dih->A1()+1, *bat1 + 1, *bat2 + 1);
@@ -499,7 +501,7 @@ const
         //}
         for (DihedralParmArray::const_iterator it = dpa.begin(); it != dpa.end(); ++it) {
           DihedralType mydih = *dih;
-          int idx = addTorsionParm( dihedralparm_, *it );
+          int idx = topOut.addTorsionParm( topOut.ModifyDihedralParm(), *it );
           // If there are multiple parameters for the same dihedral, all but
           // one of the 1-4 calcs need to be skipped.
           if (it == dpa.begin())
@@ -538,18 +540,21 @@ DihedralArray AssignParams::get_unique_dihedrals(DihedralArray const& dihedralsI
 }
 
 /** Replace any current dihedral parameters with given dihedral parameters. */
-void AssignParams::AssignDihedralParams(DihedralParmHolder const& newDihedralParams,
+void AssignParams::AssignDihedralParams(Topology& topOut,
+                                        DihedralParmHolder const& newDihedralParams,
                                         ImproperParmHolder const& newImproperParams,
                                         ParmHolder<AtomType> const& AT)
 const
 {
-  dihedralparm_.clear();
+  topOut.ModifyDihedralParm().clear();
   // Dihedrals can be a bit of a pain since there can be multiple
   // multiplicities for a single dihedral type. In case multiplicities
   // change, start with a fresh dihedral array containing only unique
   // dihedrals.
-  dihedrals_  = AssignDihedralParm( newDihedralParams, newImproperParams, AT, get_unique_dihedrals(dihedrals_), false  );
-  dihedralsh_ = AssignDihedralParm( newDihedralParams, newImproperParams, AT, get_unique_dihedrals(dihedralsh_), false );
+  topOut.ModifyDihedrals()  = AssignDihedralParm( topOut, newDihedralParams, newImproperParams,
+                                                  AT, get_unique_dihedrals(topOut.Dihedrals()), false  );
+  topOut.ModifyDihedralsH() = AssignDihedralParm( topOut, newDihedralParams, newImproperParams,
+                                                  AT, get_unique_dihedrals(topOut.DihedralsH()), false );
 }
 
 /** Replace current nonbond parameters with given nonbond parameters. */
