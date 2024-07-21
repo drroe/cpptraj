@@ -1,9 +1,15 @@
 #include "Action_ReplicateCell.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords.h"
+#include "Parm/Merge.h"
 
 // CONSTRUCTOR
-Action_ReplicateCell::Action_ReplicateCell() : coords_(0), ncopies_(0), writeTraj_(false) {} 
+Action_ReplicateCell::Action_ReplicateCell() :
+  coords_(0),
+  ncopies_(0),
+  debug_(0),
+  writeTraj_(false)
+{} 
 
 void Action_ReplicateCell::Help() const {
   mprintf("\t[out <traj filename>] [name <dsname>]\n"
@@ -33,6 +39,7 @@ static inline int toDigit(char c) {
 // Action_ReplicateCell::Init()
 Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  debug_ = debugIn;
   // Set up output traj
   std::string trajfilename = actionArgs.GetStringKey("out");
   topWriter_.InitTopWriter( actionArgs, "replicated cell", debugIn );
@@ -151,8 +158,10 @@ Action::RetType Action_ReplicateCell::Setup(ActionSetup& setup) {
     // Set up topology and frame.
     Topology* stripParm = setup.Top().modifyStateByMask( Mask1_ );
     if (stripParm == 0) return Action::ERR;
+    Cpptraj::Parm::Merge merger;
+    merger.SetDebug( debug_ ); // FIXME do verbose as well
     for (int cell = 0; cell != ncopies_; cell++)
-      combinedTop_.AppendTop( *stripParm );
+      merger.AppendTop( combinedTop_, *stripParm );
     combinedTop_.Brief("Combined parm:");
     delete stripParm;
     topWriter_.ModifyTop( &combinedTop_ );
