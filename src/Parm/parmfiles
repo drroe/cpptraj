@@ -1,4 +1,6 @@
 # Files for Parm subdirectory.
 PARM_SOURCES= \
+  AssignParams.cpp \
   GB_Params.cpp \
+  GetParams.cpp \
   Merge.cpp

@@ -1,5 +1,7 @@
 #CMake buildfile for CPPTRAJ Parm subdirectory.
 target_sources(cpptraj_common_obj PRIVATE
+  ${CMAKE_CURRENT_LIST_DIR}/AssignParams.cpp
   ${CMAKE_CURRENT_LIST_DIR}/GB_Params.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/GetParams.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Merge.cpp
 )
