@@ -1,10 +1,23 @@
 #include "Merge.h"
+#include "AssignParams.h"
+#include "GetParams.h"
 #include "../Atom.h"
+#include "../AtomType.h"
 #include "../CpptrajStdio.h"
 #include "../ParameterHolders.h"
 #include "../ParameterTypes.h"
 #include "../Residue.h"
 #include "../StringRoutines.h" // integerToString
+#include "../Topology.h"
+#include "../UpdateParameters.h"
+
+using namespace Cpptraj::Parm;
+
+/** CONSTRUCTOR */
+Merge::Merge() :
+  debug_(0),
+  verbose_(1) // FIXME
+{}
 
 // ----- Bonds -------------------------
 static inline void printIdx(BondType const& bnd1, unsigned int atomOffset) {
@@ -421,7 +434,7 @@ class MergeTopArray
   * arrays from top1, merge the bond arrays and consolidate the
   * parameters.
   */
-void Cpptraj::Parm::MergeBondArrays(BondArray& bonds0,
+void Merge::MergeBondArrays(BondArray& bonds0,
                                     BondArray& bondsh0,
                                     BondParmArray& bp0,
                                     AtArray const& atoms0,
@@ -429,6 +442,7 @@ void Cpptraj::Parm::MergeBondArrays(BondArray& bonds0,
                                     BondArray const& bondsh1,
                                     BondParmArray const& bp1,
                                     AtArray const& atoms1)
+const
 {
   MergeTopArray<BondType, BondParmType, BondArray, BondParmArray> mergeBonds;
   mergeBonds.MergeTermArrays( bonds0, bondsh0, bp0, atoms0,
@@ -441,7 +455,7 @@ void Cpptraj::Parm::MergeBondArrays(BondArray& bonds0,
   * arrays from top1, merge the angle arrays and consolidate the
   * parameters.
   */
-void Cpptraj::Parm::MergeAngleArrays(AngleArray& angles0,
+void Merge::MergeAngleArrays(AngleArray& angles0,
                                     AngleArray& anglesh0,
                                     AngleParmArray& ap0,
                                     AtArray const& atoms0,
@@ -449,6 +463,7 @@ void Cpptraj::Parm::MergeAngleArrays(AngleArray& angles0,
                                     AngleArray const& anglesh1,
                                     AngleParmArray const& ap1,
                                     AtArray const& atoms1)
+const
 {
   MergeTopArray<AngleType, AngleParmType, AngleArray, AngleParmArray> mergeAngles;
   mergeAngles.MergeTermArrays( angles0, anglesh0, ap0, atoms0,
@@ -478,7 +493,7 @@ static inline void merge_impropers(DihedralArray& dihOut, DihedralArray& dihIn, 
   * parameter arrays from top1, merge the dihedral arrays and consolidate the
   * parameters.
   */
-void Cpptraj::Parm::MergeDihedralArrays(DihedralArray& dihedrals0,
+void Merge::MergeDihedralArrays(DihedralArray& dihedrals0,
                                     DihedralArray& dihedralsh0,
                                     DihedralParmArray& dp0,
                                     AtArray const& atoms0,
@@ -486,6 +501,7 @@ void Cpptraj::Parm::MergeDihedralArrays(DihedralArray& dihedrals0,
                                     DihedralArray const& dihedralsh1,
                                     DihedralParmArray const& dp1,
                                     AtArray const& atoms1)
+const
 {
   // Separate any impropers.
   DihedralArray dih0, dihH0, imp0, impH0;
@@ -562,7 +578,7 @@ void index_cmap_types(ParmHolder<int>& currentTypes,
 }
 
 /** Given CMAP arrays from top0 and top1, merge and consolidate parameters. */
-void Cpptraj::Parm::MergeCmapArrays(CmapArray& cmap0,
+void Merge::MergeCmapArrays(CmapArray& cmap0,
                                     CmapGridArray& cg0,
                                     AtArray const& atoms0,
                                     ResArray const& residues0,
@@ -570,6 +586,7 @@ void Cpptraj::Parm::MergeCmapArrays(CmapArray& cmap0,
                                     CmapGridArray const& cg1,
                                     AtArray const& atoms1,
                                     ResArray const& residues1)
+const
 {
   unsigned int atomOffset = atoms0.size();
   unsigned int cgOffset = cg0.size();
@@ -645,12 +662,13 @@ void Cpptraj::Parm::MergeCmapArrays(CmapArray& cmap0,
   * array from top1, merge the bond arrays and consolidate the
   * parameters.
   */
-void Cpptraj::Parm::MergeBondArray(BondArray& bonds0,
+void Merge::MergeBondArray(BondArray& bonds0,
                                    BondParmArray& bp0,
                                    AtArray const& atoms0,
                                    BondArray const& bonds1,
                                    BondParmArray const& bp1,
                                    AtArray const& atoms1)
+const
 {
   mprintf("DEBUG: Enter MergeBondArray()\n");
   MergeTopArray<BondType, BondParmType, BondArray, BondParmArray> mergeBonds;
@@ -663,12 +681,13 @@ void Cpptraj::Parm::MergeBondArray(BondArray& bonds0,
   * parameter array from top1, merge the improper arrays and consolidate the
   * parameters.
   */
-void Cpptraj::Parm::MergeImproperArray(DihedralArray& impropers0,
+void Merge::MergeImproperArray(DihedralArray& impropers0,
                                        DihedralParmArray& ip0,
                                        AtArray const& atoms0,
                                        DihedralArray const& impropers1,
                                        DihedralParmArray const& ip1,
                                        AtArray const& atoms1)
+const
 {
   MergeTopArray<DihedralType, DihedralParmType, DihedralArray, DihedralParmArray> mergeImpropers;
   mergeImpropers.SetMergeWithExisting( true ); // FIXME check this
@@ -676,3 +695,134 @@ void Cpptraj::Parm::MergeImproperArray(DihedralArray& impropers0,
   mergeImpropers.MergeTermArray( impropers0, ip0, atoms0,
                                  impropers1, ip1, atoms1 );
 }
+
+// -----------------------------------------------------------------------------
+/** This template can be used when doing Append() on a generic std::vector array
+  * of type T. The array will be appended to a given array of the same type.
+  * If one is empty and the other is not, values will be filled in if necessary.
+  */
+template <class T> class TopVecAppend {
+  public:
+    /// CONSTRUCTOR
+    TopVecAppend() {}
+    /// Append current array to given array of same type
+    void Append(std::vector<T>& arrayOut, std::vector<T> const& arrayToAdd, unsigned int expectedSize)
+    {
+      if (arrayToAdd.empty() && arrayOut.empty()) {
+        // Both arrays are empty. Nothing to do.
+        return;
+      } else if (arrayToAdd.empty()) {
+        // The current array is empty but the given array is not. Fill in 
+        // array to append with blank values.
+        for (unsigned int idx = 0; idx != expectedSize; idx++)
+          arrayOut.push_back( T() );
+      } else {
+        // Append current array to array to given array. TODO use std::copy?
+        for (typename std::vector<T>::const_iterator it = arrayToAdd.begin(); it != arrayToAdd.end(); ++it)
+          arrayOut.push_back( *it );
+      }
+    }
+};
+
+/** Append a topology to another */
+int Merge::AppendTop(Topology& topOut, Topology const& NewTop) const {
+  unsigned int atomOffset = (unsigned int)topOut.Natom();
+  unsigned int molOffset = (unsigned int)topOut.Nmol();
+  mprintf("DEBUG: Appending '%s' to '%s' (atom offset= %u mol offset= %u)\n",
+          NewTop.c_str(), topOut.c_str(), atomOffset, molOffset);
+  //int resOffset = (int)residues_.size();
+
+  // Save nonbonded parameters from each topology
+  ParmHolder<AtomType> myAtomTypes, newAtomTypes;
+  ParmHolder<NonbondType> myNB, newNB;
+  ParmHolder<NonbondType> my14, new14;
+  ParmHolder<HB_ParmType> myHB, newHB;
+  ParmHolder<double> myLJC, newLJC;
+  Cpptraj::Parm::GetParams GP;
+  GP.SetDebug( debug_ );
+  GP.GetLJAtomTypes( myAtomTypes, myNB, my14, myLJC, myHB, topOut.Atoms(), topOut.Nonbond() );
+  GP.GetLJAtomTypes( newAtomTypes, newNB, new14, newLJC, newHB, NewTop.Atoms(), NewTop.Nonbond() );
+  // Create combined nonbond parameter set
+  int nAtomTypeUpdated = UpdateParameters< ParmHolder<AtomType> >( myAtomTypes, newAtomTypes, "atom type", verbose_ );
+  int nLJparamsUpdated = UpdateParameters< ParmHolder<NonbondType> >( myNB, newNB, "LJ 6-12", verbose_ );
+  int n14paramsUpdated = UpdateParameters< ParmHolder<NonbondType> >( my14, new14, "LJ 6-12 1-4", verbose_ );
+  int nljcparamsUpdated = UpdateParameters< ParmHolder<double> >( myLJC, newLJC, "LJ C", verbose_ );
+  int nHBparamsUpdated = UpdateParameters< ParmHolder<HB_ParmType> >( myHB, newHB, "LJ 10-12", verbose_ );
+  mprintf("\t%i atom types updated, %i LJ 6-12 params updated, %i 1-4 params updated, %i LJC params updated, %i LJ 10-12 params updated.\n",
+          nAtomTypeUpdated, nLJparamsUpdated, n14paramsUpdated, nljcparamsUpdated, nHBparamsUpdated);
+
+  // Add incoming topology bond/angle/dihedral/cmap arrays to this one.
+  MergeBondArrays(topOut.ModifyBonds(), topOut.ModifyBondsH(), topOut.ModifyBondParm(), topOut.Atoms(),
+                  NewTop.Bonds(), NewTop.BondsH(), NewTop.BondParm(), NewTop.Atoms());
+  MergeAngleArrays(topOut.ModifyAngles(), topOut.ModifyAnglesH(), topOut.ModifyAngleParm(), topOut.Atoms(),
+                   NewTop.Angles(), NewTop.AnglesH(), NewTop.AngleParm(), NewTop.Atoms());
+  MergeDihedralArrays(topOut.ModifyDihedrals(), topOut.ModifyDihedralsH(), topOut.ModifyDihedralParm(), topOut.Atoms(),
+                      NewTop.Dihedrals(), NewTop.DihedralsH(), NewTop.DihedralParm(), NewTop.Atoms());
+  MergeCmapArrays(topOut.ModifyCmap(), topOut.ModifyCmapGrid(), topOut.Atoms(), topOut.Residues(),
+                  NewTop.Cmap(), NewTop.CmapGrid(), NewTop.Atoms(), NewTop.Residues());
+  MergeBondArray(topOut.ModifyUB(), topOut.ModifyUBparm(), topOut.Atoms(),
+                 NewTop.UB(), NewTop.UBparm(), NewTop.Atoms());
+  MergeImproperArray(topOut.ModifyImpropers(), topOut.ModifyImproperParm(), topOut.Atoms(),
+                     NewTop.Impropers(), NewTop.ImproperParm(), NewTop.Atoms());
+
+  // Append incoming atoms to this topology.
+  for (AtArray::const_iterator atom = NewTop.begin(); atom != NewTop.end(); ++atom)
+  {
+    if (debug_ > 1)
+      mprintf("DBG: %6li %s %s %4i\n", atom-NewTop.begin(), 
+              *(atom->Name()), *(atom->Type()), atom->TypeIndex());
+    Atom CurrentAtom = *atom;
+    Residue const& res = NewTop.Res( CurrentAtom.ResNum() );
+    // Bonds need to be cleared and re-added.
+    CurrentAtom.ClearBonds();
+    for (Atom::bond_iterator bat = atom->bondbegin(); bat != atom->bondend(); ++bat)
+      CurrentAtom.AddBondToIdx( *bat + atomOffset );
+
+    topOut.addTopAtom( CurrentAtom,
+                       Residue(res.Name(), res.OriginalResNum(), res.Icode(), res.ChainID()),
+                       atom->MolNum()+molOffset, NewTop.Mol(atom->MolNum()).IsSolvent() );
+  }
+
+  // EXTRA ATOM INFO
+  TopVecAppend<NameType> appendNameType;
+  appendNameType.Append( tree_, NewTop.tree_, NewTop.Natom() );
+  TopVecAppend<int> appendInt;
+  appendInt.Append( ijoin_, NewTop.ijoin_, NewTop.Natom() );
+  appendInt.Append( irotat_, NewTop.irotat_, NewTop.Natom() );
+  appendInt.Append( pdbSerialNum_, NewTop.pdbSerialNum_, NewTop.Natom() );
+  TopVecAppend<char> appendChar;
+  appendChar.Append( atom_altloc_, NewTop.atom_altloc_, NewTop.Natom() );
+  TopVecAppend<float> appendFloat;
+  appendFloat.Append( occupancy_, NewTop.occupancy_, NewTop.Natom() );
+  appendFloat.Append( bfactor_, NewTop.bfactor_, NewTop.Natom() );
+
+  // Need to regenerate nonbonded info
+  mprintf("\tRegenerating nonbond parameters.\n");
+  AssignParams assign;
+  assign.AssignNonbondParams( topOut, myAtomTypes, myNB, my14, myLJC, myHB, verbose_ );
+
+  // The version of AddTopAtom() with molecule number already determines
+  // molecules and number of solvent molecules.
+  // Just need to determine the number of extra points.
+  topOut.DetermineNumExtraPoints();
+
+  // GB radii set string
+  if (!NewTop.GBradiiSet().empty()) {
+    if (topOut.GBradiiSet().empty())
+      topOut.SetGBradiiSet( NewTop.GBradiiSet() );
+    else {
+      // Do not repeat a GB radius string
+      std::size_t pos = topOut.GBradiiSet().find( NewTop.GBradiiSet() );
+      if (pos == std::string::npos) {
+        std::string newName = topOut.GBradiiSet() + "+" + NewTop.GBradiiSet();
+        if (newName.size() > 80) {
+          mprintf("Warning: New radius set name is > 80 characters: '%s'\n", newName.c_str());
+          mprintf("Warning: This will be truncated to 80 characters in an Amber Topology.\n");
+        }
+        topOut.SetGBradiiSet( newName );
+      }
+    }
+  }
+  return 0;
+}
+
