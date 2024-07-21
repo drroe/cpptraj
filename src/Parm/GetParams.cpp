@@ -4,7 +4,223 @@
 #include "../CpptrajStdio.h"
 #include "../ParameterHolders.h"
 #include "../ParameterTypes.h"
+#include "../Topology.h"
 #include "../TypeNameHolder.h"
+
+using namespace Cpptraj::Parm;
+
+static void paramOverwriteWarning(const char* type) {
+  mprintf("Warning: An existing %s parameter would have been overwritten. This\n"
+          "Warning:  usually means that the atom type information in the Topology is\n"
+          "Warning:  incomplete. This can happen for example with Chamber topologies\n"
+          "Warning:  if the original atom type names were > 4 characters.\n", type);
+  mprintf("Warning: The %s parameters in this topology may now be incorrect.\n", type);
+}
+
+// GetBondParams()
+void GetParams::GetBondParams(ParmHolder<BondParmType>& BP, std::vector<Atom> const& atoms, BondArray const& bonds, BondParmArray const& bpa) {
+  for (BondArray::const_iterator b = bonds.begin(); b != bonds.end(); ++b)
+  {
+    if (b->Idx() != -1) {
+      TypeNameHolder types(2);
+      types.AddName( atoms[b->A1()].Type() );
+      types.AddName( atoms[b->A2()].Type() );
+      ParameterHolders::RetType ret = BP.AddParm( types, bpa[b->Idx()], false );
+      if (ret == ParameterHolders::ERR)
+        paramOverwriteWarning("bond");
+    }
+  }
+}
+
+// GetAngleParams()
+void GetParams::GetAngleParams(ParmHolder<AngleParmType>& AP, std::vector<Atom> const& atoms, AngleArray const& angles, AngleParmArray const& apa) {
+  for (AngleArray::const_iterator b = angles.begin(); b != angles.end(); ++b)
+  {
+    if (b->Idx() != -1) {
+      TypeNameHolder types(3);
+      types.AddName( atoms[b->A1()].Type() );
+      types.AddName( atoms[b->A2()].Type() );
+      types.AddName( atoms[b->A3()].Type() );
+      ParameterHolders::RetType ret = AP.AddParm( types, apa[b->Idx()], false );
+      if (ret == ParameterHolders::ERR)
+        paramOverwriteWarning("angle");
+    }
+  }
+}
+
+// GetImproperParams()
+void GetParams::GetImproperParams(ImproperParmHolder& IP, std::vector<Atom> const& atoms, DihedralArray const& imp, DihedralParmArray const& ipa) {
+  IP.SetRequireExactMatch(true);
+  for (DihedralArray::const_iterator b = imp.begin(); b != imp.end(); ++b)
+  {
+    if (b->Idx() != -1) {
+      TypeNameHolder types(4);
+      types.AddName( atoms[b->A1()].Type() );
+      types.AddName( atoms[b->A2()].Type() );
+      types.AddName( atoms[b->A3()].Type() );
+      types.AddName( atoms[b->A4()].Type() );
+      ParameterHolders::RetType ret = IP.AddParm( types, ipa[b->Idx()], false );
+      if (ret == ParameterHolders::ERR)
+        paramOverwriteWarning("improper");
+    }
+  }
+}
+
+// GetDihedralParams()
+void GetParams::GetDihedralParams(DihedralParmHolder& DP, ImproperParmHolder& IP, std::vector<Atom> const& atoms, DihedralArray const& dih, DihedralParmArray const& dpa) {
+  IP.SetRequireExactMatch(true);
+  for (DihedralArray::const_iterator b = dih.begin(); b != dih.end(); ++b)
+  {
+    if (b->Idx() != -1) {
+      TypeNameHolder types(4);
+      types.AddName( atoms[b->A1()].Type() );
+      types.AddName( atoms[b->A2()].Type() );
+      types.AddName( atoms[b->A3()].Type() );
+      types.AddName( atoms[b->A4()].Type() );
+      //mprintf("DEBUG: dihedral %li ( %i %i %i %i )\n", b - dih.begin() + 1, b->A1()+1, b->A2()+1, b->A3()+1, b->A4()+1);
+      //mprintf("DEBUG: dihedral %li %s %s %s %s idx=%i type=%i PK=%g PN=%g Phase=%g SCEE=%g SCNB=%g\n", b - dih.begin() + 1,
+      //        *(types[0]), *(types[1]), *(types[2]), *(types[3]), b->Idx(), (int)b->Type(),
+      //        dpa[b->Idx()].Pk(), dpa[b->Idx()].Pn(), dpa[b->Idx()].Phase(), dpa[b->Idx()].SCEE(), dpa[b->Idx()].SCNB());
+      ParameterHolders::RetType ret;
+      if (b->IsImproper()) {
+        ret = IP.AddParm( types, dpa[b->Idx()], false );
+      } else {
+        ret = DP.AddParm( types, dpa[b->Idx()], false );
+      }
+      // DEBUG
+      //if (ret == ParameterHolders::ADDED) {
+      //  mprintf("DEBUG: Added %s %s %s %s idx=%i isImproper=%i\n", *(types[0]), *(types[1]), *(types[2]), *(types[3]), b->Idx(), (int)b->IsImproper());
+      //}
+      if (ret == ParameterHolders::ERR) {
+        paramOverwriteWarning("dihedral");
+        mprintf("Warning: Dihedral %s %s %s %s PK=%g PN=%g Phase=%g SCEE=%g SCNB=%g\n",
+                *(types[0]), *(types[1]), *(types[2]), *(types[3]),
+                dpa[b->Idx()].Pk(), dpa[b->Idx()].Pn(), dpa[b->Idx()].Phase(), dpa[b->Idx()].SCEE(), dpa[b->Idx()].SCNB());
+        //bool found;
+        //DihedralParmArray dpa = DP.FindParam(types, found);
+        //mprintf("Warning: Existing params:\n");
+        //for (DihedralParmArray::const_iterator d = dpa.begin(); d != dpa.end(); ++d)
+        //  mprintf("Warning:\t\tPK=%g PN=%g Phase=%g SCEE=%g SCNB=%g\n",
+        //          d->Pk(), d->Pn(), d->Phase(), d->SCEE(), d->SCNB());
+      }
+    }
+  }
+}
+
+/// \return an error if cmap atom names do not match
+static inline int check_cmap_atom_name(NameType const& n0, NameType const& n1)
+{
+  if (n0 != n1) {
+    mprinterr("Error: CMAP term atom name %s does not match expected CMAP term atom name %s\n",
+              *n1, *n0);
+    return 1;
+  }
+  return 0;
+}
+
+/** Get existing CMAP parameters.
+  * Unlike other parameters, CMAPs are big and are uniquely identified by
+  * a combination of residue and 5 atom names. Depending on if they were
+  * read in from a parameter file or a topology, they may or may not
+  * have residue/atom name information, which is needed for assignment.
+  * This info needs to be generated if it is missing.
+  */
+int GetParams::GetCmapParams(CmapParmHolder& cmapParm, CmapArray const& cmapTerms,
+                             CmapGridArray const& cmapGrids,
+                             std::vector<Atom> const& atoms, std::vector<Residue> const& residues)
+{
+  if (cmapGrids.empty() || cmapTerms.empty()) {
+    mprintf("DEBUG: CMAP grids/terms are empty. No parameters to get.\n");
+    return 0;
+  }
+  // Check if we need to generate residue/atom information for grids.
+  bool needResAtomInfo = false;
+  for (CmapGridArray::const_iterator it = cmapGrids.begin(); it != cmapGrids.end(); ++it)
+  {
+    if (it->ResNames().empty() || it->AtomNames().empty()) {
+      needResAtomInfo = true;
+      break;
+    }
+  }
+  // Mark off which terms need to be added.
+  std::vector<bool> addGrid( cmapGrids.size(), false );
+  for (CmapArray::const_iterator cm = cmapTerms.begin(); cm != cmapTerms.end(); ++cm) {
+    if (cm->Idx() != -1)
+      addGrid[cm->Idx()] = true;
+  }
+  // Add grids, adding res/atom info if needed
+  if (needResAtomInfo) {
+    mprintf("CMAP terms need residue/atom info.\n");
+    for (unsigned int idx = 0; idx != cmapGrids.size(); idx++) {
+      if (addGrid[idx]) {
+        // Figure out residue names this cmap applies to.
+        std::set<NameType> resNames;
+        std::vector<NameType> atomNames;
+        atomNames.reserve(5);
+        for (CmapArray::const_iterator cm = cmapTerms.begin(); cm != cmapTerms.end(); ++cm) {
+          if (cm->Idx() == (int)idx) {
+            int resnum = atoms[cm->A2()].ResNum();
+            resNames.insert( residues[resnum].Name() );
+            if (atomNames.empty()) {
+              atomNames.push_back( atoms[cm->A1()].Name() );
+              atomNames.push_back( atoms[cm->A2()].Name() );
+              atomNames.push_back( atoms[cm->A3()].Name() );
+              atomNames.push_back( atoms[cm->A4()].Name() );
+              atomNames.push_back( atoms[cm->A5()].Name() );
+            } else {
+              // Check atom names
+              if (check_cmap_atom_name(atomNames[0], atoms[cm->A1()].Name())) return 1;
+              if (check_cmap_atom_name(atomNames[1], atoms[cm->A2()].Name())) return 1;
+              if (check_cmap_atom_name(atomNames[2], atoms[cm->A3()].Name())) return 1;
+              if (check_cmap_atom_name(atomNames[3], atoms[cm->A4()].Name())) return 1;
+              if (check_cmap_atom_name(atomNames[4], atoms[cm->A5()].Name())) return 1;
+            }
+          }
+        }
+        mprintf("DEBUG: Cmap term %u residues", idx);
+        for (std::set<NameType>::const_iterator it = resNames.begin(); it != resNames.end(); ++it)
+          mprintf(" %s", *(*it));
+        mprintf(" Atoms={");
+        for (std::vector<NameType>::const_iterator it = atomNames.begin(); it != atomNames.end(); ++it)
+          mprintf(" %s", *(*it));
+        mprintf(" }\n");
+        CmapGridType newGrid = cmapGrids[idx];
+        // Add the atom/res info to the grid
+        newGrid.SetNumCmapRes( resNames.size() );
+        for (std::set<NameType>::const_iterator it = resNames.begin(); it != resNames.end(); ++it)
+          newGrid.AddResName( it->Truncated() ); // FIXME just use NameType
+        for (std::vector<NameType>::const_iterator it = atomNames.begin(); it != atomNames.end(); ++it)
+          newGrid.AddAtomName( it->Truncated() ); // FIXME just use NameType
+        if (!newGrid.CmapIsValid()) {
+          mprinterr("Error: CMAP is not valid, could not get parameter.\n");
+          mprinterr("Error:   Term %u residues", idx);
+          for (std::set<NameType>::const_iterator it = resNames.begin(); it != resNames.end(); ++it)
+            mprinterr(" %s", *(*it));
+          mprinterr(" Atoms={");
+          for (std::vector<NameType>::const_iterator it = atomNames.begin(); it != atomNames.end(); ++it)
+            mprinterr(" %s", *(*it));
+          mprinterr(" }\n");
+        }
+        // Set a default title if needed
+        if (newGrid.Title().empty())
+          newGrid.SetTitle( "CMAP for " + newGrid.ResNames().front() );
+        ParameterHolders::RetType ret = cmapParm.AddParm( newGrid, false );
+        if (ret == ParameterHolders::ERR)
+          paramOverwriteWarning("CMAP");
+      } // END if adding existing grid to parms
+    } // END loop over existing grids
+  } else {
+    mprintf("CMAP terms have residue/atom info.\n");
+    for (unsigned int idx = 0; idx != cmapGrids.size(); idx++) {
+      if (addGrid[idx]) {
+        ParameterHolders::RetType ret = cmapParm.AddParm( cmapGrids[idx], false );
+        if (ret == ParameterHolders::ERR)
+          paramOverwriteWarning("CMAP");
+      }
+    }
+  }
+  return 0;
+}
 
 /** \param atomTypesOut Output array of atom types and indivudual LJ parameters.
   * \param LJ612out Output array of LJ 6-12 pair parameters.
@@ -13,13 +229,13 @@
   * \param atoms Current array of atoms.
   * \param NB0 Current nonbond parameters.
   */
-void Cpptraj::Parm::GetParams::GetLJAtomTypes(ParmHolder<AtomType>& atomTypesOut,
-                                  ParmHolder<NonbondType>& LJ612out,
-                                  ParmHolder<NonbondType>& LJ14out,
-                                  ParmHolder<double>& LJCout,
-                                  ParmHolder<HB_ParmType>& LJ1012out,
-                                  std::vector<Atom> const& atoms,
-                                  NonbondParmType const& NB0)
+void GetParams::GetLJAtomTypes(ParmHolder<AtomType>& atomTypesOut,
+                               ParmHolder<NonbondType>& LJ612out,
+                               ParmHolder<NonbondType>& LJ14out,
+                               ParmHolder<double>& LJCout,
+                               ParmHolder<HB_ParmType>& LJ1012out,
+                               std::vector<Atom> const& atoms,
+                               NonbondParmType const& NB0)
 const
 {
   if (NB0.HasNonbond()) {
@@ -157,5 +373,37 @@ const
       if (atm->HasType() > 0)
         atomTypesOut.AddParm( TypeNameHolder(atm->Type()), AtomType(atm->Mass(), atm->Polar()), true );
   }
+}
+
+/** \return ParameterSet for this Topology. */
+ParameterSet GetParams::GetParameters(Topology const& topIn) const {
+  ParameterSet Params;
+  // Atom LJ types and other nonbonded parameters.
+  GetLJAtomTypes( Params.AT(), Params.NB(), Params.NB14(), Params.LJC(), Params.HB(),
+                  topIn.Atoms(), topIn.Nonbond() );
+  // Bond parameters.
+  GetBondParams( Params.BP(), topIn.Atoms(), topIn.Bonds(), topIn.BondParm() );
+  GetBondParams( Params.BP(), topIn.Atoms(), topIn.BondsH(), topIn.BondParm() );
+  // Angle parameters.
+  GetAngleParams( Params.AP(), topIn.Atoms(), topIn.Angles(), topIn.AngleParm() );
+  GetAngleParams( Params.AP(), topIn.Atoms(), topIn.AnglesH(), topIn.AngleParm() );
+  // Dihedral parameters.
+  GetDihedralParams( Params.DP(), Params.IP(), topIn.Atoms(), topIn.Dihedrals(), topIn.DihedralParm() );
+  GetDihedralParams( Params.DP(), Params.IP(), topIn.Atoms(), topIn.DihedralsH(), topIn.DihedralParm() );
+  // CHARMM parameters
+  if (!topIn.UB().empty()) {
+    // UB parameters
+    GetBondParams(Params.UB(), topIn.Atoms(), topIn.UB(), topIn.UBparm() );
+  }
+  if (!topIn.Impropers().empty()) {
+    // Impropers
+    GetImproperParams( Params.IP(), topIn.Atoms(), topIn.Impropers(), topIn.ImproperParm() );
+  }
+  // CMAPs
+  if (GetCmapParams( Params.CMAP(), topIn.Cmap(), topIn.CmapGrid(), topIn.Atoms(), topIn.Residues() )) {
+    mprinterr("Error: Could not get CMAP parameters.\n"); // TODO fatal?
+  }
+
+  return Params;
 }
 
