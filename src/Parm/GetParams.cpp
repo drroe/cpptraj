@@ -9,6 +9,16 @@
 
 using namespace Cpptraj::Parm;
 
+/** CONSTRUCTOR */
+GetParams::GetParams() :
+  debug_(0)
+{}
+
+/** Set debug level */
+void GetParams::SetDebug(int debugIn) {
+  debug_ = debugIn;
+}
+
 static void paramOverwriteWarning(const char* type) {
   mprintf("Warning: An existing %s parameter would have been overwritten. This\n"
           "Warning:  usually means that the atom type information in the Topology is\n"

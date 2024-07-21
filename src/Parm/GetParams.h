@@ -30,6 +30,8 @@ class GetParams {
   public:
     /// CONSTRUCTOR
     GetParams();
+    /// Set debug level
+    void SetDebug(int);
     /// \return ParameterSet containing parameters from given topology.
     ParameterSet GetParameters(Topology const&) const;
     /// Get nonbonded parameters (used in AppendTop)
