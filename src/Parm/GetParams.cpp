@@ -1,8 +1,10 @@
 #include "GetParams.h"
 #include "../Atom.h"
 #include "../AtomType.h"
+#include "../CmapParmHolder.h"
 #include "../CpptrajStdio.h"
 #include "../ParameterHolders.h"
+#include "../ParameterSet.h"
 #include "../ParameterTypes.h"
 #include "../Topology.h"
 #include "../TypeNameHolder.h"
@@ -416,4 +418,24 @@ ParameterSet GetParams::GetParameters(Topology const& topIn) const {
 
   return Params;
 }
-
+/** \return Total number of unique atom types. */
+unsigned int GetParams::NuniqueAtomTypes(Topology const& topIn) const {
+  ParmHolder<int> currentAtomTypes;
+  for (Topology::atom_iterator atm = topIn.begin(); atm != topIn.end(); ++atm)
+  {
+    if (atm->HasType()) {
+      TypeNameHolder atype( atm->Type() );
+      // Find in currentAtomTypes.
+      bool found;
+      currentAtomTypes.FindParam( atype, found );
+      if (!found) {
+        currentAtomTypes.AddParm( atype, atm->TypeIndex(), false );
+      }
+    }
+  }
+  mprintf("DEBUG: Unique atom types in %s\n", topIn.c_str());
+  for (ParmHolder<int>::const_iterator it = currentAtomTypes.begin();
+                                       it != currentAtomTypes.end(); ++it)
+    mprintf("\t\t%s %i\n", *(it->first[0]), it->second);
+  return currentAtomTypes.size();
+}

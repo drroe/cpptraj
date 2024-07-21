@@ -42,6 +42,8 @@ class GetParams {
                         ParmHolder<HB_ParmType>&,
                         std::vector<Atom> const&,
                         NonbondParmType const&) const;
+    /// \return number of unique atom types
+    unsigned int NuniqueAtomTypes(Topology const&) const;
   private:
     static inline void GetBondParams(ParmHolder<BondParmType>&, std::vector<Atom> const&,
                                      BondArray const&, BondParmArray const&);
