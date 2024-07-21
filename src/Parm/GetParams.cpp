@@ -1,7 +1,10 @@
 #include "GetParams.h"
 #include "../Atom.h"
+#include "../AtomType.h"
 #include "../CpptrajStdio.h"
+#include "../ParameterHolders.h"
 #include "../ParameterTypes.h"
+#include "../TypeNameHolder.h"
 
 /** \param atomTypesOut Output array of atom types and indivudual LJ parameters.
   * \param LJ612out Output array of LJ 6-12 pair parameters.
