@@ -785,16 +785,16 @@ int Merge::AppendTop(Topology& topOut, Topology const& NewTop) const {
 
   // EXTRA ATOM INFO
   TopVecAppend<NameType> appendNameType;
-  appendNameType.Append( tree_, NewTop.tree_, NewTop.Natom() );
+  appendNameType.Append( topOut.ModifyTreeChainClassification(), NewTop.TreeChainClassification(), NewTop.Natom() );
   TopVecAppend<int> appendInt;
-  appendInt.Append( ijoin_, NewTop.ijoin_, NewTop.Natom() );
-  appendInt.Append( irotat_, NewTop.irotat_, NewTop.Natom() );
-  appendInt.Append( pdbSerialNum_, NewTop.pdbSerialNum_, NewTop.Natom() );
+  appendInt.Append( topOut.ModifyJoinArray(), NewTop.JoinArray(), NewTop.Natom() );
+  appendInt.Append( topOut.ModifyRotateArray(), NewTop.RotateArray(), NewTop.Natom() );
+  appendInt.Append( topOut.ModifyPdbSerialNum(), NewTop.PdbSerialNum(), NewTop.Natom() );
   TopVecAppend<char> appendChar;
-  appendChar.Append( atom_altloc_, NewTop.atom_altloc_, NewTop.Natom() );
+  appendChar.Append( topOut.ModifyAtomAltLoc(), NewTop.AtomAltLoc(), NewTop.Natom() );
   TopVecAppend<float> appendFloat;
-  appendFloat.Append( occupancy_, NewTop.occupancy_, NewTop.Natom() );
-  appendFloat.Append( bfactor_, NewTop.bfactor_, NewTop.Natom() );
+  appendFloat.Append( topOut.ModifyOccupancy(), NewTop.Occupancy(), NewTop.Natom() );
+  appendFloat.Append( topOut.ModifyBfactor(), NewTop.Bfactor(), NewTop.Natom() );
 
   // Need to regenerate nonbonded info
   mprintf("\tRegenerating nonbond parameters.\n");
