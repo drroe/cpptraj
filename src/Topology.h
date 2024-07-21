@@ -6,7 +6,6 @@
 #include "Residue.h"
 #include "Molecule.h"
 #include "ParameterTypes.h"
-#include "ParameterSet.h"
 #include "Frame.h"
 #include "FileName.h"
 #include "Range.h"
@@ -37,8 +36,7 @@ class Topology {
     int NextraPts()                const { return n_extra_pts_;           }
     /// \return Strings describing forcefield
     std::vector<std::string> const& Description() const { return ff_desc_; }
-    /// \return number of unique atom types
-    unsigned int NuniqueAtomTypes() const;
+
     std::string const& ParmName()         const { return parmName_;       }
     FileName const& OriginalFilename()    const { return fileName_;       }
     std::string const& GBradiiSet()       const { return radius_set_;     }
@@ -49,6 +47,7 @@ class Topology {
     atom_iterator end()                          const { return atoms_.end();   }
     const Atom &operator[](int idx)              const { return atoms_[idx];    }
     std::vector<Atom> const& Atoms()             const { return atoms_;         }
+    std::vector<Atom>& ModifyAtoms() { return atoms_; }
     Atom& SetAtom(int idx)                             { return atoms_[idx]; }
     /// \return Count of "heavy" atoms (non-hydrogen, non-extra point)
     unsigned int HeavyAtomCount() const;
@@ -65,6 +64,9 @@ class Topology {
     void AddTreeChainClassification(NameType const& n)          { tree_.push_back(n); }
     void AddJoinArray(int j)                                    { ijoin_.push_back(j); }
     void AddRotateArray(int r)                                  { irotat_.push_back(r); }
+    std::vector<NameType>& ModifyTreeChainClassification() { return tree_; }
+    std::vector<int>& ModifyJoinArray()                    { return ijoin_; }
+    std::vector<int>& ModifyRotateArray()                  { return irotat_; }
     // ----- PDB info ----------------------------
     /// Reset all PDB-related info
     void ResetPDBinfo();
@@ -84,6 +86,10 @@ class Topology {
     void AddOccupancy(float o)  { occupancy_.push_back( o );    }
     void AddBfactor(float b)    { bfactor_.push_back( b );      }
     void AddPdbSerialNum(int i) { pdbSerialNum_.push_back( i ); }
+    std::vector<char>& ModifyAtomAltLoc()  { return atom_altloc_;  }
+    std::vector<float>& ModifyOccupancy()  { return occupancy_;    }
+    std::vector<float>& ModifyBfactor()    { return bfactor_;      }
+    std::vector<int>& ModifyPdbSerialNum() { return pdbSerialNum_; }
     /// Set list of missing residues and residues missing heteroatoms
     void SetMissingResInfo(std::vector<Residue> const&, std::vector<Residue> const&);
     /// \return list of completely missing residues
@@ -117,50 +123,54 @@ class Topology {
     BondArray         const& BondsH()       const { return bondsh_;       }
     BondParmArray     const& BondParm()     const { return bondparm_;     }
     BondParmType& SetBondParm(int i)              { return bondparm_[i];  }
+    BondArray& ModifyBonds() { return bonds_; }
+    BondArray& ModifyBondsH() { return bondsh_; }
+    BondParmArray& ModifyBondParm() { return bondparm_; }
     void AddBondParm(BondParmType const& b)       { bondparm_.push_back( b ); }
     void AddBond(int i, int j)                    { AddBond(i, j, -1); }
     void AddBond(int, int, int);
     void AddBond(BondType const&, bool);
     void AddBond(int, int, BondParmType const&);
     int RemoveBond(int, int);
-    void AssignBondParams(ParmHolder<BondParmType> const&);
     /// Clear bond arrays but not atom connectivity
     void ClearBondArrays();
-    /// Add to bond arrays but do not update atom connectivity
-    void AddToBondArrays(BondType const&);
     // ----- Angle-specific routines -------------
     size_t Nangles()                           const { return angles_.size()+anglesh_.size(); }
     AngleArray        const& Angles()       const { return angles_;       }
     AngleArray        const& AnglesH()      const { return anglesh_;      }
     AngleParmArray    const& AngleParm()    const { return angleparm_;    }
     AngleParmType& SetAngleParm(int i)            { return angleparm_[i]; }
+    AngleArray& ModifyAngles() { return angles_; }
+    AngleArray& ModifyAnglesH() { return anglesh_; }
+    AngleParmArray& ModifyAngleParm() { return angleparm_; }
     void AddAngle(int i, int j, int k)            { AddAngle(i, j, k, -1); }
     void AddAngle(int, int, int, int);
     void AddAngle(AngleType const&, bool);
     void AddAngle(int, int, int, AngleParmType const&);
-    /// Add to angle arrays
-    void AddToAngleArrays(AngleType const&);
-    void AssignAngleParams(ParmHolder<AngleParmType> const&);
     // ----- Dihedral-specific routines ----------
     size_t Ndihedrals()                        const { return dihedrals_.size()+dihedralsh_.size(); }
     DihedralArray     const& Dihedrals()    const { return dihedrals_;       }
     DihedralArray     const& DihedralsH()   const { return dihedralsh_;      }
     DihedralParmArray const& DihedralParm() const { return dihedralparm_;    }
     DihedralParmType& SetDihedralParm(int i)      { return dihedralparm_[i]; }
+    DihedralArray& ModifyDihedrals() { return dihedrals_; }
+    DihedralArray& ModifyDihedralsH() { return dihedralsh_; }
+    DihedralParmArray& ModifyDihedralParm() { return dihedralparm_; }
     void AddDihedral(DihedralType const& d)       { AddDihedral(d, -1);      }
     void AddDihedral(DihedralType const&, int);
     void AddDihedral(int i, int j, int k, int l) { AddDihedral(DihedralType(i,j,k,l,-1), -1); }
     void AddDihedral(DihedralType const&, bool);
     void AddDihedral(DihedralType const&, DihedralParmType const&);
-    void AssignImproperParams(ImproperParmHolder const&);
-    void AssignDihedralParams(DihedralParmHolder const&, ImproperParmHolder const&, ParmHolder<AtomType> const&);
-    /// Add to dihedral arrays
-    void AddToDihedralArrays(DihedralType const&);
+    /// \return Index of existing/added dihedral parameter in given array
+    static int addTorsionParm(DihedralParmArray&, DihedralParmType const&);
+
     // ----- CMAP-specific routines --------------
     bool                     HasCmap()      const { return !cmapGrid_.empty(); }
     CmapGridArray     const& CmapGrid()     const { return cmapGrid_;     }
     CmapArray         const& Cmap()         const { return cmap_;         }
     CmapGridType& SetCmapGrid(int idx)            { return cmapGrid_[idx];}
+    CmapGridArray& ModifyCmapGrid() { return cmapGrid_; }
+    CmapArray& ModifyCmap() { return cmap_; }
     void AddCmapGrid(CmapGridType const& g) { cmapGrid_.push_back(g); }
     void AddCmapTerm(CmapType const& c)     { cmap_.push_back(c);     }
     // ----- Non-bond routines -------------------
@@ -171,10 +181,6 @@ class Topology {
     double GetVDWdepth(int) const;
     /// \return Lennard-Jones 6-12 parameters for given pair of atoms
     inline NonbondType const& GetLJparam(int, int) const;
-    /// Assign LJ 6-12 / 10-12 parameters, reset atom type indices
-    void AssignNonbondParams(ParmHolder<AtomType> const&, ParmHolder<NonbondType> const&,
-                             ParmHolder<NonbondType> const&, ParmHolder<double> const&,
-                             ParmHolder<HB_ParmType> const&, int);
     /// \return True if any charge is non-zero
     bool HasChargeInfo() const;
     /// Redistribute charge on atoms in topology to match target total charge
@@ -201,12 +207,19 @@ class Topology {
     BondArray         const& UB()       const { return ub_;           }
     /// \return Array of Urey-Bradley parameters
     BondParmArray     const& UBparm()   const { return ubparm_;       }
-
+    /// \return Modifiable array of UB terms
+    BondArray& ModifyUB() { return ub_; }
+    /// \return Modifiable array of UB parameters
+    BondParmArray& ModifyUBparm() { return ubparm_; }
 
     /// Reserve space for future improper terms
     void ReserveImproperTerms(unsigned int n)         { impropers_.reserve( n );     }
     /// Resize for given number of improper parameters
     void ResizeImproperParm(unsigned int n)           { improperparm_.resize( n );   }
+    /// \return Modifiable improper array
+    DihedralArray& ModifyImpropers() { return impropers_; }
+    /// \return Modifiable improper parm array
+    DihedralParmArray& ModifyImproperParm() { return improperparm_; }
     /// Add improper term
     void AddImproperTerm(DihedralType const& dih)     { impropers_.push_back( dih ); }
     /// Set specified improper parameter
@@ -220,7 +233,6 @@ class Topology {
     void AddCharmmImproper(DihedralType const&, DihedralParmType const&);
     void AddCharmmImproper(DihedralType const&, int);
     void AddCharmmImproper(DihedralType const& i) { AddCharmmImproper(i, -1); }
-    void AssignUBParams(ParmHolder<BondParmType> const&);
     // ----- Misc routines -----------------------
     /// Format: <res name>_<res num>@<atom name>
     std::string TruncResAtomName(int) const;
@@ -246,12 +258,7 @@ class Topology {
     int FindAtomInResidue(int, NameType const&) const;
     /// Mark all molecules matching given mask expression as solvent.
     int SetSolvent(std::string const&);
-    /// \return ParameterSet for this Topology
-    ParameterSet GetParameters() const;
-    /// Replace existing parameters with those in given set.
-    int AssignParams(ParameterSet const&);
-    /// Update parameters in this Topology with those in given set.
-    int UpdateParams(ParameterSet const&);
+
     // ----- Print topology info -----------------
     void Summary() const;
     void Brief(const char*) const;
@@ -262,6 +269,8 @@ class Topology {
     // ----- Setup routines ----------------------
     /// Add an atom to the topology inside given residue
     int AddTopAtom(Atom const&, Residue const&);
+    /// Add an atom to the topology inside given residue and molecule number
+    int addTopAtom(Atom const&, Residue const&, unsigned int, bool);
     //void StartNewMol();
     /// Perform common final setup: optional molecule determination, renumber residues by molecules
     int CommonSetup(bool, bool);
@@ -273,6 +282,8 @@ class Topology {
     int Setup_NoResInfo();
     /// Resize for given numbers of atoms/residues etc. Clears any existing data.
     void Resize(Pointers const&);
+    /// Count the number of extra points in the Topology TODO just have it a part of AddTopAtom
+    void DetermineNumExtraPoints();
     // ----- Mask Routines -----------------------
     int SetupIntegerMask(AtomMask &) const;
     int SetupCharMask(CharMask &) const;
@@ -300,8 +311,7 @@ class Topology {
     int SplitResidue(AtomMask const&, NameType const&, std::vector<int>&);
     /// Split selected atoms in a residue into a new residue
     int SplitResidue(AtomMask const&, NameType const&);
-    /// Append topology to this one.
-    int AppendTop( Topology const& );
+    
   private:
     typedef std::vector<std::string> Sarray;
 
@@ -312,8 +322,6 @@ class Topology {
     void genBondParam(BondType&, BP_mapType&);
     /// Fill in bond parameters with estimations based on atomic element types
     void generateBondParameters();
-    /// \return Index of existing/added dihedral parameter in given array
-    static inline int addTorsionParm(DihedralParmArray&, DihedralParmType const&);
     /// \return Index of existing/added bond parameter in given array
     static inline int addBondParm(BondParmArray&, BondParmType const&);
     /// \return Index of existing/added angle parameter in given array
@@ -323,15 +331,12 @@ class Topology {
                                                    DihedralParmArray const&,
                                                    int, const char*);
     inline bool CheckExtraSize(size_t, const char*) const;
-    /// Add an atom to the topology inside given residue and molecule number
-    int addTopAtom(Atom const&, Residue const&, unsigned int, bool);
 
     void VisitAtom(int, int);
     int RecursiveMolSearch();
     int NonrecursiveMolSearch();
     void ClearMolecules();
     void AtomDistance(int, int, int, std::set<int>&, int) const;
-    void DetermineNumExtraPoints();
     int SetSolventInfo();
 
     int scale_dihedral_K(DihedralArray&, CharMask const&, double, bool);
@@ -347,23 +352,6 @@ class Topology {
     void StripDihedralParmArray(DihedralArray&, std::vector<int>&, DihedralParmArray&) const;
     void StripDihedralParmArray(DihedralArray&, std::vector<int>&, DihedralParmArray&,
                                 DihedralParmArray const&) const;
-
-    void AssignAtomTypeParm(ParmHolder<AtomType> const&);
-    void AssignBondParm(ParmHolder<BondParmType> const&, BondArray&, BondParmArray&, const char*) const;
-    AngleArray AssignAngleParm(ParmHolder<AngleParmType> const&, AngleArray const&);
-    void warn_improper_reorder(DihedralType const&, DihedralType const&) const;
-    void AssignImproperParm(ImproperParmHolder const&, DihedralArray&, DihedralParmArray&) const;
-    inline DihedralArray get_unique_dihedrals(DihedralArray const&) const;
-    DihedralArray AssignDihedralParm(DihedralParmHolder const&, ImproperParmHolder const&,
-                                     ParmHolder<AtomType> const&, DihedralArray const&, bool);
-
-    /// Remap CMAP parameter indices to match incoming parameter order
-    int remap_cmap_indices(std::vector<int>&, CmapGridArray&, CmapArray&, CmapParmHolder const&) const;
-    /// Assign CMAP parameters and terms
-    int AssignCmapParams(DihedralArray const&, CmapParmHolder const&, CmapGridArray&, CmapArray&) const;
-    /// Assign CMAP parameters
-    int AssignCmapParams(CmapArray&, CmapParmHolder const&, CmapGridArray&) const;
-
 
     static const NonbondType LJ_EMPTY;
     std::vector<Atom> atoms_;
