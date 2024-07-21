@@ -31,9 +31,16 @@ namespace Parm {
 class AssignParams {
   public:
     AssignParams();
-
+    /// Replace existing parameters with those from given set
     int AssignParameters(Topology&, ParameterSet const&) const;
+    /// Update existing parameters with given parameter set
     int UpdateParameters(Topology&, ParameterSet const&) const;
+    // Assign nonbond parameters to topology. Used during Merge::AppendTop()
+    void AssignNonbondParams(Topology&,
+                             ParmHolder<AtomType> const&,
+                             ParmHolder<NonbondType> const&, ParmHolder<NonbondType> const&,
+                             ParmHolder<double> const&, ParmHolder<HB_ParmType> const&,
+                             int) const; // TODO make verbose a class var?
   private:
     typedef std::vector<Atom> AtArray;
 
@@ -60,11 +67,7 @@ class AssignParams {
     void AssignDihedralParams(Topology&, DihedralParmHolder const&, ImproperParmHolder const&,
                               ParmHolder<AtomType> const&) const;
 
-    void AssignNonbondParams(Topology&,
-                             ParmHolder<AtomType> const&,
-                             ParmHolder<NonbondType> const&, ParmHolder<NonbondType> const&,
-                             ParmHolder<double> const&, ParmHolder<HB_ParmType> const&,
-                             int) const; // TODO make int a class vair
+
 
     static inline int cmap_anames_match(DihedralType const&, AtArray const&, std::vector<std::string> const&);
     int remap_cmap_indices(Topology const&, std::vector<int>&, CmapGridArray&, CmapArray&, CmapParmHolder const&) const;
