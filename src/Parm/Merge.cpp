@@ -19,6 +19,16 @@ Merge::Merge() :
   verbose_(1) // FIXME
 {}
 
+/** Set debug */
+void Merge::SetDebug(int debugIn) {
+  debug_ = debugIn;
+}
+
+/** Set verbosity */
+void Merge::SetVerbose(int verboseIn) {
+  verbose_ = verboseIn;
+}
+
 // ----- Bonds -------------------------
 static inline void printIdx(BondType const& bnd1, unsigned int atomOffset) {
   mprintf("DEBUG: Bond from top1 %i - %i will be %i - %i in top0\n",

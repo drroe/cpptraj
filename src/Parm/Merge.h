@@ -19,6 +19,10 @@ class Merge {
   public:
     /// CONSTRUCTOR
     Merge();
+    /// Set debug level
+    void SetDebug(int);
+    /// Set parameter verbosity
+    void SetVerbose(int);
     /// Append topology to this one.
     int AppendTop( Topology&, Topology const& ) const;
   private:
