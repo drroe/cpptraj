@@ -1,10 +1,13 @@
 #include "AssignParams.h"
+#include "GetParams.h"
 #include "../Atom.h"
 #include "../AtomType.h"
+#include "../CmapParmHolder.h"
 #include "../CpptrajStdio.h"
 #include "../Structure/GenerateConnectivityArrays.h"
 #include "../GuessAtomHybridization.h"
 #include "../ParameterHolders.h"
+#include "../ParameterSet.h"
 #include "../Topology.h"
 #include "../TypeNameHolder.h"
 #include <algorithm> //sort
@@ -1110,7 +1113,8 @@ int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0) c
 /** Update/add to parameters in this topology with those from given set.
   */
 int AssignParams::UpdateParameters(Topology& topOut, ParameterSet const& set1) const {
-  ParameterSet set0 = topOut.GetParameters();
+  GetParams GP;
+  ParameterSet set0 = GP.GetParameters( topOut );
 
   //set1.Summary(); // DEBUG
   // Check TODO is this necessary?
@@ -1186,4 +1190,3 @@ int AssignParams::UpdateParameters(Topology& topOut, ParameterSet const& set1) c
   if (debug_ > 0) set0.Debug("newp.dat");
   return 0;
 }
-
