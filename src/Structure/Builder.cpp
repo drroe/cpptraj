@@ -1765,7 +1765,35 @@ int Builder::getIcFromInternals(InternalCoords& icOut, int at, Barray const& has
       }
     }
   } // END loop over internal torsions
-  // If we are here, no "complete" IC was found. Check for angle and/or bond.
+  // If we are here, no "complete" IC was found. Check for angle internal.
+  for (Aarray::const_iterator ang = internalAngles_.begin(); ang != internalAngles_.end(); ++ang)
+  {
+    if (at == ang->AtI()) {
+      if (hasPosition[ang->AtJ()] && hasPosition[ang->AtK()])
+      {
+        int bidx = getExistingBondIdx(ang->AtI(), ang->AtJ());
+        if (bidx > -1) {
+          icOut = InternalCoords(ang->AtI(), ang->AtJ(), ang->AtK(), -1,
+                                 internalBonds_[bidx].DistVal(),
+                                 ang->ThetaVal()*Constants::RADDEG,
+                                 0);
+          return 1;
+        }
+      }
+    } else if (at == ang->AtK()) {
+      if (hasPosition[ang->AtJ()] && hasPosition[ang->AtI()])
+      {
+        int bidx = getExistingBondIdx(ang->AtK(), ang->AtJ());
+        if (bidx > -1) {
+          icOut = InternalCoords(ang->AtK(), ang->AtJ(), ang->AtI(), -1,
+                                 internalBonds_[bidx].DistVal(),
+                                 ang->ThetaVal()*Constants::RADDEG,
+                                 0);
+          return 1;
+        }
+      }
+    }
+  } // END loop over internal angles
 
   return 0;
 }
@@ -1813,7 +1841,8 @@ const
       Vec3 posI = Zmatrix::AtomIposition(ic, frameOut);
       if (debug_ > 1) {
         mprintf("Building atom %s using torsion/angle/bond\n", topIn.LeapName(at).c_str());
-        mprintf("Using - %s - %s - %s\n",
+        mprintf("Using %s - %s - %s - %s\n",
+                topIn.LeapName(ic.AtI()).c_str(),
                 topIn.LeapName(ic.AtJ()).c_str(),
                 topIn.LeapName(ic.AtK()).c_str(),
                 topIn.LeapName(ic.AtL()).c_str());
@@ -1824,6 +1853,20 @@ const
       }
       frameOut.SetXYZ( ic.AtI(), posI );
       return 1;
+    } else if (ic.AtK() != -1) {
+      // FIXME
+      //if debug_ > 1) {
+        mprintf("Building atom %s using angle/bond\n", topIn.LeapName(at).c_str());
+        mprintf("Using %s - %s - %s\n",
+                topIn.LeapName(ic.AtI()).c_str(),
+                topIn.LeapName(ic.AtJ()).c_str(),
+                topIn.LeapName(ic.AtK()).c_str());
+        mprintf( "Angle   = %f\n", ic.Theta() );
+        mprintf( "Bond    = %f\n", ic.Dist() );
+        //mprintf( "ZMatrixAll:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
+      //}
+      //frameOut.SetXYZ( ic.AtI(), posI );
+      return 0; // FIXME change to 1 when build is implemented
     }
   }
   return 0;
