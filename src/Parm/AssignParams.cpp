@@ -17,7 +17,8 @@ using namespace Cpptraj::Parm;
 /** CONSTRUCTOR */
 AssignParams::AssignParams() :
   debug_(0),
-  verbose_(1) // FIXME
+  verbose_(1), // FIXME
+  deleteExtraPointAngles_(true)
 {}
 
 /** Set debug level */
@@ -128,14 +129,16 @@ const
     types.AddName( topOut[ang->A1()].Type() );
     types.AddName( topOut[ang->A2()].Type() );
     types.AddName( topOut[ang->A3()].Type() );
-    // Skip extra points // FIXME make this an option
-    if ( topOut[ang->A1()].Element() == Atom::EXTRAPT ||
-         topOut[ang->A3()].Element() == Atom::EXTRAPT)
-    {
-      mprintf("DEBUG: Skipping angle with extra point: %4i %4i %4i (%2s %2s %2s)\n",
-              ang->A1()+1, ang->A2()+1, ang->A3()+1,
-              *types[0], *types[1], *types[2]);
-      continue;
+    // Skip extra points
+    if (deleteExtraPointAngles_) {
+      if ( topOut[ang->A1()].Element() == Atom::EXTRAPT ||
+           topOut[ang->A3()].Element() == Atom::EXTRAPT)
+      {
+        mprintf("DEBUG: Skipping angle with extra point: %4i %4i %4i (%2s %2s %2s)\n",
+                ang->A1()+1, ang->A2()+1, ang->A3()+1,
+                *types[0], *types[1], *types[2]);
+        continue;
+      }
     }
     // Skip water angles // FIXME make this an option
     if (topOut[ang->A1()].Element() == Atom::HYDROGEN &&
@@ -310,14 +313,16 @@ const
     types.AddName( topOut[dih->A2()].Type() );
     types.AddName( topOut[dih->A3()].Type() );
     types.AddName( topOut[dih->A4()].Type() );
-    // Skip extra points // FIXME make this an option
-    if ( topOut[dih->A1()].Element() == Atom::EXTRAPT ||
-         topOut[dih->A4()].Element() == Atom::EXTRAPT)
-    {
-      mprintf("DEBUG: Skipping dihedral with extra point: %4i %4i %4i %4i (%2s %2s %2s %2s)\n",
-              dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1,
-              *types[0], *types[1], *types[2], *types[3]);
-      continue;
+    // Skip extra points
+    if (deleteExtraPointAngles_) {
+      if ( topOut[dih->A1()].Element() == Atom::EXTRAPT ||
+           topOut[dih->A4()].Element() == Atom::EXTRAPT)
+      {
+        mprintf("DEBUG: Skipping dihedral with extra point: %4i %4i %4i %4i (%2s %2s %2s %2s)\n",
+                dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1,
+                *types[0], *types[1], *types[2], *types[3]);
+        continue;
+      }
     }
 //    mprintf("DEBUG: Assigning dihedral %4i %4i %4i %4i (%2s %2s %2s %2s) isImproper=%i skip14=%i\n",
 //            dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1,

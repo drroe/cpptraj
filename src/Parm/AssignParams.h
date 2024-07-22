@@ -83,6 +83,7 @@ class AssignParams {
 
     int debug_;
     int verbose_;
+    bool deleteExtraPointAngles_; ///< If true, remove angles/torsions containing extra points.
 };
 }
 }
