@@ -1725,7 +1725,7 @@ void Builder::printAllInternalsForAtom(int at, Topology const& topIn, Barray con
   * the given atom as a terminal atom.
   * \return 1 if complete internal coords were found, 0 if not.
   */
-Builder::InternalIdxType Builder::getIcFromInternals(InternalCoords& icOut, int at, Barray const& hasPosition) const
+int Builder::getIcFromInternals(InternalCoords& icOut, int at, Barray const& hasPosition) const
 {
   for (Tarray::const_iterator dih = internalTorsions_.begin(); dih != internalTorsions_.end(); ++dih)
   {
@@ -1742,7 +1742,7 @@ Builder::InternalIdxType Builder::getIcFromInternals(InternalCoords& icOut, int 
                                    internalBonds_[bidx].DistVal(),
                                    internalAngles_[aidx].ThetaVal()*Constants::RADDEG,
                                    dih->PhiVal()*Constants::RADDEG);
-            return InternalIdxType(dih-internalTorsions_.begin(), aidx, bidx);
+            return 1;
           }
         }
       }
@@ -1759,13 +1759,15 @@ Builder::InternalIdxType Builder::getIcFromInternals(InternalCoords& icOut, int 
                                    internalBonds_[bidx].DistVal(),
                                    internalAngles_[aidx].ThetaVal()*Constants::RADDEG,
                                    dih->PhiVal()*Constants::RADDEG);
-            return InternalIdxType(dih-internalTorsions_.begin(), aidx, bidx);
+            return 1;
           }
         }
       }
     }
   } // END loop over internal torsions
-  return InternalIdxType();
+  // If we are here, no "complete" IC was found. Check for angle and/or bond.
+
+  return 0;
 }
 
 /** \return Array of residues with atoms that need positions. */ // TODO does this need to be separate
@@ -1805,23 +1807,24 @@ const
 {
   // Find an internal coordinate for the atom.
   InternalCoords ic;
-  InternalIdxType IIDX = getIcFromInternals(ic, at, hasPosition);
-  if (IIDX.IsComplete()) {
+  if (getIcFromInternals(ic, at, hasPosition)) {
     //printAllInternalsForAtom(at, topIn, hasPosition); // DEBUG
-    Vec3 posI = Zmatrix::AtomIposition(ic, frameOut);
-    if (debug_ > 1) {
-      mprintf("Building atom %s using torsion/angle/bond\n", topIn.LeapName(at).c_str());
-      mprintf("Using - %s - %s - %s\n",
-              topIn.LeapName(ic.AtJ()).c_str(),
-              topIn.LeapName(ic.AtK()).c_str(),
-              topIn.LeapName(ic.AtL()).c_str());
-      mprintf( "Torsion = %f\n", ic.Phi() );
-      mprintf( "Angle   = %f\n", ic.Theta() );
-      mprintf( "Bond    = %f\n", ic.Dist() );
-      mprintf( "ZMatrixAll:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
+    if (ic.AtL() != -1) {
+      Vec3 posI = Zmatrix::AtomIposition(ic, frameOut);
+      if (debug_ > 1) {
+        mprintf("Building atom %s using torsion/angle/bond\n", topIn.LeapName(at).c_str());
+        mprintf("Using - %s - %s - %s\n",
+                topIn.LeapName(ic.AtJ()).c_str(),
+                topIn.LeapName(ic.AtK()).c_str(),
+                topIn.LeapName(ic.AtL()).c_str());
+        mprintf( "Torsion = %f\n", ic.Phi() );
+        mprintf( "Angle   = %f\n", ic.Theta() );
+        mprintf( "Bond    = %f\n", ic.Dist() );
+        mprintf( "ZMatrixAll:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
+      }
+      frameOut.SetXYZ( ic.AtI(), posI );
+      return 1;
     }
-    frameOut.SetXYZ( ic.AtI(), posI );
-    return 1;
   }
   return 0;
 }
