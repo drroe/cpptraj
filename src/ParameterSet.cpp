@@ -60,9 +60,31 @@ void ParameterSet::Print(CpptrajFile& Out) const {
     Out.Printf("Nonbond parameters name: %s\n", NBname_.c_str());
   static const char* hybStr[] = {"SP ", "SP2", "SP3", "UNK"};
   Out.Printf("Atom Types:\n");
-  Out.Printf("\t%6s %8s %12s %12s %12s %12s %3s %2s\n", "Name", "TypeIdx", "Radius", "Depth", "Mass", "Polar.", "Hyb", "El");
+  // Check if we have hybridizations or elements.
+  bool has_hybridizations = false;
+  bool has_elements = false;
   for (ParmHolder<AtomType>::const_iterator at = atomTypes_.begin(); at != atomTypes_.end(); ++at) {
-    Out.Printf("\t%6s %8li %12.4f %12.4f %12.4f %12.4f %3s %2s\n", *(at->first[0]), at - atomTypes_.begin(), at->second.LJ().Radius(), at->second.LJ().Depth(), at->second.Mass(), at->second.Polarizability(), hybStr[at->second.Hybridization()], at->second.EltStr());
+    if (at->second.Hybridization() != AtomType::UNKNOWN_HYBRIDIZATION)
+      has_hybridizations = true;
+    if (at->second.EltStr()[0] != ' ' || at->second.EltStr()[1] != ' ')
+      has_elements = true;
+    if (has_hybridizations && has_elements)
+      break;
+  }
+  // Atom Type header
+  Out.Printf("\t%6s %8s %12s %12s %12s %12s", "Name", "TypeIdx", "Radius", "Depth", "Mass", "Polar.");
+  if (has_hybridizations)
+    Out.Printf(" %3s", "Hyb");
+  if (has_elements)
+    Out.Printf(" %2s", "El");
+  Out.Printf("\n");
+  for (ParmHolder<AtomType>::const_iterator at = atomTypes_.begin(); at != atomTypes_.end(); ++at) {
+    Out.Printf("\t%6s %8li %12.4f %12.4f %12.4f %12.4f", *(at->first[0]), at - atomTypes_.begin(), at->second.LJ().Radius(), at->second.LJ().Depth(), at->second.Mass(), at->second.Polarizability());
+    if (has_hybridizations)
+      Out.Printf(" %3s", hybStr[at->second.Hybridization()]);
+    if (has_elements)
+      Out.Printf(" %2s", at->second.EltStr());
+    Out.Printf("\n");
   }
   if (!nbParm_.empty()) {
     Out.Printf("LJ 6-12 parameters:\n");
