@@ -18,7 +18,8 @@ using namespace Cpptraj::Parm;
 AssignParams::AssignParams() :
   debug_(0),
   verbose_(1), // FIXME
-  deleteExtraPointAngles_(true)
+  deleteExtraPointAngles_(true),
+  flexibleWater_(false)
 {}
 
 /** Set debug level */
@@ -140,30 +141,32 @@ const
         continue;
       }
     }
-    // Skip water angles // FIXME make this an option
-    if (topOut[ang->A1()].Element() == Atom::HYDROGEN &&
-        topOut[ang->A2()].Element() == Atom::OXYGEN &&
-        topOut[ang->A3()].Element() == Atom::HYDROGEN)
-    {
-      // H-O-H Angle. If there is an H-H bond assume this is a rigid water model.
-      if (topOut[ang->A1()].IsBondedTo( ang->A3() )) {
-        mprintf("DEBUG: H-O-H angle, H-H bond detected. Assuming rigid water, skipping angle: "
-                "%4i %4i %4i (%2s %2s %2s)\n",
-                ang->A1()+1, ang->A2()+1, ang->A3()+1,
-                *types[0], *types[1], *types[2]);
-        continue;
-      }
-    }
+    // O-H-H Angle. Assume rigid water model and always skip.
     if (topOut[ang->A1()].Element() == Atom::OXYGEN &&
         topOut[ang->A2()].Element() == Atom::HYDROGEN &&
         topOut[ang->A3()].Element() == Atom::HYDROGEN)
     {
-      // O-H-H Angle. Assume rigid water model
       mprintf("DEBUG: O-H-H angle. Assuming rigid water, skipping angle: "
               "%4i %4i %4i (%2s %2s %2s)\n",
               ang->A1()+1, ang->A2()+1, ang->A3()+1,
               *types[0], *types[1], *types[2]);
       continue;
+    }
+    // Skip water angles
+    if (!flexibleWater_) {
+      if (topOut[ang->A1()].Element() == Atom::HYDROGEN &&
+          topOut[ang->A2()].Element() == Atom::OXYGEN &&
+          topOut[ang->A3()].Element() == Atom::HYDROGEN)
+      {
+        // H-O-H Angle. If there is an H-H bond assume this is a rigid water model.
+        if (topOut[ang->A1()].IsBondedTo( ang->A3() )) {
+          mprintf("DEBUG: H-O-H angle, H-H bond detected. Assuming rigid water, skipping angle: "
+                  "%4i %4i %4i (%2s %2s %2s)\n",
+                  ang->A1()+1, ang->A2()+1, ang->A3()+1,
+                  *types[0], *types[1], *types[2]);
+          continue;
+        }
+      }
     }
 
     bool found;
