@@ -31,6 +31,10 @@ namespace Parm {
 class AssignParams {
   public:
     AssignParams();
+    /// Set Debug level
+    void SetDebug(int);
+    /// Set verbosity
+    void SetVerbose(int);
     /// Replace existing parameters with those from given set
     int AssignParameters(Topology&, ParameterSet const&) const;
     /// Update existing parameters with given parameter set
@@ -39,8 +43,7 @@ class AssignParams {
     void AssignNonbondParams(Topology&,
                              ParmHolder<AtomType> const&,
                              ParmHolder<NonbondType> const&, ParmHolder<NonbondType> const&,
-                             ParmHolder<double> const&, ParmHolder<HB_ParmType> const&,
-                             int) const; // TODO make verbose a class var?
+                             ParmHolder<double> const&, ParmHolder<HB_ParmType> const&) const;
   private:
     typedef std::vector<Atom> AtArray;
 
@@ -79,6 +82,7 @@ class AssignParams {
     static void AddToDihedralArrays(Topology&, DihedralType const&);
 
     int debug_;
+    int verbose_;
 };
 }
 }

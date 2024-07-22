@@ -16,8 +16,19 @@ using namespace Cpptraj::Parm;
 
 /** CONSTRUCTOR */
 AssignParams::AssignParams() :
-  debug_(0)
+  debug_(0),
+  verbose_(1) // FIXME
 {}
+
+/** Set debug level */
+void AssignParams::SetDebug(int debugIn) {
+  debug_ = debugIn;
+}
+
+/** Set verbosity. */
+void AssignParams::SetVerbose(int verboseIn) {
+  verbose_ = verboseIn;
+}
 
 /** Set parameters for atoms via given atom type parameter holder. */
 void AssignParams::AssignAtomTypeParm(AtArray& atoms, ParmHolder<AtomType> const& newAtomTypeParams)
@@ -569,8 +580,7 @@ void AssignParams::AssignNonbondParams(Topology& topOut,
                                        ParmHolder<NonbondType> const& newNB,
                                        ParmHolder<NonbondType> const& new14,
                                        ParmHolder<double> const& newLJC,
-                                       ParmHolder<HB_ParmType> const& newHB,
-                                       int verbose)
+                                       ParmHolder<HB_ParmType> const& newHB)
 const
 {
   bool hasLJ14 = !new14.empty();
@@ -659,7 +669,7 @@ const
       // Check for LJ10-12 first
       ParmHolder<HB_ParmType>::const_iterator hb = newHB.GetParam( types );
       if (hb != newHB.end()) {
-        if (verbose > 0) mprintf("LJ 10-12 parameter found for %s %s\n", *name1, *name2);
+        if (verbose_ > 0) mprintf("LJ 10-12 parameter found for %s %s\n", *name1, *name2);
         nonbond.AddHBterm(t1->second.OriginalIdx(), t2->second.OriginalIdx(), hb->second);
         // Also add a blank 6-12 term since that seems to be the convention
         newnbidx = nonbond.AddLJterm( t1->second.OriginalIdx(), t2->second.OriginalIdx(), NonbondType() );
@@ -668,10 +678,10 @@ const
         NonbondType LJAB;
         ParmHolder<NonbondType>::const_iterator it = newNB.GetParam( types );
         if (it == newNB.end()) {
-          if (verbose > 0) mprintf("NB parameter for %s %s not found. Generating.\n", *name1, *name2);
+          if (verbose_ > 0) mprintf("NB parameter for %s %s not found. Generating.\n", *name1, *name2);
           LJAB = type1.LJ().Combine_LB( type2.LJ() );
         } else {
-          if (verbose > 0) mprintf("Using existing NB parameter for %s %s\n", *name1, *name2);
+          if (verbose_ > 0) mprintf("Using existing NB parameter for %s %s\n", *name1, *name2);
           LJAB = it->second;
         }
         newnbidx = nonbond.AddLJterm(t1->second.OriginalIdx(), t2->second.OriginalIdx(), LJAB);
@@ -681,10 +691,10 @@ const
         // Get parameter if it exists
         ParmHolder<NonbondType>::const_iterator it = new14.GetParam( types );
         if (it == new14.end()) {
-          if (verbose > 0) mprintf("NB 1-4 parameter for %s %s not found. Generating.\n", *name1, *name2);
+          if (verbose_ > 0) mprintf("NB 1-4 parameter for %s %s not found. Generating.\n", *name1, *name2);
           nonbond.SetLJ14( newnbidx ) = type1.LJ14().Combine_LB( type2.LJ14() );
         } else {
-          if (verbose > 0) mprintf("Using existing NB 1-4 parameter for %s %s\n", *name1, *name2);
+          if (verbose_ > 0) mprintf("Using existing NB 1-4 parameter for %s %s\n", *name1, *name2);
           nonbond.SetLJ14( newnbidx ) = it->second;
         }
       } // END hasLJ14
@@ -1104,7 +1114,7 @@ int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0) c
   AssignAtomTypeParm( topOut.ModifyAtoms(), set0.AT() );
   // LJ 6-12
   mprintf("\tAssigning nonbond parameters.\n");
-  AssignNonbondParams( topOut, set0.AT(), set0.NB(), set0.NB14(), set0.LJC(), set0.HB(), debug_ );
+  AssignNonbondParams( topOut, set0.AT(), set0.NB(), set0.NB14(), set0.LJC(), set0.HB() );
   mprintf("DEBUG: CMAP size %zu\n", set0.CMAP().size());
 
   return 0;
@@ -1177,7 +1187,7 @@ int AssignParams::UpdateParameters(Topology& topOut, ParameterSet const& set1) c
       UC.nLJparamsUpdated_ > 0 || UC.nLJ14paramsUpdated_ > 0)
   {
     mprintf("\tRegenerating nonbond parameters.\n");
-    AssignNonbondParams( topOut, set0.AT(), set0.NB(), set0.NB14(), set0.LJC(), set0.HB(), debug_ );
+    AssignNonbondParams( topOut, set0.AT(), set0.NB(), set0.NB14(), set0.LJC(), set0.HB() );
   }
   // CMAP
   if (UC.nCmapUpdated_ > 0) {
