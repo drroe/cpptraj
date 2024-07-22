@@ -809,7 +809,9 @@ int Merge::AppendTop(Topology& topOut, Topology const& NewTop) const {
   // Need to regenerate nonbonded info
   mprintf("\tRegenerating nonbond parameters.\n");
   AssignParams assign;
-  assign.AssignNonbondParams( topOut, myAtomTypes, myNB, my14, myLJC, myHB, verbose_ );
+  assign.SetDebug( debug_ );
+  assign.SetVerbose( verbose_ );
+  assign.AssignNonbondParams( topOut, myAtomTypes, myNB, my14, myLJC, myHB );
 
   // The version of AddTopAtom() with molecule number already determines
   // molecules and number of solvent molecules.

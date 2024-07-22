@@ -4,11 +4,12 @@
 #include <cstring> // strncmp
 #include <cctype> // isdigit
 #include "Parm_CharmmPsf.h"
-#include "CpptrajStdio.h"
-#include "StringRoutines.h"
-#include "Mol.h" // UniqueCount()
-#include "CharmmParamFile.h"
 #include "BufferedLine.h"
+#include "CharmmParamFile.h"
+#include "CpptrajStdio.h"
+#include "Mol.h" // UniqueCount()
+#include "Parm/AssignParams.h"
+#include "StringRoutines.h"
 
 /// CONSTRUCTOR
 Parm_CharmmPsf::Parm_CharmmPsf() :
@@ -377,7 +378,11 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
 
   // Add nonbonded parameters
   if (params_.HasLJparams()) {
-    parmOut.AssignNonbondParams( atomTypes, params_.NB(), params_.NB14(), params_.LJC(), params_.HB(), debug_ );
+    Cpptraj::Parm::AssignParams AP;
+    AP.SetDebug( debug_ );
+    AP.SetVerbose( debug_ ); // TODO separate verbosity?
+    AP.AssignNonbondParams( parmOut, atomTypes, params_.NB(), params_.NB14(),
+                            params_.LJC(), params_.HB() );
   }
 
   return 0;

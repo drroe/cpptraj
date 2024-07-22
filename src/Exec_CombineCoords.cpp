@@ -1,9 +1,11 @@
 #include <algorithm> // std::min, std::max
 #include "Exec_CombineCoords.h"
 #include "CpptrajStdio.h"
+#include "Parm/Merge.h"
 
 void Exec_CombineCoords::Help() const {
-  mprintf("\t<crd1> <crd2> ... [parmname <topname>] [crdname <crdname>] [nobox]\n"
+  mprintf("\t<crd1> <crd2> ... [parmname <topname>] [crdname <crdname>]\n"
+          "\t[nobox] [verbose]\n"
           "  Combine two or more COORDS data sets.\n");
 }
 
@@ -18,6 +20,7 @@ Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
   std::string parmname = argIn.GetStringKey("parmname");
   std::string crdname  = argIn.GetStringKey("crdname");
   bool nobox = argIn.hasKey("nobox");
+  int verbose = argIn.getKeyInt("verbose", 0);
   // Get COORDS DataSets.
   std::vector<DataSet_Coords*> CRD;
   std::string setname = argIn.GetStringNext();
@@ -59,6 +62,9 @@ Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
   if (nobox) boxStatus = INVALID;
   Box combinedBox;
   size_t minSize = CRD[0]->Size();
+  Cpptraj::Parm::Merge merger;
+  merger.SetDebug( State.Debug() );
+  merger.SetDebug( verbose );
   for (unsigned int setnum = 0; setnum != CRD.size(); ++setnum) {
     if (CRD[setnum]->Size() < minSize)
       minSize = CRD[setnum]->Size();
@@ -79,7 +85,7 @@ Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
       }
     }
     // Append
-    CombinedTop.AppendTop( CRD[setnum]->Top() );
+    merger.AppendTop( CombinedTop, CRD[setnum]->Top() );
   }
   CombinedTop.SetParmBox( combinedBox );
   CombinedTop.Brief("Combined parm:");

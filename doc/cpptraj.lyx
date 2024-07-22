@@ -6977,6 +6977,10 @@ combinecrd <crd1> <crd2> ...
 
 \end_layout
 
+\begin_layout LyX-Code
+           [nobox] [verbose <#>]
+\end_layout
+
 \begin_deeper
 \begin_layout Description
 <crdX> COORDS data sets to combine,
@@ -6997,6 +7001,18 @@ combinecrd <crd1> <crd2> ...
 \end_inset
 
 <crdname>] Name of combined COORDS data set.
+\end_layout
+
+\begin_layout Description
+[nobox] Remove any unit cell information from combined coordinates.
+\end_layout
+
+\begin_layout Description
+[verbose
+\begin_inset space ~
+\end_inset
+
+<#>] Verbosity during parameter assignment.
 \end_layout
 
 \end_deeper
@@ -7831,7 +7847,7 @@ graft src <source COORDS> [srcframe <#>] [srcmask <srcmask> [srccharge <srccharg
 \end_layout
 
 \begin_layout LyX-Code
-      {ic | [srcfitmask <srcmask>] [tgtfitmask <tgtmask>]}
+      {ic | [srcfitmask <srcmask>] [tgtfitmask <tgtmask>]} [verbose <#>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -7947,6 +7963,14 @@ name
 \end_inset
 
 COORDS> Name of output COORDS set containing source grafted onto target.
+\end_layout
+
+\begin_layout Description
+[verbose
+\begin_inset space ~
+\end_inset
+
+<#>] Verbosity during parameter assignment.
 \end_layout
 
 \begin_layout Description
@@ -17130,7 +17154,7 @@ updateparameters
 \end_layout
 
 \begin_layout LyX-Code
-parm <name> | parmindex <#> setname <parm set>
+parm <name> | parmindex <#> setname <parm set> [verbose <#>]
 \end_layout
 
 \begin_deeper
@@ -17164,6 +17188,14 @@ setname
 \end_inset
 
 set> Topology or parameter data set containing parameters to use.
+\end_layout
+
+\begin_layout Description
+[verbose
+\begin_inset space ~
+\end_inset
+
+<#>] Verbosity during parameter update.
 \end_layout
 
 \end_deeper
@@ -39403,7 +39435,7 @@ replicatecell
 \end_layout
 
 \begin_layout LyX-Code
-replicatecell [out <traj filename>] [name <dsname>]
+replicatecell [out <traj filename>] [name <dsname>] [verbose <#>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -39441,6 +39473,14 @@ name
 \end_inset
 
 <dsname> If specified save replicated cell to COORDS data set.
+\end_layout
+
+\begin_layout Description
+[verbose
+\begin_inset space ~
+\end_inset
+
+<#>] Verbosity during parameter assignment.
 \end_layout
 
 \begin_layout Description

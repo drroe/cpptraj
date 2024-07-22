@@ -7,8 +7,11 @@
 #include "../DistRoutines.h"
 #include "../Frame.h"
 #include "../GuessAtomHybridization.h"
+#include "../ParameterHolders.h"
+#include "../ParameterSet.h"
 #include "../Topology.h"
 #include "../TorsionRoutines.h"
+#include "../TypeNameHolder.h"
 #include <algorithm> // std::copy
 #include <cmath> // fabs
 

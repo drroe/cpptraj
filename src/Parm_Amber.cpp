@@ -7,8 +7,9 @@
 #include "Parm_Amber.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // ELECTOAMBER, AMBERTOELEC
-#include "StringRoutines.h" // NoTrailingWhitespace
 #include "ExclusionArray.h"
+#include "Parm/GetParams.h"
+#include "StringRoutines.h" // NoTrailingWhitespace
 
 // ---------- Constants and Enumerated types -----------------------------------
 const int Parm_Amber::AMBERPOINTERS_ = 31;
@@ -1956,7 +1957,9 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   file_.IntToBuffer( TopOut.BondParm().size() ); // NUMBND
   file_.IntToBuffer( TopOut.AngleParm().size() ); // NUMANG
   file_.IntToBuffer( TopOut.DihedralParm().size() ); // NPTRA
-  unsigned int n_unique_atom_types = TopOut.NuniqueAtomTypes();
+  Cpptraj::Parm::GetParams GP;
+  GP.SetDebug( debug_ );
+  unsigned int n_unique_atom_types = GP.NuniqueAtomTypes( TopOut );
   file_.IntToBuffer( n_unique_atom_types ); // NATYP, only for SOLTY
   file_.IntToBuffer( TopOut.Nonbond().HBarray().size() ); // NPHB
   file_.IntToBuffer( 0 ); // IFPERT

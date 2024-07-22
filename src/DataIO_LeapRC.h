@@ -1,6 +1,7 @@
 #ifndef INC_DATAIO_LEAPRC_H
 #define INC_DATAIO_LEAPRC_H
 #include "DataIO.h"
+#include "AtomType.h" // AtomType::HybridizationType
 #include "Structure/StructureEnum.h"
 #include <map>
 class BufferedLine;

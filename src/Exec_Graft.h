@@ -27,6 +27,7 @@ class Exec_Graft : public Exec {
                                   AtomMask const&, AtomMask const&,
                                   Sarray const&, Sarray const&);
     int debug_;
+    int verbose_;          ///< Parameter assign verbosity
     Topology* newMol0Top_; ///< Hold target topology if modified.
     Topology* newMol1Top_; ///< Hold source topology if modified.
     bool hasOrient0_;

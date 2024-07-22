@@ -1,9 +1,10 @@
 #include "Exec_Graft.h"
+#include "CharMask.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords.h"
+#include "Parm/Merge.h"
 #include "Structure/Builder.h"
 #include "Structure/Zmatrix.h"
-#include "CharMask.h"
 #include <algorithm> // std::copy
 #include <utility> // std::pair
 
@@ -13,6 +14,7 @@ using namespace Cpptraj::Structure;
 Exec_Graft::Exec_Graft() :
   Exec(COORDS),
   debug_(0),
+  verbose_(0),
   newMol0Top_(0),
   newMol1Top_(0),
   hasOrient0_(false),
@@ -93,7 +95,7 @@ void Exec_Graft::Help() const
 {
   mprintf("\tsrc <source COORDS> [srcframe <#>] [srcmask <mask> [srccharge <charge>]]\n"
           "\ttgt <target COORDS> [tgtframe <#>] [tgtmask <mask> [tgtcharge <charge>]]\n"
-          "\t{ic | [srcfitmask <mask>] [tgtfitmask <mask>]}\n"
+          "\t{ic | [srcfitmask <mask>] [tgtfitmask <mask>]} [verbose]\n"
           "\tname <output COORDS> [bond <tgt>,<src> ...]\n"
           "  Graft coordinates from source to coordinates in target.\n"
           "  If 'ic' is specified use internal coordinates to link the coordinates,\n"
@@ -106,6 +108,7 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
 {
   debug_ = State.Debug();
   bool use_ic = argIn.hasKey("ic");
+  verbose_ = argIn.getKeyInt("verbose", 0);
 
   // Source (1, fragment)
   Frame mol1frm;
@@ -519,12 +522,15 @@ int Exec_Graft::graft_rms(DataSet_Coords* outCoords,
                                     Sarray const& bond0Atoms, Sarray const& bond1Atoms)
 const
 {
+  Cpptraj::Parm::Merge merger;
+  merger.SetDebug( debug_ );
+  merger.SetVerbose( verbose_ );
   // Combine topologies. Use target box info.
   Topology combinedTop;
   combinedTop.SetDebug( debug_ );
   combinedTop.SetParmName( outCoords->Meta().Name(), FileName() );
-  combinedTop.AppendTop( mol0Top );
-  combinedTop.AppendTop( mol1Top );
+  merger.AppendTop( combinedTop, mol0Top );
+  merger.AppendTop( combinedTop, mol1Top );
 
   // Add any bonds
   for (unsigned int ii = 0; ii != bond0Atoms.size(); ii++) {

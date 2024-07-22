@@ -4,6 +4,7 @@
 #include "CharmmParamFile.h"
 #include "DataSet_Parameters.h"
 #include "DataSet_Topology.h"
+#include "Parm/GetParams.h"
 
 /// CONSTRUCTOR
 DataIO_CharmmRtfPrm::DataIO_CharmmRtfPrm()
@@ -86,7 +87,9 @@ int DataIO_CharmmRtfPrm::WriteData(FileName const& fname, DataSetList const& dsl
       mprintf("\tUsing parameters from topology '%s'\n", (*it)->legend());
       // Convert topology to parameter set
       DataSet_Topology const& dsTop = static_cast<DataSet_Topology const&>( *(*it) );
-      pout.UpdateParamSet( dsTop.Top().GetParameters(), ucount, debug_, debug_ ); // FIXME verbose
+      Cpptraj::Parm::GetParams GP;
+      GP.SetDebug( debug_ );
+      pout.UpdateParamSet( GP.GetParameters(dsTop.Top()), ucount, debug_, debug_ ); // FIXME verbose
     } else {
       mprintf("Warning: '%s' is not a valid parameter/topology set, skipping.\n",
               (*it)->legend());

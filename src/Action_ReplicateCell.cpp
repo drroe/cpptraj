@@ -8,17 +8,9 @@ Action_ReplicateCell::Action_ReplicateCell() :
   coords_(0),
   ncopies_(0),
   debug_(0),
+  verbose_(0),
   writeTraj_(false)
 {} 
-
-void Action_ReplicateCell::Help() const {
-  mprintf("\t[out <traj filename>] [name <dsname>]\n"
-          "\t{ all | dir <XYZ> [dir <XYZ> ...] } [<mask>]\n");
-  mprintf("%s", ActionTopWriter::Keywords());
-  mprintf("  Replicate unit cell in specified (or all) directions for atoms in <mask>.\n"
-          "    <XYZ>: X= 1, 0, -1, replicate in specified direction (e.g. 100 is +X only)\n");
-  mprintf("%s", ActionTopWriter::Options());
-}
 
 static inline int toDigit(char c) {
   switch (c) {
@@ -36,10 +28,20 @@ static inline int toDigit(char c) {
   return 0; // SANITY CHECK
 }
 
+void Action_ReplicateCell::Help() const {
+  mprintf("\t[out <traj filename>] [name <dsname>] [verbose <#>]\n"
+          "\t{ all | dir <XYZ> [dir <XYZ> ...] } [<mask>]\n");
+  mprintf("%s", ActionTopWriter::Keywords());
+  mprintf("  Replicate unit cell in specified (or all) directions for atoms in <mask>.\n"
+          "    <XYZ>: X= 1, 0, -1, replicate in specified direction (e.g. 100 is +X only)\n");
+  mprintf("%s", ActionTopWriter::Options());
+}
+
 // Action_ReplicateCell::Init()
 Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
+  verbose_ = actionArgs.getKeyInt("verbose", 0);
   // Set up output traj
   std::string trajfilename = actionArgs.GetStringKey("out");
   topWriter_.InitTopWriter( actionArgs, "replicated cell", debugIn );
@@ -159,7 +161,8 @@ Action::RetType Action_ReplicateCell::Setup(ActionSetup& setup) {
     Topology* stripParm = setup.Top().modifyStateByMask( Mask1_ );
     if (stripParm == 0) return Action::ERR;
     Cpptraj::Parm::Merge merger;
-    merger.SetDebug( debug_ ); // FIXME do verbose as well
+    merger.SetDebug( debug_ );
+    merger.SetVerbose( verbose_ );
     for (int cell = 0; cell != ncopies_; cell++)
       merger.AppendTop( combinedTop_, *stripParm );
     combinedTop_.Brief("Combined parm:");

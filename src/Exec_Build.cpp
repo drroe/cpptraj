@@ -2,6 +2,7 @@
 #include "AssociatedData_Connect.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Parameters.h" // For casting DataSet_Parameters to ParameterSet
+#include "Parm/AssignParams.h"
 #include "Parm/GB_Params.h"
 #include "Structure/Builder.h"
 #include "Structure/Creator.h"
@@ -642,7 +643,7 @@ const
 void Exec_Build::Help() const
 {
   mprintf("\tname <output COORDS> crdset <COORDS set> [frame <#>]\n"
-          "\t[title <title>] [gb <radii>]\n"
+          "\t[title <title>] [gb <radii>] [verbose <#>]\n"
           "\t[%s]\n"
           "\t[{%s} ...]\n"
           "\t[{%s} ...]\n"
@@ -690,6 +691,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
     return CpptrajState::ERR;
   }
   debug_ = debugIn;
+  int verbose = argIn.getKeyInt("verbose", 0);
   std::string title = argIn.GetStringKey("title");
 
   // TODO make it so this can be const (cant bc GetFrame)
@@ -866,7 +868,10 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
   // Assign parameters. This will create the bond/angle/dihedral/improper
   // arrays as well.
   Exec::RetType ret = CpptrajState::OK;
-  if ( topOut.AssignParams( *(creator.MainParmSetPtr())  ) ) {
+  Cpptraj::Parm::AssignParams AP;
+  AP.SetDebug( debug_ );
+  AP.SetVerbose( verbose );
+  if ( AP.AssignParameters( topOut, *(creator.MainParmSetPtr()) ) ) {
     mprinterr("Error: Could not assign parameters for '%s'.\n", topOut.c_str());
     ret = CpptrajState::ERR;
   }
