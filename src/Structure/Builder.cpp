@@ -1681,7 +1681,42 @@ void Builder::printAllInternalsForAtom(int at, Topology const& topIn, Barray con
       }
     }
   }
+  for (Aarray::const_iterator ang = internalAngles_.begin(); ang != internalAngles_.end(); ++ang)
+  {
+    if (at == ang->AtI()) {
+      if (hasPosition[ang->AtJ()] &&
+          hasPosition[ang->AtK()])
+      {
+        mprintf("DEBUG:\t\t%s - %s Theta= %f\n",
+                topIn.LeapName(ang->AtJ()).c_str(),
+                topIn.LeapName(ang->AtK()).c_str(),
+                ang->ThetaVal()*Constants::RADDEG);
+      }
+    } else if (at == ang->AtK()) {
+      if (hasPosition[ang->AtJ()] &&
+          hasPosition[ang->AtI()])
+      {
+        mprintf("DEBUG:\t\t%s - %s Theta= %f\n",
+                topIn.LeapName(ang->AtJ()).c_str(),
+                topIn.LeapName(ang->AtI()).c_str(),
+                ang->ThetaVal()*Constants::RADDEG);
+      }
+    }
+  }
+  for (Larray::const_iterator bnd = internalBonds_.begin(); bnd != internalBonds_.end(); ++bnd)
+  {
+    if (at == bnd->AtI()) {
+      if (hasPosition[bnd->AtJ()]) {
+        mprintf("DEBUG:\t\t%s length= %f\n", topIn.LeapName(bnd->AtJ()).c_str(), bnd->DistVal());
+      }
+    } else if (at == bnd->AtJ()) {
+      if (hasPosition[bnd->AtI()]) {
+        mprintf("DEBUG:\t\t%s length= %f\n", topIn.LeapName(bnd->AtI()).c_str(), bnd->DistVal());
+      }
+    }
+  }
 }
+// -----------------------------------------------
 
 /** Find internal coordinates for given atom.
   * Find torsion that contains this atom as one of the end atoms. The other
@@ -1690,7 +1725,7 @@ void Builder::printAllInternalsForAtom(int at, Topology const& topIn, Barray con
   * the given atom as a terminal atom.
   * \return 1 if complete internal coords were found, 0 if not.
   */
-int Builder::getIcFromInternals(InternalCoords& icOut, int at, Barray const& hasPosition) const
+Builder::InternalIdxType Builder::getIcFromInternals(InternalCoords& icOut, int at, Barray const& hasPosition) const
 {
   for (Tarray::const_iterator dih = internalTorsions_.begin(); dih != internalTorsions_.end(); ++dih)
   {
@@ -1707,7 +1742,7 @@ int Builder::getIcFromInternals(InternalCoords& icOut, int at, Barray const& has
                                    internalBonds_[bidx].DistVal(),
                                    internalAngles_[aidx].ThetaVal()*Constants::RADDEG,
                                    dih->PhiVal()*Constants::RADDEG);
-            return 1;
+            return InternalIdxType(dih-internalTorsions_.begin(), aidx, bidx);
           }
         }
       }
@@ -1724,13 +1759,13 @@ int Builder::getIcFromInternals(InternalCoords& icOut, int at, Barray const& has
                                    internalBonds_[bidx].DistVal(),
                                    internalAngles_[aidx].ThetaVal()*Constants::RADDEG,
                                    dih->PhiVal()*Constants::RADDEG);
-            return 1;
+            return InternalIdxType(dih-internalTorsions_.begin(), aidx, bidx);
           }
         }
       }
     }
   } // END loop over internal torsions
-  return 0;
+  return InternalIdxType();
 }
 
 /** \return Array of residues with atoms that need positions. */ // TODO does this need to be separate
@@ -1770,7 +1805,8 @@ const
 {
   // Find an internal coordinate for the atom.
   InternalCoords ic;
-  if (getIcFromInternals(ic, at, hasPosition)) {
+  InternalIdxType IIDX = getIcFromInternals(ic, at, hasPosition);
+  if (IIDX.IsComplete()) {
     //printAllInternalsForAtom(at, topIn, hasPosition); // DEBUG
     Vec3 posI = Zmatrix::AtomIposition(ic, frameOut);
     if (debug_ > 1) {
@@ -1885,7 +1921,7 @@ const
       int atToBuildAround = -1;
       if (!hasPosition[at]) {
         // Position of atom is not known.
-        //mprintf("BUILD: Position of %s is not known.\n", *(topIn[at].Name()));
+        mprintf("BUILD: Position of %s is not known.\n", *(topIn[at].Name())); // DEBUG
         // Is this bonded to an atom with known position?
         for (Atom::bond_iterator bat = topIn[at].bondbegin(); bat != topIn[at].bondend(); ++bat) {
           if (hasPosition[*bat]) {
@@ -1895,7 +1931,7 @@ const
         }
       } else {
         // Position of atom is known.
-        //mprintf("BUILD: Position of %s is known.\n", *(topIn[at].Name()));
+        mprintf("BUILD: Position of %s is known.\n", *(topIn[at].Name())); // DEBUG
         atToBuildAround = at;
       }
       // Build unknown positions around known atom
@@ -1906,6 +1942,7 @@ const
         for (Atom::bond_iterator bat = bAtom.bondbegin(); bat != bAtom.bondend(); ++bat)
         {
           if (!hasPosition[*bat]) {
+            printAllInternalsForAtom(*bat, topIn, hasPosition); // DEBUG
             if (buildCoordsForAtom(*bat, frameOut, topIn, hasPosition)) {
               hasPosition[ *bat ] = true;
               nAtomsBuilt++;

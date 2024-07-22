@@ -61,6 +61,21 @@ class Builder {
     /// Hold chirality
     class InternalChirality;
 
+    /// Used to hold indices into internal arrays for a given atom
+    class InternalIdxType {
+      public:
+        /// CONSTRUCTOR
+        InternalIdxType() : tidx_(-1), aidx_(-1), bidx_(-1) {}
+        /// CONSTRUCTOR - torsion, angle, bond index
+        InternalIdxType(int t, int a, int b) : tidx_(t), aidx_(a), bidx_(b) {}
+        /// \return true if all indices set
+        bool IsComplete() const { return (tidx_ != -1 && aidx_ != -1 && bidx_ != -1); }
+      private:
+        int tidx_; ///< Index into internal torsion array
+        int aidx_; ///< Index into internal angle array
+        int bidx_; ///< Index into internal bond array
+    };
+
     typedef std::vector<InternalTorsion> Tarray;
     typedef std::vector<InternalAngle> Aarray;
     typedef std::vector<InternalBond> Larray;
@@ -107,7 +122,7 @@ class Builder {
     /// Generate internal coords for a given atom
     int generateAtomInternals(int, Frame const&, Topology const&, Barray const&);
     /// Get complete internal coords that can be used to construct specified atom
-    int getIcFromInternals(InternalCoords&, int, Barray const&) const;
+    InternalIdxType getIcFromInternals(InternalCoords&, int, Barray const&) const;
     /// For debug, print all valid internals associated with an atom
     void printAllInternalsForAtom(int, Topology const&, Barray const&) const;
     /// \\return index of atom with longest 'depth' bonded to a given atom (ignoring one bonded atom).
