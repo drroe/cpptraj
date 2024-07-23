@@ -1798,6 +1798,54 @@ int Builder::getIcFromInternals(InternalCoords& icOut, int at, Barray const& has
   return 0;
 }
 
+/** Find an angle that has this atom as a terminal atom and the other
+  * two atoms with their coordinates specified. Then look for another
+  * angle which has this atom as the terminal and shares the center
+  * atom with the first angle and also has all of its coordinates
+  * specified.
+  * \return 1 if both angles found, 0 if not.
+  */
+int Builder::getTwoAnglesFromInternals(InternalAngle& a1, InternalAngle& a2,
+                                       int at, Barray const& hasPosition)
+const
+{
+  for (Aarray::const_iterator ang1 = internalAngles_.begin(); ang1 != internalAngles_.end(); ++ang1)
+  {
+    int ai = -1;   // The atom that needs its position defined
+    int aj = -1;   // Atom bonded to ai
+    //int ak = -1;   // Atom bonded to aj
+    int bidx = -1; // Index of ai-aj bond internal
+    if (at == ang1->AtI() && hasPosition[ang1->AtJ()] && hasPosition[ang1->AtK()]) {
+      ai = ang1->AtI();
+      aj = ang1->AtJ();
+      //ak = ang1->AtK();
+      a1 = *ang1;
+    } else if (at == ang1->AtK() && hasPosition[ang1->AtJ()] && hasPosition[ang1->AtI()]) {
+      ai = ang1->AtK();
+      aj = ang1->AtJ();
+      //ak = ang1->AtI();
+      a1 = InternalAngle(ang1->AtK(), ang1->AtJ(), ang1->AtI(), ang1->ThetaVal());
+    }
+    if (ai != -1)
+      bidx = getExistingBondIdx(ai, aj);
+    if (bidx > -1) {
+      // Find another angle matching ai-aj with aj and ak positions known
+      for (Aarray::const_iterator ang2 = ang1 + 1; ang2 != internalAngles_.end(); ++ang2)
+      {
+        if (ai == ang2->AtI() && aj == ang2->AtJ() && hasPosition[ang2->AtJ()] && hasPosition[ang2->AtK()]) {
+          a2 = *ang2;
+          return 1;
+        } else
+        if (ai == ang2->AtK() && aj == ang2->AtJ() && hasPosition[ang2->AtJ()] && hasPosition[ang2->AtI()]) {
+          a2 = InternalAngle(ang2->AtK(), ang2->AtJ(), ang2->AtI(), ang2->ThetaVal());
+          return 1;
+        }
+      }
+    }
+  } // END outer loop over angle internals
+  return 0;
+}
+
 /** \return Array of residues with atoms that need positions. */ // TODO does this need to be separate
 std::vector<Residue> Builder::residuesThatNeedPositions(Topology const& topIn,
                                                         Barray const& hasPosition)

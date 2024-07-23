@@ -108,6 +108,8 @@ class Builder {
     int generateAtomInternals(int, Frame const&, Topology const&, Barray const&);
     /// Get complete internal coords that can be used to construct specified atom
     int getIcFromInternals(InternalCoords&, int, Barray const&) const;
+    /// Get two angles with ai-aj in common and all positions but ai known
+    int getTwoAnglesFromInternals(InternalAngle&, InternalAngle&, int, Barray const&) const;
     /// For debug, print all valid internals associated with an atom
     void printAllInternalsForAtom(int, Topology const&, Barray const&) const;
     /// \\return index of atom with longest 'depth' bonded to a given atom (ignoring one bonded atom).
