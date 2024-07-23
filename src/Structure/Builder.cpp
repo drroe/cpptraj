@@ -1766,7 +1766,6 @@ int Builder::getIcFromInternals(InternalCoords& icOut, int at, Barray const& has
     }
   } // END loop over internal torsions
 
-
   return 0;
 }
 
@@ -1885,37 +1884,51 @@ const
   InternalCoords ic;
   if (getIcFromInternals(ic, at, hasPosition)) {
     //printAllInternalsForAtom(at, topIn, hasPosition); // DEBUG
-    if (ic.AtL() != -1) {
-      Vec3 posI = Zmatrix::AtomIposition(ic, frameOut);
-      if (debug_ > 1) {
-        mprintf("Building atom %s using torsion/angle/bond\n", topIn.LeapName(at).c_str());
-        mprintf("Using %s - %s - %s - %s\n",
-                topIn.LeapName(ic.AtI()).c_str(),
-                topIn.LeapName(ic.AtJ()).c_str(),
-                topIn.LeapName(ic.AtK()).c_str(),
-                topIn.LeapName(ic.AtL()).c_str());
-        mprintf( "Torsion = %f\n", ic.Phi() );
-        mprintf( "Angle   = %f\n", ic.Theta() );
-        mprintf( "Bond    = %f\n", ic.Dist() );
-        mprintf( "ZMatrixAll:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
-      }
-      frameOut.SetXYZ( ic.AtI(), posI );
-      return 1;
-    } else if (ic.AtK() != -1) {
-      // FIXME
-      //if debug_ > 1) {
-        mprintf("Building atom %s using angle/bond\n", topIn.LeapName(at).c_str());
-        mprintf("Using %s - %s - %s\n",
-                topIn.LeapName(ic.AtI()).c_str(),
-                topIn.LeapName(ic.AtJ()).c_str(),
-                topIn.LeapName(ic.AtK()).c_str());
-        mprintf( "Angle   = %f\n", ic.Theta() );
-        mprintf( "Bond    = %f\n", ic.Dist() );
+    Vec3 posI = Zmatrix::AtomIposition(ic, frameOut);
+    if (debug_ > 1) {
+      mprintf("Building atom %s using torsion/angle/bond\n", topIn.LeapName(at).c_str());
+      mprintf("Using %s - %s - %s - %s\n",
+              topIn.LeapName(ic.AtI()).c_str(),
+              topIn.LeapName(ic.AtJ()).c_str(),
+              topIn.LeapName(ic.AtK()).c_str(),
+              topIn.LeapName(ic.AtL()).c_str());
+      mprintf( "Torsion = %f\n", ic.Phi() );
+      mprintf( "Angle   = %f\n", ic.Theta() );
+      mprintf( "Bond    = %f\n", ic.Dist() );
+      mprintf( "ZMatrixAll:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
+    }
+    frameOut.SetXYZ( ic.AtI(), posI );
+    return 1;
+  }
+  // Check if we can get two angle internals for this atom
+  InternalAngle a1, a2;
+  InternalBond b1;
+  if (getTwoAnglesFromInternals(a1, a2, b1, at, hasPosition)) {
+    //if (debug_ > 1) {
+      mprintf("Building atom %s using two angles\n", topIn.LeapName(at).c_str());
+      mprintf("Using %s - %s - %s and %s - %s - %s\n",
+                  topIn.LeapName(a1.AtI()).c_str(), topIn.LeapName(a1.AtJ()).c_str(), topIn.LeapName(a1.AtK()).c_str(),
+                  topIn.LeapName(a2.AtI()).c_str(), topIn.LeapName(a2.AtJ()).c_str(), topIn.LeapName(a2.AtK()).c_str());
+      mprintf("Angle1  = %f\n", a1.ThetaVal() );
+      mprintf("Angle2  = %f\n", a2.ThetaVal() );
+      mprintf("Bond    = %f\n", b1.DistVal() );
+    //}
+    //frameOut.SetXYZ( ic.AtI(), posI );
+    // FIXME actually build
+  }
+  // Check if we can get a single angle for this atom
+  if (getAngleFromInternals(a1, b1, at, hasPosition)) {
+    // FIXME
+    //if debug_ > 1) {
+      mprintf("Building atom %s using angle/bond\n", topIn.LeapName(at).c_str());
+      mprintf("Using %s - %s - %s\n",
+              topIn.LeapName(a1.AtI()).c_str(), topIn.LeapName(a1.AtJ()).c_str(), topIn.LeapName(a1.AtK()).c_str());
+      mprintf( "Angle   = %f\n", a1.ThetaVal() );
+      mprintf( "Bond    = %f\n", b1.DistVal() );
         //mprintf( "ZMatrixAll:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
       //}
-      //frameOut.SetXYZ( ic.AtI(), posI );
-      return 0; // FIXME change to 1 when build is implemented
-    }
+    //frameOut.SetXYZ( ic.AtI(), posI );
+    // FIXME actually build 
   }
   return 0;
 }
