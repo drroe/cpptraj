@@ -1765,35 +1765,7 @@ int Builder::getIcFromInternals(InternalCoords& icOut, int at, Barray const& has
       }
     }
   } // END loop over internal torsions
-  // If we are here, no "complete" IC was found. Check for angle internal.
-  for (Aarray::const_iterator ang = internalAngles_.begin(); ang != internalAngles_.end(); ++ang)
-  {
-    if (at == ang->AtI()) {
-      if (hasPosition[ang->AtJ()] && hasPosition[ang->AtK()])
-      {
-        int bidx = getExistingBondIdx(ang->AtI(), ang->AtJ());
-        if (bidx > -1) {
-          icOut = InternalCoords(ang->AtI(), ang->AtJ(), ang->AtK(), -1,
-                                 internalBonds_[bidx].DistVal(),
-                                 ang->ThetaVal()*Constants::RADDEG,
-                                 0);
-          return 1;
-        }
-      }
-    } else if (at == ang->AtK()) {
-      if (hasPosition[ang->AtJ()] && hasPosition[ang->AtI()])
-      {
-        int bidx = getExistingBondIdx(ang->AtK(), ang->AtJ());
-        if (bidx > -1) {
-          icOut = InternalCoords(ang->AtK(), ang->AtJ(), ang->AtI(), -1,
-                                 internalBonds_[bidx].DistVal(),
-                                 ang->ThetaVal()*Constants::RADDEG,
-                                 0);
-          return 1;
-        }
-      }
-    }
-  } // END loop over internal angles
+
 
   return 0;
 }
@@ -1845,6 +1817,32 @@ const
       }
     }
   } // END outer loop over angle internals
+  return 0;
+}
+
+/** Get angle for atom whose other two atoms have known position. */ // TODO combined with getTwoAngles above
+int Builder::getAngleFromInternals(InternalAngle& a1, InternalBond& b1,
+                                   int at, Barray const& hasPosition)
+const
+{
+  for (Aarray::const_iterator ang = internalAngles_.begin(); ang != internalAngles_.end(); ++ang)
+  {
+    if (at == ang->AtI() && hasPosition[ang->AtJ()] && hasPosition[ang->AtK()]) {
+      int bidx = getExistingBondIdx(ang->AtI(), ang->AtJ());
+      if (bidx > -1) {
+        a1 = *ang;
+        b1 = internalBonds_[bidx];
+        return 1;
+      }
+    } else if (at == ang->AtK() && hasPosition[ang->AtJ()] && hasPosition[ang->AtI()]) {
+      int bidx = getExistingBondIdx(ang->AtK(), ang->AtJ());
+      if (bidx > -1) {
+        a1 = InternalAngle( ang->AtK(), ang->AtJ(), ang->AtI(), ang->ThetaVal() );
+	b1 = internalBonds_[bidx];
+        return 1;
+      }
+    }
+  } // END loop over internal angles
   return 0;
 }
 
