@@ -912,6 +912,12 @@ Vec3 Zmatrix::AtomIposition(Vec3 const& posJ, Vec3 const& posK, double rdist, do
   double dAngleZ = vTempX.SignedAngle( vXAxis, vZAxis );
   mprintf("Angle around Z=%f\n", dAngleZ );
 
+  Vec3 vNew( rdist*cos(theta_rad), rdist*sin(theta_rad), 0.0 );
+  mT.CalcRotationMatrix(vZAxis, dAngleZ);
+  vNew = mT * vNew;
+  mT.CalcRotationMatrix(vYAxis, dAngleY);
+  vNew = mT * vNew;
+
   return Vec3();
 }
 
