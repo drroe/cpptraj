@@ -1806,6 +1806,7 @@ int Builder::getIcFromInternals(InternalCoords& icOut, int at, Barray const& has
   * \return 1 if both angles found, 0 if not.
   */
 int Builder::getTwoAnglesFromInternals(InternalAngle& a1, InternalAngle& a2,
+                                       InternalBond& b1,
                                        int at, Barray const& hasPosition)
 const
 {
@@ -1829,6 +1830,7 @@ const
     if (ai != -1)
       bidx = getExistingBondIdx(ai, aj);
     if (bidx > -1) {
+      b1 = internalBonds_[bidx];
       // Find another angle matching ai-aj with aj and ak positions known
       for (Aarray::const_iterator ang2 = ang1 + 1; ang2 != internalAngles_.end(); ++ang2)
       {
