@@ -116,10 +116,10 @@ class Builder {
     void printAllInternalsForAtom(int, Topology const&, Barray const&) const;
     /// \\return index of atom with longest 'depth' bonded to a given atom (ignoring one bonded atom).
     static int get_depths_around_atom(int, int, Topology const&);
-    /// \return array containing all residues with atoms that need positions
-    std::vector<Residue> residuesThatNeedPositions(Topology const&, Barray const&) const;
     /// Build XYZ coords for an atom if internals are available
     int buildCoordsForAtom(int, Frame&, Topology const&, Barray const&) const;
+    /// \return array containing all residues with atoms that need positions
+    std::vector<Residue> residuesThatNeedPositions(Topology const&, Barray const&) const;
 
     int debug_;
     ParameterSet const* params_;

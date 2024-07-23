@@ -1845,35 +1845,6 @@ const
   return 0;
 }
 
-/** \return Array of residues with atoms that need positions. */ // TODO does this need to be separate
-std::vector<Residue> Builder::residuesThatNeedPositions(Topology const& topIn,
-                                                        Barray const& hasPosition)
-const
-{
-  std::vector<Residue> residues;
-  std::vector<int> Rnums;
-  for (Tarray::const_iterator dih = internalTorsions_.begin();
-                              dih != internalTorsions_.end(); ++dih)
-  {
-    if (!hasPosition[dih->AtI()]) {
-      int rnum = topIn[dih->AtI()].ResNum();
-      bool has_rnum = false;
-      for (std::vector<int>::const_iterator it = Rnums.begin(); it != Rnums.end(); ++it) {
-        if (*it == rnum) {
-          has_rnum = true;
-          break;
-        }
-      }
-      if (!has_rnum) {
-        if (debug_ > 0) mprintf("DEBUG: Need to build for residue %s\n", topIn.TruncResNameNum(rnum).c_str());
-        residues.push_back( topIn.Res(rnum) );
-        Rnums.push_back(rnum);
-      }
-    }
-  }
-  return residues;
-} 
-
 /** Build coordinates for an atom from internals.
   * \return 1 if atom was built, 0 otherwise.
   */
@@ -1975,6 +1946,35 @@ const
   } // END atoms need positions
   return 0;
 }
+
+/** \return Array of residues with atoms that need positions. */ // TODO does this need to be separate
+std::vector<Residue> Builder::residuesThatNeedPositions(Topology const& topIn,
+                                                        Barray const& hasPosition)
+const
+{
+  std::vector<Residue> residues;
+  std::vector<int> Rnums;
+  for (Tarray::const_iterator dih = internalTorsions_.begin();
+                              dih != internalTorsions_.end(); ++dih)
+  {
+    if (!hasPosition[dih->AtI()]) {
+      int rnum = topIn[dih->AtI()].ResNum();
+      bool has_rnum = false;
+      for (std::vector<int>::const_iterator it = Rnums.begin(); it != Rnums.end(); ++it) {
+        if (*it == rnum) {
+          has_rnum = true;
+          break;
+        }
+      }
+      if (!has_rnum) {
+        if (debug_ > 0) mprintf("DEBUG: Need to build for residue %s\n", topIn.TruncResNameNum(rnum).c_str());
+        residues.push_back( topIn.Res(rnum) );
+        Rnums.push_back(rnum);
+      }
+    }
+  }
+  return residues;
+} 
 
 /** Build coordinates for any atom with an internal that does
   * not have its position set.
