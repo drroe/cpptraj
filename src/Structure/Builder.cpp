@@ -1907,7 +1907,7 @@ const
   }
   // Check if we can get a single angle for this atom
   if (getAngleFromInternals(a1, b1, at, hasPosition)) {
-    // FIXME
+    Vec3 posI = Zmatrix::AtomIposition(frameOut.XYZ(a1.AtJ()), frameOut.XYZ(a1.AtK()), b1.DistVal(), a1.ThetaVal() );
     //if debug_ > 1) {
       mprintf("Building atom %s using angle/bond\n", topIn.LeapName(at).c_str());
       mprintf("Using %s - %s - %s\n",

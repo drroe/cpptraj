@@ -886,6 +886,25 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
 }
 
 // -----------------------------------------------------------------------------
+/** \return Position of atom I from positions of atoms J and K,
+  *         the corresponding distance I-J (in Ang.) and angle I-J-K
+  *         (in radians).
+  */
+Vec3 Zmatrix::AtomIposition(Vec3 const& posJ, Vec3 const& posK, double rdist, double theta_rad)
+{
+  // J-K vector
+  Vec3 vTempX = posK - posJ;
+  Vec3 vTempXZ( vTempX[0], 0.0, vTempX[2] );
+  vTempXZ.Normalize();
+  //
+  Vec3 vXAxis(1.0, 0.0, 0.0);
+  Vec3 vYAxis(0.0, 1.0, 0.0);
+  double dAngleY = vTempXZ.SignedAngle( vXAxis, vYAxis );
+  mprintf( "Angle around Y=%lf\n", dAngleY );
+
+  return Vec3();
+}
+
 /** \return Position of atom I from positions of atoms J, K, and L,
   *         and corresponding distance (in Ang) and angle/torsion
   *         values (in degrees).
