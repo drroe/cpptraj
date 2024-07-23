@@ -897,10 +897,20 @@ Vec3 Zmatrix::AtomIposition(Vec3 const& posJ, Vec3 const& posK, double rdist, do
   Vec3 vTempXZ( vTempX[0], 0.0, vTempX[2] );
   vTempXZ.Normalize();
   //
-  Vec3 vXAxis(1.0, 0.0, 0.0);
-  Vec3 vYAxis(0.0, 1.0, 0.0);
+  static const Vec3 vXAxis(1.0, 0.0, 0.0);
+  static const Vec3 vYAxis(0.0, 1.0, 0.0);
+  static const Vec3 vZAxis(0.0, 0.0, 1.0);
   double dAngleY = vTempXZ.SignedAngle( vXAxis, vYAxis );
-  mprintf( "Angle around Y=%lf\n", dAngleY );
+  mprintf( "Angle around Y=%f\n", dAngleY );
+
+  Matrix_3x3 mT;
+  mT.CalcRotationMatrix(vYAxis, dAngleY);
+  vTempX = mT * vTempX;
+  mprintf("Rotated around Y = %f, %f, %f\n", vTempX[0], vTempX[1], vTempX[2]);
+
+  vTempX.Normalize();
+  double dAngleZ = vTempX.SignedAngle( vXAxis, vZAxis );
+  mprintf("Angle around Z=%f\n", dAngleZ );
 
   return Vec3();
 }
