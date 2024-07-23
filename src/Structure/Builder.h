@@ -112,6 +112,8 @@ class Builder {
     int getTwoAnglesFromInternals(InternalAngle&, InternalAngle&, InternalBond&, int, Barray const&) const;
     /// Get angle with all positions but ai known
     int getAngleFromInternals(InternalAngle&, InternalBond&, int, Barray const&) const;
+    /// Get bond with aj position known
+    int getBondFromInternals(InternalBond&, int, Barray const&) const;
     /// For debug, print all valid internals associated with an atom
     void printAllInternalsForAtom(int, Topology const&, Barray const&) const;
     /// \\return index of atom with longest 'depth' bonded to a given atom (ignoring one bonded atom).

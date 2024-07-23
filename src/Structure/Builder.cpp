@@ -1845,6 +1845,24 @@ const
   return 0;
 }
 
+/** Get bond for atom whose other atom has known position. */
+int Builder::getBondFromInternals(InternalBond& b1, int at, Barray const& hasPosition)
+const
+{
+  for (Larray::const_iterator bnd = internalBonds_.begin(); bnd != internalBonds_.end(); ++bnd)
+  {
+    if (at == bnd->AtI() && hasPosition[bnd->AtJ()]) {
+      b1 = *bnd;
+      return 1;
+    } else
+    if (at == bnd->AtJ() && hasPosition[bnd->AtI()]) {
+      b1 = InternalBond(bnd->AtJ(), bnd->AtI(), bnd->DistVal());
+      return 1;
+    }
+  }
+  return 0;
+}
+
 /** Build coordinates for an atom from internals.
   * \return 1 if atom was built, 0 otherwise.
   */
@@ -1880,8 +1898,8 @@ const
       mprintf("Using %s - %s - %s and %s - %s - %s\n",
                   topIn.LeapName(a1.AtI()).c_str(), topIn.LeapName(a1.AtJ()).c_str(), topIn.LeapName(a1.AtK()).c_str(),
                   topIn.LeapName(a2.AtI()).c_str(), topIn.LeapName(a2.AtJ()).c_str(), topIn.LeapName(a2.AtK()).c_str());
-      mprintf("Angle1  = %f\n", a1.ThetaVal() );
-      mprintf("Angle2  = %f\n", a2.ThetaVal() );
+      mprintf("Angle1  = %f\n", a1.ThetaVal()*Constants::RADDEG );
+      mprintf("Angle2  = %f\n", a2.ThetaVal()*Constants::RADDEG );
       mprintf("Bond    = %f\n", b1.DistVal() );
     //}
     //frameOut.SetXYZ( ic.AtI(), posI );
@@ -1894,7 +1912,20 @@ const
       mprintf("Building atom %s using angle/bond\n", topIn.LeapName(at).c_str());
       mprintf("Using %s - %s - %s\n",
               topIn.LeapName(a1.AtI()).c_str(), topIn.LeapName(a1.AtJ()).c_str(), topIn.LeapName(a1.AtK()).c_str());
-      mprintf( "Angle   = %f\n", a1.ThetaVal() );
+      mprintf( "Angle   = %f\n", a1.ThetaVal()*Constants::RADDEG );
+      mprintf( "Bond    = %f\n", b1.DistVal() );
+        //mprintf( "ZMatrixAll:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
+      //}
+    //frameOut.SetXYZ( ic.AtI(), posI );
+    // FIXME actually build 
+  }
+  // Check if we can get a bond for this atom
+  if (getBondFromInternals(b1, at, hasPosition)) {
+    // FIXME
+    //if debug_ > 1) {
+      mprintf("Building atom %s using bond\n", topIn.LeapName(at).c_str());
+      mprintf("Using %s - %s\n",
+              topIn.LeapName(b1.AtI()).c_str(), topIn.LeapName(b1.AtJ()).c_str());
       mprintf( "Bond    = %f\n", b1.DistVal() );
         //mprintf( "ZMatrixAll:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
       //}
