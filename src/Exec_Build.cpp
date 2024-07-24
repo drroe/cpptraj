@@ -943,9 +943,15 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
       mprintf("\tImaging on.\n");
     else
       mprintf("\timaging off.\n");
+    // TODO make file a user option
+    CpptrajFile check_output;
+    check_output.OpenWrite("");
     int Ntotal_problems = check.CheckOverlaps( frameOut );
+    check.WriteProblemsToFile( &check_output, 1, topOut );
     Ntotal_problems += check.CheckBonds( frameOut );
+    check.WriteProblemsToFile( &check_output, 1, topOut );
     Ntotal_problems += check.CheckRings( frameOut );
+    check.WriteProblemsToFile( &check_output, 1, topOut );
     mprintf("\t%i total problems detected.\n", Ntotal_problems);
     // If box was added for check only, remove it
     if (box_added)
