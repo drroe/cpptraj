@@ -921,9 +921,19 @@ Vec3 Zmatrix::AtomIposition(Vec3 const& posJ, Vec3 const& posK, double rdist, do
   mprintf("vNew before MatrixTranslate: %f,%f,%f\n", vNew[0], vNew[1], vNew[2]);
   printf("vTrans before MatrixTranslate: %f,%f,%f\n", posJ[0], posJ[1], posJ[2]);
   Vec3 posI = vNew + posJ;
-  
 
   return posI;
+}
+
+/* \return Position of atom I from position of atom J, using the given I-J distance.
+ * Atom I will be placed at a distance rdist from posJ along the X axis.
+ *
+ */
+Vec3 Zmatrix::AtomIposition(Vec3 const& posJ, double rdist)
+{
+  Vec3 vNew( rdist, 0.0, 0.0 );
+  vNew = vNew + posJ;
+  return vNew;
 }
 
 /** \return Position of atom I from positions of atoms J, K, and L,

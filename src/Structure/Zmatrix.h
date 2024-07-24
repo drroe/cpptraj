@@ -73,9 +73,11 @@ class Zmatrix {
     unsigned int sizeInBytes() const { return (7*sizeof(int)) +
                                               (9*sizeof(double)) + // 3 Vec3
                                               (IC_.size() * InternalCoords::sizeInBytes()); }
-    /// \return XYZ position of atom I using positions of atoms J/K and distance/angle(rad)
+    /// \return XYZ position of atom I using positions of atoms J/K and distance (ang)/angle(rad)
     static Vec3 AtomIposition(Vec3 const&, Vec3 const&, double, double);
-    /// \return XYZ position of atom I using positions of atoms J/K/L and distance/angle/torsion (deg)
+    /// \return XYZ position of atom I using position of atom J and distance (ang)
+    static Vec3 AtomIposition(Vec3 const&, double);
+    /// \return XYZ position of atom I using positions of atoms J/K/L and distance(ang)/angle/torsion (deg)
     static Vec3 AtomIposition(Vec3 const&, Vec3 const&, Vec3 const&, double, double, double);
     /// \return XYZ position of atom I for given internal coordinate
     static Vec3 AtomIposition(InternalCoords const&, Frame const&);

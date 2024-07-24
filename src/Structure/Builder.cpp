@@ -1898,8 +1898,8 @@ const
       mprintf("Using %s - %s - %s and %s - %s - %s\n",
                   topIn.LeapName(a1.AtI()).c_str(), topIn.LeapName(a1.AtJ()).c_str(), topIn.LeapName(a1.AtK()).c_str(),
                   topIn.LeapName(a2.AtI()).c_str(), topIn.LeapName(a2.AtJ()).c_str(), topIn.LeapName(a2.AtK()).c_str());
-      mprintf("Angle1  = %f\n", a1.ThetaVal()*Constants::RADDEG );
-      mprintf("Angle2  = %f\n", a2.ThetaVal()*Constants::RADDEG );
+      mprintf("AngleA  = %f\n", a1.ThetaVal()*Constants::RADDEG );
+      mprintf("AngleB  = %f\n", a2.ThetaVal()*Constants::RADDEG );
       mprintf("Bond    = %f\n", b1.DistVal() );
     //}
     //frameOut.SetXYZ( ic.AtI(), posI );
@@ -1922,17 +1922,16 @@ const
   }
   // Check if we can get a bond for this atom
   if (getBondFromInternals(b1, at, hasPosition)) {
-    // FIXME
+    Vec3 posI = Zmatrix::AtomIposition(frameOut.XYZ(b1.AtJ()), b1.DistVal());
     //if debug_ > 1) {
       mprintf("Building atom %s using bond\n", topIn.LeapName(at).c_str());
       mprintf("Using %s - %s\n",
               topIn.LeapName(b1.AtI()).c_str(), topIn.LeapName(b1.AtJ()).c_str());
       mprintf( "Bond    = %f\n", b1.DistVal() );
-        //mprintf( "ZMatrixAll:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
+      mprintf( "ZMatrixBond:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
       //}
-    //frameOut.SetXYZ( ic.AtI(), posI );
-    // return 1;
-    // FIXME actually build 
+    frameOut.SetXYZ( b1.AtI(), posI );
+    return 1;
   }
   return 0;
 }
