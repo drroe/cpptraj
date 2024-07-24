@@ -944,6 +944,8 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
     else
       mprintf("\timaging off.\n");
     int Ntotal_problems = check.CheckOverlaps( frameOut );
+    Ntotal_problems += check.CheckBonds( frameOut );
+    Ntotal_problems += check.CheckRings( frameOut );
     mprintf("\t%i total problems detected.\n", Ntotal_problems);
     // If box was added for check only, remove it
     if (box_added)
