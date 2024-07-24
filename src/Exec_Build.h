@@ -35,6 +35,8 @@ class Exec_Build : public Exec {
     static std::vector<int> MapAtomsToTemplate(Topology const&, int, DataSet_Coords*, Cpptraj::Structure::Creator const&, std::vector<NameType>&);
 
     int debug_;
+    int check_box_natom_;  ///< Systems larger than this will have box added so PL check can be used
+    bool check_structure_; ///< If true check the resulting structure
     Cpptraj::Structure::SugarBuilder* sugarBuilder_;
 };
 #endif

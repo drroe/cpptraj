@@ -12,11 +12,14 @@
 #include "Structure/ResStatArray.h"
 #include "Structure/SugarBuilder.h"
 #include "Structure/Sugar.h"
+#include "StructureCheck.h"
 
 /** CONSTRUCTOR */
 Exec_Build::Exec_Build() :
   Exec(GENERAL),
   debug_(0),
+  check_box_natom_(5000), // TODO make user specifiable
+  check_structure_(true),
   sugarBuilder_(0)
 {}
 
@@ -891,6 +894,61 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
     return CpptrajState::ERR;
   }
   crdout.SetCRD(0, frameOut);
+
+  // Structure check
+  if (check_structure_) {
+    StructureCheck check;
+    if (check.SetOptions( true, // image 
+                          true, // check bonds
+                          true,  // save problems
+                          debug_, // debug
+                          "*", // mask 1
+                          "", // mask 2
+                          0.8, // nonbond cut
+                          1.15, // bond long offset
+                          0.5, // bond short offset
+                          -1, // pairlist cut (-1 for heuristic)
+                          true, // ring check
+                          0, // 0 = default ring check short distance cut
+                          0, // 0 = default ring check long distance cut
+                          0  // 0 = default ring check angle cut
+        ))
+    {
+      mprinterr("Error: Structure check options failed.\n");
+      return CpptrajState::ERR;
+    }
+    // For larger structures, automatically add a box
+    bool box_added = false;
+    if (!frameOut.BoxCrd().HasBox() && topOut.Natom() > check_box_natom_) {
+      mprintf("\tAdding unit cell for check only.\n");
+      box_added = true;
+      // Get radii
+      std::vector<double> Radii;
+      Radii.reserve( topIn.Natom() );
+      for (int atnum = 0; atnum != topIn.Natom(); ++atnum) {
+        Radii.push_back( topOut.GetVDWradius(atnum) );
+        //Radii.push_back( topIn[atnum].ParseRadius() );
+        //Radii.push_back( 0.5 );
+      }
+
+      frameOut.SetOrthoBoundingBox(Radii, 1.0);
+      frameOut.BoxCrd().PrintInfo();
+    }
+    if (check.Setup( topOut, frameOut.BoxCrd() )) {
+      mprinterr("Error: Structure check setup failed.\n");
+      return CpptrajState::ERR;
+    }
+    check.Mask1().MaskInfo();
+    if (check.ImageOpt().ImagingEnabled())
+      mprintf("\tImaging on.\n");
+    else
+      mprintf("\timaging off.\n");
+    int Ntotal_problems = check.CheckOverlaps( frameOut );
+    mprintf("\t%i total problems detected.\n", Ntotal_problems);
+    // If box was added for check only, remove it
+    if (box_added)
+      frameOut.ModifyBox().SetNoBox();
+  }
 
   return ret;
 }
