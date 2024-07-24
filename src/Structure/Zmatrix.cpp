@@ -913,12 +913,17 @@ Vec3 Zmatrix::AtomIposition(Vec3 const& posJ, Vec3 const& posK, double rdist, do
   mprintf("Angle around Z=%f\n", dAngleZ );
 
   Vec3 vNew( rdist*cos(theta_rad), rdist*sin(theta_rad), 0.0 );
-  mT.CalcRotationMatrix(vZAxis, dAngleZ);
+  mprintf("vNew: %f,%f,%f\n", vNew[0], vNew[1], vNew[2]);
+  mT.CalcRotationMatrix(vZAxis, -dAngleZ);
   vNew = mT * vNew;
-  mT.CalcRotationMatrix(vYAxis, dAngleY);
+  mT.CalcRotationMatrix(vYAxis, -dAngleY);
   vNew = mT * vNew;
+  mprintf("vNew before MatrixTranslate: %f,%f,%f\n", vNew[0], vNew[1], vNew[2]);
+  printf("vTrans before MatrixTranslate: %f,%f,%f\n", posJ[0], posJ[1], posJ[2]);
+  Vec3 posI = vNew + posJ;
+  
 
-  return Vec3();
+  return posI;
 }
 
 /** \return Position of atom I from positions of atoms J, K, and L,

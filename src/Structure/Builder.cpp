@@ -1903,6 +1903,7 @@ const
       mprintf("Bond    = %f\n", b1.DistVal() );
     //}
     //frameOut.SetXYZ( ic.AtI(), posI );
+    // return 1;
     // FIXME actually build
   }
   // Check if we can get a single angle for this atom
@@ -1914,10 +1915,10 @@ const
               topIn.LeapName(a1.AtI()).c_str(), topIn.LeapName(a1.AtJ()).c_str(), topIn.LeapName(a1.AtK()).c_str());
       mprintf( "Angle   = %f\n", a1.ThetaVal()*Constants::RADDEG );
       mprintf( "Bond    = %f\n", b1.DistVal() );
-        //mprintf( "ZMatrixAll:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
+      mprintf("ZMatrixBondAngle:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
       //}
-    //frameOut.SetXYZ( ic.AtI(), posI );
-    // FIXME actually build 
+    frameOut.SetXYZ( ic.AtI(), posI );
+    return 1;
   }
   // Check if we can get a bond for this atom
   if (getBondFromInternals(b1, at, hasPosition)) {
@@ -1930,6 +1931,7 @@ const
         //mprintf( "ZMatrixAll:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
       //}
     //frameOut.SetXYZ( ic.AtI(), posI );
+    // return 1;
     // FIXME actually build 
   }
   return 0;
