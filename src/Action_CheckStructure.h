@@ -19,9 +19,7 @@ class Action_CheckStructure : public Action {
     int SyncAction();
 #   endif
 
-    enum FmtType { F_ATOM =0, F_BOND, F_RING };
-
-    void WriteProblems(FmtType, int, Topology const&);
+    void WriteProblems(StructureCheck::FmtType, int, Topology const&);
 
     StructureCheck check_;  ///< Structure checker
     CpptrajFile* outfile_;  ///< Report file.
@@ -29,7 +27,6 @@ class Action_CheckStructure : public Action {
     DataSet* num_problems_; ///< Save number of problems each frame
     bool silent_;           ///< If true suppress output
     bool skipBadFrames_;    ///< If true skip frames with problems
-    static const char* Fmt_[]; ///< Output format strings
 #   ifdef MPI
     Parallel::Comm trajComm_;
     DataSet* ds_fn_; ///< Frame number

@@ -9,6 +9,7 @@
 // Forward declares
 class Topology;
 class CharMask;
+class CpptrajFile;
 namespace Cpptraj {
 namespace Structure {
 class LeastSquaresPlane;
@@ -44,6 +45,11 @@ class StructureCheck {
     int CheckRings(Frame const&);
     /// Check if any of the given bonds are passing through given rings.
     int CheckRings(Frame const&, Cpptraj::Structure::RingFinder const&, std::vector<Btype> const&);
+    /// Write existing problems to the given file
+    void WriteProblemsToFile(CpptrajFile*, int, Topology const&) const;
+
+    /// Format of problems currently stored in problemAtoms_
+    enum FmtType { F_ATOM =0, F_BOND, F_RING };
 
     AtomMask const& Mask1()     const { return Mask1_; }
     AtomMask const& Mask2()     const { return Mask2_; }
@@ -102,6 +108,8 @@ class StructureCheck {
     /// Iterator to end of list of problems from latest call to CheckX
     const_iterator end()   const { return problemAtoms_.end();   }
   private:
+    /// Format strings corresponding to FmtType
+    static const char* Fmt_[];
     /// Type of overlap check
     enum CheckType { NO_PL_1_MASK=0, NO_PL_2_MASKS, PL_1_MASK };
     /// Add selected bonds in BondArray to list to be checked.
@@ -164,5 +172,6 @@ class StructureCheck {
     bool bondcheck_;        ///< If true check bonds as well
     bool ringcheck_;        ///< If true check bond/ring intersections
     bool saveProblems_;     ///< If true save problems in problemAtoms_
+    FmtType lastFmt_;       ///< Format of problems currently stored in problemAtoms_
 };
 #endif

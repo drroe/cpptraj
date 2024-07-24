@@ -1,11 +1,12 @@
 #include <cmath> // sqrt
 #include <algorithm> // sort
 #include "StructureCheck.h"
-#include "Topology.h"
+#include "CpptrajFile.h"
 #include "CpptrajStdio.h"
 #include "CharMask.h"
 #include "DistRoutines.h"
 #include "Structure/LeastSquaresPlane.h"
+#include "Topology.h"
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
@@ -27,7 +28,8 @@ StructureCheck::StructureCheck() :
   debug_(0),
   bondcheck_(true),
   ringcheck_(true),
-  saveProblems_(false)
+  saveProblems_(false),
+  lastFmt_(F_ATOM)
 {}
 
 /** \return Ring-bond short distance cutoff in Ang. */
@@ -271,6 +273,7 @@ int StructureCheck::CheckBonds(Frame const& currentFrame)
   } // END pragma omp parallel
 # endif
   ConsolidateProblems();
+  lastFmt_ = F_BOND;
 
   return Nproblems;
 }
@@ -655,6 +658,7 @@ int StructureCheck::CheckRings(Frame const& currentFrame, Cpptraj::Structure::Ri
   }
 
   ConsolidateProblems();
+  lastFmt_ = F_RING;
 
   return Nproblems;
 }
@@ -923,6 +927,24 @@ int StructureCheck::CheckOverlaps(Frame const& currentFrame) {
     Nproblems = Mask1_CheckOverlap(currentFrame);
   }
   //mprintf("Exiting CheckOverlaps() with %i\n\n", Nproblems);
+  lastFmt_ = F_ATOM;
 
   return Nproblems;
+}
+
+/** Write formats for problems. */
+const char* StructureCheck::Fmt_[] = {
+  "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2f)\n",    ///< F_ATOM
+  "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2f)\n", ///< F_BOND
+  "%i\t Warning: Bond involving atom %i:%s intersects ring involving atom %i:%s (%.2f)\n" ///< F_RING
+};
+
+/** Write current problems to the given file. */
+void StructureCheck::WriteProblemsToFile(CpptrajFile* outfile, int frameNum, Topology const& top) const {
+  if (outfile == 0) return;
+  for (const_iterator p = begin(); p != end(); ++p) {
+    outfile->Printf(Fmt_[lastFmt_], frameNum,
+                    p->A1()+1, top.TruncResAtomName(p->A1()).c_str(),
+                    p->A2()+1, top.TruncResAtomName(p->A2()).c_str(), p->D());
+  }
 }

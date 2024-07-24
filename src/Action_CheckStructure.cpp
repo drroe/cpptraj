@@ -182,17 +182,10 @@ Action::RetType Action_CheckStructure::Setup(ActionSetup& setup) {
   return Action::OK;
 }
 
-/// Output format strings for warnings.
-const char* Action_CheckStructure::Fmt_[] = {
-  "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2f)\n",    ///< F_ATOM
-  "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2f)\n", ///< F_BOND
-  "%i\t Warning: Bond involving atom %i:%s intersects ring involving atom %i:%s (%.2f)\n" ///< F_RING
-};
-
 /** Consolidate problems from different threads if necessary and write out. */
-void Action_CheckStructure::WriteProblems(FmtType ft, int frameNum, Topology const& top) {
+void Action_CheckStructure::WriteProblems(StructureCheck::FmtType ft, int frameNum, Topology const& top) {
+# ifdef MPI
   for (StructureCheck::const_iterator p = check_.begin(); p != check_.end(); ++p) {
-#   ifdef MPI
     int atom1 = p->A1() + 1;
     int atom2 = p->A2() + 1;
     ds_fn_->Add(idx_, &frameNum);
@@ -203,12 +196,10 @@ void Action_CheckStructure::WriteProblems(FmtType ft, int frameNum, Topology con
     ds_n2_->Add(idx_, top.TruncResAtomName(p->A2()).c_str());
     ds_d_->Add(idx_,  p->Dptr());
     idx_++;
-#   else
-    outfile_->Printf(Fmt_[ft], frameNum,
-                    p->A1()+1, top.TruncResAtomName(p->A1()).c_str(),
-                    p->A2()+1, top.TruncResAtomName(p->A2()).c_str(), p->D());
-#   endif
   }
+# else
+  check_.WriteProblemsToFile(outfile_, frameNum, top);
+# endif
 }
 
 // Action_CheckStructure::DoAction()
@@ -224,7 +215,7 @@ Action::RetType Action_CheckStructure::DoAction(int frameNum, ActionFrame& frm) 
 # ifdef TIMER
   t_overlap_.Stop();
 # endif
-  if (outfile_ != 0) WriteProblems(F_ATOM, fnum, *CurrentParm_);
+  if (outfile_ != 0) WriteProblems(StructureCheck::F_ATOM, fnum, *CurrentParm_);
   if (check_.CheckBonds()) {
 #   ifdef TIMER
     t_bonds_.Start();
@@ -233,7 +224,7 @@ Action::RetType Action_CheckStructure::DoAction(int frameNum, ActionFrame& frm) 
 #   ifdef TIMER
     t_bonds_.Stop();
 #   endif
-    if (outfile_ != 0) WriteProblems(F_BOND, fnum, *CurrentParm_);
+    if (outfile_ != 0) WriteProblems(StructureCheck::F_BOND, fnum, *CurrentParm_);
 #   ifdef TIMER
     t_rings_.Start();
 #   endif
@@ -241,7 +232,7 @@ Action::RetType Action_CheckStructure::DoAction(int frameNum, ActionFrame& frm) 
 #   ifdef TIMER
     t_rings_.Stop();
 #   endif
-    if (outfile_ != 0) WriteProblems(F_RING, fnum, *CurrentParm_);
+    if (outfile_ != 0) WriteProblems(StructureCheck::F_RING, fnum, *CurrentParm_);
   }
   num_problems_->Add( frameNum, &total_problems );
 # ifdef TIMER
