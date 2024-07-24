@@ -1917,7 +1917,7 @@ const
       mprintf( "Bond    = %f\n", b1.DistVal() );
       mprintf("ZMatrixBondAngle:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
       //}
-    frameOut.SetXYZ( ic.AtI(), posI );
+    frameOut.SetXYZ( a1.AtI(), posI );
     return 1;
   }
   // Check if we can get a bond for this atom
