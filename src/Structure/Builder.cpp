@@ -1874,7 +1874,7 @@ const
   if (getIcFromInternals(ic, at, hasPosition)) {
     //printAllInternalsForAtom(at, topIn, hasPosition); // DEBUG
     Vec3 posI = Zmatrix::AtomIposition(ic, frameOut);
-    if (debug_ > 1) {
+    //if (debug_ > 1) {
       mprintf("Building atom %s using torsion/angle/bond\n", topIn.LeapName(at).c_str());
       mprintf("Using %s - %s - %s - %s\n",
               topIn.LeapName(ic.AtI()).c_str(),
@@ -1885,7 +1885,7 @@ const
       mprintf( "Angle   = %f\n", ic.Theta() );
       mprintf( "Bond    = %f\n", ic.Dist() );
       mprintf( "ZMatrixAll:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
-    }
+    //}
     frameOut.SetXYZ( ic.AtI(), posI );
     return 1;
   }
