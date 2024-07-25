@@ -2075,7 +2075,7 @@ const
       }
       // Build unknown positions around known atom
       if (atToBuildAround != -1) {
-        if (debug_ > 0)
+        //if (debug_ > 0)
           mprintf("Building externals from %s\n", topIn.LeapName(atToBuildAround).c_str());
         Atom const& bAtom = topIn[atToBuildAround];
         for (Atom::bond_iterator bat = bAtom.bondbegin(); bat != bAtom.bondend(); ++bat)
