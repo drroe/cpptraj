@@ -61,6 +61,8 @@ class Builder {
     /// Hold chirality
     class InternalChirality;
 
+    class AtomIC;
+
     typedef std::vector<InternalTorsion> Tarray;
     typedef std::vector<InternalAngle> Aarray;
     typedef std::vector<InternalBond> Larray;
@@ -118,8 +120,12 @@ class Builder {
     void printAllInternalsForAtom(int, Topology const&, Barray const&) const;
     /// \\return index of atom with longest 'depth' bonded to a given atom (ignoring one bonded atom).
     static int get_depths_around_atom(int, int, Topology const&);
+    /// Get any complete internal coords for specified atom
+    AtomIC getInternalCoordsForAtom(int, int, Barray const&, Topology const&) const;
     /// Build XYZ coords for an atom if internals are available
     int buildCoordsForAtom(int, Frame&, Topology const&, Barray const&) const;
+    /// Build atoms based on build priority; for cases where known atoms are sparse
+    int sparseBuildFromInternals(std::vector<AtomIC>&, Frame&, Topology const&, Barray&) const;
     /// \return array containing all residues with atoms that need positions
     std::vector<Residue> residuesThatNeedPositions(Topology const&, Barray const&) const;
 
@@ -247,6 +253,7 @@ class Cpptraj::Structure::Builder::InternalChirality {
     int ai_;
     double dChi_;
 };
+// -----------------------------------------------
 }
 }
 #endif
