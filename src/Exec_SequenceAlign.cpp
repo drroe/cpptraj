@@ -31,7 +31,7 @@ int Exec_SequenceAlign::advance_past_rnum(std::string::const_iterator& it,
   std::string rnumStr;
   bool in_number = false;
   while (it != line.end()) {
-    if (isdigit( *it )) {
+    if (isdigit( *it )) { // TODO are negative res numbers allowed?
       if (!in_number && rnum == -1)
         in_number = true;
       if (in_number)
@@ -41,7 +41,7 @@ int Exec_SequenceAlign::advance_past_rnum(std::string::const_iterator& it,
         in_number = false;
         rnum = convertToInteger( rnumStr );
       }
-    } else if (isalpha( *it )) {
+    } else if (isalpha( *it ) || *it == '-') {
       // At first alpha. Break.
       break;
     }
@@ -125,9 +125,34 @@ const
       // Process Query/Sbjct alignment
       std::string::const_iterator qit = Query.begin() + 5;
       std::string::const_iterator sit = Sbjct.begin() + 5;
-      std::string::const_iterator ait = Align.begin() + 5;
       // Get and advance past any residue numbers
       int rn = advance_past_rnum(qit, Query);
+      if (qres == -1) {
+        qres = rn;
+        if (rn == -1) {
+          mprintf("Warning: No initial residue number for query. Setting to 1.\n");
+          qres = 1;
+        }
+        mprintf("Query starting from residue %i\n", qres);
+      }
+      rn = advance_past_rnum(sit, Sbjct);
+      if (sres == -1) {
+        sres = rn;
+        if (rn == -1) {
+          mprintf("Warning: No initial residue number for subject. Setting to 1.\n");
+          sres = 1;
+        }
+        mprintf("Subject starting from residue %i\n", sres);
+      }
+      // Ensure query and subject are starting from the same column
+      long int coloffset = qit - Query.begin();
+      long int sbjoffset = sit - Sbjct.begin();
+      if (sbjoffset != coloffset) {
+        mprinterr("Error: Query column (%li) != Sbjct solumn (%li)\n",
+                   coloffset+1, sbjoffset+1);
+        return 1;
+      }
+      std::string::const_iterator ait = Align.begin() + coloffset;
     } // END process alignment
 
     // Scan to next Query or Sbjct
