@@ -54,31 +54,48 @@ const
   std::string Query; // Query residues
   std::string Align; // Alignment line
   std::string Sbjct; // Sbjct residues
+  int qres = -1; // Current query residue #
+  int sres = -1; // Current subject residue #
+
   while (ptr != 0) {
-    Query.assign( ptr );           // query line
-    const char* aline = infile.Line(); // alignment line
-    if (aline == 0) {
-      mprinterr("Error: Missing alignment line after Query, line %i\n", infile.LineNumber());
-      return 1;
+    Query.clear();
+    Sbjct.clear();
+    Align.clear();
+    if (ptr[0] == 'Q') {
+      Query.assign( ptr );           // query line
+      const char* aline = infile.Line(); // alignment line
+      if (aline == 0) {
+        mprinterr("Error: Missing alignment line after Query, line %i\n", infile.LineNumber());
+        return 1;
+      }
+      Align.assign( aline );
+    } else {
+      mprintf("Warning: No Query/Align lines, line %i.\n", infile.LineNumber());
     }
-    Align.assign( aline );
-    const char* sline = infile.Line(); // subject line
-    if (sline == 0) {
-      mprinterr("Error: Missing Subject line after alignment, line %i\n", infile.LineNumber());
-      return 1;
+
+    if (ptr[0] == 'S') {
+      Sbjct.assign( ptr);
+    } else {
+      const char* sline = infile.Line(); // subject line
+      if (sline == 0 || sline[0] != 'S') {
+        mprintf("Warning: Missing Subject line after alignment, line %i\n", infile.LineNumber());
+      } else {
+        Sbjct.assign( sline );
+      }
     }
-    Sbjct.assign( sline );
 
     // DEBUG
     mprintf("DEBUG: Query: %s\n", Query.c_str());
     mprintf("DEBUG: Align: %s\n", Align.c_str());
     mprintf("DEBUG: Sbjct: %s\n", Sbjct.c_str());
 
-    // Scan to next Query 
+    // Scan to next Query or Sbjct
     ptr = infile.Line();
     while (ptr != 0) {
       if (*ptr == 'Q') {
         if ( strncmp(ptr, "Query", 5) == 0 ) break;
+      } else if (*ptr == 'S') {
+        if ( strncmp(ptr, "Sbjct", 5) == 0 ) break;
       }
       ptr = infile.Line();
     }
