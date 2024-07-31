@@ -10,6 +10,6 @@ class Exec_SequenceAlign : public Exec {
     RetType Execute(CpptrajState&, ArgList&);
   private:
     int read_blast(std::string const&) const;
-
+    static int advance_past_rnum(std::string::const_iterator&, std::string const&);
 };
 #endif

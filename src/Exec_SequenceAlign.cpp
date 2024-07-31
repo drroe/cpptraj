@@ -1,4 +1,5 @@
 #include <cstring>
+#include <cctype> // isdigit, isalpha
 #include "Exec_SequenceAlign.h"
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
@@ -22,7 +23,33 @@ void Exec_SequenceAlign::Help() const {
           DataSetList::RefArgs);
 }
 
-
+/** Advance past any digit to the sequence alignment. */
+int Exec_SequenceAlign::advance_past_rnum(std::string::const_iterator& it,
+                                          std::string const& line)
+{
+  int rnum = -1;
+  std::string rnumStr;
+  bool in_number = false;
+  while (it != line.end()) {
+    if (isdigit( *it )) {
+      if (!in_number && rnum == -1)
+        in_number = true;
+      if (in_number)
+        rnumStr += *it;
+    } else if (isspace( *it )) {
+      if (in_number) {
+        in_number = false;
+        rnum = convertToInteger( rnumStr );
+      }
+    } else if (isalpha( *it )) {
+      // At first alpha. Break.
+      break;
+    }
+    ++it;
+  }
+  mprintf("DEBUG: alpha starts at %li, rnum= %i\n", it-line.begin(), rnum);
+  return rnum;
+}
 
 /** Read sequence alignment. */
 int Exec_SequenceAlign::read_blast(std::string const& blastfile)
@@ -74,6 +101,7 @@ const
     }
 
     if (ptr[0] == 'S') {
+      // This can happen when there are no more query lines
       Sbjct.assign( ptr);
     } else {
       const char* sline = infile.Line(); // subject line
@@ -88,6 +116,19 @@ const
     mprintf("DEBUG: Query: %s\n", Query.c_str());
     mprintf("DEBUG: Align: %s\n", Align.c_str());
     mprintf("DEBUG: Sbjct: %s\n", Sbjct.c_str());
+
+    if (!Query.empty() && !Align.empty() && !Sbjct.empty()) {
+      if (Query.size() < 6 || Sbjct.size() < 6) {
+        mprinterr("Error: Query and/or Sbjct line sizes are short (line %i)\n", infile.LineNumber());
+        return 1;
+      }
+      // Process Query/Sbjct alignment
+      std::string::const_iterator qit = Query.begin() + 5;
+      std::string::const_iterator sit = Sbjct.begin() + 5;
+      std::string::const_iterator ait = Align.begin() + 5;
+      // Get and advance past any residue numbers
+      int rn = advance_past_rnum(qit, Query);
+    } // END process alignment
 
     // Scan to next Query or Sbjct
     ptr = infile.Line();
