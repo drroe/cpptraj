@@ -23,6 +23,11 @@ void Exec_SequenceAlign::Help() const {
           DataSetList::RefArgs);
 }
 
+/// \return true if character is a valid sequence align char
+static inline bool is_valid_seq(char c) {
+  return (isalpha( c ) || c == '-');
+}
+
 /** Advance past any digit to the sequence alignment. */
 int Exec_SequenceAlign::advance_past_rnum(std::string::const_iterator& it,
                                           std::string const& line)
@@ -41,7 +46,7 @@ int Exec_SequenceAlign::advance_past_rnum(std::string::const_iterator& it,
         in_number = false;
         rnum = convertToInteger( rnumStr );
       }
-    } else if (isalpha( *it ) || *it == '-') {
+    } else if (is_valid_seq( *it )) {
       // At first alpha. Break.
       break;
     }
@@ -148,11 +153,50 @@ const
       long int coloffset = qit - Query.begin();
       long int sbjoffset = sit - Sbjct.begin();
       if (sbjoffset != coloffset) {
-        mprinterr("Error: Query column (%li) != Sbjct solumn (%li)\n",
-                   coloffset+1, sbjoffset+1);
+        mprinterr("Error: Query column (%li) != Sbjct solumn (%li), line %i\n",
+                   coloffset+1, sbjoffset+1, infile.LineNumber());
         return 1;
       }
       std::string::const_iterator ait = Align.begin() + coloffset;
+      // Loop over query/subject
+      while (qit != Query.end() || sit != Sbjct.end()) {
+        if (is_valid_seq( *qit )) {
+          if (!is_valid_seq( *sit )) {
+            mprinterr("Error: Invalid Sbjct char %c corresponding to Query %c, line %i\n",
+                      *sit, *qit, infile.LineNumber());
+            return 1;
+          }
+          if (isalpha(*qit) && isalpha(*sit)) {
+            // 1 to 1 correspondence
+            mprintf("DEBUG: qres %i %c to sres %i %c (%c)\n", qres, *qit, sres, *sit, *ait);
+            qres++;
+            sres++;
+          } else if (isalpha(*qit) && *sit == '-') {
+            // Query, no sbjct
+            mprintf("DEBUG: qres %i %c\n", qres, *qit);
+            qres++;
+          } else if (isalpha(*sit) && *qit == '-') {
+            // Sbjct, no query
+            mprintf("DEBUG: sres %i %c\n", sres, *sit);
+            sres++;
+          }
+        }
+        if (qit != Query.end()) ++qit;
+        if (sit != Sbjct.end()) ++sit;
+        if (ait != Align.end()) ++ait;
+        if (!is_valid_seq(*qit)) {
+          if (is_valid_seq(*sit)) {
+            mprinterr("Error: Query %c has ended before Sbjct %c, line %i\n", *qit, *sit, infile.LineNumber());
+            return 1;
+          }
+        }
+        if (!is_valid_seq(*sit)) {
+          if (is_valid_seq(*qit)) {
+            mprinterr("Error: Sbjct %c has ended before Query %c, line %i\n", *sit, *qit, infile.LineNumber());
+            return 1;
+          }
+        }
+      } // END loop over lines
     } // END process alignment
 
     // Scan to next Query or Sbjct
