@@ -21,7 +21,72 @@ void Exec_SequenceAlign::Help() const {
           "will include only backbone and CB (if applicable) atoms.\n",
           DataSetList::RefArgs);
 }
-    
+
+
+
+/** Read sequence alignment. */
+int Exec_SequenceAlign::read_blast(std::string const& blastfile)
+const
+{
+  mprintf("\tReading BLAST alignment from '%s'\n", blastfile.c_str());
+  BufferedLine infile;
+  if (infile.OpenFileRead( blastfile )) return 1;
+  // Seek down to first Query (but not Query:) line.
+  const char* ptr = infile.Line();
+  bool atFirstQuery = false;
+  while (ptr != 0) {
+    if (*ptr == 'Q') {
+      if ( strncmp(ptr, "Query ", 6) == 0 ) {
+        atFirstQuery = true;
+        break;
+      }
+    }
+    ptr = infile.Line();
+  }
+  if (!atFirstQuery) {
+    mprinterr("Error: 'Query' not found.\n");
+    return 1;
+  }
+
+  // Read alignment.
+  //typedef std::vector<char> Carray;
+  //typedef std::vector<int> Iarray;
+  std::string Query; // Query residues
+  std::string Align; // Alignment line
+  std::string Sbjct; // Sbjct residues
+  while (ptr != 0) {
+    Query.assign( ptr );           // query line
+    const char* aline = infile.Line(); // alignment line
+    if (aline == 0) {
+      mprinterr("Error: Missing alignment line after Query, line %i\n", infile.LineNumber());
+      return 1;
+    }
+    Align.assign( aline );
+    const char* sline = infile.Line(); // subject line
+    if (sline == 0) {
+      mprinterr("Error: Missing Subject line after alignment, line %i\n", infile.LineNumber());
+      return 1;
+    }
+    Sbjct.assign( sline );
+
+    // DEBUG
+    mprintf("DEBUG: Query: %s\n", Query.c_str());
+    mprintf("DEBUG: Align: %s\n", Align.c_str());
+    mprintf("DEBUG: Sbjct: %s\n", Sbjct.c_str());
+
+    // Scan to next Query 
+    ptr = infile.Line();
+    while (ptr != 0) {
+      if (*ptr == 'Q') {
+        if ( strncmp(ptr, "Query", 5) == 0 ) break;
+      }
+      ptr = infile.Line();
+    }
+  }
+  return 0;
+}
+
+/** Execute. */
 Exec::RetType Exec_SequenceAlign::Execute(CpptrajState& State, ArgList& argIn) {
   mprintf("Warning: THIS COMMAND IS NOT FULLY IMPLEMENTED.\n");
   std::string blastfile = argIn.GetStringKey("blastfile");
@@ -46,6 +111,8 @@ Exec::RetType Exec_SequenceAlign::Execute(CpptrajState& State, ArgList& argIn) {
   int qmaskoffset = argIn.getKeyInt("qmaskoffset", 0) + 1;
 
   // Load blast file
+  if (read_blast(blastfile)) return CpptrajState::ERR;
+
   mprintf("\tReading BLAST alignment from '%s'\n", blastfile.c_str());
   BufferedLine infile;
   if (infile.OpenFileRead( blastfile )) return CpptrajState::ERR;

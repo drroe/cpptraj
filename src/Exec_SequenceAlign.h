@@ -8,5 +8,8 @@ class Exec_SequenceAlign : public Exec {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_SequenceAlign(); }
     RetType Execute(CpptrajState&, ArgList&);
+  private:
+    int read_blast(std::string const&) const;
+
 };
 #endif
