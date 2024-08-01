@@ -1,10 +1,11 @@
 #include <cstring>
 #include <cctype> // isdigit, isalpha
 #include "Exec_SequenceAlign.h"
-#include "CpptrajStdio.h"
 #include "BufferedLine.h"
-#include "Trajout_Single.h"
+#include "CpptrajStdio.h"
+#include "DataSet_StringVar.h"
 #include "StringRoutines.h"
+#include "Trajout_Single.h"
 
 // EXPERIMENTAL ALPHA CODE
 
@@ -53,9 +54,8 @@ int Exec_SequenceAlign::advance_past_rnum(std::string::const_iterator& it,
 /** Read sequence alignment. */
 int Exec_SequenceAlign::read_blast(std::string& queryMaskStr,
                                    std::string& sbjctMaskStr,
-                                   ResNumCharMap& queryToSbjct,
+                                   ResNumCharMap& sbjctToQuery,
                                    std::string const& blastfile)
-const
 {
   mprintf("\tReading BLAST alignment from '%s'\n", blastfile.c_str());
   BufferedLine infile;
@@ -78,8 +78,8 @@ const
   }
 
   // Read alignment.
-  //typedef std::vector<char> Carray;
-  typedef std::vector<int> Iarray;
+  SBJCT_NUMS_.clear();
+  SBJCT_CHAR_.clear();
   Iarray queryResidues;
   Iarray sbjctResidues;
   std::string Query; // Query residues
@@ -125,6 +125,7 @@ const
     mprintf("DEBUG: Sbjct: %s\n", Sbjct.c_str());
 
     if (!Query.empty() && !Align.empty() && !Sbjct.empty()) {
+      // QUERY/ALIGN/SUBJECT
       if (Query.size() < 6 || Sbjct.size() < 6) {
         mprinterr("Error: Query and/or Sbjct line sizes are short (line %i)\n", infile.LineNumber());
         return 1;
@@ -181,7 +182,11 @@ const
             mprintf("DEBUG: qres %i %c to sres %i %c (%c)\n", qResnum, *qit, sResnum, *sit, *ait);
             queryResidues.push_back( qResnum );
             sbjctResidues.push_back( sResnum );
-            queryToSbjct.insert( ResNumCharPair(qResnum, ResNumChar(*qit, sResnum, *sit)) );
+            sbjctToQuery.insert( ResNumCharPair(sResnum, ResNumChar(*sit, qResnum, *qit)) );
+            SBJCT_NUMS_.push_back( sResnum );
+            SBJCT_CHAR_.push_back( *sit );
+            //queryToSbjct.insert( ResNumCharPair(qResnum, ResNumChar(*qit, sResnum, *sit)) );
+            //queryToSbjct.push_back( ResMap(qResnum, *qit, sResnum, *sit) );
             qres++;
             sres++;
           } else if (isalpha(*qit) && *sit == '-') {
@@ -211,7 +216,32 @@ const
           }
         }
       } // END loop over lines
-    } // END process alignment
+    } else if (!Sbjct.empty()) {
+      // SUBJECT ONLY
+      std::string::const_iterator sit = Sbjct.begin() + 5;
+      int rn = advance_past_rnum(sit, Sbjct);
+      if (sres == -1) {
+        sres = rn;
+        if (rn == -1) {
+          mprintf("Warning: No initial residue number for subject. Setting to 1.\n");
+          sres = 1;
+        }
+        mprintf("Subject starting from residue %i\n", sres);
+      } else if (rn != -1) {
+        if (sres != rn)
+          mprintf("Warning: Residue # mismatch for Sbjct; got %i, expected %i\n", rn, sres);
+      }
+      for (; sit != Sbjct.end(); ++sit) {
+        if (!is_valid_seq( *sit )) break;
+        if (isalpha(*sit)) {
+          int sResnum = sres+sbjctOffset_;
+          mprintf("DEBUG: sres %i %c\n", sResnum, *sit);
+          sbjctResidues.push_back( sResnum );
+          SBJCT_NUMS_.push_back( sResnum );
+          SBJCT_CHAR_.push_back( *sit );
+        }
+      }
+    }
 
     // Scan to next Query or Sbjct
     ptr = infile.Line();
@@ -230,9 +260,14 @@ const
   std::string sbjctResStr = ArrayToRangeExpression( sbjctResidues, 0 );
   mprintf("\tQuery Residues (%zu): %s\n", queryResidues.size(), queryResStr.c_str());
   mprintf("\tSbjct Residues (%zu): %s\n", sbjctResidues.size(), sbjctResStr.c_str());
-  mprintf("DEBUG: Query to Sbjct map:\n");
-  for (ResNumCharMap::const_iterator it = queryToSbjct.begin();
-                                     it != queryToSbjct.end(); ++it)
+  //mprintf("DEBUG: Query to Sbjct map:\n");
+  //for (ResNumCharMap::const_iterator it = queryToSbjct.begin();
+  //                                   it != queryToSbjct.end(); ++it)
+  //  //mprintf("\t%8i %c %8i %c\n", it->first, it->second.ResChar(), it->second.MappedNum(), it->second.MappedChar());
+  //  mprintf("\t%8i %c %8i %c\n", it->ResNum(), it->ResChar(), it->MappedNum(), it->MappedChar());
+  mprintf("DEBUG: Sbjct to Query map:\n");
+  for (ResNumCharMap::const_iterator it = sbjctToQuery.begin();
+                                     it != sbjctToQuery.end(); ++it)
     mprintf("\t%8i %c %8i %c\n", it->first, it->second.ResChar(), it->second.MappedNum(), it->second.MappedChar());
 
   if (queryResidues.size() != sbjctResidues.size()) {
@@ -241,6 +276,14 @@ const
   }
   queryMaskStr = ":" + queryResStr;
   sbjctMaskStr = ":" + sbjctResStr;
+
+  mprintf("DEBUG: Subject residues:\n");
+  Carray::const_iterator scIt = SBJCT_CHAR_.begin();
+  for (Iarray::const_iterator sresIt = SBJCT_NUMS_.begin();
+                              sresIt != SBJCT_NUMS_.end(); sresIt++, ++scIt)
+  {
+    mprintf("\t%8i %c\n", *sresIt, *scIt);
+  }
   return 0;
 }
 
@@ -295,14 +338,38 @@ Exec::RetType Exec_SequenceAlign::Execute(CpptrajState& State, ArgList& argIn) {
   queryOffset_ = argIn.getKeyInt("qmaskoffset", 0);
 
   // Load blast file
-  ResNumCharMap queryToSbjct;
+  ResNumCharMap sbjctToQuery;
   std::string queryMaskStr, sbjctMaskStr;
-  if (read_blast(queryMaskStr, sbjctMaskStr, queryToSbjct, blastfile))
+  if (read_blast(queryMaskStr, sbjctMaskStr, sbjctToQuery, blastfile))
     return CpptrajState::ERR;
+  mprintf("\tQuery mask: %s\n", queryMaskStr.c_str());
+  mprintf("\tSbjct mask: %s\n", sbjctMaskStr.c_str());
+  DataSet* ds = State.DSL().AddSet( DataSet::STRINGVAR, "QUERYMASK" );
+  if (ds == 0) return CpptrajState::ERR;
+  ((DataSet_StringVar*)ds)->assign( queryMaskStr );
+  ds = State.DSL().AddSet( DataSet::STRINGVAR, "SBJCTMASK" );
+  if (ds == 0) return CpptrajState::ERR;
+  ((DataSet_StringVar*)ds)->assign( sbjctMaskStr );
 
+  if (map_residues) {
+    Topology sTop;
+    Frame sFrame;
+    if (buildFromReference(sTop, sFrame, qref, sbjctToQuery)) {
+      mprinterr("Error: Build of Subject from Query failed.\n");
+      return CpptrajState::ERR;
+    }
+    // Write output traj
+    Trajout_Single trajout;
+    if (trajout.PrepareTrajWrite(outfilename, argIn, State.DSL(), &sTop, CoordinateInfo(), 1, fmt))
+      return CpptrajState::ERR;
+    if (trajout.WriteSingle(0, sFrame)) return CpptrajState::ERR;
+    trajout.EndTraj();
+  }
+/*
   mprintf("\tReading BLAST alignment from '%s'\n", blastfile.c_str());
   BufferedLine infile;
-  if (infile.OpenFileRead( blastfile )) return CpptrajState::ERR;
+  if (infile.OpenFileRead( blastfile ))
+    return CpptrajState::ERR;
   // Seek down to first Query line.
   const char* ptr = infile.Line();
   bool atFirstQuery = false;
@@ -395,18 +462,43 @@ Exec::RetType Exec_SequenceAlign::Execute(CpptrajState& State, ArgList& argIn) {
       }
     }
   }
+*/
+  return CpptrajState::OK;
+}
+
+/** Build the subject using coordinates from the refernce. */
+int Exec_SequenceAlign::buildFromReference(Topology& sTop,
+                                           Frame& sFrame,
+                                           ReferenceFrame const& qref,
+                                           ResNumCharMap const& sbjctToQuery)
+const
+{
   // Build subject using coordinate from reference.
   //AtomMask sMask; // Contain atoms that should be in sTop
-  Topology sTop;
-  Frame sFrame;
+
   Iarray placeHolder; // Atom indices of placeholder residues.
-  for (unsigned int sres = 0; sres != Sbjct.size(); sres++) {
-    int qres = Smap[sres];
-    NameType SresName( Residue::ConvertResName(Sbjct[sres]) );
-    if (qres != -1) {
+  Carray::const_iterator scIt = SBJCT_CHAR_.begin();
+  for (Iarray::const_iterator sresIt = SBJCT_NUMS_.begin();
+                              sresIt != SBJCT_NUMS_.end(); sresIt++, ++scIt)
+  {
+    NameType SresName( Residue::ConvertResName( *scIt ) );
+    ResNumCharMap::const_iterator mapIt = sbjctToQuery.find( *sresIt );
+    if (mapIt != sbjctToQuery.end()) {
+      // Query is mapped to Sbjct // TODO originalresnum?
+      int qres = mapIt->second.MappedNum() - 1;
+      if (mapIt->second.ResChar() != *scIt) {
+        mprinterr("Error: Subject residue character mismatch: %i %c %c\n", *sresIt, mapIt->second.ResChar(), *scIt);
+        return 1;
+      }
+
       Residue const& QR = qref.Parm().Res(qres);
-      Residue SR(SresName, sres+1, ' ', QR.ChainID());
-      if (Query[qres] == Sbjct[sres]) { // Exact match. All non-H atoms.
+      if (QR.SingleCharName() != mapIt->second.MappedChar()) {
+        mprintf("Warning: Mapped query res char %c does not match name %s\n",
+                mapIt->second.MappedChar(), *QR.Name());
+      }
+      Residue SR(SresName, *sresIt, ' ', QR.ChainID());
+      if (mapIt->second.MappedChar() == mapIt->second.ResChar()) {
+        // Exact match. All non-H atoms.
         for (int qat = QR.FirstAtom(); qat != QR.LastAtom(); qat++)
         {
           if (qref.Parm()[qat].Element() != Atom::HYDROGEN) {
@@ -433,7 +525,7 @@ Exec::RetType Exec_SequenceAlign::Execute(CpptrajState& State, ArgList& argIn) {
       // Residue in query does not exist for subject. Just put placeholder CA for now.
       Vec3 Zero(0.0);
       placeHolder.push_back( sTop.Natom() );
-      sTop.AddTopAtom( Atom("CA", "C "), Residue(SresName, sres+1, ' ', "") );
+      sTop.AddTopAtom( Atom("CA", "C "), Residue(SresName, *sresIt, ' ', "") );
       sFrame.AddXYZ( Zero.Dptr() );
     }
   }
@@ -483,11 +575,7 @@ Exec::RetType Exec_SequenceAlign::Execute(CpptrajState& State, ArgList& argIn) {
   //Topology* sTop = qref.Parm().partialModifyStateByMask( sMask );
   //if (sTop == 0) return CpptrajState::ERR;
   //Frame sFrame(qref.Coord(), sMask);
-  // Write output traj
-  Trajout_Single trajout;
-  if (trajout.PrepareTrajWrite(outfilename, argIn, State.DSL(), &sTop, CoordinateInfo(), 1, fmt))
-    return CpptrajState::ERR;
-  if (trajout.WriteSingle(0, sFrame)) return CpptrajState::ERR;
-  trajout.EndTraj();
-  return CpptrajState::OK;
+
+  return 0;
 }
+
