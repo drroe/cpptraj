@@ -139,6 +139,9 @@ const
           qres = 1;
         }
         mprintf("Query starting from residue %i\n", qres);
+      } else if (rn != -1) {
+        if (qres != rn)
+          mprintf("Warning: Residue # mismatch for Query; got %i, expected %i\n", rn, qres);
       }
       rn = advance_past_rnum(sit, Sbjct);
       if (sres == -1) {
@@ -148,6 +151,9 @@ const
           sres = 1;
         }
         mprintf("Subject starting from residue %i\n", sres);
+      } else if (rn != -1) {
+        if (sres != rn)
+          mprintf("Warning: Residue # mismatch for Sbjct; got %i, expected %i\n", rn, sres);
       }
       // Ensure query and subject are starting from the same column
       long int coloffset = qit - Query.begin();
