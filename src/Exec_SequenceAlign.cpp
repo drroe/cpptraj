@@ -94,8 +94,10 @@ const
     Sbjct.clear();
     Align.clear();
     if (ptr[0] == 'Q') {
-      Query.assign( ptr );           // query line
-      const char* aline = infile.Line(); // alignment line
+      // We are at a Query line
+      Query.assign( ptr );
+      // Get the alignment line
+      const char* aline = infile.Line();
       if (aline == 0) {
         mprinterr("Error: Missing alignment line after Query, line %i\n", infile.LineNumber());
         return 1;
@@ -106,10 +108,11 @@ const
     }
 
     if (ptr[0] == 'S') {
-      // This can happen when there are no more query lines
+      // Already at Sbjct line. This can happen when there are no more Query lines.
       Sbjct.assign( ptr);
     } else {
-      const char* sline = infile.Line(); // subject line
+      // Get subject line
+      const char* sline = infile.Line();
       if (sline == 0 || sline[0] != 'S') {
         mprintf("Warning: Missing Subject line after alignment, line %i\n", infile.LineNumber());
       } else {
@@ -190,6 +193,7 @@ const
         if (qit != Query.end()) ++qit;
         if (sit != Sbjct.end()) ++sit;
         if (ait != Align.end()) ++ait;
+        // TODO check end numbers if present?
         if (!is_valid_seq(*qit)) {
           if (is_valid_seq(*sit)) {
             mprinterr("Error: Query %c has ended before Sbjct %c, line %i\n", *qit, *sit, infile.LineNumber());
