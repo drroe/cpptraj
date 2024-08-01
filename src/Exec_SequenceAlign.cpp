@@ -5,22 +5,16 @@
 #include "BufferedLine.h"
 #include "Trajout_Single.h"
 #include "StringRoutines.h"
+
 // EXPERIMENTAL ALPHA CODE
-void Exec_SequenceAlign::Help() const {
-  mprintf("\t%s blastfile <file> out <file>\n"
-          "\t[{pdb | mol2}] [<trajout args>] [smaskoffset <#>] [qmaskoffset <#>]\n"
-          "  blastfile: File containing sequence alignment.\n"
-          "  out: File to write resulting structure to.\n"
-          "  [{pdb | mol2}] Format of structure (default pdb).\n"
-          "  [smaskoffset]|[qmaskoffset]: Resdiue offset for output.\n"
-          "Given a reference structure and BLAST-like sequence alignment of format:\n"
-          "    Query  1    MIV...\n"
-          "                MI+...\n"
-          "    Sbjct  1    MIM...\n"
-          "where the Query sequence corresponds to the reference, output a structure\n"
-          "with the Sbjct sequence. All hydrogens will be removed. Non-matching residues\n"
-          "will include only backbone and CB (if applicable) atoms.\n",
-          DataSetList::RefArgs);
+
+/** CONSTRUCTOR */
+Exec_SequenceAlign::Exec_SequenceAlign() :
+  Exec(GENERAL),
+  queryOffset_(0),
+  sbjctOffset_(0)
+{
+  SetHidden(true);
 }
 
 /// \return true if character is a valid sequence align char
@@ -57,7 +51,10 @@ int Exec_SequenceAlign::advance_past_rnum(std::string::const_iterator& it,
 }
 
 /** Read sequence alignment. */
-int Exec_SequenceAlign::read_blast(std::string const& blastfile)
+int Exec_SequenceAlign::read_blast(std::string& queryMaskStr,
+                                   std::string& sbjctMaskStr,
+                                   ResNumCharMap& queryToSbjct,
+                                   std::string const& blastfile)
 const
 {
   mprintf("\tReading BLAST alignment from '%s'\n", blastfile.c_str());
@@ -82,7 +79,9 @@ const
 
   // Read alignment.
   //typedef std::vector<char> Carray;
-  //typedef std::vector<int> Iarray;
+  typedef std::vector<int> Iarray;
+  Iarray queryResidues;
+  Iarray sbjctResidues;
   std::string Query; // Query residues
   std::string Align; // Alignment line
   std::string Sbjct; // Sbjct residues
@@ -177,7 +176,12 @@ const
           }
           if (isalpha(*qit) && isalpha(*sit)) {
             // 1 to 1 correspondence
-            mprintf("DEBUG: qres %i %c to sres %i %c (%c)\n", qres, *qit, sres, *sit, *ait);
+            int qResnum = qres+queryOffset_;
+            int sResnum = sres+sbjctOffset_;
+            mprintf("DEBUG: qres %i %c to sres %i %c (%c)\n", qResnum, *qit, sResnum, *sit, *ait);
+            queryResidues.push_back( qResnum );
+            sbjctResidues.push_back( sResnum );
+            queryToSbjct.insert( ResNumCharPair(qResnum, ResNumChar(*qit, sResnum, *sit)) );
             qres++;
             sres++;
           } else if (isalpha(*qit) && *sit == '-') {
@@ -219,8 +223,43 @@ const
       }
       ptr = infile.Line();
     }
+  } // END loop over Alignment file
+  infile.CloseFile();
+
+  std::string queryResStr = ArrayToRangeExpression( queryResidues, 0 );
+  std::string sbjctResStr = ArrayToRangeExpression( sbjctResidues, 0 );
+  mprintf("\tQuery Residues (%zu): %s\n", queryResidues.size(), queryResStr.c_str());
+  mprintf("\tSbjct Residues (%zu): %s\n", sbjctResidues.size(), sbjctResStr.c_str());
+  mprintf("DEBUG: Query to Sbjct map:\n");
+  for (ResNumCharMap::const_iterator it = queryToSbjct.begin();
+                                     it != queryToSbjct.end(); ++it)
+    mprintf("\t%8i %c %8i %c\n", it->first, it->second.ResChar(), it->second.MappedNum(), it->second.MappedChar());
+
+  if (queryResidues.size() != sbjctResidues.size()) {
+    mprinterr("Error: There is not a 1 to 1 correspondence between Query and Sbjct residues.\n");
+    return 1;
   }
+  queryMaskStr = ":" + queryResStr;
+  sbjctMaskStr = ":" + sbjctResStr;
   return 0;
+}
+
+/** Print help text. */
+void Exec_SequenceAlign::Help() const {
+  mprintf("\t%s blastfile <file> out <file>\n"
+          "\t[{pdb | mol2}] [<trajout args>] [smaskoffset <#>] [qmaskoffset <#>]\n"
+          "  blastfile: File containing sequence alignment.\n"
+          "  out: File to write resulting structure to.\n"
+          "  [{pdb | mol2}] Format of structure (default pdb).\n"
+          "  [smaskoffset]|[qmaskoffset]: Resdiue offset for output.\n"
+          "Given a reference structure and BLAST-like sequence alignment of format:\n"
+          "    Query  1    MIV...\n"
+          "                MI+...\n"
+          "    Sbjct  1    MIM...\n"
+          "where the Query sequence corresponds to the reference, output a structure\n"
+          "with the Sbjct sequence. All hydrogens will be removed. Non-matching residues\n"
+          "will include only backbone and CB (if applicable) atoms.\n",
+          DataSetList::RefArgs);
 }
 
 /** Execute. */
@@ -231,24 +270,35 @@ Exec::RetType Exec_SequenceAlign::Execute(CpptrajState& State, ArgList& argIn) {
     mprinterr("Error: 'blastfile' must be specified.\n");
     return CpptrajState::ERR;
   }
+
+  bool map_residues = true;
   ReferenceFrame qref = State.DSL().GetReferenceFrame(argIn);
-  if (qref.error() || qref.empty()) {
+  TrajectoryFile::TrajFormatType fmt = TrajectoryFile::UNKNOWN_TRAJ;
+  std::string outfilename;
+  
+  if (qref.error()) {
     mprinterr("Error: Must specify reference structure for query.\n");
     return CpptrajState::ERR;
+  } else if (qref.empty()) {
+    map_residues = false;
+  } else {
+    // Get residue mapping keywords.
+    outfilename = argIn.GetStringKey("out");
+    if (outfilename.empty()) {
+      mprinterr("Error: Must specify output file if reference is specified.\n");
+      return CpptrajState::ERR;
+    }
+    // Default to PDB. TODO only allow PDB/Mol2?
+    fmt = TrajectoryFile::WriteFormatFromArg(argIn, TrajectoryFile::PDBFILE);
   }
-  std::string outfilename = argIn.GetStringKey("out");
-  if (outfilename.empty()) {
-    mprinterr("Error: Must specify output file.\n");
-    return CpptrajState::ERR;
-  }
-  // Default to PDB. TODO only allow PDB/Mol2?
-  TrajectoryFile::TrajFormatType fmt =
-    TrajectoryFile::WriteFormatFromArg(argIn, TrajectoryFile::PDBFILE);
-  int smaskoffset = argIn.getKeyInt("smaskoffset", 0) + 1;
-  int qmaskoffset = argIn.getKeyInt("qmaskoffset", 0) + 1;
+  sbjctOffset_ = argIn.getKeyInt("smaskoffset", 0);
+  queryOffset_ = argIn.getKeyInt("qmaskoffset", 0);
 
   // Load blast file
-  if (read_blast(blastfile)) return CpptrajState::ERR;
+  ResNumCharMap queryToSbjct;
+  std::string queryMaskStr, sbjctMaskStr;
+  if (read_blast(queryMaskStr, sbjctMaskStr, queryToSbjct, blastfile))
+    return CpptrajState::ERR;
 
   mprintf("\tReading BLAST alignment from '%s'\n", blastfile.c_str());
   BufferedLine infile;
@@ -310,6 +360,8 @@ Exec::RetType Exec_SequenceAlign::Execute(CpptrajState& State, ArgList& argIn) {
     }
   }
   // DEBUG
+  int smaskoffset=1; // FIXME
+  int qmaskoffset=1; // FIXME
   std::string SmaskExp, QmaskExp;
   if (State.Debug() > 0) mprintf("  Map of Sbjct to Query:\n");
   for (int sres = 0; sres != (int)Sbjct.size(); sres++) {
