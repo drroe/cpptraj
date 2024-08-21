@@ -329,7 +329,8 @@ const
   double msd = 0;
   for (unsigned int idx = 0; idx != c_sum.size(); idx++)
     msd += (2 * (Nframes * sq_sum[idx] - (c_sum[idx] * c_sum[idx])));
-  msd /= ((double)Nframes * (double(Nframes-1)));
+  //msd /= ((double)Nframes * (double(Nframes-1)));
+  msd /= ((double)Nframes * (double)Nframes);
   //norm_msd = msd / N_atoms
   msd /= Natoms;
   return msd;
