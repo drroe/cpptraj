@@ -17,6 +17,7 @@ class DataIO_Numpy : public DataIO {
     int read_data_as_coords(std::string const&, DataSetList&,
                             std::vector<double> const&,
                             unsigned long, unsigned long) const;
+    bool dbl_prec_; ///< If true store as FRM set (double prec.) instead of COORDS
 
 };
 #endif

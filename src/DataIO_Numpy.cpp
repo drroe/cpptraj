@@ -6,7 +6,8 @@
 #include "libnpy/npy.hpp"
 
 /// CONSTRUCTOR
-DataIO_Numpy::DataIO_Numpy()
+DataIO_Numpy::DataIO_Numpy() :
+  dbl_prec_(false)
 {
 
 }
@@ -34,13 +35,16 @@ bool DataIO_Numpy::ID_DataFormat(CpptrajFile& infile)
 // DataIO_Numpy::ReadHelp()
 void DataIO_Numpy::ReadHelp()
 {
-
+  mprintf("\tdblprec : Save coordinates from numpy array as double precision.\n");
 }
 
 // DataIO_Numpy::processReadArgs()
 int DataIO_Numpy::processReadArgs(ArgList& argIn)
 {
-
+  if (argIn.hasKey("dblprec"))
+    dbl_prec_ = true;
+  else
+    dbl_prec_ = false;
   return 0;
 }
 
@@ -57,7 +61,10 @@ const
   }
   unsigned long natoms = ncoords / 3;
 
-  DataSet* ds = dsl.AddSet( DataSet::COORDS, MetaData(dsname) );
+  DataSet::DataType setType = DataSet::COORDS;
+  if (dbl_prec_)
+    setType = DataSet::FRAMES;
+  DataSet* ds = dsl.AddSet( setType, MetaData(dsname) );
   if (ds == 0) {
     mprinterr("Error: Could not allocate COORDS set with name '%s'\n", dsname.c_str());
     return 1;
