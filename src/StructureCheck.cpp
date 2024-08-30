@@ -643,7 +643,8 @@ int StructureCheck::CheckRings(Frame const& currentFrame, Cpptraj::Structure::Ri
 # endif
   for (idx = 0; idx < ring_max; idx++)
   {
-    RingVecs[idx].CalcLeastSquaresPlane( currentFrame, rings[idx] );
+    // false = use geometric center
+    RingVecs[idx].CalcLeastSquaresPlane( currentFrame, rings[idx], false );
   }
 # ifdef _OPENMP
   } // END pragma omp parallel
