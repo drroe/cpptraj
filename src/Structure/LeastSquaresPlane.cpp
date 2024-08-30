@@ -118,9 +118,13 @@ Vec3 LeastSquaresPlane::leastSquaresPlane(unsigned int n, const double* vcorr) {
 }
 
 /** Calculate vector normal to plane passing through selected atoms. */
-void LeastSquaresPlane::CalcLeastSquaresPlane(Frame const& currentFrame, AtomMask const& maskIn)
+void LeastSquaresPlane::CalcLeastSquaresPlane(Frame const& currentFrame,
+                                              AtomMask const& maskIn, bool useMassIn)
 {
-  cxyz_ = currentFrame.VCenterOfMass(maskIn);
+  if (useMassIn)
+    cxyz_ = currentFrame.VCenterOfMass(maskIn);
+  else
+    cxyz_ = currentFrame.VGeometricCenter(maskIn);
   vcorr_.clear();
   vcorr_.reserve( maskIn.Nselected() * 3 );
   for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)

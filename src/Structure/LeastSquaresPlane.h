@@ -11,7 +11,8 @@ namespace Structure {
 class LeastSquaresPlane {
   public:
     LeastSquaresPlane();
-    void CalcLeastSquaresPlane(Frame const&, AtomMask const&);
+    /// Calculate vector normal to plane passing through atoms in given mask
+    void CalcLeastSquaresPlane(Frame const&, AtomMask const&, bool);
     /// \return Vector normal to plane
     Vec3 const& Nxyz() const { return nxyz_; }
     /// \return Origin of vector normal to plane (plane center)
