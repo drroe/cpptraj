@@ -163,6 +163,8 @@ Action::RetType Action_ReplicateCell::Setup(ActionSetup& setup) {
     Cpptraj::Parm::Merge merger;
     merger.SetDebug( debug_ );
     merger.SetVerbose( verbose_ );
+    merger.SetReduceBondParams( true );
+    merger.SetReduceAngleParams( true );
     for (int cell = 0; cell != ncopies_; cell++)
       merger.AppendTop( combinedTop_, *stripParm );
     combinedTop_.Brief("Combined parm:");

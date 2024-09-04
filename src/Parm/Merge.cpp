@@ -16,7 +16,9 @@ using namespace Cpptraj::Parm;
 /** CONSTRUCTOR */
 Merge::Merge() :
   debug_(0),
-  verbose_(1) // FIXME
+  verbose_(1), // FIXME
+  reduce_bond_params_(false),
+  reduce_angle_params_(false)
 {}
 
 /** Set debug */
@@ -27,6 +29,16 @@ void Merge::SetDebug(int debugIn) {
 /** Set verbosity */
 void Merge::SetVerbose(int verboseIn) {
   verbose_ = verboseIn;
+}
+
+/** Indicate bond parameters should be consolidated. */
+void Merge::SetReduceBondParams(bool bIn) {
+  reduce_bond_params_ = bIn;
+}
+
+/** Indicate angle parameters should be consolidated. */
+void Merge::SetReduceAngleParams(bool bIn) {
+  reduce_angle_params_ = bIn;
 }
 
 // ----- Bonds -------------------------
@@ -455,6 +467,7 @@ void Merge::MergeBondArrays(BondArray& bonds0,
 const
 {
   MergeTopArray<BondType, BondParmType, BondArray, BondParmArray> mergeBonds;
+  mergeBonds.SetMergeWithExisting( reduce_bond_params_ );
   mergeBonds.MergeTermArrays( bonds0, bondsh0, bp0, atoms0,
                               bonds1, bondsh1, bp1, atoms1 );
 }
@@ -476,6 +489,7 @@ void Merge::MergeAngleArrays(AngleArray& angles0,
 const
 {
   MergeTopArray<AngleType, AngleParmType, AngleArray, AngleParmArray> mergeAngles;
+  mergeAngles.SetMergeWithExisting( reduce_angle_params_ );
   mergeAngles.MergeTermArrays( angles0, anglesh0, ap0, atoms0,
                                angles1, anglesh1, ap1, atoms1 );
 }

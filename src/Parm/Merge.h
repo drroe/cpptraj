@@ -23,6 +23,10 @@ class Merge {
     void SetDebug(int);
     /// Set parameter verbosity
     void SetVerbose(int);
+    /// Indicate bond parameters should be consolidated.
+    void SetReduceBondParams(bool);
+    /// Indicate angle parameters should be consolidated.
+    void SetReduceAngleParams(bool);
     /// Append topology to this one.
     int AppendTop( Topology&, Topology const& ) const;
   private:
@@ -51,6 +55,8 @@ class Merge {
 
     int debug_;
     int verbose_;
+    bool reduce_bond_params_; ///< If true, consolidate bond parameters TODO always?
+    bool reduce_angle_params_; ///< If true, consolidate angle parameters TODO always?
 };
 }
 }
