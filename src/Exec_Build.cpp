@@ -819,6 +819,8 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
     sugarBuilder_ = new Cpptraj::Structure::SugarBuilder(debug_);
     // Init options
     if (sugarBuilder_->InitOptions( argIn.hasKey("hasglycam"),
+                                    argIn.getKeyDouble("rescut", 8.0),
+                                    argIn.getKeyDouble("bondoffset", 0.2),
                                     argIn.GetStringKey("sugarmask"),
                                     argIn.GetStringKey("determinesugarsby", "geometry"),
                                     argIn.GetStringKey("resmapfile") ))
