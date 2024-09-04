@@ -271,6 +271,21 @@ std::string Cpptraj::Defines() {
 #ifdef HAS_OPENMM
   defined_str.append(" -DHAS_OPENMM");
 #endif
+#ifdef CPPTRAJ_USE_LEAP_PI
+  defined_str.append(" -DCPPTRAJ_USE_LEAP_PI");
+#endif
+#ifdef NO_READLINE
+  defined_str.append(" -DNO_READLINE");
+#endif
+#ifdef __HIP_PLATFORM_HCC__
+  defined_str.append(" -D__HIP_PLATFORM_HCC__");
+#endif
+#ifdef HAVE_FFTWD
+  defined_str.append(" -DHAVE_FFTWD");
+#endif
+#ifdef ENABLE_DTR
+  defined_str.append(" -DENABLE_DTR");
+#endif
   return defined_str;
 }
 
