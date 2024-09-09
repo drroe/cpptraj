@@ -433,9 +433,11 @@ unsigned int GetParams::NuniqueAtomTypes(Topology const& topIn) const {
       }
     }
   }
-  mprintf("DEBUG: Unique atom types in %s\n", topIn.c_str());
-  for (ParmHolder<int>::const_iterator it = currentAtomTypes.begin();
-                                       it != currentAtomTypes.end(); ++it)
-    mprintf("\t\t%s %i\n", *(it->first[0]), it->second);
+  if (debug_ > 0) {
+    mprintf("DEBUG: Unique atom types in %s\n", topIn.c_str());
+    for (ParmHolder<int>::const_iterator it = currentAtomTypes.begin();
+                                         it != currentAtomTypes.end(); ++it)
+      mprintf("\t\t%s %i\n", *(it->first[0]), it->second);
+  }
   return currentAtomTypes.size();
 }
