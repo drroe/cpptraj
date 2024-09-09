@@ -19,11 +19,7 @@ StructureCheck::StructureCheck() :
   plcut_(8.0),
   ring_shortd2_(0.25), // Short ring-bond 0.5 Ang. distance cutoff
   ring_dcut2_(1.562500), // 1.25 Ang. ring-bond distance cutoff
-  //ring_dcut2_(1.3225), // Initial 1.15 Ang. ring-bond distance cutoff
   ring_acut_(1.1344640138), // 65 deg. ringvec-bondvec angle cutoff
-  //ring_acut_(1.0471975512), // 60 deg. ringvec-bondvec angle cutoff
-  //ring_acut_(0.174533), // 10 deg. angle cutoff
-  //ring_acut_(0.7853981634), // 45 deg. angle cutoff for ring_dcut2 > dist2 > ring_shortd2
   checkType_(NO_PL_1_MASK),
   debug_(0),
   bondcheck_(true),
@@ -283,10 +279,11 @@ int StructureCheck::CheckRings(Frame const& currentFrame) {
   return CheckRings(currentFrame, rings_, ringBonds_);
 }
 
-static inline void printRingAtoms(AtomMask const& maskIn) {
-  for (AtomMask::const_iterator it = maskIn.begin(); it != maskIn.end(); ++it)
-    mprintf(" %i", *it);
-}
+/// DEBUG - For printing ring atoms in mask
+//static inline void printRingAtoms(AtomMask const& maskIn) {
+//  for (AtomMask::const_iterator it = maskIn.begin(); it != maskIn.end(); ++it)
+//    mprintf(" %i", *it);
+//}
 
 /** Check ring and bond */
 void StructureCheck::ring_bond_check(int& Nproblems,
@@ -302,33 +299,33 @@ void StructureCheck::ring_bond_check(int& Nproblems,
   // Bond intersects ring if it meets the short cutoff or if the angle
   // between the bond and the ring normal is less than a cutoff.
   if (dist2 < ring_shortd2_) {
-    mprintf("DEBUG: Bond %i - %i near ring (%f).",
-            bnd.A1(), bnd.A2(), sqrt(dist2));
-    printRingAtoms(ringMask);
-    mprintf("\n");
+    //mprintf("DEBUG: Bond %i - %i near ring (%f).",
+    //        bnd.A1(), bnd.A2(), sqrt(dist2));
+    //printRingAtoms(ringMask);
+    //mprintf("\n");
     ring_intersect = true;
   } else {
-    mprintf("DEBUG: Bond %i - %i near ring (%f), doing angle check.",
-            bnd.A1(), bnd.A2(), sqrt(dist2));
-    printRingAtoms(ringMask);
-    mprintf("\n");
+    //mprintf("DEBUG: Bond %i - %i near ring (%f), doing angle check.",
+    //        bnd.A1(), bnd.A2(), sqrt(dist2));
+    //printRingAtoms(ringMask);
+    //mprintf("\n");
     // Get the angle
     double ang_in_rad = vbond.Angle( ringVec.Nxyz() );
     // Wrap the angle between 0-90 degrees
     if (ang_in_rad > Constants::PIOVER2)
       ang_in_rad = Constants::PI - ang_in_rad;
-    mprintf("DEBUG:\t\tWrapped angle is %f deg.\n", Constants::RADDEG*ang_in_rad);
+    //mprintf("DEBUG:\t\tWrapped angle is %f deg.\n", Constants::RADDEG*ang_in_rad);
     if (ang_in_rad < ring_acut_) {
-      mprintf("DEBUG: Bond %i - %i near ring (%f) Ang= %f deg.",
-              bnd.A1(), bnd.A2(), sqrt(dist2),
-              Constants::RADDEG*ang_in_rad);
-      //printRingAtoms(ringMask);
-      mprintf("\n");
+      //mprintf("DEBUG: Bond %i - %i near ring (%f) Ang= %f deg.",
+      //        bnd.A1(), bnd.A2(), sqrt(dist2),
+      //        Constants::RADDEG*ang_in_rad);
+      ////printRingAtoms(ringMask);
+      //mprintf("\n");
       ring_intersect = true;
     }
   }
   if (ring_intersect) {
-    mprintf("DEBUG: Bond intersects ring.\n");
+    //mprintf("DEBUG: Bond intersects ring.\n");
     ++Nproblems;
     if (saveProblems_) {
       // Do not use constructor since we do not want to sort atoms
