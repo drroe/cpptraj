@@ -142,7 +142,7 @@ int GetParams::GetCmapParams(CmapParmHolder& cmapParm, CmapArray const& cmapTerm
                              std::vector<Atom> const& atoms, std::vector<Residue> const& residues)
 {
   if (cmapGrids.empty() || cmapTerms.empty()) {
-    mprintf("DEBUG: CMAP grids/terms are empty. No parameters to get.\n");
+    //mprintf("DEBUG: CMAP grids/terms are empty. No parameters to get.\n");
     return 0;
   }
   // Check if we need to generate residue/atom information for grids.
@@ -251,12 +251,12 @@ void GetParams::GetLJAtomTypes(ParmHolder<AtomType>& atomTypesOut,
 const
 {
   if (NB0.HasNonbond()) {
-    mprintf("DEBUG: Topology has nonbond parameters.\n");
+    if (debug_ > 0) mprintf("DEBUG: Topology has nonbond parameters.\n");
     bool hasLJ14 = !NB0.LJ14().empty();
-    if (hasLJ14)
+    if (debug_ > 0 && hasLJ14)
       mprintf("DEBUG: Topology has 1-4 nonbond parameters.\n");
     bool hasLJC = !NB0.LJC_Array().empty();
-    if (hasLJC)
+    if (debug_ > 0 && hasLJC)
       mprintf("DEBUG: Topology has LJC nonbond paramters.\n");
     // Nonbonded parameters are present.
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
@@ -277,15 +277,13 @@ const
           NonbondType const& lj14 = NB0.LJ14( idx );
           thisType.SetLJ14( LJparmType(lj14.Radius(), lj14.Depth()) );
         }
-        // FIXME do LJ C
       } else {
         // Has LJ 10-12 parameters
         thisType = AtomType(atm->Mass(), atm->Polar());
       }
       thisType.SetTypeIdx( atm->TypeIndex() );
       ParameterHolders::RetType ret = atomTypesOut.AddParm( atype, thisType, true );
-      //if (debug_ > 0 && ret == ParameterHolders::ADDED) { // FIXME
-      if (ret == ParameterHolders::ADDED) {
+      if (debug_ > 0 && ret == ParameterHolders::ADDED) {
         mprintf("DEBUG: New atom type: %s R=%g D=%g M=%g P=%g\n", *(atype[0]),
                 thisType.LJ().Radius(), thisType.LJ().Depth(), thisType.Mass(), thisType.Polarizability());
         if (hasLJ14)
@@ -319,8 +317,9 @@ const
           //mprinterr("Error: No off-diagonal LJ for  %s %s (%i %i)\n",
           //          *name1, *name2, idx1, idx2);
           //return;
-          mprintf("DEBUG: LJ 10-12 parameters detected for %s %s (%i %i)\n",
-                  *name1, *name2, idx1, idx2);
+          if (debug_ > 0)
+            mprintf("DEBUG: LJ 10-12 parameters detected for %s %s (%i %i)\n",
+                    *name1, *name2, idx1, idx2);
           LJ1012out.AddParm( types, NB0.HBarray((-idx)-1), false );
         } else {
           // This is LJ 6-12.
@@ -331,7 +330,7 @@ const
           // Compare them
           if (lj0 != lj1) {
             nModifiedOffDiagonal++;
-            //if (debug_ > 0) {
+            if (debug_ > 0) {
               double deltaA = fabs(lj0.A() - lj1.A());
               double deltaB = fabs(lj0.B() - lj1.B());
               mprintf("DEBUG: Potential off-diagonal LJ: %s %s expect A=%g B=%g, actual A=%g B=%g\n",
@@ -340,7 +339,7 @@ const
               double pe_a = (fabs(lj0.A() - lj1.A()) / lj0.A());
               double pe_b = (fabs(lj0.B() - lj1.B()) / lj0.B());
               mprintf("DEBUG:\tPEA= %g  PEB= %g\n", pe_a, pe_b);
-            //}
+            }
           }
           LJ612out.AddParm( types, lj1, false );
           if (hasLJ14) {
@@ -352,7 +351,7 @@ const
             // Compare them
             if (lj0 != lj1) {
               nModified14OffDiagonal++;
-              //if (debug_ > 0) {
+              if (debug_ > 0) {
                 double deltaA = fabs(lj0.A() - lj1.A());
                 double deltaB = fabs(lj0.B() - lj1.B());
                 mprintf("DEBUG: Potential off-diagonal LJ 1-4: %s %s expect A=%g B=%g, actual A=%g B=%g\n",
@@ -361,7 +360,7 @@ const
                 double pe_a = (fabs(lj0.A() - lj1.A()) / lj0.A());
                 double pe_b = (fabs(lj0.B() - lj1.B()) / lj0.B());
                 mprintf("DEBUG:\tPEA= %g  PEB= %g\n", pe_a, pe_b);
-              //}
+              }
             }
             LJ14out.AddParm( types, lj1, false );
           } // END hasLJ14
