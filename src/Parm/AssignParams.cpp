@@ -17,7 +17,7 @@ using namespace Cpptraj::Parm;
 /** CONSTRUCTOR */
 AssignParams::AssignParams() :
   debug_(0),
-  verbose_(1), // FIXME
+  verbose_(0),
   deleteExtraPointAngles_(true),
   flexibleWater_(false)
 {}
@@ -1144,14 +1144,16 @@ int AssignParams::UpdateParameters(Topology& topOut, ParameterSet const& set1) c
   }
   // Update existing parameters with new parameters
   ParameterSet::UpdateCount UC;
-  if (set0.UpdateParamSet( set1, UC, debug_, debug_ )) { // FIXME verbose
+  if (set0.UpdateParamSet( set1, UC, debug_, verbose_ )) {
     mprinterr("Error: Could not merge topology '%s' parameters with '%s' parameters.\n",
               topOut.c_str(), set1.ParamSetName().c_str());
     return 1;
   }
-  mprintf("DEBUG: Updated parameters.\n");
-  set0.Summary();
-  //set0.Debug();
+  if (debug_ > 0) {
+    mprintf("DEBUG: Updated parameter counts.\n");
+    set0.Summary();
+    //set0.Debug();
+  }
 
 //  unsigned int updateCount;
   // Bond parameters

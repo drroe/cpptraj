@@ -23,7 +23,7 @@ void Exec_UpdateParameters::Help() const
 Exec::RetType Exec_UpdateParameters::Execute(CpptrajState& State, ArgList& argIn)
 {
   mprintf("%s", disclaimer_);
-  int verbose = argIn.getKeyInt("verbose", 0);
+  int verbose = argIn.getKeyInt("verbose", 1);
   std::string dsname = argIn.GetStringKey("setname");
   //bool genAngles = argIn.hasKey("genangles");
   if (dsname.empty()) {
