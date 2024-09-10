@@ -1027,7 +1027,7 @@ int Zmatrix::SetToFrame(Frame& frameOut, Barray& hasPosition) const {
   Barray isUsed( IC_.size(), false );
   unsigned int Nused = 0;
   if (HasCartSeeds()) {
-    mprintf("DEBUG: Has Cartesian seeds.\n");
+    mprintf("\tUsing Cartesian seeds.\n");
     if (icseed0_ != InternalCoords::NO_ATOM) MARK(icseed0_, isUsed, Nused);
     if (icseed1_ != InternalCoords::NO_ATOM) MARK(icseed1_, isUsed, Nused);
     if (icseed2_ != InternalCoords::NO_ATOM) MARK(icseed2_, isUsed, Nused);
