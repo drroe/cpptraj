@@ -698,7 +698,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
           mprinterr("Error: Expected nonbond label, nonbond kind, got %i elements.\n", nscan);
           return 1;
         }
-        mprintf("DEBUG: NB label= %s  NB kind = %s\n", nb_label, nb_kind);
+        if (debug_ > 0) mprintf("DEBUG: NB label= %s  NB kind = %s\n", nb_label, nb_kind);
         if (nb_kind[0] != 'R' || nb_kind[1] != 'E') {
           mprinterr("Error: Nonbond parameters are not of type 'RE' (Rmin, Epsilon).\n");
           return 1;
