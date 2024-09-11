@@ -189,13 +189,13 @@ int GetParams::GetCmapParams(CmapParmHolder& cmapParm, CmapArray const& cmapTerm
             }
           }
         }
-        mprintf("DEBUG: Cmap term %u residues", idx);
-        for (std::set<NameType>::const_iterator it = resNames.begin(); it != resNames.end(); ++it)
-          mprintf(" %s", *(*it));
-        mprintf(" Atoms={");
-        for (std::vector<NameType>::const_iterator it = atomNames.begin(); it != atomNames.end(); ++it)
-          mprintf(" %s", *(*it));
-        mprintf(" }\n");
+        //mprintf("DEBUG: Cmap term %u residues", idx);
+        //for (std::set<NameType>::const_iterator it = resNames.begin(); it != resNames.end(); ++it)
+        //  mprintf(" %s", *(*it));
+        //mprintf(" Atoms={");
+        //for (std::vector<NameType>::const_iterator it = atomNames.begin(); it != atomNames.end(); ++it)
+        //  mprintf(" %s", *(*it));
+        //mprintf(" }\n");
         CmapGridType newGrid = cmapGrids[idx];
         // Add the atom/res info to the grid
         newGrid.SetNumCmapRes( resNames.size() );
@@ -377,8 +377,7 @@ const
     if (nModified14OffDiagonal > 0)
       mprintf("Warning: %u modified off-diagonal LJ 1-4 terms present.\n", nModified14OffDiagonal);
   } else {
-    if (!atoms.empty())
-      mprintf("DEBUG: Topology does not have nonbond parameters.\n");
+    //if (!atoms.empty()) mprintf("DEBUG: Topology does not have nonbond parameters.\n");
     // No nonbonded parameters. Just save mass/polarizability.
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
       if (atm->HasType() > 0)
