@@ -867,7 +867,8 @@ int Merge::AppendTop(Topology& topOut, Topology const& NewTop) const {
   appendFloat.Append( topOut.ModifyBfactor(), NewTop.Bfactor(), NewTop.Natom() );
 
   // Need to regenerate nonbonded info
-  mprintf("\tRegenerating nonbond parameters.\n");
+  if (verbose_ > 0)
+    mprintf("\tRegenerating nonbond parameters.\n");
   AssignParams assign;
   assign.SetDebug( debug_ );
   assign.SetVerbose( verbose_ );

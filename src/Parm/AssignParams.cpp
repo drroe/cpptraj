@@ -637,7 +637,8 @@ const
         // Everything must match
         if (!hasLJ14) {
           if (t2->second.OriginalIdx() == -1 && t1->second.LJ() == t2->second.LJ()) {
-            mprintf("DEBUG: Type %s equivalent to type %s\n", *(t2->first[0]), *(t1->first[0]));
+            if (debug_ > 0)
+              mprintf("DEBUG: Type %s equivalent to type %s\n", *(t2->first[0]), *(t1->first[0]));
             t2->second.SetTypeIdx( n_unique_lj_types );
           }
         } else {
@@ -645,7 +646,8 @@ const
               t1->second.LJ() == t2->second.LJ() &&
               t1->second.LJ14() == t2->second.LJ14())
           {
-            mprintf("DEBUG: Type %s (with 1-4 params) equivalent to type %s\n", *(t2->first[0]), *(t1->first[0]));
+            if (debug_ > 0)
+              mprintf("DEBUG: Type %s (with 1-4 params) equivalent to type %s\n", *(t2->first[0]), *(t1->first[0]));
             t2->second.SetTypeIdx( n_unique_lj_types );
           }
         }
@@ -653,7 +655,8 @@ const
       n_unique_lj_types++;
     }
   }
-  mprintf("DEBUG: Setting up nonbond array for %i unique LJ types.\n", n_unique_lj_types);
+  if (debug_ > 0)
+    mprintf("DEBUG: Setting up nonbond array for %i unique LJ types.\n", n_unique_lj_types);
   nonbond.SetupLJforNtypes( n_unique_lj_types );
   if (hasLJ14)
     nonbond.SetNLJ14terms( nonbond.NBarray().size() );
