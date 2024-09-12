@@ -15,6 +15,7 @@ class Topology;
 namespace Cpptraj {
 namespace Parm {
 /// Used to merge Topology files.
+/** Compile with -DCPPTRAJ_DEBUG_MERGE for extra debug info. */
 class Merge {
   public:
     /// CONSTRUCTOR

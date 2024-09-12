@@ -16,7 +16,7 @@ using namespace Cpptraj::Parm;
 /** CONSTRUCTOR */
 Merge::Merge() :
   debug_(0),
-  verbose_(1), // FIXME
+  verbose_(0),
   reduce_bond_params_(false),
   reduce_angle_params_(false)
 {}
@@ -42,11 +42,12 @@ void Merge::SetReduceAngleParams(bool bIn) {
 }
 
 // ----- Bonds -------------------------
+#ifdef CPPTRAJ_DEBUG_MERGE
 static inline void printIdx(BondType const& bnd1, unsigned int atomOffset) {
   mprintf("DEBUG: Bond from top1 %i - %i will be %i - %i in top0\n",
           bnd1.A1()+1, bnd1.A2()+1, bnd1.A1()+1+atomOffset, bnd1.A2()+1+atomOffset);
 }
-
+#endif
 static inline TypeNameHolder getTypes(bool& hasH, BondType const& bnd1, std::vector<Atom> const& atoms, BondParmArray const& parms)
 {
   Atom const& A1 = atoms[bnd1.A1()];
@@ -67,11 +68,12 @@ static inline BondType idxWithOffset(BondType const& bnd1, int idx, unsigned int
 }
 
 // ----- Angles ------------------------
+#ifdef CPPTRAJ_DEBUG_MERGE
 static inline void printIdx(AngleType const& ang1, unsigned int atomOffset) {
   mprintf("DEBUG: Angle from top1 %i - %i - %i will be %i - %i - %i in top0\n",
           ang1.A1()+1, ang1.A2()+1, ang1.A3()+1, ang1.A1()+1+atomOffset, ang1.A2()+1+atomOffset, ang1.A3()+1+atomOffset);
 }
-
+#endif
 static inline TypeNameHolder getTypes(bool& hasH, AngleType const& ang1, std::vector<Atom> const& atoms, AngleParmArray const& parms)
 {
   Atom const& A1 = atoms[ang1.A1()];
@@ -95,6 +97,7 @@ static inline AngleType idxWithOffset(AngleType const& ang1, int idx, unsigned i
 }
 
 // ----- Dihedrals ---------------------
+#ifdef CPPTRAJ_DEBUG_MERGE
 static inline void printIdx(DihedralType const& dih1, unsigned int atomOffset) {
   //mprintf("DEBUG: Dihedral from top1 %i - %i - %i - %i will be %i - %i - %i - %i in top0\n",
   //        dih1.A1()+1, dih1.A2()+1, dih1.A3()+1, dih1.A4()+1,
@@ -108,7 +111,7 @@ static inline void printIdx(DihedralType const& dih1, unsigned int atomOffset) {
           dih1.A1()+1, dih1.A2()+1, dih1.A3()+1, dih1.A4()+1,
           dih1.A1()*3, dih1.A2()*3, dih1.A3()*3, dih1.A4()*3);
 }
-
+#endif
 /** Dihedrals are tricky because they can have multiple parameters for
   * the same 4 types. Have the 5th be a pseudo-type based on the
   * multiplicity (or improper status).
@@ -243,7 +246,9 @@ class MergeTopArray
                      ParmArray const& p1,
                      std::vector<Atom> const& atoms1)
     {
+#     ifdef CPPTRAJ_DEBUG_MERGE
       printIdx(term1, atomOffset);
+#     endif
       bool hasH;
       TypeNameHolder types = getTypes(hasH, term1, atoms1, p1);
       mprintf("DEBUG: Looking for types in top0:");
@@ -264,7 +269,9 @@ class MergeTopArray
                      ParmArray const& p1,
                      std::vector<Atom> const& atoms1)
     {
+#     ifdef CPPTRAJ_DEBUG_MERGE
       printIdx(term1, atomOffset);
+#     endif
       bool hasH;
       TypeNameHolder types = getTypes(hasH, term1, atoms1, p1);
       mprintf("DEBUG: Looking for types in top0:");
@@ -551,12 +558,13 @@ const
 
 // -----------------------------------------------------------------------------
 // ----- CMAPs -------------------------
+#ifdef CPPTRAJ_DEBUG_MERGE
 static inline void printIdx(CmapType const& cmap1, unsigned int atomOffset) {
   mprintf("DEBUG: CMAP from top1 %i - %i - %i - %i - %i will be %i - %i - %i - %i - %i in top0\n",
           cmap1.A1()+1, cmap1.A2()+1, cmap1.A3()+1, cmap1.A4()+1, cmap1.A5()+1,
           cmap1.A1()+1+atomOffset, cmap1.A2()+1+atomOffset, cmap1.A3()+1+atomOffset, cmap1.A4()+1+atomOffset, cmap1.A5()+1+atomOffset);
 }
-
+#endif
 /** CMAPs are indexed by residue name and 5 atom names, so need 6. 
   */
 static inline TypeNameHolder getCmapTypes(CmapType const& cmap1, std::vector<Atom> const& atoms, std::vector<Residue> const& residues)
@@ -621,7 +629,9 @@ const
   // Loop over incoming terms
   for (CmapArray::const_iterator c1 = cmap1.begin(); c1 != cmap1.end(); ++c1)
   {
+#   ifdef CPPTRAJ_DEBUG_MERGE
     printIdx(*c1, atomOffset);
+#   endif
     TypeNameHolder types = getCmapTypes(*c1, atoms1, residues1);
     mprintf("DEBUG: Looking for types in top0:");
     printTypes( types ); // DEBUG
@@ -752,8 +762,9 @@ template <class T> class TopVecAppend {
 int Merge::AppendTop(Topology& topOut, Topology const& NewTop) const {
   unsigned int atomOffset = (unsigned int)topOut.Natom();
   unsigned int molOffset = (unsigned int)topOut.Nmol();
-  mprintf("DEBUG: Appending '%s' to '%s' (atom offset= %u mol offset= %u)\n",
-          NewTop.c_str(), topOut.c_str(), atomOffset, molOffset);
+  if (debug_ > 0)
+    mprintf("DEBUG: Appending '%s' to '%s' (atom offset= %u mol offset= %u)\n",
+            NewTop.c_str(), topOut.c_str(), atomOffset, molOffset);
   //int resOffset = (int)residues_.size();
 
   // Save nonbonded parameters from each topology
@@ -772,8 +783,9 @@ int Merge::AppendTop(Topology& topOut, Topology const& NewTop) const {
   int n14paramsUpdated = UpdateParameters< ParmHolder<NonbondType> >( my14, new14, "LJ 6-12 1-4", verbose_ );
   int nljcparamsUpdated = UpdateParameters< ParmHolder<double> >( myLJC, newLJC, "LJ C", verbose_ );
   int nHBparamsUpdated = UpdateParameters< ParmHolder<HB_ParmType> >( myHB, newHB, "LJ 10-12", verbose_ );
-  mprintf("\t%i atom types updated, %i LJ 6-12 params updated, %i 1-4 params updated, %i LJC params updated, %i LJ 10-12 params updated.\n",
-          nAtomTypeUpdated, nLJparamsUpdated, n14paramsUpdated, nljcparamsUpdated, nHBparamsUpdated);
+  if (verbose_ > 0)
+    mprintf("\t%i atom types updated, %i LJ 6-12 params updated, %i 1-4 params updated, %i LJC params updated, %i LJ 10-12 params updated.\n",
+            nAtomTypeUpdated, nLJparamsUpdated, n14paramsUpdated, nljcparamsUpdated, nHBparamsUpdated);
 
   // Add incoming topology bond/angle/dihedral/cmap arrays to this one.
   MergeBondArrays(topOut.ModifyBonds(), topOut.ModifyBondsH(), topOut.ModifyBondParm(), topOut.Atoms(),
