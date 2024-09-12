@@ -658,7 +658,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
           while (*ptr == ' ' && *ptr != '\0') ++ptr;
           std::string nbline(ptr);
           if (nbline == "END") {
-            mprintf("END\n");
+            if (debug_ > 0) mprintf("END\n");
             section = UNKNOWN;
           } else if (nbline == "LJEDIT") {
             section = LJEDIT;
