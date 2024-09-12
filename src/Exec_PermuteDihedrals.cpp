@@ -611,10 +611,11 @@ void Exec_PermuteDihedrals::RandomizeAngles(Frame& currentFrame, Topology const&
 /** Count initial clashes in the structure. This is done to make sure
   * new clashes arent introduced after a rotation.
   */
-void Exec_PermuteDihedrals::countClashes(std::vector<int>& res_clashes,
-                                         Frame const& currentFrame, Topology const& topIn)
+int Exec_PermuteDihedrals::countClashes(std::vector<int>& res_clashes,
+                                        Frame const& currentFrame, Topology const& topIn)
 const
 {
+  int total_clashes = 0;
   res_clashes.assign( topIn.Nres(), 0 );
   for (int res0 = 0; res0 != topIn.Nres(); res0++)
   {
@@ -635,11 +636,12 @@ const
             const double* xyz1 = currentFrame.XYZ(at1);
             double d2 = DIST2_NoImage( xyz0, xyz1 );
             if (d2 < cutoff_) {
-//#             ifdef DEBUG_PERMUTEDIHEDRALS
-              mprintf("DEBUG: Initial clash: %s to %s (%g Ang)\n",
-                      topIn.TruncResAtomNameNum(at0).c_str(),
-                      topIn.TruncResAtomNameNum(at1).c_str(), sqrt(d2));
-//#             endif
+              if (debug_ > 0) {
+                mprintf("DEBUG: Initial clash: %s to %s (%g Ang)\n",
+                        topIn.TruncResAtomNameNum(at0).c_str(),
+                        topIn.TruncResAtomNameNum(at1).c_str(), sqrt(d2));
+              }
+              total_clashes++;
               res_clashes[res0]++;
               res_clashes[res1]++;
             } // END atom-atom distance within cutoff_
@@ -648,6 +650,7 @@ const
       } // END res-res distance wtihin rescutoff_
     } // END inner loop over residues
   } // END outer loop over residues
+  return total_clashes;
 }
 
 // Exec_PermuteDihedrals::RandomizeAngles_2()
@@ -681,11 +684,13 @@ void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology cons
   // Get count of initial clashes
   std::vector<int> initialResClashes;
   if (check_for_clashes_) {
-    countClashes( initialResClashes, currentFrame, topIn );
-    mprintf("DEBUG: Initial clashes:\n");
-    for (unsigned int ires = 0; ires != (unsigned int)topIn.Nres(); ires++) {
-      if (initialResClashes[ires] > 0)
-        mprintf("DEBUG:\t\t%s has %i clashes.\n", topIn.TruncResNameNum(ires).c_str(), initialResClashes[ires]);
+    int total_clashes = countClashes( initialResClashes, currentFrame, topIn );
+    mprintf("\t%i initial clashes:\n", total_clashes);
+    if (debug_ > 0) {
+      for (unsigned int ires = 0; ires != (unsigned int)topIn.Nres(); ires++) {
+        if (initialResClashes[ires] > 0)
+          mprintf("DEBUG:\t\t%s has %i initial clashes.\n", topIn.TruncResNameNum(ires).c_str(), initialResClashes[ires]);
+      }
     }
   }
 
@@ -756,11 +761,11 @@ void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology cons
                 const double* xyz1 = currentFrame.XYZ(at1);
                 double d2 = DIST2_NoImage( xyz0, xyz1 );
                 if (d2 < cutoff_) {
-//#                 ifdef DEBUG_PERMUTEDIHEDRALS
-                  mprintf("DEBUG: Clash: %s to %s (%g Ang)\n",
-                          topIn.TruncResAtomNameNum(at0).c_str(),
-                          topIn.TruncResAtomNameNum(at1).c_str(), sqrt(d2));
-//#                 endif
+                  if (debug_ > 0) {
+                    mprintf("DEBUG: Clash: %s to %s (%g Ang)\n",
+                            topIn.TruncResAtomNameNum(at0).c_str(),
+                            topIn.TruncResAtomNameNum(at1).c_str(), sqrt(d2));
+                  }
                   if (currentResClashes[res0] == initialResClashes[res0])
                     clash = true;
                   else

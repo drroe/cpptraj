@@ -31,7 +31,7 @@ class Exec_PermuteDihedrals : public Exec {
     /// Randomly rotate dihedrals
     void RandomizeAngles(Frame&, Topology const&);
     /// Count residue clashes in given frame
-    void countClashes(std::vector<int>&, Frame const&, Topology const&) const;
+    int countClashes(std::vector<int>&, Frame const&, Topology const&) const;
     /// Randomly rotate dihedrals, slightly faster version
     void RandomizeAngles_2(Frame&, Topology const&);
 
