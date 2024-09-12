@@ -202,14 +202,20 @@ class MergeTopArray
       if (!found) {
         // No parameter yet.
         // Do we have an existing parameter in top1
+#       ifdef CPPTRAJ_DEBUG_MERGE
         mprintf("DEBUG: Not found in top0. Looking in top1.\n");
+#       endif
         idx = currentTypes1.FindParam(types, found);
         if (!found) {
+#         ifdef CPPTRAJ_DEBUG_MERGE
           mprintf("DEBUG: No parameters.\n");
+#         endif
           // No parameter in either top.
           idx = -1;
         } else {
+#         ifdef CPPTRAJ_DEBUG_MERGE
           mprintf("DEBUG: Found in top1 index %i, adding to top0.\n", idx+1);
+#         endif
           // Found a parameter in top1, add it to top0.
           int oldIdx = -1;
           if (merge_with_existing_) {
@@ -227,7 +233,9 @@ class MergeTopArray
             p0.push_back( p1[idx] );
             idx = newIdx;
           } else {
+#           ifdef CPPTRAJ_DEBUG_MERGE
             mprintf("DEBUG: Parm from top1 already present in top0 at position %i\n", oldIdx+1);
+#           endif
             idx = oldIdx;
           }
         }
@@ -236,7 +244,9 @@ class MergeTopArray
         if (idx < 0) noParmWarning(types);
         currentTypes0.AddParm(types, idx, false);
       }
+#     ifdef CPPTRAJ_DEBUG_MERGE
       mprintf("DEBUG: top0 parameter index is %i\n", idx+1);
+#     endif
       return idx;
     }
     /// Append term1 to arrayX0/arrayY0 arrays along with parameters
@@ -651,14 +661,20 @@ const
     if (!found) {
       // No parameter yet.
       // Do we have an existing parameter in top1
-      mprintf("DEBUG: Not found in top0. Looking in top1.\n");
+#     ifdef CPPTRAJ_DEBUG_MERGE
+      mprintf("DEBUG: CMAP not found in top0. Looking in top1.\n");
+#     endif
       idx = currentTypes1.FindParam(types, found);
       if (!found) {
-        mprintf("DEBUG: No parameters.\n");
+#       ifdef CPPTRAJ_DEBUG_MERGE
+        mprintf("DEBUG: No CMAP parameters.\n");
+#       endif
         // No parameter in either top.
         idx = -1;
       } else {
+#       ifdef CPPTRAJ_DEBUG_MERGE
         mprintf("DEBUG: Found in top1 index %i, adding to top0.\n", idx+1);
+#       endif
         // Found a parameter in top1, add it to top0.
         int oldIdx = -1;
         //if (merge_with_existing_) {
@@ -679,13 +695,17 @@ const
           //int newIdx = cg0.size();
           //cg0.push_back( cg1[idx] );
           int newIdx = cgOffset + idx;
+#         ifdef CPPTRAJ_DEBUG_MERGE
           mprintf("DEBUG: New CMAP index in top0 is %i\n", newIdx);
+#         endif
           if ((unsigned int)newIdx >= cg0.size())
             cg0.resize( newIdx + 1 );
           cg0[newIdx] = cg1[idx];
           idx = newIdx;
         } else {
+#         ifdef CPPTRAJ_DEBUG_MERGE
           mprintf("DEBUG: Parm from top1 already present in top0 at position %i\n", oldIdx+1);
+#         endif
           idx = oldIdx;
         }
       }
@@ -694,7 +714,9 @@ const
       if (idx < 0) noParmWarning(types);
       currentTypes0.AddParm(types, idx, false);
     }
+#   ifdef CPPTRAJ_DEBUG_MERGE
     mprintf("DEBUG: top0 parameter index is %i\n", idx+1);
+#   endif
     // At this point we have either found a parameter or not.
     cmap0.push_back( idxWithOffset(*c1, idx, atomOffset) );
   } // END loop over cmap terms from top1
@@ -714,7 +736,9 @@ void Merge::MergeBondArray(BondArray& bonds0,
                                    AtArray const& atoms1)
 const
 {
+# ifdef CPPTRAJ_DEBUG_MERGE
   mprintf("DEBUG: Enter MergeBondArray()\n");
+# endif
   MergeTopArray<BondType, BondParmType, BondArray, BondParmArray> mergeBonds;
   mergeBonds.MergeTermArray( bonds0, bp0, atoms0,
                              bonds1, bp1, atoms1 );
@@ -815,7 +839,7 @@ int Merge::AppendTop(Topology& topOut, Topology const& NewTop) const {
   for (AtArray::const_iterator atom = NewTop.begin(); atom != NewTop.end(); ++atom)
   {
     if (debug_ > 1)
-      mprintf("DBG: %6li %s %s %4i\n", atom-NewTop.begin(), 
+      mprintf("DEBUG: %6li %s %s %4i\n", atom-NewTop.begin(),
               *(atom->Name()), *(atom->Type()), atom->TypeIndex());
     Atom CurrentAtom = *atom;
     Residue const& res = NewTop.Res( CurrentAtom.ResNum() );
@@ -873,4 +897,3 @@ int Merge::AppendTop(Topology& topOut, Topology const& NewTop) const {
   }
   return 0;
 }
-
