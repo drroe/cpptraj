@@ -168,11 +168,13 @@ static inline void noParmWarning(TypeNameHolder const& types) {
 }
 
 // -------------------------------------
+#ifdef CPPTRAJ_DEBUG_MERGE
 static inline void printTypes(TypeNameHolder const& types) {
   for (TypeNameHolder::const_iterator it = types.begin(); it != types.end(); ++it)
     mprintf(" %s", *(*it) );
   mprintf("\n");
 }
+#endif
 
 // -------------------------------------
 template <class IdxType, class ParmType, class IdxArray, class ParmArray>
@@ -191,7 +193,9 @@ class MergeTopArray
                      ParmHolder<int> const& currentTypes1,
                      ParmArray const& p1)
     {
+#     ifdef CPPTRAJ_DEBUG_MERGE
       printTypes( types ); // DEBUG
+#     endif
       // Do we have an existing parameter in top0
       bool found;
       int idx = currentTypes0.FindParam(types, found);
@@ -251,7 +255,9 @@ class MergeTopArray
 #     endif
       bool hasH;
       TypeNameHolder types = getTypes(hasH, term1, atoms1, p1);
+#     ifdef CPPTRAJ_DEBUG_MERGE
       mprintf("DEBUG: Looking for types in top0:");
+#     endif
       int idx = append_param( types, currentTypes0, p0, currentTypes1, p1 );
       // At this point we have either found a parameter or not.
       if (hasH)
@@ -274,7 +280,9 @@ class MergeTopArray
 #     endif
       bool hasH;
       TypeNameHolder types = getTypes(hasH, term1, atoms1, p1);
+#     ifdef CPPTRAJ_DEBUG_MERGE
       mprintf("DEBUG: Looking for types in top0:");
+#     endif
       int idx = append_param( types, currentTypes0, p0, currentTypes1, p1 );
       // At this point we have either found a parameter or not.
       arrayX0.push_back( idxWithOffset(term1, idx, atomOffset) );
@@ -633,8 +641,10 @@ const
     printIdx(*c1, atomOffset);
 #   endif
     TypeNameHolder types = getCmapTypes(*c1, atoms1, residues1);
-    mprintf("DEBUG: Looking for types in top0:");
+#   ifdef CPPTRAJ_DEBUG_MERGE
+    mprintf("DEBUG: Looking for CMAP types in top0:");
     printTypes( types ); // DEBUG
+#   endif
     // Do we have an existing parameter in top0
     bool found;
     int idx = currentTypes0.FindParam(types, found);
