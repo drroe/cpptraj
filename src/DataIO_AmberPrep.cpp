@@ -115,8 +115,8 @@ int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std:
   std::string resName = args.GetStringNext();
   std::string coordFlag = args.GetStringNext();
   int kform = args.getNextInteger(-1);
-//  if (debug_ > 0)
-    mprintf("DEBUG: %s %s %i\n", resName.c_str(), coordFlag.c_str(), kform);
+  if (debug_ > 0)
+    mprintf("DEBUG: Res=%s CoordType=%s Format=%i\n", resName.c_str(), coordFlag.c_str(), kform);
   // 6 - IFIXC , IOMIT , ISYMDU , IPOS
   // FORMAT (4A)
   // IFIXC      Flag for the type of input geometry of the residue(s)
