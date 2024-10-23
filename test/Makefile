@@ -548,6 +548,9 @@ test.readamberff:
 test.tica:
 	@-cd Test_TICA && ./RunTest.sh $(OPT)
 
+test.enedecomp:
+	@-cd Test_EneDecomp && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -721,7 +724,8 @@ COMPLETETESTS=test.general \
               test.sequence \
               test.refinetrajectory \
               test.readamberff \
-              test.tica
+              test.tica \
+              test.enedecomp
 
 test.all:
 	$(MAKE) test.complete summary
