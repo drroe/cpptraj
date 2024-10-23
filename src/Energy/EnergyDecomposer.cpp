@@ -99,8 +99,8 @@ void EnergyDecomposer::PrintOpts() const {
 
 // -----------------------------------------------------------------------------
 /** Set up bonds. */
-int EnergyDecomposer::setupBonds(BndArrayType const& bondsIn) {
-  for (BndArrayType::const_iterator bnd = bondsIn.begin(); bnd != bondsIn.end(); ++bnd)
+int EnergyDecomposer::setupBonds(BondArray const& bondsIn) {
+  for (BondArray::const_iterator bnd = bondsIn.begin(); bnd != bondsIn.end(); ++bnd)
   {
     if ( selectedAtoms_.AtomInCharMask( bnd->A1() ) ||
          selectedAtoms_.AtomInCharMask( bnd->A2() ) )
@@ -117,8 +117,8 @@ int EnergyDecomposer::setupBonds(BndArrayType const& bondsIn) {
 }
 
 /** Set up angles. */
-int EnergyDecomposer::setupAngles(AngArrayType const& anglesIn) {
-  for (AngArrayType::const_iterator ang = anglesIn.begin(); ang != anglesIn.end(); ++ang)
+int EnergyDecomposer::setupAngles(AngleArray const& anglesIn) {
+  for (AngleArray::const_iterator ang = anglesIn.begin(); ang != anglesIn.end(); ++ang)
   {
     if ( selectedAtoms_.AtomInCharMask( ang->A1() ) ||
          selectedAtoms_.AtomInCharMask( ang->A2() ) ||
@@ -136,8 +136,8 @@ int EnergyDecomposer::setupAngles(AngArrayType const& anglesIn) {
 }
 
 /** Set up dihedrals. */
-int EnergyDecomposer::setupDihedrals(DihArrayType const& dihedralsIn) {
-  for (DihArrayType::const_iterator dih = dihedralsIn.begin(); dih != dihedralsIn.end(); ++dih)
+int EnergyDecomposer::setupDihedrals(DihedralArray const& dihedralsIn) {
+  for (DihedralArray::const_iterator dih = dihedralsIn.begin(); dih != dihedralsIn.end(); ++dih)
   {
     if ( selectedAtoms_.AtomInCharMask( dih->A1() ) ||
          selectedAtoms_.AtomInCharMask( dih->A2() ) ||
@@ -223,13 +223,13 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn, Box const& boxIn) {
       if (selectedAtoms_.AtomInCharMask( idx ))
         mprintf("\t%s\n", topIn.AtomMaskName( idx ).c_str());
     mprintf("DEBUG: Bonds:\n");
-    for (BndArrayType::const_iterator bnd = bonds_.begin(); bnd != bonds_.end(); ++bnd)
+    for (BondArray::const_iterator bnd = bonds_.begin(); bnd != bonds_.end(); ++bnd)
       mprintf("\t%s - %s\n", topIn.AtomMaskName(bnd->A1()).c_str(), topIn.AtomMaskName(bnd->A2()).c_str());
     mprintf("DEBUG: Angles:\n");
-    for (AngArrayType::const_iterator ang = angles_.begin(); ang != angles_.end(); ++ang)
+    for (AngleArray::const_iterator ang = angles_.begin(); ang != angles_.end(); ++ang)
       mprintf("\t%s - %s - %s\n", topIn.AtomMaskName(ang->A1()).c_str(), topIn.AtomMaskName(ang->A2()).c_str(), topIn.AtomMaskName(ang->A3()).c_str());
     mprintf("DEBUG: Dihedrals:\n");
-    for (DihArrayType::const_iterator dih = dihedrals_.begin(); dih != dihedrals_.end(); ++dih)
+    for (DihedralArray::const_iterator dih = dihedrals_.begin(); dih != dihedrals_.end(); ++dih)
       mprintf("\t%s - %s - %s - %s\n", topIn.AtomMaskName(dih->A1()).c_str(), topIn.AtomMaskName(dih->A2()).c_str(), topIn.AtomMaskName(dih->A3()).c_str(), topIn.AtomMaskName(dih->A4()).c_str());
   }
 
@@ -247,7 +247,7 @@ void EnergyDecomposer::saveEne(int idx, double ene_cont) {
 
 /** Calculate bond energies. */
 void EnergyDecomposer::calcBonds( Frame const& frameIn ) {
-  for (BndArrayType::const_iterator bnd = bonds_.begin(); bnd != bonds_.end(); ++bnd)
+  for (BondArray::const_iterator bnd = bonds_.begin(); bnd != bonds_.end(); ++bnd)
   {
     BondParmType const& BP = currentTop_->BondParm()[ bnd->Idx() ];
     double ene = Ene_Bond<double>( frameIn.XYZ( bnd->A1() ),
@@ -265,7 +265,7 @@ void EnergyDecomposer::calcBonds( Frame const& frameIn ) {
 
 /** Calculate angle energies. */
 void EnergyDecomposer::calcAngles( Frame const& frameIn ) {
-  for (AngArrayType::const_iterator ang = angles_.begin(); ang != angles_.end(); ++ang)
+  for (AngleArray::const_iterator ang = angles_.begin(); ang != angles_.end(); ++ang)
   {
     AngleParmType const& AP = currentTop_->AngleParm()[ ang->Idx() ];
     double ene = Ene_Angle<double>( frameIn.XYZ( ang->A1() ),
@@ -285,7 +285,7 @@ void EnergyDecomposer::calcAngles( Frame const& frameIn ) {
 
 /** Calculate dihedral and LJ 1-4 energies. */
 void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
-  for (DihArrayType::const_iterator dih = dihedrals_.begin(); dih != dihedrals_.end(); ++dih)
+  for (DihedralArray::const_iterator dih = dihedrals_.begin(); dih != dihedrals_.end(); ++dih)
   {
     DihedralParmType const& DP = currentTop_->DihedralParm()[ dih->Idx() ];
 

@@ -5,6 +5,7 @@
 #include "../CharMask.h"
 #include "../EwaldOptions.h"
 #include "../OnlineVarT.h"
+#include "../ParameterTypes.h"
 #include "../Timer.h"
 #ifdef MPI
 # include "../Parallel.h"
@@ -48,16 +49,13 @@ class EnergyDecomposer {
   private:
     typedef std::vector<double> Darray;
     typedef std::vector< Stats<double> > EneArrayType;
-    typedef std::vector<BondType> BndArrayType;
-    typedef std::vector<AngleType> AngArrayType;
-    typedef std::vector<DihedralType> DihArrayType;
 
     /// Set up selected bonds
-    int setupBonds(BndArrayType const&);
+    int setupBonds(BondArray const&);
     /// Set up selected angles
-    int setupAngles(AngArrayType const&);
+    int setupAngles(AngleArray const&);
     /// Set up selected dihedrals
-    int setupDihedrals(DihArrayType const&);
+    int setupDihedrals(DihedralArray const&);
 
     /// Save energy contribution for atom if it is selected
     inline void saveEne(int, double);
@@ -75,9 +73,9 @@ class EnergyDecomposer {
     EwaldOptions ewaldOpts_; ///< Hold Ewald options
     Cpptraj::Energy::Ecalc_Nonbond::CalcType nbcalctype_;
 
-    BndArrayType bonds_;         ///< Hold all bonds to be calculated
-    AngArrayType angles_;        ///< Hold all angles to be calculated
-    DihArrayType dihedrals_;     ///< Hold all dihedrals to be calculated
+    BondArray bonds_;         ///< Hold all bonds to be calculated
+    AngleArray angles_;        ///< Hold all angles to be calculated
+    DihedralArray dihedrals_;     ///< Hold all dihedrals to be calculated
     //AtomMask mask_;              ///< Atom mask for nonbonded calculations
     EneArrayType energies_;      ///< Used to accumulate the average energy of each selected entity.
     Topology const* currentTop_; ///< Current topology from Setup
