@@ -1126,7 +1126,7 @@ int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0) c
   // LJ 6-12
   mprintf("\tAssigning nonbond parameters.\n");
   AssignNonbondParams( topOut, set0.AT(), set0.NB(), set0.NB14(), set0.LJC(), set0.HB() );
-  mprintf("DEBUG: CMAP size %zu\n", set0.CMAP().size());
+  //mprintf("DEBUG: CMAP size %zu\n", set0.CMAP().size());
 
   return 0;
 }
