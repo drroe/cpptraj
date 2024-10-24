@@ -375,19 +375,19 @@ const
   if (ad == 0) {
     AssociatedData_ResId resid( prm.pdbName_, prm.termType_ );
     unit->AssociateData( &resid );
-    //if (debug_ > 0) {
+    if (debug_ > 0) {
       mprintf("DEBUG: Found unit %s", unit->legend());
       resid.Ainfo();
       mprintf("\n");
-    //}
+    }
   } else if (allowUpdate) {
     *ad = AssociatedData_ResId( prm.pdbName_, prm.termType_ );
-    mprintf("DEBUG: Updated unit %s resmap. ", unit->legend());
+    mprintf("\tUpdated unit %s resmap. ", unit->legend());
     ad->Ainfo();
     mprintf("\n");
   } else {
     // TODO check if map is different
-    mprintf("DEBUG: Unit %s already has resmap. ", unit->legend());
+    mprintf("Warning: Unit %s already has resmap. ", unit->legend());
     ad->Ainfo();
     mprintf("\n");
   }
@@ -499,7 +499,8 @@ const
     if (ds == 0) return 1;
   }
   DataSet_NameMap& namemap = static_cast<DataSet_NameMap&>( *ds );
-  mprintf("DEBUG: Name map set: %s\n", namemap.legend());
+  if (debug_ > 0)
+    mprintf("DEBUG: Name map set: %s\n", namemap.legend());
   int bracketCount = 0;
   // First line should contain the command
   const char* line = infile.CurrentLine();
@@ -841,7 +842,8 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
         // Unrecognized so far. See if this is a unit alias (interpret as 'alias = unit')
         if (has_equals) {
           if (line.Nargs() == 2) {
-            mprintf("DEBUG: %s = %s\n", line[0].c_str(), line[1].c_str());
+            if (debug_ > 0)
+              mprintf("DEBUG: %s = %s\n", line[0].c_str(), line[1].c_str());
             // Find the unit to make a copy of
             DataSet* ds0 = dsl.CheckForSet( MetaData(dsname, line[1]) );
             if (ds0 == 0) {
@@ -867,7 +869,8 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
             crd1.SetCRD(0, tmpFrm );
             // Copy associated data
             crd1.CopyAssociatedDataFrom( crd0 );
-            mprintf("DEBUG: Created unit set %s\n", crd1.legend());
+            if (debug_ > 0)
+              mprintf("DEBUG: Created unit set %s\n", crd1.legend());
             // See if there is a PDB residue name map
             for (PdbResMapArray::const_iterator it = pdbResMap_.begin();
                                                 it != pdbResMap_.end(); ++it)
