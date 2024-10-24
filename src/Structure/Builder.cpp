@@ -1905,24 +1905,28 @@ Builder::AtomIC Builder::getInternalCoordsForAtom(int at, int idx, Barray const&
   AtomIC atomIC(at, idx);
   InternalCoords ic;
   if (getIcFromInternals(ic, at, hasPosition)) {
-    mprintf("Atom %s has torsion/angle/bond internals.\n", topIn.LeapName(at).c_str());
+    if (debug_ > 0) // TODO should be behind an ifdef?
+      mprintf("Atom %s has torsion/angle/bond internals.\n", topIn.LeapName(at).c_str());
     atomIC.SetIC( ic );
     return atomIC;
   }
   InternalAngle a1, a2;
   InternalBond b1;
   if (getTwoAnglesFromInternals(a1, a2, b1, at, hasPosition)) {
-    mprintf("Atom %s has two angle internals.\n", topIn.LeapName(at).c_str());
+    if (debug_ > 0)
+      mprintf("Atom %s has two angle internals.\n", topIn.LeapName(at).c_str());
     atomIC.SetAngles(a1, a2, b1);
     return atomIC;
   }
   if (getAngleFromInternals(a1, b1, at, hasPosition)) {
-    mprintf("Atom %s has angle internal.\n", topIn.LeapName(at).c_str());
+    if (debug_ > 0)
+      mprintf("Atom %s has angle internal.\n", topIn.LeapName(at).c_str());
     atomIC.SetAngle(a1, b1);
     return atomIC;
   }
   if (getBondFromInternals(b1, at, hasPosition)) {
-    mprintf("Atom %s has bond internal.\n", topIn.LeapName(at).c_str());
+    if (debug_ > 0)
+      mprintf("Atom %s has bond internal.\n", topIn.LeapName(at).c_str());
     atomIC.SetBond(b1);
     return atomIC;
   }
@@ -1940,7 +1944,7 @@ const
   if (getIcFromInternals(ic, at, hasPosition)) {
     //printAllInternalsForAtom(at, topIn, hasPosition); // DEBUG
     Vec3 posI = Zmatrix::AtomIposition(ic, frameOut);
-    //if (debug_ > 1) {
+    if (debug_ > 1) {
       mprintf("Building atom %s using torsion/angle/bond\n", topIn.LeapName(at).c_str());
       mprintf("Using %s - %s - %s - %s\n",
               topIn.LeapName(ic.AtI()).c_str(),
@@ -1951,7 +1955,7 @@ const
       mprintf( "Angle   = %f\n", ic.Theta() );
       mprintf( "Bond    = %f\n", ic.Dist() );
       mprintf( "ZMatrixAll:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
-    //}
+    }
     frameOut.SetXYZ( ic.AtI(), posI );
     return 1;
   }
@@ -1975,27 +1979,27 @@ const
   // Check if we can get a single angle for this atom
   if (getAngleFromInternals(a1, b1, at, hasPosition)) {
     Vec3 posI = Zmatrix::AtomIposition(frameOut.XYZ(a1.AtJ()), frameOut.XYZ(a1.AtK()), b1.DistVal(), a1.ThetaVal() );
-    //if debug_ > 1) {
+    if (debug_ > 1) {
       mprintf("Building atom %s using angle/bond\n", topIn.LeapName(at).c_str());
       mprintf("Using %s - %s - %s\n",
               topIn.LeapName(a1.AtI()).c_str(), topIn.LeapName(a1.AtJ()).c_str(), topIn.LeapName(a1.AtK()).c_str());
       mprintf( "Angle   = %f\n", a1.ThetaVal()*Constants::RADDEG );
       mprintf( "Bond    = %f\n", b1.DistVal() );
       mprintf("ZMatrixBondAngle:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
-      //}
+    }
     frameOut.SetXYZ( a1.AtI(), posI );
     return 1;
   }
   // Check if we can get a bond for this atom
   if (getBondFromInternals(b1, at, hasPosition)) {
     Vec3 posI = Zmatrix::AtomIposition(frameOut.XYZ(b1.AtJ()), b1.DistVal());
-    //if debug_ > 1) {
+    if (debug_ > 1) {
       mprintf("Building atom %s using bond\n", topIn.LeapName(at).c_str());
       mprintf("Using %s - %s\n",
               topIn.LeapName(b1.AtI()).c_str(), topIn.LeapName(b1.AtJ()).c_str());
       mprintf( "Bond    = %f\n", b1.DistVal() );
       mprintf( "ZMatrixBond:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
-      //}
+    }
     frameOut.SetXYZ( b1.AtI(), posI );
     return 1;
   }
@@ -2223,12 +2227,12 @@ const
     }
   }
   std::sort( needsBuilding.begin(), needsBuilding.end() );
-  mprintf("DEBUG: Atoms that need building:\n");
-  for (std::vector<AtomIC>::const_iterator it = needsBuilding.begin(); it != needsBuilding.end(); ++it)
-    mprintf("\t%i atom %i %s (%i)\n", it->Idx(), it->At()+1, topIn.AtomMaskName( it->At() ).c_str(), it->Priority() );
-      
-  if (debug_ > 0)
+  if (debug_ > 0) {
+    mprintf("DEBUG: Atoms that need building:\n");
+    for (std::vector<AtomIC>::const_iterator it = needsBuilding.begin(); it != needsBuilding.end(); ++it)
+      mprintf("\t%i atom %i %s (%i)\n", it->Idx(), it->At()+1, topIn.AtomMaskName( it->At() ).c_str(), it->Priority() );
     mprintf("DEBUG: %u atoms need positions.\n", nAtomsThatNeedPositions);
+  }
   if (nAtomsThatNeedPositions == 0) return 0;
 
   // FIXME TEST - If no "complete" internal coords currently, try a "sparse" build.
@@ -2245,7 +2249,8 @@ const
       int atToBuildAround = -1;
       if (!hasPosition[at]) {
         // Position of atom is not known.
-        mprintf("BUILD: Position of %s is not known.\n", *(topIn[at].Name())); // DEBUG
+        if (debug_ > 0)
+          mprintf("BUILD: Position of %s is not known.\n", *(topIn[at].Name())); // DEBUG
         // Is this bonded to an atom with known position?
         for (Atom::bond_iterator bat = topIn[at].bondbegin(); bat != topIn[at].bondend(); ++bat) {
           if (hasPosition[*bat]) {
@@ -2255,18 +2260,20 @@ const
         }
       } else {
         // Position of atom is known.
-        mprintf("BUILD: Position of %s is known.\n", *(topIn[at].Name())); // DEBUG
+        if (debug_ > 0)
+          mprintf("BUILD: Position of %s is known.\n", *(topIn[at].Name())); // DEBUG
         atToBuildAround = at;
       }
       // Build unknown positions around known atom
       if (atToBuildAround != -1) {
-        //if (debug_ > 0)
+        if (debug_ > 0)
           mprintf("Building externals from %s\n", topIn.LeapName(atToBuildAround).c_str());
         Atom const& bAtom = topIn[atToBuildAround];
         for (Atom::bond_iterator bat = bAtom.bondbegin(); bat != bAtom.bondend(); ++bat)
         {
           if (!hasPosition[*bat]) {
-            printAllInternalsForAtom(*bat, topIn, hasPosition); // DEBUG
+            if (debug_ > 0)
+              printAllInternalsForAtom(*bat, topIn, hasPosition); // DEBUG
             if (buildCoordsForAtom(*bat, frameOut, topIn, hasPosition)) {
               hasPosition[ *bat ] = true;
               nAtomsBuilt++;
