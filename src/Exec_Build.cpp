@@ -685,6 +685,7 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
 /** Standalone execute. For DataIO_LeapRC. */
 Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, int debugIn, ArgList& argIn)
 {
+  t_total_.Start();
   if (inCrdPtr == 0) {
     mprinterr("Internal Error: Exec_Build::BuildStructure(): Null input coordinates.\n");
     return CpptrajState::ERR;
@@ -717,6 +718,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
   mprintf("\tSolvent residue name: %s\n", solventResName.c_str());
 
   // Do histidine detection before H atoms are removed
+  t_hisDetect_.Start();
   if (!argIn.hasKey("nohisdetect")) {
     Cpptraj::Structure::HisProt hisProt;
     if (hisProt.InitHisProt( argIn, debug_ )) {
@@ -729,8 +731,10 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
       return CpptrajState::ERR;
     }
   }
+  t_hisDetect_.Stop();
 
   // Clean up structure
+  t_clean_.Start();
   Cpptraj::Structure::PdbCleaner pdbCleaner;
   pdbCleaner.SetDebug( debug_ );
   if (pdbCleaner.InitPdbCleaner( argIn, solventResName, std::vector<int>() )) {
@@ -746,6 +750,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
     mprinterr("Error: Could not clean PDB.\n");
     return CpptrajState::ERR;
   }
+  t_clean_.Stop();
 
   // Set up Output coords
   std::string outset = argIn.GetStringKey("name");
@@ -790,6 +795,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
   Cpptraj::Structure::ResStatArray resStat( topIn.Nres() );
 
   // Disulfide search
+  t_disulfide_.Start();
   if (!argIn.hasKey("nodisulfides")) {
     Cpptraj::Structure::Disulfide disulfide;
     if (disulfide.InitDisulfide( argIn, Cpptraj::Structure::Disulfide::ADD_BONDS, debug_ )) {
@@ -805,8 +811,10 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
   } else {
     mprintf("\tNot searching for disulfides.\n");
   }
+  t_disulfide_.Stop();
 
   // Handle sugars.
+  t_sugar_.Start();
   // TODO should be on a residue by residue basis in FillAtomsWithTemplates
   bool prepare_sugars = !argIn.hasKey("nosugars");
   if (!prepare_sugars)
@@ -856,8 +864,10 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
       return CpptrajState::ERR;
     }
   }
+  t_sugar_.Stop();
 
   // Fill in atoms with templates
+  t_fill_.Start();
   Topology topOut;
   topOut.SetDebug( debug_ );
   // TODO better default
@@ -869,9 +879,11 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
     mprinterr("Error: Could not fill in atoms using templates.\n");
     return CpptrajState::ERR;
   }
+  t_fill_.Stop();
 
   // Assign parameters. This will create the bond/angle/dihedral/improper
   // arrays as well.
+  t_assign_.Start();
   Exec::RetType ret = CpptrajState::OK;
   Cpptraj::Parm::AssignParams AP;
   AP.SetDebug( debug_ );
@@ -889,6 +901,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
   topOut.AllocTreeChainClassification( );
   topOut.AllocJoinArray();
   topOut.AllocRotateArray();
+  t_assign_.Stop();
 
   // Update coords 
   if (crdout.CoordsSetup( topOut, CoordinateInfo() )) { // FIXME better coordinate info
@@ -899,6 +912,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
 
   // Structure check
   if (check_structure_) {
+    t_check_.Start();
     StructureCheck check;
     if (check.SetOptions( true, // image 
                           true, // check bonds
@@ -958,7 +972,18 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
     // If box was added for check only, remove it
     if (box_added)
       frameOut.ModifyBox().SetNoBox();
+    t_check_.Stop();
   }
+  t_total_.Stop();
+
+  t_total_.WriteTiming(1, "Build timing:");
+  t_hisDetect_.WriteTiming(2, "Histidine detection :", t_total_.Total());
+  t_clean_.WriteTiming    (2, "Structure clean     :", t_total_.Total());
+  t_disulfide_.WriteTiming(2, "Disulfide detection :", t_total_.Total());
+  t_sugar_.WriteTiming    (2, "Sugar preparation   :", t_total_.Total());
+  t_fill_.WriteTiming     (2, "Fill missing atoms  :", t_total_.Total());
+  t_assign_.WriteTiming   (2, "Param./Top. gen.    :", t_total_.Total());
+  t_check_.WriteTiming    (2, "Structure check     :", t_total_.Total());
 
   return ret;
 }

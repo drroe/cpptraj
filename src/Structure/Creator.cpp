@@ -64,7 +64,8 @@ int Creator::InitCreator(ArgList& argIn, DataSetList const& DSL, int debugIn)
                                    ds != nameMapSets.end(); ++ds)
   {
     NameMaps_.push_back( static_cast<DataSet_NameMap*>( *ds ) );
-    mprintf("DEBUG: Atom name map: %s\n", NameMaps_.back()->legend());
+    if (debug_ > 0)
+      mprintf("DEBUG: Atom name map: %s\n", NameMaps_.back()->legend());
   }
 
   return 0;

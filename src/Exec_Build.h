@@ -38,5 +38,14 @@ class Exec_Build : public Exec {
     int check_box_natom_;  ///< Systems larger than this will have box added so PL check can be used
     bool check_structure_; ///< If true check the resulting structure
     Cpptraj::Structure::SugarBuilder* sugarBuilder_;
+
+    Timer t_total_;
+    Timer t_hisDetect_;
+    Timer t_clean_;
+    Timer t_disulfide_;
+    Timer t_sugar_;
+    Timer t_fill_;
+    Timer t_assign_;
+    Timer t_check_;
 };
 #endif
