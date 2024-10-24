@@ -76,7 +76,8 @@ void Creator::UpdateTemplateElements() const {
 
   for (Carray::const_iterator crd = Templates_.begin(); crd != Templates_.end(); ++crd)
   {
-    mprintf("DEBUG: Updating atom elements in '%s'\n", (*crd)->legend());
+    if (debug_ > 0)
+      mprintf("DEBUG: Updating atom elements in '%s'\n", (*crd)->legend());
     // Loop over template atoms
     Topology& templateTop = *((*crd)->TopPtr());
     for (int at = 0; at != templateTop.Natom(); at++) {
@@ -84,7 +85,8 @@ void Creator::UpdateTemplateElements() const {
       if (templateTop[at].HasType()) {
         it = mainParmSet_->AT().GetParam( TypeNameHolder(templateTop[at].Type()) );
         if (it != mainParmSet_->AT().end()) {
-          mprintf("DEBUG:\t\tSetting atom %s element to %s\n", *(templateTop[at].Name()), it->second.EltStr());
+          if (debug_ > 1)
+            mprintf("DEBUG:\t\tSetting atom %s element to %s\n", *(templateTop[at].Name()), it->second.EltStr());
           templateTop.SetAtom(at).SetElementFromSymbol( it->second.EltStr()[0],
                                                         it->second.EltStr()[1] );
         }
