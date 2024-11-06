@@ -370,15 +370,31 @@ const
   if (nAtomsMissingTypes > 0) {
     mprinterr("Error: %i atoms are missing types, either because they did not have\n"
               "Error:  one initially or they could not be matched to a template.\n"
-              "Error:  Build cannot proceed unless all atoms have a type:\n",
+              "Error: This can happen if a parameter file is missing or a force field\n"
+              "Error:  file has not been loaded.\n"
+              "Error: Build cannot proceed unless all atoms have a type:\n",
               nAtomsMissingTypes);
+    std::set<NameType> atoms_missing_types;
     for (int ires = 0; ires != topOut.Nres(); ires++) {
-      std::string missingTypes;
-      for (int at = topOut.Res(ires).FirstAtom(); at != topOut.Res(ires).LastAtom(); ++at)
+      for (int at = topOut.Res(ires).FirstAtom(); at != topOut.Res(ires).LastAtom(); ++at) {
         if ( !topOut[at].HasType() )
-          missingTypes.append(" " + topOut[at].Name().Truncated() );
-      if (!missingTypes.empty())
-        mprinterr("Error:\t%s missing types for%s\n", topOut.TruncResNameNum(ires).c_str(), missingTypes.c_str());
+          atoms_missing_types.insert( topOut[at].Name() );
+      }
+    }
+    mprinterr("Error: Atoms missing types:");
+    for (std::set<NameType>::const_iterator ait = atoms_missing_types.begin();
+                                            ait != atoms_missing_types.end(); ++ait)
+      mprinterr(" %s", *(*ait));
+    mprinterr("\n");
+    if (debug_ > 0) {
+      for (int ires = 0; ires != topOut.Nres(); ires++) {
+        std::string missingTypes;
+        for (int at = topOut.Res(ires).FirstAtom(); at != topOut.Res(ires).LastAtom(); ++at)
+          if ( !topOut[at].HasType() )
+            missingTypes.append(" " + topOut[at].Name().Truncated() );
+        if (!missingTypes.empty())
+          mprinterr("Error:\t%s missing types for%s\n", topOut.TruncResNameNum(ires).c_str(), missingTypes.c_str());
+      }
     }
     return 1;
   }
