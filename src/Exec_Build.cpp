@@ -13,6 +13,7 @@
 #include "Structure/SugarBuilder.h"
 #include "Structure/Sugar.h"
 #include "StructureCheck.h"
+#include <set> // For warning about missing residue templates
 
 /** CONSTRUCTOR */
 Exec_Build::Exec_Build() :
@@ -126,6 +127,8 @@ const
   //ResTypes.reserve( topIn.Nres() );
   // Initial loop to try to match residues to templates
   int newNatom = 0;
+  unsigned int n_no_template_found = 0;
+  std::set<NameType> missing_templates;
   for (int ires = 0; ires != topIn.Nres(); ires++)
   {
     Residue const& currentRes = topIn.Res(ires);
@@ -156,7 +159,9 @@ const
     DataSet_Coords* resTemplate = creator.IdTemplateFromResname(currentRes.Name(), resTermType);
     if (resTemplate == 0) {
       // Residue has no template.
+      n_no_template_found++;
       mprintf("Warning: No template found for residue %s\n", topIn.TruncResNameOnumId(ires).c_str());
+      missing_templates.insert( currentRes.Name() );
       newNatom += currentRes.NumAtoms();
       // Head and tail atoms are blank
       resHeadAtoms.push_back( -1 );
@@ -193,6 +198,16 @@ const
     ResTemplates.push_back( resTemplate );
   }
   mprintf("\tFinal structure should have %i atoms.\n", newNatom);
+  if (n_no_template_found > 0) {
+    mprintf("Warning: No template was found for %u residues.\n", n_no_template_found);
+    mprintf("Warning: Residue names:");
+    for (std::set<NameType>::const_iterator rit = missing_templates.begin();
+                                            rit != missing_templates.end(); ++rit)
+      mprintf(" %s", *(*rit));
+    mprintf("\n");
+    mprintf("Warning: This may indicate that you have not loaded a library file\n"
+            "Warning:   or have not loaded the correct force field.\n");
+  }
   frameOut.SetupFrame( newNatom );
   // Clear frame so that AddXYZ can be used
   frameOut.ClearAtoms();
