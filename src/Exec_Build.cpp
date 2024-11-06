@@ -35,8 +35,10 @@ std::vector<int> Exec_Build::MapAtomsToTemplate(Topology const& topIn,
                                                 int rnum,
                                                 DataSet_Coords* resTemplate,
                                                 Cpptraj::Structure::Creator const& creator,
-                                                std::vector<NameType>& sourceAtomNames)
+                                                std::vector<NameType>& sourceAtomNames,
+                                                int& nTgtAtomsMissing)
 {
+  nTgtAtomsMissing = 0;
   std::vector<int> mapOut(resTemplate->Top().Natom(), -1);
   mapOut.reserve( resTemplate->Top().Natom() );
   Residue const& resIn = topIn.Res(rnum);
@@ -75,6 +77,11 @@ std::vector<int> Exec_Build::MapAtomsToTemplate(Topology const& topIn,
         }
       } // END search template for alias
     } // END do alias search
+    if (!found) {
+      mprintf("Warning: Input atom %s was not mapped to a template atom.\n",
+              topIn.TruncAtomResNameOnumId( itgt ).c_str());
+      nTgtAtomsMissing++;
+    }
   }
 /*
   for (int iref = 0; iref != resTemplate->Top().Natom(); iref++)
@@ -288,7 +295,8 @@ const
       else
         currentRes.SetName( NameType( (*templateResName) + ( templateResName.len() - 3) ) );
       // Map source atoms to template atoms.
-      std::vector<int> map = MapAtomsToTemplate( topIn, ires, resTemplate, creator, SourceAtomNames );
+      int nTgtAtomsMissing = 0;
+      std::vector<int> map = MapAtomsToTemplate( topIn, ires, resTemplate, creator, SourceAtomNames, nTgtAtomsMissing );
       if (debug_ > 1) {
         mprintf("\t  Atom map:\n");
         // DEBUG - print map
@@ -344,11 +352,15 @@ const
           }
         }
       }
-      // See if any current atoms were not mapped to reference
-      int nTgtAtomsMissing = 0;
-      for (int itgt = 0; itgt != currentRes.NumAtoms(); itgt++)
-        if (pdb[itgt] == -1)
-          nTgtAtomsMissing++;
+      // See if any current atoms were not mapped to reference template
+      //int nTgtAtomsMissing = 0;
+      //for (int itgt = 0; itgt != currentRes.NumAtoms(); itgt++) {
+      //  if (pdb[itgt] == -1) {
+      //    mprintf("Warning: Input atom %s was not mapped to a template atom.\n",
+      //            topIn.TruncAtomResNameOnumId(currentRes.FirstAtom()+itgt).c_str());
+      //    nTgtAtomsMissing++;
+      //  }
+      //}
       if (nTgtAtomsMissing > 0)
         mprintf("\t%i source atoms not mapped to template.\n", nTgtAtomsMissing);
       // Save atom offset if atoms need to be built
