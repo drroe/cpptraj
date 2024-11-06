@@ -380,6 +380,7 @@ COMMON_SOURCES= \
         PairList.cpp \
         Parallel.cpp \
         ParallelNetcdf.cpp \
+        ParallelSetFrameNum.cpp \
         ParmFile.cpp \
         Parm_Amber.cpp \
         Parm_CharmmPsf.cpp \
