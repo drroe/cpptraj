@@ -552,6 +552,12 @@ test.tica:
 test.enedecomp:
 	@-cd Test_EneDecomp && ./RunTest.sh $(OPT)
 
+test.addatom:
+	@-cd Test_AddAtom && ./RunTest.sh $(OPT)
+
+test.minmaxdist:
+	@-cd Test_MinMaxDist && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -726,7 +732,9 @@ COMPLETETESTS=test.general \
               test.refinetrajectory \
               test.readamberff \
               test.tica \
-              test.enedecomp
+              test.enedecomp \
+              test.addatom \
+              test.minmaxdist
 
 test.all:
 	$(MAKE) test.complete summary
