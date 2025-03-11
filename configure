@@ -147,8 +147,8 @@ BZIP2_SRCDIR=''
 BZIP2_URL="https://www.sourceware.org/pub/bzip2/$BZIP2_SRCTAR"
 BZIP2_OPTS=''
 
-ZLIB_SRCTAR='zlib-1.2.11.tar.gz'
-ZLIB_SRCDIR='zlib-1.2.11'
+ZLIB_SRCTAR='zlib-1.3.1.tar.gz'
+ZLIB_SRCDIR='zlib-1.3.1'
 ZLIB_URL="https://zlib.net/$ZLIB_SRCTAR"
 ZLIB_OPTS=''
 
@@ -196,6 +196,7 @@ USE_PROFILE=0     # 0 = no profiling, 1 = C++ profiling, 2 = GLIBC profiling, 3 
 USE_AMBERLIB=0    # 1 = Use AMBERHOME to fill in NetCDF/BLAS/LAPACK/ARPACK as needed
 BUILD_LIBS=0      # 1 = Means automatically say yes to building enabled libs when not present.
 BUILD_MPI=''      # If not empty, attempt to download and build specified mpi dist.
+icpp=0            # Used to count cmake_prefix_paths
 
 USE_SINGLEENSEMBLE=0 # Enable support for single ensemble trajectories
 USE_CPPTRAJDEBUG=0   # Enable internal cpptraj debug flags
@@ -721,9 +722,15 @@ EOF
       TestProgram $BUILDTESTOPT "  Checking for bundled HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LHDF5]}" testp.cpp "${LIB_FLAG[$LHDF5]}"
       if [ $? -ne 0 ] ; then
         CheckRebuild "HDF5" "${LIB_FLAG[$LHDF5]}"
+	# If zlib was specified, pass that to hdf5
+        if [ "${LIB_STAT[$LZIP]}" = 'specified' ] ; then
+          hdf5zlib="--with-zlib=${LIB_HOME[$LZIP]}"
+	else
+          hdf5zlib=''
+	fi
         # See if user would like to get HDF5 
         PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='hdf5' \
-            SRCDIR=$HDF5_SRCDIR SRCTAR=$HDF5_SRCTAR URL=$HDF5_URL ./get_library.sh $REBUILDOPT $HDF5_OPTS
+            SRCDIR=$HDF5_SRCDIR SRCTAR=$HDF5_SRCTAR URL=$HDF5_URL ./get_library.sh $REBUILDOPT $HDF5_OPTS $hdf5zlib
         if [ $? -ne 0 ] ; then
           ErrMsg "No HDF5 available. To build without HDF5 specify '-nohdf5'."
           exit 1
@@ -2507,6 +2514,20 @@ EOF
 }
 
 #-------------------------------------------------------------------------------
+# Add cmake prefix path
+AddCmakePrefixPath() {
+  # Search for existing
+  for ((idx1=0; idx1 < $icpp; idx1++)) ; do
+    if [ "$1" = "${cmake_prefix_paths[$idx1]}" ] ; then
+      #echo DEBUG duplicate path $1
+      return 0
+    fi
+  done
+  #echo DEBUG add cmake prefix path $icpp $1
+  cmake_prefix_paths[$icpp]=$1
+  ((icpp++))
+}
+
 # Use cmake to configure build.
 SetupCmake() {
   CMAKE=`which cmake`
@@ -2581,6 +2602,35 @@ SetupCmake() {
   if [ $COMPILE_VERBOSE -eq 1 ] ; then
     cmake_options="$cmake_options -DCMAKE_VERBOSE_MAKEFILE=TRUE"
   fi
+  # Libraries
+  icpp=0
+  for ((idx=0; idx < $NLIB; idx++)) ; do
+    if [ "${LIB_STAT[$idx]}" = 'specified' ] ; then
+      #echo Lib $idx # DEBUG
+      AddCmakePrefixPath "${LIB_HOME[$idx]}"
+    fi
+  done
+  #if [ "${LIB_STAT[$LNETCDF]}" = 'specified' ] ; then
+  #  AddCmakePrefixPath "${LIB_HOME[$LNETCDF]}"
+  #fi
+  #if [ "${LIB_STAT[$LZIP]}" = 'specified' ] ; then
+  #  AddCmakePrefixPath "${LIB_HOME[$LZIP]}"
+  #fi
+  #if [ "${LIB_STAT[$LBZIP]}" = 'specified' ] ; then
+  #  AddCmakePrefixPath "${LIB_HOME[$LBZIP]}"
+  #fi
+
+  if [ $icpp -gt 0 ] ; then
+    cmppstring=""
+    for ((idx=0; idx < $icpp; idx++)) ; do
+      if [ ! -z "$cmppstring" ] ; then
+        cmppstring="$cmppstring;${cmake_prefix_paths[$idx]}"
+      else
+        cmppstring="${cmake_prefix_paths[$idx]}"
+      fi
+    done
+    cmake_options="$cmake_options -DCMAKE_PREFIX_PATH=$cmppstring"
+  fi  
   echo "  Cmake options: $WORKDIR $cmake_options"
   # Run cmake
   $CMAKE $WORKDIR $cmake_options
