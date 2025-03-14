@@ -149,6 +149,12 @@ std::string DataIO_LeapRC::find_path(std::string const& filename,
 const
 {
   if (File::Exists( filename )) return filename;
+  // Check searchPaths_ next
+  for (Sarray::const_iterator it = searchPaths_.begin(); it != searchPaths_.end(); ++it) {
+    std::string spath = *it + "/" + filename;
+    if (File::Exists( spath )) return spath;
+  }
+  // Check AMBERHOME last
   if (amberhome_.empty()) {
     mprinterr("Error: '%s' not found.\n", filename.c_str());
     return filename;
@@ -157,6 +163,13 @@ const
   if (File::Exists( amberpath )) return amberpath;
   mprinterr("Error: '%s' not found.\n", amberpath.c_str());
   return amberpath;
+}
+
+/** LEaP addPath command. */
+int DataIO_LeapRC::AddPath(std::string const& path) {
+  mprintf("%s added to file search path.\n", path.c_str());
+  searchPaths_.push_back( path );
+  return 0;
 }
 
 /** LEaP loadAmberParams command. */
@@ -563,7 +576,12 @@ int DataIO_LeapRC::LoadMol2(ArgList const& argIn, DataSetList& dsl) const {
   }
   DataIO_Coords coordsIn;
   coordsIn.SetDebug( debug_ );
-  if (coordsIn.ReadData( args[2], dsl, args[0] )) {
+  std::string mol2path = find_path( args[2], "" );
+  if (mol2path.empty()) {
+    mprinterr("Error: Could not find mol2 %s\n", args[2].c_str());
+    return 1;
+  }
+  if (coordsIn.ReadData( mol2path, dsl, args[0] )) {
     mprinterr("Error: Could not load structure from '%s' into '%s'\n",
               args[2].c_str(), args[0].c_str());
     return 1;
@@ -584,7 +602,12 @@ int DataIO_LeapRC::LoadPDB(ArgList const& argIn, DataSetList& dsl) const {
   DataIO_Coords coordsIn;
   coordsIn.SetDebug( debug_ );
   DataSetList tmpdsl;
-  if (coordsIn.ReadData( args[2], tmpdsl, args[0] )) {
+  std::string pdbpath = find_path( args[2], "" );
+  if (pdbpath.empty()) {
+    mprinterr("Error: Could not find PDB %s\n", args[2].c_str());
+    return 1;
+  }
+  if (coordsIn.ReadData( pdbpath, tmpdsl, args[0] )) {
     mprinterr("Error: Could not load structure from '%s' into '%s'\n",
               args[2].c_str(), args[0].c_str());
     return 1;
@@ -736,7 +759,7 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
   mprintf("\tReading LEaP input from '%s'\n", fname.base());
   enum LeapCmdType { LOADAMBERPARAMS = 0, LOADOFF, LOADAMBERPREP, ADDATOMTYPES,
                      ADDPDBRESMAP, ADDPDBATOMMAP, LOADMOL2, LOADPDB, SOURCE,
-                     QUIT, SAVEAMBERPARM, UNKNOWN_CMD };
+                     QUIT, SAVEAMBERPARM, ADDPATH, UNKNOWN_CMD };
   //DataSetList paramDSL;
   //DataSetList unitDSL;
   //NHarrayType atomHybridizations;
@@ -775,6 +798,7 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
         else if (argStr == "source"         ) { pos = arg; leapcmd = SOURCE; break; }
         else if (argStr == "quit"           ) { pos = arg; leapcmd = QUIT; break; }
         else if (argStr == "saveamberparm"  ) { pos = arg; leapcmd = SAVEAMBERPARM; break; }
+        else if (argStr == "addpath"        ) { pos = arg; leapcmd = ADDPATH; break; }
       }
 
       err = 0;
@@ -838,6 +862,9 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
         // Do not read any more.
         mprintf("\tEncountered 'quit' in leaprc file, not reading any more.\n");
         break;
+      } else if (leapcmd == ADDPATH) {
+        // Add path to directories to search for files specified by other commands.
+        err = AddPath( line.GetStringKey(line[pos]) );
       } else {
         // Unrecognized so far. See if this is a unit alias (interpret as 'alias = unit')
         if (has_equals) {
