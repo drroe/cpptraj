@@ -39,6 +39,7 @@ const char* Creator::other_keywords_ = "atomscandir {f|b}";
 /** Initialize */
 int Creator::InitCreator(ArgList& argIn, DataSetList const& DSL, int debugIn)
 {
+  t_total_.Start();
   debug_ = debugIn;
 
   // Atom scan direction
@@ -54,8 +55,12 @@ int Creator::InitCreator(ArgList& argIn, DataSetList const& DSL, int debugIn)
     }
   }
 
+  t_get_templates_.Start();
   if (getTemplates(argIn, DSL)) return 1;
+  t_get_templates_.Stop();
+  t_get_parameters_.Start();
   if (getParameterSets(argIn, DSL)) return 1;
+  t_get_parameters_.Stop();
   UpdateTemplateElements();
 
   // Get any atom name maps
@@ -67,8 +72,15 @@ int Creator::InitCreator(ArgList& argIn, DataSetList const& DSL, int debugIn)
     if (debug_ > 0)
       mprintf("DEBUG: Atom name map: %s\n", NameMaps_.back()->legend());
   }
-
+  t_total_.Stop();
   return 0;
+}
+
+/** Write timing info to stdout. */
+void Creator::TimingInfo(double total, int indent) const {
+  t_total_.WriteTiming(indent, "Get templates/parms:", total);
+  t_get_templates_.WriteTiming (indent+1, "Get templates  :", t_total_.Total());
+  t_get_parameters_.WriteTiming(indent+1, "Get parameters :", t_total_.Total());
 }
 
 /** Update template atom elements from atom types in parameter set. */

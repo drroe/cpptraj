@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include "StructureEnum.h" // TerminalType
+#include "../Timer.h"
 class ArgList;
 class DataSet_Coords;
 class DataSet_NameMap;
@@ -30,6 +31,8 @@ class Creator {
     static const char* other_keywords_;
     /// Initialize the Creator
     int InitCreator(ArgList&, DataSetList const&, int);
+    /// Write timing info to stdout
+    void TimingInfo(double, int) const;
 
     /// \return True if a parameter set is defined
     bool HasMainParmSet() const { return (mainParmSet_ != 0); }
@@ -56,6 +59,9 @@ class Creator {
     Narray NameMaps_;                 ///< Hold atom name maps.
     int debug_;                       ///< Debug level
     bool free_parmset_mem_;           ///< True if main parm set is combined and should be freed
+    Timer t_total_;
+    Timer t_get_templates_;
+    Timer t_get_parameters_;
 };
 }
 }

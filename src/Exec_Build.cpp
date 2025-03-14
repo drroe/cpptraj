@@ -835,6 +835,8 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
     return CpptrajState::ERR;
   }
   t_get_templates_.Stop();
+  // FIXME hide behind ifdef?
+  creator.TimingInfo(t_get_templates_.Total(), 2);
 
   // All residues start unknown
   Cpptraj::Structure::ResStatArray resStat( topIn.Nres() );
@@ -1025,6 +1027,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
   t_hisDetect_.WriteTiming    (2, "Histidine detection :", t_total_.Total());
   t_clean_.WriteTiming        (2, "Structure clean     :", t_total_.Total());
   t_get_templates_.WriteTiming(2, "Get templates/parms :", t_total_.Total());
+  
   t_disulfide_.WriteTiming    (2, "Disulfide detection :", t_total_.Total());
   t_sugar_.WriteTiming        (2, "Sugar preparation   :", t_total_.Total());
   t_fill_.WriteTiming         (2, "Fill missing atoms  :", t_total_.Total());
