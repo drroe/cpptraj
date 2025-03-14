@@ -42,6 +42,7 @@ class Exec_Build : public Exec {
     Timer t_total_;
     Timer t_hisDetect_;
     Timer t_clean_;
+    Timer t_get_templates_;
     Timer t_disulfide_;
     Timer t_sugar_;
     Timer t_fill_;

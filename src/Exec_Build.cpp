@@ -822,6 +822,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
   mprintf("\tGB radii set: %s\n", Cpptraj::Parm::GbTypeStr(gbradii).c_str());
 
   // Get templates and parameter sets.
+  t_get_templates_.Start();
   Cpptraj::Structure::Creator creator( debug_ );
   if (creator.InitCreator(argIn, DSL, debug_)) {
     return CpptrajState::ERR;
@@ -833,6 +834,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
     mprinterr("Error: No parameter sets.\n");
     return CpptrajState::ERR;
   }
+  t_get_templates_.Stop();
 
   // All residues start unknown
   Cpptraj::Structure::ResStatArray resStat( topIn.Nres() );
@@ -1020,13 +1022,14 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
   t_total_.Stop();
 
   t_total_.WriteTiming(1, "Build timing:");
-  t_hisDetect_.WriteTiming(2, "Histidine detection :", t_total_.Total());
-  t_clean_.WriteTiming    (2, "Structure clean     :", t_total_.Total());
-  t_disulfide_.WriteTiming(2, "Disulfide detection :", t_total_.Total());
-  t_sugar_.WriteTiming    (2, "Sugar preparation   :", t_total_.Total());
-  t_fill_.WriteTiming     (2, "Fill missing atoms  :", t_total_.Total());
-  t_assign_.WriteTiming   (2, "Param./Top. gen.    :", t_total_.Total());
-  t_check_.WriteTiming    (2, "Structure check     :", t_total_.Total());
+  t_hisDetect_.WriteTiming    (2, "Histidine detection :", t_total_.Total());
+  t_clean_.WriteTiming        (2, "Structure clean     :", t_total_.Total());
+  t_get_templates_.WriteTiming(2, "Get templates/parms :", t_total_.Total());
+  t_disulfide_.WriteTiming    (2, "Disulfide detection :", t_total_.Total());
+  t_sugar_.WriteTiming        (2, "Sugar preparation   :", t_total_.Total());
+  t_fill_.WriteTiming         (2, "Fill missing atoms  :", t_total_.Total());
+  t_assign_.WriteTiming       (2, "Param./Top. gen.    :", t_total_.Total());
+  t_check_.WriteTiming        (2, "Structure check     :", t_total_.Total());
 
   return ret;
 }
