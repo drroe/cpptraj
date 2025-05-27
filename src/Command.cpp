@@ -165,6 +165,9 @@
 #include "Action_HB.h"
 #include "Action_MinMaxDist.h"
 #include "Action_AddAtom.h"
+#include "Action_EneDecomp.h"
+#include "Action_ConvertToFrac.h"
+#include "Action_Test.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -298,6 +301,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_AngleInfo(),     Cmd::EXE, 3, "angles", "angleinfo", "printangles" );
   Command::AddCmd( new Exec_AtomInfo(),      Cmd::EXE, 3, "atoms", "atominfo", "printatoms" );
   Command::AddCmd( new Exec_BondInfo(),      Cmd::EXE, 3, "bonds", "bondinfo", "printbonds" );
+  Command::AddCmd( new Exec_BondParmInfo(),  Cmd::EXE, 1, "bondparminfo" );
   Command::AddCmd( new Exec_Change(),        Cmd::EXE, 1, "change" );
   Command::AddCmd( new Exec_ChargeInfo(),    Cmd::EXE, 1, "charge" );
   Command::AddCmd( new Exec_CompareTop(),    Cmd::EXE, 1, "comparetop" );
@@ -336,6 +340,7 @@ void Command::Init() {
   Command::AddCmd( new Action_Closest(),       Cmd::ACT, 2, "closest", "closestwaters" );
   Command::AddCmd( new Action_ClusterDihedral(),Cmd::ACT,1, "clusterdihedral" );
   Command::AddCmd( new Action_Contacts(),      Cmd::ACT, 1, "contacts" );
+  Command::AddCmd( new Action_ConvertToFrac(), Cmd::ACT, 1, "converttofrac" ); // hidden
   Command::AddCmd( new Action_CreateCrd(),     Cmd::ACT, 1, "createcrd" );
   Command::AddCmd( new Action_CreateReservoir(),Cmd::ACT,1, "createreservoir" );
   Command::AddCmd( new Action_Density(),       Cmd::ACT, 1, "density" );
@@ -347,6 +352,7 @@ void Command::Init() {
   Command::AddCmd( new Action_DNAionTracker(), Cmd::ACT, 1, "dnaiontracker" ); // hidden
   Command::AddCmd( new Action_DistRmsd(),      Cmd::ACT, 2, "drms", "drmsd" );
   Command::AddCmd( new Action_DSSP(),          Cmd::ACT, 2, "dssp", "secstruct" );
+  Command::AddCmd( new Action_EneDecomp(),     Cmd::ACT, 1, "enedecomp" );
   Command::AddCmd( new Action_Energy(),        Cmd::ACT, 1, "energy" );
   Command::AddCmd( new Action_Esander(),       Cmd::ACT, 1, "esander" );
   Command::AddCmd( new Action_FilterByData(),  Cmd::ACT, 1, "filter" );
@@ -399,6 +405,7 @@ void Command::Init() {
   Command::AddCmd( new Action_Surf(),          Cmd::ACT, 1, "surf" );
   Command::AddCmd( new Action_SymmetricRmsd(), Cmd::ACT, 1, "symmrmsd" );
   Command::AddCmd( new Action_Temperature(),   Cmd::ACT, 1, "temperature" );
+  Command::AddCmd( new Action_Test(),          Cmd::ACT, 1, "testtest" ); // HIDDEN
   Command::AddCmd( new Action_Time(),          Cmd::ACT, 1, "time" );
   Command::AddCmd( new Action_ToroidalDiffusion(), Cmd::ACT, 1, "tordiff" );
   Command::AddCmd( new Action_Translate(),     Cmd::ACT, 2, "trans", "translate" );

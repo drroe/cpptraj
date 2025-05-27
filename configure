@@ -41,7 +41,7 @@ UsageFull() {
   echo "    -debugon   : Add -DDEBUG flag to activate additional internal debugging."
   echo "    -nolfs     : Do not enable large file support."
   echo "    -shared    : Configure for generating libcpptraj (implies -nosanderlib)."
-  echo "    -fftw3     : Use FFTW instead of pubfft for FFT."
+  echo "    -pubfft    : Use pubfft instead of FFTW for FFT (disables PME functionality)."
   echo "    -windows   : Set up for use with MinGW compilers for a native Windows build."
   echo "  LIBRARY OPTIONS"
   echo "    -<lib>             : Enable library."
@@ -52,6 +52,7 @@ UsageFull() {
   echo "    --nobuildlibs      : Do not asking about building enabled libraries."
   echo "    -makenetcdf        : Have cpptraj build its own NetCDF."
   echo "    -makeblas          : Have cpptraj build its own LAPACK/BLAS."
+  echo "    --libdir=<dir>     : Look for libraries in <dir> (useful to point to e.g. a previous CPPTRAJ install."
   echo "    Libraries: netcdf pnetcdf zlib bzlib blas lapack arpack fftw3 readline sanderlib xdrfile tng openmm"
   echo "    Note: pnetcdf is needed for writing NetCDF trajectories with MPI."
   echo "  LINKING OPTIONS"
@@ -125,6 +126,7 @@ EXE=''                    # Binary executable suffix
 REBUILDOPT=''             # Can be set to --rebuild and passed to get_library.sh
 BUILDTESTOPT='silent'     # Set to blank to avoid asking about building libraries
 INSTALL_DAT='install_dat' # Target for installing data directory
+SPECIFIED_LIB_DIR=''      # Specified library directory
 #CPPTRAJSRC=''             # CPPTRAJ source directory
 COMPERR='cpptrajcfg.compile.err'
 COMPOUT='cpptrajcfg.compile.out'
@@ -146,8 +148,8 @@ BZIP2_SRCDIR=''
 BZIP2_URL="https://www.sourceware.org/pub/bzip2/$BZIP2_SRCTAR"
 BZIP2_OPTS=''
 
-ZLIB_SRCTAR='zlib-1.2.11.tar.gz'
-ZLIB_SRCDIR='zlib-1.2.11'
+ZLIB_SRCTAR='zlib-1.3.1.tar.gz'
+ZLIB_SRCDIR='zlib-1.3.1'
 ZLIB_URL="https://zlib.net/$ZLIB_SRCTAR"
 ZLIB_OPTS=''
 
@@ -168,7 +170,7 @@ PNETCDF_OPTS='--disable-fortran --disable-cxx'
 
 FFTW_SRCTAR='fftw-3.3.9.tar.gz'
 FFTW_SRCDIR='fftw-3.3.9'
-FFTW_URL="ftp://ftp.fftw.org/pub/fftw/$FFTW_SRCTAR"
+FFTW_URL="https://fftw.org/pub/fftw/$FFTW_SRCTAR"
 FFTW_OPTS='--enable-threads --with-combined-threads --with-pic --disable-fortran'
 
 # ----- Variables for downloading MPI ------------
@@ -195,6 +197,7 @@ USE_PROFILE=0     # 0 = no profiling, 1 = C++ profiling, 2 = GLIBC profiling, 3 
 USE_AMBERLIB=0    # 1 = Use AMBERHOME to fill in NetCDF/BLAS/LAPACK/ARPACK as needed
 BUILD_LIBS=0      # 1 = Means automatically say yes to building enabled libs when not present.
 BUILD_MPI=''      # If not empty, attempt to download and build specified mpi dist.
+icpp=0            # Used to count cmake_prefix_paths
 
 USE_SINGLEENSEMBLE=0 # Enable support for single ensemble trajectories
 USE_CPPTRAJDEBUG=0   # Enable internal cpptraj debug flags
@@ -318,9 +321,9 @@ LIB_D_ON[$LFFTW3]='-DFFTW_FFT'
 LIB_DOFF[$LFFTW3]=''
 LIB_TYPE[$LFFTW3]='cpp'
 
-LIB_STAT[$LREADLINE]='bundled'
+LIB_STAT[$LREADLINE]='enabled'
 LIB_CKEY[$LREADLINE]='readline'
-LIB_HOME[$LREADLINE]='readline'
+LIB_HOME[$LREADLINE]=''
 LIB_FLAG[$LREADLINE]='-lreadline'
 LIB_STTC[$LREADLINE]='libreadline.a'
 LIB_D_ON[$LREADLINE]=''
@@ -678,13 +681,36 @@ void unused() {
 }
 int main() { printf("Testing\n"); printf("%s\n",nc_strerror(0)); return 0; }
 EOF
-  TestProgram silent "  Checking NetCDF4/HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
+  # If netcdf was specified and only the static library is available, need
+  # to add extra flags for hdf5.
+  nc_requires_hdf5_flags=0
+  lhdf5_hl='-lhdf5_hl'
+  lhdf5='-lhdf5'
+  if [ ! -z "${LIB_HOME[$LHDF5]}" ] ; then
+    if [ -f "${LIB_HOME[$LHDF5]}/lib/libhdf5_hl.a" ] ; then
+      lhdf5_hl=${LIB_HOME[$LHDF5]}/lib/libhdf5_hl.a
+    fi
+    if [ -f "${LIB_HOME[$LHDF5]}/lib/libhdf5.a" ] ; then
+      lhdf5=${LIB_HOME[$LHDF5]}/lib/libhdf5.a
+    fi
+  fi
+  if [ "${LIB_STAT[$LNETCDF]}" = 'specified' ] ; then
+    export LD_LIBRARY_PATH="${LIB_HOME[$LNETCDF]}/lib:$LD_LIBRARY_PATH"
+    if [ ! -f "${LIB_HOME[$LNETCDF]}/lib/libnetcdf.so" -a -f "${LIB_HOME[$LNETCDF]}/lib/libnetcdf.a" ] ; then
+      #echo "DEBUG: Only static NetCDF library is present."
+      nc_requires_hdf5_flags=1
+      hdf5_flags="$lhdf5_hl $lhdf5 -ldl ${LIB_FLAG[$LZIP]}"
+    fi
+  fi
+  TestProgram silent "  Checking NetCDF4/HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]} $hdf5_flags"
   if [ $? -eq 0 ] ; then
     # HDF5 support is present.
     # If we are going to build our own netcdf, it needs to know how to link
     # HDF5.
     if [ "${LIB_MAKE[$LNETCDF]}" = 'yes' ] ; then
-      LIB_FLAG[$LHDF5]="-lhdf5_hl -lhdf5 -ldl ${LIB_FLAG[$LZIP]}"
+      LIB_FLAG[$LHDF5]="$ldhf5_hl $lhdf5 -ldl ${LIB_FLAG[$LZIP]}"
+    elif [ $nc_requires_hdf5_flags -eq 1 ] ; then
+      LIB_FLAG[$LNETCDF]="${LIB_FLAG[$LNETCDF]} $hdf5_flags"
     fi
     return 0
   fi
@@ -719,9 +745,15 @@ EOF
       TestProgram $BUILDTESTOPT "  Checking for bundled HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LHDF5]}" testp.cpp "${LIB_FLAG[$LHDF5]}"
       if [ $? -ne 0 ] ; then
         CheckRebuild "HDF5" "${LIB_FLAG[$LHDF5]}"
+	# If zlib was specified, pass that to hdf5
+        if [ "${LIB_STAT[$LZIP]}" = 'specified' ] ; then
+          hdf5zlib="--with-zlib=${LIB_HOME[$LZIP]}"
+	else
+          hdf5zlib=''
+	fi
         # See if user would like to get HDF5 
         PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='hdf5' \
-            SRCDIR=$HDF5_SRCDIR SRCTAR=$HDF5_SRCTAR URL=$HDF5_URL ./get_library.sh $REBUILDOPT $HDF5_OPTS
+            SRCDIR=$HDF5_SRCDIR SRCTAR=$HDF5_SRCTAR URL=$HDF5_URL ./get_library.sh $REBUILDOPT $HDF5_OPTS $hdf5zlib
         if [ $? -ne 0 ] ; then
           ErrMsg "No HDF5 available. To build without HDF5 specify '-nohdf5'."
           exit 1
@@ -1038,7 +1070,7 @@ EOF
       if [ "${LIB_STAT[$LFFTW3]}" = 'optional' ] ; then
         WrnMsg "FFTW test failed. CPPTRAJ will use the built-in PubFFT routines."
         if [ $BUILD_LIBS -eq 1 ] ; then
-          echo "To force CPPTRAJ to build its own FFTW, reconfigure and specify '-fftw3'."
+          echo "To force CPPTRAJ to build its own FFTW, reconfigure and specify '--buildlibs'."
         fi
         LIB_STAT[$LFFTW3]='off'
       elif [ "${LIB_STAT[$LFFTW3]}" = 'enabled' ] ; then
@@ -1073,13 +1105,42 @@ EOF
 TestReadline() {
   cat > testp.cpp <<EOF
 #include <cstdio>
-#include <readline.h>
+#include <readline/readline.h>
 static char *line_read = (char *)NULL;
 // Do not want to actually run this so leave outside main
 void Unused() { line_read = readline(""); }
 int main() { return 0; }
 EOF
-  TestProgram "  Checking Readline" "$CXX" "$CXXFLAGS ${LIB_INCL[$LREADLINE]}" testp.cpp "${LIB_FLAG[$LREADLINE]}"
+
+  if [ "${LIB_STAT[$LREADLINE]}" = 'specified' ] ; then
+    TestProgram "  Checking Readline" "$CXX" "$CXXFLAGS ${LIB_INCL[$LREADLINE]}" testp.cpp "${LIB_FLAG[$LREADLINE]}"
+  else
+    # Test with just -lreadline
+    TestProgram silent "  Checking Readline" "$CXX" "$CXXFLAGS ${LIB_INCL[$LREADLINE]}" testp.cpp "${LIB_FLAG[$LREADLINE]}"
+    lreadline_err=$?
+    if [ $lreadline_err -ne 0 ] ; then
+      # Try -ltermcap
+      TestProgram silent "  Checking Readline with termcap" "$CXX" "$CXXFLAGS ${LIB_INCL[$LREADLINE]}" testp.cpp "${LIB_FLAG[$LREADLINE]} -ltermcap"
+      lreadline_err=$?
+      if [ $lreadline_err -eq 0 ] ; then
+        LIB_FLAG[$LREADLINE]="${LIB_FLAG[$LREADLINE]} -ltermcap"
+      fi
+    fi
+    if [ $lreadline_err -ne 0 ] ; then
+      # Try -lncurses
+      TestProgram silent "  Checking Readline with ncurses" "$CXX" "$CXXFLAGS ${LIB_INCL[$LREADLINE]}" testp.cpp "${LIB_FLAG[$LREADLINE]} -lncurses"
+      lreadline_err=$?
+      if [ $lreadline_err -eq 0 ] ; then
+        LIB_FLAG[$LREADLINE]="${LIB_FLAG[$LREADLINE]} -lncurses"
+      fi
+    fi
+    if [ $lreadline_err -ne 0 ] ; then
+      echo "No readline available; using bundled readline."
+      LIB_STAT[$LREADLINE]='bundled'
+      LIB_FLAG[$LREADLINE]='readline/libreadline.a'
+      LIB_INCL[$LREADLINE]='-I.'
+    fi
+  fi
 }
 
 TestXdrfile() {
@@ -1424,6 +1485,7 @@ SetupLibraries() {
       LIB_STAT[$LFFTW3]='amberopt'
       LIB_LINK[$LFFTW3]='static'
     elif [ "${LIB_STAT[$LFFTW3]}" == 'enabled' ] ; then
+      echo "  Using fftw from $AMBERHOME"
       LIB_STAT[$LFFTW3]='specified'
       LIB_HOME[$LFFTW3]=$AMBERHOME
       LIB_LINK[$LFFTW3]='static'
@@ -1441,6 +1503,66 @@ SetupLibraries() {
       fi
     fi
   done
+  # Use specified directory to fill in libraries if needed
+  if [ ! -z "$SPECIFIED_LIB_DIR" ] ; then
+    if [ ! -d "$SPECIFIED_LIB_DIR" ] ; then
+      Err "Specified library directory $SPECIFIED_LIB_DIR not found."
+    fi
+    if [ "${LIB_STAT[$LNETCDF]}" == 'enabled' ] ; then
+      echo "  Using netcdf from $SPECIFIED_LIB_DIR"
+      LIB_STAT[$LNETCDF]='specified'
+      LIB_HOME[$LNETCDF]=$SPECIFIED_LIB_DIR
+      #LIB_LINK[$LNETCDF]='static'
+    fi
+    if [ "${LIB_STAT[$LHDF5]}" == 'enabled' ] ; then
+      echo "  Using hdf5 from $SPECIFIED_LIB_DIR"
+      LIB_STAT[$LHDF5]='specified'
+      LIB_HOME[$LHDF5]=$SPECIFIED_LIB_DIR
+      #LIB_LINK[$LHDF5]='static'
+    fi
+    if [ "${LIB_STAT[$LARPACK]}" == 'enabled' -a "$BLAS_TYPE" != 'openblas' ] ; then
+      echo "  Using arpack from $SPECIFIED_LIB_DIR"
+      LIB_STAT[$LARPACK]='specified'
+      LIB_HOME[$LARPACK]=$SPECIFIED_LIB_DIR
+      #LIB_LINK[$LARPACK]='static'
+    fi
+    if [ "${LIB_STAT[$LFFTW3]}" == 'enabled' ] ; then
+      echo "  Using fftw from $SPECIFIED_LIB_DIR"
+      LIB_STAT[$LFFTW3]='specified'
+      LIB_HOME[$LFFTW3]=$SPECIFIED_LIB_DIR
+      #LIB_LINK[$LFFTW3]='static'
+    fi
+    if [ "${LIB_STAT[$LBZIP]}" == 'enabled' ] ; then
+      echo "  Using bzip from $SPECIFIED_LIB_DIR"
+      LIB_STAT[$LBZIP]='specified'
+      LIB_HOME[$LBZIP]=$SPECIFIED_LIB_DIR
+      #LIB_LINK[$LBZIP]='static'
+    fi
+    if [ "${LIB_STAT[$LZIP]}" == 'enabled' ] ; then
+      echo "  Using zlib from $SPECIFIED_LIB_DIR"
+      LIB_STAT[$LZIP]='specified'
+      LIB_HOME[$LZIP]=$SPECIFIED_LIB_DIR
+      #LIB_LINK[$LZIP]='static'
+    fi
+    if [ "${LIB_STAT[$LZIP]}" == 'enabled' ] ; then
+      echo "  Using zlib from $SPECIFIED_LIB_DIR"
+      LIB_STAT[$LZIP]='specified'
+      LIB_HOME[$LZIP]=$SPECIFIED_LIB_DIR
+      #LIB_LINK[$LZIP]='static'
+    fi
+    if [ "${LIB_STAT[$LLAPACK]}" == 'enabled' ] ; then
+      echo "  Using lapack from $SPECIFIED_LIB_DIR"
+      LIB_STAT[$LLAPACK]='specified'
+      LIB_HOME[$LLAPACK]=$SPECIFIED_LIB_DIR
+      #LIB_LINK[$LLAPACK]='static'
+    fi
+    if [ "${LIB_STAT[$LBLAS]}" == 'enabled' ] ; then
+      echo "  Using blas from $SPECIFIED_LIB_DIR"
+      LIB_STAT[$LBLAS]='specified'
+      LIB_HOME[$LBLAS]=$SPECIFIED_LIB_DIR
+      #LIB_LINK[$LBLAS]='static'
+    fi
+  fi
   # Set up library paths
   for ((i=0; i < $NLIB; i++)) ; do
     lhome=''
@@ -1503,23 +1625,24 @@ SetupLibraries() {
             lflag="-L$lhdir ${LIB_FLAG[$i]}"
           fi
           # Library-specific CPPTRAJ_INC fixes when home specified.
-          if [ $i -eq $LREADLINE ] ; then
-            linc="$linc/readline"
-          fi
+          #if [ $i -eq $LREADLINE ] ; then
+          #  linc="$linc/readline"
+          #fi
           if [ $i -eq $LXDRFILE ] ; then
             linc="$linc/xdrfile"
           fi
         fi
         # Library-specific flag fixes
-        if [ $i -eq $LREADLINE ] ; then
+#        if [ $i -eq $LREADLINE ] ; then
           # For external readline, we need to link libtermcap for windows
           # and libncurses for Linux
           #if [ $USE_WINDOWS -eq 1 ]; then
-            lflag="$lflag -ltermcap"
+#            lflag="$lflag -ltermcap"
           #else
           #  lflag="$lflag -lncurses"
           #fi
-        elif [ $i -eq $LSANDER ] ; then
+#        elif [ $i -eq $LSANDER ] ; then
+        if [ $i -eq $LSANDER ] ; then
           # Always specify libsander location to prevent pulling in
           # other amber libraries.
           if [ ! -f "${LIB_FLAG[$LSANDER]}" ] ; then
@@ -1560,6 +1683,29 @@ SetupLibraries() {
 }
 
 #-------------------------------------------------------------------------------
+# Check compiler version.
+CheckCompilerVersion() {
+  c_compiler=$1
+  basecc=`basename $c_compiler`
+  # Use -v
+  cc_version=`$c_compiler -v 2>&1 | grep -E "$basecc |[vV]ersion " \
+                  | sed -e 's/Open64//' -e 's/(.*)//' -e 's/^[a-zA-Z :]* //' -e 's/ .*//'`
+  if [ -z "$cc_version" ] ; then
+     echo "Error: $c_compiler is not well formed or produces unusual version details!"
+     echo "       Check for a CC environment variable."
+     exit 1
+  else
+     echo "  The version of $c_compiler is $cc_version"
+  fi
+  # use '.' as only field delimiter.
+  cc_version=`echo $cc_version | sed -e 's/-/./'`
+  cc_version_major=`echo $cc_version | cut -d'.' -f1`
+  cc_version_minor=`echo $cc_version | cut -d'.' -f2`
+  cc_version_patch=`echo $cc_version | cut -d'.' -f3`
+  #echo "DEBUG: $cc_version $cc_version_major $cc_version_minor $cc_version_patch"
+  #exit 1 # DEBUG
+}
+
 # Set up compiler commands and compiler options
 SetupCompilers() {
   if [ ! -z "$CXX" ] ; then echo "C++ compiler (CXX) set to $CXX" ; fi
@@ -1625,6 +1771,13 @@ SetupCompilers() {
       picflag='-fPIC'
       C11FLAG='-std=gnu++11'
       staticlink='-lquadmath'
+      # Check compiler version
+      CheckCompilerVersion $CC 
+      # Set version-specific flags
+      if [ $cc_version_major -ge 14 ] ; then
+        # Needed for readline with gcc >= 14
+        CFLAGS="$CFLAGS -D_DEFAULT_SOURCE -D_XOPEN_SOURCE"
+      fi
       ;;
    'clang' )
       if [ -z "$CC" ]; then CC=clang; fi
@@ -1638,6 +1791,13 @@ SetupCompilers() {
       FLINK='-lgfortran'
       picflag='-fPIC'
       C11FLAG='-std=c++11'
+      # Check the GNU compiler version
+      CheckCompilerVersion gcc
+      # Set version-specific flags
+      if [ $cc_version_major -ge 13 ] ; then
+        # Needed for readline with gcc >= 13
+        CFLAGS="$CFLAGS -D_DEFAULT_SOURCE -D_XOPEN_SOURCE"
+      fi
       ;;
    'oneapi' )
       if [ -z "$CC" ]; then CC=icx; fi
@@ -2052,8 +2212,10 @@ SetupMKL() {
 # 11.1-11.4                           .............................................................................
 # 11.5-11.7.1                         ..................................................................................
 # 11.8                                .........................................................................................
-# 12.0-12.5                                       ..................................................................................
-CUDA_SM_LIST='sm_20 sm_21 sm_30 sm_32 sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87 sm_89 sm_90'
+# 12.0-12.6                                       ..................................................................................
+# 12.8                                            ..........................................................................................
+# 12.9                                            .................................................................................................
+CUDA_SM_LIST='sm_20 sm_21 sm_30 sm_32 sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87 sm_89 sm_90 sm_120 sm_121'
 
 # SetSupportedSM <major v> <minor v>
 # Set Shader models supported by current cuda version
@@ -2096,13 +2258,18 @@ SetSupportedSM() {
       CUDA_SM_LIST='sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86'
     fi
   elif [ $1 -eq 12 ] ; then
-    if [ $2 -gt 5 ] ; then
-      echo "CUDA > 12.5 has not been tested yet. Set SHADER_MODEL manually."
+    if [ $2 -le 7 ] ; then
+      CUDA_SM_LIST='sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87 sm_89 sm_90'
+    elif [ $2 -eq 8 ] ; then
+      CUDA_SM_LIST='sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87 sm_89 sm_90 sm_120'
+    elif [ $2 -eq 9 ] ; then
+      CUDA_SM_LIST='sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87 sm_89 sm_90 sm_120 sm_121'
+    else
+      echo "CUDA 12.$2 has not been tested yet. Set SHADER_MODEL manually."
       exit 1
     fi
-    CUDA_SM_LIST='sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87 sm_89 sm_90'
   else
-    echo "Automatic support for CUDA $1.$2 is currently unsupported. Set SHADER_MODEL manually."
+    echo "Automatic shader model detection for CUDA $1.$2 is currently unsupported. Set SHADER_MODEL manually."
     exit 1
   fi
   echo "  Supported shader models: $CUDA_SM_LIST"
@@ -2437,6 +2604,20 @@ EOF
 }
 
 #-------------------------------------------------------------------------------
+# Add cmake prefix path
+AddCmakePrefixPath() {
+  # Search for existing
+  for ((idx1=0; idx1 < $icpp; idx1++)) ; do
+    if [ "$1" = "${cmake_prefix_paths[$idx1]}" ] ; then
+      #echo DEBUG duplicate path $1
+      return 0
+    fi
+  done
+  #echo DEBUG add cmake prefix path $icpp $1
+  cmake_prefix_paths[$icpp]=$1
+  ((icpp++))
+}
+
 # Use cmake to configure build.
 SetupCmake() {
   CMAKE=`which cmake`
@@ -2511,6 +2692,35 @@ SetupCmake() {
   if [ $COMPILE_VERBOSE -eq 1 ] ; then
     cmake_options="$cmake_options -DCMAKE_VERBOSE_MAKEFILE=TRUE"
   fi
+  # Libraries
+  icpp=0
+  for ((idx=0; idx < $NLIB; idx++)) ; do
+    if [ "${LIB_STAT[$idx]}" = 'specified' ] ; then
+      #echo Lib $idx # DEBUG
+      AddCmakePrefixPath "${LIB_HOME[$idx]}"
+    fi
+  done
+  #if [ "${LIB_STAT[$LNETCDF]}" = 'specified' ] ; then
+  #  AddCmakePrefixPath "${LIB_HOME[$LNETCDF]}"
+  #fi
+  #if [ "${LIB_STAT[$LZIP]}" = 'specified' ] ; then
+  #  AddCmakePrefixPath "${LIB_HOME[$LZIP]}"
+  #fi
+  #if [ "${LIB_STAT[$LBZIP]}" = 'specified' ] ; then
+  #  AddCmakePrefixPath "${LIB_HOME[$LBZIP]}"
+  #fi
+
+  if [ $icpp -gt 0 ] ; then
+    cmppstring=""
+    for ((idx=0; idx < $icpp; idx++)) ; do
+      if [ ! -z "$cmppstring" ] ; then
+        cmppstring="$cmppstring;${cmake_prefix_paths[$idx]}"
+      else
+        cmppstring="${cmake_prefix_paths[$idx]}"
+      fi
+    done
+    cmake_options="$cmake_options -DCMAKE_PREFIX_PATH=$cmppstring"
+  fi  
   echo "  Cmake options: $WORKDIR $cmake_options"
   # Run cmake
   $CMAKE $WORKDIR $cmake_options
@@ -2526,6 +2736,12 @@ if [ -z "`which awk`" ] ; then
 fi
 if [ -z "`which grep`" ] ; then
   Err "CPPTRAJ configure requires 'grep'."
+fi
+
+# Check for the 'install/ binary
+INSTALL=`which install`
+if [ -z "$INSTALL" ] ; then
+  Err "CPPTRAJ configure requires 'install'."
 fi
 
 #echo "Path to configure: $WORKDIR"
@@ -2605,6 +2821,7 @@ while [ ! -z "$1" ] ; do
     '-tune'          ) USE_OPT=2 ;;
     '-noc++11'       ) C11_SUPPORT='no' ;;
     '-windows'       ) PLATFORM='windows' ;;
+    '-pubfft'        ) LIB_STAT[$LFFTW3]='off' ;;
     # Cpptraj options
     '-nolfs'           ) LFS='' ;;
     '-single-ensemble' ) USE_SINGLEENSEMBLE=1 ;;
@@ -2631,6 +2848,7 @@ while [ ! -z "$1" ] ; do
     '--requires-pthread') REQUIRES_PTHREAD=1 ;;
     '--buildlibs'       ) BUILD_LIBS=1 ;;
     '--nobuildlibs'     ) BUILD_LIBS=0 ; BUILDTESTOPT='' ;;
+    '--libdir'          ) SPECIFIED_LIB_DIR=$VALUE ;;
     # Install options
     '--compile-verbose' ) COMPILE_VERBOSE=1 ;;
     '-noclean'          ) CLEAN='no' ;;
@@ -2914,6 +3132,10 @@ CPPTRAJINC="$CPPTRAJINC"
 CPPTRAJDAT="$CPPTRAJDAT"
 
 INSTALL_TARGETS=$INSTALL_TARGETS
+
+INSTALL=$INSTALL
+INSTALL_PROGRAM=$INSTALL
+INSTALL_DATA=$INSTALL -m 644
 
 EOF
 if [ ! -z "$DBGFLAGS" ] ; then
