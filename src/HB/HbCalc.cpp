@@ -214,6 +214,16 @@ int HbCalc::SetupHbCalc(Topology const& topIn, Box const& boxIn) {
   return 0;
 }
 
+/** Create Both, Acceptor, and DonorH arrays for doing the original
+  * non-pair list hbond calc.
+  */
+int HbCalc::createBothAcceptorDonorHarrays() {
+  hb_Both_.clear();
+  hb_Acceptor_.clear();
+  hb_DonorH_.clear();
+  // First, get donor/acceptor and acceptor atoms.
+  for (int idx = 0; idx != plMask_.Nselected(); idx++)
+
 /// \return True if given atom is F, O, or N
 bool HbCalc::IsFON( Atom const& at ) {
   return ( at.Element() == Atom::OXYGEN ||
