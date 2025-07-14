@@ -54,6 +54,8 @@ class HbCalc {
     static inline bool IsFON( Atom const& );
     /// \return True if interaction is valid between given types
     static inline bool validInteraction(Type, Type);
+    /// Set up legacy arrays for old HB calc loop
+    int createBothAcceptorDonorHarrays();
     /// Set up pair list for generalMask_ and given Topology
     int setupPairlistAtomMask(Topology const&);
     /// Set up with one or more specified individual atom masks
@@ -84,6 +86,10 @@ class HbCalc {
     AtomMask donorHmask_;   ///< Explicit donor hydrogen atom mask
     AtomMask solventDonorMask_;  ///< Explicit solvent donor mask
     AtomMask solventAcceptorMask_; ///< Explicit solvent acceptor mask
+    Iarray hb_Both_;               ///< LEGACY: Array containing atom indices of atoms that can be donors/acceptors
+    Iarray hb_Acceptor_;           ///< LEGACY: Array containing atom indices of atoms that can be acceptors
+    Xarray hb_DonorH_;             ///< LEGACY: For each atom in hb_Both_, indices of all bonded hydrogen atoms
+    unsigned int hb_bothEnd_;      ///< LEGACY: Index in hb_Both_ where donor-only atoms begin.
     double dcut2_;         ///< Heavy atom distance cutoff (Ang) squared
     double acut_;          ///< Angle cutoff in radians
     double plcut_;         ///< Pair list cutoff in Angstroms

@@ -221,8 +221,32 @@ int HbCalc::createBothAcceptorDonorHarrays() {
   hb_Both_.clear();
   hb_Acceptor_.clear();
   hb_DonorH_.clear();
+  hb_bothEnd_ = 0;
   // First, get donor/acceptor and acceptor atoms.
   for (int idx = 0; idx != plMask_.Nselected(); idx++)
+  {
+    if ( plTypes_[idx] == BOTH) {
+      hb_Both_.push_back( plMask_[idx] );
+      hb_DonorH_.push_back( Iarray() );
+      for (Iarray::const_iterator ht = plHatoms_[idx].begin(); ht != plHatoms_[idx].end(); ++ht)
+        hb_DonorH_.back().push_back( *ht );
+    } else if (plTypes_[idx] == ACCEPTOR) {
+      hb_Acceptor_.push_back( plMask_[idx] );
+    }
+  }
+  hb_bothEnd_ = hb_Both_.size();
+  // Next, get donor-only atoms.
+  for (int idx = 0; idx != plMask_.Nselected(); idx++)
+  {
+    if ( plTypes_[idx] == DONOR) {
+      hb_Both_.push_back( plMask_[idx] );
+      hb_DonorH_.push_back( Iarray() );
+      for (Iarray::const_iterator ht = plHatoms_[idx].begin(); ht != plHatoms_[idx].end(); ++ht)
+        hb_DonorH_.back().push_back( *ht );
+    }
+  }
+  return 0;
+}
 
 /// \return True if given atom is F, O, or N
 bool HbCalc::IsFON( Atom const& at ) {
