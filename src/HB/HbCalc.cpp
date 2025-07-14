@@ -186,6 +186,7 @@ int HbCalc::SetupHbCalc(Topology const& topIn, Box const& boxIn) {
   // For backwards compatibility, if saving time series we need to store
   // the donor hydrogen indices and acceptor heavy atom indices.
   // We also need to do this if we are saving an interaction matrix.
+  // TODO should this be consolidated with code in createBothAcceptorDonorHarrays()?
   Iarray acceptorOnly_indices, donor_h_indices, both_indices, donorOnly_indices;
   if (hbdata_.Series() || hbdata_.InteractionMatrix()) {
     for (int idx = 0; idx != plMask_.Nselected(); idx++) {
@@ -209,6 +210,25 @@ int HbCalc::SetupHbCalc(Topology const& topIn, Box const& boxIn) {
   {
     mprinterr("Error: Could not set up hbond Topology data.\n");
     return 1;
+  }
+  // If not using the pairlist, set up the legacy arrays TODO might want to only do this below
+  // a certain number of atoms.
+  if (!use_pl_) {
+    if (createBothAcceptorDonorHarrays()) {
+      mprinterr("Error: Could not create donor, acceptor, and donor H arrays.\n");
+      return 1;
+    }
+    mprintf("DEBUG: Both:\n");
+    for (unsigned int idx = 0; idx != hb_Both_.size(); idx++) {
+      mprintf("\t  %20s %8i", topIn.TruncResAtomName(hb_Both_[idx]).c_str(), hb_Both_[idx]+1);
+      for (Iarray::const_iterator ht = hb_DonorH_[idx].begin(); ht != hb_DonorH_[idx].end(); ht++)
+        mprintf(" (%4s %8i)", topIn[*ht].c_str(), *ht + 1);
+      mprintf("\n");
+    }
+    mprintf("DEBUG: Acceptor only:\n");
+    for (unsigned int idx = 0; idx != hb_Acceptor_.size(); idx++) {
+      mprintf("\t  %20s %8i\n", topIn.TruncResAtomName(hb_Acceptor_[idx]).c_str(), hb_Acceptor_[idx]+1);
+    }
   }
 
   return 0;
