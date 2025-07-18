@@ -944,8 +944,10 @@ int HbCalc::RunCalc(Frame const& currentFrame, int frameNum, int trajoutNum)
 {
   if (use_pl_ && currentFrame.BoxCrd().HasBox())
     return RunCalc_PL(currentFrame, frameNum, trajoutNum);
-  else
+  else if (hbdata_.CalcSolvent())
     return RunCalc_NoPL(currentFrame, frameNum, trajoutNum);
+  else
+    return RunCalc_Original(currentFrame, frameNum, trajoutNum);
 }
 
 // ---------------------------------------------------------
@@ -956,6 +958,7 @@ int HbCalc::RunCalc_Original(Frame const& currentFrame, int frameNum, int trajou
   t_action_.Start();
   t_hbcalc_.Start();
 # endif
+  mprintf("DEBUG: Original hbond calc loop.\n");
 //  if (imageOpt_.ImagingEnabled()) {
 //    //frm.Frm().BoxCrd().PrintDebug("hbond");
 //    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
