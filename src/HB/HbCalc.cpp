@@ -20,7 +20,8 @@ HbCalc::HbCalc() :
   acut_(0),
   plcut_(0),
   calcIons_(false),
-  use_pl_(false)
+  use_pl_(false),
+  disable_pl_(false)
 {}
 
 /** Set debug level. */
@@ -30,6 +31,7 @@ void HbCalc::SetDebug(int debugIn) {
 
 /** Initialize */
 int HbCalc::InitHbCalc(ArgList& argIn, DataSetList* masterDslPtr, DataFileList& DFL, int debugIn) {
+  disable_pl_ = argIn.hasKey("disablepl");
   double dcut = argIn.getKeyDouble("dist",3.0);
   dcut = argIn.getKeyDouble("distance", dcut); // for PTRAJ compat.
   dcut2_ = dcut * dcut;
@@ -142,6 +144,8 @@ void HbCalc::PrintHbCalcOpts() const {
   else
     mprintf("\tNo angle cutoff.\n");
   mprintf("\tPair list cutoff: %g Ang.\n", plcut_);
+  if (disable_pl_)
+    mprintf("\tPairlist disabled; will not use pairlist even if box info is present.\n");
   if (calcIons_)
     mprintf("\tWill calculate hydrogen bonds to ions found in mask '%s'\n", generalMask_.MaskString());
   hbdata_.PrintHbDataOpts();
@@ -181,6 +185,10 @@ int HbCalc::SetupHbCalc(Topology const& topIn, Box const& boxIn) {
   } else {
     use_pl_ = false;
     mprintf("\tNo box info present; not using pair list.\n");
+  }
+  if (disable_pl_ && use_pl_) {
+    mprintf("\t'disablepl' was specified. Disabling pairlist use.\n");
+    use_pl_ = false;
   }
 
   // For backwards compatibility, if saving time series we need to store
