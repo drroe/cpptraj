@@ -958,7 +958,7 @@ int HbCalc::RunCalc_Original(Frame const& currentFrame, int frameNum, int trajou
   t_action_.Start();
   t_hbcalc_.Start();
 # endif
-  mprintf("DEBUG: Original hbond calc loop.\n");
+  //mprintf("DEBUG: Original hbond calc loop.\n");
 //  if (imageOpt_.ImagingEnabled()) {
 //    //frm.Frm().BoxCrd().PrintDebug("hbond");
 //    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
