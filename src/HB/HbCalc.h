@@ -71,8 +71,10 @@ class HbCalc {
     void CalcHbonds(int, double, int, int, Frame const&, int&, int);
     /// Run hydrogen bond calc on a frame using pairlist
     int RunCalc_PL(Frame const&, int, int);
-    /// Run hydrogen bond calc on a frame, no pairlist
+    /// Run hydrogen bond calc on a frame, no pairlist but using pairlist mask
     int RunCalc_NoPL(Frame const&, int, int);
+    /// Run hydrogen bond calc using original method (no imaging, U-U only)
+    int RunCalc_Original(Frame const&, int, int);
 
     PairList pairList_;    ///< Pair list for atoms involved in hydrogen bond calc
     AtomMask generalMask_; ///< Mask of atoms to potentially calculate hydrogen bonds for

@@ -50,6 +50,8 @@ class HbData {
     bool InteractionMatrix() const { return (UU_matrix_byRes_ != 0); }
     /// \return Debug level
     int Debug() const { return debug_; }
+    /// \return Pointer to current topology
+    Topology const* CurrentParmPtr() const { return CurrentParm_; }
     /// \return String containing estimated memory usage
     std::string MemoryUsage(size_t, size_t, size_t) const;
 

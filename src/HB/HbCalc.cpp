@@ -881,7 +881,7 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame, int frameNum, int trajoutNum)
   return 0;
 }
 
-/** Run calculation without the pairlist */
+/** Run calculation without the pairlist but still using the pairlist mask. */
 int HbCalc::RunCalc_NoPL(Frame const& currentFrame, int frameNum, int trajoutNum)
 {
 # ifdef TIMER
@@ -947,6 +947,295 @@ int HbCalc::RunCalc(Frame const& currentFrame, int frameNum, int trajoutNum)
   else
     return RunCalc_NoPL(currentFrame, frameNum, trajoutNum);
 }
+
+// ---------------------------------------------------------
+/** Original hbond calculation. Currently no imaging, solute-solute hbonds only. */
+int HbCalc::RunCalc_Original(Frame const& currentFrame, int frameNum, int trajoutNum)
+{
+# ifdef TIMER
+  t_action_.Start();
+  t_hbcalc_.Start();
+# endif
+//  if (imageOpt_.ImagingEnabled()) {
+//    //frm.Frm().BoxCrd().PrintDebug("hbond");
+//    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
+//  }
+  // Loop over all solute donor sites
+//# ifdef TIMER
+//  t_uu_.Start();
+//# endif
+  Topology const* CurrentParm = hbdata_.CurrentParmPtr();
+  int numHB = 0;
+  int sidx0;
+  int sidx0end = (int)hb_Both_.size();
+  if (hbdata_.NoIntramol()) {
+    // Ignore intramolecular hydrogen bonds
+    int mol0 = -1;
+#   ifdef _OPENMP
+    // Use numHB to track thread. Will be actually counted after the parallel section.
+#   pragma omp parallel private(sidx0, numHB) firstprivate(mol0)
+    {
+    numHB = omp_get_thread_num();
+#   pragma omp for
+#   endif
+    for (sidx0 = 0; sidx0 < sidx0end; sidx0++)
+    {
+      //Site const& Site0 = Both_[sidx0];
+      int hvyAtmIdx0 = hb_Both_[sidx0];
+      const double* XYZ0 = currentFrame.XYZ( hvyAtmIdx0 );
+      mol0 = (*CurrentParm)[hvyAtmIdx0].MolNum(); 
+      // Loop over solute sites that can be both donor and acceptor
+      for (unsigned int sidx1 = sidx0 + 1; sidx1 < hb_bothEnd_; sidx1++)
+      {
+        //Site const& Site1 = Both_[sidx1];
+        int hvyAtmIdx1 = hb_Both_[sidx1];
+        if (mol0 != (*CurrentParm)[hvyAtmIdx1].MolNum()) {
+          const double* XYZ1 = currentFrame.XYZ( hvyAtmIdx1 );
+          //double dist2 = DIST2( imageOpt_.ImagingType(), XYZ0, XYZ1, frm.Frm().BoxCrd() );
+          double dist2 = DIST2_NoImage( XYZ0, XYZ1 );
+          if ( !(dist2 > dcut2_) )
+          {
+            // Site 0 donor, Site 1 acceptor
+            //CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, hvyAtmIdx1, XYZ1, frm.Frm(), numHB, frm.TrajoutNum());
+            calc_UU_Hbonds(frameNum, dist2, hvyAtmIdx0, hb_DonorH_[sidx0], hvyAtmIdx1, currentFrame, numHB, trajoutNum);
+            // Site 1 donor, Site 0 acceptor
+            //CalcSiteHbonds(frameNum, dist2, Site1, XYZ1, hvyAtmIdx0, XYZ0, frm.Frm(), numHB, frm.TrajoutNum());
+            calc_UU_Hbonds(frameNum, dist2, hvyAtmIdx1, hb_DonorH_[sidx1], hvyAtmIdx0, currentFrame, numHB, trajoutNum);
+          }
+        }
+      }
+      // Loop over solute acceptor-only
+      for (Iarray::const_iterator a_atom = hb_Acceptor_.begin(); a_atom != hb_Acceptor_.end(); ++a_atom)
+      {
+        if (mol0 != (*CurrentParm)[*a_atom].MolNum()) {
+          const double* XYZ1 = currentFrame.XYZ( *a_atom );
+          //double dist2 = DIST2( imageOpt_.ImagingType(), XYZ0, XYZ1, frm.Frm().BoxCrd() );
+          double dist2 = DIST2_NoImage( XYZ0, XYZ1 );
+          if ( !(dist2 > dcut2_) )
+            //CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, *a_atom, XYZ1, frm.Frm(), numHB, frm.TrajoutNum());
+            calc_UU_Hbonds(frameNum, dist2, hvyAtmIdx0, hb_DonorH_[sidx0], *a_atom, currentFrame, numHB, trajoutNum);
+        }
+      }
+    }
+#   ifdef _OPENMP
+    } // END pragma omp parallel, nointramol
+#   endif
+  } else {
+    // All hydrogen bonds
+#   ifdef _OPENMP
+    // Use numHB to track thread. Will be actually counted after the parallel section.
+#   pragma omp parallel private(sidx0, numHB)
+    {
+    numHB = omp_get_thread_num();
+#   pragma omp for
+#   endif
+    for (sidx0 = 0; sidx0 < sidx0end; sidx0++)
+    {
+      //Site const& Site0 = Both_[sidx0];
+      int hvyAtmIdx0 = hb_Both_[sidx0];
+      const double* XYZ0 = currentFrame.XYZ( hvyAtmIdx0 );
+      // Loop over solute sites that can be both donor and acceptor
+      for (unsigned int sidx1 = sidx0 + 1; sidx1 < hb_bothEnd_; sidx1++)
+      {
+        //Site const& Site1 = Both_[sidx1];
+        int hvyAtmIdx1 = hb_Both_[sidx1];
+        const double* XYZ1 = currentFrame.XYZ( hvyAtmIdx1 );
+        //double dist2 = DIST2( imageOpt_.ImagingType(), XYZ0, XYZ1, frm.Frm().BoxCrd() );
+        double dist2 = DIST2_NoImage( XYZ0, XYZ1 );
+        if ( !(dist2 > dcut2_) )
+        {
+          // Site 0 donor, Site 1 acceptor
+          //CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, hvyAtmIdx1, XYZ1, frm.Frm(), numHB, frm.TrajoutNum());
+          calc_UU_Hbonds(frameNum, dist2, hvyAtmIdx0, hb_DonorH_[sidx0], hvyAtmIdx1, currentFrame, numHB, trajoutNum);
+          // Site 1 donor, Site 0 acceptor
+          //CalcSiteHbonds(frameNum, dist2, Site1, XYZ1, hvyAtmIdx0, XYZ0, frm.Frm(), numHB, frm.TrajoutNum());
+          calc_UU_Hbonds(frameNum, dist2, hvyAtmIdx1, hb_DonorH_[sidx1], hvyAtmIdx0, currentFrame, numHB, trajoutNum);
+        }
+      }
+      // Loop over solute acceptor-only
+      for (Iarray::const_iterator a_atom = hb_Acceptor_.begin(); a_atom != hb_Acceptor_.end(); ++a_atom)
+      {
+        const double* XYZ1 = currentFrame.XYZ( *a_atom );
+        //double dist2 = DIST2( imageOpt_.ImagingType(), XYZ0, XYZ1, frm.Frm().BoxCrd() );
+        double dist2 = DIST2_NoImage( XYZ0, XYZ1 );
+        if ( !(dist2 > dcut2_) )
+          //CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, *a_atom, XYZ1, frm.Frm(), numHB, frm.TrajoutNum());
+          calc_UU_Hbonds(frameNum, dist2, hvyAtmIdx0, hb_DonorH_[sidx0], *a_atom, currentFrame, numHB, trajoutNum);
+      }
+    }
+#   ifdef _OPENMP
+    } // END pragma omp parallel
+#    endif
+  } // END if nointramol
+
+# ifdef _OPENMP
+  // Add all found hydrogen bonds
+  numHB = 0; 
+  for (std::vector<Harray>::iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it) {
+    numHB += (int)it->size();
+    for (Harray::const_iterator hb = it->begin(); hb != it->end(); ++hb)
+      AddUU(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), frm.TrajoutNum());
+    it->clear();
+  }
+# endif
+//  NumHbonds_->Add(frameNum, &numHB); // NOTE: Handled by IncrementNframes() below
+//# ifdef TIMER
+//  t_uu_.Stop();
+//# endif
+/*
+  // Loop over all solvent sites
+  if (calcSolvent_) {
+#   ifdef TIMER
+    t_uv_.Start();
+#   endif
+    solvent2solute_.clear();
+    numHB = 0;
+    int vidx;
+    int vidxend = (int)SolventSites_.size();
+#   ifdef _OPENMP
+    // Use numHB to track thread. Will be actually counted after the parallel section.
+#   pragma omp parallel private(vidx, numHB)
+    {
+    numHB = omp_get_thread_num();
+#   pragma omp for
+#   endif
+    for (vidx = 0; vidx < vidxend; vidx++)
+    {
+      Site const& Vsite = SolventSites_[vidx];
+      const double* VXYZ = frm.Frm().XYZ( Vsite.Idx() );
+      // Loop over solute sites that can be both donor and acceptor
+      for (unsigned int sidx = 0; sidx < bothEnd_; sidx++)
+      {
+        const double* UXYZ = frm.Frm().XYZ( Both_[sidx].Idx() );
+        double dist2 = DIST2( imageOpt_.ImagingType(), VXYZ, UXYZ, frm.Frm().BoxCrd() );
+        if ( !(dist2 > dcut2_) )
+        {
+          // Solvent site donor, solute site acceptor
+          CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, Both_[sidx].Idx(), UXYZ, frm.Frm(), numHB, false, frm.TrajoutNum());
+          // Solvent site acceptor, solute site donor
+          CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true, frm.TrajoutNum());
+        }
+      }
+      // Loop over solute sites that are donor only
+      for (unsigned int sidx = bothEnd_; sidx < Both_.size(); sidx++)
+      {
+        const double* UXYZ = frm.Frm().XYZ( Both_[sidx].Idx() );
+        double dist2 = DIST2( imageOpt_.ImagingType(), VXYZ, UXYZ, frm.Frm().BoxCrd() );
+        if ( !(dist2 > dcut2_) )
+          // Solvent site acceptor, solute site donor
+          CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true, frm.TrajoutNum());
+      }
+      // Loop over solute sites that are acceptor only
+      for (Iarray::const_iterator a_atom = Acceptor_.begin(); a_atom != Acceptor_.end(); ++a_atom)
+      {
+        const double* UXYZ = frm.Frm().XYZ( *a_atom );
+        double dist2 = DIST2( imageOpt_.ImagingType(), VXYZ, UXYZ, frm.Frm().BoxCrd() );
+        if ( !(dist2 > dcut2_) )
+          // Solvent site donor, solute site acceptor
+          CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, *a_atom, UXYZ, frm.Frm(), numHB, false, frm.TrajoutNum());
+      }
+    } // END loop over solvent sites
+#   ifdef _OPENMP
+    } // END pragma omp parallel
+    // Add all found hydrogen bonds
+    numHB = 0; 
+    for (std::vector<Harray>::iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it) {
+      numHB += (int)it->size();
+      for (Harray::const_iterator hb = it->begin(); hb != it->end(); ++hb)
+        AddUV(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), (bool)hb->Frames(), frm.TrajoutNum());
+      it->clear();
+    }
+#   endif
+    NumSolvent_->Add(frameNum, &numHB);
+#   ifdef TIMER
+    t_uv_.Stop();
+#   endif
+    // Determine number of bridging waters
+#   ifdef TIMER
+    t_bridge_.Start();
+#   endif
+    numHB = 0;
+    std::string bridgeID;
+    for (RmapType::const_iterator bridge = solvent2solute_.begin();
+                                  bridge != solvent2solute_.end(); ++bridge)
+    {
+      // bridge->first is solvent residue number.
+      // bridge->second is a set of solute residue numbers the solvent
+      // residue is bound to.
+      // If solvent molecule is bound to 2 or more different solute residues,
+      // it is bridging. 
+      if ( bridge->second.size() > 1) {
+        bool isBridge = true;
+        if (noIntramol_) {
+          // If all residues belong to the same molecule and 'nointramol',
+          // do not consider this bridge.
+          int firstmol = -1;
+          unsigned int nequal = 1;
+          for (std::set<int>::const_iterator res = bridge->second.begin();
+                                             res != bridge->second.end(); ++res)
+          {
+            int currentMol;
+            if (bridgeByAtom_)
+              currentMol = (*CurrentParm_)[*res].MolNum();
+            else
+              currentMol = (*CurrentParm_)[CurrentParm_->Res(*res).FirstAtom()].MolNum();
+            if ( firstmol == -1 )
+              firstmol = currentMol;
+            else if (currentMol == firstmol)
+              ++nequal;
+          }
+          isBridge = (nequal < bridge->second.size());
+        }
+        if (isBridge) {
+          // numHB is used to track the number of bridges
+          ++numHB;
+          // Bridging Solvent residue number
+          bridgeID.append(integerToString( bridge->first+1 ) + "(");
+          // Loop over solute residues this solvent is bound to.
+          for (std::set<int>::const_iterator res = bridge->second.begin();
+                                             res != bridge->second.end(); ++res)
+            // Solute residue number being bridged
+            bridgeID.append( integerToString( *res+1 ) + "+" );
+          bridgeID.append("),");
+          // Find bridge in map based on this combo of residues (bridge->second)
+          BmapType::iterator b_it = BridgeMap_.lower_bound( bridge->second );
+          if (b_it == BridgeMap_.end() || b_it->first != bridge->second) {
+            // New Bridge
+            DataSet_integer* bds = 0; 
+            if (Bseries_) {
+              bds = (DataSet_integer*)
+                masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,CreateBridgeLegend("bridge",bridge->second),BridgeMap_.size()));
+              // Create a legend from the indices.
+              bds->SetLegend( CreateBridgeLegend( "B", bridge->second ) );
+              if (Bseriesout_ != 0) Bseriesout_->AddDataSet( bds );
+            }
+            b_it = BridgeMap_.insert( b_it, std::pair<std::set<int>,Bridge>(bridge->second, Bridge(bds, splitFrames_)) );
+          }
+          // Increment bridge #frames
+          b_it->second.Update(frameNum, splitFrames_, frm.TrajoutNum());
+        }
+      }
+    } // END LOOP OVER solvent2solute_
+    if (bridgeID.empty())
+      bridgeID.assign("None");
+    NumBridge_->Add(frameNum, &numHB);
+    BridgeID_->Add(frameNum, bridgeID.c_str());
+#   ifdef TIMER
+    t_bridge_.Stop();
+#   endif
+  } // END if calcSolvent_
+*/
+
+# ifdef TIMER
+  t_hbcalc_.Stop();
+# endif
+  hbdata_.IncrementNframes(frameNum, trajoutNum);
+# ifdef TIMER
+  t_action_.Stop();
+# endif
+  return 0;
+}
+// ---------------------------------------------------------
 
 /** Finish HB calc and do output. */
 void HbCalc::FinishHbCalc() {
