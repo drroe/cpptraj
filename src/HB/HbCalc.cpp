@@ -622,13 +622,13 @@ double HbCalc::Angle(const double* XA, const double* XH, const double* XD, Box c
   * acceptor heavy atoms.
   */
 void HbCalc::calc_UU_Hbonds(int frameNum, double dist2,
-                            int d_idx, Iarray const& Hatoms,
-                            int a_idx,
+                            int d_atom, Iarray const& Hatoms,
+                            int a_atom,
                             Frame const& frmIn, int& numHB,
                             int trajoutNum)
 {
-  int d_atom = plMask_[d_idx];
-  int a_atom = plMask_[a_idx]; 
+  //int d_atom = plMask_[d_idx];
+  //int a_atom = plMask_[a_idx]; 
   // Determine if angle cutoff is satisfied
   for (Iarray::const_iterator h_atom = Hatoms.begin(); h_atom != Hatoms.end(); ++h_atom)
   {
@@ -719,10 +719,10 @@ void HbCalc::CalcHbonds(int frameNum, double dist2,
     // DONOR BOTH
     // ACCEPTOR BOTH
     if ((a0type == BOTH || a0type == DONOR)    && (a1type == BOTH || a1type == ACCEPTOR)) {
-      calc_UU_Hbonds(frameNum, dist2, a0idx, plHatoms_[a0idx], a1idx, frmIn, numHB, trajoutNum);
+      calc_UU_Hbonds(frameNum, dist2, plMask_[a0idx], plHatoms_[a0idx], plMask_[a1idx], frmIn, numHB, trajoutNum);
     } 
     if ((a0type == BOTH || a0type == ACCEPTOR) && (a1type == BOTH || a1type == DONOR)) {
-      calc_UU_Hbonds(frameNum, dist2, a1idx, plHatoms_[a1idx], a0idx, frmIn, numHB, trajoutNum);
+      calc_UU_Hbonds(frameNum, dist2, plMask_[a1idx], plHatoms_[a1idx], plMask_[a0idx], frmIn, numHB, trajoutNum);
     }
   } else {
     if (!hbdata_.CalcSolvent()) return;
