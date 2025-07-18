@@ -661,13 +661,13 @@ void HbCalc::calc_UU_Hbonds(int frameNum, double dist2,
   * acceptor heavy atoms.
   */
 void HbCalc::calc_UV_Hbonds(int frameNum, double dist2,
-                            int d_idx, Iarray const& Hatoms,
-                            int a_idx,
+                            int d_atom, Iarray const& Hatoms,
+                            int a_atom,
                             Frame const& frmIn, int& numHB, bool soluteDonor,
                             int trajoutNum)
 {
-  int d_atom = plMask_[d_idx];
-  int a_atom = plMask_[a_idx]; 
+  //int d_atom = plMask_[d_idx];
+  //int a_atom = plMask_[a_idx]; 
   // Determine if angle cutoff is satisfied
   for (Iarray::const_iterator h_atom = Hatoms.begin(); h_atom != Hatoms.end(); ++h_atom)
   {
@@ -752,10 +752,10 @@ void HbCalc::CalcHbonds(int frameNum, double dist2,
       // VACCEPTOR DONOR
       // VACCEPTOR BOTH
       if ((t0 == VBOTH || t0 == VDONOR)  && (t1 == BOTH || t1 == ACCEPTOR)) {
-        calc_UV_Hbonds(frameNum, dist2, i0, plHatoms_[i0], i1, frmIn, numHB, false, trajoutNum);
+        calc_UV_Hbonds(frameNum, dist2, plMask_[i0], plHatoms_[i0], plMask_[i1], frmIn, numHB, false, trajoutNum);
       }
       if ((t0 == VBOTH || t0 == VACCEPTOR) && (t1 == BOTH || t1 == DONOR)) {
-        calc_UV_Hbonds(frameNum, dist2, i1, plHatoms_[i1], i0, frmIn, numHB, true, trajoutNum);
+        calc_UV_Hbonds(frameNum, dist2, plMask_[i1], plHatoms_[i1], plMask_[i0], frmIn, numHB, true, trajoutNum);
       }
     }
   }
