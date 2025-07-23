@@ -32,7 +32,7 @@ void HbCalc::SetDebug(int debugIn) {
 
 /** Initialize */
 int HbCalc::InitHbCalc(ArgList& argIn, DataSetList* masterDslPtr, DataFileList& DFL, int debugIn) {
-  disable_pl_ = argIn.hasKey("disablepl");
+  disable_pl_ = (argIn.hasKey("disablepl") || argIn.hasKey("noimage"));
   double dcut = argIn.getKeyDouble("dist",3.0);
   dcut = argIn.getKeyDouble("distance", dcut); // for PTRAJ compat.
   dcut2_ = dcut * dcut;
@@ -188,7 +188,7 @@ int HbCalc::SetupHbCalc(Topology const& topIn, Box const& boxIn) {
     mprintf("\tNo box info present; not using pair list.\n");
   }
   if (disable_pl_ && use_pl_) {
-    mprintf("\t'disablepl' was specified. Disabling pairlist use.\n");
+    mprintf("\t'disablepl' or 'noimage' was specified. Disabling imaging/pairlist use.\n");
     use_pl_ = false;
   }
 
@@ -905,7 +905,11 @@ int HbCalc::RunCalc_PL(Frame const& currentFrame, int frameNum, int trajoutNum)
   return 0;
 }
 
-/** Run calculation without the pairlist but still using the pairlist mask. */
+/** Run calculation without the pairlist but still using the pairlist mask.
+  * NOTE: This is quite a bit slower than the original hbond calc when
+  *       imaging is not needed, so currently this is only kept here
+  *       for testing purposes.
+  */
 int HbCalc::RunCalc_NoPL(Frame const& currentFrame, int frameNum, int trajoutNum)
 {
 # ifdef TIMER
