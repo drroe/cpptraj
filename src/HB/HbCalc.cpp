@@ -222,6 +222,12 @@ int HbCalc::SetupHbCalc(Topology const& topIn, Box const& boxIn) {
   }
   // If not using the pairlist, set up the legacy arrays TODO might want to only do this below
   // a certain number of atoms.
+  hb_Both_.clear();
+  hb_Acceptor_.clear();
+  hb_DonorH_.clear();
+  hb_bothEnd_ = 0;
+  hb_Solvent_.clear();
+  hb_SolventH_.clear();
   if (!use_pl_) {
     if (createBothAcceptorDonorHarrays()) {
       mprinterr("Error: Could not create donor, acceptor, and donor H arrays.\n");
@@ -247,12 +253,6 @@ int HbCalc::SetupHbCalc(Topology const& topIn, Box const& boxIn) {
   * non-pair list hbond calc.
   */
 int HbCalc::createBothAcceptorDonorHarrays() {
-  hb_Both_.clear();
-  hb_Acceptor_.clear();
-  hb_DonorH_.clear();
-  hb_bothEnd_ = 0;
-  hb_Solvent_.clear();
-  hb_SolventH_.clear();
   // First, get donor/acceptor and acceptor atoms.
   for (int idx = 0; idx != plMask_.Nselected(); idx++)
   {
@@ -986,6 +986,20 @@ int HbCalc::RunCalc_Original(Frame const& currentFrame, int frameNum, int trajou
 {
 # ifdef TIMER
   t_action_.Start();
+# endif
+  if (hb_Both_.empty()) {
+    // This can happen if we were set up to use the pairlist but
+    // the incoming frame has a problem with the unit cell. Just generate the
+    // array now.
+    if (createBothAcceptorDonorHarrays()) {
+      mprinterr("Error: Could not create donor, acceptor, and donor H arrays for frame %i.\n", frameNum+1);
+#     ifdef TIMER
+      t_action_.Stop();
+#     endif
+      return 1;
+    }
+  }
+# ifdef TIMER
   t_hbcalc_.Start();
 # endif
   //mprintf("DEBUG: Original hbond calc loop.\n");
