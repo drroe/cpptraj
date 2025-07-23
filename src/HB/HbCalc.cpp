@@ -21,7 +21,8 @@ HbCalc::HbCalc() :
   plcut_(0),
   calcIons_(false),
   use_pl_(false),
-  disable_pl_(false)
+  disable_pl_(false),
+  imaging_on_(false)
 {}
 
 /** Set debug level. */
@@ -604,7 +605,7 @@ bool HbCalc::validInteraction(Type t0, Type t1) {
 /** Calculate angle in radians between 3 atoms with imaging. */
 double HbCalc::Angle(const double* XA, const double* XH, const double* XD, Box const& boxIn) const
 { 
-  if (!boxIn.HasBox())
+  if (!imaging_on_ || !boxIn.HasBox())
     return (CalcAngle(XA, XH, XD));
   else {
     double angle;
@@ -950,6 +951,7 @@ int HbCalc::RunCalc_NoPL(Frame const& currentFrame, int frameNum, int trajoutNum
 /** Run calculation on given frame. */
 int HbCalc::RunCalc(Frame const& currentFrame, int frameNum, int trajoutNum)
 {
+  imaging_on_ = use_pl_ && currentFrame.BoxCrd().HasBox();
   if (use_pl_ && currentFrame.BoxCrd().HasBox())
     return RunCalc_PL(currentFrame, frameNum, trajoutNum);
   else if (hbdata_.CalcSolvent())

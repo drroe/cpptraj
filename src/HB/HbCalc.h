@@ -99,6 +99,7 @@ class HbCalc {
     bool calcIons_;        ///< If true calculate hydrogen bonds to ions in generalMask
     bool use_pl_;          ///< If true, box info present and can use the pairlist
     bool disable_pl_;      ///< If true, do not use pairlist even if box info present.
+    bool imaging_on_;      ///< If true, image angles
 #   ifdef TIMER
     Timer t_action_;       ///< Total time taken by RunCalc_PL
     Timer t_hbcalc_;       ///< Time taken by pairlist loop in RunCalc_PL
