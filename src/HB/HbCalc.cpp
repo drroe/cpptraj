@@ -146,7 +146,7 @@ void HbCalc::PrintHbCalcOpts() const {
     mprintf("\tNo angle cutoff.\n");
   mprintf("\tPair list cutoff: %g Ang.\n", plcut_);
   if (disable_pl_)
-    mprintf("\tPairlist disabled; will not use pairlist even if box info is present.\n");
+    mprintf("\tPairlist/imaging disabled; will not use pairlist even if box info is present.\n");
   if (calcIons_)
     mprintf("\tWill calculate hydrogen bonds to ions found in mask '%s'\n", generalMask_.MaskString());
   hbdata_.PrintHbDataOpts();
@@ -251,6 +251,8 @@ int HbCalc::createBothAcceptorDonorHarrays() {
   hb_Acceptor_.clear();
   hb_DonorH_.clear();
   hb_bothEnd_ = 0;
+  hb_Solvent_.clear();
+  hb_SolventH_.clear();
   // First, get donor/acceptor and acceptor atoms.
   for (int idx = 0; idx != plMask_.Nselected(); idx++)
   {
@@ -272,6 +274,19 @@ int HbCalc::createBothAcceptorDonorHarrays() {
       hb_DonorH_.push_back( Iarray() );
       for (Iarray::const_iterator ht = plHatoms_[idx].begin(); ht != plHatoms_[idx].end(); ++ht)
         hb_DonorH_.back().push_back( *ht );
+    }
+  }
+  // Solvent
+  if (hbdata_.CalcSolvent()) {
+    // First, get solvent donor/acceptor atoms. TODO solvent acceptor only? Donor Only?
+    for (int idx = 0; idx != plMask_.Nselected(); idx++)
+    {
+      if (plTypes_[idx] == VBOTH) {
+        hb_Solvent_.push_back( plMask_[idx] );
+        hb_SolventH_.push_back( Iarray() );
+        for (Iarray::const_iterator ht = plHatoms_[idx].begin(); ht != plHatoms_[idx].end(); ++ht)
+          hb_SolventH_.back().push_back( *ht );
+      }
     }
   }
   return 0;
@@ -952,16 +967,17 @@ int HbCalc::RunCalc_NoPL(Frame const& currentFrame, int frameNum, int trajoutNum
 int HbCalc::RunCalc(Frame const& currentFrame, int frameNum, int trajoutNum)
 {
   imaging_on_ = use_pl_ && currentFrame.BoxCrd().HasBox();
-  if (use_pl_ && currentFrame.BoxCrd().HasBox())
+  //if (use_pl_ && currentFrame.BoxCrd().HasBox())
+  if (imaging_on_)
     return RunCalc_PL(currentFrame, frameNum, trajoutNum);
-  else if (hbdata_.CalcSolvent())
-    return RunCalc_NoPL(currentFrame, frameNum, trajoutNum);
+  //else if (hbdata_.CalcSolvent())
+  //  return RunCalc_NoPL(currentFrame, frameNum, trajoutNum);
   else
     return RunCalc_Original(currentFrame, frameNum, trajoutNum);
 }
 
 // ---------------------------------------------------------
-/** Original hbond calculation. Currently no imaging, solute-solute hbonds only. */
+/** Original hbond calculation. No Imaging. */
 int HbCalc::RunCalc_Original(Frame const& currentFrame, int frameNum, int trajoutNum)
 {
 # ifdef TIMER
@@ -1087,7 +1103,7 @@ int HbCalc::RunCalc_Original(Frame const& currentFrame, int frameNum, int trajou
   for (std::vector<Harray>::iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it) {
     numHB += (int)it->size();
     for (Harray::const_iterator hb = it->begin(); hb != it->end(); ++hb)
-      AddUU(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), frm.TrajoutNum());
+      AddUU(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), trajoutNum);
     it->clear();
   }
 # endif
@@ -1095,16 +1111,16 @@ int HbCalc::RunCalc_Original(Frame const& currentFrame, int frameNum, int trajou
 //# ifdef TIMER
 //  t_uu_.Stop();
 //# endif
-/*
+
   // Loop over all solvent sites
-  if (calcSolvent_) {
-#   ifdef TIMER
-    t_uv_.Start();
-#   endif
-    solvent2solute_.clear();
+  if (hbdata_.CalcSolvent()) {
+//#   ifdef TIMER
+//    t_uv_.Start();
+//#   endif
+//    solvent2solute_.clear();
     numHB = 0;
     int vidx;
-    int vidxend = (int)SolventSites_.size();
+    int vidxend = (int)hb_Solvent_.size();
 #   ifdef _OPENMP
     // Use numHB to track thread. Will be actually counted after the parallel section.
 #   pragma omp parallel private(vidx, numHB)
@@ -1114,38 +1130,45 @@ int HbCalc::RunCalc_Original(Frame const& currentFrame, int frameNum, int trajou
 #   endif
     for (vidx = 0; vidx < vidxend; vidx++)
     {
-      Site const& Vsite = SolventSites_[vidx];
-      const double* VXYZ = frm.Frm().XYZ( Vsite.Idx() );
+      //Site const& Vsite = SolventSites_[vidx];
+      int vAtomIdx = hb_Solvent_[vidx];
+      const double* VXYZ = currentFrame.XYZ( vAtomIdx );
       // Loop over solute sites that can be both donor and acceptor
-      for (unsigned int sidx = 0; sidx < bothEnd_; sidx++)
+      for (unsigned int sidx = 0; sidx < hb_bothEnd_; sidx++)
       {
-        const double* UXYZ = frm.Frm().XYZ( Both_[sidx].Idx() );
-        double dist2 = DIST2( imageOpt_.ImagingType(), VXYZ, UXYZ, frm.Frm().BoxCrd() );
+        int uAtomIdx = hb_Both_[sidx];
+        const double* UXYZ = currentFrame.XYZ( uAtomIdx );
+        double dist2 = DIST2_NoImage( VXYZ, UXYZ );
         if ( !(dist2 > dcut2_) )
         {
           // Solvent site donor, solute site acceptor
-          CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, Both_[sidx].Idx(), UXYZ, frm.Frm(), numHB, false, frm.TrajoutNum());
+          //CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, Both_[sidx].Idx(), UXYZ, frm.Frm(), numHB, false, frm.TrajoutNum());
+          calc_UV_Hbonds( frameNum, dist2, vAtomIdx, hb_SolventH_[vidx], uAtomIdx, currentFrame, numHB, false, trajoutNum );
           // Solvent site acceptor, solute site donor
-          CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true, frm.TrajoutNum());
+          //CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true, frm.TrajoutNum());
+          calc_UV_Hbonds( frameNum, dist2, uAtomIdx, hb_DonorH_[sidx], vAtomIdx, currentFrame, numHB, true, trajoutNum );
         }
       }
       // Loop over solute sites that are donor only
-      for (unsigned int sidx = bothEnd_; sidx < Both_.size(); sidx++)
+      for (unsigned int sidx = hb_bothEnd_; sidx < hb_Both_.size(); sidx++)
       {
-        const double* UXYZ = frm.Frm().XYZ( Both_[sidx].Idx() );
-        double dist2 = DIST2( imageOpt_.ImagingType(), VXYZ, UXYZ, frm.Frm().BoxCrd() );
+        int uAtomIdx = hb_Both_[sidx];
+        const double* UXYZ = currentFrame.XYZ( uAtomIdx );
+        double dist2 = DIST2_NoImage( VXYZ, UXYZ );
         if ( !(dist2 > dcut2_) )
           // Solvent site acceptor, solute site donor
-          CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true, frm.TrajoutNum());
+          //CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true, frm.TrajoutNum());
+          calc_UV_Hbonds( frameNum, dist2, uAtomIdx, hb_DonorH_[sidx], vAtomIdx, currentFrame, numHB, true, trajoutNum );
       }
       // Loop over solute sites that are acceptor only
-      for (Iarray::const_iterator a_atom = Acceptor_.begin(); a_atom != Acceptor_.end(); ++a_atom)
+      for (Iarray::const_iterator a_atom = hb_Acceptor_.begin(); a_atom != hb_Acceptor_.end(); ++a_atom)
       {
-        const double* UXYZ = frm.Frm().XYZ( *a_atom );
-        double dist2 = DIST2( imageOpt_.ImagingType(), VXYZ, UXYZ, frm.Frm().BoxCrd() );
+        const double* UXYZ = currentFrame.XYZ( *a_atom );
+        double dist2 = DIST2_NoImage( VXYZ, UXYZ );
         if ( !(dist2 > dcut2_) )
           // Solvent site donor, solute site acceptor
-          CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, *a_atom, UXYZ, frm.Frm(), numHB, false, frm.TrajoutNum());
+          //CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, *a_atom, UXYZ, frm.Frm(), numHB, false, frm.TrajoutNum());
+          calc_UV_Hbonds( frameNum, dist2, vAtomIdx, hb_SolventH_[vidx], *a_atom, currentFrame, numHB, false, trajoutNum );
       }
     } // END loop over solvent sites
 #   ifdef _OPENMP
@@ -1155,11 +1178,11 @@ int HbCalc::RunCalc_Original(Frame const& currentFrame, int frameNum, int trajou
     for (std::vector<Harray>::iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it) {
       numHB += (int)it->size();
       for (Harray::const_iterator hb = it->begin(); hb != it->end(); ++hb)
-        AddUV(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), (bool)hb->Frames(), frm.TrajoutNum());
+        AddUV(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), (bool)hb->Frames(), trajoutNum);
       it->clear();
     }
 #   endif
-    NumSolvent_->Add(frameNum, &numHB);
+/*    NumSolvent_->Add(frameNum, &numHB);
 #   ifdef TIMER
     t_uv_.Stop();
 #   endif
@@ -1236,8 +1259,8 @@ int HbCalc::RunCalc_Original(Frame const& currentFrame, int frameNum, int trajou
 #   ifdef TIMER
     t_bridge_.Stop();
 #   endif
-  } // END if calcSolvent_
 */
+  } // END if calcSolvent_
 
 # ifdef TIMER
   t_hbcalc_.Stop();

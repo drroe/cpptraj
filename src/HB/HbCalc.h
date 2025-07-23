@@ -92,6 +92,8 @@ class HbCalc {
     Iarray hb_Acceptor_;           ///< LEGACY: Array containing atom indices of atoms that can be acceptors
     Xarray hb_DonorH_;             ///< LEGACY: For each atom in hb_Both_, indices of all bonded hydrogen atoms
     unsigned int hb_bothEnd_;      ///< LEGACY: Index in hb_Both_ where donor-only atoms begin.
+    Iarray hb_Solvent_;            ///< LEGACY: Array containing heavy atom indices of solvent heavy atoms
+    Xarray hb_SolventH_;           ///< LEGACY: For each atom in hb_Solvent_, indices of all bonded hydrogen atoms
     double dcut2_;         ///< Heavy atom distance cutoff (Ang) squared
     double acut_;          ///< Angle cutoff in radians
     double plcut_;         ///< Pair list cutoff in Angstroms
