@@ -1117,11 +1117,11 @@ int HbCalc::RunCalc_Original(Frame const& currentFrame, int frameNum, int trajou
 
 # ifdef _OPENMP
   // Add all found hydrogen bonds
-  numHB = 0; 
+  //numHB = 0; 
   for (std::vector<Harray>::iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it) {
-    numHB += (int)it->size();
+    //numHB += (int)it->size();
     for (Harray::const_iterator hb = it->begin(); hb != it->end(); ++hb)
-      AddUU(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), trajoutNum);
+      hbdata_.AddUU(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), trajoutNum);
     it->clear();
   }
 # endif
@@ -1192,11 +1192,11 @@ int HbCalc::RunCalc_Original(Frame const& currentFrame, int frameNum, int trajou
 #   ifdef _OPENMP
     } // END pragma omp parallel
     // Add all found hydrogen bonds
-    numHB = 0; 
+    //numHB = 0; 
     for (std::vector<Harray>::iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it) {
-      numHB += (int)it->size();
+      //numHB += (int)it->size();
       for (Harray::const_iterator hb = it->begin(); hb != it->end(); ++hb)
-        AddUV(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), (bool)hb->Frames(), trajoutNum);
+        hbdata_.AddUV(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), (bool)hb->Frames(), trajoutNum);
       it->clear();
     }
 #   endif
