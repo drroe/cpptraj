@@ -814,12 +814,12 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
         err = AddAtomTypes(atomHybridizations_, infile);
       else if (leapcmd == ADDPDBRESMAP) {
         err = AddPdbResMap(infile, pdbResMap_);
-        if (err == 0) {
+        //if (err == 0) {
           // Update units with pdb residue map info
           //for (DataSetList::const_iterator ds = unitDSL.begin(); ds != paramDSL.end(); ++ds)
           //{
           //  if ( (*ds)->Group() == DataSet::COORDINATES ) {
-          for (PdbResMapArray::const_iterator it = pdbResMap_.begin();
+/*          for (PdbResMapArray::const_iterator it = pdbResMap_.begin();
                                               it != pdbResMap_.end(); ++it)
           {
             // Find the unit in unit DSL
@@ -827,7 +827,7 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
             if (ds != 0 && ds->Group() == DataSet::COORDINATES) {
               addPdbResMapToUnit( static_cast<DataSet_Coords*>(ds), *it );
             }
-            /*if (ds == 0) {
+            *if (ds == 0) {
               mprintf("Warning: Unit '%s' was not found among loaded units.\n", it->unitName_.c_str());
             } else {
               DataSet_Coords& crd = static_cast<DataSet_Coords&>( *ds );
@@ -838,9 +838,9 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
                 resid.Ainfo();
                 mprintf("\n");
               }
-            }*/
-          }
-        }
+            }*
+          }*/
+        //}
       } else if (leapcmd == ADDPDBATOMMAP)
         err = AddPdbAtomMap(dsname, dsl, infile);
       else if (leapcmd == LOADMOL2)
@@ -918,7 +918,30 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
   }
   infile.CloseFile();
 
-
+  // Do any PDB residue mapping
+  if (!pdbResMap_.empty()) {
+    for (PdbResMapArray::const_iterator it = pdbResMap_.begin();
+                                        it != pdbResMap_.end(); ++it)
+    {
+      // Find the unit in unit DSL
+      DataSet* ds = dsl.CheckForSet( MetaData(dsname, it->unitName_) );
+      if (ds != 0 && ds->Group() == DataSet::COORDINATES) {
+        addPdbResMapToUnit( static_cast<DataSet_Coords*>(ds), *it );
+      }
+      /*if (ds == 0) {
+        mprintf("Warning: Unit '%s' was not found among loaded units.\n", it->unitName_.c_str());
+      } else {
+        DataSet_Coords& crd = static_cast<DataSet_Coords&>( *ds );
+        AssociatedData_ResId resid( it->pdbName_, it->termType_ );
+        crd.AssociateData( &resid );
+        if (debug_ > 0) {
+          mprintf("DEBUG: Found unit %s", crd.legend());
+          resid.Ainfo();
+          mprintf("\n");
+        }
+      }*/
+    }
+  }
 
   // Add data sets to the main data set list
   //if (addSetsToList(dsl, paramDSL)) return err+1;
