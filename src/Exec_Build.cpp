@@ -21,6 +21,7 @@ Exec_Build::Exec_Build() :
   debug_(0),
   check_box_natom_(5000), // TODO make user specifiable
   check_structure_(true),
+  addNonTemplateBonds_(false),
   sugarBuilder_(0)
 {}
 
@@ -505,13 +506,19 @@ const
                 topOut.AtomMaskName(at0).c_str(),
                 topOut.AtomMaskName(at1).c_str());
       } else {
-        mprintf("\tAdding non-template bond %s - %s\n",
-                topOut.AtomMaskName(at0).c_str(),
-                topOut.AtomMaskName(at1).c_str());
-        resBondingAtoms[ra0.first].push_back( Ipair(at0, at1) );
-        resBondingAtoms[ra1.first].push_back( Ipair(at1, at0) );
-        ResidueConnections[ra0.first].push_back( ra1.first );
-        ResidueConnections[ra1.first].push_back( ra0.first );
+        if (addNonTemplateBonds_) { // FIXME need to change this or move the sugar/disulfide stuff to after
+          mprintf("\tAdding non-template bond %s - %s\n",
+                  topOut.AtomMaskName(at0).c_str(),
+                  topOut.AtomMaskName(at1).c_str());
+          resBondingAtoms[ra0.first].push_back( Ipair(at0, at1) );
+          resBondingAtoms[ra1.first].push_back( Ipair(at1, at0) );
+          ResidueConnections[ra0.first].push_back( ra1.first );
+          ResidueConnections[ra1.first].push_back( ra0.first );
+        } else {
+          mprintf("Warning: Detected non-template bond %s - %s; not adding it.\n",
+                  topOut.AtomMaskName(at0).c_str(),
+                  topOut.AtomMaskName(at1).c_str());
+        }
       }
     } //else
       //mprintf("DEBUG: Detected bond %s - %s already present.\n",
@@ -755,6 +762,10 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
   debug_ = debugIn;
   int verbose = argIn.getKeyInt("verbose", 0);
   std::string title = argIn.GetStringKey("title");
+  if (addNonTemplateBonds_)
+    mprintf("\tNon-template bonds will be added if detected.\n");
+  else
+    mprintf("\tOnly bonding according to residue templates.\n");
 
   // TODO make it so this can be const (cant bc GetFrame)
   DataSet_Coords& coords = static_cast<DataSet_Coords&>( *((DataSet_Coords*)inCrdPtr) );

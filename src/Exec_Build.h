@@ -37,6 +37,7 @@ class Exec_Build : public Exec {
     int debug_;
     int check_box_natom_;  ///< Systems larger than this will have box added so PL check can be used
     bool check_structure_; ///< If true check the resulting structure
+    bool addNonTemplateBonds_; ///< If true, add bonds that were not found in templates.
     Cpptraj::Structure::SugarBuilder* sugarBuilder_;
 
     Timer t_total_;
