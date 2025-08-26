@@ -124,8 +124,10 @@ const
   // Array of head/tail connect atoms for each residue
   Iarray resHeadAtoms;
   Iarray resTailAtoms;
+  std::vector<Cpptraj::Structure::TerminalType> ResTermTypes;
   resHeadAtoms.reserve( topIn.Nres() );
   resTailAtoms.reserve( topIn.Nres() );
+  ResTermTypes.reserve( topIn.Nres() );
   // Array of templates for each residue
   std::vector<DataSet_Coords*> ResTemplates;
   ResTemplates.reserve( topIn.Nres() );
@@ -162,6 +164,7 @@ const
     }
     if (debug_ > 0)
       mprintf("DEBUG: Residue type: %s terminal\n", Cpptraj::Structure::terminalStr(resTermType));
+    ResTermTypes.push_back( resTermType );
     // Identify a template based on the residue name.
     DataSet_Coords* resTemplate = creator.IdTemplateFromResname(currentRes.Name(), resTermType);
     if (resTemplate == 0) {
@@ -416,7 +419,7 @@ const
   if (debug_ > 0) {
     for (unsigned int idx = 0; idx != ResTemplates.size(); idx++) {
       if (ResTemplates[idx] != 0) {
-        mprintf("DEBUG: Template %s", ResTemplates[idx]->legend());
+        mprintf("DEBUG: Template %s (%s)", ResTemplates[idx]->legend(), Cpptraj::Structure::terminalStr(ResTermTypes[idx]));
         if (resHeadAtoms[idx] > -1) mprintf(" head %s", topOut.AtomMaskName(resHeadAtoms[idx]).c_str());
         if (resTailAtoms[idx] > -1) mprintf(" tail %s", topOut.AtomMaskName(resTailAtoms[idx]).c_str());
         mprintf("\n");
@@ -432,17 +435,29 @@ const
   for (int ires = 1; ires < topOut.Nres(); ires++) {
     int pres = ires - 1;
     if (resHeadAtoms[ires] != -1) {
-      if (resTailAtoms[pres] != -1) {
+      if (ResTermTypes[ires] == Cpptraj::Structure::BEG_TERMINAL) {
         if (debug_ > 0)
-          mprintf("DEBUG: Connecting HEAD atom %s to tail atom %s\n",
-                  topOut.AtomMaskName(resHeadAtoms[ires]).c_str(),
-                  topOut.AtomMaskName(resTailAtoms[pres]).c_str());
-        resBondingAtoms[ires].push_back( Ipair(resHeadAtoms[ires], resTailAtoms[pres]) );
-        resBondingAtoms[pres].push_back( Ipair(resTailAtoms[pres], resHeadAtoms[ires]) );
-        resHeadAtoms[ires] = -1;
-        resTailAtoms[pres] = -1;
-        ResidueConnections[ires].push_back( pres );
-        ResidueConnections[pres].push_back( ires );
+          mprintf("DEBUG: Res %s is begin terminal, ignoring head atom.\n",
+                  topOut.TruncResNameOnumId(ires).c_str());
+      } else {
+        if (resTailAtoms[pres] != -1) {
+          if (ResTermTypes[pres] == Cpptraj::Structure::END_TERMINAL) {
+            if (debug_ > 0)
+              mprintf("DEBUG: Res %s is end terminal, ignoring tail atom.\n",
+                      topOut.TruncResNameOnumId(pres).c_str());
+          } else {
+            if (debug_ > 0)
+              mprintf("DEBUG: Connecting HEAD atom %s to tail atom %s\n",
+                      topOut.AtomMaskName(resHeadAtoms[ires]).c_str(),
+                      topOut.AtomMaskName(resTailAtoms[pres]).c_str());
+            resBondingAtoms[ires].push_back( Ipair(resHeadAtoms[ires], resTailAtoms[pres]) );
+            resBondingAtoms[pres].push_back( Ipair(resTailAtoms[pres], resHeadAtoms[ires]) );
+            resHeadAtoms[ires] = -1;
+            resTailAtoms[pres] = -1;
+            ResidueConnections[ires].push_back( pres );
+            ResidueConnections[pres].push_back( ires );
+          }
+        }
       }
     }
   }
