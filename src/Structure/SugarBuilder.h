@@ -23,7 +23,7 @@ class SugarBuilder {
     bool IsRecognizedPdbSugar(NameType const&) const;
     /// ID sugar rings, find missing C1 links, split off functional groups
     int FixSugarsStructure(Topology&, Frame&,
-                           bool, bool, NameType const&);
+                           bool, bool, NameType const&, std::vector<BondType>&);
     /// Identify sugars, do renaming, remove bonds, generate leap input
     int PrepareSugars(bool, ResStatArray&, Topology&, Frame const&, std::vector<BondType>&);
     /// Set each sugar as a terminal residue
@@ -88,7 +88,7 @@ class SugarBuilder {
     /// Cache residue centers for determining linkages
     void CacheResidueCenters(Topology const&, Frame const&);
     /// Try to find missing linkages to anomeric carbon in sugar.
-    int FindSugarC1Linkages(int, int, Topology&, Frame const&, NameType const&) const;
+    int FindSugarC1Linkages(int, int, Topology&, Frame const&, NameType const&, std::vector<BondType>&) const;
     
 
 

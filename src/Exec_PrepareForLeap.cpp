@@ -763,8 +763,11 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     // adding missing bonds to C1 atoms.
     // This is done before any identification takes place since we want
     // to identify based on the most up-to-date topology.
+    // NOTE: The c1 bonds will remain, so put them in a separate array
+    std::vector<BondType> C1Bonds;
     if (sugarBuilder.FixSugarsStructure(topIn, frameIn,
-                                        c1bondsearch, splitres, solventResName_))
+                                        c1bondsearch, splitres, solventResName_,
+                                        C1Bonds))
     {
       mprinterr("Error: Sugar structure modification failed.\n");
       return CpptrajState::ERR;

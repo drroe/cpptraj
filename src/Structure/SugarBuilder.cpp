@@ -1709,7 +1709,8 @@ void SugarBuilder::CacheResidueCenters(Topology const& topIn, Frame const& frame
 /** Attempt to find any missing linkages to the anomeric carbon in sugar. */
 int SugarBuilder::FindSugarC1Linkages(int rnum1, int c_beg,
                                       Topology& topIn, Frame const& frameIn,
-                                      NameType const& solventResName)
+                                      NameType const& solventResName,
+                                      std::vector<BondType>& LeapBonds)
 const
 {
   //Residue const& res1 = topIn.SetRes(rnum1);
@@ -1799,6 +1800,7 @@ const
     mprintf("\t  Adding bond between %s and %s\n",
             topIn.ResNameNumAtomNameNum(c_beg).c_str(),
             topIn.ResNameNumAtomNameNum(closest_at).c_str());
+    LeapBonds.push_back( BondType(c_beg, closest_at, -1) );
     topIn.AddBond(c_beg, closest_at);
   }
   return 0;
@@ -1807,7 +1809,8 @@ const
 /** Try to fix issues with sugar structure before trying to identify. */
 int SugarBuilder::FixSugarsStructure(Topology& topIn, Frame& frameIn,
                                      bool c1bondsearch, bool splitres,
-                                     NameType const& solventResName) 
+                                     NameType const& solventResName,
+                                     std::vector<BondType>& LeapBonds)
 {
   // Set up an AtomMap for this residue to help determine stereocenters.
   // This is required by the IdSugarRing() function.
@@ -1869,7 +1872,7 @@ int SugarBuilder::FixSugarsStructure(Topology& topIn, Frame& frameIn,
       if (sugar->NotSet()) continue;
       int anomericAtom = sugar->AnomericAtom();
       int rnum = sugar->ResNum(topIn);
-      if (FindSugarC1Linkages(rnum, anomericAtom, topIn, frameIn, solventResName)) {
+      if (FindSugarC1Linkages(rnum, anomericAtom, topIn, frameIn, solventResName, LeapBonds)) {
         mprinterr("Error: Search for bonds to anomeric carbon '%s' failed.\n",
                   topIn.AtomMaskName(anomericAtom).c_str());
         return 1;

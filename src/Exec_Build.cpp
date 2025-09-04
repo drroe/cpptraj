@@ -866,6 +866,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
 
   // All residues start unknown
   Cpptraj::Structure::ResStatArray resStat( topIn.Nres() );
+  std::vector<BondType> LeapBonds;
 
   // Disulfide search
   t_disulfide_.Start();
@@ -875,7 +876,6 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
       mprinterr("Error: Could not init disulfide search.\n");
       return CpptrajState::ERR;
     }
-    std::vector<BondType> LeapBonds;
     if (disulfide.SearchForDisulfides( resStat, topIn, frameIn, LeapBonds ))
     {
       mprinterr("Error: Disulfide search failed.\n");
@@ -925,12 +925,12 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
     // This is done before any identification takes place since we want
     // to identify based on the most up-to-date topology.
     if (sugarBuilder_->FixSugarsStructure(topIn, frameIn,
-                                          c1bondsearch, splitres, solventResName))
+                                          c1bondsearch, splitres, solventResName,
+                                          LeapBonds))
     {
       mprinterr("Error: Sugar structure modification failed.\n");
       return CpptrajState::ERR;
     }
-    std::vector<BondType> LeapBonds;
     if (sugarBuilder_->PrepareSugars(true, resStat, topIn, frameIn, LeapBonds))
     {
       mprinterr("Error: Sugar preparation failed.\n");
@@ -953,6 +953,13 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
     return CpptrajState::ERR;
   }
   t_fill_.Stop();
+
+  // Add the disulfide/sugar bonds
+  for (std::vector<BondType>::const_iterator bnd = LeapBonds.begin();
+                                             bnd != LeapBonds.end(); ++bnd)
+  {
+    topOut.AddBond( bnd->A1(), bnd->A2() );
+  }
 
   // Assign parameters. This will create the bond/angle/dihedral/improper
   // arrays as well.
