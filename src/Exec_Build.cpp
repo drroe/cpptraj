@@ -234,6 +234,7 @@ const
 
   // For existing inter-residue bonding, use residue # and atom name since
   // atom numbering may change if atoms are added from templates.
+  // TODO make this a class var so disulfide/sugar prep can use it.
   typedef std::pair<int,NameType> ResAtPair;
   typedef std::vector<ResAtPair> ResAtArray;
   ResAtArray detectedInterResBonds;
