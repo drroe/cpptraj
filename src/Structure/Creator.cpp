@@ -132,7 +132,8 @@ DataSet_Coords* Creator::IdTemplateFromResname(NameType const& rname,
                                               TerminalType termType)
 const
 {
-  DataSet_Coords* out = 0;
+  std::vector<DataSet_Coords*> Out;
+  //DataSet_Coords* out = 0;
   if (termType != Cpptraj::Structure::NON_TERMINAL) {
     // Looking for a terminal residue. Need to get sets with AssociatedData_ResId
     for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it) {
@@ -140,13 +141,15 @@ const
       if (ad != 0) {
         AssociatedData_ResId const& resid = static_cast<AssociatedData_ResId const&>( *ad );
         if (rname == resid.ResName() && termType == resid.TermType()) {
-          out = *it;
-          break;
+          //out = *it;
+          //break;
+          Out.push_back( *it );
         }
       }
     }
   }
-  if (out == 0) {
+  if (Out.empty()) {
+  //if (out == 0) {
     // Terminal residue with alias not found or non-terminal residue.
     if (debug_ > 0 && termType != Cpptraj::Structure::NON_TERMINAL)
       mprintf("DEBUG: No aliased terminal residue found for '%s'\n", *rname);
@@ -154,25 +157,37 @@ const
     for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it) {
       if ( (*it)->Meta().Aspect().size() < NameType::max() ) {
         if ( rname == NameType( (*it)->Meta().Aspect() ) ) {
-          out = *it;
-          break;
+          //out = *it;
+          //break;
+          Out.push_back( *it );
         }
       }
     }
   }
-  if (out == 0) {
+  if (Out.empty()) {
+  //if (out == 0) {
     // As a final attempt, just look for the name
     for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it) {
       if ( (*it)->Meta().Name().size() < NameType::max() ) {
         if ( rname == NameType( (*it)->Meta().Name() ) ) {
-          out = *it;
-          break;
+          //out = *it;
+          //break;
+          Out.push_back( *it );
         }
       }
     }
   }
 
-  return out;
+  if (Out.empty()) return 0;
+  if (Out.size() > 1) {
+    mprintf("Warning: Multiple templates match '%s':", *rname);
+    for (std::vector<DataSet_Coords*>::const_iterator it = Out.begin(); it != Out.end(); ++it)
+      mprintf(" %s", (*it)->legend());
+    mprintf("\n");
+    mprintf("Warning: Using the last template loaded.\n");
+  }
+  //return out;
+  return Out.back();
 }
 
 /** Get templates */
