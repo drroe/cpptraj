@@ -874,6 +874,14 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
             // Find the unit to make a copy of
             DataSet* ds0 = dsl.CheckForSet( MetaData(dsname, line[1]) );
             if (ds0 == 0) {
+              // Its possible the unit in question is loaded by a previous command.
+              ds0 = dsl.GetDataSet( "*[" + line[1] + "]" );
+              if (ds0 != 0) {
+                mprintf("Info: Using unit '%s' from previously loaded set '%s'\n",
+                        line[1].c_str(), ds0->Meta().Name().c_str());
+              }
+            }
+            if (ds0 == 0) {
               mprinterr("Error: Could not find unit '%s' to copy to '%s'\n", line[1].c_str(), line[0].c_str());
               return 1;
             }
