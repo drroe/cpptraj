@@ -33,6 +33,8 @@ class Exec_Build : public Exec {
     int FillAtomsWithTemplates(Topology&, Frame&, Topology const&, Frame const&, Cpptraj::Structure::Creator const&) const;
     /// Map atoms in topology to template
     static std::vector<int> MapAtomsToTemplate(Topology const&, int, DataSet_Coords*, Cpptraj::Structure::Creator const&, std::vector<NameType>&, int&);
+    /// Transfer bonds from old topology to new topology
+    int transfer_bonds(Topology&, Topology const&, std::vector<BondType> const&) const;
 
     int debug_;
     int check_box_natom_;  ///< Systems larger than this will have box added so PL check can be used

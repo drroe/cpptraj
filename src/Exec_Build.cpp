@@ -707,6 +707,41 @@ const
   return 0;
 }
 
+/** Given an original topology and bonded atom indices, find those atoms
+  * in another topology and ensure they are bonded.
+  */
+int Exec_Build::transfer_bonds(Topology& topOut, Topology const& topIn,
+                               std::vector<BondType> const& bondsIn)
+const
+{
+  for (std::vector<BondType>::const_iterator bnd = bondsIn.begin();
+                                             bnd != bondsIn.end(); ++bnd)
+  {
+    // Get the original atom name and residue number
+    Atom const& original_A1 = topIn[bnd->A1()];
+    Atom const& original_A2 = topIn[bnd->A2()];
+    mprintf("DEBUG: Original bond atoms %i (%s) %i (%s)\n",
+            bnd->A1()+1, topIn.AtomMaskName(bnd->A1()).c_str(),
+            bnd->A2()+1, topIn.AtomMaskName(bnd->A2()).c_str());
+    // Find the atoms in the new topology
+    int a1 = topOut.FindAtomInResidue( original_A1.ResNum(), original_A1.Name() );
+    if (a1 < 0) {
+      mprinterr("Error: Could not find atom %i (%s) in new topology.\n",
+                bnd->A1()+1, topIn.AtomMaskName(bnd->A1()).c_str());
+      return 1;
+    }
+    int a2 = topOut.FindAtomInResidue( original_A2.ResNum(), original_A2.Name() );
+    if (a2 < 0) {
+      mprinterr("Error: Could not find atom %i (%s) in new topology.\n",
+                bnd->A2()+1, topIn.AtomMaskName(bnd->A2()).c_str());
+      return 1;
+    }
+    // Add the bond to the new topology
+    topOut.AddBond( a1, a2 );
+  }
+  return 0;
+}
+
 // -----------------------------------------------------------------------------
 // Exec_Build::Help()
 void Exec_Build::Help() const
@@ -956,10 +991,9 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
   t_fill_.Stop();
 
   // Add the disulfide/sugar bonds
-  for (std::vector<BondType>::const_iterator bnd = LeapBonds.begin();
-                                             bnd != LeapBonds.end(); ++bnd)
-  {
-    topOut.AddBond( bnd->A1(), bnd->A2() );
+  if (transfer_bonds( topOut, topIn, LeapBonds )) {
+    mprinterr("Error: Adding disulfide/sugar bonds failed.\n");
+    return CpptrajState::ERR;
   }
 
   // Assign parameters. This will create the bond/angle/dihedral/improper
