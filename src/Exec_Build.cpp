@@ -148,10 +148,10 @@ const
     int nres = ires + 1;
     // Determine if this is a terminal residue
     Cpptraj::Structure::TerminalType resTermType;
-    if (ires == 0 && topIn.Nres() > 1) {
-      resTermType = Cpptraj::Structure::BEG_TERMINAL;
-    } else if (currentRes.IsTerminal()) {
+    if (currentRes.IsTerminal()) {
       resTermType = Cpptraj::Structure::END_TERMINAL;
+    } else if (ires == 0 && topIn.Nres() > 1) {
+      resTermType = Cpptraj::Structure::BEG_TERMINAL;
     } else if (pres > -1 && topIn.Res(pres).IsTerminal()) {
       resTermType = Cpptraj::Structure::BEG_TERMINAL;
     } else if (nres < topIn.Nres() && (topIn.Res(nres).ChainID() != currentRes.ChainID() ||
@@ -164,7 +164,7 @@ const
       resTermType = Cpptraj::Structure::NON_TERMINAL;
     }
     if (debug_ > 0)
-      mprintf("DEBUG: Residue type: %s terminal\n", Cpptraj::Structure::terminalStr(resTermType));
+      mprintf("DEBUG: Residue type: %s terminal (IsTerminal=%i)\n", Cpptraj::Structure::terminalStr(resTermType), (int)currentRes.IsTerminal());
     ResTermTypes.push_back( resTermType );
     // Identify a template based on the residue name.
     DataSet_Coords* resTemplate = creator.IdTemplateFromResname(currentRes.Name(), resTermType);
