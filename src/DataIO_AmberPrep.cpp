@@ -5,6 +5,7 @@
 #include "DataSet_Coords.h"
 #include "StringRoutines.h"
 #include "Structure/Zmatrix.h"
+#include <stack>
 
 /// CONSTRUCTOR
 DataIO_AmberPrep::DataIO_AmberPrep() :
@@ -75,6 +76,15 @@ int DataIO_AmberPrep::readIMPROPER(BufferedLine& infile) const {
   }
   return 0;
 }
+
+/// For constructing the tree
+class TREENODE {
+  public:
+    TREENODE(int i) : aIdx_(i), iUnfilled_(-1), iBack_(-1) {}
+    int aIdx_;
+    int iUnfilled_;
+    int iBack_;
+};
 
 /** Read 1 or more PREP residue sections (cards 3-10).
   * \return 1 if error, -1 if STOP/EOF, 0 if more residues to be read.
@@ -159,7 +169,9 @@ int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std:
   std::string IPOS   = args.GetStringNext();
   if (debug_ > 0)
     mprintf("DEBUG: %s %s %s %s\n", IFIXC.c_str(), IOMIT.c_str(), ISYMDU.c_str(), IPOS.c_str());
+  bool do_distance_search = false;
   if (IFIXC != "CORRECT") {
+    // NOTE: If IFIXC = CHANGE ever implemented, set do_distance_search to true here.
     mprinterr("Error: IFIXC is not 'CORRECT' (%s=); only internal coordinates currently supported.\n",
               IFIXC.c_str());
     return 1;
@@ -195,10 +207,16 @@ int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std:
   top.SetParmName( resName, infile.Filename() );
   // Residue
   Residue res(resName, 1, ' ', "");
+  // For constructing the tree
+  typedef std::stack<TREENODE> TreeStack;
+  TreeStack Tree;
+  Tree.push( TREENODE(-1) );
+  mprintf( "DEBUG: Prep: Reading atom records\n" );
   // Loop over entries
   line = infile.Line();
   if (CheckLine(line)) return 1;
-  int atIdx = 0;
+  int atIdx = 0; // The prep file atom index
+  std::vector<int> topAtomIndices; 
   while (line[0] != '\0') {
     if (debug_ > 1)
       mprintf("DEBUG: '%s'\n", line);
@@ -207,6 +225,37 @@ int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std:
       mprinterr("Error: Expected 11 columns in prep line, got %i\n", args.Nargs());
       return 1;
     }
+    // Define the node type
+    TREENODE ipair(atIdx);
+    switch (args[3][0]) {
+      case 'M' : ipair.iUnfilled_ = 10000; break;
+      case 'B' : ipair.iUnfilled_ = 2; break;
+      case '3' : ipair.iUnfilled_ = 3; break;
+      case 'S' : ipair.iUnfilled_ = 1; break;
+      case 'E' : ipair.iUnfilled_ = 0; break;
+      case '4' : ipair.iUnfilled_ = 4; break;
+      case '5' : ipair.iUnfilled_ = 5; break;
+      case '6' : ipair.iUnfilled_ = 6; break;
+      default:
+        mprinterr("Error: Atom %s: Illegal chain specified [%s] in PREP file.\n", args[1].c_str(), args[3][0]);
+        return 1;
+    }
+    ipair.iBack_ = Tree.top().aIdx_;
+    printf("DEBUG: Prep:  iTREETOP %i\n", Tree.top().aIdx_);
+    if (Tree.top().aIdx_ >= 0) {
+      printf("DEBUG: Prep:  iTREETOP %i iUnfilled %i\n", Tree.top().aIdx_, Tree.top().iUnfilled_);
+      Tree.top().iUnfilled_--;
+      if (Tree.top().iUnfilled_ == 0) {
+        Tree.pop();
+        if (Tree.empty()) {
+          mprinterr("Internal Error: Prep stack is empty.\n");
+          return 1;
+        }
+      }
+    }
+    if (ipair.iUnfilled_ != 0) { Tree.push( ipair ); mprintf("DEBUG: Prep:  TREEPUSH %i\n", ipair.aIdx_); }
+    int iBond = ipair.iBack_;
+    // Convert charge
     double charge = convertToDouble(args[10]);
     // Add top atom
     if (args[2] == "EP") {
@@ -214,9 +263,14 @@ int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std:
       Atom atm(args[1], "XP");
       atm.SetTypeName(args[2]);
       atm.SetCharge(charge);
+      topAtomIndices.push_back( top.Natom() );
       top.AddTopAtom(atm, res);
-    } else
+    } else if (args[2] != ISYMDU) {
+      topAtomIndices.push_back( top.Natom() );
       top.AddTopAtom( Atom(args[1], args[2], charge), res );
+      //mprintf("DEBUG: Prep:\t Creating atom: %s (%i)\n", args[1].c_str(), topAtomIndices.back());
+    } else
+      topAtomIndices.push_back( -1 );
     // Add zmatrix entry. In prep file, indices start from 1.
     int atI = convertToInteger(args[0]) - 1;
     if (atI != atIdx) {
@@ -229,15 +283,35 @@ int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std:
     double dist  = convertToDouble(args[7]);
     double theta = convertToDouble(args[8]);
     double phi   = convertToDouble(args[9]);
+    if (args[2] != ISYMDU) {
+      mprintf("DEBUG: Prep:  B/A/T= %f %f %f\n", dist, theta, phi);
+      mprintf("DEBUG: Prep:\t Creating atom: %s\n", args[1].c_str());
+    }
     //if (args[2] == ISYMDU) {
       if (zmatrix.AddIC( InternalCoords(atIdx, atJ, atK, atL, dist, theta, phi) ))
         return 1;
     //} else
     //  zmatrix.AddIC( InternalCoords(atIdx, atJ, atK, atL, dist, theta, phi) );
+    // Add bond if present
+    if (atJ > 0) {
+      if (topAtomIndices[atI] > -1 && topAtomIndices[atJ] > -1) {
+        mprintf("DEBUG: Prep:\t\t Created bond between: %s - %s (%i)\n",
+                *(top[ topAtomIndices[atI] ].Name()),
+                *(top[ topAtomIndices[iBond] ].Name()), iBond);
+        top.AddBond( topAtomIndices[atI], topAtomIndices[iBond] );
+      }
+    }
     atIdx++;
     line = infile.Line();
     if (line == 0) break;
   }
+  //mprintf("DEBUG: Prep:  TREE");
+  //while (!Tree.empty()) {
+  //  mprintf(" %i", Tree.top().aIdx_);
+  //  Tree.pop();
+  //}
+  //mprintf("\n");
+
   // 9 - Read additional information about the residue.
   // CHARGE - Read additional partial atomic charges. FORMAT (5f)
   // LOOP - Read explicit loop closing bonds
@@ -264,9 +338,9 @@ int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std:
   }
   // -----------------------------------
   // Add bonds to topology
-  for (Zmatrix::const_iterator it = zmatrix.begin(); it != zmatrix.end(); ++it)
-    if (it->AtJ() != InternalCoords::NO_ATOM)
-      top.AddBond( it - zmatrix.begin(), it->AtJ() );
+  //for (Zmatrix::const_iterator it = zmatrix.begin(); it != zmatrix.end(); ++it)
+  //  if (it->AtJ() != InternalCoords::NO_ATOM)
+  //    top.AddBond( it - zmatrix.begin(), it->AtJ() );
   for (AtPairArray::const_iterator it = BondPairs.begin(); it != BondPairs.end(); ++it) {
     int idx1 = top.FindAtomInResidue(0, it->first);
     if (idx1 < 0) {
@@ -281,14 +355,20 @@ int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std:
     top.AddBond( idx1, idx2 );
   }
   // Frame
-  Frame frm( top.Natom() );
+  Frame frm_with_duatoms( topAtomIndices.size() );
   // Internal coords to cart
-  if (zmatrix.SetToFrame( frm )) {
+  if (zmatrix.SetToFrame( frm_with_duatoms )) {
     mprinterr("Error: IC to Cartesian coords failed.\n");
     return 1;
   }
-  // Bond search
-  if (bondCutoff > 0) {
+  Frame frm( top.Natom() );
+  frm.ClearAtoms();
+  for (unsigned int pidx = 0; pidx != topAtomIndices.size(); ++pidx) {
+    if (topAtomIndices[pidx] != -1)
+      frm.AddXYZ( frm_with_duatoms.XYZ( pidx ) );
+  }
+  // Bond search. NOTE: Using 0.01 here to match LEaP's behavior
+  if (do_distance_search && bondCutoff > 0.01) {
     BondSearch bondSearch;
     bondSearch.FindBonds( top, BondSearch::SEARCH_REGULAR, frm, 0.2, debug_ );
   }
@@ -308,7 +388,7 @@ int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std:
   DataSet_Coords* CRD = static_cast<DataSet_Coords*>( ds );
   
   // Delete dummy atoms if needed
-  if (removeDummyAtoms_) {
+/*  if (removeDummyAtoms_) {
     AtomMask keepAtoms;
     if (keepAtoms.SetMaskString( "!@%" + ISYMDU )) {
       mprinterr("Error: Could not set up mask string to remove dummy atoms.\n");
@@ -333,7 +413,7 @@ int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std:
       frm = newFrame;
       if (debug_ > 0) top.Summary();
     }
-  }
+  }*/
   // DEBUG - back convert
 /*  mprintf("DEBUG: BACK CONVERT %s\n", resName.c_str());
   mprinterr("DEBUG: BACK CONVERT %s\n", resName.c_str());
