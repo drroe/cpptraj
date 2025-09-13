@@ -211,7 +211,7 @@ int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std:
   typedef std::stack<TREENODE> TreeStack;
   TreeStack Tree;
   Tree.push( TREENODE(-1) );
-  mprintf( "DEBUG: Prep: Reading atom records\n" );
+//  mprintf( "DEBUG: Prep: Reading atom records\n" );
   // Loop over entries
   line = infile.Line();
   if (CheckLine(line)) return 1;
@@ -241,9 +241,9 @@ int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std:
         return 1;
     }
     ipair.iBack_ = Tree.top().aIdx_;
-    printf("DEBUG: Prep:  iTREETOP %i\n", Tree.top().aIdx_);
+//    printf("DEBUG: Prep:  iTREETOP %i\n", Tree.top().aIdx_);
     if (Tree.top().aIdx_ >= 0) {
-      printf("DEBUG: Prep:  iTREETOP %i iUnfilled %i\n", Tree.top().aIdx_, Tree.top().iUnfilled_);
+//      printf("DEBUG: Prep:  iTREETOP %i iUnfilled %i\n", Tree.top().aIdx_, Tree.top().iUnfilled_);
       Tree.top().iUnfilled_--;
       if (Tree.top().iUnfilled_ == 0) {
         Tree.pop();
@@ -253,7 +253,10 @@ int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std:
         }
       }
     }
-    if (ipair.iUnfilled_ != 0) { Tree.push( ipair ); mprintf("DEBUG: Prep:  TREEPUSH %i\n", ipair.aIdx_); }
+    if (ipair.iUnfilled_ != 0) {
+      Tree.push( ipair );
+//      mprintf("DEBUG: Prep:  TREEPUSH %i\n", ipair.aIdx_); }
+    }
     int iBond = ipair.iBack_;
     // Convert charge
     double charge = convertToDouble(args[10]);
@@ -283,21 +286,18 @@ int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std:
     double dist  = convertToDouble(args[7]);
     double theta = convertToDouble(args[8]);
     double phi   = convertToDouble(args[9]);
-    if (args[2] != ISYMDU) {
-      mprintf("DEBUG: Prep:  B/A/T= %f %f %f\n", dist, theta, phi);
-      mprintf("DEBUG: Prep:\t Creating atom: %s\n", args[1].c_str());
-    }
-    //if (args[2] == ISYMDU) {
-      if (zmatrix.AddIC( InternalCoords(atIdx, atJ, atK, atL, dist, theta, phi) ))
-        return 1;
-    //} else
-    //  zmatrix.AddIC( InternalCoords(atIdx, atJ, atK, atL, dist, theta, phi) );
+//    if (args[2] != ISYMDU) {
+//      mprintf("DEBUG: Prep:  B/A/T= %f %f %f\n", dist, theta, phi);
+//      mprintf("DEBUG: Prep:\t Creating atom: %s\n", args[1].c_str());
+//    }
+    if (zmatrix.AddIC( InternalCoords(atIdx, atJ, atK, atL, dist, theta, phi) ))
+      return 1;
     // Add bond if present
     if (atJ > 0) {
       if (topAtomIndices[atI] > -1 && topAtomIndices[atJ] > -1) {
-        mprintf("DEBUG: Prep:\t\t Created bond between: %s - %s (%i)\n",
-                *(top[ topAtomIndices[atI] ].Name()),
-                *(top[ topAtomIndices[iBond] ].Name()), iBond);
+//        mprintf("DEBUG: Prep:\t\t Created bond between: %s - %s (%i)\n",
+//                *(top[ topAtomIndices[atI] ].Name()),
+//                *(top[ topAtomIndices[iBond] ].Name()), iBond);
         top.AddBond( topAtomIndices[atI], topAtomIndices[iBond] );
       }
     }
@@ -361,6 +361,10 @@ int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std:
     mprinterr("Error: IC to Cartesian coords failed.\n");
     return 1;
   }
+  // DEBUG
+  //mprintf("DEBUG: Zmatrix -> Cartesian:\n");
+  //for (int ii = 0; ii < frm_with_duatoms.Natom(); ii++)
+  //  frm_with_duatoms.printAtomCoord(ii);
   Frame frm( top.Natom() );
   frm.ClearAtoms();
   for (unsigned int pidx = 0; pidx != topAtomIndices.size(); ++pidx) {
