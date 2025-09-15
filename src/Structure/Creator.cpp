@@ -291,7 +291,7 @@ int Creator::getParameterSets(ArgList& argIn, DataSetList const& DSL) {
       ++it;
       ParameterSet::UpdateCount UC;
       for (; it != ParamSets.end(); ++it)
-        mainParmSet_->UpdateParamSet( *(*it), UC, debug_, debug_ ); // FIXME verbose
+        mainParmSet_->UpdateParamSet( *(*it), UC, debug_, debug_+1 ); // Make it so verbosity is at least 1 to report overwritten params 
     }
   }
   return 0;
