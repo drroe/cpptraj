@@ -1062,8 +1062,8 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
       box_added = true;
       // Get radii
       std::vector<double> Radii;
-      Radii.reserve( topIn.Natom() );
-      for (int atnum = 0; atnum != topIn.Natom(); ++atnum) {
+      Radii.reserve( topOut.Natom() );
+      for (int atnum = 0; atnum != topOut.Natom(); ++atnum) {
         Radii.push_back( topOut.GetVDWradius(atnum) );
         //Radii.push_back( topIn[atnum].ParseRadius() );
         //Radii.push_back( 0.5 );
