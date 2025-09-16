@@ -72,14 +72,14 @@ void ParameterSet::Print(CpptrajFile& Out) const {
       break;
   }
   // Atom Type header
-  Out.Printf("\t%6s %8s %12s %12s %12s %12s", "Name", "TypeIdx", "Radius", "Depth", "Mass", "Polar.");
+  Out.Printf("\t%6s %8s %2s %12s %12s %12s %12s", "Name", "TypeIdx", "LJ", "Radius", "Depth", "Mass", "Polar.");
   if (has_hybridizations)
     Out.Printf(" %3s", "Hyb");
   if (has_elements)
     Out.Printf(" %2s", "El");
   Out.Printf("\n");
   for (ParmHolder<AtomType>::const_iterator at = atomTypes_.begin(); at != atomTypes_.end(); ++at) {
-    Out.Printf("\t%6s %8li %12.4f %12.4f %12.4f %12.4f", *(at->first[0]), at - atomTypes_.begin(), at->second.LJ().Radius(), at->second.LJ().Depth(), at->second.Mass(), at->second.Polarizability());
+    Out.Printf("\t%6s %8li %2i %12.4f %12.4f %12.4f %12.4f", *(at->first[0]), at - atomTypes_.begin(), (int)at->second.HasLJ(), at->second.LJ().Radius(), at->second.LJ().Depth(), at->second.Mass(), at->second.Polarizability());
     if (has_hybridizations)
       Out.Printf(" %3s", hybStr[at->second.Hybridization()]);
     if (has_elements)

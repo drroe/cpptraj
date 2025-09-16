@@ -8,19 +8,21 @@ class AtomType {
     /// Atom hybridization types
     enum HybridizationType { SP = 0, SP2, SP3, UNKNOWN_HYBRIDIZATION };
     /// CONSTRUCTOR
-    AtomType() : mass_(0.0), polarizability_(0.0), oidx_(-1), hybrid_(UNKNOWN_HYBRIDIZATION), hasLJ14_(false) { clearElt(); }
+    AtomType() : mass_(0.0), polarizability_(0.0), oidx_(-1), hybrid_(UNKNOWN_HYBRIDIZATION), hasLJ_(false), hasLJ14_(false) { clearElt(); }
     /// CONSTRUCTOR - Mass only
-    AtomType(double m) : mass_(m), polarizability_(0.0), oidx_(-1), hybrid_(UNKNOWN_HYBRIDIZATION), hasLJ14_(false) { clearElt(); }
+    AtomType(double m) : mass_(m), polarizability_(0.0), oidx_(-1), hybrid_(UNKNOWN_HYBRIDIZATION), hasLJ_(false), hasLJ14_(false) { clearElt(); }
     /// CONSTRUCTOR - Mass, polarizability
-    AtomType(double m, double p) : mass_(m), polarizability_(p), oidx_(-1), hybrid_(UNKNOWN_HYBRIDIZATION), hasLJ14_(false) { clearElt(); }
+    AtomType(double m, double p) : mass_(m), polarizability_(p), oidx_(-1), hybrid_(UNKNOWN_HYBRIDIZATION), hasLJ_(false), hasLJ14_(false) { clearElt(); }
     /// CONSTRUCTOR - Radius, well depth, mass, polarizability
-    AtomType(double r, double d, double m, double p) : lj_(r, d), mass_(m), polarizability_(p), oidx_(-1), hybrid_(UNKNOWN_HYBRIDIZATION), hasLJ14_(false) { clearElt(); }
+    AtomType(double r, double d, double m, double p) : lj_(r, d), mass_(m), polarizability_(p), oidx_(-1), hybrid_(UNKNOWN_HYBRIDIZATION), hasLJ_(true), hasLJ14_(false) { clearElt(); }
     /// Set type index
     void SetTypeIdx(int i) { oidx_ = i; }
     /// \return default LJ parameters
     LJparmType const& LJ()  const { return lj_; }
     /// \return LJ 1-4 parameters
     LJparmType const& LJ14() const { return lj14_; }
+    /// \return True if LJ parameters have been set
+    bool HasLJ() const { return hasLJ_; }
     /// \return True if LJ 1-4 parameters have been set
     bool HasLJ14() const { return hasLJ14_; }
     /// \return Atom mass in amu
@@ -33,7 +35,7 @@ class AtomType {
     HybridizationType Hybridization() const { return hybrid_; }
     /// \return Atom type element string
     const char* EltStr() const { return elt_; }
-    /// \return true if mass, polarizability, or LJ params are less than incoming
+    /// \return true if mass, polarizability, or LJ params are less than incoming FIXME LJ14 too?
     bool operator<(AtomType const& rhs) const {
       if (FEQ(mass_, rhs.mass_)) {
         if (FEQ(polarizability_, rhs.polarizability_)) {
@@ -45,14 +47,14 @@ class AtomType {
         return mass_ < rhs.mass_;
       }
     }
-    /// \return true if mass, polarizability, and LJ params are the same
+    /// \return true if mass, polarizability, and LJ params are the same FIXME LJ14 too?
     bool operator==(AtomType const& rhs) const {
       return (FEQ(mass_, rhs.mass_) &&
               FEQ(polarizability_, rhs.polarizability_) &&
               lj_ == rhs.lj_);
     }
-    /// Used to modify LJ params
-    LJparmType& SetLJ() { return lj_; }
+    /// Set LJ params
+    void SetLJ(LJparmType const& lj) { lj_ = lj; hasLJ_ = true; }
     /// Set LJ 1-4 parameters
     void SetLJ14(LJparmType const& lj) { lj14_ = lj; hasLJ14_ = true; }
     /// Set atom hybridization
@@ -69,6 +71,7 @@ class AtomType {
     int oidx_;              ///< Original atom type index, for indexing nonbond parameters.
     HybridizationType hybrid_; ///< Atom hybridization
     char elt_[3];              ///< 2 character atom type element string (and null char)
+    bool hasLJ_;             ///< True if this type has LJ 1-4 parameters.
     bool hasLJ14_;             ///< True if this type has LJ 1-4 parameters.
 };
 #endif

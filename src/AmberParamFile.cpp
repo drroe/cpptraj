@@ -480,8 +480,7 @@ int AmberParamFile::assign_nb(ParameterSet& prm, NonbondSet const& nbset) const 
                 *(it->first[0]));
       return 1;
     } 
-    at->second.SetLJ().SetRadius( it->second.Radius() );
-    at->second.SetLJ().SetDepth( it->second.Depth() );
+    at->second.SetLJ( it->second );
   }
   return 0;
 }
@@ -500,8 +499,7 @@ int AmberParamFile::assign_offdiag(ParameterSet& prm, Oarray const& Offdiag) con
                   *(od->types_[0]));
         return 1;
       }
-      it->second.SetLJ().SetRadius( od->LJ1_.Radius() );
-      it->second.SetLJ().SetDepth( od->LJ1_.Depth() );
+      it->second.SetLJ( od->LJ1_ );
       // Set off-diagonal for type1-type2
       // FIXME different combine rules?
       prm.NB().AddParm(od->types_, od->LJ1_.Combine_LB(od->LJ2_), false);
@@ -792,8 +790,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
           return 1;
         }
         if (debug_ > 1) mprintf("DEBUG: Equiv '%s' => '%s'\n", *(at0->first[0]), *(*typeName));
-        at1->second.SetLJ().SetRadius( at0->second.LJ().Radius() );
-        at1->second.SetLJ().SetDepth( at0->second.LJ().Depth() );
+        at1->second.SetLJ( at0->second.LJ() );
       }
     } // END loop over EquivalentNames
   } // END nonbond parameters

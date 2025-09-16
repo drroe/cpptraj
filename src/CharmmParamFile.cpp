@@ -270,8 +270,7 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
                   if (it->first[0].Match( at )) {
                     if (debugIn > 0)
                       mprintf("DEBUG: NB wildcard match: '%s' matches '%s'\n", *(it->first[0]), *at);
-                    it->second.SetLJ().SetRadius( radius );
-                    it->second.SetLJ().SetDepth( -epsilon );
+                    it->second.SetLJ( LJparmType(radius, -epsilon) );
                   }
                 }
               } else {
@@ -281,8 +280,7 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
                   mprintf("Warning: Nonbond parameters defined for type '%s' without MASS card."
                           " Skipping.\n", *at);
                 } else {
-                  it->second.SetLJ().SetRadius( radius );
-                  it->second.SetLJ().SetDepth( -epsilon );
+                  it->second.SetLJ( LJparmType(radius, -epsilon) );
                 }
               }
             }
