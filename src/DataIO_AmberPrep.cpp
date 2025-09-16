@@ -186,9 +186,6 @@ int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std:
   double bondCutoff = 0;
   if (line[0] != '\0')
     bondCutoff = convertToDouble( std::string(line) );
-  if (bondCutoff > 0.0)
-    mprintf("Warning: Non-zero cutoff in prep file (%g); will search for additional\n"
-            "Warning:  bonds based on distances.\n", bondCutoff);
   //     0 1         2         3        4     5     6     7    8        9      10
   // 8 - I IGRAPH(I) ISYMBL(I) ITREE(I) NA(I) NB(I) NC(I) R(I) THETA(I) PHI(I) CHG(I) [I = 1, NATOM]
   // FORMAT(I,3A,3I,4F)
@@ -373,6 +370,8 @@ int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std:
   }
   // Bond search. NOTE: Using 0.01 here to match LEaP's behavior
   if (do_distance_search && bondCutoff > 0.01) {
+    mprintf("Warning: Non-zero cutoff in prep file (%g); will search for additional\n"
+            "Warning:  bonds based on distances.\n", bondCutoff);
     BondSearch bondSearch;
     bondSearch.FindBonds( top, BondSearch::SEARCH_REGULAR, frm, 0.2, debug_ );
   }
