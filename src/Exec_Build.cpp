@@ -149,16 +149,23 @@ const
     // Determine if this is a terminal residue
     Cpptraj::Structure::TerminalType resTermType;
     if (currentRes.IsTerminal()) {
+      //mprintf("DEBUG: End terminal due to TERMINAL status.\n");
       resTermType = Cpptraj::Structure::END_TERMINAL;
     } else if (ires == 0 && topIn.Nres() > 1) {
       resTermType = Cpptraj::Structure::BEG_TERMINAL;
     } else if (pres > -1 && topIn.Res(pres).IsTerminal()) {
       resTermType = Cpptraj::Structure::BEG_TERMINAL;
-    } else if (nres < topIn.Nres() && (topIn.Res(nres).ChainID() != currentRes.ChainID() ||
-                                       topIn.Res(nres).Icode()   != currentRes.Icode()))
+    } else if (nres < topIn.Nres() && (topIn.Res(nres).ChainID() != currentRes.ChainID())// ||
+//                                        (topIn.Res(nres).OriginalResNum() == currentRes.OriginalResNum() &&
+//                                         topIn.Res(nres).Icode()          != currentRes.Icode()
+//                                        )
+//                                      )
+              )
     {
+      //mprintf("DEBUG: End terminal due to chain ID.\n");
       resTermType = Cpptraj::Structure::END_TERMINAL;
     } else if (nres == topIn.Nres()) {
+      //mprintf("DEBUG: End terminal due to last residue.\n");
       resTermType = Cpptraj::Structure::END_TERMINAL;
     } else {
       resTermType = Cpptraj::Structure::NON_TERMINAL;
