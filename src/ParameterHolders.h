@@ -4,7 +4,7 @@
 #include <utility> // std::pair
 #include "TypeNameHolder.h"
 #include "ParameterTypes.h"
-//#inc lude "CpptrajStdio.h" // DEBUG
+//#incl ude "CpptrajStdio.h" // DEBUG
 
 namespace ParameterHolders {
   enum RetType { ADDED = 0, SAME, UPDATED, ERR };
@@ -258,6 +258,16 @@ class DihedralParmHolder {
       found = false;
       return DihedralParmArray();
     }
+    /// \return iterator to parameter matching the given types.
+    const_iterator GetParam(TypeNameHolder const& types) {
+      for (const_iterator it = begin(); it != end(); ++it)
+        if (it->first.Match_NoWC( types )) return it;
+      if (wc_.len() > 0) {
+        for (const_iterator it = begin(); it != end(); ++it)
+          if (it->first.Match_WC( types, wc_)) return it;
+      }
+      return end();
+    }
     /// \return size in memory in bytes
     size_t DataSize() const {
       if (bpmap_.empty()) return 0;
@@ -440,6 +450,12 @@ class ImproperParmHolder : private DihedralParmHolder {
       }
       return it;
     } // END GetParam()
+    /// Get improper parameters matching given atom types. If found, improper will be reordered to match parameter order.
+    const_iterator GetParam(TypeNameHolder const& types) const {
+      DihedralType imp;
+      bool reordered = false;
+      return GetParam( types, imp, reordered);
+    }
     /// \return Array of improper parameters matching given atom types. Improper will be reordered to match parameter order.
     DihedralParmArray FindParam(TypeNameHolder const& types, bool& found, DihedralType& imp, bool& reordered) const {
       const_iterator it = GetParam( types, imp, reordered );

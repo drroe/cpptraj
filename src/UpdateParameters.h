@@ -46,7 +46,11 @@ template <typename T> int UpdateParameters(T& param0, T const& param1, const cha
       }
       if (print) {
         mprintf(" %s", newp->first.TypeString().c_str());
-        PrintParmType( newp->second );
+        //PrintParmType( newp->second );
+        // NOTE: For AtomType its possible only a partial update occurred.
+        //       Get the new parameter explicitly.
+        typename T::const_iterator newIt = param0.GetParam( newp->first );
+        PrintParmType( newIt->second );
       }
       //mprintf(" %s %s %12.4f %12.4f\n", 
       //        *(newp->first[0]), *(newp->first[1]), newp->second.Rk(), newp->second.Req());

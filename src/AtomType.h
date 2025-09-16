@@ -1,6 +1,7 @@
 #ifndef INC_ATOMTYPE_H
 #define INC_ATOMTYPE_H
 #include "ParameterTypes.h"
+//# incl ude "CpptrajStdio.h" // DEBUG
 /// Hold parameters for a unique atom type
 class AtomType {
     void clearElt() { elt_[0] = ' '; elt_[1] = ' '; elt_[2] = '\0'; }
@@ -35,11 +36,15 @@ class AtomType {
     HybridizationType Hybridization() const { return hybrid_; }
     /// \return Atom type element string
     const char* EltStr() const { return elt_; }
-    /// \return true if mass, polarizability, or LJ params are less than incoming FIXME LJ14 too?
+    /// \return true if mass, polarizability, or LJ params are less than incoming
     bool operator<(AtomType const& rhs) const {
       if (FEQ(mass_, rhs.mass_)) {
         if (FEQ(polarizability_, rhs.polarizability_)) {
-          return lj_ < rhs.lj_;
+          if (lj_ == rhs.lj_) {
+            return lj14_ < rhs.lj14_;
+          } else {
+            return lj_ < rhs.lj_;
+          }
         } else {
           return polarizability_ < rhs.polarizability_;
         }
@@ -47,11 +52,12 @@ class AtomType {
         return mass_ < rhs.mass_;
       }
     }
-    /// \return true if mass, polarizability, and LJ params are the same FIXME LJ14 too?
+    /// \return true if mass, polarizability, and LJ params are the same
     bool operator==(AtomType const& rhs) const {
       return (FEQ(mass_, rhs.mass_) &&
               FEQ(polarizability_, rhs.polarizability_) &&
-              lj_ == rhs.lj_);
+              lj_ == rhs.lj_ &&
+              lj14_ == rhs.lj14_);
     }
     /// Set LJ params
     void SetLJ(LJparmType const& lj) { lj_ = lj; hasLJ_ = true; }
@@ -63,6 +69,24 @@ class AtomType {
     void SetEltStr(const char* elt) { elt_[0] = elt[0]; elt_[1] = elt[1]; }
     /// \return data size  (2 double for LJparmType)
     static size_t DataSize() { return (4*sizeof(double)) + sizeof(int); }
+    /// Assign atom type. Do not overwrite LJ params if incoming type does not have them set.
+    AtomType& operator=(AtomType const& rhs) {
+      if (this == &rhs) return *this;
+      //mprintf("DEBUG: Assign elt %c%c oldHasLj=%i oldR=%f newHasLj=%i newR=%f\n", elt_[0], elt_[1], (int)hasLJ_, lj_.Radius(), (int)rhs.hasLJ_, rhs.lj_.Radius());
+      if (rhs.hasLJ_) lj_ = rhs.lj_;
+      if (rhs.hasLJ14_) lj14_ = rhs.lj14_;
+      //mprintf("DEBUG: After Assign elt %c%c newR=%f\n", elt_[0], elt_[1], lj_.Radius());
+      mass_ = rhs.mass_;
+      polarizability_ = rhs.polarizability_;
+      oidx_ = rhs.oidx_;
+      hybrid_ = rhs.hybrid_;
+      elt_[0] = rhs.elt_[0];
+      elt_[1] = rhs.elt_[1];
+      //elt_[2] = rhs.elt_[2];
+      hasLJ_ = rhs.hasLJ_;
+      hasLJ14_ = rhs.hasLJ14_;
+      return *this;
+    }
   private:
     LJparmType lj_;         ///< Default Lennard-Jones parameters (always valid for self).
     LJparmType lj14_;       ///< Lennard-Jones 1-4 parameters (optional).
