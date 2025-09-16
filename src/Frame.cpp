@@ -1405,8 +1405,13 @@ double Frame::CalcTemperature(AtomMask const& mask, int deg_of_freedom) const {
 /** Set an orthogonal bounding box around all atoms, ensuring it
   * can encompass the given atomic radii, plus an offset.
   */
-void Frame::SetOrthoBoundingBox(std::vector<double> const& Radii, double offset)
+int Frame::SetOrthoBoundingBox(std::vector<double> const& Radii, double offset)
 {
+  // Sanity check
+  if ((int)Radii.size() < natom_) {
+    mprinterr("Internal Error: Frame::SetOrthoBoundingBox: # of radii %zu < # atoms in frame %i\n", Radii.size(), natom_);
+    return 1;
+  }
   int atom = 0;
   Vec3 min(XYZ( atom ));
   Vec3 max(min);
@@ -1453,7 +1458,7 @@ void Frame::SetOrthoBoundingBox(std::vector<double> const& Radii, double offset)
   xyzabg[3] = 90.0;
   xyzabg[4] = 90.0;
   xyzabg[5] = 90.0;
-  box_.SetupFromXyzAbg(xyzabg);
+  return box_.SetupFromXyzAbg(xyzabg);
 }
 
 #ifdef MPI

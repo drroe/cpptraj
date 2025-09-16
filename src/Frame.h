@@ -275,7 +275,7 @@ class Frame {
     /// Calculate temperature of atoms in mask.
     double CalcTemperature(AtomMask const&,int) const;
     /// Set an orthogonal bounding box
-    void SetOrthoBoundingBox(std::vector<double> const& Radii, double);
+    int SetOrthoBoundingBox(std::vector<double> const& Radii, double);
 #   ifdef MPI
     // ----- Parallel Routines -------------------
     int SendFrame(int, Parallel::Comm const&) const;

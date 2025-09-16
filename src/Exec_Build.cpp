@@ -1069,7 +1069,10 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
         //Radii.push_back( 0.5 );
       }
 
-      frameOut.SetOrthoBoundingBox(Radii, 1.0);
+      if (frameOut.SetOrthoBoundingBox(Radii, 1.0)) {
+        mprinterr("Error: Setting orthogonal bounding box failed.\n");
+        return CpptrajState::ERR;
+      }
       frameOut.BoxCrd().PrintInfo();
     }
     if (check.Setup( topOut, frameOut.BoxCrd() )) {
