@@ -8,6 +8,7 @@ class CharMask;
 class Action_Vector : public Action {
   public:
     Action_Vector();
+    ~Action_Vector();
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_Vector(); }
     void Help() const;
   private:

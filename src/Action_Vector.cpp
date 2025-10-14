@@ -23,7 +23,6 @@ Action_Vector::Action_Vector() :
 
 // DESTRUCTOR
 Action_Vector::~Action_Vector() {
-  if (vcorr_!=0) delete[] vcorr_;
   if (cmask_ != 0) delete cmask_;
 }
 
