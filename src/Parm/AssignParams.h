@@ -2,6 +2,9 @@
 #define INC_PARM_ASSIGNPARAMS_H
 #include <vector>
 #include <string>
+#ifdef TIMER
+# include "Timer.h"
+#endif
 class AngleArray;
 class AngleParmArray;
 class AngleParmType;
@@ -36,7 +39,11 @@ class AssignParams {
     /// Set verbosity
     void SetVerbose(int);
     /// Replace existing parameters with those from given set
+#   ifdef TIMER
+    int AssignParameters(Topology&, ParameterSet const&);
+#   else
     int AssignParameters(Topology&, ParameterSet const&) const;
+#   endif
     /// Update existing parameters with given parameter set
     int UpdateParameters(Topology&, ParameterSet const&) const;
     // Assign nonbond parameters to topology. Used during Merge::AppendTop()
@@ -44,6 +51,7 @@ class AssignParams {
                              ParmHolder<AtomType> const&,
                              ParmHolder<NonbondType> const&, ParmHolder<NonbondType> const&,
                              ParmHolder<double> const&, ParmHolder<HB_ParmType> const&) const;
+    void WriteAssignTiming(int, double) const;
   private:
     typedef std::vector<Atom> AtArray;
 
@@ -85,6 +93,18 @@ class AssignParams {
     int verbose_;
     bool deleteExtraPointAngles_; ///< If true, remove angles/torsions containing extra points.
     bool flexibleWater_;          ///< If true, allow H-O-H angle for water
+#   ifdef TIMER
+    Timer t_total_;
+    Timer t_bonds_;
+    Timer t_angles_;
+    Timer t_dihedrals_;
+    Timer t_cmaps_;
+    Timer t_multi_;
+    Timer t_UB_;
+    Timer t_improper_;
+    Timer t_atype_;
+    Timer t_nonbond_;
+#   endif
 };
 }
 }

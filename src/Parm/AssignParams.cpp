@@ -1065,8 +1065,16 @@ void AssignParams::AddToDihedralArrays(Topology& topOut, DihedralType const& dih
 }
 
 /** Replace existing parameters with the given parameter set. */
-int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0) const {
-
+#ifdef TIMER
+int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0)
+#else
+int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0) const
+#endif
+{
+# ifdef TIMER
+  t_total_.Start();
+  t_bonds_.Start();
+# endif
   // Bond parameters
   mprintf("\tAssigning bond parameters.\n");
   topOut.ModifyBondParm().clear();
@@ -1077,6 +1085,10 @@ int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0) c
   AssignBondParm( topOut, set0.BP(), allBonds, topOut.ModifyBondParm(), "bond" );
   for (BondArray::const_iterator bnd = allBonds.begin(); bnd != allBonds.end(); ++bnd)
     AddToBondArrays( topOut, *bnd );
+# ifdef TIMER
+  t_bonds_.Stop();
+  t_angles_.Start();
+# endif
   // Angle parameters
   mprintf("\tAssigning angle parameters.\n");
   topOut.ModifyAngleParm().clear();
@@ -1087,6 +1099,10 @@ int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0) c
   allAngles = AssignAngleParm( topOut, set0.AP(), allAngles, topOut.ModifyAngleParm() );
   for (AngleArray::const_iterator ang = allAngles.begin(); ang != allAngles.end(); ++ang)
     AddToAngleArrays( topOut, *ang );
+# ifdef TIMER
+  t_angles_.Stop();
+  t_dihedrals_.Start();
+# endif
   // Dihedral parameters
   mprintf("\tAssigning dihedral parameters.\n");
   topOut.ModifyDihedralParm().clear();
@@ -1094,20 +1110,40 @@ int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0) c
   topOut.ModifyDihedrals().clear();
   topOut.ModifyDihedralsH().clear();
   DihedralArray allDihedrals = Cpptraj::Structure::GenerateDihedralArray(topOut.Residues(), topOut.Atoms());
+# ifdef TIMER
+  t_dihedrals_.Stop();
+# endif
   // If we need CMAP terms, do it here before the dihedrals array is modified
   if (!set0.CMAP().empty()) {
+#   ifdef TIMER
+    t_cmaps_.Start();
+#   endif
     topOut.ModifyCmap().clear();
     topOut.ModifyCmapGrid().clear();
     mprintf("\tAssigning CMAP parameters.\n");
     AssignCmapParams( topOut, allDihedrals, set0.CMAP(), topOut.ModifyCmapGrid(), topOut.ModifyCmap() );
+#   ifdef TIMER
+    t_cmaps_.Stop();
+#   endif
   } 
   // Now modify the dihedrals for any multiplicities
+# ifdef TIMER
+  t_multi_.Start();
+# endif
   allDihedrals = AssignDihedralParm( topOut, set0.DP(), set0.IP(), set0.AT(), allDihedrals, false );
   for (DihedralArray::const_iterator dih = allDihedrals.begin(); dih != allDihedrals.end(); ++dih)
     AddToDihedralArrays( topOut, *dih );
+# ifdef TIMER
+  t_multi_.Stop();
+  t_UB_.Start();
+# endif
   // Urey-Bradley
   mprintf("\tAssigning Urey-Bradley parameters.\n");
   AssignUBParams( topOut, set0.UB() );
+# ifdef TIMER
+  t_UB_.Stop();
+  t_improper_.Start();
+# endif
   if (!topOut.Impropers().empty()) {
     // Charmm Improper parameters
     mprintf("\tAssigning CHARMM improper parameters.\n");
@@ -1120,15 +1156,42 @@ int AssignParams::AssignParameters(Topology& topOut, ParameterSet const& set0) c
     for (DihedralArray::const_iterator imp = allImpropers.begin(); imp != allImpropers.end(); ++imp)
       AddToDihedralArrays( topOut, *imp );
   }
+# ifdef TIMER
+  t_improper_.Stop();
+  t_atype_.Start();
+# endif
   // Atom types
   mprintf("\tAssigning atom type parameters.\n");
   AssignAtomTypeParm( topOut.ModifyAtoms(), set0.AT() );
+# ifdef TIMER
+  t_atype_.Stop();
+  t_nonbond_.Start();
+# endif
   // LJ 6-12
   mprintf("\tAssigning nonbond parameters.\n");
   AssignNonbondParams( topOut, set0.AT(), set0.NB(), set0.NB14(), set0.LJC(), set0.HB() );
   //mprintf("DEBUG: CMAP size %zu\n", set0.CMAP().size());
-
+# ifdef TIMER
+  t_nonbond_.Stop();
+  t_total_.Stop();
+# endif
   return 0;
+}
+
+/** Write timing to stdout. Only works if TIMER is defined. */
+void AssignParams::WriteAssignTiming(int indent, double totalIn) const {
+#ifdef TIMER
+  t_total_.WriteTiming(indent, "Param Assign Total", totalIn);
+  t_bonds_.WriteTiming(indent+1,     "Bonds                  ", t_total_.Total());
+  t_angles_.WriteTiming(indent+1,    "Angles                 ", t_total_.Total());
+  t_dihedrals_.WriteTiming(indent+1, "Dihedrals              ", t_total_.Total());
+  t_multi_.WriteTiming(indent+1,     "Dihedral Multiplicities", t_total_.Total());
+  t_cmaps_.WriteTiming(indent+1,     "CMAPs                  ", t_total_.Total());
+  t_UB_.WriteTiming(indent+1,        "Urey-Bradleys          ", t_total_.Total());
+  t_improper_.WriteTiming(indent+1,  "Impropers              ", t_total_.Total());
+  t_atype_.WriteTiming(indent+1,     "Atom Types             ", t_total_.Total());
+  t_nonbond_.WriteTiming(indent+1,   "Nonbonds               ", t_total_.Total());
+#endif
 }
 
 /** Update/add to parameters in this topology with those from given set.
