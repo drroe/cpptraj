@@ -1110,6 +1110,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
   t_sugar_.WriteTiming        (2, "Sugar preparation   :", t_total_.Total());
   t_fill_.WriteTiming         (2, "Fill missing atoms  :", t_total_.Total());
   t_assign_.WriteTiming       (2, "Param./Top. gen.    :", t_total_.Total());
+  AP.WriteAssignTiming(3, t_assign_.Total());
   t_check_.WriteTiming        (2, "Structure check     :", t_total_.Total());
 
   return ret;
