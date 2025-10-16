@@ -53,6 +53,8 @@ class TypeNameHolder {
         }
       return match;
     }
+    /// \return true if either direction is an exact match, no wildcard.
+    bool operator==(TypeNameHolder const& rhs) const { return Match_NoWC(rhs); }
     /// \return true if either direction is a match, taking into account wildcard.
     bool Match_WC(TypeNameHolder const& rhs, NameType const& wildcard) const {
       // Sanity check
