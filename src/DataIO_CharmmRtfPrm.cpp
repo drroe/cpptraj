@@ -72,8 +72,8 @@ int DataIO_CharmmRtfPrm::processWriteArgs(ArgList& argIn)
 // DataIO_CharmmRtfPrm::WriteData()
 int DataIO_CharmmRtfPrm::WriteData(FileName const& fname, DataSetList const& dsl)
 {
-  ParameterSet pout;
-  ParameterSet::UpdateCount ucount;
+  Cpptraj::Parm::ParameterSet pout;
+  Cpptraj::Parm::ParameterSet::UpdateCount ucount;
   for (DataSetList::const_iterator it = dsl.begin(); it != dsl.end(); ++it)
   {
     if ( (*it)->Type() == DataSet::PARAMETERS )

@@ -94,11 +94,11 @@ int DataIO_AmberFF::WriteData(FileName const& fname, DataSetList const& dsl)
     return outfile.WriteParams( *(toWrite.front()), fname );
   } else {
     // Create a combined parameter set
-    ParameterSet prm;
+    Cpptraj::Parm::ParameterSet prm;
     for (std::vector<DataSet_Parameters*>::const_iterator it = toWrite.begin();
                                                           it != toWrite.end(); ++it)
     {
-      ParameterSet::UpdateCount UC;
+      Cpptraj::Parm::ParameterSet::UpdateCount UC;
       prm.UpdateParamSet( *(*it), UC, debug_, debug_ ); // FIXME verbose
     }
     return outfile.WriteParams( prm, fname );

@@ -4,5 +4,4 @@ PARM_SOURCES= \
   GB_Params.cpp \
   GetParams.cpp \
   Merge.cpp \
-  ParameterSet.cpp \
-  test.cpp
+  ParameterSet.cpp

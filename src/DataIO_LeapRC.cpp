@@ -223,7 +223,7 @@ const
     if ( paramSet->Type() == DataSet::PARAMETERS ) {
       DataSet_Parameters& param = static_cast<DataSet_Parameters&>( *paramSet );
       mprintf("\tUpdating atom hybridizations and elements in set %s\n", param.legend());
-      for (ParmHolder<AtomType>::iterator it = param.AT().begin();
+      for (Cpptraj::Parm::ParmHolder<AtomType>::iterator it = param.AT().begin();
                                           it != param.AT().end(); ++it)
       {
         AtypeEltHybridPairMap::const_iterator ah = atomHybridizations.find( it->first[0] );

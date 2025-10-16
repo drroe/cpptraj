@@ -94,7 +94,7 @@ void Creator::UpdateTemplateElements() const {
     // Loop over template atoms
     Topology& templateTop = *((*crd)->TopPtr());
     for (int at = 0; at != templateTop.Natom(); at++) {
-      ParmHolder<AtomType>::const_iterator it;
+      Cpptraj::Parm::ParmHolder<AtomType>::const_iterator it;
       if (templateTop[at].HasType()) {
         it = mainParmSet_->AT().GetParam( TypeNameHolder(templateTop[at].Type()) );
         if (it != mainParmSet_->AT().end()) {
@@ -289,7 +289,7 @@ int Creator::getParameterSets(ArgList& argIn, DataSetList const& DSL) {
       Parray::const_iterator it = ParamSets.begin();
       mainParmSet_ = new DataSet_Parameters( *(*it) );
       ++it;
-      ParameterSet::UpdateCount UC;
+      Cpptraj::Parm::ParameterSet::UpdateCount UC;
       for (; it != ParamSets.end(); ++it)
         mainParmSet_->UpdateParamSet( *(*it), UC, debug_, debug_+1 ); // Make it so verbosity is at least 1 to report overwritten params 
     }

@@ -1316,12 +1316,12 @@ int DataIO_Std::WriteParameters(CpptrajFile& file, DataSetList const& Sets) cons
     prm.Print(file);
   } else if (Sets.size() > 1) {
     // Create a combined parameter set
-    ParameterSet prm;
+    Cpptraj::Parm::ParameterSet prm;
     for (DataSetList::const_iterator it = Sets.begin(); it != Sets.end(); ++it)
     {
       if ((*it)->Type() == DataSet::PARAMETERS) {
         DataSet_Parameters const& param = static_cast<DataSet_Parameters const&>( *(*it) );
-        ParameterSet::UpdateCount UC;
+        Cpptraj::Parm::ParameterSet::UpdateCount UC;
         prm.UpdateParamSet( param, UC, debug_, debug_ ); // FIXME verbose
       } else {
         mprintf("Warning: Set '%s' is not a parameter set, skipping.\n", (*it)->legend());
