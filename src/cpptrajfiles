@@ -378,7 +378,6 @@ COMMON_SOURCES= \
         NetcdfFile.cpp \
         OMM_helpers.cpp \
         OutputTrajCommon.cpp \
-        ParameterSet.cpp \
         PDBfile.cpp \
         PairList.cpp \
         Parallel.cpp \
