@@ -32,16 +32,16 @@ template <typename T> int UpdateParameters(T& param0, T const& param1, const cha
   int updateCount = 0;
   for (typename T::const_iterator newp = param1.begin(); newp != param1.end(); ++newp)
   {
-    ParameterHolders::RetType ret = param0.AddParm( newp->first, newp->second, true );
-    if (ret != ParameterHolders::ERR) {
+    Cpptraj::Parm::RetType ret = param0.AddParm( newp->first, newp->second, true );
+    if (ret != Cpptraj::Parm::ERR) {
       bool print = false;
-      if (ret == ParameterHolders::ADDED) {
+      if (ret == Cpptraj::Parm::ADDED) {
         if (verbose > 2) { mprintf("\tAdded NEW %s parameter:", desc); print = true; }
         updateCount++;
-      } else if (ret == ParameterHolders::UPDATED) {
+      } else if (ret == Cpptraj::Parm::UPDATED) {
         if (verbose > 0) { mprintf("\tUpdated %s parameter:", desc); print = true; }
         updateCount++;
-      } else if (ret == ParameterHolders::SAME) {
+      } else if (ret == Cpptraj::Parm::SAME) {
         if (verbose > 1) { mprintf("\tParameter for %s already present:", desc); print = true; }
       }
       if (print) {
