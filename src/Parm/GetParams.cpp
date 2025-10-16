@@ -1,10 +1,9 @@
 #include "GetParams.h"
+#include "ParameterSet.h"
 #include "../Atom.h"
 #include "../AtomType.h"
 #include "../CmapParmHolder.h"
 #include "../CpptrajStdio.h"
-#include "../ParameterHolders.h"
-#include "../ParameterSet.h"
 #include "../ParameterTypes.h"
 #include "../Topology.h"
 #include "../TypeNameHolder.h"
@@ -37,8 +36,8 @@ void GetParams::GetBondParams(ParmHolder<BondParmType>& BP, std::vector<Atom> co
       TypeNameHolder types(2);
       types.AddName( atoms[b->A1()].Type() );
       types.AddName( atoms[b->A2()].Type() );
-      ParameterHolders::RetType ret = BP.AddParm( types, bpa[b->Idx()], false );
-      if (ret == ParameterHolders::ERR)
+      Cpptraj::Parm::RetType ret = BP.AddParm( types, bpa[b->Idx()], false );
+      if (ret == Cpptraj::Parm::ERR)
         paramOverwriteWarning("bond");
     }
   }
@@ -53,8 +52,8 @@ void GetParams::GetAngleParams(ParmHolder<AngleParmType>& AP, std::vector<Atom> 
       types.AddName( atoms[b->A1()].Type() );
       types.AddName( atoms[b->A2()].Type() );
       types.AddName( atoms[b->A3()].Type() );
-      ParameterHolders::RetType ret = AP.AddParm( types, apa[b->Idx()], false );
-      if (ret == ParameterHolders::ERR)
+      Cpptraj::Parm::RetType ret = AP.AddParm( types, apa[b->Idx()], false );
+      if (ret == Cpptraj::Parm::ERR)
         paramOverwriteWarning("angle");
     }
   }
@@ -71,8 +70,8 @@ void GetParams::GetImproperParams(ImproperParmHolder& IP, std::vector<Atom> cons
       types.AddName( atoms[b->A2()].Type() );
       types.AddName( atoms[b->A3()].Type() );
       types.AddName( atoms[b->A4()].Type() );
-      ParameterHolders::RetType ret = IP.AddParm( types, ipa[b->Idx()], false );
-      if (ret == ParameterHolders::ERR)
+      Cpptraj::Parm::RetType ret = IP.AddParm( types, ipa[b->Idx()], false );
+      if (ret == Cpptraj::Parm::ERR)
         paramOverwriteWarning("improper");
     }
   }
@@ -93,17 +92,17 @@ void GetParams::GetDihedralParams(DihedralParmHolder& DP, ImproperParmHolder& IP
       //mprintf("DEBUG: dihedral %li %s %s %s %s idx=%i type=%i PK=%g PN=%g Phase=%g SCEE=%g SCNB=%g\n", b - dih.begin() + 1,
       //        *(types[0]), *(types[1]), *(types[2]), *(types[3]), b->Idx(), (int)b->Type(),
       //        dpa[b->Idx()].Pk(), dpa[b->Idx()].Pn(), dpa[b->Idx()].Phase(), dpa[b->Idx()].SCEE(), dpa[b->Idx()].SCNB());
-      ParameterHolders::RetType ret;
+      Cpptraj::Parm::RetType ret;
       if (b->IsImproper()) {
         ret = IP.AddParm( types, dpa[b->Idx()], false );
       } else {
         ret = DP.AddParm( types, dpa[b->Idx()], false );
       }
       // DEBUG
-      //if (ret == ParameterHolders::ADDED) {
+      //if (ret == Cpptraj::Parm::ADDED) {
       //  mprintf("DEBUG: Added %s %s %s %s idx=%i isImproper=%i\n", *(types[0]), *(types[1]), *(types[2]), *(types[3]), b->Idx(), (int)b->IsImproper());
       //}
-      if (ret == ParameterHolders::ERR) {
+      if (ret == Cpptraj::Parm::ERR) {
         paramOverwriteWarning("dihedral");
         mprintf("Warning: Dihedral %s %s %s %s PK=%g PN=%g Phase=%g SCEE=%g SCNB=%g\n",
                 *(types[0]), *(types[1]), *(types[2]), *(types[3]),
@@ -216,8 +215,8 @@ int GetParams::GetCmapParams(CmapParmHolder& cmapParm, CmapArray const& cmapTerm
         // Set a default title if needed
         if (newGrid.Title().empty())
           newGrid.SetTitle( "CMAP for " + newGrid.ResNames().front() );
-        ParameterHolders::RetType ret = cmapParm.AddParm( newGrid, false );
-        if (ret == ParameterHolders::ERR)
+        Cpptraj::Parm::RetType ret = cmapParm.AddParm( newGrid, false );
+        if (ret == Cpptraj::Parm::ERR)
           paramOverwriteWarning("CMAP");
       } // END if adding existing grid to parms
     } // END loop over existing grids
@@ -225,8 +224,8 @@ int GetParams::GetCmapParams(CmapParmHolder& cmapParm, CmapArray const& cmapTerm
     mprintf("CMAP terms have residue/atom info.\n");
     for (unsigned int idx = 0; idx != cmapGrids.size(); idx++) {
       if (addGrid[idx]) {
-        ParameterHolders::RetType ret = cmapParm.AddParm( cmapGrids[idx], false );
-        if (ret == ParameterHolders::ERR)
+        Cpptraj::Parm::RetType ret = cmapParm.AddParm( cmapGrids[idx], false );
+        if (ret == Cpptraj::Parm::ERR)
           paramOverwriteWarning("CMAP");
       }
     }
@@ -282,8 +281,8 @@ const
         thisType = AtomType(atm->Mass(), atm->Polar());
       }
       thisType.SetTypeIdx( atm->TypeIndex() );
-      ParameterHolders::RetType ret = atomTypesOut.AddParm( atype, thisType, true );
-      if (debug_ > 0 && ret == ParameterHolders::ADDED) {
+      Cpptraj::Parm::RetType ret = atomTypesOut.AddParm( atype, thisType, true );
+      if (debug_ > 0 && ret == Cpptraj::Parm::ADDED) {
         mprintf("DEBUG: New atom type: %s R=%g D=%g M=%g P=%g\n", *(atype[0]),
                 thisType.LJ().Radius(), thisType.LJ().Depth(), thisType.Mass(), thisType.Polarizability());
         if (hasLJ14)

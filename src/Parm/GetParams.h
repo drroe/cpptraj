@@ -14,17 +14,17 @@ class CmapGridArray;
 class CmapParmHolder;
 class DihedralArray;
 class DihedralParmArray;
-class DihedralParmHolder;
 class HB_ParmType;
-class ImproperParmHolder;
 class NonbondParmType;
 class NonbondType;
-class ParameterSet;
 class Residue;
 class Topology;
-template<typename Type> class ParmHolder;
 namespace Cpptraj {
 namespace Parm {
+template<typename Type> class ParmHolder;
+class DihedralParmHolder;
+class ImproperParmHolder;
+class ParameterSet;
 /// Used to get parameters from a Topology
 class GetParams {
   public:
