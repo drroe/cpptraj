@@ -2,12 +2,14 @@
 #include "ArgList.h"
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
-#include "ParameterHolders.h"
 #include "StringRoutines.h"
-#include "ParameterSet.h"
+#include "Parm/ParameterSet.h"
+#include "Parm/ParmHolder.h"
 #include "Constants.h"
 #include <cstdio> // sscanf
 #include <cctype> // isspace
+
+using namespace Cpptraj::Parm;
 
 const int AmberParamFile::MAXSYMLEN = 16;
 
@@ -75,7 +77,7 @@ const
   double amass = 0;
   double atpol = 0;
   int nscan = sscanf(ptr, "%s %lf %lf", kndsym, &amass, &atpol);
-  ParameterHolders::RetType ret;
+  Cpptraj::Parm::RetType ret;
   if (nscan == 3) {
     ret = prm.AT().AddParm( TypeNameHolder(kndsym),
                             AtomType(amass, atpol),
@@ -89,7 +91,7 @@ const
     mprinterr("Error: Expected atom type, mass, polarizability, got only %i columns.\n", nscan);
     return 1;
   }
-  if (ret == ParameterHolders::UPDATED)
+  if (ret == Cpptraj::Parm::UPDATED)
     mprintf("Warning: Redefining atom type %s\n", kndsym);
   return 0;
 }
@@ -118,8 +120,8 @@ const
   TypeNameHolder types(2);
   types.AddName( symbols[0] );
   types.AddName( symbols[1] );
-  ParameterHolders::RetType ret = prm.BP().AddParm(types, BondParmType(RK, REQ), true);
-  if (ret == ParameterHolders::UPDATED)
+  Cpptraj::Parm::RetType ret = prm.BP().AddParm(types, BondParmType(RK, REQ), true);
+  if (ret == Cpptraj::Parm::UPDATED)
     mprintf("Warning: Redefining bond type %s - %s\n", *(types[0]), *(types[1]));
 
   return 0;
@@ -150,8 +152,8 @@ const
   types.AddName( symbols[0] );
   types.AddName( symbols[1] );
   types.AddName( symbols[2] );
-  ParameterHolders::RetType ret = prm.AP().AddParm(types, AngleParmType(TK, TEQ*Constants::DEGRAD), true);
-  if (ret == ParameterHolders::UPDATED)
+  Cpptraj::Parm::RetType ret = prm.AP().AddParm(types, AngleParmType(TK, TEQ*Constants::DEGRAD), true);
+  if (ret == Cpptraj::Parm::UPDATED)
     mprintf("Warning: Redefining angle type %s - %s - %s\n", *(types[0]), *(types[1]), *(types[2]));
 
   return 0;
@@ -226,9 +228,9 @@ const
   types.AddName( symbols[1] );
   types.AddName( symbols[2] );
   types.AddName( symbols[3] );
-  ParameterHolders::RetType ret =
+  Cpptraj::Parm::RetType ret =
     prm.DP().AddParm(types, DihedralParmType(PK / (double)IDIVF, PN, PHASE*Constants::DEGRAD, scee, scnb), true);
-  if (ret == ParameterHolders::UPDATED) {
+  if (ret == Cpptraj::Parm::UPDATED) {
     mprintf("Warning: Redefining dihedral type %s - %s - %s - %s (PN=%g)\n",
             *(types[0]), *(types[1]), *(types[2]), *(types[3]), PN);
     //mprintf("DEBUG: %s\n", ptr);
@@ -269,9 +271,9 @@ const
   types.AddName( symbols[2] );
   types.AddName( symbols[3] );
   //types.SortImproperByAlpha("X"); // FIXME wildcard should be a static var
-  ParameterHolders::RetType ret =
+  Cpptraj::Parm::RetType ret =
     prm.IP().AddParm(types, DihedralParmType(PK, PN, PHASE*Constants::DEGRAD), true);
-  if (ret == ParameterHolders::UPDATED)
+  if (ret == Cpptraj::Parm::UPDATED)
     mprintf("Warning: Redefining improper type %s - %s - %s - %s\n",
             *(types[0]), *(types[1]), *(types[2]), *(types[3]));
 
@@ -302,8 +304,8 @@ const
   TypeNameHolder types(2);
   types.AddName( KT1 );
   types.AddName( KT2 );
-  ParameterHolders::RetType ret = prm.HB().AddParm(types, HB_ParmType(A, B, HCUT), true);
-  if (ret == ParameterHolders::UPDATED)
+  Cpptraj::Parm::RetType ret = prm.HB().AddParm(types, HB_ParmType(A, B, HCUT), true);
+  if (ret == Cpptraj::Parm::UPDATED)
     mprintf("Warning: Redefining LJ 10-12 hbond type %s %s\n", *(types[0]), *(types[1]));
   return 0;
 }
@@ -335,8 +337,8 @@ const
   double R = convertToDouble( nbargs[1] );
   double EDEP = convertToDouble( nbargs[2] );
   TypeNameHolder types( nbargs[0] );
-  ParameterHolders::RetType ret = nbset.LJ_.AddParm( types, LJparmType(R, EDEP), true );
-  if (ret == ParameterHolders::UPDATED)
+  Cpptraj::Parm::RetType ret = nbset.LJ_.AddParm( types, LJparmType(R, EDEP), true );
+  if (ret == Cpptraj::Parm::UPDATED)
     mprintf("Warning: Redefining LJ 6-12 type %s\n", *(types[0]));
   return 0;
 }

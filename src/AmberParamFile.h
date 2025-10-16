@@ -2,12 +2,17 @@
 #define INC_AMBERPARAMFILE_H
 #include <vector>
 #include <string>
-class ParameterSet;
 class CmapGridType;
 //class BufferedLine;
 class FileName;
+namespace Cpptraj {
+namespace Parm {
+class ParameterSet;
+}
+}
 /// Used to read in Amber parameters from Amber FF/FRCMOD file.
 class AmberParamFile {
+    typedef Cpptraj::Parm::ParameterSet ParameterSet;
   public:
     AmberParamFile();
     /// Read main Amber FF file
