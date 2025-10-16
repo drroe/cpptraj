@@ -5,9 +5,11 @@
 class Atom;
 class Topology;
 class Frame;
-class ParameterSet;
 class Residue;
 namespace Cpptraj {
+namespace Parm {
+class ParameterSet;
+}
 namespace Structure {
 class Zmatrix;
 class InternalCoords;
@@ -25,7 +27,7 @@ class Builder {
     /// Set debug level
     void SetDebug(int d) { debug_ = d; }
     /// Set optional parameter set
-    void SetParameters(ParameterSet const*);
+    void SetParameters(Cpptraj::Parm::ParameterSet const*);
     /// Set atom chirality
     void SetAtomChirality(int, double);
     /// Update the internal coordinates in given Zmatrix with values from Frame/Parameters TODO combine into BuildFromInternals?
@@ -130,7 +132,7 @@ class Builder {
     std::vector<Residue> residuesThatNeedPositions(Topology const&, Barray const&) const;
 
     int debug_;
-    ParameterSet const* params_;
+    Cpptraj::Parm::ParameterSet const* params_;
 
     Topology const* currentTop_; ///< Topology for the createSpXSpXTorsions/ModelTorsion routines
     Tarray internalTorsions_;

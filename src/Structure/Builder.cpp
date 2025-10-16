@@ -7,8 +7,7 @@
 #include "../DistRoutines.h"
 #include "../Frame.h"
 #include "../GuessAtomHybridization.h"
-#include "../ParameterHolders.h"
-#include "../ParameterSet.h"
+#include "../Parm/ParameterSet.h"
 #include "../Topology.h"
 #include "../TorsionRoutines.h"
 #include "../TypeNameHolder.h"
@@ -16,6 +15,7 @@
 #include <cmath> // fabs
 
 using namespace Cpptraj::Structure;
+using namespace Cpptraj::Parm;
 
 /** CONSTRUCTOR */
 Builder::Builder() :
@@ -25,7 +25,7 @@ Builder::Builder() :
 {}
 
 /** Set optional parameter set. */
-void Cpptraj::Structure::Builder::SetParameters(ParameterSet const* paramsIn) {
+void Cpptraj::Structure::Builder::SetParameters(Cpptraj::Parm::ParameterSet const* paramsIn) {
   if (paramsIn == 0) {
     mprinterr("Internal Error: Builder::SetParmaters called with null set.\n");
     return;
