@@ -375,7 +375,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   double psfcharge;
   double psfmass;
 //  typedef std::vector<std::string> Sarray;
-  ParmHolder<AtomType>& atomTypes = params_.AT();
+  Cpptraj::Parm::ParmHolder<AtomType>& atomTypes = params_.AT();
 //  Sarray SegIDs;
   bool firstLine = true;
   enum PsfFormatType { T_CHARMM = 0, T_VMD };
