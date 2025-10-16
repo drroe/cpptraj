@@ -1,10 +1,10 @@
 #include "Merge.h"
 #include "AssignParams.h"
 #include "GetParams.h"
+#include "ParmHolder.h"
 #include "../Atom.h"
 #include "../AtomType.h"
 #include "../CpptrajStdio.h"
-#include "../ParameterHolders.h"
 #include "../ParameterTypes.h"
 #include "../Residue.h"
 #include "../StringRoutines.h" // integerToString
@@ -188,9 +188,9 @@ class MergeTopArray
     /// Append parameter for given types
     /** \return Index of newly-added parameter to p0 */
     int append_param(TypeNameHolder const& types,
-                     ParmHolder<int>& currentTypes0,
+                     Cpptraj::Parm::ParmHolder<int>& currentTypes0,
                      ParmArray& p0,
-                     ParmHolder<int> const& currentTypes1,
+                     Cpptraj::Parm::ParmHolder<int> const& currentTypes1,
                      ParmArray const& p1)
     {
 #     ifdef CPPTRAJ_DEBUG_MERGE
@@ -255,8 +255,8 @@ class MergeTopArray
                      ParmArray& p0,
                      unsigned int atomOffset,
                      IdxType const& term1,
-                     ParmHolder<int>& currentTypes0,
-                     ParmHolder<int> const& currentTypes1,
+                     Cpptraj::Parm::ParmHolder<int>& currentTypes0,
+                     Cpptraj::Parm::ParmHolder<int> const& currentTypes1,
                      ParmArray const& p1,
                      std::vector<Atom> const& atoms1)
     {
@@ -280,8 +280,8 @@ class MergeTopArray
                      ParmArray& p0,
                      unsigned int atomOffset,
                      IdxType const& term1,
-                     ParmHolder<int>& currentTypes0,
-                     ParmHolder<int> const& currentTypes1,
+                     Cpptraj::Parm::ParmHolder<int>& currentTypes0,
+                     Cpptraj::Parm::ParmHolder<int> const& currentTypes1,
                      ParmArray const& p1,
                      std::vector<Atom> const& atoms1)
     {
@@ -299,7 +299,7 @@ class MergeTopArray
     }
 
     /// Index existing term types in term arrays
-    void index_term_types(ParmHolder<int>& currentTypes,
+    void index_term_types(Cpptraj::Parm::ParmHolder<int>& currentTypes,
                           IdxArray const& terms,
                           std::vector<Atom> const& atoms,
                           ParmArray const& parms)
@@ -330,7 +330,7 @@ class MergeTopArray
                          std::vector<Atom> const& atoms1)
     {
       // First index existing parameters
-      ParmHolder<int> currentTypes0, currentTypes1;
+      Cpptraj::Parm::ParmHolder<int> currentTypes0, currentTypes1;
       index_term_types(currentTypes0, terms0, atoms0, p0);
       index_term_types(currentTypes0, termsh0, atoms0, p0);
       index_term_types(currentTypes1, terms1, atoms1, p1);
@@ -397,7 +397,7 @@ class MergeTopArray
                              std::vector<Atom> const& atoms1)
     {
       // First index existing parameters
-      ParmHolder<int> currentTypes0, currentTypes1;
+      Cpptraj::Parm::ParmHolder<int> currentTypes0, currentTypes1;
       index_term_types(currentTypes0, terms0, atoms0, p0);
       index_term_types(currentTypes0, termsh0, atoms0, p0);
       index_term_types(currentTypes1, terms1, atoms1, p1);
@@ -461,7 +461,7 @@ class MergeTopArray
                         std::vector<Atom> const& atoms1)
     {
       // First index existing parameters
-      ParmHolder<int> currentTypes0, currentTypes1;
+      Cpptraj::Parm::ParmHolder<int> currentTypes0, currentTypes1;
       index_term_types(currentTypes0, terms0, atoms0, p0);
       index_term_types(currentTypes1, terms1, atoms1, p1);
       unsigned int atomOffset = atoms0.size();
@@ -609,7 +609,7 @@ static inline CmapType idxWithOffset(CmapType const& cmap1, int idx, unsigned in
 }
 
 /// Index existing CMAP types in term arrays
-void index_cmap_types(ParmHolder<int>& currentTypes,
+void index_cmap_types(Cpptraj::Parm::ParmHolder<int>& currentTypes,
                       CmapArray const& terms,
                       std::vector<Atom> const& atoms,
                       std::vector<Residue> const& residues)
@@ -641,7 +641,7 @@ const
   unsigned int atomOffset = atoms0.size();
   unsigned int cgOffset = cg0.size();
   // First index existing parameters
-  ParmHolder<int> currentTypes0, currentTypes1;
+  Cpptraj::Parm::ParmHolder<int> currentTypes0, currentTypes1;
   index_cmap_types(currentTypes0, cmap0, atoms0, residues0);
   index_cmap_types(currentTypes1, cmap1, atoms1, residues1);
   // Loop over incoming terms
