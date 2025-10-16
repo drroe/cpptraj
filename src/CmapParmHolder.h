@@ -2,7 +2,7 @@
 #define INC_PARM_CMAPPARMHOLDER_H
 class CmapGridType;
 #include <vector>
-#include "ParameterHolders.h" // TODO fix the includes
+#include "Parm/ParmEnum.h"
 //namespace Cpptraj {
 //namespace Parm {
 /// Hold CMAP terms
@@ -27,7 +27,7 @@ class CmapParmHolder {
     /// \return Modifiable CMAP at index
     
     /// Add/update cmap term
-    ParameterHolders::RetType AddParm(CmapGridType const&, bool);
+    Cpptraj::Parm::RetType AddParm(CmapGridType const&, bool);
   private:
     Carray CMAP_;
 };

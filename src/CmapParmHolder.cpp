@@ -11,7 +11,7 @@ CmapParmHolder::CmapParmHolder() {}
   * CMAP terms are different in that they are applied via residue name instead
   * of atom type, hence the separate routine.
   */
-ParameterHolders::RetType CmapParmHolder::AddParm(CmapGridType const& cmap1, bool allowUpdate) {
+Cpptraj::Parm::RetType CmapParmHolder::AddParm(CmapGridType const& cmap1, bool allowUpdate) {
   typedef std::vector<std::string> Sarray;
   enum ResMatchType { NO_MATCH = 0, FULL_MATCH, PARTIAL_MATCH };
   // Does a CMAP for any of the residues exist?
@@ -61,28 +61,28 @@ ParameterHolders::RetType CmapParmHolder::AddParm(CmapGridType const& cmap1, boo
     mprinterr("Internal Error: Partial match between new CMAP '%s' and existing CMAP '%s'\n"
               "Internal Error:   Not yet set up to handle this kind of parameter update.\n",
               cmap1.Title().c_str(), currentCmap->Title().c_str());
-    return ParameterHolders::ERR;
+    return Cpptraj::Parm::ERR;
   } else if (mtype == FULL_MATCH) {
     mprintf("DEBUG: Potential match between new CMAP '%s' and existing CMAP '%s'\n",
             cmap1.Title().c_str(), currentCmap->Title().c_str());
     // Is this parameter the same?
     if (currentCmap->GridMatches( cmap1 )) {
       mprintf("DEBUG: CMAP parameter already present.\n");
-      return ParameterHolders::SAME;
+      return Cpptraj::Parm::SAME;
     } else {
       if (allowUpdate) {
         mprintf("DEBUG: Update of CMAP parameter.\n");
         *currentCmap = cmap1;
-        return ParameterHolders::UPDATED;
+        return Cpptraj::Parm::UPDATED;
       } else {
         mprintf("DEBUG: Update of CMAP parameter NOT ALLOWED.\n");
-        return ParameterHolders::ERR;
+        return Cpptraj::Parm::ERR;
       }
     }
   }
   // NO_MATCH
   mprintf("DEBUG: CMAP '%s' is a new CMAP.\n", cmap1.Title().c_str());
   CMAP_.push_back( cmap1 );
-  return ParameterHolders::ADDED;
+  return Cpptraj::Parm::ADDED;
 }
 
