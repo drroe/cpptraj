@@ -4,7 +4,7 @@
 #include "ArgList.h"
 #include "Constants.h"
 #include "BufferedLine.h"
-#include "ParameterSet.h"
+#include "Parm/ParameterSet.h"
 
 static inline std::string Input(const char* line) {
   std::string input;
@@ -62,7 +62,8 @@ static inline bool ChmCmd(std::string const& cmd, const char* key) {
 }
 
 /** Read CHARMM parameters from specified file into given parameter set. */
-int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int debugIn) const {
+int CharmmParamFile::ReadParams(Cpptraj::Parm::ParameterSet& prm, FileName const& nameIn, int debugIn) const {
+  using namespace Cpptraj::Parm;
   BufferedLine infile;
 
   mprintf("\tReading CHARMM parameters from '%s'\n", nameIn.full());
@@ -122,10 +123,10 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
           args.MarkArg(0);
           args.MarkArg(1);
           args.MarkArg(2);
-          ParameterHolders::RetType ret = prm.AT().AddParm( TypeNameHolder(args[2]),
+          Cpptraj::Parm::RetType ret = prm.AT().AddParm( TypeNameHolder(args[2]),
                                                             AtomType(args.getNextDouble(0)),
                                                             true );
-          if (ret == ParameterHolders::UPDATED)
+          if (ret == Cpptraj::Parm::UPDATED)
             mprintf("Warning: Redefining atom type %s\n", args[2].c_str());
         } else if (ChmCmd(args[0], "ATOM")) {
           if (mode != TOP) {
@@ -296,7 +297,8 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
 }
 
 /** Write CHARMM parameters from specified set into given file. */
-int CharmmParamFile::WriteParams(ParameterSet& prm, FileName const& nameIn, int debugIn) const {
+int CharmmParamFile::WriteParams(Cpptraj::Parm::ParameterSet& prm, FileName const& nameIn, int debugIn) const {
+  using namespace Cpptraj::Parm;
   CpptrajFile outfile;
   if (outfile.OpenWrite(nameIn)) return 1;
   // Title
