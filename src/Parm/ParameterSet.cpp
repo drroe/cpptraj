@@ -1,8 +1,10 @@
 #include "ParameterSet.h"
-#include "CpptrajFile.h"
-#include "CpptrajStdio.h"
-#include "Constants.h"
-#include "UpdateParameters.h"
+#include "../CpptrajFile.h"
+#include "../CpptrajStdio.h"
+#include "../Constants.h"
+#include "../UpdateParameters.h"
+
+using namespace Cpptraj::Parm;
 
 size_t ParameterSet::DataSize() const {
   unsigned int cmapsize = 0;
@@ -187,16 +189,16 @@ int ParameterSet::updateCmapParams(CmapParmHolder const& cmap1, int verbose) {
   int updateCount = 0;
   for (CmapParmHolder::const_iterator newp = cmap1.begin(); newp != cmap1.end(); ++newp)
   {
-    ParameterHolders::RetType ret = CMAP_.AddParm( *newp, true );
-    if (ret != ParameterHolders::ERR) {
+    RetType ret = CMAP_.AddParm( *newp, true );
+    if (ret != ERR) {
       bool print = false;
-      if (ret == ParameterHolders::ADDED) {
+      if (ret == ADDED) {
         if (verbose > 2) { mprintf("\tAdded NEW CMAP parameter:"); print = true; }
         updateCount++;
-      } else if (ret == ParameterHolders::UPDATED) {
+      } else if (ret == UPDATED) {
         if (verbose > 0) { mprintf("\tUpdated CMAP parameter:"); print = true; }
         updateCount++;
-      } else if (ret == ParameterHolders::SAME) {
+      } else if (ret == SAME) {
         if (verbose > 1) { mprintf("\tParameter for CMAP already present:"); print = true; }
       }
       if (print) {

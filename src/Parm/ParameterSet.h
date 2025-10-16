@@ -1,15 +1,19 @@
 #ifndef INC_PARAMETERSET_H
 #define INC_PARAMETERSET_H
-#include "ParameterTypes.h"
-#include "ParameterHolders.h"
-#include "CmapParmHolder.h"
-#include "AtomType.h"
+#include "ParmHolder.h"
+#include "DihedralParmHolder.h"
+#include "ImproperParmHolder.h"
+#include "../AtomType.h"
+#include "../CmapParmHolder.h"
+#include "../ParameterTypes.h"
 class CpptrajFile;
 /// Hold a set of parameters for atom types, bonds, angles, etc.
 /** NOTE: Although LJ 6-12 regular type indices and 1-4 type indices
   *       are currently the same, there is a separate 1-4 types variable
   *       here in case that ever changes in the future.
   */
+namespace Cpptraj {
+namespace Parm {
 class ParameterSet {
   public:
     ParameterSet() : hasLJparams_(false) {}
@@ -110,4 +114,6 @@ class ParameterSet {
     NsetType hydrophilicAtomTypes_;        ///< Hold names of hydrophilic atom types
     bool hasLJparams_;
 };
+}
+}
 #endif
