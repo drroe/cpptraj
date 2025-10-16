@@ -298,7 +298,9 @@ DihedralArray AssignParams::AssignDihedralParm(Topology& topOut,
                                                ParmHolder<AtomType> const& AT,
                                                DihedralArray const& dihedrals,
                                                bool sort_improper_cache)
+#ifndef TIMER
 const
+#endif
 { // TODO skip extra points
   DihedralArray dihedralsIn;
   // Improper cache
@@ -345,6 +347,9 @@ const
     }
     bool found;
     if (dih->IsImproper()) {
+#     ifdef TIMER
+      t_dih_imp_.Start();
+#     endif
       // ----- This is actually an improper dihedral. ----------------
       // Impropers are treated differently than other topology types. If
       // no parameter is found, do not add it to the list of dihedrals.
@@ -456,9 +461,21 @@ const
           improperCache.AddParm( paramTypes, ipa.front(), false );
         }
       }
+#     ifdef TIMER
+      t_dih_imp_.Stop();
+#     endif
     } else {
+#     ifdef TIMER
+      t_dih_dih_.Start();
+#     endif
       // -----Regular dihedral. See if parameter already present. ----
+#     ifdef TIMER
+      t_dih_dih_getnew_.Start();
+#     endif
       DihedralParmArray dpa = newDihedralParams.FindParam( types, found );
+#     ifdef TIMER
+      t_dih_dih_getnew_.Stop();
+#     endif
       if (!found) {
         mprintf("Warning: Dihedral parameters not found for dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
                 topOut.TruncResAtomNameNum(dih->A1()).c_str(),
@@ -540,6 +557,9 @@ const
 //            (int)mydih.IsImproper(), (int)mydih.Skip14());
         }
       }
+#     ifdef TIMER
+      t_dih_dih_.Stop();
+#     endif
     }
   } // END loop over all dihedrals
   return dihedralsIn;
@@ -568,7 +588,9 @@ void AssignParams::AssignDihedralParams(Topology& topOut,
                                         DihedralParmHolder const& newDihedralParams,
                                         ImproperParmHolder const& newImproperParams,
                                         ParmHolder<AtomType> const& AT)
+#ifndef TIMER
 const
+#endif
 {
   topOut.ModifyDihedralParm().clear();
   // Dihedrals can be a bit of a pain since there can be multiple
@@ -1186,9 +1208,13 @@ void AssignParams::WriteAssignTiming(int indent, double totalIn) const {
   t_angles_.WriteTiming(indent+1,    "Angles                 ", t_total_.Total());
   t_dihedrals_.WriteTiming(indent+1, "Dihedrals              ", t_total_.Total());
   t_multi_.WriteTiming(indent+1,     "Dihedral Multiplicities", t_total_.Total());
+  t_improper_.WriteTiming(indent+1,  "Impropers              ", t_total_.Total());
+  double t_dih_total = t_multi_.Total() + t_improper_.Total();
+  t_dih_imp_.WriteTiming(indent+2,   "Dih. Assign Improper", t_dih_total);
+  t_dih_dih_.WriteTiming(indent+2,   "Dih. Assign Dihedral", t_dih_total);
+  t_dih_dih_getnew_.WriteTiming(indent+3, "Get Dihedral Param", t_dih_dih_.Total());
   t_cmaps_.WriteTiming(indent+1,     "CMAPs                  ", t_total_.Total());
   t_UB_.WriteTiming(indent+1,        "Urey-Bradleys          ", t_total_.Total());
-  t_improper_.WriteTiming(indent+1,  "Impropers              ", t_total_.Total());
   t_atype_.WriteTiming(indent+1,     "Atom Types             ", t_total_.Total());
   t_nonbond_.WriteTiming(indent+1,   "Nonbonds               ", t_total_.Total());
 #endif
@@ -1196,7 +1222,11 @@ void AssignParams::WriteAssignTiming(int indent, double totalIn) const {
 
 /** Update/add to parameters in this topology with those from given set.
   */
-int AssignParams::UpdateParameters(Topology& topOut, ParameterSet const& set1) const {
+int AssignParams::UpdateParameters(Topology& topOut, ParameterSet const& set1)
+#ifndef TIMER
+const
+#endif
+{
   GetParams GP;
   ParameterSet set0 = GP.GetParameters( topOut );
 

@@ -45,7 +45,12 @@ class AssignParams {
     int AssignParameters(Topology&, ParameterSet const&) const;
 #   endif
     /// Update existing parameters with given parameter set
-    int UpdateParameters(Topology&, ParameterSet const&) const;
+    int UpdateParameters(Topology&, ParameterSet const&)
+#   ifdef TIMER
+      ;
+#   else
+      const;
+#   endif
     // Assign nonbond parameters to topology. Used during Merge::AppendTop()
     void AssignNonbondParams(Topology&,
                              ParmHolder<AtomType> const&,
@@ -73,12 +78,20 @@ class AssignParams {
     DihedralArray AssignDihedralParm(Topology&,
                                      DihedralParmHolder const&, ImproperParmHolder const&,
                                      ParmHolder<AtomType> const&, DihedralArray const&,
-                                     bool) const; // TODO make the bool a class var?
+                                     bool)  // TODO make the bool a class var?
+#   ifdef TIMER
+      ;
+#   else
+      const;
+#   endif
     DihedralArray get_unique_dihedrals(DihedralArray const&) const;
     void AssignDihedralParams(Topology&, DihedralParmHolder const&, ImproperParmHolder const&,
-                              ParmHolder<AtomType> const&) const;
-
-
+                              ParmHolder<AtomType> const&)
+#   ifdef TIMER
+      ;
+#   else
+      const;
+#   endif
 
     static inline int cmap_anames_match(DihedralType const&, AtArray const&, std::vector<std::string> const&);
     int remap_cmap_indices(Topology const&, std::vector<int>&, CmapGridArray&, CmapArray&, CmapParmHolder const&) const;
@@ -100,6 +113,9 @@ class AssignParams {
     Timer t_dihedrals_;
     Timer t_cmaps_;
     Timer t_multi_;
+    Timer t_dih_imp_;
+    Timer t_dih_dih_;
+    Timer t_dih_dih_getnew_;
     Timer t_UB_;
     Timer t_improper_;
     Timer t_atype_;
