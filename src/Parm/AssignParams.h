@@ -3,7 +3,7 @@
 #include <vector>
 #include <string>
 #ifdef TIMER
-# include "Timer.h"
+# include "../Timer.h"
 #endif
 class AngleArray;
 class AngleParmArray;
@@ -20,16 +20,17 @@ class CmapGridArray;
 class CmapParmHolder;
 class DihedralArray;
 class DihedralParmArray;
-class DihedralParmHolder;
 class DihedralType;
 class HB_ParmType;
-class ImproperParmHolder;
 class NonbondType;
-class ParameterSet;
 class Topology;
-template<typename Type> class ParmHolder;
 namespace Cpptraj {
 namespace Parm {
+// Parm forward declares
+template<typename Type> class ParmHolder;
+class DihedralParmHolder;
+class ImproperParmHolder;
+class ParameterSet;
 /// Used to assign parameters to a Topology
 class AssignParams {
   public:
