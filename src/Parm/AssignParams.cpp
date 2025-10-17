@@ -305,6 +305,10 @@ const
 #endif
 { // TODO skip extra points
   DihedralArray dihedralsIn;
+  // Dihedral cache
+  typedef std::pair<TypeNameHolder, DihedralParmArray> DihCachePair;
+  typedef std::map<TypeNameHolder, DihedralParmArray> DihCacheType;
+  DihCacheType dihedralCache;
   // Improper cache
   ImproperParmHolder improperCache;
   improperCache.SetWildcard( newImproperParams.Wildcard() );
@@ -471,13 +475,25 @@ const
       t_dih_dih_.Start();
 #     endif
       // -----Regular dihedral. See if parameter already present. ----
-#     ifdef TIMER
-      t_dih_dih_getnew_.Start();
-#     endif
-      DihedralParmArray dpa = newDihedralParams.FindParam( types, found );
-#     ifdef TIMER
-      t_dih_dih_getnew_.Stop();
-#     endif
+      DihedralParmArray dpa;
+      // Check the cache first
+      DihCacheType::const_iterator cachedDih = dihedralCache.find( types );
+      if (cachedDih != dihedralCache.end()) {
+        dpa = cachedDih->second;
+        found = true;
+      } else {
+        // Not in cache. Search incoming parameters.
+#       ifdef TIMER
+        t_dih_dih_getnew_.Start();
+#       endif
+        dpa = newDihedralParams.FindParam( types, found );
+#       ifdef TIMER
+        t_dih_dih_getnew_.Stop();
+#       endif
+        // If found, cache the parameter
+        if (found)
+          dihedralCache.insert( DihCachePair(types, dpa) );
+      }
       if (!found) {
         mprintf("Warning: Dihedral parameters not found for dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
                 topOut.TruncResAtomNameNum(dih->A1()).c_str(),
