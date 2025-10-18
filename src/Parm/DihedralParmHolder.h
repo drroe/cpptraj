@@ -1,7 +1,7 @@
 #ifndef INC_PARM_DIHEDRALPARMHOLDER_H
 #define INC_PARM_DIHEDRALPARMHOLDER_H
-#include <map>
-//#include <utility> // std::pair
+#include <vector>
+#include <utility> // std::pair
 #include "ParmEnum.h"
 #include "../ParameterTypes.h"
 #include "../TypeNameHolder.h"
@@ -17,8 +17,7 @@ namespace Parm {
   */
 class DihedralParmHolder {
     typedef std::pair<TypeNameHolder,DihedralParmArray> Bpair;
-//    typedef std::vector<Bpair> Bmap;
-    typedef std::map<TypeNameHolder,DihedralParmArray> Bmap;
+    typedef std::vector<Bpair> Bmap;
   public:
     /// CONSTRUCTOR
     DihedralParmHolder() {}
@@ -35,19 +34,17 @@ class DihedralParmHolder {
     /// Add (or update) a single dihedral parameter for given atom types.
     RetType AddParm(TypeNameHolder const& types, DihedralParmType const& dp, bool allowUpdate) {
       // Check if parm for these types exist
-//      Bmap::iterator it0 = bpmap_.begin();
-//      for (; it0 != bpmap_.end(); ++it0)
-//      {
-//        if (it0->first.Match_NoWC( types ))
-//          break;
-//      }
-      Bmap::iterator it0 = bpmap_.find( types ); // TODO lower_bound
+      Bmap::iterator it0 = bpmap_.begin();
+      for (; it0 != bpmap_.end(); ++it0)
+      {
+        if (it0->first.Match_NoWC( types ))
+          break;
+      }
       if (it0 == bpmap_.end()) {
         // Brand new dihedral for these types.
         //mprintf("DEBUG: New dihedral parm: %s %s %s %s pk=%12.4f pn=%12.4f pp=%12.4f\n",
         //        *types[0], *types[1], *types[2], *types[3], dp.Pk(), dp.Pn(), dp.Phase());
-//        bpmap_.push_back( Bpair(types, DihedralParmArray(1, dp)) );
-        bpmap_.insert( Bpair(types, DihedralParmArray(1, dp)) );
+        bpmap_.push_back( Bpair(types, DihedralParmArray(1, dp)) );
       } else {
         // If we are here types match - check multiplicity.
         DihedralParmArray::iterator it1 = it0->second.begin();
@@ -98,17 +95,15 @@ class DihedralParmHolder {
     /// Add array of dihedral parameters with unique multiplicities
     RetType AddParm(TypeNameHolder const& types, DihedralParmArray const& dpa, bool allowUpdate) {
       // Check if parm for these types exist
-//      Bmap::iterator it0 = bpmap_.begin();
-//      for (; it0 != bpmap_.end(); ++it0)
-//      {
-//        if (it0->first.Match_NoWC( types ))
-//          break;
-//      }
-      Bmap::iterator it0 = bpmap_.find( types ); // TODO lower_bound
+      Bmap::iterator it0 = bpmap_.begin();
+      for (; it0 != bpmap_.end(); ++it0)
+      {
+        if (it0->first.Match_NoWC( types ))
+          break;
+      }
       if (it0 == bpmap_.end()) {
         // Brand new dihedral for these types.
-//        bpmap_.push_back( Bpair(types, dpa) );
-        bpmap_.insert( Bpair(types, dpa) );
+        bpmap_.push_back( Bpair(types, dpa) );
       } else {
         if (!allowUpdate) return ERR;
         // Check if sizes are the same.
@@ -141,10 +136,8 @@ class DihedralParmHolder {
     /// \return Array of dihedral parameters matching given atom types.
     DihedralParmArray FindParam(TypeNameHolder const& types, bool& found) const {
       found = true;
-//      for (const_iterator it = begin(); it != end(); ++it)
-//        if (it->first.Match_NoWC( types )) return it->second;
-      Bmap::const_iterator it0 = bpmap_.find( types );
-      if (it0 != bpmap_.end()) return it0->second;
+      for (const_iterator it = begin(); it != end(); ++it)
+        if (it->first.Match_NoWC( types )) return it->second;
       if (wc_.len() > 0) {
         for (const_iterator it = begin(); it != end(); ++it)
           if (it->first.Match_WC( types, wc_)) return it->second;
@@ -154,10 +147,8 @@ class DihedralParmHolder {
     }
     /// \return iterator to parameter matching the given types.
     const_iterator GetParam(TypeNameHolder const& types) {
-//      for (const_iterator it = begin(); it != end(); ++it)
-//        if (it->first.Match_NoWC( types )) return it;
-      Bmap::const_iterator it0 = bpmap_.find( types );
-      if (it0 != bpmap_.end()) return it0;
+      for (const_iterator it = begin(); it != end(); ++it)
+        if (it->first.Match_NoWC( types )) return it;
       if (wc_.len() > 0) {
         for (const_iterator it = begin(); it != end(); ++it)
           if (it->first.Match_WC( types, wc_)) return it;
