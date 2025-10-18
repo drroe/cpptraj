@@ -13,6 +13,7 @@
 #include "../Topology.h"
 #include "../TypeNameHolder.h"
 #include <algorithm> //sort
+#include <map> // DihCacheType
 
 using namespace Cpptraj::Parm;
 
@@ -491,8 +492,9 @@ const
         t_dih_dih_getnew_.Stop();
 #       endif
         // If found, cache the parameter
-        if (found)
+        if (found) {
           dihedralCache.insert( DihCachePair(types, dpa) );
+        }
       }
       if (!found) {
         mprintf("Warning: Dihedral parameters not found for dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
