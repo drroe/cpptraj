@@ -482,9 +482,9 @@ const
     if (err == 0) {
       err += remote.DownloadFile( rfbase + ".frcmod" );
       if (err != 0)
-        mprintf("Warning: Could not download %s.frcmod\n", rfbase.c_str());
+        mprintf("Warning: Could not download %s.frcmod\n", rname.c_str());
     } else {
-      mprintf("Warning: Could not download %s.mol2\n", rfbase.c_str());
+      mprintf("Warning: Could not download %s.mol2\n", rname.c_str());
     }
     if (err != 0)
       mprintf("Warning: Could not download parameter files for '%s'\n", rname.c_str());
@@ -948,7 +948,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     mprintf("\n");
     // Set default parameter URL if not yet set.
     if (parameterURL_.empty())
-      parameterURL_.assign("https://raw.githubusercontent.com/phenix-project/geostd/master");
+      parameterURL_.assign("https://github.com/phenix-project/geostd/raw/refs/heads/master");
     if (DownloadParameters(resStat, residuesToFindParamsFor, topIn, outfile, LeapBonds)) {
       mprinterr("Error: Download parameters failed.\n");
       return CpptrajState::ERR;
