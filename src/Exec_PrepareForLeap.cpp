@@ -24,6 +24,7 @@ using namespace Cpptraj::Structure;
 Exec_PrepareForLeap::Exec_PrepareForLeap() : Exec(COORDS),
   errorsAreFatal_(true),
   downloadParams_(true),
+  bondUnknownResidues_(false),
   debug_(0)
 {
   SetHidden(false);
@@ -508,10 +509,17 @@ const
         for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); ++at) {
           for (Atom::bond_iterator bat = topIn[at].bondbegin(); bat != topIn[at].bondend(); ++bat) {
             if ( topIn[*bat].ResNum() != *rn ) {
-              mprintf("\t\t\tRes %s is bonded to res %s\n",
-                      topIn.TruncResAtomName(at).c_str(),
-                      topIn.TruncResAtomName(*bat).c_str());
-              LeapBonds.push_back( BondType(at, *bat, -1) );
+              if (bondUnknownResidues_) {
+                mprintf("\t\t\tRes %s is bonded to res %s\n",
+                        topIn.TruncResAtomName(at).c_str(),
+                        topIn.TruncResAtomName(*bat).c_str());
+                LeapBonds.push_back( BondType(at, *bat, -1) );
+              } else {
+                mprintf("Info:\t\t\tRes %s might be bonded to res %s\n",
+                        topIn.TruncResAtomName(at).c_str(),
+                        topIn.TruncResAtomName(*bat).c_str());
+
+              }
             }
           } // END loop over bonded atoms
         } // END loop over atoms in residue
@@ -527,7 +535,7 @@ void Exec_PrepareForLeap::Help() const
   mprintf("\tcrdset <coords set> [frame <#>] name <out coords set>\n"
           "\t[pdbout <pdbfile> [terbymol]]\n"
           "\t[leapunitname <unit>] [out <leap input file> [runleap <ff file>]]\n"
-          "\t[skiperrors] [{dlparams|nodlparams}]\n"
+          "\t[skiperrors] [{dlparams|nodlparams}] [{bondunknown|nobondunknown}]\n"
           "\t[nowat [watermask <watermask>] [noh]\n"
           "\t[keepaltloc {<alt loc ID>|highestocc}]\n"
           "\t[stripmask <stripmask>] [solventresname <solventresname>]\n"
@@ -571,6 +579,12 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     downloadParams_ = false;
   else
     downloadParams_ = true;
+  if (argIn.hasKey("bondunknown"))
+    bondUnknownResidues_ = true;
+  else if (argIn.hasKey("nobondunknown"))
+    bondUnknownResidues_ = false;
+  else
+    bondUnknownResidues_ = false;
   // Get input coords
   std::string crdset = argIn.GetStringKey("crdset");
   if (crdset.empty()) {
@@ -676,6 +690,10 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     mprintf("\tWill attempt to download parameters for unknown residues.\n");
   else
     mprintf("\tWill not attempt to download paramters for unknown residues.\n");
+  if (bondUnknownResidues_)
+    mprintf("\tWill attempt to bond unknown residues.\n");
+  else
+    mprintf("\tWill not attempt to bond unknown residues.\n");
 
   // Load PDB to glycam residue name map
   SugarBuilder sugarBuilder(debug_);
@@ -922,7 +940,11 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     mprintf("\tResidues to find parameters for:");
     for (RmapType::const_iterator it = residuesToFindParamsFor.begin();
                                   it != residuesToFindParamsFor.end(); ++it)
+    {
       mprintf(" %s", it->first.Truncated().c_str());
+      for (Iarray::const_iterator rn = it->second.begin(); rn != it->second.end(); ++rn)
+        mprintf(" %i", *rn + 1);
+    }
     mprintf("\n");
     // Set default parameter URL if not yet set.
     if (parameterURL_.empty())

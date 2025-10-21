@@ -51,6 +51,7 @@ class Exec_PrepareForLeap : public Exec {
     std::string leapunitname_;   ///< Unit name to use when loading molecule
     bool errorsAreFatal_;        ///< If false, try to skip errors.
     bool downloadParams_;        ///< If true, try to download parameters for missing residues
+    bool bondUnknownResidues_;   ///< If true, try to create bonds to unknown residues
     int debug_;                  ///< Debug level
     std::string solventResName_; ///< Solvent residue name
     std::string parameterURL_;   ///< URL to download parameters from
