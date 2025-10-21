@@ -102,12 +102,15 @@ const
   std::string remoteUrl = url_ + "/" + fileName.Full();
   mprintf("\t %s => %s\n", remoteUrl.c_str(), outputFname.full());
   // Download File
-  std::string remoteCmd = cmd_ + remoteUrl + " " + oflag_ + outputFname.Full();
-  if (debug_ > 0) mprintf("DEBUG: %s\n", remoteCmd.c_str());
+  std::string remoteCmd = cmd_ + oflag_ + outputFname.Full() + " " + remoteUrl;
+  if (debug_ > 0)
+    mprintf("DEBUG: %s\n", remoteCmd.c_str());
   int err = system(remoteCmd.c_str());
   if (err != 0) {
     mprinterr("Error: Could not download %s => %s\n", remoteUrl.c_str(), outputFname.full());
     // FIXME: wget will leave behind empty files here
+    if (File::Exists(outputFname))
+      File::Remove(outputFname);
     return 1;
   }
 
