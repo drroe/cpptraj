@@ -42,13 +42,21 @@ void Remote::SetDebug(int d) {
 int Remote::setRemoteDownloadCommand() {
   if (!cmd_.empty()) return 0;
   // First try curl
-  int err = system("curl --version");
+# ifdef _WIN32
+  int err = system("curl --version > NUL 2>&1");
+# else
+  int err = system("curl --version > /dev/null 2>&1");
+# endif
   if (err == 0) {
     mprintf("\tcurl found.\n");
     cmd_.assign("curl -s --show-error -f -L ");
     oflag_.assign("-o ");
   } else {
-    err = system("wget --version");
+#   ifdef _WIN32
+    err = system("wget --version > NUL 2>&1");
+#   else
+    err = system("wget --version > /dev/null 2>&1");
+#   endif
     if (err == 0) {
       mprintf("\twget found.\n");
       cmd_.assign("wget --quiet ");
