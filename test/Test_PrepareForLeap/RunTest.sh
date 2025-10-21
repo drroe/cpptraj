@@ -79,7 +79,7 @@ if [ ! -z "$PINGCMD" ] ; then
 parm 4zzw.pdb
 loadcrd 4zzw.pdb name MyCrd
 
-prepareforleap dlparams \
+prepareforleap dlparams bondunknown \
   crdset MyCrd \
   name Final \
   out dlparams.leap.4zzw.in \
