@@ -1,0 +1,23 @@
+#ifndef INC_DATASET_LEAPOPTS_H
+#define INC_DATASET_LEAPOPTS_H
+#include "DataSet.h"
+/// Hold LEaP options read from 'sourcing' a leaprc file in DataIO_LeapRC 
+class DataSet_LeapOpts : public DataSet {
+  public:
+    DataSet_LeapOpts();
+    static DataSet* Alloc() { return (DataSet*)new DataSet_LeapOpts(); }
+    // ----- DataSet functions -------------------
+    size_t Size()                                    const { return 0; }
+    void Info()                                      const { return; }
+    int Allocate(SizeArray const&)                         { return 1; }
+    void Add(size_t, const void*)                          { return; }
+    void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
+    int Append(DataSet*)                                   { return 1; }
+    size_t MemUsageInBytes()                         const { return 0; }
+#   ifdef MPI
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
+#   endif
+    // -------------------------------------------
+  private:
+};
+#endif

@@ -34,6 +34,7 @@ const char* DataSet::Descriptions_[] = {
   "frames",                     // FRAMES
   "zmatrix",                    // ZMATRIX
   "name map",                   // NAMEMAP
+  "LEaP options",               // LEAPOPTS
   "unknown"                     // UNKNOWN_DATA
 };
 

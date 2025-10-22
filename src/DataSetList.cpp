@@ -37,6 +37,7 @@
 #include "DataSet_Coords_FRM.h"
 #include "DataSet_Zmatrix.h"
 #include "DataSet_NameMap.h"
+#include "DataSet_LeapOpts.h"
 
 bool DataSetList::useDiskCache_ = false;
 
@@ -97,6 +98,7 @@ DataSet* DataSetList::NewSet(DataSet::DataType typeIn) {
     case DataSet::VECTOR_SCALAR : ds = DataSet_Vector_Scalar::Alloc(); break;
     case DataSet::ZMATRIX       : ds = DataSet_Zmatrix::Alloc(); break;
     case DataSet::NAMEMAP       : ds = DataSet_NameMap::Alloc(); break;
+    case DataSet::LEAPOPTS      : ds = DataSet_LeapOpts::Alloc(); break;
     // Sanity check
     default:
       mprinterr("Internal Error: No allocator for DataSet type '%s'\n",
