@@ -851,7 +851,8 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
   }
 
   // DEBUG
-  ((DataSet_PdbResMap*)pdbResidueMap_)->PrintPdbResMap();
+  if (debug_ > 0)
+    ((DataSet_PdbResMap*)pdbResidueMap_)->PrintPdbResMap();
   return 0;
 }
 
