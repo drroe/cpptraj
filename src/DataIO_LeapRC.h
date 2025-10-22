@@ -66,6 +66,7 @@ class DataIO_LeapRC : public DataIO {
     int LoadMol2(ArgList const&, DataSetList&) const;
     int LoadPDB(ArgList const&, DataSetList&) const;
     int LeapSet(ArgList const&, DataSetList&) const;
+    DataSet* getUnit(std::string const&, DataSetList const&) const;
     int SaveAmberParm(std::string const&, ArgList&, DataSetList const& dsl) const;
     int Source(FileName const&, DataSetList&, std::string const&);
     /// Add PDB residue map to COORDS unit

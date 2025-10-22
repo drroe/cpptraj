@@ -18,6 +18,11 @@ Topology::Topology() :
   n_extra_pts_(0)
 { }
 
+/** Set the parm name only. */
+void Topology::SetParmTitle(std::string const& title) {
+  parmName_ = title;
+}
+
 // Topology::SetParmName()
 void Topology::SetParmName(std::string const& title, FileName const& filename) {
   parmName_ = title;

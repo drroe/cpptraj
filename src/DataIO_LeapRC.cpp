@@ -647,7 +647,36 @@ int DataIO_LeapRC::LeapSet(ArgList const& argIn, DataSetList& dsl) const {
     return 1;
   }
   mprintf("DEBUG: Leap options set: %s\n", leapopts->legend());
+
+  if (argIn.Nargs() > 3 && ToLower(argIn[2]) == "name") {
+    // set <unit> name <name>
+    // Get the unit
+    DataSet* ds = getUnit( argIn[1], dsl );
+    if (ds == 0) {
+      return 1;
+    }
+    DataSet_Coords& crd = static_cast<DataSet_Coords&>( *ds );
+    crd.TopPtr()->SetParmTitle( argIn[3] );
+  } else {
+    mprintf("Warning: Unhandled 'set' command: %s\n", argIn.ArgLine());
+  } 
+
   return 0;
+}
+
+/** Get COORDS unit from data set list */
+DataSet* DataIO_LeapRC::getUnit(std::string const& unitName, DataSetList const& dsl) const {
+  DataSet* ds = dsl.CheckForSet( MetaData(unitName) );
+  if (ds == 0) {
+    mprinterr("Error: Set '%s' not found.\n", unitName.c_str());
+    return 0;
+  }
+  if (ds->Group() != DataSet::COORDINATES) {
+    mprinterr("Error: Set '%s' is not COORDINATES.\n", ds->legend());
+    return 0;
+  }
+  mprintf("\tCOORDINATES set %s\n", ds->legend());
+  return ds;
 }
 
 /** Save specified unit to a topology and restart file. */
@@ -672,16 +701,17 @@ const
   mprintf("\tSaving unit '%s' to topology '%s' and coordinates '%s'\n",
           unitName.c_str(), topName.c_str(), crdName.c_str());
   // Get the unit
-  DataSet* ds = dsl.CheckForSet( MetaData(unitName) );
+  DataSet* ds = getUnit( unitName, dsl );
+//  DataSet* ds = dsl.CheckForSet( MetaData(unitName) );
   if (ds == 0) {
-    mprinterr("Error: Set '%s' not found.\n", unitName.c_str());
+//    mprinterr("Error: Set '%s' not found.\n", unitName.c_str());
     return 1;
   }
-  if (ds->Group() != DataSet::COORDINATES) {
-    mprinterr("Error: Set '%s' is not COORDINATES.\n", ds->legend());
-    return 1;
-  }
-  mprintf("\tCOORDINATES set %s\n", ds->legend());
+//  if (ds->Group() != DataSet::COORDINATES) {
+//    mprinterr("Error: Set '%s' is not COORDINATES.\n", ds->legend());
+//    return 1;
+//  }
+//  mprintf("\tCOORDINATES set %s\n", ds->legend());
   DataSet_Coords& crd = static_cast<DataSet_Coords&>( *ds ); // FIXME this really should be const
   if (crd.Size() < 1) {
     mprinterr("Error: '%s' is empty.\n", crd.legend());
