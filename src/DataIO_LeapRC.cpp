@@ -625,8 +625,9 @@ int DataIO_LeapRC::LoadPDB(ArgList const& argIn, DataSetList& dsl) const {
   ArgList tmparg = args.RemainingArgs();
 
   tmparg.AddArg("name " + args[0]);
+  DataSet_LeapOpts& OPTS = static_cast<DataSet_LeapOpts&>( *leapopts_ );
   Exec_Build build;
-  Exec::RetType ret = build.BuildStructure( coordsIn.added_back(), dsl, debug_, tmparg );
+  Exec::RetType ret = build.BuildStructure( coordsIn.added_back(), dsl, debug_, tmparg, OPTS.PbRadii() );
   if (ret == CpptrajState::ERR) {
     mprinterr("Error: Build of '%s' failed.\n", args[2].c_str());
     return 1;

@@ -3,7 +3,6 @@
 #include "CpptrajStdio.h"
 #include "DataSet_Parameters.h" // For casting DataSet_Parameters to ParameterSet
 #include "Parm/AssignParams.h"
-#include "Parm/GB_Params.h"
 #include "Structure/Builder.h"
 #include "Structure/Creator.h"
 #include "Structure/Disulfide.h"
@@ -787,11 +786,12 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: No COORDS set found matching %s\n", crdset.c_str());
     return CpptrajState::ERR;
   }
-  return BuildStructure(inCrdPtr, State.DSL(), State.Debug(), argIn);
+  return BuildStructure(inCrdPtr, State.DSL(), State.Debug(), argIn, Cpptraj::Parm::UNKNOWN_GB);
 }
 
 /** Standalone execute. For DataIO_LeapRC. */
-Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, int debugIn, ArgList& argIn)
+Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, int debugIn, ArgList& argIn,
+                                         Cpptraj::Parm::GB_RadiiType gbRadIn)
 {
   t_total_.Start();
   if (inCrdPtr == 0) {
@@ -879,14 +879,21 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
   mprintf("\tOutput COORDS set: %s\n", crdout.legend());
 
   // GB radii set
-  Cpptraj::Parm::GB_RadiiType gbradii = Cpptraj::Parm::MBONDI; // Default
-  std::string gbset = argIn.GetStringKey("gb");
-  if (!gbset.empty()) {
-    gbradii = Cpptraj::Parm::GbTypeFromKey( gbset );
-    if (gbradii == Cpptraj::Parm::UNKNOWN_GB) {
-      mprinterr("Error: Unknown GB radii set: %s\n", gbset.c_str());
-      return CpptrajState::ERR;
+  Cpptraj::Parm::GB_RadiiType gbradii;
+  if (gbRadIn == Cpptraj::Parm::UNKNOWN_GB) {
+    // No radii set specified. Check for keyword.
+    gbradii = Cpptraj::Parm::MBONDI; // Default
+    std::string gbset = argIn.GetStringKey("gb");
+    if (!gbset.empty()) {
+      gbradii = Cpptraj::Parm::GbTypeFromKey( gbset );
+      if (gbradii == Cpptraj::Parm::UNKNOWN_GB) {
+        mprinterr("Error: Unknown GB radii set: %s\n", gbset.c_str());
+        return CpptrajState::ERR;
+      }
     }
+  } else {
+    // Use passed-in GB radii set
+    gbradii = gbRadIn;
   }
   mprintf("\tGB radii set: %s\n", Cpptraj::Parm::GbTypeStr(gbradii).c_str());
 

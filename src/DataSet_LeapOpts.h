@@ -20,6 +20,8 @@ class DataSet_LeapOpts : public DataSet {
 #   endif
     // -------------------------------------------
     int SetGbRadii(std::string const&);
+
+    Cpptraj::Parm::GB_RadiiType PbRadii() const { return pbradii_; }
   private:
     Cpptraj::Parm::GB_RadiiType pbradii_;
 };

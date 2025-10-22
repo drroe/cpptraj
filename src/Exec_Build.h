@@ -1,6 +1,7 @@
 #ifndef INC_EXEC_BUILD_H
 #define INC_EXEC_BUILD_H
 #include "Exec.h"
+#include "Parm/GB_Params.h"
 namespace Cpptraj {
 namespace Structure {
 class Creator;
@@ -16,7 +17,7 @@ class Exec_Build : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Build(); }
     RetType Execute(CpptrajState&, ArgList&);
     /// Stand-alone execution
-    RetType BuildStructure(DataSet*, DataSetList&, int, ArgList&);
+    RetType BuildStructure(DataSet*, DataSetList&, int, ArgList&, Cpptraj::Parm::GB_RadiiType);
   private:
     typedef std::vector<int> Iarray;
     // Keep track of which residues are connected to each other

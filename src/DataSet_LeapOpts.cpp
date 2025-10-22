@@ -18,6 +18,6 @@ int DataSet_LeapOpts::SetGbRadii(std::string const& keyword) {
     return 1;
   }
   pbradii_ = radType;
-  mprintf("\tSet default GB radii: %s\n", Cpptraj::Parm::GbTypeStr(pbradii_).c_str());
+  mprintf("\tSet default GB radii: %s\n", Cpptraj::Parm::GbAmberFlag(pbradii_).c_str());
   return 0;
 }
