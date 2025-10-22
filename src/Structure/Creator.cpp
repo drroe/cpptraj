@@ -144,16 +144,21 @@ const
   std::string targetUnitName;
   if (pdbResidueMap_ != 0) {
     targetUnitName = pdbResidueMap_->FindUnitName(rname, termType);
-    if (!targetUnitName.empty())
-       mprintf("DEBUG: Found mapped name for '%s' (%s) -> '%s'\n", *rname, Structure::terminalStr(termType), targetUnitName.c_str());
+//    if (!targetUnitName.empty())
+//       mprintf("DEBUG: Found mapped name for '%s' (%s) -> '%s'\n", *rname, Structure::terminalStr(termType), targetUnitName.c_str());
   }
   if (targetUnitName.empty()) {
     targetUnitName = rname.Truncated();
-    mprintf("DEBUG: Target unit name: %s\n", targetUnitName.c_str());
+//    mprintf("DEBUG: Target unit name: %s\n", targetUnitName.c_str());
   }
-  // Residue templates have name in aspect currently.
+  // Most residue templates have name in aspect currently.
+  // Residue templates loaded separately (via a mol2) may just
+  // have name.
   for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it) {
-    if ((*it)->Meta().Aspect() == targetUnitName)
+    if ((*it)->Meta().Aspect().empty()) {
+      if ((*it)->Meta().Name() == targetUnitName)
+        Out.push_back( *it );
+    } else if ((*it)->Meta().Aspect() == targetUnitName)
       Out.push_back( *it );
   }
 /*
