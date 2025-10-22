@@ -89,7 +89,9 @@ class DataIO_LeapRC : public DataIO {
     Sarray searchPaths_;
     static Sarray paramFiles_; ///< Track amber FF param files loaded from leaprc files
     static Sarray libFiles_;   ///< Track amber library/prep files loaded from leaprc files
-    static const char* LEAPOPTSNAME_; ///< Leap options data set name
-    DataSet* leapopts_;               ///< DataSet holding leap options
+    static const char* LEAPOPTSNAME_;  ///< Leap options data set name
+    static const char* PDBRESMAPNAME_; ///< Leap PDB residue map data set name
+    DataSet* leapopts_;                ///< DataSet holding leap options
+    DataSet* pdbResidueMap_;           ///< DataSet holding the leap pdb residue map
 };
 #endif

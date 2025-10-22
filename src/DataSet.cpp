@@ -35,6 +35,7 @@ const char* DataSet::Descriptions_[] = {
   "zmatrix",                    // ZMATRIX
   "name map",                   // NAMEMAP
   "LEaP options",               // LEAPOPTS
+  "PDB residue map",            // PDBRESMAP
   "unknown"                     // UNKNOWN_DATA
 };
 

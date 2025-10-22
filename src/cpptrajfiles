@@ -237,6 +237,7 @@ COMMON_SOURCES= \
         DataSet_PairwiseCache_MEM.cpp \
         DataSet_PairwiseCache_NC.cpp \
         DataSet_Parameters.cpp \
+        DataSet_PdbResMap.cpp \
         DataSet_pH.cpp \
         DataSet_PHREMD_Explicit.cpp \
         DataSet_PHREMD_Implicit.cpp \

@@ -10,6 +10,7 @@
 #include "DataSet_LeapOpts.h"
 #include "DataSet_NameMap.h"
 #include "DataSet_Parameters.h"
+#include "DataSet_PdbResMap.h"
 #include "Exec_Build.h"
 #include "Parm_Amber.h"
 #include "StringRoutines.h" // ToLower
@@ -86,7 +87,8 @@ const char* DataIO_LeapRC::LeapEltHybrid::AtypeElementStr() const { return elt_;
 // -----------------------------------------------------------------------------
 /// CONSTRUCTOR
 DataIO_LeapRC::DataIO_LeapRC() :
-  leapopts_(0)
+  leapopts_(0),
+  pdbResidueMap_(0)
 {}
 
 /** Track already loaded parm files. */
@@ -489,6 +491,7 @@ const
             prm.pdbName_ = aline[pdbidx];
             prm.unitName_ = aline[unitidx];
             pdbResMapIn.push_back( prm );
+            ((DataSet_PdbResMap*)pdbResidueMap_)->AddPdbResMap( Cpptraj::PdbResMapType(aline[unitidx], aline[pdbidx], termType) );
             // Find among loaded units
             //DataSet* unitSet = findUnit( aline[unitidx] );
             //if (unitSet == 0) {
@@ -539,7 +542,7 @@ const
     if (ds == 0) return 1;
   }
   DataSet_NameMap& namemap = static_cast<DataSet_NameMap&>( *ds );
-  if (debug_ > 0)
+//  if (debug_ > 0)
     mprintf("DEBUG: Name map set: %s\n", namemap.legend());
   int bracketCount = 0;
   // First line should contain the command
@@ -664,6 +667,9 @@ int DataIO_LeapRC::LoadPDB(ArgList const& argIn, DataSetList& dsl) const {
 
 /** Leap options data set default name. */
 const char* DataIO_LeapRC::LEAPOPTSNAME_ = "_LEAP_OPTIONS_";
+
+/** Leap pdb residue map data set default name. */
+const char* DataIO_LeapRC::PDBRESMAPNAME_ = "_LEAP_PDBRESMAP_";
 
 /** LEaP 'set' command. */
 int DataIO_LeapRC::LeapSet(ArgList const& argIn, DataSetList& dsl) const {
@@ -809,10 +815,19 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
   if ( leapopts_ == 0)
     leapopts_ = dsl.AddSet( DataSet::LEAPOPTS, MetaData( std::string(LEAPOPTSNAME_) ) );
   if (leapopts_ == 0) {
-    mprinterr("Internal Error: DataIO_LeapRC::ReadData(): Could not allocate leap options data set for 'set' command.\n");
+    mprinterr("Internal Error: DataIO_LeapRC::ReadData(): Could not allocate leap options data set.\n");
     return 1;
   }
   mprintf("DEBUG: Leap options set: %s\n", leapopts_->legend());
+  // Get/allocate pdb residue map
+  pdbResidueMap_ = dsl.FindSetOfType( std::string(PDBRESMAPNAME_), DataSet::PDBRESMAP );
+  if (pdbResidueMap_ == 0)
+    pdbResidueMap_ = dsl.AddSet( DataSet::PDBRESMAP, MetaData( std::string(PDBRESMAPNAME_) ) );
+  if (pdbResidueMap_ == 0) {
+    mprinterr("Internal Error: DataIO_LeapRC::ReadData(): Could not allocate leap PDB residue map data set.\n");
+    return 1;
+  }
+  mprintf("DEBUG: Leap PDB residue map set: %s\n", pdbResidueMap_->legend());
 
   // First, need to determine where the Amber FF files are
   const char* env = getenv("AMBERHOME");
@@ -836,6 +851,8 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
     return 1;
   }
 
+  // DEBUG
+  ((DataSet_PdbResMap*)pdbResidueMap_)->PrintPdbResMap();
   return 0;
 }
 

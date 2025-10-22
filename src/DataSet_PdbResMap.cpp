@@ -5,7 +5,7 @@ using namespace Cpptraj;
 /// CONSTRUCTOR
 DataSet_PdbResMap::DataSet_PdbResMap() :
   // 0 dim indicates DataSet-specific write
-  DataSet(LEAPOPTS, GENERIC, TextFormat(TextFormat::STRING, 12, 0), 0)
+  DataSet(PDBRESMAP, GENERIC, TextFormat(TextFormat::STRING, 12, 0), 0)
 {
 
 }
