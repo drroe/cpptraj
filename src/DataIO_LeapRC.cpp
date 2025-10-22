@@ -294,6 +294,9 @@ int DataIO_LeapRC::AddAtomTypes(AtypeEltHybridPairMap& atomHybridizations, Buffe
 const
 {
   int bracketCount = 0;
+  // Count duplicate entries
+  Sarray duplicateEntries;
+  Sarray overwrittenEntries;
   // First line should contain the command
   const char* line = infile.CurrentLine();
   while (line != 0) {
@@ -327,13 +330,15 @@ const
           if (it == atomHybridizations.end() || it->first != atype) {
             it = atomHybridizations.insert( it, AtypeEltHybridPairType(atype, eltHybrid) );
           } else {
-            mprintf("Warning: Duplicate entry for '%s' in addAtomTypes.", *atype);
+            //mprintf("Warning: Duplicate entry for '%s' in addAtomTypes.", *atype);
             if (it->second != eltHybrid) {
-              mprintf(" Overwriting.\n");
-              mprintf("Warning: Line is %s\n", tmp.c_str());
+              //mprintf(" Overwriting.\n");
+              overwrittenEntries.push_back( atype.Truncated() );
+              if (debug_ > 0) mprintf("Warning: Line is %s\n", tmp.c_str());
               it->second = eltHybrid;
             } else
-              mprintf("\n");
+              duplicateEntries.push_back( atype.Truncated() );
+              //mprintf("\n");
           }
           tmp.clear();
         }
@@ -357,6 +362,22 @@ const
     return 1;
   }
   mprintf("\tRead %zu atom hybridizations.\n", atomHybridizations.size());
+  if (!duplicateEntries.empty()) {
+    mprintf("Warning: %zu duplicate entries in addAtomTypes; this is expected if other leaprc files have been loaded.\n",
+            duplicateEntries.size());
+    if (debug_ > 0) {
+      mprintf("Warning: Duplicates:");
+      for (Sarray::const_iterator it = duplicateEntries.begin(); it != duplicateEntries.end(); ++it)
+        mprintf(" %s", it->c_str());
+      mprintf("\n");
+    }
+  }
+  if (!overwrittenEntries.empty()) {
+    mprintf("Warning: %zu entries were overwritten in addAtomTypes:", duplicateEntries.size());
+    for (Sarray::const_iterator it = duplicateEntries.begin(); it != duplicateEntries.end(); ++it)
+      mprintf(" %s", it->c_str());
+    mprintf("\n");
+  }
   return 0;
 }
 
