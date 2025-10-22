@@ -1,6 +1,7 @@
 #ifndef INC_DATASET_LEAPOPTS_H
 #define INC_DATASET_LEAPOPTS_H
 #include "DataSet.h"
+#include "Parm/GB_Params.h"
 /// Hold LEaP options read from 'sourcing' a leaprc file in DataIO_LeapRC 
 class DataSet_LeapOpts : public DataSet {
   public:
@@ -18,6 +19,8 @@ class DataSet_LeapOpts : public DataSet {
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
 #   endif
     // -------------------------------------------
+    int SetGbRadii(std::string const&);
   private:
+    Cpptraj::Parm::GB_RadiiType pbradii_;
 };
 #endif

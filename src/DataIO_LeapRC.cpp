@@ -7,6 +7,7 @@
 #include "DataIO_AmberLib.h"
 #include "DataIO_AmberPrep.h"
 #include "DataIO_Coords.h"
+#include "DataSet_LeapOpts.h"
 #include "DataSet_NameMap.h"
 #include "DataSet_Parameters.h"
 #include "Exec_Build.h"
@@ -647,6 +648,7 @@ int DataIO_LeapRC::LeapSet(ArgList const& argIn, DataSetList& dsl) const {
     return 1;
   }
   mprintf("DEBUG: Leap options set: %s\n", leapopts->legend());
+  DataSet_LeapOpts& OPTS = static_cast<DataSet_LeapOpts&>( *leapopts );
 
   if (argIn.Nargs() > 3 && ToLower(argIn[2]) == "name") {
     // set <unit> name <name>
@@ -657,9 +659,19 @@ int DataIO_LeapRC::LeapSet(ArgList const& argIn, DataSetList& dsl) const {
     }
     DataSet_Coords& crd = static_cast<DataSet_Coords&>( *ds );
     crd.TopPtr()->SetParmTitle( argIn[3] );
+  } else if (argIn.Nargs() > 3 && ToLower(argIn[1]) == "default") {
+    // set default <parameter> <value>
+    if ( ToLower(argIn[2]) == "pbradii" ) {
+      if ( OPTS.SetGbRadii( ToLower(argIn[3]) ) ) {
+        mprinterr("Error: Could not set default pbradii %s\n", argIn[3].c_str());
+        return 1;
+      }
+    } else {
+      mprintf("Warning: Unhandled 'set default' command: %s\n", argIn.ArgLine());
+    }
   } else {
     mprintf("Warning: Unhandled 'set' command: %s\n", argIn.ArgLine());
-  } 
+  }
 
   return 0;
 }
