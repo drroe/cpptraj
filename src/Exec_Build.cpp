@@ -2,6 +2,8 @@
 #include "AssociatedData_Connect.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Parameters.h" // For casting DataSet_Parameters to ParameterSet
+#include "ParmFile.h"
+#include "Trajout_Single.h"
 #include "Parm/AssignParams.h"
 #include "Structure/Builder.h"
 #include "Structure/Creator.h"
@@ -754,6 +756,7 @@ void Exec_Build::Help() const
 {
   mprintf("\tname <output COORDS> crdset <COORDS set> [frame <#>]\n"
           "\t[title <title>] [gb <radii>] [verbose <#>]\n"
+          "\t[parmout <topology file>] [crdout <coord file>]\n"
           "\t[%s]\n"
           "\t[{%s} ...]\n"
           "\t[{%s} ...]\n"
@@ -809,7 +812,12 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
     mprintf("\tNon-template bonds will be added if detected.\n");
   else
     mprintf("\tOnly bonding according to residue templates.\n");
-
+  std::string outputTopologyName = argIn.GetStringKey("parmout");
+  std::string outputCoordsName = argIn.GetStringKey("crdout");
+  if (!outputTopologyName.empty())
+    mprintf("\tWill write topology to %s\n", outputTopologyName.c_str());
+  if (!outputCoordsName.empty())
+    mprintf("\tWill write coords to %s\n", outputCoordsName.c_str());
   // TODO make it so this can be const (cant bc GetFrame)
   DataSet_Coords& coords = static_cast<DataSet_Coords&>( *((DataSet_Coords*)inCrdPtr) );
   // Get frame from input coords
@@ -1105,6 +1113,29 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
     if (box_added)
       frameOut.ModifyBox().SetNoBox();
     t_check_.Stop();
+  }
+
+  if (!outputTopologyName.empty()) {
+    ParmFile pfile;
+    if (pfile.WriteTopology(crdout.Top(), outputTopologyName, argIn, ParmFile::UNKNOWN_PARM, debug_)) {
+      mprinterr("Error: Could not write topology file %s\n", outputTopologyName.c_str());
+      return CpptrajState::ERR;
+    }
+  }
+
+  if (!outputCoordsName.empty()) {
+    Trajout_Single outtraj;
+    if (outtraj.PrepareTrajWrite( outputCoordsName, argIn, DSL, crdout.TopPtr(), crdout.CoordsInfo(),
+                                  crdout.Size(), TrajectoryFile::UNKNOWN_TRAJ))
+    {
+      mprinterr("Error: Could not set up output coords file %s\n", outputCoordsName.c_str());
+      return CpptrajState::ERR;
+    }
+    outtraj.PrintInfo(0);
+    if ( outtraj.WriteSingle( 0, frameOut ) ) {
+      mprinterr("Error: Could not write output coords file %s\n", outputCoordsName.c_str());
+      return CpptrajState::ERR;
+    }
   }
   t_total_.Stop();
 
