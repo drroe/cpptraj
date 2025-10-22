@@ -1,11 +1,11 @@
 #include "Creator.h"
 #include "GenerateConnectivityArrays.h" // For setting atom scan direction
 #include "../ArgList.h"
-#include "../AssociatedData_ResId.h"
 #include "../CpptrajStdio.h"
 #include "../DataSet_Coords.h" // TODO new coords type
 #include "../DataSet_NameMap.h"
 #include "../DataSet_Parameters.h"
+#include "../DataSet_PdbResMap.h"
 #include "../DataSetList.h"
 
 using namespace Cpptraj::Structure;
@@ -13,6 +13,7 @@ using namespace Cpptraj::Structure;
 /** CONSTRUCTOR */
 Creator::Creator() :
   mainParmSet_(0),
+  pdbResidueMap_(0),
   debug_(0),
   free_parmset_mem_(false)
 {}
@@ -41,6 +42,11 @@ int Creator::InitCreator(ArgList& argIn, DataSetList const& DSL, int debugIn)
 {
   t_total_.Start();
   debug_ = debugIn;
+
+  // PDB residue map TODO handle multiple maps?
+  pdbResidueMap_ = (DataSet_PdbResMap*)DSL.FindSetOfType( "*", DataSet::PDBRESMAP );
+  if (pdbResidueMap_ != 0)
+    mprintf("DEBUG: PDB residue map data set: %s\n", pdbResidueMap_->legend());
 
   // Atom scan direction
   std::string atomscandir = argIn.GetStringKey("atomscandir");
@@ -133,6 +139,24 @@ DataSet_Coords* Creator::IdTemplateFromResname(NameType const& rname,
 const
 {
   std::vector<DataSet_Coords*> Out;
+
+  // See if a PDB residue map exists.
+  std::string targetUnitName;
+  if (pdbResidueMap_ != 0) {
+    targetUnitName = pdbResidueMap_->FindUnitName(rname, termType);
+    if (!targetUnitName.empty())
+       mprintf("DEBUG: Found mapped name for '%s' (%s) -> '%s'\n", *rname, Structure::terminalStr(termType), targetUnitName.c_str());
+  }
+  if (targetUnitName.empty()) {
+    targetUnitName = rname.Truncated();
+    mprintf("DEBUG: Target unit name: %s\n", targetUnitName.c_str());
+  }
+  // Residue templates have name in aspect currently.
+  for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it) {
+    if ((*it)->Meta().Aspect() == targetUnitName)
+      Out.push_back( *it );
+  }
+/*
   //DataSet_Coords* out = 0;
   if (termType != Cpptraj::Structure::NON_TERMINAL) {
     // Looking for a terminal residue. Need to get sets with AssociatedData_ResId
@@ -177,7 +201,7 @@ const
       }
     }
   }
-
+*/
   if (Out.empty()) return 0;
   if (Out.size() > 1) {
     mprintf("Warning: Multiple templates match '%s':", *rname);
@@ -227,11 +251,11 @@ int Creator::getTemplates(ArgList& argIn, DataSetList const& DSL) {
     if (debug_ > 0) {
       for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it) {
         mprintf("\t%s", (*it)->legend());
-        AssociatedData* ad = (*it)->GetAssociatedData( AssociatedData::RESID );
-        if (ad != 0) {
-          AssociatedData_ResId const& resid = static_cast<AssociatedData_ResId const&>( *ad );
-          resid.Ainfo();
-        }
+//        AssociatedData* ad = (*it)->GetAssociatedData( AssociatedData::RESID );
+//        if (ad != 0) {
+//          AssociatedData_ResId const& resid = static_cast<AssociatedData_ResId const&>( *ad );
+//          resid.Ainfo();
+//        }
         mprintf("\n");
       }
     }

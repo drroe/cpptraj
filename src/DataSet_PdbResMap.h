@@ -27,6 +27,8 @@ class DataSet_PdbResMap : public DataSet {
     // -------------------------------------------
     /// Add a PDB name to unit name mapping
     int AddPdbResMap(Cpptraj::PdbResMapType const&);
+    /// Find unit name based on PDB name/terminal type
+    std::string FindUnitName(NameType const&, Cpptraj::Structure::TerminalType) const;
 
     void PrintPdbResMap() const;
   private:

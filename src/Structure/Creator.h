@@ -8,6 +8,7 @@ class ArgList;
 class DataSet_Coords;
 class DataSet_NameMap;
 class DataSet_Parameters;
+class DataSet_PdbResMap;
 class DataSetList;
 class NameType;
 namespace Cpptraj {
@@ -55,6 +56,7 @@ class Creator {
     void UpdateTemplateElements() const;
 
     DataSet_Parameters* mainParmSet_; ///< Hold optional parameter set.
+    DataSet_PdbResMap* pdbResidueMap_; ///< Hold optional PDB residue map set.
     Carray Templates_;                ///< Hold unit templates.
     Narray NameMaps_;                 ///< Hold atom name maps.
     int debug_;                       ///< Debug level

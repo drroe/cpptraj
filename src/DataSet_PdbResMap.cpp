@@ -32,6 +32,17 @@ int DataSet_PdbResMap::AddPdbResMap(PdbResMapType const& prmIn) {
   return 0;
 }
 
+/** \return Unit name based on PDB residue name and terminal type. */
+std::string DataSet_PdbResMap::FindUnitName(NameType const& pdbName, Cpptraj::Structure::TerminalType termType)
+const
+{
+  MapType::const_iterator it = pdbResMap_.find( pdbName );
+  if (it == pdbResMap_.end())
+    return std::string("");
+  else
+    return it->second[(int)termType];
+}
+
 /** Print PDB residue to unit mapping to STDOUT. */
 void DataSet_PdbResMap::PrintPdbResMap() const {
   mprintf("PDB to unit residue mapping:\n");
