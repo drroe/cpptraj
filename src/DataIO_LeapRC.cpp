@@ -421,9 +421,15 @@ const
     mprintf("\n");
   } else {
     // TODO check if map is different
-    mprintf("Warning: Unit %s already has resmap. ", unit->legend());
-    ad->Ainfo();
-    mprintf("\n");
+    AssociatedData_ResId const& resid = static_cast<AssociatedData_ResId const&>( *ad );
+    if ( resid.ResName() != prm.pdbName_ || resid.TermType() != prm.termType_) {
+      mprintf("Warning: Unit %s already has resmap. ", unit->legend());
+      ad->Ainfo();
+      mprintf(" New map would be: ");
+      AssociatedData_ResId newResid(prm.pdbName_, prm.termType_);
+      newResid.Ainfo();
+      mprintf("\n");
+    }
   }
 }
 
