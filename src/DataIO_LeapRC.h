@@ -90,5 +90,6 @@ class DataIO_LeapRC : public DataIO {
     static Sarray paramFiles_; ///< Track amber FF param files loaded from leaprc files
     static Sarray libFiles_;   ///< Track amber library/prep files loaded from leaprc files
     static const char* LEAPOPTSNAME_; ///< Leap options data set name
+    DataSet* leapopts_;               ///< DataSet holding leap options
 };
 #endif

@@ -85,10 +85,9 @@ const char* DataIO_LeapRC::LeapEltHybrid::AtypeElementStr() const { return elt_;
 
 // -----------------------------------------------------------------------------
 /// CONSTRUCTOR
-DataIO_LeapRC::DataIO_LeapRC()
-{
-
-}
+DataIO_LeapRC::DataIO_LeapRC() :
+  leapopts_(0)
+{}
 
 /** Track already loaded parm files. */
 DataIO_LeapRC::Sarray DataIO_LeapRC::paramFiles_ = Sarray();
@@ -635,20 +634,16 @@ int DataIO_LeapRC::LoadPDB(ArgList const& argIn, DataSetList& dsl) const {
   return 0;
 }
 
+/** Leap options data set default name. */
 const char* DataIO_LeapRC::LEAPOPTSNAME_ = "_LEAP_OPTIONS_";
 
 /** LEaP 'set' command. */
 int DataIO_LeapRC::LeapSet(ArgList const& argIn, DataSetList& dsl) const {
-  // Check if we already allocated a LEaP options data set
-  DataSet* leapopts = dsl.FindSetOfType( std::string(LEAPOPTSNAME_), DataSet::LEAPOPTS );
-  if ( leapopts == 0)
-    leapopts = dsl.AddSet( DataSet::LEAPOPTS, MetaData( std::string(LEAPOPTSNAME_) ) );
-  if (leapopts == 0) {
-    mprinterr("Internal Error: Could not allocate leap options data set for 'set' command.\n");
+  if (leapopts_ == 0) {
+    mprinterr("Internal Error: DataIO_LeapRC::LeapSet(): LeapSet() called before ReadData().\n");
     return 1;
   }
-  mprintf("DEBUG: Leap options set: %s\n", leapopts->legend());
-  DataSet_LeapOpts& OPTS = static_cast<DataSet_LeapOpts&>( *leapopts );
+  DataSet_LeapOpts& OPTS = static_cast<DataSet_LeapOpts&>( *leapopts_ );
 
   if (argIn.Nargs() > 3 && ToLower(argIn[2]) == "name") {
     // set <unit> name <name>
@@ -781,6 +776,16 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
 {
   atomHybridizations_.clear();
   units_.clear();
+  // Get/allocate leap options
+  leapopts_ = dsl.FindSetOfType( std::string(LEAPOPTSNAME_), DataSet::LEAPOPTS );
+  if ( leapopts_ == 0)
+    leapopts_ = dsl.AddSet( DataSet::LEAPOPTS, MetaData( std::string(LEAPOPTSNAME_) ) );
+  if (leapopts_ == 0) {
+    mprinterr("Internal Error: DataIO_LeapRC::ReadData(): Could not allocate leap options data set for 'set' command.\n");
+    return 1;
+  }
+  mprintf("DEBUG: Leap options set: %s\n", leapopts_->legend());
+
   // First, need to determine where the Amber FF files are
   const char* env = getenv("AMBERHOME");
   if (env != 0)
