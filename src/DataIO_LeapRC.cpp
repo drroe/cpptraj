@@ -634,6 +634,22 @@ int DataIO_LeapRC::LoadPDB(ArgList const& argIn, DataSetList& dsl) const {
   return 0;
 }
 
+const char* DataIO_LeapRC::LEAPOPTSNAME_ = "_LEAP_OPTIONS_";
+
+/** LEaP 'set' command. */
+int DataIO_LeapRC::LeapSet(ArgList const& argIn, DataSetList& dsl) const {
+  // Check if we already allocated a LEaP options data set
+  DataSet* leapopts = dsl.FindSetOfType( std::string(LEAPOPTSNAME_), DataSet::LEAPOPTS );
+  if ( leapopts == 0)
+    leapopts = dsl.AddSet( DataSet::LEAPOPTS, MetaData( std::string(LEAPOPTSNAME_) ) );
+  if (leapopts == 0) {
+    mprinterr("Internal Error: Could not allocate leap options data set for 'set' command.\n");
+    return 1;
+  }
+  mprintf("DEBUG: Leap options set: %s\n", leapopts->legend());
+  return 0;
+}
+
 /** Save specified unit to a topology and restart file. */
 int DataIO_LeapRC::SaveAmberParm(std::string const& unitName, ArgList& line, DataSetList const& dsl)
 const
@@ -759,7 +775,7 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
   mprintf("\tReading LEaP input from '%s'\n", fname.base());
   enum LeapCmdType { LOADAMBERPARAMS = 0, LOADOFF, LOADAMBERPREP, ADDATOMTYPES,
                      ADDPDBRESMAP, ADDPDBATOMMAP, LOADMOL2, LOADPDB, SOURCE,
-                     QUIT, SAVEAMBERPARM, ADDPATH, UNKNOWN_CMD };
+                     QUIT, SAVEAMBERPARM, ADDPATH, SET, UNKNOWN_CMD };
   //DataSetList paramDSL;
   //DataSetList unitDSL;
   //NHarrayType atomHybridizations;
@@ -799,6 +815,7 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
         else if (argStr == "quit"           ) { pos = arg; leapcmd = QUIT; break; }
         else if (argStr == "saveamberparm"  ) { pos = arg; leapcmd = SAVEAMBERPARM; break; }
         else if (argStr == "addpath"        ) { pos = arg; leapcmd = ADDPATH; break; }
+        else if (argStr == "set"            ) { pos = arg; leapcmd = SET; break; }
       }
 
       err = 0;
@@ -865,6 +882,8 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
       } else if (leapcmd == ADDPATH) {
         // Add path to directories to search for files specified by other commands.
         err = AddPath( line.GetStringKey(line[pos]) );
+      } else if (leapcmd == SET) {
+        err = LeapSet(line, dsl);
       } else {
         // Unrecognized so far. See if this is a unit alias (interpret as 'alias = unit')
         if (has_equals) {

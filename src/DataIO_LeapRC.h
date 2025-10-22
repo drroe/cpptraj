@@ -65,6 +65,7 @@ class DataIO_LeapRC : public DataIO {
     int AddPdbAtomMap(std::string const&, DataSetList&, BufferedLine&) const;
     int LoadMol2(ArgList const&, DataSetList&) const;
     int LoadPDB(ArgList const&, DataSetList&) const;
+    int LeapSet(ArgList const&, DataSetList&) const;
     int SaveAmberParm(std::string const&, ArgList&, DataSetList const& dsl) const;
     int Source(FileName const&, DataSetList&, std::string const&);
     /// Add PDB residue map to COORDS unit
@@ -87,5 +88,6 @@ class DataIO_LeapRC : public DataIO {
     Sarray searchPaths_;
     static Sarray paramFiles_; ///< Track amber FF param files loaded from leaprc files
     static Sarray libFiles_;   ///< Track amber library/prep files loaded from leaprc files
+    static const char* LEAPOPTSNAME_; ///< Leap options data set name
 };
 #endif
