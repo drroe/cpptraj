@@ -2,6 +2,7 @@
 #define INC_STRUCTURE_CREATOR_H
 #include <vector>
 #include <string>
+#include <map>
 #include "StructureEnum.h" // TerminalType
 #include "../Timer.h"
 class ArgList;
@@ -15,7 +16,9 @@ namespace Cpptraj {
 namespace Structure {
 /// Used to create a system from individual units
 class Creator {
-    typedef std::vector<DataSet_Coords*> Carray;
+    //typedef std::vector<DataSet_Coords*> Carray;
+    typedef std::pair<std::string, DataSet_Coords*> Cpair;
+    typedef std::map<std::string, DataSet_Coords*> Carray;
     typedef std::vector<DataSet_NameMap*> Narray;
   public:
     /// CONSTRUCTOR
@@ -54,6 +57,8 @@ class Creator {
     int getParameterSets(ArgList&, DataSetList const&);
     /// Update template atom elements from parameter set
     void UpdateTemplateElements() const;
+    /// Add coords set as a template
+    void addCoordsAsTemplate(DataSet_Coords*);
 
     DataSet_Parameters* mainParmSet_; ///< Hold optional parameter set.
     DataSet_PdbResMap* pdbResidueMap_; ///< Hold optional PDB residue map set.

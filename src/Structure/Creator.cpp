@@ -95,12 +95,13 @@ void Creator::TimingInfo(double total, int indent) const {
 void Creator::UpdateTemplateElements() const {
   if (mainParmSet_ == 0) return;
 
-  for (Carray::const_iterator crd = Templates_.begin(); crd != Templates_.end(); ++crd)
+  for (Carray::const_iterator cit = Templates_.begin(); cit != Templates_.end(); ++cit)
   {
+    DataSet_Coords* crd = cit->second;
     if (debug_ > 0)
-      mprintf("DEBUG: Updating atom elements in '%s'\n", (*crd)->legend());
+      mprintf("DEBUG: Updating atom elements in '%s'\n", crd->legend());
     // Loop over template atoms
-    Topology& templateTop = *((*crd)->TopPtr());
+    Topology& templateTop = *(crd->TopPtr());
     for (int at = 0; at != templateTop.Natom(); at++) {
       Cpptraj::Parm::ParmHolder<AtomType>::const_iterator it;
       if (templateTop[at].HasType()) {
@@ -122,15 +123,21 @@ void Creator::UpdateTemplateElements() const {
 DataSet_Coords* Creator::IdTemplateFromName(std::string const& nameIn)
 const
 {
-  MetaData::SearchString search( nameIn );
-  for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it) {
-    if ((*it)->Meta().Match_WildCard(search)) {
-      return *it;
-    }
+  Carray::const_iterator it = Templates_.find( nameIn );
+  if (it == Templates_.end()) {
+    mprintf("Warning: No template found named '%s'\n", nameIn.c_str());
+    return 0;
   }
+  return it->second;
+  //MetaData::SearchString search( nameIn );
+  //for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it) {
+  //  if ((*it)->Meta().Match_WildCard(search)) {
+  //    return *it;
+  //  }
+  //}
   // No aspect. Convert to NameType TODO check for truncation
-  NameType rname( nameIn );
-  return IdTemplateFromResname( NameType(nameIn), Cpptraj::Structure::NON_TERMINAL );
+  //NameType rname( nameIn );
+  //return IdTemplateFromResname( NameType(nameIn), Cpptraj::Structure::NON_TERMINAL );
 }
 
 /** Try to identify residue template DataSet from the given residue
@@ -156,13 +163,20 @@ const
   // Most residue templates have name in aspect currently.
   // Residue templates loaded separately (via a mol2) may just
   // have name.
-  for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it) {
-    if ((*it)->Meta().Aspect().empty()) {
-      if ((*it)->Meta().Name() == targetUnitName)
-        Out.push_back( *it );
-    } else if ((*it)->Meta().Aspect() == targetUnitName)
-      Out.push_back( *it );
+//  for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it) {
+//    if ((*it)->Meta().Aspect().empty()) {
+//      if ((*it)->Meta().Name() == targetUnitName)
+//        Out.push_back( *it );
+//    } else if ((*it)->Meta().Aspect() == targetUnitName)
+//      Out.push_back( *it );
+//  }
+  Carray::const_iterator it = Templates_.find( targetUnitName );
+  if (it == Templates_.end()) {
+    mprintf("Warning: No template found named '%s'\n", targetUnitName.c_str());
+    return 0;
   }
+  return it->second;
+
 /*
   //DataSet_Coords* out = 0;
   if (termType != Cpptraj::Structure::NON_TERMINAL) {
@@ -209,7 +223,7 @@ const
     }
   }
 */
-  if (Out.empty()) return 0;
+/*  if (Out.empty()) return 0;
   if (Out.size() > 1) {
     mprintf("Warning: Multiple templates match '%s':", *rname);
     for (std::vector<DataSet_Coords*>::const_iterator it = Out.begin(); it != Out.end(); ++it)
@@ -218,7 +232,28 @@ const
     mprintf("Warning: Using the last template loaded.\n");
   }
   //return out;
-  return Out.back();
+  return Out.back();*/
+}
+
+/// \return Aspect, or Name if Aspect is empty
+static inline std::string getTemplateName(DataSet* ds)
+{
+  if (ds->Meta().Aspect().empty())
+    return ds->Meta().Name();
+  else
+    return ds->Meta().Aspect();
+}
+
+/** Add coords set as a template */
+void Creator::addCoordsAsTemplate(DataSet_Coords* ds) {
+  std::string templateName = getTemplateName( ds );
+  Carray::iterator unit = Templates_.lower_bound( templateName );
+  if (unit == Templates_.end() || unit->first != templateName) {
+    unit = Templates_.insert( unit, Cpair( templateName, ds ) );
+  } else {
+    mprintf("Warning: Replacing template %s with %s\n", unit->second->legend(), ds->legend());
+    unit->second = ds;
+  }
 }
 
 /** Get templates */
@@ -231,10 +266,12 @@ int Creator::getTemplates(ArgList& argIn, DataSetList const& DSL) {
     DataSetList sets = DSL.SelectGroupSets( "*", DataSet::COORDINATES ); // TODO specific set type for units?
     for (DataSetList::const_iterator it = sets.begin(); it != sets.end(); ++it)
     {
+      DataSet_Coords* ds = static_cast<DataSet_Coords*>( *it );
       // Should only be a single residue FIXME need new set type
-      DataSet_Coords const& ds = static_cast<DataSet_Coords const&>( *(*it) );
-      if ( ds.Top().Nres() == 1 )
-        Templates_.push_back( (DataSet_Coords*)(*it) );
+      if ( ds->Top().Nres() == 1 ) {
+        addCoordsAsTemplate( ds );
+        //Templates_.push_back( (DataSet_Coords*)(*it) );
+      }
     }
   } else {
     while (!lib.empty()) {
@@ -247,7 +284,8 @@ int Creator::getTemplates(ArgList& argIn, DataSetList const& DSL) {
           // Should only be a single residue FIXME need new set type
           //DataSet_Coords const& ds = static_cast<DataSet_Coords const&>( *(*it) );
           //if ( ds.Top().Nres() == 1 )
-            Templates_.push_back( (DataSet_Coords*)(*it) );
+          //  Templates_.push_back( (DataSet_Coords*)(*it) );
+          addCoordsAsTemplate( static_cast<DataSet_Coords*>( *it ) );
         }
       }
       lib = argIn.GetStringKey("lib");
@@ -257,7 +295,7 @@ int Creator::getTemplates(ArgList& argIn, DataSetList const& DSL) {
     mprintf("\t%zu residue templates found:\n", Templates_.size());
     if (debug_ > 0) {
       for (Carray::const_iterator it = Templates_.begin(); it != Templates_.end(); ++it) {
-        mprintf("\t%s", (*it)->legend());
+        mprintf("\t%s", it->second->legend());
 //        AssociatedData* ad = (*it)->GetAssociatedData( AssociatedData::RESID );
 //        if (ad != 0) {
 //          AssociatedData_ResId const& resid = static_cast<AssociatedData_ResId const&>( *ad );
