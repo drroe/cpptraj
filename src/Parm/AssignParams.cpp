@@ -844,11 +844,14 @@ int AssignParams::remap_cmap_indices(Topology const& topOut,
                                  CmapParmHolder const& cmapIn)
 const
 {
-  mprintf("DEBUG: Cmap parameter indices:\n");
-  for (unsigned int idx = 0; idx < originalCmapIndices.size(); idx++)
-    mprintf("DEBUG:\t\tCurrent idx=%i  Actual idx=%u\n", originalCmapIndices[idx], idx);
+  if (debug_ > 0) {
+    mprintf("DEBUG: Cmap parameter indices:\n");
+    for (unsigned int idx = 0; idx < originalCmapIndices.size(); idx++)
+      mprintf("DEBUG:\t\tCurrent idx=%i  Actual idx=%u\n", originalCmapIndices[idx], idx);
+  }
   if (originalCmapIndices.empty()) {
-    mprintf("DEBUG: No CMAP indices in %s\n", topOut.c_str());
+    if (debug_ > 0)
+      mprintf("DEBUG: No CMAP indices in %s\n", topOut.c_str());
     return 0;
   }
   std::sort(originalCmapIndices.begin(), originalCmapIndices.end());
@@ -857,14 +860,17 @@ const
   // and create map from assigned index to new index.
   cmapGrids.reserve( originalCmapIndices.size() );
   for (unsigned int idx = 0; idx < originalCmapIndices.size(); idx++) {
-    mprintf("DEBUG: Will change cmap parameter index %i to %u\n",
-            originalCmapIndices[idx]+1, idx+1);
+    if (debug_ > 0)
+      mprintf("DEBUG: Will change cmap parameter index %i to %u\n",
+              originalCmapIndices[idx]+1, idx+1);
     currentToNew[ originalCmapIndices[idx] ] = idx;
     cmapGrids.push_back( cmapIn[ originalCmapIndices[idx] ] );
   }
-  mprintf("DEBUG: Assigned CMAP parameters:\n");
-  for (CmapGridArray::const_iterator it = cmapGrids.begin(); it != cmapGrids.end(); ++it)
-    mprintf("DEBUG:\t\t%li : %s\n", it-cmapGrids.begin(), it->Title().c_str());
+  if (debug_ > 0) {
+    mprintf("DEBUG: Assigned CMAP parameters:\n");
+    for (CmapGridArray::const_iterator it = cmapGrids.begin(); it != cmapGrids.end(); ++it)
+      mprintf("DEBUG:\t\t%li : %s\n", it-cmapGrids.begin(), it->Title().c_str());
+  }
   // Renumber the parameter indices
   for (CmapArray::iterator it = cmapTerms.begin(); it != cmapTerms.end(); ++it) {
     int newIdx = currentToNew[ it->Idx() ];
@@ -1044,37 +1050,6 @@ const
     }
   } // END loop over dihedrals
   return remap_cmap_indices(topOut, originalCmapIndices, cmapGrids, cmapTerms, cmapIn);
-/*  mprintf("DEBUG: Cmap parameter indices:\n");
-  for (unsigned int idx = 0; idx < originalCmapIndices.size(); idx++)
-    mprintf("DEBUG:\t\tCurrent idx=%i  Actual idx=%u\n", originalCmapIndices[idx], idx);
-  if (originalCmapIndices.empty()) {
-    mprintf("DEBUG: No CMAP indices in %s\n", c_str());
-    return 0;
-  }
-  std::sort(originalCmapIndices.begin(), originalCmapIndices.end());
-  std::vector<int> currentToNew(cmapIn.size(), -1);
-  // Add the grid terms in original parameter file order
-  // and create map from assigned index to new index.
-  cmapGrids.reserve( originalCmapIndices.size() );
-  for (unsigned int idx = 0; idx < originalCmapIndices.size(); idx++) {
-    mprintf("DEBUG: Will change cmap parameter index %i to %u\n",
-            originalCmapIndices[idx]+1, idx+1);
-    currentToNew[ originalCmapIndices[idx] ] = idx;
-    cmapGrids.push_back( cmapIn[ originalCmapIndices[idx] ] );
-  }
-  mprintf("DEBUG: Assigned CMAP parameters:\n");
-  for (CmapGridArray::const_iterator it = cmapGrids.begin(); it != cmapGrids.end(); ++it)
-    mprintf("DEBUG:\t\t%li : %s\n", it-cmapGrids.begin(), it->Title().c_str());
-  // Renumber the parameter indices
-  for (CmapArray::iterator it = cmapTerms.begin(); it != cmapTerms.end(); ++it) {
-    int newIdx = currentToNew[ it->Idx() ];
-    if (newIdx < 0) {
-      mprinterr("Internal Error: CMAP term index is not mapped.\n");
-      return 1;
-    }
-    it->SetIdx( newIdx );
-  }
-  return 0;*/
 }
 
 /** Add to bond arrays but do not update atom connectivity. Used
