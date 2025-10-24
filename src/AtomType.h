@@ -69,7 +69,7 @@ class AtomType {
     void SetEltStr(const char* elt) { elt_[0] = elt[0]; elt_[1] = elt[1]; }
     /// \return data size  (2 double for LJparmType)
     static size_t DataSize() { return (4*sizeof(double)) + sizeof(int); }
-    /// Assign atom type. Do not overwrite LJ params if incoming type does not have them set.
+    /// Assign atom type. Do not overwrite LJ params/hybridization if incoming type does not have them set.
     AtomType& operator=(AtomType const& rhs) {
       if (this == &rhs) return *this;
       //mprintf("DEBUG: Assign elt %c%c oldHasLj=%i oldR=%f newHasLj=%i newR=%f\n", elt_[0], elt_[1], (int)hasLJ_, lj_.Radius(), (int)rhs.hasLJ_, rhs.lj_.Radius());
@@ -79,7 +79,8 @@ class AtomType {
       mass_ = rhs.mass_;
       polarizability_ = rhs.polarizability_;
       oidx_ = rhs.oidx_;
-      hybrid_ = rhs.hybrid_;
+      if (rhs.hybrid_ != UNKNOWN_HYBRIDIZATION)
+        hybrid_ = rhs.hybrid_;
       elt_[0] = rhs.elt_[0];
       elt_[1] = rhs.elt_[1];
       //elt_[2] = rhs.elt_[2];
