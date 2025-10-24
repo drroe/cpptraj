@@ -791,18 +791,26 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
   // FIXME need to convert to all lowercase for matching commands; leap allows
   //       mixed case
   while (ptr != 0) {
+    // Use lineBuf to store all non-comment characters
+    std::string lineBuf;
     if (ptr[0] != '\0' && ptr[0] != '#') {
       // Note if this line contains an equals sign.
       bool has_equals = false;
       for (const char* p = ptr; *p != '\0'; ++p) {
         if (*p == '=') {
           has_equals = true;
+          //break;
+        } else if (*p == '#' && p != ptr && *(p-1) != '\\') {
+          // Ignore comments
           break;
         }
+        lineBuf += *p;
       }
 
-      ArgList line( ptr, " =\t" );
+      //ArgList line( ptr, " =\t" );
+      ArgList line( lineBuf, " =\t" );
       mprintf("\tLEAP> %s\n", ptr);
+      //line.PrintDebug(); // DEBUG
 
       LeapCmdType leapcmd = UNKNOWN_CMD;
       // Look through all args, lowercase, for recognized commands.
