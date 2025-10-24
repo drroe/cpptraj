@@ -2054,6 +2054,7 @@ std::vector<Residue> Builder::residuesThatNeedPositions(Topology const& topIn,
                                                         Barray const& hasPosition)
 const
 {
+  // FIXME does this routine need to be more efficient? Use std::set?
   std::vector<Residue> residues;
   std::vector<int> Rnums;
   for (Tarray::const_iterator dih = internalTorsions_.begin();
@@ -2061,6 +2062,42 @@ const
   {
     if (!hasPosition[dih->AtI()]) {
       int rnum = topIn[dih->AtI()].ResNum();
+      bool has_rnum = false;
+      for (std::vector<int>::const_iterator it = Rnums.begin(); it != Rnums.end(); ++it) {
+        if (*it == rnum) {
+          has_rnum = true;
+          break;
+        }
+      }
+      if (!has_rnum) {
+        residues.push_back( topIn.Res(rnum) );
+        Rnums.push_back(rnum);
+      }
+    }
+  }
+  for (Aarray::const_iterator ang = internalAngles_.begin();
+                              ang != internalAngles_.end(); ++ang)
+  {
+    if (!hasPosition[ang->AtI()]) {
+      int rnum = topIn[ang->AtI()].ResNum();
+      bool has_rnum = false;
+      for (std::vector<int>::const_iterator it = Rnums.begin(); it != Rnums.end(); ++it) {
+        if (*it == rnum) {
+          has_rnum = true;
+          break;
+        }
+      }
+      if (!has_rnum) {
+        residues.push_back( topIn.Res(rnum) );
+        Rnums.push_back(rnum);
+      }
+    }
+  }
+  for (Larray::const_iterator bnd = internalBonds_.begin();
+                              bnd != internalBonds_.end(); ++bnd)
+  {
+    if (!hasPosition[bnd->AtI()]) {
+      int rnum = topIn[bnd->AtI()].ResNum();
       bool has_rnum = false;
       for (std::vector<int>::const_iterator it = Rnums.begin(); it != Rnums.end(); ++it) {
         if (*it == rnum) {
