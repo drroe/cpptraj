@@ -139,6 +139,7 @@ static inline int check_cmap_atom_name(NameType const& n0, NameType const& n1)
 int GetParams::GetCmapParams(CmapParmHolder& cmapParm, CmapArray const& cmapTerms,
                              CmapGridArray const& cmapGrids,
                              std::vector<Atom> const& atoms, std::vector<Residue> const& residues)
+const
 {
   if (cmapGrids.empty() || cmapTerms.empty()) {
     //mprintf("DEBUG: CMAP grids/terms are empty. No parameters to get.\n");
@@ -215,7 +216,7 @@ int GetParams::GetCmapParams(CmapParmHolder& cmapParm, CmapArray const& cmapTerm
         // Set a default title if needed
         if (newGrid.Title().empty())
           newGrid.SetTitle( "CMAP for " + newGrid.ResNames().front() );
-        Cpptraj::Parm::RetType ret = cmapParm.AddParm( newGrid, false );
+        Cpptraj::Parm::RetType ret = cmapParm.AddParm( newGrid, false, debug_ );
         if (ret == Cpptraj::Parm::ERR)
           paramOverwriteWarning("CMAP");
       } // END if adding existing grid to parms
@@ -224,7 +225,7 @@ int GetParams::GetCmapParams(CmapParmHolder& cmapParm, CmapArray const& cmapTerm
     mprintf("CMAP terms have residue/atom info.\n");
     for (unsigned int idx = 0; idx != cmapGrids.size(); idx++) {
       if (addGrid[idx]) {
-        Cpptraj::Parm::RetType ret = cmapParm.AddParm( cmapGrids[idx], false );
+        Cpptraj::Parm::RetType ret = cmapParm.AddParm( cmapGrids[idx], false, debug_ );
         if (ret == Cpptraj::Parm::ERR)
           paramOverwriteWarning("CMAP");
       }

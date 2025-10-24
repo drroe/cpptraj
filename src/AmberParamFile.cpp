@@ -19,7 +19,7 @@ AmberParamFile::AmberParamFile() :
 {}
 
 /** Set debug level */
-void AmberParamFile::SetDebug(int d) {
+void AmberParamFile::SetAmberParamDebug(int d) {
   debug_ = d;
 }
 
@@ -363,20 +363,23 @@ const
 }
 
 /// \return 1 if problem detected with CMAP term
-static inline int check_cmap(int currentCmapIdx, CmapGridType const& cmap) {
-  mprintf("DEBUG: Cmap %i '%s' (gridSize= %i) %zu res:",
-          currentCmapIdx, cmap.Title().c_str(), cmap.Size(), cmap.ResNames().size());
-  for (std::vector<std::string>::const_iterator it = cmap.ResNames().begin();
+int AmberParamFile::check_cmap(int currentCmapIdx, CmapGridType const& cmap) const {
+  if (debug_ > 0) {
+    mprintf("DEBUG: Cmap %i '%s' (gridSize= %i) %zu res:",
+            currentCmapIdx, cmap.Title().c_str(), cmap.Size(), cmap.ResNames().size());
+    for (std::vector<std::string>::const_iterator it = cmap.ResNames().begin();
                                                 it != cmap.ResNames().end(); ++it)
-    mprintf(" %s", it->c_str());
-  mprintf("\n");
+      mprintf(" %s", it->c_str());
+    mprintf("\n");
+  }
   if (!cmap.CmapIsValid()) {
-    mprinterr("Error: Previous CMAP term is not valid.\n");
+    mprinterr("Error: CMAP term %i '%s' is not valid.\n", currentCmapIdx, cmap.Title().c_str());
     return 1;
   }
   if (!cmap.CmapNresIsValid()) {
-    mprintf("Warning: # expected CMAP %i residue names %i not equal to actual number %zu\n",
+    mprintf("Warning: The number of expected residue names for CMAP %i '%s' (%i) is not equal to the actual number %zu\n",
             currentCmapIdx,
+            cmap.Title().c_str(),
             cmap.NcmapResNames(),
             cmap.ResNames().size());
   }
@@ -411,7 +414,7 @@ const
         if (!currentCmap.empty()) {
           if (currentCmap.AtomNames().empty()) add_cmap_default_atoms( currentCmap );
           if (check_cmap(prm.CMAP().size()+1, currentCmap)) return 1;
-          prm.CMAP().AddParm( currentCmap, true );
+          prm.CMAP().AddParm( currentCmap, true, debug_ );
           currentCmap = CmapGridType();
         }
         int cmapcount = argline.getKeyInt("CMAP_COUNT", -1);
@@ -593,7 +596,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname) const
   if (!currentCmap.empty()) {
     if (currentCmap.AtomNames().empty()) add_cmap_default_atoms( currentCmap );
     if (check_cmap(prm.CMAP().size(), currentCmap)) return 1;
-    prm.CMAP().AddParm( currentCmap, true );
+    prm.CMAP().AddParm( currentCmap, true, debug_ );
   }
   // Nonbonds
   if (assign_nb(prm, nbset)) return 1;

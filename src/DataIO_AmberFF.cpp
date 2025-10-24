@@ -54,7 +54,7 @@ int DataIO_AmberFF::ReadData(FileName const& fname, DataSetList& dsl, std::strin
   DataSet_Parameters& prm = static_cast<DataSet_Parameters&>( *ds ); 
 
   AmberParamFile infile;
-  infile.SetDebug( debug_ );
+  infile.SetAmberParamDebug( debug_ );
   int err = infile.ReadParams(prm, fname, nbsetname_);
   if (err != 0) {
     mprinterr("Error: Could not read '%s'\n", fname.full());
@@ -80,7 +80,7 @@ int DataIO_AmberFF::processWriteArgs(ArgList& argIn)
 int DataIO_AmberFF::WriteData(FileName const& fname, DataSetList const& dsl)
 {
   AmberParamFile outfile;
-  outfile.SetDebug( debug_ );
+  outfile.SetAmberParamDebug( debug_ );
   std::vector<DataSet_Parameters*> toWrite;
   for (DataSetList::const_iterator it = dsl.begin(); it != dsl.end(); ++it)
   {

@@ -26,8 +26,8 @@ class CmapParmHolder {
 
     /// \return Modifiable CMAP at index
     
-    /// Add/update cmap term
-    Cpptraj::Parm::RetType AddParm(CmapGridType const&, bool);
+    /// Add/update cmap term; optionally allow update, pass in debug level
+    Cpptraj::Parm::RetType AddParm(CmapGridType const&, bool, int);
   private:
     Carray CMAP_;
 };

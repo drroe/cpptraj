@@ -22,7 +22,7 @@ class AmberParamFile {
     /// Write main Amber FF file
     int WriteParams(ParameterSet&, FileName const&) const;
     /// Set debug level
-    void SetDebug(int);
+    void SetAmberParamDebug(int);
   private:
     static const int MAXSYMLEN;
 
@@ -51,6 +51,8 @@ class AmberParamFile {
     int read_nb_RE(NonbondSet&, const char*) const;
     /// Read LJ 6-12 off-diagonal modifications
     int read_ljedit(Oarray&, const char*) const;
+    /// Check for issues in CMAP section
+    inline int check_cmap(int, CmapGridType const&) const;
     /// Read CMAP section
     int read_cmap(CmapGridType&, ParameterSet&, CmapType&, std::string const&) const;
     /// Assign parameters from NonbondSet to ParameterSet

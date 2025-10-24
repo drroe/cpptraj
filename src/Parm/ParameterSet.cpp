@@ -185,11 +185,11 @@ void ParameterSet::Print(CpptrajFile& Out) const {
 }
 
 /** Update/add to CMAP parameters in this set with those from given set. */
-int ParameterSet::updateCmapParams(CmapParmHolder const& cmap1, int verbose) {
+int ParameterSet::updateCmapParams(CmapParmHolder const& cmap1, int debugIn, int verbose) {
   int updateCount = 0;
   for (CmapParmHolder::const_iterator newp = cmap1.begin(); newp != cmap1.end(); ++newp)
   {
-    RetType ret = CMAP_.AddParm( *newp, true );
+    RetType ret = CMAP_.AddParm( *newp, true, debugIn );
     if (ret != ERR) {
       bool print = false;
       if (ret == ADDED) {
@@ -242,7 +242,7 @@ int ParameterSet::UpdateParamSet(ParameterSet const& set1, UpdateCount& uc, int 
   // HB LJ 10-12 Pairs
   uc.nHBparamsUpdated_ = UpdateParameters< ParmHolder<HB_ParmType> >(set0.HB(), set1.HB(), "LJ HB 10-12", verbose);
   // CMAP
-  uc.nCmapUpdated_ = updateCmapParams(set1.CMAP(), verbose);
+  uc.nCmapUpdated_ = updateCmapParams(set1.CMAP(), debugIn, verbose);
 
   if (debugIn > 0) set0.Debug("newp.dat");
   return 0;

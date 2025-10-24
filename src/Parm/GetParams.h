@@ -54,8 +54,8 @@ class GetParams {
     static inline void GetDihedralParams(DihedralParmHolder&, ImproperParmHolder&,
                                          std::vector<Atom> const&,
                                          DihedralArray const&, DihedralParmArray const&);
-    static inline int GetCmapParams(CmapParmHolder&, CmapArray const&, CmapGridArray const&,
-                                    std::vector<Atom> const&, std::vector<Residue> const&);
+    inline int GetCmapParams(CmapParmHolder&, CmapArray const&, CmapGridArray const&,
+                                    std::vector<Atom> const&, std::vector<Residue> const&) const;
 
     int debug_;
 };
