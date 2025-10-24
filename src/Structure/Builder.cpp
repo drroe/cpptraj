@@ -2069,11 +2069,14 @@ const
         }
       }
       if (!has_rnum) {
-        if (debug_ > 0) mprintf("DEBUG: Need to build for residue %s\n", topIn.TruncResNameNum(rnum).c_str());
         residues.push_back( topIn.Res(rnum) );
         Rnums.push_back(rnum);
       }
     }
+  }
+  if (!Rnums.empty() && debug_ > 0) {
+    for (std::vector<int>::const_iterator it = Rnums.begin(); it != Rnums.end(); ++it)
+      mprintf("DEBUG: Need to build for residue %s\n", topIn.TruncResNameNum(*it).c_str());
   }
   return residues;
 } 
