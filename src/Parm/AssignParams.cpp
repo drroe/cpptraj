@@ -409,9 +409,10 @@ const
             }
             if (new_wildcards < n_wildcards) {
               // More specific improper was found.
-              mprintf("DEBUG: A more specific improper was found for %2s %2s %2s %2s (%2s %2s %2s %2s)\n",
-                      *(impit->first[0]), *(impit->first[1]), *(impit->first[2]), *(impit->first[3]),
-                      *(moreSpecificImpit->first[0]), *(moreSpecificImpit->first[1]), *(moreSpecificImpit->first[2]), *(moreSpecificImpit->first[3]));
+              if (debug_ > 0)
+                mprintf("DEBUG: A more specific improper was found for %2s %2s %2s %2s (%2s %2s %2s %2s)\n",
+                        *(impit->first[0]), *(impit->first[1]), *(impit->first[2]), *(impit->first[3]),
+                        *(moreSpecificImpit->first[0]), *(moreSpecificImpit->first[1]), *(moreSpecificImpit->first[2]), *(moreSpecificImpit->first[3]));
               is_new_improper = true;
               reordered = newReordered;
               mydih = newdih;

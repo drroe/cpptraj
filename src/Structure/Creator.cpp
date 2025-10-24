@@ -346,7 +346,7 @@ int Creator::getParameterSets(ArgList& argIn, DataSetList const& DSL) {
   //  return CpptrajState::ERR;
   //}
   if (!ParamSets.empty()) {
-    mprintf("\tParameter sets:\n");
+    mprintf("\tParameter sets:\n"); // TODO put these names in the final combined parameter set
     for (Parray::const_iterator it = ParamSets.begin(); it != ParamSets.end(); ++it)
       mprintf("\t  %s\n", (*it)->legend());
 
