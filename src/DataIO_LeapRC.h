@@ -2,7 +2,6 @@
 #define INC_DATAIO_LEAPRC_H
 #include "DataIO.h"
 #include "AtomType.h" // AtomType::HybridizationType
-#include "Structure/StructureEnum.h"
 #include <map>
 class BufferedLine;
 /// Read parameters and units from a leap rc file 
@@ -62,14 +61,7 @@ class DataIO_LeapRC : public DataIO {
     DataSet* getUnit(std::string const&, DataSetList const&) const;
     int SaveAmberParm(std::string const&, ArgList&, DataSetList const& dsl) const;
     int Source(FileName const&, DataSetList&, std::string const&);
-    /// Add PDB residue map to COORDS unit
-//    void addPdbResMapToUnit(DataSet_Coords*, PdbResMapType const&, bool) const;
-    /// Add PDB residue map to COORDS unit, no update
-//    void addPdbResMapToUnit(DataSet_Coords*, PdbResMapType const&) const;
-    /// Add PDB residue map to COORDS unit, allow update
-//    void updatePdbResMapToUnit(DataSet_Coords*, PdbResMapType const&) const;
-    /// \return Previously loaded unit set with given name
-    //DataSet* findUnit(std::string const&) const;
+
     /// Used to check if a parm/lib file was already loaded.
     static inline bool check_already_loaded(Sarray const&, std::string const&);
     /// \return either file or Amberhome/dir/file
