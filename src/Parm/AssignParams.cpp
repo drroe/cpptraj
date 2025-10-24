@@ -912,8 +912,10 @@ const
       }
     }
     if (cidx > -1) {
-      mprintf("DEBUG: Potential existing cmap %i found for %s (%li)\n", cidx, topOut.TruncResNameNum(A2.ResNum()).c_str(), cm-cmapTerms.begin());
-      mprintf("DEBUG:\t\t%i - %i - %i - %i - %i %i\n", cm->A1()+1, cm->A2()+1, cm->A3()+1, cm->A4()+1, cm->A5()+1, cidx+1);
+      if (debug_ > 1) {
+        mprintf("DEBUG: Potential existing cmap %i found for %s (%li)\n", cidx, topOut.TruncResNameNum(A2.ResNum()).c_str(), cm-cmapTerms.begin());
+        mprintf("DEBUG:\t\t%i - %i - %i - %i - %i %i\n", cm->A1()+1, cm->A2()+1, cm->A3()+1, cm->A4()+1, cm->A5()+1, cidx+1);
+      }
       cm->SetIdx( cidx );
     }
     // If not already in cmapGrids, check cmapIn
@@ -935,14 +937,16 @@ const
         }
       }
       if (cidx > -1) {
-        mprintf("DEBUG: Potential new cmap %i found for %s (%li)\n", cidx, topOut.TruncResNameNum(A2.ResNum()).c_str(), cm-cmapTerms.begin());
-        mprintf("DEBUG:\t\t%i - %i - %i - %i - %i %i\n", cm->A1()+1, cm->A2()+1, cm->A3()+1, cm->A4()+1, cm->A5()+1, cidx+1);
-        //mprintf("DEBUG:\t\t%s - %s - %s - %s - %s\n",
-        //        AtomMaskName(dih->A1()).c_str(),
-        //        AtomMaskName(dih->A2()).c_str(),
-        //        AtomMaskName(dih->A3()).c_str(),
-        //        AtomMaskName(dih->A4()).c_str(),
-        //        AtomMaskName(a5).c_str());
+        if (debug_ > 1) {
+          mprintf("DEBUG: Potential new cmap %i found for %s (%li)\n", cidx, topOut.TruncResNameNum(A2.ResNum()).c_str(), cm-cmapTerms.begin());
+          mprintf("DEBUG:\t\t%i - %i - %i - %i - %i %i\n", cm->A1()+1, cm->A2()+1, cm->A3()+1, cm->A4()+1, cm->A5()+1, cidx+1);
+          //mprintf("DEBUG:\t\t%s - %s - %s - %s - %s\n",
+          //        AtomMaskName(dih->A1()).c_str(),
+          //        AtomMaskName(dih->A2()).c_str(),
+          //        AtomMaskName(dih->A3()).c_str(),
+          //        AtomMaskName(dih->A4()).c_str(),
+          //        AtomMaskName(a5).c_str());
+        }
         cm->SetIdx( cidx );
       }
     }
@@ -992,14 +996,16 @@ const
       }
     }
     if (cidx > -1) {
-      mprintf("DEBUG: Potential existing cmap %i found for %s (%li)\n", cidx, topOut.TruncResNameNum(A2.ResNum()).c_str(), dih-allDih.begin());
-      mprintf("DEBUG:\t\t%i - %i - %i - %i - %i %i\n", dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1, a5+1, cidx+1);
-//      mprintf("DEBUG:\t\t%s - %s - %s - %s - %s\n",
-//              AtomMaskName(dih->A1()).c_str(),
-//              AtomMaskName(dih->A2()).c_str(),
-//              AtomMaskName(dih->A3()).c_str(),
-//              AtomMaskName(dih->A4()).c_str(),
-//              AtomMaskName(a5).c_str());
+      if (debug_ > 1) {
+        mprintf("DEBUG: Potential existing cmap %i found for %s (%li)\n", cidx, topOut.TruncResNameNum(A2.ResNum()).c_str(), dih-allDih.begin());
+        mprintf("DEBUG:\t\t%i - %i - %i - %i - %i %i\n", dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1, a5+1, cidx+1);
+//        mprintf("DEBUG:\t\t%s - %s - %s - %s - %s\n",
+//                AtomMaskName(dih->A1()).c_str(),
+//                AtomMaskName(dih->A2()).c_str(),
+//                AtomMaskName(dih->A3()).c_str(),
+//                AtomMaskName(dih->A4()).c_str(),
+//                AtomMaskName(a5).c_str());
+      }
       cmapTerms.push_back( CmapType(dih->A1(), dih->A2(), dih->A3(), dih->A4(), a5, cidx) );
     }
     // If not already in cmapGrids, check cmapIn
@@ -1023,14 +1029,16 @@ const
         }
       }
       if (cidx > -1) {
-        mprintf("DEBUG: Potential new cmap %i found for %s (%li)\n", cidx, topOut.TruncResNameNum(A2.ResNum()).c_str(), dih-allDih.begin());
-        mprintf("DEBUG:\t\t%i - %i - %i - %i - %i %i\n", dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1, a5+1, cidx+1);
-      //mprintf("DEBUG:\t\t%s - %s - %s - %s - %s\n",
-      //        AtomMaskName(dih->A1()).c_str(),
-      //        AtomMaskName(dih->A2()).c_str(),
-      //        AtomMaskName(dih->A3()).c_str(),
-      //        AtomMaskName(dih->A4()).c_str(),
-      //        AtomMaskName(a5).c_str());
+        if (debug_ > 1) {
+          mprintf("DEBUG: Potential new cmap %i found for %s (%li)\n", cidx, topOut.TruncResNameNum(A2.ResNum()).c_str(), dih-allDih.begin());
+          mprintf("DEBUG:\t\t%i - %i - %i - %i - %i %i\n", dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1, a5+1, cidx+1);
+        //mprintf("DEBUG:\t\t%s - %s - %s - %s - %s\n",
+        //        AtomMaskName(dih->A1()).c_str(),
+        //        AtomMaskName(dih->A2()).c_str(),
+        //        AtomMaskName(dih->A3()).c_str(),
+        //        AtomMaskName(dih->A4()).c_str(),
+        //        AtomMaskName(a5).c_str());
+        }
         cmapTerms.push_back( CmapType(dih->A1(), dih->A2(), dih->A3(), dih->A4(), a5, cidx) );
       }
     }
