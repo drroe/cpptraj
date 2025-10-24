@@ -383,7 +383,7 @@ int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std:
     zmatrix.print();
   // Create COORDS set
   //ds = dsl.AddSet( DataSet::REF_FRAME, MetaData(dsname, "crd") );
-  DataSet* ds = dsl.AddSet( DataSet::REF_FRAME, MetaData(dsname, resName) );
+  DataSet* ds = dsl.AddSet( DataSet::COORDS, MetaData(dsname, resName) );
   if (ds == 0) {
     mprinterr("Error: Could not create coordinates for prep.\n");
     return 1;

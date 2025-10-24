@@ -1134,7 +1134,7 @@ int Zmatrix::SetToFrame(Frame& frameOut, Barray& hasPosition) const {
       }
     }*/
     if (icIdx < 0) {
-      mprintf("DEBUG: Could not find complete IC yet.\n");
+      if (debug_ > 0) mprintf("DEBUG: Could not find complete IC yet.\n");
       ++at_with_unset_pos;
       if (at_with_unset_pos == positionsToSet.end()) {
         mprinterr("Error: Could not find next IC to use.\n");
