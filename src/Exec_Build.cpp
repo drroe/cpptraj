@@ -193,7 +193,8 @@ const
       // Save the head and tail atoms
       AssociatedData* ad = resTemplate->GetAssociatedData(AssociatedData::CONNECT);
       if (ad == 0) {
-        mprintf("Warning: Unit '%s' does not have CONNECT data.\n", resTemplate->legend());
+        if (debug_ > 0)
+          mprintf("DEBUG: Unit '%s' does not have CONNECT data.\n", resTemplate->legend());
         resHeadAtoms.push_back( -1 );
         resTailAtoms.push_back( -1 );
       } else {
@@ -524,9 +525,10 @@ const
           ResidueConnections[ra0.first].push_back( ra1.first );
           ResidueConnections[ra1.first].push_back( ra0.first );
         } else {
-          mprintf("Warning: Detected non-template bond %s - %s; not adding it.\n",
-                  topOut.AtomMaskName(at0).c_str(),
-                  topOut.AtomMaskName(at1).c_str());
+          if (debug_ > 0)
+            mprintf("DEBUG: Detected non-template bond %s - %s; not adding it.\n",
+                    topOut.AtomMaskName(at0).c_str(),
+                    topOut.AtomMaskName(at1).c_str());
         }
       }
     } //else
@@ -728,9 +730,10 @@ const
     // Get the original atom name and residue number
     Atom const& original_A1 = topIn[bnd->A1()];
     Atom const& original_A2 = topIn[bnd->A2()];
-    mprintf("DEBUG: Original bond atoms %i (%s) %i (%s)\n",
-            bnd->A1()+1, topIn.AtomMaskName(bnd->A1()).c_str(),
-            bnd->A2()+1, topIn.AtomMaskName(bnd->A2()).c_str());
+    if (debug_ > 0)
+      mprintf("DEBUG: Original bond atoms %i (%s) %i (%s)\n",
+              bnd->A1()+1, topIn.AtomMaskName(bnd->A1()).c_str(),
+              bnd->A2()+1, topIn.AtomMaskName(bnd->A2()).c_str());
     // Find the atoms in the new topology
     int a1 = topOut.FindAtomInResidue( original_A1.ResNum(), original_A1.Name() );
     if (a1 < 0) {

@@ -1823,12 +1823,13 @@ int SugarBuilder::FixSugarsStructure(Topology& topIn, Frame& frameIn,
 
   Sugars_.clear();
   AtomMask sugarMask(sugarmaskstr_);
-  mprintf("\tLooking for sugars selected by '%s'\n", sugarMask.MaskString());
+  if (debug_ > 0)
+    mprintf("DEBUG:\tLooking for sugars selected by '%s'\n", sugarMask.MaskString());
   if (topIn.SetupIntegerMask( sugarMask )) return 1;
   //sugarMask.MaskInfo();
   mprintf("\tSelected %i sugar atoms.\n", sugarMask.Nselected());
   if (sugarMask.None()) {
-    mprintf("Warning: No sugar atoms selected by %s\n", sugarMask.MaskString());
+    //mprintf("Warning: No sugar atoms selected by %s\n", sugarMask.MaskString());
     return 0;
   }
   // Cache residue distances if we will be looking for linkages
@@ -1932,9 +1933,10 @@ int SugarBuilder::PrepareSugars(bool errorsAreFatal,
   if (topIn.SetupIntegerMask( sugarMask )) return 1;
   //sugarMask.MaskInfo();
   mprintf("\t%i sugar atoms selected in %zu residues.\n", sugarMask.Nselected(), Sugars_.size());
-  if (sugarMask.None())
-    mprintf("Warning: No sugar atoms selected by %s\n", sugarMask.MaskString());
-  else {
+  if (sugarMask.None()) {
+    if (debug_ > 0)
+      mprintf("DEBUG: No sugar atoms selected by %s\n", sugarMask.MaskString());
+  } else {
     CharMask cmask( sugarMask.ConvertToCharMask(), sugarMask.Nselected() );
     if (debug_ > 0) {
       for (std::vector<Sugar>::const_iterator sugar = Sugars_.begin();

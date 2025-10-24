@@ -46,8 +46,10 @@ int Creator::InitCreator(ArgList& argIn, DataSetList const& DSL, int debugIn)
   // PDB residue map TODO handle multiple maps?
   pdbResidueMap_ = (DataSet_PdbResMap*)DSL.FindSetOfType( "*", DataSet::PDBRESMAP );
   if (pdbResidueMap_ != 0) {
-    mprintf("DEBUG: PDB residue map data set: %s\n", pdbResidueMap_->legend());
-    pdbResidueMap_->PrintPdbResMap();
+    if (debug_ > 0) {
+      mprintf("DEBUG: PDB residue map data set: %s\n", pdbResidueMap_->legend());
+      pdbResidueMap_->PrintPdbResMap();
+    }
   }
 
   // Atom scan direction
