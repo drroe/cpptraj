@@ -124,6 +124,9 @@ class Builder {
     static int get_depths_around_atom(int, int, Topology const&);
     /// Get any complete internal coords for specified atom
     AtomIC getInternalCoordsForAtom(int, int, Barray const&, Topology const&) const;
+    /// Build XYZ coords for an atom from 2 angles and 1 bond
+    int buildCoordsFromTwoAngles(int, InternalAngle const&, InternalAngle const&, InternalBond const&,
+                                 Frame const&, Topology const&, Barray const&) const;
     /// Build XYZ coords for an atom if internals are available
     int buildCoordsForAtom(int, Frame&, Topology const&, Barray const&) const;
     /// Build atoms based on build priority; for cases where known atoms are sparse

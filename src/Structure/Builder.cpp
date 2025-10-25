@@ -1933,6 +1933,53 @@ Builder::AtomIC Builder::getInternalCoordsForAtom(int at, int idx, Barray const&
   return atomIC;
 }
 
+/** Build atom using two angles. */
+int Builder::buildCoordsFromTwoAngles(int at, InternalAngle const& Ang1, InternalAngle const& Ang2, InternalBond const& Bnd,
+                                      Frame const& frameOut, Topology const& topIn, Barray const& hasPosition)
+const
+{
+  int aAtomA, aAtomB, aAtomC;
+  if (at == Ang1.AtI()) {
+    aAtomC = Ang1.AtJ();
+    aAtomA = Ang1.AtK();
+  } else {
+    aAtomC = Ang1.AtJ();
+    aAtomA = Ang1.AtI();
+  }
+  if (at == Ang2.AtI())
+    aAtomB = Ang2.AtK();
+  else
+    aAtomB = Ang2.AtI();
+  Vec3 vAtomC = Vec3( frameOut.XYZ(aAtomC) );
+  Vec3 vAtomA = Vec3( frameOut.XYZ(aAtomA) );
+  Vec3 vAtomB = Vec3( frameOut.XYZ(aAtomB) );
+
+  //if (debug_ > 1) {
+    mprintf("Building atom %s using two angles\n", topIn.LeapName(at).c_str());
+    mprintf("Using %s - %s - %s and %s - %s - %s\n",
+            topIn.LeapName(Ang1.AtI()).c_str(),
+            topIn.LeapName(Ang1.AtJ()).c_str(),
+            topIn.LeapName(Ang1.AtK()).c_str(),
+            topIn.LeapName(Ang2.AtI()).c_str(),
+            topIn.LeapName(Ang2.AtJ()).c_str(),
+            topIn.LeapName(Ang2.AtK()).c_str());
+    mprintf("Using first-center-second %s - %s - %s\n",
+            topIn.LeapName(aAtomA).c_str(),
+            topIn.LeapName(aAtomC).c_str(),
+            topIn.LeapName(aAtomB).c_str());
+    mprintf("AngleA  = %f\n", Ang1.ThetaVal()*Constants::RADDEG );
+    mprintf("AngleB  = %f\n", Ang2.ThetaVal()*Constants::RADDEG );
+    mprintf("Bond    = %f\n", Bnd.DistVal() );
+  //}
+  double dChi = 0.0;
+  int retVal = determineChirality( dChi, aAtomC, frameOut, topIn, hasPosition );
+  if (retVal != 0)
+    mprinterr("Error: Could not determine chirality for %s\n", topIn.LeapName(aAtomC).c_str());
+  else
+    mprintf("Got EXTERNAL chirality: %f\n", dChi );
+  return 0;
+}
+
 /** Build coordinates for an atom from internals.
   * \return 1 if atom was built, 0 otherwise.
   */
@@ -1963,7 +2010,8 @@ const
   InternalAngle a1, a2;
   InternalBond b1;
   if (getTwoAnglesFromInternals(a1, a2, b1, at, hasPosition)) {
-    //if (debug_ > 1) {
+    buildCoordsFromTwoAngles(at, a1, a2, b1, frameOut, topIn, hasPosition);
+/*    //if (debug_ > 1) {
       mprintf("Building atom %s using two angles\n", topIn.LeapName(at).c_str());
       mprintf("Using %s - %s - %s and %s - %s - %s\n",
                   topIn.LeapName(a1.AtI()).c_str(), topIn.LeapName(a1.AtJ()).c_str(), topIn.LeapName(a1.AtK()).c_str(),
@@ -1971,7 +2019,7 @@ const
       mprintf("AngleA  = %f\n", a1.ThetaVal()*Constants::RADDEG );
       mprintf("AngleB  = %f\n", a2.ThetaVal()*Constants::RADDEG );
       mprintf("Bond    = %f\n", b1.DistVal() );
-    //}
+    //}*/
     //frameOut.SetXYZ( ic.AtI(), posI );
     // return 1;
     // FIXME actually build
@@ -2156,6 +2204,25 @@ const
       built_an_atom = true;
     } else if (currentBuildAtom.Priority() == 1) {
       // FIXME need to implement
+      buildCoordsFromTwoAngles(at, currentBuildAtom.A1(), currentBuildAtom.A2(), currentBuildAtom.B1(),
+                               frameOut, topIn, hasPosition);
+/*
+      int aAtomA, aAtomB, aAtomC;
+      if (at == currentBuildAtom.A1().AtI()) {
+        aAtomC = currentBuildAtom.A1().AtJ();
+        aAtomA = currentBuildAtom.A1().AtK();
+      } else {
+        aAtomC = currentBuildAtom.A1().AtJ();
+        aAtomA = currentBuildAtom.A1().AtI();
+      }
+      if (at == currentBuildAtom.A2().AtI())
+        aAtomB = currentBuildAtom.A2().AtK();
+      else
+        aAtomB = currentBuildAtom.A2().AtI();
+      Vec3 vAtomC = Vec3( frameOut.XYZ(aAtomC) );
+      Vec3 vAtomA = Vec3( frameOut.XYZ(aAtomA) );
+      Vec3 vAtomB = Vec3( frameOut.XYZ(aAtomB) );
+
       //if (debug_ > 1) {
         mprintf("Building atom %s using two angles\n", topIn.LeapName(at).c_str());
         mprintf("Using %s - %s - %s and %s - %s - %s\n",
@@ -2165,10 +2232,20 @@ const
                 topIn.LeapName(currentBuildAtom.A2().AtI()).c_str(),
                 topIn.LeapName(currentBuildAtom.A2().AtJ()).c_str(),
                 topIn.LeapName(currentBuildAtom.A2().AtK()).c_str());
+        mprintf("Using first-center-second %s - %s - %s\n",
+                topIn.LeapName(aAtomA).c_str(),
+                topIn.LeapName(aAtomC).c_str(),
+                topIn.LeapName(aAtomB).c_str());
         mprintf("AngleA  = %f\n", currentBuildAtom.A1().ThetaVal()*Constants::RADDEG );
         mprintf("AngleB  = %f\n", currentBuildAtom.A2().ThetaVal()*Constants::RADDEG );
         mprintf("Bond    = %f\n", currentBuildAtom.B1().DistVal() );
       //}
+      double dChi = 0.0;
+      int retVal = determineChirality( dChi, aAtomC, frameOut, topIn, hasPosition );
+      if (retVal != 0)
+        mprinterr("Error: Could not determine chirality for %s\n", topIn.LeapName(aAtomC).c_str());
+      else
+        mprintf("Got EXTERNAL chirality: %f\n", dChi ); */
       //frameOut.SetXYZ( ic.AtI(), posI );
       // FIXME actually build
     } else if (currentBuildAtom.Priority() == 2) {
