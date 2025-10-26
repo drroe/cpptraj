@@ -447,6 +447,19 @@ void Matrix_3x3::RotationAroundZ(double a1, double a2) {
   M_[8] = 1;
 }
 
+/** Set Rotation matrix around the Z axis given an angle in radians. */
+void Matrix_3x3::RotateAroundZ(double ang) {
+  M_[0] = cos(ang);
+  M_[1] = -sin(ang);
+  M_[2] = 0;
+  M_[3] = -M_[1]; // sin(ang)
+  M_[4] = M_[0];  // cos(ang)
+  M_[5] = 0;
+  M_[6] = 0;
+  M_[7] = 0;
+  M_[8] = 1;
+}
+
 // Matrix_3x3::RotationAroundY()
 void Matrix_3x3::RotationAroundY(double a1, double a2) {
   double r = sqrt( a1*a1 + a2*a2 );

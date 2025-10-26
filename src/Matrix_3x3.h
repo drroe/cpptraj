@@ -124,6 +124,8 @@ class Matrix_3x3 {
     int RotationAngles(double&, double&, double&) const;
     /// Given theta, extract axis of rotation from rotation matrix
     Vec3 AxisOfRotation(double) const;
+    /// Given an angle in radians, calculate rotation matrix around Z axis
+    void RotateAroundZ(double);
     /// Given an angle in radians, calculate rotation matrix around Y axis
     void RotateAroundY(double);
 
