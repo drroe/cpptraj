@@ -1973,10 +1973,19 @@ const
   //}
   double dChi = 0.0;
   int retVal = determineChirality( dChi, aAtomC, frameOut, topIn, hasPosition );
-  if (retVal != 0)
-    mprinterr("Error: Could not determine chirality for %s\n", topIn.LeapName(aAtomC).c_str());
-  else
+  if (retVal != 0) {
+    //mprinterr("Error: Could not determine chirality for %s\n", topIn.LeapName(aAtomC).c_str());
+    dChi = 1.0;
+    // TODO check for INTERNAL chirality.
+  } else {
     mprintf("Got EXTERNAL chirality: %f\n", dChi );
+  }
+  mprintf("dChirality= %f\n", dChi);
+
+  // Calculate the orientation of aAtomD with respect to aAtomA - aAtomC - aAtomB
+  double dOrient = Cpptraj::Structure::Chirality::chiralityToOrientation( dChi, topIn[aAtomC], aAtomA, aAtomB, at, -1 );
+  mprintf( "The chirality of the ATOM to build is: %f\n", dChi );
+  mprintf( "The orientation of the atom to build is: %f\n", dOrient );
   return 0;
 }
 
