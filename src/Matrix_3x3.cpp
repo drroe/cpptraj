@@ -461,6 +461,19 @@ void Matrix_3x3::RotationAroundY(double a1, double a2) {
   M_[8] = M_[0];   //  cos t
 }
 
+/** Set Rotation matrix around the Y axis given an angle in radians. */
+void Matrix_3x3::RotateAroundY(double ang) {
+  M_[0] = cos(ang);
+  M_[1] = 0;
+  M_[2] = sin(ang);
+  M_[3] = 0;
+  M_[4] = 1;
+  M_[5] = 0;
+  M_[6] = -M_[2]; // -sin(ang)
+  M_[7] = 0;
+  M_[8] = M_[0]; // cos(ang)
+}
+
 /** Given an axis of rotation V (which must be normalized) and a magnitude
   * (radians), calculate a rotation matrix.
   */
