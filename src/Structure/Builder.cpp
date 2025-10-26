@@ -1933,6 +1933,118 @@ Builder::AtomIC Builder::getInternalCoordsForAtom(int at, int idx, Barray const&
   return atomIC;
 }
 
+/*
+ * ZMatrixBondTwoAnglesOrientation()
+ * Original Author: Christian Schafmeister (1991)
+ * Adapted by     : Dan Roe (2025) - any mistakes are mine!
+ *
+ *  Build the external coordinate for the atom when the orientation,
+ *  a bond length and two angles are supplied.
+ *  The orientation is a positive or negative number which specifies
+ *  the orientation of the new position.  It is calculated by:
+ *    a=crossProduct( vPAtomA-vPCenter, vPAtomB-vPCenter );
+ *    orientation = dotProduct( vPPos-vPCenter, a );
+ *
+ *  \param vPAtomC points to the position of the central atom.
+ *  \return Calculated position
+ */
+Vec3 Builder::ZMatrixBondTwoAnglesOrientation(
+  Vec3 const& vPAtomC, Vec3 const& vPAtomA, Vec3 const& vPAtomB,
+  double dBond, double dAngleA, double dAngleB, double dOrient )
+const
+{
+  Vec3 vPPos;
+  static const Vec3 vXAxis(1.0, 0.0, 0.0);
+  static const Vec3 vYAxis(0.0, 1.0, 0.0);
+  //MATRIX          mT, mT1, mT2, mTX, mTY, mTZ, mTT;
+  //double          dAngleX, dAngleY, dAngleZ;
+  //double          dAngle;
+  //VECTOR          vTrans, vTempAC, vTempBC, vTempXZ, vNew, vLab;
+  // The procedure for finding the the coordinate is:
+  // Translate vAtomC to the origin -> A'-C'
+  // Find angle between PROJ((A'-C'),YZ plane) & Y axis
+  // Rotate into XZ plane
+  // Find angle between (A''-C'') and X axis
+  // Rotate onto X axis
+  // Find angle between PROJ((B'''-C'''),YZ plane) and Y axis
+  // Rotate onto XY plane
+  // Calculate coordinates in 3Space
+  // Apply the reverse transformation to the new point
+  // Actually, all that is done is the elements for the
+  // forward transformations are calculated then used
+  // to generate an inverse transform matrix.
+
+  Vec3 vTrans = vPAtomC;
+  Vec3 vTempAC = vPAtomA - vPAtomC; //vVectorSub( vPAtomA, vPAtomC );
+  Vec3 vTempBC = vPAtomB - vPAtomC; //vVectorSub( vPAtomB, vPAtomC );
+  mprintf("AC= %f, %f, %f\n", vTempAC[0], vTempAC[1], vTempAC[2]);
+  mprintf("BC= %f, %f, %f\n", vTempBC[0], vTempBC[1], vTempBC[2]);
+  Vec3 vTempXZ = vTempAC;
+  vTempXZ[1] = 0.0; //  VectorSetY( &vTempXZ, 0.0 );
+  double dAngleY;
+  if (vTempXZ.Length() != 0.0) { //  if ( dVectorLen(&vTempXZ) != 0.0 )
+    //dAngleY =     dAngleY = dVectorAbsAngle( &vTempXZ, &vXAxis, &vYAxis );
+    vTempXZ.Normalize();
+    dAngleY = vTempXZ.SignedAngle( vXAxis, vYAxis );
+  } else
+    dAngleY = 0.0;
+  mprintf("dAngleY= %f\n", dAngleY);
+    
+  Matrix_3x3 mT;
+  mT.RotateAroundY( -dAngleY ); //  MatrixYRotate( mT, -dAngleY );
+  vTempAC = mT * vTempAC; //  MatrixTimesVector( vTempAC, mT, vTempAC );
+  vTempBC = mT * vTempBC; //  MatrixTimesVector( vTempBC, mT, vTempBC );
+  mprintf("Rotated around Y\n" );
+  mprintf("New AC= %f, %f, %f\n", vTempAC[0], vTempAC[1], vTempAC[2]);
+  mprintf("New BC= %f, %f, %f\n", vTempBC[0], vTempBC[1], vTempBC[2]);
+/*
+    dAngleZ = dVectorAbsAngle( &vTempAC, &vXAxis, &vZAxis );
+    MatrixZRotate( mT, -dAngleZ );
+    MatrixTimesVector( vTempBC, mT, vTempBC );
+#ifdef DEBUG
+    MatrixTimesVector( vTempAC, mT, vTempAC );
+#endif
+MESSAGE(( "Rotated around Z\n" ));
+MESSAGE(( "New AC= %lf, %lf, %lf\n", 
+        dVX(&vTempAC), dVY(&vTempAC), dVZ(&vTempAC) ));
+MESSAGE(( "New BC= %lf, %lf, %lf\n", 
+        dVX(&vTempBC), dVY(&vTempBC), dVZ(&vTempBC) ));
+        
+    VectorSetX( &vTempBC, 0.0 );
+
+    dAngleX = dVectorAbsAngle( &vTempBC, &vYAxis, &vXAxis );
+
+                // Build the transformation matrix to convert from
+                // lab coordinates to molecule coordinates in mT
+
+    MatrixXRotate( mTX, dAngleX );
+    MatrixZRotate( mTZ, dAngleZ );
+    MatrixYRotate( mTY, dAngleY );
+    MatrixTranslate( mTT, dVX(&vTrans), dVY(&vTrans), dVZ(&vTrans) );
+    MatrixMultiply( mT1, mTZ, mTX );
+    MatrixMultiply( mT2, mTY, mT1 );
+    MatrixMultiply( mT, mTT, mT2 );
+    
+                // Calculate coordinates of new atom
+    dAngle = dVectorAtomAngle( vPAtomA, vPAtomC, vPAtomB );         
+    vLab = zvZMatrixCalculatePositionFromAngles( dAngleA, dAngleB, 
+      dAngle, dBond );
+
+    if ( dOrient != 0.0 ) {
+        VectorSetZ( &vLab, dOrient*dVZ(&vLab) );
+    }
+
+                // If there is no chirality defined yet then just 
+                // leave it the way it is 
+        
+    MatrixTimesVector( vNew, mT, vLab );
+    *vPPos = vNew;
+    printf( "ZMatrix2Angle:  %lf,%lf,%lf\n", 
+   dVX(vPPos), dVY(vPPos), dVZ(vPPos) );
+*/
+  return vPPos;
+}
+
 /** Build atom using two angles. */
 int Builder::buildCoordsFromTwoAngles(int at, InternalAngle const& Ang1, InternalAngle const& Ang2, InternalBond const& Bnd,
                                       Frame const& frameOut, Topology const& topIn, Barray const& hasPosition)
@@ -1986,6 +2098,9 @@ const
   double dOrient = Cpptraj::Structure::Chirality::chiralityToOrientation( dChi, topIn[aAtomC], aAtomA, aAtomB, at, -1 );
   mprintf( "The chirality of the ATOM to build is: %f\n", dChi );
   mprintf( "The orientation of the atom to build is: %f\n", dOrient );
+
+  Vec3 vNew = ZMatrixBondTwoAnglesOrientation(vAtomC, vAtomA, vAtomB,
+                                              Bnd.DistVal(), Ang1.ThetaVal(), Ang2.ThetaVal(), dOrient);
   return 0;
 }
 

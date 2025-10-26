@@ -6,6 +6,7 @@ class Atom;
 class Topology;
 class Frame;
 class Residue;
+class Vec3;
 namespace Cpptraj {
 namespace Parm {
 class ParameterSet;
@@ -124,6 +125,9 @@ class Builder {
     static int get_depths_around_atom(int, int, Topology const&);
     /// Get any complete internal coords for specified atom
     AtomIC getInternalCoordsForAtom(int, int, Barray const&, Topology const&) const;
+    /// Build coordinates for an atom from two common angles
+    Vec3 ZMatrixBondTwoAnglesOrientation(Vec3 const&, Vec3 const&, Vec3 const&,
+                                         double, double, double, double) const;
     /// Build XYZ coords for an atom from 2 angles and 1 bond
     int buildCoordsFromTwoAngles(int, InternalAngle const&, InternalAngle const&, InternalBond const&,
                                  Frame const&, Topology const&, Barray const&) const;
