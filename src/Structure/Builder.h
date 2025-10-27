@@ -125,11 +125,6 @@ class Builder {
     static int get_depths_around_atom(int, int, Topology const&);
     /// Get any complete internal coords for specified atom
     AtomIC getInternalCoordsForAtom(int, int, Barray const&, Topology const&) const;
-    /// Calculate coordinates for an atom based on three angles and a bond length
-    Vec3 zvZMatrixCalculatePositionFromAngles(double, double, double, double) const;
-    /// Build coordinates for an atom from two common angles
-    Vec3 ZMatrixBondTwoAnglesOrientation(Vec3 const&, Vec3 const&, Vec3 const&,
-                                         double, double, double, double) const;
     /// Build XYZ coords for an atom from 2 angles and 1 bond
     int buildCoordsFromTwoAngles(Vec3&, int, InternalAngle const&, InternalAngle const&, InternalBond const&,
                                  Frame const&, Topology const&, Barray const&) const;

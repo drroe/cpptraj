@@ -73,6 +73,9 @@ class Zmatrix {
     unsigned int sizeInBytes() const { return (7*sizeof(int)) +
                                               (9*sizeof(double)) + // 3 Vec3
                                               (IC_.size() * InternalCoords::sizeInBytes()); }
+    /// \return XYZ position of atom I bonded to C using positions of atoms A-C-B, C-I distance, and 2 angles
+    static Vec3 PosFromBondTwoAnglesOrientation(Vec3 const&, Vec3 const&, Vec3 const&,
+                                                double, double, double, double);
     /// \return XYZ position of atom I using positions of atoms J/K and distance (ang)/angle(rad)
     static Vec3 AtomIposition(Vec3 const&, Vec3 const&, double, double);
     /// \return XYZ position of atom I using position of atom J and distance (ang)
@@ -95,6 +98,8 @@ class Zmatrix {
     int traceMol(int, int, int, Frame const&, Topology const&, unsigned int, unsigned int&, Barray&);
     /// Add internal coordinate for given atom
     int addInternalCoordForAtom(int, Frame const&, Topology const&);
+    /// Calculate coordinates for an atom based on three angles and a bond length
+    static Vec3 calculatePositionFromAngles(double, double, double, double);
 
     /// Convert from Cartesian to minimal Zmatrix by tracing a molecule
     int SetFromFrame_Trace(Frame const&, Topology const&, int);
