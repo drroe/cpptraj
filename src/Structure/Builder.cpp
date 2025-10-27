@@ -1934,6 +1934,75 @@ Builder::AtomIC Builder::getInternalCoordsForAtom(int at, int idx, Barray const&
 }
 
 /*
+ *  zvZMatrixCalculatePositionFromAngles()
+ *
+ *  Original Author: Christian Schafmeister (1991)
+ *  Adapted by     : Dan Roe (2025) - any mistakes are mine!
+ *
+ *  Use NEWTON-RAPHSON method for finding the coordinate for the vector(vC)
+ *  which is dAngleA from the vector vA (on the X axis) and dAngleB from a
+ *  vector (vB) which lies in the XY plane dAngleC from the X axis.
+ *
+ *  The point is dBond from the origin.
+ *
+ */
+Vec3 Builder::zvZMatrixCalculatePositionFromAngles( double dAngleA, double dAngleB, 
+                                                    double dAngleC, double dBond )
+const
+{
+  static const int MAXNEWTONSTEPS = 20;
+  double dCosA = cos(dAngleA);
+  double dSinA = sin(dAngleA);
+  double dCosB = cos(dAngleB);
+  double dCosC = cos(dAngleC);
+  double dSinC = sin(dAngleC);
+
+  // The idea is to minimize the function:
+  // E = ( DOT(vC,vB) - cos(dAngleB) )^2
+  // using NEWTONS method
+  // The vector vC is constrained to make the angle
+  // dAngleA with vA
+  // The vector vC makes the angle (dX) with the XY plane
+  // and the parameter that is optimized is dX
+
+  // A reasonable starting point
+  double dX = dAngleB;
+  int iCount = 0;
+  while ( iCount <MAXNEWTONSTEPS ) {
+
+    double dCosX = cos(dX);
+    double dSinX = sin(dX);
+
+    double dF1 = -2*dSinA*dSinC*(-dCosB + dCosA*dCosC + dCosX*dSinA*dSinC)*dSinX;
+
+    double dF2 = -2.0*dCosX*dSinA*dSinC* (-dCosB + dCosA*dCosC + dCosX*dSinA*dSinC) + 
+                  2.0*dSinA*dSinA*dSinC*dSinC*dSinX*dSinX;
+
+    //    MESSAGE( ( "Iteration %d dF1=%lf  dF2=%lf  dB=%lf\n",
+    //                     iCount, dF1, dF2, dX ) );
+    if ( fabs(dF1) < Constants::SMALL*10.0 ) break;
+    if ( fabs(dF2) < Constants::SMALL ) {
+      mprinterr( "Could not optimize! dF1 = %f, dF2 = %f dX = %f steps=%d", dF1, dF2, dX, iCount );
+    }
+    double dXNew = dX - dF1/dF2;
+    if ( fabs(dXNew - dX) < Constants::SMALL ) break;
+    dX = dXNew;
+    iCount++;
+  }
+   
+//#ifdef  DEBUG 
+//    if ( iCount > MAXNEWTONSTEPS ) 
+//        DDEBUG( ("Exceeded maximum number of Newton Raphson steps: %d\n",
+//                        MAXNEWTONSTEPS) );
+//#endif
+
+                // Generate new coordinate
+  return Vec3( dBond*cos(dAngleA), 
+               dBond*sin(dAngleA)*cos(dX),
+               dBond*sin(dAngleA)*sin(dX) );
+}
+
+/*
  * ZMatrixBondTwoAnglesOrientation()
  * Original Author: Christian Schafmeister (1991)
  * Adapted by     : Dan Roe (2025) - any mistakes are mine!
@@ -1956,6 +2025,7 @@ const
   Vec3 vPPos;
   static const Vec3 vXAxis(1.0, 0.0, 0.0);
   static const Vec3 vYAxis(0.0, 1.0, 0.0);
+  static const Vec3 vZAxis(0.0, 0.0, 1.0);
   //MATRIX          mT, mT1, mT2, mTX, mTY, mTZ, mTT;
   //double          dAngleX, dAngleY, dAngleZ;
   //double          dAngle;
@@ -1992,44 +2062,52 @@ const
     
   Matrix_3x3 mT;
   mT.RotateAroundY( -dAngleY ); //  MatrixYRotate( mT, -dAngleY );
+  mT.Print("mT (Y)");
   vTempAC = mT * vTempAC; //  MatrixTimesVector( vTempAC, mT, vTempAC );
   vTempBC = mT * vTempBC; //  MatrixTimesVector( vTempBC, mT, vTempBC );
   mprintf("Rotated around Y\n" );
   mprintf("New AC= %f, %f, %f\n", vTempAC[0], vTempAC[1], vTempAC[2]);
   mprintf("New BC= %f, %f, %f\n", vTempBC[0], vTempBC[1], vTempBC[2]);
-/*
-    dAngleZ = dVectorAbsAngle( &vTempAC, &vXAxis, &vZAxis );
-    MatrixZRotate( mT, -dAngleZ );
-    MatrixTimesVector( vTempBC, mT, vTempBC );
-#ifdef DEBUG
-    MatrixTimesVector( vTempAC, mT, vTempAC );
-#endif
-MESSAGE(( "Rotated around Z\n" ));
-MESSAGE(( "New AC= %lf, %lf, %lf\n", 
-        dVX(&vTempAC), dVY(&vTempAC), dVZ(&vTempAC) ));
-MESSAGE(( "New BC= %lf, %lf, %lf\n", 
-        dVX(&vTempBC), dVY(&vTempBC), dVZ(&vTempBC) ));
+
+  vTempAC.Normalize();
+  double dAngleZ = vTempAC.SignedAngle( vXAxis, vZAxis ); //dAngleZ = dVectorAbsAngle( &vTempAC, &vXAxis, &vZAxis );
+  mprintf("dAngleZ= %f\n", dAngleZ);
+  mT.RotateAroundZ(-dAngleZ); //  MatrixZRotate( mT, -dAngleZ );
+  mT.Print("mT (Z)");
+  vTempBC = mT * vTempBC; //  MatrixTimesVector( vTempBC, mT, vTempBC );
+//#ifdef DEBUG
+//    MatrixTimesVector( vTempAC, mT, vTempAC );
+//#endif
+  mprintf("Rotated around Z\n" );
+  mprintf("New AC= %f, %f, %f\n", vTempAC[0], vTempAC[1], vTempAC[2]);
+  mprintf("New BC= %f, %f, %f\n", vTempBC[0], vTempBC[1], vTempBC[2]);
         
-    VectorSetX( &vTempBC, 0.0 );
+  vTempBC[0] = 0; //  VectorSetX( &vTempBC, 0.0 );
 
-    dAngleX = dVectorAbsAngle( &vTempBC, &vYAxis, &vXAxis );
-
+  vTempBC.Normalize();
+  double dAngleX = vTempBC.SignedAngle( vYAxis, vXAxis ); //   dAngleX = dVectorAbsAngle( &vTempBC, &vYAxis, &vXAxis );
+  mprintf("dAngleX= %f\n", dAngleX);
                 // Build the transformation matrix to convert from
                 // lab coordinates to molecule coordinates in mT
 
-    MatrixXRotate( mTX, dAngleX );
-    MatrixZRotate( mTZ, dAngleZ );
-    MatrixYRotate( mTY, dAngleY );
-    MatrixTranslate( mTT, dVX(&vTrans), dVY(&vTrans), dVZ(&vTrans) );
-    MatrixMultiply( mT1, mTZ, mTX );
-    MatrixMultiply( mT2, mTY, mT1 );
-    MatrixMultiply( mT, mTT, mT2 );
+//    MatrixXRotate( mTX, dAngleX );
+//    MatrixZRotate( mTZ, dAngleZ );
+//    MatrixYRotate( mTY, dAngleY );
+//    MatrixTranslate( mTT, dVX(&vTrans), dVY(&vTrans), dVZ(&vTrans) );
+//    MatrixMultiply( mT1, mTZ, mTX );
+//    MatrixMultiply( mT2, mTY, mT1 );
+//    MatrixMultiply( mT, mTT, mT2 );
+  Matrix_3x3 mT2;
+  mT2.CalcRotationMatrix( dAngleX, dAngleY, dAngleZ );
+  mT2.Print("mT2");
     
                 // Calculate coordinates of new atom
-    dAngle = dVectorAtomAngle( vPAtomA, vPAtomC, vPAtomB );         
-    vLab = zvZMatrixCalculatePositionFromAngles( dAngleA, dAngleB, 
-      dAngle, dBond );
+  double dAngle = CalcAngle(vPAtomA.Dptr(), vPAtomC.Dptr(), vPAtomB.Dptr()); //dAngle = dVectorAtomAngle( vPAtomA, vPAtomC, vPAtomB );         
+  mprintf("dAngle= %f\n", dAngle);
 
+  Vec3 vLab = zvZMatrixCalculatePositionFromAngles( dAngleA, dAngleB, dAngle, dBond );
+  mprintf("vLab= %f %f %f\n", vLab[0], vLab[1], vLab[2]);
+/*
     if ( dOrient != 0.0 ) {
         VectorSetZ( &vLab, dOrient*dVZ(&vLab) );
     }
@@ -2099,8 +2177,11 @@ const
   mprintf( "The chirality of the ATOM to build is: %f\n", dChi );
   mprintf( "The orientation of the atom to build is: %f\n", dOrient );
 
-  Vec3 vNew = ZMatrixBondTwoAnglesOrientation(vAtomC, vAtomA, vAtomB,
-                                              Bnd.DistVal(), Ang1.ThetaVal(), Ang2.ThetaVal(), dOrient);
+  // FIXME testing reverse to match leap
+  Vec3 vNew = ZMatrixBondTwoAnglesOrientation(vAtomC, vAtomB, vAtomA,
+                                              Bnd.DistVal(), Ang2.ThetaVal(), Ang1.ThetaVal(), -dOrient);
+//  Vec3 vNew = ZMatrixBondTwoAnglesOrientation(vAtomC, vAtomA, vAtomB,
+//                                              Bnd.DistVal(), Ang1.ThetaVal(), Ang2.ThetaVal(), dOrient);
   return 0;
 }
 
