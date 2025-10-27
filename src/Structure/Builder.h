@@ -131,7 +131,7 @@ class Builder {
     Vec3 ZMatrixBondTwoAnglesOrientation(Vec3 const&, Vec3 const&, Vec3 const&,
                                          double, double, double, double) const;
     /// Build XYZ coords for an atom from 2 angles and 1 bond
-    int buildCoordsFromTwoAngles(int, InternalAngle const&, InternalAngle const&, InternalBond const&,
+    int buildCoordsFromTwoAngles(Vec3&, int, InternalAngle const&, InternalAngle const&, InternalBond const&,
                                  Frame const&, Topology const&, Barray const&) const;
     /// Build XYZ coords for an atom if internals are available
     int buildCoordsForAtom(int, Frame&, Topology const&, Barray const&) const;
