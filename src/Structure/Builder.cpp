@@ -2022,7 +2022,6 @@ Vec3 Builder::ZMatrixBondTwoAnglesOrientation(
   double dBond, double dAngleA, double dAngleB, double dOrient )
 const
 {
-  Vec3 vPPos;
   static const Vec3 vXAxis(1.0, 0.0, 0.0);
   static const Vec3 vYAxis(0.0, 1.0, 0.0);
   static const Vec3 vZAxis(0.0, 0.0, 1.0);
@@ -2107,19 +2106,17 @@ const
 
   Vec3 vLab = zvZMatrixCalculatePositionFromAngles( dAngleA, dAngleB, dAngle, dBond );
   mprintf("vLab= %f %f %f\n", vLab[0], vLab[1], vLab[2]);
-/*
-    if ( dOrient != 0.0 ) {
-        VectorSetZ( &vLab, dOrient*dVZ(&vLab) );
-    }
+
+  if ( dOrient != 0.0 ) {
+    vLab[2] = dOrient*vLab[2]; //  VectorSetZ( &vLab, dOrient*dVZ(&vLab) );
+  }
 
                 // If there is no chirality defined yet then just 
                 // leave it the way it is 
         
-    MatrixTimesVector( vNew, mT, vLab );
-    *vPPos = vNew;
-    printf( "ZMatrix2Angle:  %lf,%lf,%lf\n", 
-   dVX(vPPos), dVY(vPPos), dVZ(vPPos) );
-*/
+  Vec3 vPPos = (mT2 * vLab) + vTrans; //MatrixTimesVector( vNew, mT, vLab );
+  mprintf( "ZMatrix2Angle:  %f,%f,%f\n", vPPos[0], vPPos[1], vPPos[2]);
+
   return vPPos;
 }
 
