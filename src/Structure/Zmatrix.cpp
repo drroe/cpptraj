@@ -901,25 +901,32 @@ Vec3 Zmatrix::AtomIposition(Vec3 const& posJ, Vec3 const& posK, double rdist, do
   static const Vec3 vYAxis(0.0, 1.0, 0.0);
   static const Vec3 vZAxis(0.0, 0.0, 1.0);
   double dAngleY = vTempXZ.SignedAngle( vXAxis, vYAxis );
+# ifdef CPPTRAJ_DEBUG_ZMATRIX
   mprintf( "Angle around Y=%f\n", dAngleY );
-
+# endif
   Matrix_3x3 mT;
   mT.CalcRotationMatrix(vYAxis, dAngleY);
   vTempX = mT * vTempX;
+# ifdef CPPTRAJ_DEBUG_ZMATRIX
   mprintf("Rotated around Y = %f, %f, %f\n", vTempX[0], vTempX[1], vTempX[2]);
-
+# endif
   vTempX.Normalize();
   double dAngleZ = vTempX.SignedAngle( vXAxis, vZAxis );
+# ifdef CPPTRAJ_DEBUG_ZMATRIX
   mprintf("Angle around Z=%f\n", dAngleZ );
-
+# endif
   Vec3 vNew( rdist*cos(theta_rad), rdist*sin(theta_rad), 0.0 );
+# ifdef CPPTRAJ_DEBUG_ZMATRIX
   mprintf("vNew: %f,%f,%f\n", vNew[0], vNew[1], vNew[2]);
+# endif
   mT.CalcRotationMatrix(vZAxis, -dAngleZ);
   vNew = mT * vNew;
   mT.CalcRotationMatrix(vYAxis, -dAngleY);
   vNew = mT * vNew;
+# ifdef CPPTRAJ_DEBUG_ZMATRIX
   mprintf("vNew before MatrixTranslate: %f,%f,%f\n", vNew[0], vNew[1], vNew[2]);
-  printf("vTrans before MatrixTranslate: %f,%f,%f\n", posJ[0], posJ[1], posJ[2]);
+  mprintf("vTrans before MatrixTranslate: %f,%f,%f\n", posJ[0], posJ[1], posJ[2]);
+# endif
   Vec3 posI = vNew + posJ;
 
   return posI;

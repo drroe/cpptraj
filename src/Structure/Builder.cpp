@@ -2368,7 +2368,8 @@ const
 int Builder::sparseBuildFromInternals(std::vector<AtomIC>& needsBuilding, Frame& frameOut, Topology const& topIn, Barray& hasPosition)
 const
 {
-  mprintf("DEBUG: No complete internal coordinates. Trying a sparse build.\n");
+  if (debug_ > 0)
+    mprintf("DEBUG: No complete internal coordinates. Trying a sparse build.\n");
   unsigned int nAtomsThatNeedPositions = needsBuilding.size();
 
   unsigned int currentBuildIdx = 0;
@@ -2377,12 +2378,13 @@ const
     // Build the atom with the highest priority
     AtomIC const& currentBuildAtom = needsBuilding[currentBuildIdx];
     int at = currentBuildAtom.At();
-    mprintf("DEBUG: Current build atom is %i %s\n", at+1, topIn.AtomMaskName(at).c_str());
+    if (debug_ > 0)
+      mprintf("DEBUG: Current build atom is %i %s\n", at+1, topIn.AtomMaskName(at).c_str());
 
     if (currentBuildAtom.Priority() == 0) {
       //printAllInternalsForAtom(at, topIn, hasPosition); // DEBUG
       Vec3 posI = Zmatrix::AtomIposition(currentBuildAtom.IC(), frameOut);
-      //if (debug_ > 1) {
+      if (debug_ > 1) {
         mprintf("Building atom %s using torsion/angle/bond\n", topIn.LeapName(at).c_str());
         mprintf("Using %s - %s - %s - %s\n",
                 topIn.LeapName(currentBuildAtom.IC().AtI()).c_str(),
@@ -2393,7 +2395,7 @@ const
         mprintf( "Angle   = %f\n", currentBuildAtom.IC().Theta() );
         mprintf( "Bond    = %f\n", currentBuildAtom.IC().Dist() );
         mprintf( "ZMatrixAll:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
-      //}
+      }
       frameOut.SetXYZ( currentBuildAtom.IC().AtI(), posI ); // TODO use at?
       hasPosition[at] = true;
       built_an_atom = true;
@@ -2409,7 +2411,7 @@ const
       Vec3 posI = Zmatrix::AtomIposition(frameOut.XYZ(currentBuildAtom.A1().AtJ()),
                                          frameOut.XYZ(currentBuildAtom.A1().AtK()),
                                          currentBuildAtom.B1().DistVal(), currentBuildAtom.A1().ThetaVal() );
-      //if debug_ > 1) {
+      if (debug_ > 1) {
         mprintf("Building atom %s using angle/bond\n", topIn.LeapName(at).c_str());
         mprintf("Using %s - %s - %s\n",
                 topIn.LeapName(currentBuildAtom.A1().AtI()).c_str(),
@@ -2418,19 +2420,19 @@ const
         mprintf( "Angle   = %f\n", currentBuildAtom.A1().ThetaVal()*Constants::RADDEG );
         mprintf( "Bond    = %f\n", currentBuildAtom.B1().DistVal() );
         mprintf("ZMatrixBondAngle:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
-        //}
+      }
       frameOut.SetXYZ( currentBuildAtom.A1().AtI(), posI );
       hasPosition[at] = true;
       built_an_atom = true;
     } else if (currentBuildAtom.Priority() == 3) {
       Vec3 posI = Zmatrix::AtomIposition(frameOut.XYZ(currentBuildAtom.B1().AtJ()), currentBuildAtom.B1().DistVal());
-      //if debug_ > 1) {
+      if (debug_ > 1) {
         mprintf("Building atom %s using bond\n", topIn.LeapName(at).c_str());
         mprintf("Using %s - %s\n",
                 topIn.LeapName(currentBuildAtom.B1().AtI()).c_str(), topIn.LeapName(currentBuildAtom.B1().AtJ()).c_str());
         mprintf( "Bond    = %f\n", currentBuildAtom.B1().DistVal() );
         mprintf( "ZMatrixBond:  %f,%f,%f\n", posI[0], posI[1], posI[2]);
-        //}
+      }
       frameOut.SetXYZ( currentBuildAtom.B1().AtI(), posI );
       hasPosition[at] = true;
       built_an_atom = true;
@@ -2450,9 +2452,11 @@ const
     }
     // Sort remaining atoms to build.
     std::sort( needsBuilding.begin() + currentBuildIdx, needsBuilding.end() );
-    mprintf("DEBUG: Atoms that need building:\n");
-    for (std::vector<AtomIC>::const_iterator it = needsBuilding.begin() + currentBuildIdx; it != needsBuilding.end(); ++it)
-      mprintf("\t%i atom %i %s (%i)\n", it->Idx(), it->At()+1, topIn.AtomMaskName( it->At() ).c_str(), it->Priority() );
+    if (debug_ > 0) {
+      mprintf("DEBUG: Atoms that need building:\n");
+      for (std::vector<AtomIC>::const_iterator it = needsBuilding.begin() + currentBuildIdx; it != needsBuilding.end(); ++it)
+        mprintf("\t%i atom %i %s (%i)\n", it->Idx(), it->At()+1, topIn.AtomMaskName( it->At() ).c_str(), it->Priority() );
+    }
   } // END loop over build atoms
   return 0; 
 }
