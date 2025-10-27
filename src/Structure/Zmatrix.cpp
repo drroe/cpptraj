@@ -942,12 +942,10 @@ Vec3 Zmatrix::calculatePositionFromAngles( double dAngleA, double dAngleB,
     iCount++;
   }
    
-//#ifdef  DEBUG 
-//    if ( iCount > MAXNEWTONSTEPS ) 
-//        DDEBUG( ("Exceeded maximum number of Newton Raphson steps: %d\n",
-//                        MAXNEWTONSTEPS) );
-//#endif
-
+# ifdef CPPTRAJ_DEBUG_ZMATRIX
+  if ( iCount > MAXNEWTONSTEPS ) 
+    mprintf("DEBUG: Exceeded maximum number of Newton Raphson steps: %d\n", MAXNEWTONSTEPS);
+# endif
                 // Generate new coordinate
   return Vec3( dBond*cos(dAngleA), 
                dBond*sin(dAngleA)*cos(dX),
@@ -997,8 +995,10 @@ Vec3 Zmatrix::PosFromBondTwoAnglesOrientation(
   Vec3 vTrans = vPAtomC;
   Vec3 vTempAC = vPAtomA - vPAtomC; //vVectorSub( vPAtomA, vPAtomC );
   Vec3 vTempBC = vPAtomB - vPAtomC; //vVectorSub( vPAtomB, vPAtomC );
+# ifdef CPPTRAJ_DEBUG_ZMATRIX
   mprintf("AC= %f, %f, %f\n", vTempAC[0], vTempAC[1], vTempAC[2]);
   mprintf("BC= %f, %f, %f\n", vTempBC[0], vTempBC[1], vTempBC[2]);
+# endif
   Vec3 vTempXZ = vTempAC;
   vTempXZ[1] = 0.0; //  VectorSetY( &vTempXZ, 0.0 );
   double dAngleY;
@@ -1008,38 +1008,48 @@ Vec3 Zmatrix::PosFromBondTwoAnglesOrientation(
     dAngleY = vTempXZ.SignedAngle( vXAxis, vYAxis );
   } else
     dAngleY = 0.0;
+# ifdef CPPTRAJ_DEBUG_ZMATRIX
   mprintf("dAngleY= %f\n", dAngleY);
-    
+# endif    
   Matrix_3x3 mT;
   mT.RotateAroundY( -dAngleY ); //  MatrixYRotate( mT, -dAngleY );
+# ifdef CPPTRAJ_DEBUG_ZMATRIX
   mT.Print("mT (Y)");
+# endif
   vTempAC = mT * vTempAC; //  MatrixTimesVector( vTempAC, mT, vTempAC );
   vTempBC = mT * vTempBC; //  MatrixTimesVector( vTempBC, mT, vTempBC );
+# ifdef CPPTRAJ_DEBUG_ZMATRIX
   mprintf("Rotated around Y\n" );
   mprintf("New AC= %f, %f, %f\n", vTempAC[0], vTempAC[1], vTempAC[2]);
   mprintf("New BC= %f, %f, %f\n", vTempBC[0], vTempBC[1], vTempBC[2]);
-
+# endif
   vTempAC.Normalize();
   double dAngleZ = vTempAC.SignedAngle( vXAxis, vZAxis ); //dAngleZ = dVectorAbsAngle( &vTempAC, &vXAxis, &vZAxis );
+# ifdef CPPTRAJ_DEBUG_ZMATRIX
   mprintf("dAngleZ= %f\n", dAngleZ);
+# endif
   mT.RotateAroundZ(-dAngleZ); //  MatrixZRotate( mT, -dAngleZ );
+# ifdef CPPTRAJ_DEBUG_ZMATRIX
   mT.Print("mT (Z)");
+# endif
   vTempBC = mT * vTempBC; //  MatrixTimesVector( vTempBC, mT, vTempBC );
 //#ifdef DEBUG
 //    MatrixTimesVector( vTempAC, mT, vTempAC );
 //#endif
+# ifdef CPPTRAJ_DEBUG_ZMATRIX
   mprintf("Rotated around Z\n" );
   mprintf("New AC= %f, %f, %f\n", vTempAC[0], vTempAC[1], vTempAC[2]);
   mprintf("New BC= %f, %f, %f\n", vTempBC[0], vTempBC[1], vTempBC[2]);
-        
+# endif        
   vTempBC[0] = 0; //  VectorSetX( &vTempBC, 0.0 );
 
   vTempBC.Normalize();
   double dAngleX = vTempBC.SignedAngle( vYAxis, vXAxis ); //   dAngleX = dVectorAbsAngle( &vTempBC, &vYAxis, &vXAxis );
+# ifdef CPPTRAJ_DEBUG_ZMATRIX
   mprintf("dAngleX= %f\n", dAngleX);
+# endif
                 // Build the transformation matrix to convert from
                 // lab coordinates to molecule coordinates in mT
-
 //    MatrixXRotate( mTX, dAngleX );
 //    MatrixZRotate( mTZ, dAngleZ );
 //    MatrixYRotate( mTY, dAngleY );
@@ -1049,25 +1059,28 @@ Vec3 Zmatrix::PosFromBondTwoAnglesOrientation(
 //    MatrixMultiply( mT, mTT, mT2 );
   Matrix_3x3 mT2;
   mT2.CalcRotationMatrix( dAngleX, dAngleY, dAngleZ );
+# ifdef CPPTRAJ_DEBUG_ZMATRIX
   mT2.Print("mT2");
-    
+# endif    
                 // Calculate coordinates of new atom
-  double dAngle = CalcAngle(vPAtomA.Dptr(), vPAtomC.Dptr(), vPAtomB.Dptr()); //dAngle = dVectorAtomAngle( vPAtomA, vPAtomC, vPAtomB );         
+  double dAngle = CalcAngle(vPAtomA.Dptr(), vPAtomC.Dptr(), vPAtomB.Dptr()); //dAngle = dVectorAtomAngle( vPAtomA, vPAtomC, vPAtomB );
+# ifdef CPPTRAJ_DEBUG_ZMATRIX
   mprintf("dAngle= %f\n", dAngle);
-
+# endif
   Vec3 vLab = calculatePositionFromAngles( dAngleA, dAngleB, dAngle, dBond );
+# ifdef CPPTRAJ_DEBUG_ZMATRIX
   mprintf("vLab= %f %f %f\n", vLab[0], vLab[1], vLab[2]);
-
+# endif
   if ( dOrient != 0.0 ) {
     vLab[2] = dOrient*vLab[2]; //  VectorSetZ( &vLab, dOrient*dVZ(&vLab) );
   }
-
                 // If there is no chirality defined yet then just 
                 // leave it the way it is 
         
   Vec3 vPPos = (mT2 * vLab) + vTrans; //MatrixTimesVector( vNew, mT, vLab );
+# ifdef CPPTRAJ_DEBUG_ZMATRIX
   mprintf( "ZMatrix2Angle:  %f,%f,%f\n", vPPos[0], vPPos[1], vPPos[2]);
-
+# endif
   return vPPos;
 }
 

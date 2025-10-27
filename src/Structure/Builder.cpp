@@ -1955,7 +1955,7 @@ const
   Vec3 vAtomA = Vec3( frameOut.XYZ(aAtomA) );
   Vec3 vAtomB = Vec3( frameOut.XYZ(aAtomB) );
 
-  //if (debug_ > 1) {
+  if (debug_ > 1) {
     mprintf("Building atom %s using two angles\n", topIn.LeapName(at).c_str());
     mprintf("Using %s - %s - %s and %s - %s - %s\n",
             topIn.LeapName(Ang1.AtI()).c_str(),
@@ -1971,7 +1971,7 @@ const
     mprintf("AngleA  = %f\n", Ang1.ThetaVal()*Constants::RADDEG );
     mprintf("AngleB  = %f\n", Ang2.ThetaVal()*Constants::RADDEG );
     mprintf("Bond    = %f\n", Bnd.DistVal() );
-  //}
+  }
   double dChi = 0.0;
   int retVal = determineChirality( dChi, aAtomC, frameOut, topIn, hasPosition );
   if (retVal != 0) {
@@ -1979,16 +1979,17 @@ const
     dChi = 1.0;
     // TODO check for INTERNAL chirality.
   } else {
-    mprintf("Got EXTERNAL chirality: %f\n", dChi );
+    if (debug_ > 1)
+      mprintf("Got EXTERNAL chirality: %f\n", dChi );
   }
-  mprintf("dChirality= %f\n", dChi);
 
   // Calculate the orientation of aAtomD with respect to aAtomA - aAtomC - aAtomB
   double dOrient = Cpptraj::Structure::Chirality::chiralityToOrientation( dChi, topIn[aAtomC], aAtomA, aAtomB, at, -1 );
-  mprintf( "The chirality of the ATOM to build is: %f\n", dChi );
-  mprintf( "The orientation of the atom to build is: %f\n", dOrient );
-
-  // FIXME testing reverse to match leap
+  if (debug_ > 1) {
+    mprintf( "The chirality of the ATOM to build is: %f\n", dChi );
+    mprintf( "The orientation of the atom to build is: %f\n", dOrient );
+  }
+  // NOTE: below is just testing reverse to match leap
   //Vec3 vNew = ZMatrixBondTwoAnglesOrientation(vAtomC, vAtomB, vAtomA,
   //                                            Bnd.DistVal(), Ang2.ThetaVal(), Ang1.ThetaVal(), -dOrient);
   vNew = Zmatrix::PosFromBondTwoAnglesOrientation(vAtomC, vAtomA, vAtomB,
