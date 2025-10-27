@@ -450,10 +450,10 @@ void Matrix_3x3::RotationAroundZ(double a1, double a2) {
 /** Set Rotation matrix around the Z axis given an angle in radians. */
 void Matrix_3x3::RotateAroundZ(double ang) {
   M_[0] = cos(ang);
-  M_[1] = -sin(ang);
+  M_[1] = sin(ang);
   M_[2] = 0;
-  M_[3] = -M_[1]; // sin(ang)
-  M_[4] = M_[0];  // cos(ang)
+  M_[3] = -sin(ang);
+  M_[4] = cos(ang);
   M_[5] = 0;
   M_[6] = 0;
   M_[7] = 0;
@@ -478,13 +478,13 @@ void Matrix_3x3::RotationAroundY(double a1, double a2) {
 void Matrix_3x3::RotateAroundY(double ang) {
   M_[0] = cos(ang);
   M_[1] = 0;
-  M_[2] = sin(ang);
+  M_[2] = -sin(ang);
   M_[3] = 0;
   M_[4] = 1;
   M_[5] = 0;
-  M_[6] = -M_[2]; // -sin(ang)
+  M_[6] = sin(ang);
   M_[7] = 0;
-  M_[8] = M_[0]; // cos(ang)
+  M_[8] = cos(ang);
 }
 
 /** Given an axis of rotation V (which must be normalized) and a magnitude
