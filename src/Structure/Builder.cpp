@@ -2175,10 +2175,10 @@ const
   mprintf( "The orientation of the atom to build is: %f\n", dOrient );
 
   // FIXME testing reverse to match leap
-  Vec3 vNew = ZMatrixBondTwoAnglesOrientation(vAtomC, vAtomB, vAtomA,
-                                              Bnd.DistVal(), Ang2.ThetaVal(), Ang1.ThetaVal(), -dOrient);
-//  Vec3 vNew = ZMatrixBondTwoAnglesOrientation(vAtomC, vAtomA, vAtomB,
-//                                              Bnd.DistVal(), Ang1.ThetaVal(), Ang2.ThetaVal(), dOrient);
+  //Vec3 vNew = ZMatrixBondTwoAnglesOrientation(vAtomC, vAtomB, vAtomA,
+  //                                            Bnd.DistVal(), Ang2.ThetaVal(), Ang1.ThetaVal(), -dOrient);
+  Vec3 vNew = ZMatrixBondTwoAnglesOrientation(vAtomC, vAtomA, vAtomB,
+                                              Bnd.DistVal(), Ang1.ThetaVal(), Ang2.ThetaVal(), dOrient);
   return 0;
 }
 
