@@ -2117,7 +2117,7 @@ const
   for (Tarray::const_iterator dih = internalTorsions_.begin();
                               dih != internalTorsions_.end(); ++dih)
   {
-    if (!hasPosition[dih->AtI()]) {
+    if (!hasPosition[dih->AtI()] || !hasPosition[dih->AtL()]) {
       int rnum = topIn[dih->AtI()].ResNum();
       bool has_rnum = false;
       for (std::vector<int>::const_iterator it = Rnums.begin(); it != Rnums.end(); ++it) {
@@ -2135,7 +2135,7 @@ const
   for (Aarray::const_iterator ang = internalAngles_.begin();
                               ang != internalAngles_.end(); ++ang)
   {
-    if (!hasPosition[ang->AtI()]) {
+    if (!hasPosition[ang->AtI()] || !hasPosition[ang->AtK()]) {
       int rnum = topIn[ang->AtI()].ResNum();
       bool has_rnum = false;
       for (std::vector<int>::const_iterator it = Rnums.begin(); it != Rnums.end(); ++it) {
@@ -2153,7 +2153,7 @@ const
   for (Larray::const_iterator bnd = internalBonds_.begin();
                               bnd != internalBonds_.end(); ++bnd)
   {
-    if (!hasPosition[bnd->AtI()]) {
+    if (!hasPosition[bnd->AtI()] || !hasPosition[bnd->AtJ()]) {
       int rnum = topIn[bnd->AtI()].ResNum();
       bool has_rnum = false;
       for (std::vector<int>::const_iterator it = Rnums.begin(); it != Rnums.end(); ++it) {
@@ -2281,8 +2281,13 @@ const
 int Builder::BuildFromInternals(Frame& frameOut, Topology const& topIn, Barray& hasPosition)
 const
 {
+  //mprintf("DEBUG: CALLING BuildFromInternals()\n");
   // Create a list of residues that have atoms that need positions
   std::vector<Residue> residues = residuesThatNeedPositions(topIn, hasPosition);
+  //mprintf("DEBUG: residues:");
+  //for (std::vector<Residue>::const_iterator it = residues.begin(); it != residues.end(); ++it)
+  //  mprintf(" %s", it->c_str());
+  //mprintf("\n");
 //  std::vector<int> Rnums;
 //  for (Tarray::const_iterator dih = internalTorsions_.begin();
 //                              dih != internalTorsions_.end(); ++dih)
@@ -2305,6 +2310,10 @@ const
 //  }
   // Generate array over residue in same order that leap would do
   Iarray atomIndices = GenerateAtomArray(residues, topIn.Atoms());
+  //mprintf("DEBUG: atomIndices:");
+  //for (Iarray::const_iterator it = atomIndices.begin(); it != atomIndices.end(); ++it)
+  //  mprintf(" %i", *it);
+  //mprintf("\n");
   residues.clear();
 
   // Count how many atoms need their positions set

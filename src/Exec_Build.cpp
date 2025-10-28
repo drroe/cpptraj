@@ -341,7 +341,7 @@ const
           }
         }
         templateAtom.ClearBonds(); // FIXME AddTopAtom should clear bonds
-        //mprintf("DEBUG: Adding template atom %s (elt %s)\n", templateAtom.c_str(), templateAtom.ElementName());
+        //mprintf("DEBUG: Adding template %i atom %6s (elt %2s) Res %4s\n", topOut.Natom()+1, templateAtom.c_str(), templateAtom.ElementName(), currentRes.c_str());
         topOut.AddTopAtom( templateAtom, currentRes );
         if (map[iref] == -1) {
           // Template atom not in input structure.
@@ -613,6 +613,12 @@ const
     return 1;
   }
 
+  if (debug_ > 0) {
+    mprintf("DEBUG: hasPosition:\n");
+    for (unsigned int idx = 0; idx != (unsigned int)topOut.Natom(); idx++)
+      mprintf("\t%10u %20s : %i\n", idx+1, topOut.AtomMaskName(idx).c_str(), (int)hasPosition[idx]);
+  }
+
   // -----------------------------------
   // Build using internal coords if needed.
 //  std::vector<bool> resIsBuilt; // TODO is this needed?
@@ -688,7 +694,7 @@ const
       {
         if (resBonds->second < resBonds->first) {
           if (debug_ > 0)
-            mprintf("\t\tResidue connection: %s - %s\n",
+            mprintf("\t\tResidue connection only: %s - %s\n",
                     topOut.AtomMaskName(resBonds->first).c_str(),
                     topOut.AtomMaskName(resBonds->second).c_str());
           topOut.AddBond(resBonds->first, resBonds->second);
