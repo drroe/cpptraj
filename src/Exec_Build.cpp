@@ -23,7 +23,8 @@ Exec_Build::Exec_Build() :
   check_box_natom_(5000), // TODO make user specifiable
   check_structure_(true),
   addNonTemplateBonds_(false),
-  sugarBuilder_(0)
+  sugarBuilder_(0),
+  outCrdPtr_(0)
 {}
 
 /** DESTRUCTOR */
@@ -887,12 +888,12 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
     mprinterr("Error: Must specify output COORDS set with 'name'\n");
     return CpptrajState::ERR;
   }
-  DataSet* outCrdPtr = DSL.AddSet( DataSet::COORDS, outset );
-  if (outCrdPtr == 0) {
+  outCrdPtr_ = DSL.AddSet( DataSet::COORDS, outset );
+  if (outCrdPtr_ == 0) {
     mprinterr("Error: Could not allocate output COORDS set with name '%s'\n", outset.c_str());
     return CpptrajState::ERR;
   }
-  DataSet_Coords& crdout = static_cast<DataSet_Coords&>( *((DataSet_Coords*)outCrdPtr) );
+  DataSet_Coords& crdout = static_cast<DataSet_Coords&>( *((DataSet_Coords*)outCrdPtr_) );
   mprintf("\tOutput COORDS set: %s\n", crdout.legend());
 
   // GB radii set

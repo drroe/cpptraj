@@ -42,6 +42,7 @@ class Exec_Build : public Exec {
     bool check_structure_; ///< If true check the resulting structure
     bool addNonTemplateBonds_; ///< If true, add bonds that were not found in templates.
     Cpptraj::Structure::SugarBuilder* sugarBuilder_;
+    DataSet* outCrdPtr_; ///< Hold built COORDS
 
     Timer t_total_;
     Timer t_hisDetect_;
