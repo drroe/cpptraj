@@ -75,6 +75,8 @@ int Disulfide::searchForDisulfides(ResStatArray& resStat,
   }
   if (topIn.SetupIntegerMask( cysmask )) return 1; 
   cysmask.MaskInfo();
+  typedef std::vector<bool> Barray;
+  Barray cysSulfurHasH( cysmask.Nselected(), false );
   if (cysmask.None())
     mprintf("Warning: No cysteine sulfur atoms selected by %s\n", cysmaskstr.c_str());
   else {
@@ -84,6 +86,13 @@ int Disulfide::searchForDisulfides(ResStatArray& resStat,
       if (topIn[*at].Element() != Atom::SULFUR)
         mprintf("Warning: Atom '%s' does not appear to be sulfur.\n",
                 topIn.ResNameNumAtomNameNum(*at).c_str());
+      // Check if the sulfur is bonded to a hydrogen.
+      for (Atom::bond_iterator bat = topIn[*at].bondbegin();
+                               bat != topIn[*at].bondend(); ++bat)
+      {
+        if ( topIn[*bat].Element() == Atom::HYDROGEN )
+          cysSulfurHasH[at - cysmask.begin()] = true;
+      }
     }
 
     int nExistingDisulfides = 0;
@@ -127,9 +136,11 @@ int Disulfide::searchForDisulfides(ResStatArray& resStat,
     if (searchForNewDisulfides) {
       // Only search with atoms that do not have an existing partner.
       Iarray s_idxs; // Indices into cysmask/disulfidePartner
-      for (int idx = 0; idx != cysmask.Nselected(); idx++)
-        if (disulfidePartner[idx] == -1)
+      for (int idx = 0; idx != cysmask.Nselected(); idx++) {
+        if (disulfidePartner[idx] == -1) {
           s_idxs.push_back( idx );
+        }
+      }
       mprintf("\t%zu sulfur atoms do not have a partner.\n", s_idxs.size());
       if (!s_idxs.empty()) {
         // In some structures, there may be 2 potential disulfide partners
@@ -176,6 +187,12 @@ int Disulfide::searchForDisulfides(ResStatArray& resStat,
             mprintf("\t  Potential disulfide: %s to %s (%g Ang.)\n",
                     topIn.ResNameNumAtomNameNum(at1).c_str(),
                     topIn.ResNameNumAtomNameNum(at2).c_str(), sqrt(it->first));
+            if (cysSulfurHasH[it->second.first])
+              mprintf("Warning: Sulfur %s could disulfide bond but already has a bond to hydrogen. Check for improperly added hydrogen.\n",
+                      topIn.ResNameNumAtomNameNum(at1).c_str());
+            if (cysSulfurHasH[it->second.second])
+              mprintf("Warning: Sulfur %s could disulfide bond but already has a bond to hydrogen. Check for improperly added hydrogen.\n",
+                      topIn.ResNameNumAtomNameNum(at2).c_str());
             disulfidePartner[it->second.first ] = it->second.second;
             disulfidePartner[it->second.second] = it->second.first;
             if (addNewBonds == ADD_BONDS)
