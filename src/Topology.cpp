@@ -18,6 +18,14 @@ Topology::Topology() :
   n_extra_pts_(0)
 { }
 
+/** Copy the metadata from another Topology. */
+void Topology::CopyTopMetadata(Topology const& rhs) {
+  parmName_ = rhs.parmName_;
+  fileName_ = rhs.fileName_;
+  ff_desc_ = rhs.ff_desc_;
+  parmBox_ = rhs.parmBox_;
+}
+
 /** Set the parm name only. */
 void Topology::SetParmTitle(std::string const& title) {
   parmName_ = title;

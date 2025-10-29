@@ -546,13 +546,13 @@ int DataIO_LeapRC::LoadPDB(ArgList const& argIn, DataSetList& dsl) const {
   }
   DataIO_Coords coordsIn;
   coordsIn.SetDebug( debug_ );
-  DataSetList tmpdsl;
+//  DataSetList tmpdsl;
   std::string pdbpath = find_path( args[2], "" );
   if (pdbpath.empty()) {
     mprinterr("Error: Could not find PDB %s\n", args[2].c_str());
     return 1;
   }
-  if (coordsIn.ReadData( pdbpath, tmpdsl, args[0] )) {
+  if (coordsIn.ReadData( pdbpath, dsl, args[0] )) {
     mprinterr("Error: Could not load structure from '%s' into '%s'\n",
               args[2].c_str(), args[0].c_str());
     return 1;
@@ -569,14 +569,14 @@ int DataIO_LeapRC::LoadPDB(ArgList const& argIn, DataSetList& dsl) const {
   args.MarkArg(2);
   ArgList tmparg = args.RemainingArgs();
 
-  tmparg.AddArg("name " + args[0]);
+/*  tmparg.AddArg("name " + args[0]);
   DataSet_LeapOpts& OPTS = static_cast<DataSet_LeapOpts&>( *leapopts_ );
   Exec_Build build;
   Exec::RetType ret = build.BuildStructure( coordsIn.added_back(), dsl, debug_, tmparg, OPTS.PbRadii() );
   if (ret == CpptrajState::ERR) {
     mprinterr("Error: Build of '%s' failed.\n", args[2].c_str());
     return 1;
-  }
+  }*/
   return 0;
 }
 
@@ -622,7 +622,8 @@ int DataIO_LeapRC::LeapSet(ArgList const& argIn, DataSetList& dsl) const {
 
 /** Get COORDS unit from data set list */
 DataSet* DataIO_LeapRC::getUnit(std::string const& unitName, DataSetList const& dsl) const {
-  DataSet* ds = dsl.CheckForSet( MetaData(unitName) );
+  //DataSet* ds = dsl.CheckForSet( MetaData(unitName) );
+  DataSet* ds = dsl.GetDataSet( unitName );
   if (ds == 0) {
     mprinterr("Error: Set '%s' not found.\n", unitName.c_str());
     return 0;
@@ -636,7 +637,7 @@ DataSet* DataIO_LeapRC::getUnit(std::string const& unitName, DataSetList const& 
 }
 
 /** Save specified unit to a topology and restart file. */
-int DataIO_LeapRC::SaveAmberParm(std::string const& unitName, ArgList& line, DataSetList const& dsl)
+int DataIO_LeapRC::SaveAmberParm(std::string const& unitName, ArgList& line, DataSetList& dsl)
 const
 {
   // saveamberparm <unit> <topfile> <restartfile>
@@ -668,12 +669,22 @@ const
 //    return 1;
 //  }
 //  mprintf("\tCOORDINATES set %s\n", ds->legend());
-  DataSet_Coords& crd = static_cast<DataSet_Coords&>( *ds ); // FIXME this really should be const
-  if (crd.Size() < 1) {
-    mprinterr("Error: '%s' is empty.\n", crd.legend());
+  if (ds->Size() < 1) {
+    mprinterr("Error: '%s' is empty.\n", ds->legend());
     return 1;
   }
 
+  // Build
+  ArgList buildarg = line.RemainingArgs();
+  DataSet_LeapOpts& OPTS = static_cast<DataSet_LeapOpts&>( *leapopts_ );
+  Exec_Build build;
+  Exec::RetType ret = build.BuildStructure( ds, dsl, debug_, buildarg, OPTS.PbRadii() );
+  if (ret == CpptrajState::ERR) {
+    mprinterr("Error: Build of '%s' failed.\n", unitName.c_str());
+    return 1;
+  }
+
+  DataSet_Coords& crd = static_cast<DataSet_Coords&>( *(build.OutCrdPtr()) ); // FIXME this really should be const
   Parm_Amber parmOut;
   parmOut.SetDebug( debug_ );
   if (parmOut.WriteParm( topName, crd.Top() )) {

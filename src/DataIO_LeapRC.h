@@ -59,7 +59,7 @@ class DataIO_LeapRC : public DataIO {
     int LoadPDB(ArgList const&, DataSetList&) const;
     int LeapSet(ArgList const&, DataSetList&) const;
     DataSet* getUnit(std::string const&, DataSetList const&) const;
-    int SaveAmberParm(std::string const&, ArgList&, DataSetList const& dsl) const;
+    int SaveAmberParm(std::string const&, ArgList&, DataSetList& dsl) const;
     int Source(FileName const&, DataSetList&, std::string const&);
 
     /// Used to check if a parm/lib file was already loaded.

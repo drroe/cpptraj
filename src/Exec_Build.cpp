@@ -799,11 +799,26 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: No COORDS set found matching %s\n", crdset.c_str());
     return CpptrajState::ERR;
   }
-  return BuildStructure(inCrdPtr, State.DSL(), State.Debug(), argIn, Cpptraj::Parm::UNKNOWN_GB);
+  std::string outset = argIn.GetStringKey("name");
+  if (outset.empty()) {
+    mprinterr("Error: Must specify output COORDS set with 'name'\n");
+    return CpptrajState::ERR;
+  }
+
+  return BuildStructure(inCrdPtr, outset, State.DSL(), State.Debug(), argIn, Cpptraj::Parm::UNKNOWN_GB);
+}
+
+/** Standalone execute. For DataIO_LeapRC. Operate on inCrdPtr */
+Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, 
+                                         DataSetList& DSL, int debugIn, ArgList& argIn,
+                                         Cpptraj::Parm::GB_RadiiType gbRadIn)
+{
+  return BuildStructure(inCrdPtr, "", DSL, debugIn, argIn, gbRadIn);
 }
 
 /** Standalone execute. For DataIO_LeapRC. */
-Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, int debugIn, ArgList& argIn,
+Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& outset,
+                                         DataSetList& DSL, int debugIn, ArgList& argIn,
                                          Cpptraj::Parm::GB_RadiiType gbRadIn)
 {
   t_total_.Start();
@@ -883,12 +898,14 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
   t_clean_.Stop();
 
   // Set up Output coords
-  std::string outset = argIn.GetStringKey("name");
-  if (outset.empty()) {
-    mprinterr("Error: Must specify output COORDS set with 'name'\n");
-    return CpptrajState::ERR;
+  if (!outset.empty()) {
+    // Separate output COORDS set.
+    outCrdPtr_ = DSL.AddSet( DataSet::COORDS, outset );
+  } else {
+    // In-place output COORDS
+    DSL.RemoveSet( inCrdPtr );
+    outCrdPtr_ = DSL.AddSet( DataSet::COORDS, inCrdPtr->Meta() );
   }
-  outCrdPtr_ = DSL.AddSet( DataSet::COORDS, outset );
   if (outCrdPtr_ == 0) {
     mprinterr("Error: Could not allocate output COORDS set with name '%s'\n", outset.c_str());
     return CpptrajState::ERR;
@@ -1011,10 +1028,17 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
   t_fill_.Start();
   Topology topOut;
   topOut.SetDebug( debug_ );
-  // TODO better default
-  if (title.empty())
+  if (outset.empty()) {
+    // In-place output COORDS. Copy over existing topology metadata
+    topOut.CopyTopMetadata( topIn );
+  }
+  if (!title.empty())
+    topOut.SetParmName( title, FileName() );
+  else if (topOut.ParmName().empty()) {
+    // TODO better default
     title.assign( topIn.c_str() );
-  topOut.SetParmName( title, FileName() );
+    topOut.SetParmName( title, FileName() );
+  }
   Frame frameOut;
   if (FillAtomsWithTemplates(topOut, frameOut, topIn, frameIn, creator)) {
     mprinterr("Error: Could not fill in atoms using templates.\n");

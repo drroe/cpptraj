@@ -18,6 +18,8 @@ class Exec_Build : public Exec {
     RetType Execute(CpptrajState&, ArgList&);
     /// Stand-alone execution
     RetType BuildStructure(DataSet*, DataSetList&, int, ArgList&, Cpptraj::Parm::GB_RadiiType);
+    /// \return Output COORDS set
+    DataSet* OutCrdPtr() const { return outCrdPtr_; }
   private:
     typedef std::vector<int> Iarray;
     // Keep track of which residues are connected to each other
@@ -36,6 +38,8 @@ class Exec_Build : public Exec {
     static std::vector<int> MapAtomsToTemplate(Topology const&, int, DataSet_Coords*, Cpptraj::Structure::Creator const&, std::vector<NameType>&, int&);
     /// Transfer bonds from old topology to new topology
     int transfer_bonds(Topology&, Topology const&, std::vector<BondType> const&) const;
+
+    RetType BuildStructure(DataSet*, std::string const&, DataSetList&, int, ArgList&, Cpptraj::Parm::GB_RadiiType);
 
     int debug_;
     int check_box_natom_;  ///< Systems larger than this will have box added so PL check can be used

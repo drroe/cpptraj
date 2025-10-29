@@ -22,6 +22,7 @@ class Topology {
     void SetIpol(int iIn)                    { ipol_ = iIn;                  }
     void SetPindex(int pIn)                  { pindex_ = pIn;                }
     void SetGBradiiSet(std::string const& s) { radius_set_ = s;              }
+    void CopyTopMetadata(Topology const&);
     void SetParmTitle(std::string const&);
     void SetParmName(std::string const&, FileName const&);
     void SetDistMaskRef( Frame const& );
