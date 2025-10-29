@@ -695,13 +695,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   else
     mprintf("\tWill not attempt to bond unknown residues.\n");
   std::string problemoutname = argIn.GetStringKey("problemout");
-  CpptrajFile* problemout = State.DFL().AddCpptrajFile(problemoutname, "Structure Problems",
-                                                       DataFileList::TEXT, true);
-  if (problemout == 0) {
-    mprinterr("Internal Error: Could not allocate problemout file.\n");
-    return CpptrajState::ERR;
-  }
-  mprintf("\tWriting detected problems to %s\n", problemout->Filename().full());
+  mprintf("\tWriting detected problems to %s\n", problemoutname.c_str());
 
   // Load PDB to glycam residue name map
   SugarBuilder sugarBuilder(debug_);
@@ -993,6 +987,26 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // Residue validation.
+  bool structure_has_problems = false;
+  for (ResStatArray::const_iterator it = resStat.begin(); it != resStat.end(); ++it)
+  {
+    if (*it != ResStatArray::VALIDATED) {
+      structure_has_problems = true;
+      break;
+    }
+  }
+  CpptrajFile* problemout = 0;
+  if (problemoutname.empty() || !structure_has_problems) {
+    problemout = State.DFL().AddCpptrajFile("", "Structure Problems", DataFileList::TEXT, true);
+  } else if (structure_has_problems) {
+    // Only open the file if there are problems
+    problemout = State.DFL().AddCpptrajFile(problemoutname, "Structure Problems",
+                                            DataFileList::TEXT, true);
+  }
+  if (problemout == 0) {
+    mprinterr("Internal Error: Could not allocate problemout file.\n");
+    return CpptrajState::ERR;
+  }
   //mprintf("\tResidues with potential problems:\n");
   int fatal_errors = 0;
   int potential_errors = 0;
