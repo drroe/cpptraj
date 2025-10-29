@@ -533,7 +533,7 @@ const
 void Exec_PrepareForLeap::Help() const
 {
   mprintf("\tcrdset <coords set> [frame <#>] name <out coords set>\n"
-          "\t[pdbout <pdbfile> [terbymol]]\n"
+          "\t[pdbout <pdbfile> [terbymol]] [problemout <file>]\n"
           "\t[leapunitname <unit>] [out <leap input file> [runleap <ff file>]]\n"
           "\t[skiperrors] [{dlparams|nodlparams}] [{bondunknown|nobondunknown}]\n"
           "\t[nowat [watermask <watermask>] [noh]\n"
@@ -694,6 +694,14 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     mprintf("\tWill attempt to bond unknown residues.\n");
   else
     mprintf("\tWill not attempt to bond unknown residues.\n");
+  std::string problemoutname = argIn.GetStringKey("problemout");
+  CpptrajFile* problemout = State.DFL().AddCpptrajFile(problemoutname, "Structure Problems",
+                                                       DataFileList::TEXT, true);
+  if (problemout == 0) {
+    mprinterr("Internal Error: Could not allocate problemout file.\n");
+    return CpptrajState::ERR;
+  }
+  mprintf("\tWriting detected problems to %s\n", problemout->Filename().full());
 
   // Load PDB to glycam residue name map
   SugarBuilder sugarBuilder(debug_);
@@ -987,6 +995,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   // Residue validation.
   //mprintf("\tResidues with potential problems:\n");
   int fatal_errors = 0;
+  int potential_errors = 0;
   static const char* msg1 = "Potential problem : ";
   static const char* msg2 = "Fatal problem     : ";
   for (ResStatArray::const_iterator it = resStat.begin(); it != resStat.end(); ++it)
@@ -1000,28 +1009,30 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     if ( *it == ResStatArray::UNKNOWN ) {
       //SetType::const_iterator pname = pdb_res_names_.find( topIn.Res(it-resStat.begin()).Name() );
       //if (pname == pdb_res_names_.end())
-        mprintf("\t%s%s is an unrecognized name and may not have parameters.\n",
+        problemout->Printf("\t%s%s is an unrecognized name and may not have parameters.\n",
                 msg1, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
+        potential_errors++;
       //else
       //  *it = ResStatArray::VALIDATED;
     } else if ( *it == ResStatArray::SUGAR_NAME_MISMATCH ) {
-        mprintf("\t%s%s sugar anomer type and/or configuration is not consistent with name.\n",
+        problemout->Printf("\t%s%s sugar anomer type and/or configuration is not consistent with name.\n",
                 msg1, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
+        potential_errors++;
     // ----- Fatal Errors ----
     } else if ( *it == ResStatArray::SUGAR_UNRECOGNIZED_LINK_RES ) {
-        mprintf("\t%s%s is linked to a sugar but has no sugar-linkage form.\n",
+        problemout->Printf("\t%s%s is linked to a sugar but has no sugar-linkage form.\n",
                 msg2, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
         fatal_errors++;
     } else if ( *it == ResStatArray::SUGAR_UNRECOGNIZED_LINKAGE ) {
-        mprintf("\t%s%s is a sugar with an unrecognized linkage.\n",
+        problemout->Printf("\t%s%s is a sugar with an unrecognized linkage.\n",
                 msg2, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
         fatal_errors++;
     } else if ( *it == ResStatArray::SUGAR_NO_LINKAGE ) {
-        mprintf("\t%s%s is an incomplete sugar with no linkages.\n",
+        problemout->Printf("\t%s%s is an incomplete sugar with no linkages.\n",
                 msg2, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
         fatal_errors++;
     } else if ( *it == ResStatArray::SUGAR_NO_CHAIN_FOR_LINK ) {
-        mprintf("\t%s%s could not identify chain atoms for determining linkages.\n",
+        problemout->Printf("\t%s%s could not identify chain atoms for determining linkages.\n",
                 msg2, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
         fatal_errors++;
 /*    } else if ( *it == SUGAR_MISSING_C1X ) { // TODO should this be a warning
@@ -1029,11 +1040,13 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
                 msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
         fatal_errors++;*/
     } else if ( *it == ResStatArray::SUGAR_SETUP_FAILED ) {
-        mprintf("\t%s%s Sugar setup failed and could not be identified.\n",
+        problemout->Printf("\t%s%s Sugar setup failed and could not be identified.\n",
                 msg2, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
         fatal_errors++;
     }
   }
+  if ((fatal_errors + potential_errors) > 0 && !problemout->IsStream())
+    mprintf("Warning: Check '%s' for structure problems.\n", problemout->Filename().full());
 
   // Try to set terminal residues
   if (!molMasks.empty() || determineMolMask.MaskStringSet()) {
