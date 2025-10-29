@@ -495,12 +495,12 @@ const
               ra1.first+1, *(ra1.second));
     int at0 = topOut.FindAtomInResidue(ra0.first, ra0.second);
     if (at0 < 0) {
-      mprinterr("Error: Atom %s not found in residue %i\n", *(ra0.second), ra0.first);
+      mprinterr("Error: Atom %s not found in residue %i\n", *(ra0.second), ra0.first+1);
       return 1;
     }
     int at1 = topOut.FindAtomInResidue(ra1.first, ra1.second);
     if (at1 < 0) {
-      mprinterr("Error: Atom %s not found in residue %i\n", *(ra1.second), ra1.first);
+      mprinterr("Error: Atom %s not found in residue %i\n", *(ra1.second), ra1.first+1);
       return 1;
     }
     // Save detected inter-residue bonding atoms if not already added via
