@@ -120,7 +120,8 @@ bool Exec_Build::resIsConnected(Iarray const& resConnections, int tgtRes) {
 /** Use given templates to construct a final molecule. */
 int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
                                        Topology const& topIn, Frame const& frameIn,
-                                       Cpptraj::Structure::Creator const& creator)
+                                       Cpptraj::Structure::Creator const& creator,
+                                       std::vector<BondType> const& topInBonds)
 const
 {
   // Array of head/tail connect atoms for each residue
@@ -484,6 +485,51 @@ const
       mprintf("Warning: Unused head atom %s\n", topOut.AtomMaskName(resHeadAtoms[ires]).c_str());
     if (resTailAtoms[ires] != -1)
       mprintf("Warning: Unused tail atom %s\n", topOut.AtomMaskName(resTailAtoms[ires]).c_str());
+  }
+
+  // Add external bonds
+  if (!topInBonds.empty()) {
+    for (std::vector<BondType>::const_iterator bnd = topInBonds.begin();
+                                               bnd != topInBonds.end(); ++bnd)
+    {
+      Atom const& At0 = topIn[bnd->A1()];
+      Atom const& At1 = topIn[bnd->A2()];
+      // Ignore bonds in the same residue
+      if ( At0.ResNum() == At1.ResNum()) {
+        mprintf("Build Warning: Atoms %s and %s are in the same residue %i. Not adding extra bond.\n",
+                *(At0.Name()), *(At1.Name()), At0.ResNum()+1);
+        continue;
+      }
+      int a0 = topOut.FindAtomInResidue( At0.ResNum(), At0.Name() );
+      int a1 = topOut.FindAtomInResidue( At1.ResNum(), At1.Name() );
+      if (a0 < 0) {
+        mprinterr("Error: Atom %s not found in residue %i\n", *(At0.Name()), At0.ResNum()+1);
+        return 1;
+      }
+      if (a1 < 0) {
+        mprinterr("Error: Atom %s not found in residue %i\n", *(At1.Name()), At1.ResNum()+1);
+        return 1;
+      }
+      //mprintf("DEBUG: Extra bond between %s and %s\n",
+      //        topOut.AtomMaskName(a0).c_str(),
+      //        topOut.AtomMaskName(a1).c_str());
+      if (resIsConnected(ResidueConnections[At0.ResNum()], At1.ResNum())) {
+        mprintf("Warning: Residue %s already connected to residue %s; ignoring\n"
+                "Warning:   extra bond %s - %s\n",
+                topOut.TruncResNameNum(At0.ResNum()).c_str(),
+                topOut.TruncResNameNum(At1.ResNum()).c_str(),
+                topOut.AtomMaskName(a0).c_str(),
+                topOut.AtomMaskName(a1).c_str());
+      } else {
+        mprintf("\tAdding extra bond %s - %s\n",
+                topOut.AtomMaskName(a0).c_str(),
+                topOut.AtomMaskName(a1).c_str());
+        resBondingAtoms[At0.ResNum()].push_back( Ipair(a0, a1) );
+        resBondingAtoms[At1.ResNum()].push_back( Ipair(a1, a0) );
+        ResidueConnections[At0.ResNum()].push_back( At1.ResNum() );
+        ResidueConnections[At1.ResNum()].push_back( At0.ResNum() );
+      }
+    } // END loop over externally passwd in bonds
   }
 
   // Check detected inter-residue bonds
@@ -954,7 +1000,8 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
 
   // All residues start unknown
   Cpptraj::Structure::ResStatArray resStat( topIn.Nres() );
-  std::vector<BondType> LeapBonds;
+  std::vector<BondType> DisulfideBonds;
+  std::vector<BondType> SugarBonds;
 
   // Disulfide search
   t_disulfide_.Start();
@@ -964,7 +1011,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
       mprinterr("Error: Could not init disulfide search.\n");
       return CpptrajState::ERR;
     }
-    if (disulfide.SearchForDisulfides( resStat, topIn, frameIn, LeapBonds ))
+    if (disulfide.SearchForDisulfides( resStat, topIn, frameIn, DisulfideBonds ))
     {
       mprinterr("Error: Disulfide search failed.\n");
       return CpptrajState::ERR;
@@ -1014,12 +1061,12 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     // to identify based on the most up-to-date topology.
     if (sugarBuilder_->FixSugarsStructure(topIn, frameIn,
                                           c1bondsearch, splitres, solventResName,
-                                          LeapBonds))
+                                          SugarBonds))
     {
       mprinterr("Error: Sugar structure modification failed.\n");
       return CpptrajState::ERR;
     }
-    if (sugarBuilder_->PrepareSugars(true, resStat, topIn, frameIn, LeapBonds))
+    if (sugarBuilder_->PrepareSugars(true, resStat, topIn, frameIn, SugarBonds))
     {
       mprinterr("Error: Sugar preparation failed.\n");
       return CpptrajState::ERR;
@@ -1043,14 +1090,16 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     topOut.SetParmName( title, FileName() );
   }
   Frame frameOut;
-  if (FillAtomsWithTemplates(topOut, frameOut, topIn, frameIn, creator)) {
+  if (FillAtomsWithTemplates(topOut, frameOut, topIn, frameIn, creator, SugarBonds)) {
     mprinterr("Error: Could not fill in atoms using templates.\n");
     return CpptrajState::ERR;
   }
   t_fill_.Stop();
 
   // Add the disulfide/sugar bonds
-  if (transfer_bonds( topOut, topIn, LeapBonds )) {
+  int addBondsErr = transfer_bonds( topOut, topIn, DisulfideBonds );
+  //addBondsErr += transfer_bonds( topOut, topIn, SugarBonds );
+  if (addBondsErr != 0) {
     mprinterr("Error: Adding disulfide/sugar bonds failed.\n");
     return CpptrajState::ERR;
   }
