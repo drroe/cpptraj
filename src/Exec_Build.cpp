@@ -134,9 +134,7 @@ const
   // Array of templates for each residue
   std::vector<DataSet_Coords*> ResTemplates;
   ResTemplates.reserve( topIn.Nres() );
-  //typedef std::vector<Cpptraj::Structure::TerminalType> TermTypeArray;
-  //TermTypeArray ResTypes;
-  //ResTypes.reserve( topIn.Nres() );
+
   // Initial loop to try to match residues to templates
   int newNatom = 0;
   unsigned int n_no_template_found = 0;
@@ -372,15 +370,6 @@ const
           }
         }
       }
-      // See if any current atoms were not mapped to reference template
-      //int nTgtAtomsMissing = 0;
-      //for (int itgt = 0; itgt != currentRes.NumAtoms(); itgt++) {
-      //  if (pdb[itgt] == -1) {
-      //    mprintf("Warning: Input atom %s was not mapped to a template atom.\n",
-      //            topIn.TruncAtomResNameOnumId(currentRes.FirstAtom()+itgt).c_str());
-      //    nTgtAtomsMissing++;
-      //  }
-      //}
       if (nTgtAtomsMissing > 0)
         mprintf("\t%i source atoms not mapped to template.\n", nTgtAtomsMissing);
       // Save atom offset if atoms need to be built
@@ -510,9 +499,6 @@ const
         mprinterr("Error: Atom %s not found in residue %i\n", *(At1.Name()), At1.ResNum()+1);
         return 1;
       }
-      //mprintf("DEBUG: Extra bond between %s and %s\n",
-      //        topOut.AtomMaskName(a0).c_str(),
-      //        topOut.AtomMaskName(a1).c_str());
       if (resIsConnected(ResidueConnections[At0.ResNum()], At1.ResNum())) {
         mprintf("Warning: Residue %s already connected to residue %s; ignoring\n"
                 "Warning:   extra bond %s - %s\n",
@@ -521,15 +507,16 @@ const
                 topOut.AtomMaskName(a0).c_str(),
                 topOut.AtomMaskName(a1).c_str());
       } else {
-        mprintf("\tAdding extra bond %s - %s\n",
-                topOut.AtomMaskName(a0).c_str(),
-                topOut.AtomMaskName(a1).c_str());
+        if (debug_ > 0)
+          mprintf("DEBUG: Adding extra bond %s - %s\n",
+                  topOut.AtomMaskName(a0).c_str(),
+                  topOut.AtomMaskName(a1).c_str());
         resBondingAtoms[At0.ResNum()].push_back( Ipair(a0, a1) );
         resBondingAtoms[At1.ResNum()].push_back( Ipair(a1, a0) );
         ResidueConnections[At0.ResNum()].push_back( At1.ResNum() );
         ResidueConnections[At1.ResNum()].push_back( At0.ResNum() );
       }
-    } // END loop over externally passwd in bonds
+    } // END loop over externally passed in bonds
   }
 
   // Check detected inter-residue bonds
@@ -570,7 +557,7 @@ const
                 topOut.AtomMaskName(at0).c_str(),
                 topOut.AtomMaskName(at1).c_str());
       } else {
-        if (bondInvolvesResWithNoTemplate) { // FIXME need to change this or move the sugar/disulfide stuff to after
+        if (bondInvolvesResWithNoTemplate) {
           mprintf("\tAdding non-template bond %s - %s\n",
                   topOut.AtomMaskName(at0).c_str(),
                   topOut.AtomMaskName(at1).c_str());
@@ -585,61 +572,8 @@ const
                     topOut.AtomMaskName(at1).c_str());
         }
       }
-    } //else
-      //mprintf("DEBUG: Detected bond %s - %s already present.\n",
-      //        topOut.AtomMaskName(at0).c_str(),
-      //        topOut.AtomMaskName(at1).c_str());
-    //if (!hasBondingPair(resBondingAtoms[ra1.first], Ipair(at1, at0)))
-    //  resBondingAtoms[ra1.first].push_back( Ipair(at1, at0) );
-    //else
-    //  mprintf("DEBUG: Detected bond %s - %s already present.\n",
-    //          topOut.AtomMaskName(at1).c_str(),
-    //          topOut.AtomMaskName(at0).c_str());
-  }
-
-  // For each inter-residue bonding atom pair, check that they match expected
-  // head/tail atoms.
-/*  for (std::vector<IParray>::const_iterator rit = resBondingAtoms.begin();
-                                            rit != resBondingAtoms.end(); ++rit)
-  {
-    long int ires = rit - resBondingAtoms.begin();
-    for (IParray::const_iterator atPair = rit->begin(); atPair != rit->end(); ++atPair)
-    {
-      long int jres = topOut[atPair->second].ResNum();
-      if (atPair->first == resHeadAtoms[ires]) {
-        // HEAD atom. Should connect to other residue TAIL atom.
-        if (atPair->second != resTailAtoms[jres]) {
-          mprintf("Warning: Detected inter-res bond %s - %s HEAD does not match TAIL.\n",
-                  topOut.AtomMaskName(atPair->first).c_str(),
-                  topOut.AtomMaskName(atPair->second).c_str());
-        }
-      } else if (atPair->first == resTailAtoms[ires]) {
-        // TAIL atom. Should connect to other residue HEAD atom.
-        if (atPair->second != resHeadAtoms[jres]) {
-          mprintf("Warning: Detected inter-res bond %s - %s TAIL does not match HEAD.\n",
-                  topOut.AtomMaskName(atPair->first).c_str(),
-                  topOut.AtomMaskName(atPair->second).c_str());
-        }
-      } else {
-        mprintf("Warning: Atom %s is not a HEAD or TAIL atom.\n",
-                topOut.AtomMaskName(atPair->first).c_str());
-      }
-    } // END loop over inter-residue bond pairs for this residue
-  } // END loop over residues*/
-
-  // Mark used HEAD/TAIL atoms in existing inter-residue bonds.
-/*  for (std::vector<IParray>::const_iterator rit = resBondingAtoms.begin();
-                                            rit != resBondingAtoms.end(); ++rit)
-  {
-    long int ires = rit - resBondingAtoms.begin();
-    for (IParray::const_iterator atPair = rit->begin(); atPair != rit->end(); ++atPair)
-    {
-      if (atPair->first == resHeadAtoms[ires])
-        resHeadAtoms[ires] = -1;
-      else if (atPair->first == resTailAtoms[ires])
-        resTailAtoms[ires] = -1;
     }
-  }*/
+  }
 
   // DEBUG print inter-residue bonding atoms
   if (debug_ > 0) {
@@ -675,15 +609,6 @@ const
 
   // -----------------------------------
   // Build using internal coords if needed.
-//  std::vector<bool> resIsBuilt; // TODO is this needed?
-//  resIsBuilt.reserve( AtomOffsets.size() );
-//  for (Iarray::const_iterator it = AtomOffsets.begin(); it != AtomOffsets.end(); ++it) {
-//    if ( *it < 0 )
-//      resIsBuilt.push_back( true );
-//    else
-//      resIsBuilt.push_back( false );
-//  }
-
   bool buildFailed = false;
   for (Iarray::const_iterator it = AtomOffsets.begin(); it != AtomOffsets.end(); ++it)
   {
