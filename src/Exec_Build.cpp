@@ -22,7 +22,6 @@ Exec_Build::Exec_Build() :
   debug_(0),
   check_box_natom_(5000), // TODO make user specifiable
   check_structure_(true),
-  addNonTemplateBonds_(false),
   sugarBuilder_(0),
   outCrdPtr_(0)
 {}
@@ -494,10 +493,13 @@ const
     ResAtPair const& ra0 = *it;
     ++it;
     ResAtPair const& ra1 = *it;
+    bool bondInvolvesResWithNoTemplate = ( (ResTemplates[ra0.first] == 0) ||
+                                           (ResTemplates[ra1.first] == 0) );
     if (debug_ > 1)
-      mprintf("DEBUG: Inter-res bond: Res %i atom %s to res %i atom %s\n",
+      mprintf("DEBUG: Inter-res bond: Res %i atom %s to res %i atom %s : bondInvolvesResWithNoTemplate=%i\n",
               ra0.first+1, *(ra0.second),
-              ra1.first+1, *(ra1.second));
+              ra1.first+1, *(ra1.second),
+              (int)bondInvolvesResWithNoTemplate);
     int at0 = topOut.FindAtomInResidue(ra0.first, ra0.second);
     if (at0 < 0) {
       mprinterr("Error: Atom %s not found in residue %i\n", *(ra0.second), ra0.first+1);
@@ -522,7 +524,7 @@ const
                 topOut.AtomMaskName(at0).c_str(),
                 topOut.AtomMaskName(at1).c_str());
       } else {
-        if (addNonTemplateBonds_) { // FIXME need to change this or move the sugar/disulfide stuff to after
+        if (bondInvolvesResWithNoTemplate) { // FIXME need to change this or move the sugar/disulfide stuff to after
           mprintf("\tAdding non-template bond %s - %s\n",
                   topOut.AtomMaskName(at0).c_str(),
                   topOut.AtomMaskName(at1).c_str());
@@ -838,10 +840,6 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   debug_ = debugIn;
   int verbose = argIn.getKeyInt("verbose", 0);
   std::string title = argIn.GetStringKey("title");
-  if (addNonTemplateBonds_)
-    mprintf("\tNon-template bonds will be added if detected.\n");
-  else
-    mprintf("\tOnly bonding according to residue templates.\n");
   std::string outputTopologyName = argIn.GetStringKey("parmout");
   std::string outputCoordsName = argIn.GetStringKey("crdout");
   if (!outputTopologyName.empty())
