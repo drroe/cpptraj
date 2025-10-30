@@ -62,7 +62,7 @@ std::vector<int> Exec_Build::MapAtomsToTemplate(Topology const& topIn,
     {
       NameType const& refName = resTemplate->Top()[iref].Name();
       if (refName == tgtName) {
-        sourceAtomNames.push_back( tgtName );
+        sourceAtomNames[itgt] = tgtName;
         mapOut[iref] = itgt;
         found = true;
         break;
@@ -73,7 +73,7 @@ std::vector<int> Exec_Build::MapAtomsToTemplate(Topology const& topIn,
       for (int iref = 0; iref != resTemplate->Top().Natom(); iref++) {
         NameType const& refName = resTemplate->Top()[iref].Name();
         if (refName == alias) {
-          sourceAtomNames.push_back( alias );
+          sourceAtomNames[itgt] = alias;
           mapOut[iref] = itgt;
           found = true;
           break;
@@ -252,7 +252,7 @@ const
   // Hold template atom names corressponding to source atom names.
   typedef std::vector<NameType> NameArray;
   NameArray SourceAtomNames;
-  SourceAtomNames.reserve( topIn.Natom() );
+  SourceAtomNames.resize( topIn.Natom() );
 
   // Loop for setting up atoms in the topology from residues or residue templates.
   int nRefAtomsMissing = 0;
@@ -275,7 +275,7 @@ const
         Atom sourceAtom = topIn[itgt];
         if (!sourceAtom.HasType())
           nAtomsMissingTypes++;
-        SourceAtomNames.push_back( sourceAtom.Name() );
+        SourceAtomNames[itgt] = sourceAtom.Name();
         int at0 = itgt - currentRes.FirstAtom() + atomOffset;
         for (Atom::bond_iterator bat = sourceAtom.bondbegin(); bat != sourceAtom.bondend(); ++bat) {
           if ( topIn[*bat].ResNum() == ires ) {
@@ -363,6 +363,11 @@ const
               // Use template atom names. Use saved names in case source name had an alias.
               detectedInterResBonds.push_back( ResAtPair(ires, templateAtom.Name()) );
               detectedInterResBonds.push_back( ResAtPair(topIn[*bat].ResNum(), SourceAtomNames[*bat]) );
+              if ( debug_ > 1 ) {
+                mprintf("DEBUG: Adding detected interres bond: itgt=%i name=%s res=%i tempName=%s -- bat=%i name=%s res=%i srcName=%s\n",
+                        itgt+1, *(sourceAtom.Name()), ires+1, *(templateAtom.Name()),
+                        *bat+1, *(topIn[*bat].Name()), topIn[*bat].ResNum()+1, *(SourceAtomNames[*bat]));
+              }
             }
           }
         }
