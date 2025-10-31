@@ -30,7 +30,8 @@ class HisProt {
     static int determineHisProt(Topology&,
                                 NameType const&, NameType const&,
                                 NameType const&, NameType const&,
-                                NameType const&, NameType const&);
+                                NameType const&, NameType const&,
+                                std::string const&);
 
     std::string nd1name_; ///< Delta nitrogen atom name
     std::string ne2name_; ///< Epsilon nitrogen atom name
@@ -38,6 +39,7 @@ class HisProt {
     std::string hiename_; ///< Epsilon-protonated residue name
     std::string hidname_; ///< Delta-protonated residue name
     std::string hipname_; ///< Doubly-protonated residue name
+    std::string default_; ///< Default name if nothing detected
 };
 }
 }
