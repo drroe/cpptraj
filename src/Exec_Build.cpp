@@ -255,6 +255,7 @@ const
   // Loop for setting up atoms in the topology from residues or residue templates.
   int nRefAtomsMissing = 0;
   int nAtomsMissingTypes = 0;
+  bool has_bfac = !topIn.Bfactor().empty();
   for (int ires = 0; ires != topIn.Nres(); ires++)
   {
     if (debug_ > 0)
@@ -295,6 +296,8 @@ const
         topOut.AddTopAtom( sourceAtom, currentRes );
         frameOut.AddVec3( Vec3(frameIn.XYZ(itgt)) );
         hasPosition.push_back( true );
+        if (has_bfac)
+          topOut.ModifyBfactor().push_back( topIn.Bfactor()[itgt] );
       }
     } else {
       // ----- A template exists for this residue. ---------
@@ -348,11 +351,13 @@ const
           hasPosition.push_back( false );
           nRefAtomsMissing++;
           atomsNeedBuilding = true;
+          if (has_bfac) topOut.ModifyBfactor().push_back(0.0);
         } else {
           // Template atom was in input structure.
           int itgt = map[iref];
           frameOut.AddVec3( Vec3(frameIn.XYZ(itgt)) );
           hasPosition.push_back( true );
+          if (has_bfac) topOut.ModifyBfactor().push_back( topIn.Bfactor()[itgt] );
           //pdb[itgt-currentRes.FirstAtom()] = iref;
           // Check source atoms for inter-residue connections.
           Atom const& sourceAtom = topIn[itgt];
@@ -599,6 +604,12 @@ const
   if (SourceAtomNames.size() != (unsigned int)topIn.Natom()) {
     mprinterr("Internal Error: Source atom names length %zu != # input atoms %i\n", SourceAtomNames.size(), topIn.Natom());
     return 1;
+  }
+  if (has_bfac) {
+    if (topOut.Bfactor().size() != (unsigned int)topOut.Natom()) {
+      mprinterr("Internal Error: Size of final Bfactor array %zu != # atoms %i\n", topOut.Bfactor().size(), topOut.Natom());
+      return 1;
+    }
   }
 
   if (debug_ > 0) {
