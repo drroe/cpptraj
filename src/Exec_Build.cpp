@@ -256,6 +256,11 @@ const
   int nRefAtomsMissing = 0;
   int nAtomsMissingTypes = 0;
   bool has_bfac = !topIn.Bfactor().empty();
+  bool has_occ  = !topIn.Occupancy().empty();
+  bool has_pdbn = !topIn.PdbSerialNum().empty();
+  if (debug_ > 0)
+    mprintf("DEBUG: Input top has_bfac=%i  has_occ=%i  has_pdbn=%i\n",
+            (int)has_bfac, (int)has_occ, (int)has_pdbn);
   for (int ires = 0; ires != topIn.Nres(); ires++)
   {
     if (debug_ > 0)
@@ -297,7 +302,11 @@ const
         frameOut.AddVec3( Vec3(frameIn.XYZ(itgt)) );
         hasPosition.push_back( true );
         if (has_bfac)
-          topOut.ModifyBfactor().push_back( topIn.Bfactor()[itgt] );
+          topOut.AddBfactor( topIn.Bfactor()[itgt] );
+        if (has_occ)
+          topOut.AddOccupancy( topIn.Occupancy()[itgt] );
+        if (has_pdbn)
+          topOut.AddPdbSerialNum( topIn.PdbSerialNum()[itgt] );
       }
     } else {
       // ----- A template exists for this residue. ---------
@@ -351,13 +360,17 @@ const
           hasPosition.push_back( false );
           nRefAtomsMissing++;
           atomsNeedBuilding = true;
-          if (has_bfac) topOut.ModifyBfactor().push_back(0.0);
+          if (has_bfac) topOut.AddBfactor(0.0);
+          if (has_occ)  topOut.AddOccupancy(0.0);
+          if (has_pdbn) topOut.AddPdbSerialNum(0);
         } else {
           // Template atom was in input structure.
           int itgt = map[iref];
           frameOut.AddVec3( Vec3(frameIn.XYZ(itgt)) );
           hasPosition.push_back( true );
-          if (has_bfac) topOut.ModifyBfactor().push_back( topIn.Bfactor()[itgt] );
+          if (has_bfac) topOut.AddBfactor( topIn.Bfactor()[itgt] );
+          if (has_occ)  topOut.AddOccupancy( topIn.Occupancy()[itgt] );
+          if (has_pdbn) topOut.AddPdbSerialNum( topIn.PdbSerialNum()[itgt] );
           //pdb[itgt-currentRes.FirstAtom()] = iref;
           // Check source atoms for inter-residue connections.
           Atom const& sourceAtom = topIn[itgt];
@@ -608,6 +621,18 @@ const
   if (has_bfac) {
     if (topOut.Bfactor().size() != (unsigned int)topOut.Natom()) {
       mprinterr("Internal Error: Size of final Bfactor array %zu != # atoms %i\n", topOut.Bfactor().size(), topOut.Natom());
+      return 1;
+    }
+  }
+  if (has_occ) {
+    if (topOut.Occupancy().size() != (unsigned int)topOut.Natom()) {
+      mprinterr("Internal Error: Size of final Occupancy array %zu != # atoms %i\n", topOut.Occupancy().size(), topOut.Natom());
+      return 1;
+    }
+  }
+  if (has_pdbn) {
+    if (topOut.PdbSerialNum().size() != (unsigned int)topOut.Natom()) {
+      mprinterr("Internal Error: Size of final PdbSerialNum array %zu != # atoms %i\n", topOut.PdbSerialNum().size(), topOut.Natom());
       return 1;
     }
   }
