@@ -116,11 +116,12 @@ static int atom_depth(int& depth,
 }
 
 /** \return Index of atom with longest 'depth' around an atom, ignoring one bonded atom. */
-int Builder::get_depths_around_atom(int at0, int at1, Topology const& topIn) {
+int Builder::get_depths_around_atom(int at0, int at1, Topology const& topIn) const {
   int largest_depth = 0;
   int largest_depth_idx = -1;
   Atom const& Atm0 = topIn[at0];
-  mprintf("DEBUG: Depths around %s\n", topIn.AtomMaskName(at0).c_str());
+  if (debug_ > 0)
+    mprintf("DEBUG: Depths around %s\n", topIn.AtomMaskName(at0).c_str());
   for (Atom::bond_iterator bat = Atm0.bondbegin(); bat != Atm0.bondend(); ++bat)
   {
     if (*bat != at1) {
@@ -130,7 +131,8 @@ int Builder::get_depths_around_atom(int at0, int at1, Topology const& topIn) {
       // Get depth from here
       int currentDepth = 0;
       int depth = atom_depth(currentDepth, *bat, topIn, visited, 10);
-      mprintf("DEBUG:\t\t%s = %i\n", topIn.AtomMaskName(*bat).c_str(), depth);
+      if (debug_ > 0)
+        mprintf("DEBUG:\t\t%s = %i\n", topIn.AtomMaskName(*bat).c_str(), depth);
       if (depth > largest_depth) {
         largest_depth = depth;
         largest_depth_idx = *bat;
@@ -146,11 +148,12 @@ int Builder::AdjustIcAroundLink(int at0, int at1, Frame const& frameIn, Topology
   int atA = get_depths_around_atom(at0, at1, topIn);
   int atD = get_depths_around_atom(at1, at0, topIn);
   if (atA < 0 || atD < 0) return 0;
-  mprintf("DEBUG: Highest depth torsion is %s - %s - %s - %s\n",
-          topIn.AtomMaskName(atA).c_str(),
-          topIn.AtomMaskName(at0).c_str(),
-          topIn.AtomMaskName(at1).c_str(),
-          topIn.AtomMaskName(atD).c_str());
+  if (debug_ > 0)
+    mprintf("DEBUG: Highest depth torsion is %s - %s - %s - %s\n",
+            topIn.AtomMaskName(atA).c_str(),
+            topIn.AtomMaskName(at0).c_str(),
+            topIn.AtomMaskName(at1).c_str(),
+            topIn.AtomMaskName(atD).c_str());
   // Get that torsion
   int tidx = getExistingTorsionIdx(atA, at0, at1, atD);
   if (tidx < 0) {
@@ -165,25 +168,29 @@ int Builder::AdjustIcAroundLink(int at0, int at1, Frame const& frameIn, Topology
   double dTorsion = 180.0 * Constants::DEGRAD;
   double dInternalValue = internalTorsions_[tidx].PhiVal();
   double tDiff = (dTorsion - dInternalValue);
-  mprintf("\tdTorsion= %f  dInternalValue= %f  tDiff= %f\n",
-          dTorsion*Constants::RADDEG, dInternalValue*Constants::RADDEG, tDiff*Constants::RADDEG);
+  if (debug_ > 0)
+    mprintf("\tdTorsion= %f  dInternalValue= %f  tDiff= %f\n",
+            dTorsion*Constants::RADDEG, dInternalValue*Constants::RADDEG, tDiff*Constants::RADDEG);
   if (fabs(tDiff) > Constants::SMALL) {
     // Find all ICs that share atoms 1 and 2 (J and K)
     Iarray iTorsions = getExistingTorsionIdxs(at0, at1);
-    mprintf("Twisting torsions centered on %s - %s by %f degrees\n",
-            topIn.LeapName(at0).c_str(),
-            topIn.LeapName(at1).c_str(),
-            tDiff*Constants::RADDEG);
+    if (debug_ > 0)
+      mprintf("Twisting torsions centered on %s - %s by %f degrees\n",
+              topIn.LeapName(at0).c_str(),
+              topIn.LeapName(at1).c_str(),
+              tDiff*Constants::RADDEG);
     for (Iarray::const_iterator idx = iTorsions.begin(); idx != iTorsions.end(); ++idx)
     {
       InternalTorsion& dih = internalTorsions_[*idx];
       double dNew = dih.PhiVal() + tDiff;
-      mprintf("Twisting torsion for atoms: %s-%s-%s-%s\n",
-              *(topIn[dih.AtI()].Name()),
-              *(topIn[dih.AtJ()].Name()),
-              *(topIn[dih.AtK()].Name()),
-              *(topIn[dih.AtL()].Name()));
-      mprintf("------- From %f to %f\n", dih.PhiVal()*Constants::RADDEG, dNew*Constants::RADDEG);
+      if (debug_ > 1) {
+        mprintf("Twisting torsion for atoms: %s-%s-%s-%s\n",
+                *(topIn[dih.AtI()].Name()),
+                *(topIn[dih.AtJ()].Name()),
+                *(topIn[dih.AtK()].Name()),
+                *(topIn[dih.AtL()].Name()));
+        mprintf("------- From %f to %f\n", dih.PhiVal()*Constants::RADDEG, dNew*Constants::RADDEG);
+      }
       dih.SetPhiVal( dNew );
     }
   }

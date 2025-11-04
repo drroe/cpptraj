@@ -122,7 +122,7 @@ class Builder {
     /// For debug, print all valid internals associated with an atom
     void printAllInternalsForAtom(int, Topology const&, Barray const&) const;
     /// \\return index of atom with longest 'depth' bonded to a given atom (ignoring one bonded atom).
-    static int get_depths_around_atom(int, int, Topology const&);
+    int get_depths_around_atom(int, int, Topology const&) const;
     /// Get any complete internal coords for specified atom
     AtomIC getInternalCoordsForAtom(int, int, Barray const&, Topology const&) const;
     /// Build XYZ coords for an atom from 2 angles and 1 bond

@@ -320,14 +320,16 @@ int Exec_Graft::get_original_orientations(Topology const& mol0Top, Frame const& 
   int vanish0idx = -1;
   for (Atom::bond_iterator bat = At0.bondbegin(); bat != At0.bondend(); ++bat) {
     if (!cmask0.AtomInCharMask( *bat )) { // TODO check multiple disappearing atoms
-      mprintf("DEBUG: Atom0 %s will vanish.\n", mol0Top.AtomMaskName(*bat).c_str());
+      if (debug_ > 0)
+        mprintf("DEBUG: Atom0 %s will vanish.\n", mol0Top.AtomMaskName(*bat).c_str());
       if (vanish0idx == -1) vanish0idx = *bat;
     }
   }
   if (vanish0idx != -1) {
     hasOrient0_ = true;
     chi0_    = Builder::DetermineChiralityAroundAtom(bondat0, mol0frm, mol0Top);
-    mprintf("DEBUG: Chirality around %s is %f\n", mol0Top.LeapName(bondat0).c_str(), chi0_);
+    if (debug_ > 0)
+      mprintf("DEBUG: Chirality around %s is %f\n", mol0Top.LeapName(bondat0).c_str(), chi0_);
 //    orient0_ = Builder::CalculateOrientationAroundAtom(bondat0, vanish0idx, mol0frm, mol0Top);
   }
 
@@ -337,14 +339,16 @@ int Exec_Graft::get_original_orientations(Topology const& mol0Top, Frame const& 
   int vanish1idx = -1;
   for (Atom::bond_iterator bat = At1.bondbegin(); bat != At1.bondend(); ++bat) {
     if (!cmask1.AtomInCharMask( *bat )) { // TODO check multiple disappearing atoms
-      mprintf("DEBUG: Atom1 %s will vanish.\n", mol1Top.AtomMaskName(*bat).c_str());
+      if (debug_ > 0)
+        mprintf("DEBUG: Atom1 %s will vanish.\n", mol1Top.AtomMaskName(*bat).c_str());
       if (vanish1idx == -1) vanish1idx = *bat;
     }
   }
   if (vanish1idx != -1) {
     hasOrient1_ = true;
     chi1_    = Builder::DetermineChiralityAroundAtom(bondat1, mol1frm, mol1Top);
-    mprintf("DEBUG: Chirality around %s is %f\n", mol1Top.LeapName(bondat1).c_str(), chi1_);
+    if (debug_ > 0)
+      mprintf("DEBUG: Chirality around %s is %f\n", mol1Top.LeapName(bondat1).c_str(), chi1_);
 //    orient1_ = Builder::CalculateOrientationAroundAtom(bondat1, vanish1idx, mol1frm, mol1Top);
   }
 
@@ -379,12 +383,14 @@ const
     return 1;
   }
 
-  for (int at = 0; at != mol0Top.Natom(); at++)
-    mprintf("\t%6i %s %s\n", at+1, mol0Top.AtomMaskName(at).c_str(), *(mol0Top.Res(mol0Top[at].ResNum()).Name()));
-  mprintf("BOND ATOM 0 %i\n", bondat0+1);
-  for (int at = 0; at != mol1Top.Natom(); at++)
-    mprintf("\t%6i %s %s\n", at+1, mol1Top.AtomMaskName(at).c_str(), *(mol1Top.Res(mol1Top[at].ResNum()).Name()));
-  mprintf("BOND ATOM 1 %i\n", bondat1+1);
+  if (debug_ > 0) {
+    for (int at = 0; at != mol0Top.Natom(); at++)
+      mprintf("\t%6i %s %s\n", at+1, mol0Top.AtomMaskName(at).c_str(), *(mol0Top.Res(mol0Top[at].ResNum()).Name()));
+    mprintf("BOND ATOM 0 %i\n", bondat0+1);
+    for (int at = 0; at != mol1Top.Natom(); at++)
+      mprintf("\t%6i %s %s\n", at+1, mol1Top.AtomMaskName(at).c_str(), *(mol1Top.Res(mol1Top[at].ResNum()).Name()));
+    mprintf("BOND ATOM 1 %i\n", bondat1+1);
+  }
 
   // Combine topologies.
   Topology topOut;
@@ -409,7 +415,8 @@ const
     // Save the intra-residue bonds.
     for (Atom::bond_iterator bat = sourceAtom.bondbegin(); bat != sourceAtom.bondend(); ++bat) {
       if (*bat > at) {
-        mprintf("Will add bond between %i and %i\n", at+1, *bat+1);
+        if (debug_ > 1)
+          mprintf("Will add bond between %i and %i\n", at+1, *bat+1);
         intraResBonds.push_back( Ipair(at, *bat) );
       }
     }
@@ -421,7 +428,8 @@ const
   // Add mol1 atoms
   int atomOffset = mol0Top.Natom();
   int resOffset = topOut.Nres();
-  mprintf("DEBUG: Atom offset is %i\n", atomOffset);
+  if (debug_ > 0)
+    mprintf("DEBUG: Atom offset is %i\n", atomOffset);
   for (int itgt = 0; itgt < mol1Top.Natom(); itgt++) {
     Atom sourceAtom = mol1Top[itgt];
     Residue currentRes = mol1Top.Res(sourceAtom.ResNum());
@@ -431,7 +439,8 @@ const
     for (Atom::bond_iterator bat = sourceAtom.bondbegin(); bat != sourceAtom.bondend(); ++bat) {
       int at1 = *bat + atomOffset;
       if (at1 > at0) {
-        mprintf("Will add bond between %i and %i (original %i and %i)\n", at0+1, at1+1, itgt+1, *bat + 1);
+        if (debug_ > 1)
+          mprintf("Will add bond between %i and %i (original %i and %i)\n", at0+1, at1+1, itgt+1, *bat + 1);
         intraResBonds.push_back( Ipair(at0, at1) );
       }
     }
