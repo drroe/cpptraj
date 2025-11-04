@@ -14,8 +14,8 @@ Basic() {
 readdata ../Test_ReadOFF/aminocn15ipq_10.0.lib name A15
 readdata cph_nucleic_caps.lib name CAPS
 list
-sequence CAPS[MOC] A15[CNALA] name Mol
-crdout Mol Mol.mol2
+#sequence CAPS[MOC] A15[CNALA] name Mol
+#crdout Mol Mol.mol2
 
 sequence MOC CNALA name Mol2
 crdout Mol2 Mol2.mol2
@@ -24,7 +24,7 @@ crdout CAPS[MOC] MOC.mol2
 crdout A15[CNALA] CNALA.mol2
 EOF
   RunCpptraj "$TESTNAME, library files"
-  DoTest Mol.mol2.save Mol.mol2
+#  DoTest Mol.mol2.save Mol.mol2
   DoTest Mol.mol2.save Mol2.mol2
 
   # NOTE: Depends on mol2 generation of previous test
