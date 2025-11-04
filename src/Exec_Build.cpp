@@ -792,10 +792,7 @@ void Exec_Build::Help() const
           Cpptraj::Structure::HisProt::keywords_,
           Cpptraj::Structure::Disulfide::keywords_
          );
-  mprintf("    <radii> =");
-  for (int ig = 0; ig != (int)Cpptraj::Parm::UNKNOWN_GB; ig++)
-    mprintf(" %s", Cpptraj::Parm::GbTypeKey((Cpptraj::Parm::GB_RadiiType)ig));
-  mprintf("\n");
+  Cpptraj::Parm::PrintGbRadiiKeywords();
   mprintf("  Build complete topology and parameters from given crdset.\n");
 }
 

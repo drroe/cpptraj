@@ -2,6 +2,8 @@
 #include "AssociatedData_Connect.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Parameters.h" // For casting DataSet_Parameters to ParameterSet
+#include "Parm/AssignParams.h"
+#include "Parm/GB_Params.h"
 #include "Structure/Builder.h"
 #include "Structure/Creator.h"
 
@@ -12,6 +14,7 @@ int Exec_Sequence::generate_sequence(DataSet_Coords* OUT,
                                      Cpptraj::Structure::Creator const& creator)
 const
 {
+  std::string title;
   // First, get all units in order.
   typedef std::vector<DataSet_Coords*> Uarray;
   Uarray Units;
@@ -35,6 +38,9 @@ const
       mprintf("Warning: Unit '%s' has more than 1 frame. Only using first frame.\n", unit->legend());
     }
     Units.push_back( unit );
+    // Use the first unit name as title to match leap behavior
+    if (title.empty())
+      title = *it;
     total_natom += unit->Top().Natom();
   } // END loop over sequence
   mprintf("\tFound %zu units.\n", Units.size());
@@ -47,7 +53,7 @@ const
 
   Topology topOut;
   topOut.SetDebug( debug_ );
-  topOut.SetParmName( OUT->Meta().Name(), FileName() );
+  topOut.SetParmName( title, FileName() );
   Frame frameOut;
   mprintf("\tFinal structure should have %i atoms.\n", total_natom);
   frameOut.SetupFrame( total_natom );
@@ -213,50 +219,6 @@ const
   OUT->AddFrame( frameOut );
 
   if (buildFailed) return 1;
-/*
-  Topology combinedTop;
-  combinedTop.SetDebug( debug_ );
-  combinedTop.AppendTop( Units.front()->Top() );
-  //combinedTop.SetParmBox( Units // TODO
-  combinedTop.Brief("Sequence topology:");
-
-  Frame CombinedFrame = Units.front()->AllocateFrame();
-  Units.front()->GetFrame(0, CombinedFrame);
-
-  using namespace Cpptraj::Structure;
-  Builder builder;
-  builder.SetDebug( debug_ );
-  for (unsigned int idx = 1; idx < Units.size(); idx++) {
-    mprintf("\tConnect %s atom %i to %s atom %i\n",
-            Units[idx-1]->legend(), connectAt1[idx-1]+1,
-            Units[idx]->legend(),   connectAt0[idx]  +1);
-    Frame mol1frm = Units[idx]->AllocateFrame();
-    Units[idx]->GetFrame(0, mol1frm);
-    int bondat0 = connectAt1[idx-1];
-    int bondat1 = connectAt0[idx];
-    if (bondat0 < 0 || bondat1 < 0) {
-      mprinterr("Error: Invalid connect atom(s) between %s atom %i to %s atom %i\n",
-                Units[idx-1]->legend(), bondat0+1, Units[idx]->legend(), bondat1+1);
-      return 1;
-    }
-    if (builder.Combine( combinedTop, CombinedFrame, Units[idx]->Top(), mol1frm,
-                         connectAt1[idx-1], connectAt0[idx] )) {
-      mprinterr("Error: Sequence combine between units %u %s and %u %s failed.\n",
-                idx, Units[idx-1]->legend(), idx+1, Units[idx]->legend());
-      return 1;
-    }
-  }
-
-  // Generate angles and dihedrals
-  //if (combinedTop.Nbonds() > 0) {
-  //  if (Cpptraj::Structure::GenerateBondAngleTorsionArrays(combinedTop)) {
-  //    mprinterr("Error: Angle generation failed.\n");
-  //    return 1;
-  //  }
-  //}
-
-  OUT->CoordsSetup(combinedTop, CombinedFrame.CoordsInfo());
-  OUT->AddFrame( CombinedFrame );*/
 
   return 0;
 }
@@ -265,13 +227,16 @@ const
 void Exec_Sequence::Help() const
 {
   mprintf("\tname <output set name> <unit0> <unit1> ...\n"
+          "\t[gb <radii>] [verbose <#>]\n" 
           "\t[%s]\n"
           "\t[{%s} ...]\n"
-          "\t[{%s} ...]\n"
-          "  Create a molecule from a sequence of units.\n",
+          "\t[{%s} ...]\n",
           Cpptraj::Structure::Creator::other_keywords_,
           Cpptraj::Structure::Creator::template_keywords_,
           Cpptraj::Structure::Creator::parm_keywords_);
+  Cpptraj::Parm::PrintGbRadiiKeywords();
+  mprintf("  Create a molecule from a sequence of units.\n"
+          "  If parameter sets are loaded, parameters will be assigned to <output set name>.\n");
 }
 
 
@@ -281,18 +246,23 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
   debug_ = State.Debug();
 
   // Args
+  int verbose = argIn.getKeyInt("verbose", 0);
+  // GB radii set.
+  Cpptraj::Parm::GB_RadiiType gbradii = Cpptraj::Parm::MBONDI; // Default
+  std::string gbset = argIn.GetStringKey("gb");
+  if (!gbset.empty()) {
+    gbradii = Cpptraj::Parm::GbTypeFromKey( gbset );
+    if (gbradii == Cpptraj::Parm::UNKNOWN_GB) {
+      mprinterr("Error: Unknown GB radii set: %s\n", gbset.c_str());
+      return CpptrajState::ERR;
+    }
+  }
+  // Creator args
   Cpptraj::Structure::Creator creator(debug_);
   if (creator.InitCreator(argIn, State.DSL(), debug_)) {
     return CpptrajState::ERR;
   }
-
-/*
-  Sarray LibSetNames;
-  std::string libsetname = argIn.GetStringKey("libset");
-  while (!libsetname.empty()) {
-    LibSetNames.push_back( libsetname );
-    libsetname = argIn.GetStringKey("libset");
-  } */
+  // Output COORDS set name
   std::string dsname = argIn.GetStringKey("name");
   if (dsname.empty()) {
     mprinterr("Error: No output set name specified with 'name'\n");
@@ -303,7 +273,6 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: Could not create output COORDS set named '%s'\n", dsname.c_str());
     return CpptrajState::ERR;
   }
-
   // Get the actual sequence from remaining args.
   Sarray main_sequence;
   ArgList remaining = argIn.RemainingArgs();
@@ -318,12 +287,6 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // Info
-/*  if (!LibSetNames.empty()) {
-    mprintf("\tLibrary set names:");
-    for (Sarray::const_iterator it = LibSetNames.begin(); it != LibSetNames.end(); ++it)
-      mprintf(" %s", it->c_str());
-    mprintf("\n");
-  }*/
   mprintf("\tMain sequence:");
   for (Sarray::const_iterator it = main_sequence.begin(); it != main_sequence.end(); ++it)
     mprintf(" %s", it->c_str());
@@ -336,5 +299,30 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
-  return CpptrajState::OK;
+  // Assign parameters if needed
+  Exec::RetType ret = CpptrajState::OK;
+  if (creator.HasMainParmSet()) {
+    Topology& topOut = static_cast<Topology&>( *(OUT->TopPtr()) );
+    mprintf("\tAssigning parameters.\n");
+    //t_assign_.Start();
+    Cpptraj::Parm::AssignParams AP;
+    AP.SetDebug( debug_ );
+    AP.SetVerbose( verbose );
+    if ( AP.AssignParameters( topOut, *(creator.MainParmSetPtr()) ) ) {
+      mprinterr("Error: Could not assign parameters for '%s'.\n", topOut.c_str());
+      ret = CpptrajState::ERR;
+    }
+    // Assign GB parameters
+    if (Cpptraj::Parm::Assign_GB_Radii( topOut, gbradii )) {
+      mprinterr("Error: Could not assign GB parameters for '%s'\n", topOut.c_str());
+      ret = CpptrajState::ERR;
+    }
+    // Create empty arrays for the TREE, JOIN, and IROTAT arrays
+    topOut.AllocTreeChainClassification( );
+    topOut.AllocJoinArray();
+    topOut.AllocRotateArray();
+    //t_assign_.Stop();
+  }
+
+  return ret; 
 }

@@ -23,6 +23,8 @@ std::string GbAmberFlag(GB_RadiiType);
 std::string GbTypeStr(GB_RadiiType);
 /// \return GB radii type corresponding to string
 GB_RadiiType GbTypeFromKey(std::string const&);
+/// Print GB radii keywords to stdout
+void PrintGbRadiiKeywords();
 /// Assign GB radii
 int Assign_GB_Radii(Topology&, GB_RadiiType);
 }
