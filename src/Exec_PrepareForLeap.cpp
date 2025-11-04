@@ -464,7 +464,7 @@ int Exec_PrepareForLeap::DownloadParameters(ResStatArray& resStat, RmapType cons
 const
 {
   Cpptraj::Remote remote( parameterURL_ );
-  remote.SetDebug(1); // FIXME
+  remote.SetDebug(debug_);
   for (RmapType::const_iterator it = resNames.begin(); it != resNames.end(); ++it)
   {
     std::string rname = it->first.Truncated();
@@ -476,7 +476,8 @@ const
     // of the first letter of the residue.
     char lcase = tolower( rname[0] );
     std::string rfbase = std::string(1, lcase) + "/" + rname;
-    mprintf("DEBUG: Base name: %s\n", rfbase.c_str());
+    if (debug_ > 0)
+      mprintf("DEBUG: Base name: %s\n", rfbase.c_str());
     int err = 0;
     err += remote.DownloadFile( rfbase + ".mol2" );
     if (err == 0) {

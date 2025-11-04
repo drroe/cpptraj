@@ -92,16 +92,18 @@ int MetalCenterFinder::FindMetalCenters(Topology const& topIn, Frame const& fram
 
       double dist2 = DIST2_NoImage( xyz0, xyz1 );
       if (dist2 < dcut2_) {
-        mprintf("DEBUG: Potential metal center at %s, coordinating atom %s, dist %f Ang\n",
+        mprintf("\tPotential metal center at %s, coordinating atom %s, dist %f Ang\n",
                 topIn.AtomMaskName(metalAt).c_str(),
                 topIn.AtomMaskName(coordAt).c_str(),
                 sqrt(dist2));
         MCmap::iterator it = metalCenters_.lower_bound( metalAt );
         if (it == metalCenters_.end() || it->first != metalAt) {
-          mprintf("DEBUG: New metal center.\n");
+          if (debug_ > 0)
+            mprintf("DEBUG: New metal center.\n");
           it = metalCenters_.insert(it, MCpair(metalAt, Iarray(1, coordAt)));
         } else {
-          mprintf("DEBUG: Existing metal center.\n");
+          if (debug_ > 0)
+            mprintf("DEBUG: Existing metal center.\n");
           it->second.push_back( coordAt );
         }
       }
