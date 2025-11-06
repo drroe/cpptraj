@@ -1,7 +1,6 @@
 #include <algorithm> // std::min, std::max
 #include "Exec_CombineCoords.h"
 #include "CpptrajStdio.h"
-#include "Parm/Merge.h"
 
 void Exec_CombineCoords::Help() const {
   mprintf("\t<crd1> <crd2> ... [parmname <topname>] [crdname <crdname>]\n"
@@ -62,9 +61,7 @@ Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
   if (nobox) boxStatus = INVALID;
   Box combinedBox;
   size_t minSize = CRD[0]->Size();
-  Cpptraj::Parm::Merge merger;
-  merger.SetDebug( State.Debug() );
-  merger.SetDebug( verbose );
+  CombinedTop.SetDebug( State.Debug() );
   for (unsigned int setnum = 0; setnum != CRD.size(); ++setnum) {
     if (CRD[setnum]->Size() < minSize)
       minSize = CRD[setnum]->Size();
@@ -84,8 +81,8 @@ Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
         }
       }
     }
-    // Append
-    merger.AppendTop( CombinedTop, CRD[setnum]->Top() );
+    // Append. Do not reduce bond/angle params TODO should they be reduced?
+    CombinedTop.AppendTop( CRD[setnum]->Top(), verbose, false, false );
   }
   CombinedTop.SetParmBox( combinedBox );
   CombinedTop.Brief("Combined parm:");

@@ -2,7 +2,6 @@
 #include "CharMask.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords.h"
-#include "Parm/Merge.h"
 #include "Structure/Builder.h"
 #include "Structure/Zmatrix.h"
 #include <algorithm> // std::copy
@@ -531,15 +530,12 @@ int Exec_Graft::graft_rms(DataSet_Coords* outCoords,
                                     Sarray const& bond0Atoms, Sarray const& bond1Atoms)
 const
 {
-  Cpptraj::Parm::Merge merger;
-  merger.SetDebug( debug_ );
-  merger.SetVerbose( verbose_ );
-  // Combine topologies. Use target box info.
+  // Combine topologies. Use target box info. Do not merge bond/angle params TODO should they be reduced?
   Topology combinedTop;
   combinedTop.SetDebug( debug_ );
   combinedTop.SetParmName( outCoords->Meta().Name(), FileName() );
-  merger.AppendTop( combinedTop, mol0Top );
-  merger.AppendTop( combinedTop, mol1Top );
+  combinedTop.AppendTop( mol0Top, verbose_, false, false );
+  combinedTop.AppendTop( mol1Top, verbose_, false, false );
 
   // Add any bonds
   for (unsigned int ii = 0; ii != bond0Atoms.size(); ii++) {

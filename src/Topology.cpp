@@ -2,10 +2,16 @@
 #include <stack> // For large system molecule search
 #include "Topology.h"
 #include "AtomMask.h"
+#include "AtomType.h" // AppendTop()
 #include "CharMask.h"
 #include "Constants.h" // SMALL
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // integerToString 
+#include "StringRoutines.h" // integerToString
+#include "Parm/AssignParams.h" // AppendTop()
+#include "Parm/GetParams.h" // AppendTop()
+#include "Parm/Merge.h" // AppendTop()
+#include "Parm/ParmHolder.h" // AppendTop()
+#include "UpdateParameters.h" // AppendTop(). This include must be last
 
 const NonbondType Topology::LJ_EMPTY = NonbondType();
 
@@ -2270,9 +2276,121 @@ void Topology::StripDihedralParmArray(DihedralArray& newDihedralArray, std::vect
 
 
 // -----------------------------------------------------------------------------
+/** Append a topology to another with default options */
+int Topology::AppendTop(Topology const& NewTop) {
+  return AppendTop(NewTop, 0, false, false);
+}
 
+/** Append a topology to another */
+int Topology::AppendTop(Topology const& NewTop, int verbose_, bool reduce_bond_params, bool reduce_angle_params) {
+  using namespace Cpptraj::Parm;
+  Topology& topOut = *this;
 
-// -----------------------------------------------------------------------------
+  unsigned int atomOffset = (unsigned int)topOut.Natom();
+  unsigned int molOffset = (unsigned int)topOut.Nmol();
+  if (debug_ > 0)
+    mprintf("DEBUG: Appending '%s' to '%s' (atom offset= %u mol offset= %u)\n",
+            NewTop.c_str(), topOut.c_str(), atomOffset, molOffset);
+  //int resOffset = (int)residues_.size();
+
+  // Save nonbonded parameters from each topology
+  ParmHolder<AtomType> myAtomTypes, newAtomTypes;
+  ParmHolder<NonbondType> myNB, newNB;
+  ParmHolder<NonbondType> my14, new14;
+  ParmHolder<HB_ParmType> myHB, newHB;
+  ParmHolder<double> myLJC, newLJC;
+  Cpptraj::Parm::GetParams GP;
+  GP.SetDebug( debug_ );
+  GP.GetLJAtomTypes( myAtomTypes, myNB, my14, myLJC, myHB, topOut.Atoms(), topOut.Nonbond() );
+  GP.GetLJAtomTypes( newAtomTypes, newNB, new14, newLJC, newHB, NewTop.Atoms(), NewTop.Nonbond() );
+  // Create combined nonbond parameter set
+  int nAtomTypeUpdated = UpdateParameters< ParmHolder<AtomType> >( myAtomTypes, newAtomTypes, "atom type", verbose_ );
+  int nLJparamsUpdated = UpdateParameters< ParmHolder<NonbondType> >( myNB, newNB, "LJ 6-12", verbose_ );
+  int n14paramsUpdated = UpdateParameters< ParmHolder<NonbondType> >( my14, new14, "LJ 6-12 1-4", verbose_ );
+  int nljcparamsUpdated = UpdateParameters< ParmHolder<double> >( myLJC, newLJC, "LJ C", verbose_ );
+  int nHBparamsUpdated = UpdateParameters< ParmHolder<HB_ParmType> >( myHB, newHB, "LJ 10-12", verbose_ );
+  if (verbose_ > 0)
+    mprintf("\t%i atom types updated, %i LJ 6-12 params updated, %i 1-4 params updated, %i LJC params updated, %i LJ 10-12 params updated.\n",
+            nAtomTypeUpdated, nLJparamsUpdated, n14paramsUpdated, nljcparamsUpdated, nHBparamsUpdated);
+
+  // Add incoming topology bond/angle/dihedral/cmap arrays to this one.
+  MergeBondArrays(reduce_bond_params, topOut.ModifyBonds(), topOut.ModifyBondsH(), topOut.ModifyBondParm(), topOut.Atoms(),
+                  NewTop.Bonds(), NewTop.BondsH(), NewTop.BondParm(), NewTop.Atoms());
+  MergeAngleArrays(reduce_angle_params, topOut.ModifyAngles(), topOut.ModifyAnglesH(), topOut.ModifyAngleParm(), topOut.Atoms(),
+                   NewTop.Angles(), NewTop.AnglesH(), NewTop.AngleParm(), NewTop.Atoms());
+  MergeDihedralArrays(topOut.ModifyDihedrals(), topOut.ModifyDihedralsH(), topOut.ModifyDihedralParm(), topOut.Atoms(),
+                      NewTop.Dihedrals(), NewTop.DihedralsH(), NewTop.DihedralParm(), NewTop.Atoms());
+  MergeCmapArrays(topOut.ModifyCmap(), topOut.ModifyCmapGrid(), topOut.Atoms(), topOut.Residues(),
+                  NewTop.Cmap(), NewTop.CmapGrid(), NewTop.Atoms(), NewTop.Residues());
+  MergeBondArray(topOut.ModifyUB(), topOut.ModifyUBparm(), topOut.Atoms(),
+                 NewTop.UB(), NewTop.UBparm(), NewTop.Atoms());
+  MergeImproperArray(topOut.ModifyImpropers(), topOut.ModifyImproperParm(), topOut.Atoms(),
+                     NewTop.Impropers(), NewTop.ImproperParm(), NewTop.Atoms());
+
+  // Append incoming atoms to this topology.
+  for (AtArray::const_iterator atom = NewTop.begin(); atom != NewTop.end(); ++atom)
+  {
+    if (debug_ > 1)
+      mprintf("DEBUG: %6li %s %s %4i\n", atom-NewTop.begin(),
+              *(atom->Name()), *(atom->Type()), atom->TypeIndex());
+    Atom CurrentAtom = *atom;
+    Residue const& res = NewTop.Res( CurrentAtom.ResNum() );
+    // Bonds need to be cleared and re-added.
+    CurrentAtom.ClearBonds();
+    for (Atom::bond_iterator bat = atom->bondbegin(); bat != atom->bondend(); ++bat)
+      CurrentAtom.AddBondToIdx( *bat + atomOffset );
+
+    topOut.addTopAtom( CurrentAtom,
+                       Residue(res.Name(), res.OriginalResNum(), res.Icode(), res.ChainID()),
+                       atom->MolNum()+molOffset, NewTop.Mol(atom->MolNum()).IsSolvent() );
+  }
+
+  // EXTRA ATOM INFO
+  TopVecAppend<NameType> appendNameType;
+  appendNameType.Append( topOut.ModifyTreeChainClassification(), NewTop.TreeChainClassification(), NewTop.Natom() );
+  TopVecAppend<int> appendInt;
+  appendInt.Append( topOut.ModifyJoinArray(), NewTop.JoinArray(), NewTop.Natom() );
+  appendInt.Append( topOut.ModifyRotateArray(), NewTop.RotateArray(), NewTop.Natom() );
+  appendInt.Append( topOut.ModifyPdbSerialNum(), NewTop.PdbSerialNum(), NewTop.Natom() );
+  TopVecAppend<char> appendChar;
+  appendChar.Append( topOut.ModifyAtomAltLoc(), NewTop.AtomAltLoc(), NewTop.Natom() );
+  TopVecAppend<float> appendFloat;
+  appendFloat.Append( topOut.ModifyOccupancy(), NewTop.Occupancy(), NewTop.Natom() );
+  appendFloat.Append( topOut.ModifyBfactor(), NewTop.Bfactor(), NewTop.Natom() );
+
+  // Need to regenerate nonbonded info
+  if (verbose_ > 0)
+    mprintf("\tRegenerating nonbond parameters.\n");
+  AssignParams assign;
+  assign.SetDebug( debug_ );
+  assign.SetVerbose( verbose_ );
+  assign.AssignNonbondParams( topOut, myAtomTypes, myNB, my14, myLJC, myHB );
+
+  // The version of AddTopAtom() with molecule number already determines
+  // molecules and number of solvent molecules.
+  // Just need to determine the number of extra points.
+  topOut.DetermineNumExtraPoints();
+
+  // GB radii set string
+  if (!NewTop.GBradiiSet().empty()) {
+    if (topOut.GBradiiSet().empty())
+      topOut.SetGBradiiSet( NewTop.GBradiiSet() );
+    else {
+      // Do not repeat a GB radius string
+      std::size_t pos = topOut.GBradiiSet().find( NewTop.GBradiiSet() );
+      if (pos == std::string::npos) {
+        std::string newName = topOut.GBradiiSet() + "+" + NewTop.GBradiiSet();
+        if (newName.size() > 80) {
+          mprintf("Warning: New radius set name is > 80 characters: '%s'\n", newName.c_str());
+          mprintf("Warning: This will be truncated to 80 characters in an Amber Topology.\n");
+        }
+        topOut.SetGBradiiSet( newName );
+      }
+    }
+  }
+  return 0;
+}
+
 // -----------------------------------------------------------------------------
 /** \return True if any atom has a non-zero charge. */
 bool Topology::HasChargeInfo() const {

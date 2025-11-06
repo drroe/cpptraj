@@ -52,7 +52,7 @@ class AssignParams {
 #   else
       const;
 #   endif
-    // Assign nonbond parameters to topology. Used during Merge::AppendTop()
+    // Assign nonbond parameters to topology. Used during Topology::AppendTop()
     void AssignNonbondParams(Topology&,
                              ParmHolder<AtomType> const&,
                              ParmHolder<NonbondType> const&, ParmHolder<NonbondType> const&,

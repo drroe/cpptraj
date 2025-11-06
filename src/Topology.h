@@ -311,6 +311,10 @@ class Topology {
     Topology* ModifyByMap(std::vector<int> const& m) const {
       return ModifyByMap(m, true);
     }
+    /// Append topology to this one. Takes verbosity, reduce bond params, reduce angle params
+    int AppendTop(Topology const&, int, bool, bool);
+    /// Append topology to this one.  No verbosity, no reduce bond/angle params. PYTRAJ relies on this.
+    int AppendTop(Topology const&);
     /// Split selected atoms in a residue into a new residue, populate the atom map
     int SplitResidue(AtomMask const&, NameType const&, std::vector<int>&);
     /// Split selected atoms in a residue into a new residue

@@ -11,53 +11,59 @@ class DihedralArray;
 class DihedralParmArray;
 class CmapArray;
 class CmapGridArray;
-class Topology;
 namespace Cpptraj {
 namespace Parm {
-/// Used to merge Topology files.
+/// Routines used to merge Topology files.
 /** Compile with -DCPPTRAJ_DEBUG_MERGE for extra debug info. */
-class Merge {
-  public:
-    /// CONSTRUCTOR
-    Merge();
-    /// Set debug level
-    void SetDebug(int);
-    /// Set parameter verbosity
-    void SetVerbose(int);
-    /// Indicate bond parameters should be consolidated.
-    void SetReduceBondParams(bool);
-    /// Indicate angle parameters should be consolidated.
-    void SetReduceAngleParams(bool);
-    /// Append topology to this one.
-    int AppendTop( Topology&, Topology const& ) const;
-  private:
     /// Shorthand for array of Atoms
     typedef std::vector<Atom> AtArray;
     /// Shorthand for array of residues
     typedef std::vector<Residue> ResArray;
     /// Merge two pairs of bond arrays and their parameters.
-    void MergeBondArrays(BondArray&, BondArray&, BondParmArray&, AtArray const&,
-                         BondArray const&, BondArray const&, BondParmArray const&, AtArray const&) const;
+    void MergeBondArrays(bool, BondArray&, BondArray&, BondParmArray&, AtArray const&,
+                         BondArray const&, BondArray const&, BondParmArray const&, AtArray const&);
     /// Merge two pairs of angle arrays and their parameters.
-    void MergeAngleArrays(AngleArray&, AngleArray&, AngleParmArray&, AtArray const&,
-                          AngleArray const&, AngleArray const&, AngleParmArray const&, AtArray const&) const;
+    void MergeAngleArrays(bool, AngleArray&, AngleArray&, AngleParmArray&, AtArray const&,
+                          AngleArray const&, AngleArray const&, AngleParmArray const&, AtArray const&);
     /// Merge two pairs of dihedral arrays and their parameters.
     void MergeDihedralArrays(DihedralArray&, DihedralArray&, DihedralParmArray&, AtArray const&,
-                             DihedralArray const&, DihedralArray const&, DihedralParmArray const&, AtArray const&) const;
+                             DihedralArray const&, DihedralArray const&, DihedralParmArray const&, AtArray const&);
     /// Merge cmap arrays and their parameters
     void MergeCmapArrays(CmapArray&, CmapGridArray&, AtArray const&, ResArray const&,
-                         CmapArray const&, CmapGridArray const&, AtArray const&, ResArray const&) const;
+                         CmapArray const&, CmapGridArray const&, AtArray const&, ResArray const&);
     /// Merge two bond arrays and their parameters
     void MergeBondArray(BondArray&, BondParmArray&, AtArray const&,
-                        BondArray const&, BondParmArray const&, AtArray const&) const;
+                        BondArray const&, BondParmArray const&, AtArray const&);
     /// Merge two improper arrays and their parameters
     void MergeImproperArray(DihedralArray&, DihedralParmArray&, AtArray const&,
-                            DihedralArray const&, DihedralParmArray const&, AtArray const&) const;
+                            DihedralArray const&, DihedralParmArray const&, AtArray const&);
 
-    int debug_;
-    int verbose_;
-    bool reduce_bond_params_; ///< If true, consolidate bond parameters TODO always?
-    bool reduce_angle_params_; ///< If true, consolidate angle parameters TODO always?
+// -----------------------------------------------------------------------------
+/** This template can be used when doing Append() on a generic std::vector array
+  * of type T. The array will be appended to a given array of the same type.
+  * If one is empty and the other is not, values will be filled in if necessary.
+  */
+template <class T> class TopVecAppend {
+  public:
+    /// CONSTRUCTOR
+    TopVecAppend() {}
+    /// Append current array to given array of same type
+    void Append(std::vector<T>& arrayOut, std::vector<T> const& arrayToAdd, unsigned int expectedSize)
+    {
+      if (arrayToAdd.empty() && arrayOut.empty()) {
+        // Both arrays are empty. Nothing to do.
+        return;
+      } else if (arrayToAdd.empty()) {
+        // The current array is empty but the given array is not. Fill in 
+        // array to append with blank values.
+        for (unsigned int idx = 0; idx != expectedSize; idx++)
+          arrayOut.push_back( T() );
+      } else {
+        // Append current array to array to given array. TODO use std::copy?
+        for (typename std::vector<T>::const_iterator it = arrayToAdd.begin(); it != arrayToAdd.end(); ++it)
+          arrayOut.push_back( *it );
+      }
+    }
 };
 }
 }

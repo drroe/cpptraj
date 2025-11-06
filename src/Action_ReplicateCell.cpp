@@ -1,7 +1,6 @@
 #include "Action_ReplicateCell.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords.h"
-#include "Parm/Merge.h"
 
 // CONSTRUCTOR
 Action_ReplicateCell::Action_ReplicateCell() :
@@ -160,13 +159,10 @@ Action::RetType Action_ReplicateCell::Setup(ActionSetup& setup) {
     // Set up topology and frame.
     Topology* stripParm = setup.Top().modifyStateByMask( Mask1_ );
     if (stripParm == 0) return Action::ERR;
-    Cpptraj::Parm::Merge merger;
-    merger.SetDebug( debug_ );
-    merger.SetVerbose( verbose_ );
-    merger.SetReduceBondParams( true );
-    merger.SetReduceAngleParams( true );
+    combinedTop_.SetDebug( debug_ );
+    // Merge topologies, reduce bond and angle params
     for (int cell = 0; cell != ncopies_; cell++)
-      merger.AppendTop( combinedTop_, *stripParm );
+      combinedTop_.AppendTop( *stripParm, verbose_, true, true );
     combinedTop_.Brief("Combined parm:");
     delete stripParm;
     topWriter_.ModifyTop( &combinedTop_ );
