@@ -2044,6 +2044,7 @@ int Topology::SplitResidue(AtomMask const& maskIn, NameType const& newName)
   return SplitResidue(maskIn, newName, atomMap);
 }
 
+// -----------------------------------------------------------------------------
 /** \return BondArray with bonds for which both atoms are still present.
   * \param atomMap format Map[oldAtom]=newAtom
   */
