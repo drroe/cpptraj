@@ -78,16 +78,25 @@ Exec::RetType Exec_Mutate::Execute(CpptrajState& State, ArgList& argIn)
   for (std::vector<int>::const_iterator rnum = resnums.begin(); rnum != resnums.end(); ++rnum)
   {
     Residue const& currentRes = CRD->Top().Res( *rnum );
+    int atomsToRemove = 0;
     for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); at++)
     {
       // Does this atom exist in the template?
       int idx = UNIT->Top().FindAtomInResidue(0, CRD->Top()[at].Name());
-      if (idx < 0)
+      if (idx < 0) {
         toRemove.AddSelectedAtom( at );
+        atomsToRemove++;
+      }
       if (idx > -1)
         mprintf("DEBUG: Found atom %s in template.\n", CRD->Top().AtomMaskName(at).c_str());
       else
         mprintf("DEBUG: Atom %s not in template.\n", CRD->Top().AtomMaskName(at).c_str());
+    }
+    mprintf("DEBUG: Removing %i atoms from residue %i\n", atomsToRemove, *rnum + 1 );
+    if (currentRes.NumAtoms() - atomsToRemove < 1) {
+      mprinterr("Error: Number of atoms to remove %i >= number of atoms in residue %s (%i)\n",
+                atomsToRemove, CRD->Top().TruncResNameNum(*rnum).c_str(), currentRes.NumAtoms());
+      return CpptrajState::ERR;
     }
   }
   toRemove.InvertMask();
