@@ -90,6 +90,16 @@ Exec::RetType Exec_Mutate::Execute(CpptrajState& State, ArgList& argIn)
         mprintf("DEBUG: Atom %s not in template.\n", CRD->Top().AtomMaskName(at).c_str());
     }
   }
+  toRemove.InvertMask();
+
+  Topology* newTop = CRD->Top().modifyStateByMask( toRemove );
+  if (newTop == 0) {
+    mprinterr("Error: Could not remove atoms from '%s'\n", CRD->legend());
+    return CpptrajState::ERR;
+  }
+  newTop->Summary();
+
+  if (newTop != 0) delete newTop;
 
   return CpptrajState::OK;
 }
