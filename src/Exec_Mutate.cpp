@@ -56,5 +56,40 @@ Exec::RetType Exec_Mutate::Execute(CpptrajState& State, ArgList& argIn)
   }
   mprintf("\tMutate residues selected by '%s' to '%s'\n", resmask.c_str(), UNIT->legend());
 
+  AtomMask mask;
+  if (mask.SetMaskString( resmask )) {
+    mprinterr("Error: Could not set mask '%s'\n", resmask.c_str());
+    return CpptrajState::ERR;
+  }
+  if (CRD->Top().SetupIntegerMask( mask )) {
+    mprinterr("Error: Could not setup mask '%s'\n", mask.MaskString());
+    return CpptrajState::ERR;
+  }
+  if (mask.None()) {
+    mprinterr("Error: Nothing selected by mask '%s'\n", mask.MaskString());
+    return CpptrajState::ERR;
+  }
+  //mask.MaskInfo();
+  std::vector<int> resnums = CRD->Top().ResnumsSelectedBy( mask );
+  mprintf("\t%zu residues selected by '%s'\n", resnums.size(), mask.MaskString());
+
+  AtomMask toRemove;
+  toRemove.SetNatoms( CRD->Top().Natom() );
+  for (std::vector<int>::const_iterator rnum = resnums.begin(); rnum != resnums.end(); ++rnum)
+  {
+    Residue const& currentRes = CRD->Top().Res( *rnum );
+    for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); at++)
+    {
+      // Does this atom exist in the template?
+      int idx = UNIT->Top().FindAtomInResidue(0, CRD->Top()[at].Name());
+      if (idx < 0)
+        toRemove.AddSelectedAtom( at );
+      if (idx > -1)
+        mprintf("DEBUG: Found atom %s in template.\n", CRD->Top().AtomMaskName(at).c_str());
+      else
+        mprintf("DEBUG: Atom %s not in template.\n", CRD->Top().AtomMaskName(at).c_str());
+    }
+  }
+
   return CpptrajState::OK;
 }
