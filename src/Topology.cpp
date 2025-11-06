@@ -1,11 +1,11 @@
 #include <algorithm> // find, copy, fill
 #include <stack> // For large system molecule search
 #include "Topology.h"
-#include "CpptrajStdio.h"
-#include "StringRoutines.h" // integerToString 
-#include "Constants.h" // SMALL
 #include "AtomMask.h"
 #include "CharMask.h"
+#include "Constants.h" // SMALL
+#include "CpptrajStdio.h"
+#include "StringRoutines.h" // integerToString 
 
 const NonbondType Topology::LJ_EMPTY = NonbondType();
 
