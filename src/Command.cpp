@@ -60,6 +60,7 @@
 #include "Exec_Zmatrix.h"
 #include "Exec_Sequence.h"
 #include "Exec_Build.h"
+#include "Exec_Mutate.h"
 // ----- TRAJECTORY ------------------------------------------------------------
 #include "Exec_Traj.h"
 // ----- TOPOLOGY --------------------------------------------------------------
@@ -289,6 +290,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_Graft(),            Cmd::EXE, 1, "graft");
   Command::AddCmd( new Exec_LoadCrd(),          Cmd::EXE, 1, "loadcrd" );
   Command::AddCmd( new Exec_LoadTraj(),         Cmd::EXE, 1, "loadtraj" );
+  Command::AddCmd( new Exec_Mutate(),           Cmd::EXE, 1, "mutate" );
   Command::AddCmd( new Exec_PermuteDihedrals(), Cmd::EXE, 1, "permutedihedrals" );
   Command::AddCmd( new Exec_PrepareForLeap(),   Cmd::EXE, 1, "prepareforleap" );
   Command::AddCmd( new Exec_RotateDihedral(),   Cmd::EXE, 1, "rotatedihedral" );

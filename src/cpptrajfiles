@@ -299,6 +299,7 @@ COMMON_SOURCES= \
         Exec_HmassRepartition.cpp \
         Exec_LoadCrd.cpp \
         Exec_LoadTraj.cpp \
+        Exec_Mutate.cpp \
         Exec_ParallelAnalysis.cpp \
         Exec_ParmBox.cpp \
         Exec_ParmSolvent.cpp \
