@@ -181,6 +181,21 @@ const
   for (std::vector<int>::const_iterator rnum = resnums.begin(); rnum != resnums.end(); ++rnum)
     newTop->SetRes( *rnum ).SetName( templateName );
 
+  // Set up output coords
+  OUT->CoordsSetup( *newTop, CRD->CoordsInfo() );
+  Frame newFrame;
+  newFrame.SetupFrameV(newTop->Atoms(), CRD->CoordsInfo());
+
+  // Strip all input coords frames
+  Frame inputFrame = CRD->AllocateFrame();
+  for (unsigned int frm = 0; frm != CRD->Size(); ++frm)
+  {
+    CRD->GetFrame(frm, inputFrame);
+
+    newFrame.SetFrame(inputFrame, toKeep);
+    OUT->AddFrame(newFrame);
+  }
+
   if (newTop != 0) delete newTop;
 
   return CpptrajState::OK;
