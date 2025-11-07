@@ -33,16 +33,32 @@ int Exec_Desc::desc_atom(Topology const& topIn, int iat) {
 // Exec_Desc::Help()
 void Exec_Desc::Help() const
 {
-
+  mprintf("\t{%s | <COORDS set>} [<mask>]\n"
+          "  Print selected atoms from topology/COORDS set in LEaP style format.\n",
+          DataSetList::TopIdxArgs);
 }
 
 // Exec_Desc::Execute()
 Exec::RetType Exec_Desc::Execute(CpptrajState& State, ArgList& argIn)
 {
+  ArgList originalArgs = argIn;
   // Get Topology
   Topology* parm = State.DSL().GetTopByIndex( argIn );
   if (parm == 0) {
-    mprinterr("Error: No topologies loaded.\n");
+    // See if a COORDS set was specified
+    DataSetList sets = State.DSL().SelectGroupSets( originalArgs.GetStringNext(), DataSet::COORDINATES );
+    DataSet_Coords* ds = 0;
+    if (sets.size() > 0) {
+      ds = (DataSet_Coords*)sets[0];
+      if (sets.size() > 1)
+        mprintf("Warning: Multiple sets selected, only using %s\n", ds->legend());
+    }
+    if (ds != 0)
+      parm = ds->TopPtr();
+    argIn = originalArgs;
+  }
+  if (parm == 0) {
+    mprinterr("Error: No topologies loaded/COORDS sets found.\n");
     return CpptrajState::ERR;
   }
   mprintf("\tUsing topology: %s\n", parm->c_str());
