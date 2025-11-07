@@ -561,6 +561,9 @@ test.minmaxdist:
 test.watershellclosest:
 	@-cd Test_Watershell_Closest && ./RunTest.sh $(OPT)
 
+test.mutate:
+	@-cd Test_Mutate && ./RunTest.sh $(OPT)
+
 # Only GPU-specific tests should go here
 GPUTESTS=test.closest \
          test.solvent \
@@ -745,7 +748,8 @@ COMPLETETESTS=test.general \
               test.enedecomp \
               test.addatom \
               test.minmaxdist \
-              test.watershellclosest
+              test.watershellclosest \
+              test.mutate
 
 test.all:
 	$(MAKE) test.complete summary
