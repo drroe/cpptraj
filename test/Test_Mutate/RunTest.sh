@@ -33,5 +33,6 @@ quit
 EOF
 RunCpptraj "Mutate test, new coords"
 DoTest Mutated.pdb.save Out.pdb
+DoTest Built.mol2.save Built.mol2
 
 EndTest
