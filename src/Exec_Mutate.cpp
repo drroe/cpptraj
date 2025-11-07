@@ -5,7 +5,7 @@
 // Exec_Mutate::Help()
 void Exec_Mutate::Help() const
 {
-  mprintf("\tcrdset <COORDS set> resmask <mask>\n"
+  mprintf("\tcrdset <COORDS set> resmask <mask> [outset <output COORDS>]\n"
           "\t[%s]\n"
           "\t[{%s} ...]\n"
           "\t[{%s} ...]\n",
@@ -37,6 +37,40 @@ Exec::RetType Exec_Mutate::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
   mprintf("\tUsing set '%s'\n", CRD->legend());
+
+  bool modify_input_coords = true;
+  DataSet_Coords* OUT = 0;
+  std::string outset = argIn.GetStringKey("outset");
+  if (!outset.empty()) {
+    OUT = (DataSet_Coords*)State.DSL().AddSet( DataSet::COORDS, outset );
+    if (OUT == 0) {
+      mprinterr("Error: Could not allocate output set '%s'\n", outset.c_str());
+      return CpptrajState::ERR;
+    }
+    modify_input_coords = false;
+    mprintf("\tOutput set: %s\n", OUT->legend());
+  } else {
+    // Modifying input COORDS set
+    if (State.DSL().PopSet( CRD ) == 0) {
+      mprinterr("Internal Error: Exec_Mutate::Execute: Could not pop input COORDS set off master DataSetList()\n");
+      return CpptrajState::ERR;
+    }
+    OUT = (DataSet_Coords*)State.DSL().AddSet( DataSet::COORDS, CRD->Meta() );
+    mprintf("\tWill modify COORDS set %s\n", CRD->legend());
+  }
+
+  CpptrajState::RetType ret = doMutate( State, argIn, CRD, OUT, creator );
+
+  if (modify_input_coords && CRD != 0) delete CRD;
+
+  return ret;
+}
+
+/** Actually do the mutation(s) */
+CpptrajState::RetType Exec_Mutate::doMutate(CpptrajState& State, ArgList& argIn, DataSet_Coords* CRD, DataSet_Coords* OUT,
+                                           Cpptraj::Structure::Creator const& creator)
+const
+{
 
   std::string resmask = argIn.GetStringKey("resmask");
   if (resmask.empty()) {
@@ -143,6 +177,9 @@ Exec::RetType Exec_Mutate::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
   newTop->Summary();
+  // Change the residue names
+  for (std::vector<int>::const_iterator rnum = resnums.begin(); rnum != resnums.end(); ++rnum)
+    newTop->SetRes( *rnum ).SetName( templateName );
 
   if (newTop != 0) delete newTop;
 
