@@ -73,8 +73,43 @@ Exec::RetType Exec_Mutate::Execute(CpptrajState& State, ArgList& argIn)
   std::vector<int> resnums = CRD->Top().ResnumsSelectedBy( mask );
   mprintf("\t%zu residues selected by '%s'\n", resnums.size(), mask.MaskString());
 
-  AtomMask toRemove;
-  toRemove.SetNatoms( CRD->Top().Natom() );
+  AtomMask toKeep;
+  toKeep.SetNatoms( CRD->Top().Natom() );
+  std::vector<NameType> SourceAtomNames;
+  SourceAtomNames.resize( CRD->Top().Natom() );
+  std::vector<int>::const_iterator rnum = resnums.begin();
+  for (int ires = 0; ires != CRD->Top().Nres(); ires++)
+  {
+    // Is this a selected res?
+    if (rnum != resnums.end() && ires == *rnum) {
+      // Selected res. Keep only atoms present in template
+      ++rnum;
+      int nTgtAtomsMissing = 0;
+      std::vector<int> templateToRes = creator.MapAtomsToTemplate( CRD->Top(), ires, UNIT, SourceAtomNames, nTgtAtomsMissing );
+      //if (debug_ > 1) {
+        mprintf("\tResidue %i Atom map:\n", ires + 1);
+        // DEBUG - print map
+        for (int iref = 0; iref != UNIT->Top().Natom(); iref++) {
+          mprintf("\t\t%6i %6s =>", iref+1, *(UNIT->Top()[iref].Name()));
+          if (templateToRes[iref] == -1)
+            mprintf(" No match\n");
+          else
+            mprintf(" %6i %6s\n", templateToRes[iref]+1, *(CRD->Top()[templateToRes[iref]].Name()));
+        }
+      //}
+      // For each template atom, only keep what was mapped
+      for (int iref = 0; iref != UNIT->Top().Natom(); iref++)
+        if (templateToRes[iref] > -1)
+          toKeep.AddSelectedAtom( templateToRes[iref] );
+    } else {
+      // Not a selected res. Keep all atoms
+      Residue const& currentRes = CRD->Top().Res( ires );
+      for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); ++at)
+        toKeep.AddSelectedAtom( at );
+    }
+  }
+
+/*
   for (std::vector<int>::const_iterator rnum = resnums.begin(); rnum != resnums.end(); ++rnum)
   {
     Residue const& currentRes = CRD->Top().Res( *rnum );
@@ -100,8 +135,9 @@ Exec::RetType Exec_Mutate::Execute(CpptrajState& State, ArgList& argIn)
     }
   }
   toRemove.InvertMask();
-
   Topology* newTop = CRD->Top().modifyStateByMask( toRemove );
+*/
+  Topology* newTop = CRD->Top().modifyStateByMask( toKeep );
   if (newTop == 0) {
     mprinterr("Error: Could not remove atoms from '%s'\n", CRD->legend());
     return CpptrajState::ERR;

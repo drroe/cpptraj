@@ -379,3 +379,74 @@ const
   }
   return false;
 }
+
+/** Map atoms in residue to template. */
+std::vector<int> Creator::MapAtomsToTemplate(Topology const& topIn,
+                                                int rnum,
+                                                DataSet_Coords* resTemplate,
+                                                std::vector<NameType>& sourceAtomNames,
+                                                int& nTgtAtomsMissing)
+const
+{
+  nTgtAtomsMissing = 0;
+  std::vector<int> mapOut(resTemplate->Top().Natom(), -1);
+  mapOut.reserve( resTemplate->Top().Natom() );
+  Residue const& resIn = topIn.Res(rnum);
+  // For each atom in topIn, find a template atom
+  for (int itgt = resIn.FirstAtom(); itgt != resIn.LastAtom(); itgt++)
+  {
+    NameType const& tgtName = topIn[itgt].Name();
+    //mprintf("DEBUG: Search for atom %s\n", *tgtName);
+    bool found = false;
+    // Check if this atom has an alias.
+    NameType alias;
+    bool has_alias = GetAlias( alias, tgtName );
+//    if (creator.GetAlias( alias, tgtName )) {
+//      mprintf("DEBUG: Atom %s alias is %s\n", *tgtName, *alias);
+//    }
+    // See if tgtName matches a reference (template) atom name.
+    for (int iref = 0; iref != resTemplate->Top().Natom(); iref++)
+    {
+      NameType const& refName = resTemplate->Top()[iref].Name();
+      if (refName == tgtName) {
+        sourceAtomNames[itgt] = tgtName;
+        mapOut[iref] = itgt;
+        found = true;
+        break;
+      }
+    }
+    if (!found && has_alias) {
+      // See if alias matches a reference (template) atom name.
+      for (int iref = 0; iref != resTemplate->Top().Natom(); iref++) {
+        NameType const& refName = resTemplate->Top()[iref].Name();
+        if (refName == alias) {
+          sourceAtomNames[itgt] = alias;
+          mapOut[iref] = itgt;
+          found = true;
+          break;
+        }
+      } // END search template for alias
+    } // END do alias search
+    if (!found) {
+      mprintf("Warning: Input atom %s was not mapped to a template atom.\n",
+              topIn.TruncAtomResNameOnumId( itgt ).c_str());
+      nTgtAtomsMissing++;
+    }
+  }
+/*
+  for (int iref = 0; iref != resTemplate->Top().Natom(); iref++)
+  {
+    // Find this atom name in topIn
+    NameType const& refName = resTemplate->Top()[iref].Name();
+    int iat = -1;
+    for (int itgt = resIn.FirstAtom(); itgt != resIn.LastAtom(); itgt++) {
+      if ( refName == topIn[itgt].Name() ) {
+        iat = itgt;
+        break;
+      }
+    }
+    
+    mapOut.push_back( iat );
+  }*/
+  return mapOut;
+}

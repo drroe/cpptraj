@@ -12,6 +12,7 @@ class DataSet_Parameters;
 class DataSet_PdbResMap;
 class DataSetList;
 class NameType;
+class Topology;
 namespace Cpptraj {
 namespace Structure {
 /// Used to create a system from individual units
@@ -50,6 +51,9 @@ class Creator {
     DataSet_Coords* IdTemplateFromResname(NameType const&, TerminalType) const;
     /// Get name map if its present
     bool GetAlias(NameType&, NameType const&) const;
+    /// Create an atom map of source atom names to template names
+    std::vector<int> MapAtomsToTemplate(Topology const&, int, DataSet_Coords*,
+                                        std::vector<NameType>&, int&) const;
   private:
     /// Get templates
     int getTemplates(ArgList&, DataSetList const&);
