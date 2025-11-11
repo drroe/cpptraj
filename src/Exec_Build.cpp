@@ -268,7 +268,16 @@ const
         if (map[iref] != -1)
           pdb[map[iref]-currentRes.FirstAtom()] = iref;
       }
+      mprintf("\t  PDB atom map:\n");
+      for (int itgt = 0; itgt != currentRes.NumAtoms(); itgt++) {
+        mprintf("\t\t%6i %6s =>", itgt+1, *(topIn[itgt+currentRes.FirstAtom()].Name()));
+        if (pdb[itgt] == -1)
+          mprintf(" Not in template\n");
+        else
+          mprintf(" %6i %6s\n", pdb[itgt]+1, *(resTemplate->Top()[pdb[itgt]].Name()));
+      }
       bool atomsNeedBuilding = false;
+      // Loop over template atoms
       for (int iref = 0; iref != resTemplate->Top().Natom(); iref++) {
         // Track intra-residue bonds from the template.
         Atom templateAtom = resTemplate->Top()[iref];
@@ -316,7 +325,7 @@ const
             }
           }
         }
-      }
+      } // END loop over template atoms
       if (nTgtAtomsMissing > 0)
         mprintf("\t%i source atoms not mapped to template.\n", nTgtAtomsMissing);
       // Save atom offset if atoms need to be built
