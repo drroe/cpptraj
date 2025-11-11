@@ -51,6 +51,8 @@ class Creator {
     DataSet_Coords* IdTemplateFromResname(NameType const&, TerminalType) const;
     /// Get name map if its present
     bool GetAlias(NameType&, NameType const&) const;
+    /// Count atoms missing from template
+    int CountAtomsMissingFromTemplate(Topology const&, int, DataSet_Coords*) const;
     /// Create an atom map of source atom names to template names
     std::vector<int> MapAtomsToTemplate(Topology const&, int, DataSet_Coords*,
                                         std::vector<NameType>&, int&) const;

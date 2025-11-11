@@ -380,6 +380,54 @@ const
   return false;
 }
 
+/** Count missing atoms from template */
+int Creator::CountAtomsMissingFromTemplate(Topology const& topIn,
+                                           int rnum,
+                                           DataSet_Coords* resTemplate)
+const
+{
+  int nTgtAtomsMissing = 0;
+  Residue const& resIn = topIn.Res(rnum);
+  // For each atom in topIn, find a template atom
+  for (int itgt = resIn.FirstAtom(); itgt != resIn.LastAtom(); itgt++)
+  {
+    NameType const& tgtName = topIn[itgt].Name();
+    //mprintf("DEBUG: Search for atom %s\n", *tgtName);
+    bool found = false;
+    // Check if this atom has an alias.
+    NameType alias;
+    bool has_alias = GetAlias( alias, tgtName );
+//    if (creator.GetAlias( alias, tgtName )) {
+//      mprintf("DEBUG: Atom %s alias is %s\n", *tgtName, *alias);
+//    }
+    // See if tgtName matches a reference (template) atom name.
+    for (int iref = 0; iref != resTemplate->Top().Natom(); iref++)
+    {
+      NameType const& refName = resTemplate->Top()[iref].Name();
+      if (refName == tgtName) {
+        found = true;
+        break;
+      }
+    }
+    if (!found && has_alias) {
+      // See if alias matches a reference (template) atom name.
+      for (int iref = 0; iref != resTemplate->Top().Natom(); iref++) {
+        NameType const& refName = resTemplate->Top()[iref].Name();
+        if (refName == alias) {
+          found = true;
+          break;
+        }
+      } // END search template for alias
+    } // END do alias search
+    if (!found) {
+      //mprintf("Warning: Input atom %s was not mapped to a template atom.\n",
+      //        topIn.TruncAtomResNameOnumId( itgt ).c_str());
+      nTgtAtomsMissing++;
+    }
+  }
+  return nTgtAtomsMissing;
+}
+
 /** Map atoms in residue to template. */
 std::vector<int> Creator::MapAtomsToTemplate(Topology const& topIn,
                                                 int rnum,

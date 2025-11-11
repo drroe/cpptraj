@@ -22,6 +22,7 @@ Exec_Build::Exec_Build() :
   debug_(0),
   check_box_natom_(5000), // TODO make user specifiable
   check_structure_(true),
+  keepMissingSourceAtoms_(false),
   sugarBuilder_(0),
   outCrdPtr_(0)
 {}
@@ -118,6 +119,9 @@ const
       if (debug_ > 0)
         mprintf("\tTemplate %s being used for residue %s\n",
                 resTemplate->legend(), topIn.TruncResNameOnumId(ires).c_str());
+      int nTgtAtomsMissing = 0;
+      if (keepMissingSourceAtoms_)
+        nTgtAtomsMissing = creator.CountAtomsMissingFromTemplate( topIn, ires, resTemplate );
       // Save the head and tail atoms
       AssociatedData* ad = resTemplate->GetAssociatedData(AssociatedData::CONNECT);
       if (ad == 0) {
@@ -141,7 +145,7 @@ const
           resTailAtoms.push_back( -1 );
       }
       // Update # of atoms
-      newNatom += resTemplate->Top().Natom();
+      newNatom += resTemplate->Top().Natom() + nTgtAtomsMissing;
     }
     ResTemplates.push_back( resTemplate );
   }
@@ -326,8 +330,51 @@ const
           }
         }
       } // END loop over template atoms
-      if (nTgtAtomsMissing > 0)
+      if (nTgtAtomsMissing > 0) {
         mprintf("\t%i source atoms not mapped to template.\n", nTgtAtomsMissing);
+        if (keepMissingSourceAtoms_) {
+          ResAtArray tmpBonds;
+          for (int itgt = 0; itgt != currentRes.NumAtoms(); itgt++) {
+            if (pdb[itgt] == -1) {
+              // This PDB atom had no equivalent in the residue template
+              int pdbat = itgt + currentRes.FirstAtom();
+              Atom pdbAtom = topIn[pdbat];
+              mprintf("\t\tInput atom %s missing from template.\n",*(pdbAtom.Name()));
+              // Bonds
+              for (Atom::bond_iterator bit = pdbAtom.bondbegin(); bit != pdbAtom.bondend(); ++bit)
+              {
+                Atom bndAt = topIn[*bit];
+                mprintf("\t\t\tBonded to %s\n", *(bndAt.Name()));
+                tmpBonds.push_back( ResAtPair(ires, pdbAtom.Name()) );
+                tmpBonds.push_back( ResAtPair(bndAt.ResNum(), bndAt.Name()) );
+              }
+              // Add missing atom
+              pdbAtom.ClearBonds();
+              topOut.AddTopAtom( pdbAtom, currentRes );
+              frameOut.AddVec3( Vec3(frameIn.XYZ(pdbat)) );
+              hasPosition.push_back( true );
+              if (has_bfac)
+                topOut.AddBfactor( topIn.Bfactor()[pdbat] );
+              if (has_occ)
+                topOut.AddOccupancy( topIn.Occupancy()[pdbat] );
+              if (has_pdbn)
+                topOut.AddPdbSerialNum( topIn.PdbSerialNum()[pdbat] );
+              
+            }
+          } // END loop over input residue atoms
+          // Add Bonds
+          for (ResAtArray::const_iterator bit = tmpBonds.begin(); bit != tmpBonds.end(); ++bit)
+          {
+            int ba0 = topOut.FindAtomInResidue( bit->first, bit->second );
+            ++bit;
+            int ba1 = topOut.FindAtomInResidue( bit->first, bit->second );
+            if (ba0 < ba1) {
+              mprintf("\t\tAdd bond %i %s -- %i %s\n", ba0+1, *(topOut[ba0].Name()), ba1+1, *(topOut[ba1].Name()));
+              topOut.AddBond( ba0, ba1 );
+            }
+          } // END loop over bonds
+        }
+      }
       // Save atom offset if atoms need to be built
       if (atomsNeedBuilding)
         AtomOffsets.push_back( atomOffset );
@@ -717,7 +764,7 @@ const
 void Exec_Build::Help() const
 {
   mprintf("\tname <output COORDS> crdset <COORDS set> [frame <#>]\n"
-          "\t[title <title>] [gb <radii>] [verbose <#>]\n"
+          "\t[title <title>] [gb <radii>] [verbose <#>] [keepmissingatoms]\n"
           "\t[parmout <topology file>] [crdout <coord file>]\n"
           "\t[%s]\n"
           "\t[{%s} ...]\n"
@@ -806,6 +853,12 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
 
   std::string solventResName = argIn.GetStringKey("solventresname", "HOH");
   mprintf("\tSolvent residue name: %s\n", solventResName.c_str());
+
+  keepMissingSourceAtoms_ = argIn.hasKey("keepmissingatoms");
+  if (keepMissingSourceAtoms_)
+    mprintf("\tInput atoms missing from templates will be kept.\n");
+  else
+    mprintf("\tInput atoms missing from templates will be ignored.\n");
 
   // Do histidine detection before H atoms are removed
   t_hisDetect_.Start();
