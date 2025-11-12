@@ -23,6 +23,7 @@ Exec_Build::Exec_Build() :
   check_box_natom_(5000), // TODO make user specifiable
   check_structure_(true),
   keepMissingSourceAtoms_(false),
+  requireAllInputAtoms_(false),
   sugarBuilder_(0),
   outCrdPtr_(0)
 {}
@@ -186,6 +187,7 @@ const
   SourceAtomNames.resize( topIn.Natom() );
 
   // Loop for setting up atoms in the topology from residues or residue templates.
+  int nAtomsNotInTemplates = 0;
   int nRefAtomsMissing = 0;
   int nAtomsMissingTypes = 0;
   bool has_bfac = !topIn.Bfactor().empty();
@@ -333,6 +335,7 @@ const
         }
       } // END loop over template atoms
       if (nTgtAtomsMissing > 0) {
+        nAtomsNotInTemplates += nTgtAtomsMissing;
         mprintf("\t%i source atoms not mapped to template.\n", nTgtAtomsMissing);
         if (keepMissingSourceAtoms_) {
           ResAtArray tmpBonds;
@@ -406,7 +409,14 @@ const
       topOut.AddBond(it->first, it->second);
     }
   } // END loop over source residues
-  mprintf("\t%i template atoms missing in source.\n", nRefAtomsMissing);
+  if (nRefAtomsMissing > 0)
+    mprintf("\t%i template atoms missing in source.\n", nRefAtomsMissing);
+  if (nAtomsNotInTemplates > 0) {
+    if (requireAllInputAtoms_)
+      mprinterr("Error: %i input atoms not in templates.\n", nAtomsNotInTemplates);
+    else
+      mprintf("\t%i input atoms were not in templates and were ignored.\n", nAtomsNotInTemplates);
+  }
   if (nAtomsMissingTypes > 0) {
     mprinterr("Error: %i atoms are missing types, either because they did not have\n"
               "Error:  one initially or they could not be matched to a template.\n"
@@ -875,6 +885,11 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     mprintf("\tInput atoms missing from templates will be kept.\n");
   else
     mprintf("\tInput atoms missing from templates will be ignored.\n");
+  requireAllInputAtoms_ = argIn.hasKey("requireallinputatoms");
+  if (requireAllInputAtoms_)
+    mprintf("\tRequire all input atoms to be found in templates.\n");
+  else
+    mprintf("\tInput atoms not found in templates will be ignored.\n");
 
   // Do histidine detection before H atoms are removed
   t_hisDetect_.Start();

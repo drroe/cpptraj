@@ -47,6 +47,7 @@ class Exec_Build : public Exec {
     int check_box_natom_;  ///< Systems larger than this will have box added so PL check can be used
     bool check_structure_; ///< If true check the resulting structure
     bool keepMissingSourceAtoms_;
+    bool requireAllInputAtoms_;
     Cpptraj::Structure::SugarBuilder* sugarBuilder_;
     DataSet* outCrdPtr_; ///< Hold built COORDS
 
