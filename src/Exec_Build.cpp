@@ -272,13 +272,15 @@ const
         if (map[iref] != -1)
           pdb[map[iref]-currentRes.FirstAtom()] = iref;
       }
-      mprintf("\t  PDB atom map:\n");
-      for (int itgt = 0; itgt != currentRes.NumAtoms(); itgt++) {
-        mprintf("\t\t%6i %6s =>", itgt+1, *(topIn[itgt+currentRes.FirstAtom()].Name()));
-        if (pdb[itgt] == -1)
-          mprintf(" Not in template\n");
-        else
-          mprintf(" %6i %6s\n", pdb[itgt]+1, *(resTemplate->Top()[pdb[itgt]].Name()));
+      if (debug_ > 1) {
+        mprintf("\t  PDB atom map:\n");
+        for (int itgt = 0; itgt != currentRes.NumAtoms(); itgt++) {
+          mprintf("\t\t%6i %6s =>", itgt+1, *(topIn[itgt+currentRes.FirstAtom()].Name()));
+          if (pdb[itgt] == -1)
+            mprintf(" Not in template\n");
+          else
+            mprintf(" %6i %6s\n", pdb[itgt]+1, *(resTemplate->Top()[pdb[itgt]].Name()));
+        }
       }
       bool atomsNeedBuilding = false;
       // Loop over template atoms
@@ -393,9 +395,11 @@ const
     // Add intra-residue bonds
     for (IParray::const_iterator it = intraResBonds.begin(); it != intraResBonds.end(); ++it)
     {
-      //mprintf("DEBUG: Intra-res bond: Res %s atom %s to res %s atom %s\n",
+      //mprintf("DEBUG: Intra-res bond: Res %s atom %s (%s) to res %s atom %s (%s)\n",
       //        topOut.TruncResNameOnumId(topOut[it->first].ResNum()).c_str(), *(topOut[it->first].Name()),
-      //        topOut.TruncResNameOnumId(topOut[it->second].ResNum()).c_str(), *(topOut[it->second].Name()));
+      //        topOut.AtomMaskName(it->first).c_str(),
+      //        topOut.TruncResNameOnumId(topOut[it->second].ResNum()).c_str(), *(topOut[it->second].Name()),
+      //        topOut.AtomMaskName(it->second).c_str());
       topOut.AddBond(it->first, it->second);
     }
   } // END loop over source residues
