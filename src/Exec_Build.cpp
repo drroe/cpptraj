@@ -342,7 +342,8 @@ const
               // This PDB atom had no equivalent in the residue template
               int pdbat = itgt + currentRes.FirstAtom();
               Atom pdbAtom = topIn[pdbat];
-              mprintf("\t\tInput atom %s missing from template.\n",*(pdbAtom.Name()));
+              if (debug_ > 0)
+                mprintf("DEBUG:\t\tInput atom %s missing from template.\n",*(pdbAtom.Name()));
               // Bonds
               for (Atom::bond_iterator bit = pdbAtom.bondbegin(); bit != pdbAtom.bondend(); ++bit)
               {
@@ -352,7 +353,8 @@ const
                   bndAtmName = SourceAtomNames[*bit];
                 else
                   bndAtmName = bndAt.Name();
-                mprintf("\t\t\tBonded to %s\n", *(bndAtmName));
+                if (debug_ > 0)
+                  mprintf("DEBUG:\t\t\tBonded to %s\n", *(bndAtmName));
                 tmpBonds.push_back( ResAtPair(ires, pdbAtom.Name()) );
                 tmpBonds.push_back( ResAtPair(bndAt.ResNum(), bndAt.Name()) );
               }
@@ -380,7 +382,8 @@ const
                 ba1 < firstNonTemplateAtom ||
                 ba0 < ba1)
             {
-              mprintf("\t\tAdd bond %i %s -- %i %s\n", ba0+1, *(topOut[ba0].Name()), ba1+1, *(topOut[ba1].Name()));
+              if (debug_ > 0)
+                mprintf("DEBUG:\t\tAdd bond %i %s -- %i %s\n", ba0+1, *(topOut[ba0].Name()), ba1+1, *(topOut[ba1].Name()));
               topOut.AddBond( ba0, ba1 );
             }
           } // END loop over bonds
