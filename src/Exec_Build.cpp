@@ -334,6 +334,7 @@ const
         mprintf("\t%i source atoms not mapped to template.\n", nTgtAtomsMissing);
         if (keepMissingSourceAtoms_) {
           ResAtArray tmpBonds;
+          int firstNonTemplateAtom = topOut.Natom();
           for (int itgt = 0; itgt != currentRes.NumAtoms(); itgt++) {
             if (pdb[itgt] == -1) {
               // This PDB atom had no equivalent in the residue template
@@ -344,7 +345,12 @@ const
               for (Atom::bond_iterator bit = pdbAtom.bondbegin(); bit != pdbAtom.bondend(); ++bit)
               {
                 Atom bndAt = topIn[*bit];
-                mprintf("\t\t\tBonded to %s\n", *(bndAt.Name()));
+                NameType bndAtmName;
+                if (SourceAtomNames[*bit].len() > 0)
+                  bndAtmName = SourceAtomNames[*bit];
+                else
+                  bndAtmName = bndAt.Name();
+                mprintf("\t\t\tBonded to %s\n", *(bndAtmName));
                 tmpBonds.push_back( ResAtPair(ires, pdbAtom.Name()) );
                 tmpBonds.push_back( ResAtPair(bndAt.ResNum(), bndAt.Name()) );
               }
@@ -368,7 +374,10 @@ const
             int ba0 = topOut.FindAtomInResidue( bit->first, bit->second );
             ++bit;
             int ba1 = topOut.FindAtomInResidue( bit->first, bit->second );
-            if (ba0 < ba1) {
+            if (ba0 < firstNonTemplateAtom ||
+                ba1 < firstNonTemplateAtom ||
+                ba0 < ba1)
+            {
               mprintf("\t\tAdd bond %i %s -- %i %s\n", ba0+1, *(topOut[ba0].Name()), ba1+1, *(topOut[ba1].Name()));
               topOut.AddBond( ba0, ba1 );
             }
