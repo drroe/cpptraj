@@ -11,6 +11,7 @@
 #include "Structure/HisProt.h"
 #include "Structure/PdbCleaner.h"
 #include "Structure/ResStatArray.h"
+#include "Structure/Solvate.h"
 #include "Structure/SugarBuilder.h"
 #include "Structure/Sugar.h"
 #include "StructureCheck.h"
@@ -882,6 +883,16 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   std::string solventResName = argIn.GetStringKey("solventresname", "HOH");
   mprintf("\tSolvent residue name: %s\n", solventResName.c_str());
 
+  bool add_solvent = false;
+  Cpptraj::Structure::Solvate solvator;
+  if (argIn.hasKey("solvate")) {
+    add_solvent = true;
+    if (solvator.InitSolvate(argIn, debug_)) {
+      mprinterr("Error: Init solvate failed.\n");
+      return CpptrajState::ERR;
+    }
+  }
+
   keepMissingSourceAtoms_ = argIn.hasKey("keepmissingatoms");
   if (keepMissingSourceAtoms_)
     mprintf("\tInput atoms missing from templates will be kept.\n");
@@ -1084,6 +1095,13 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   if (addBondsErr != 0) {
     mprinterr("Error: Adding disulfide/sugar bonds failed.\n");
     return CpptrajState::ERR;
+  }
+
+  if (add_solvent) {
+    if (solvator.SolvateBox( topOut, frameOut, *(creator.MainParmSetPtr()) )) {
+      mprinterr("Error: Adding solvent failed.\n");
+      return CpptrajState::ERR;
+    }
   }
 
   // Assign parameters. This will create the bond/angle/dihedral/improper
