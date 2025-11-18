@@ -28,5 +28,21 @@ int main() {
   frm1.AppendFrame( frm2 );
   printAtoms(frm1, "frm1 after append");
 
+  Frame frm3;
+  frm3.SetupFrame( 2 );
+  frm3.ClearAtoms();
+  for (int iat = 1; iat <= 2; iat++)
+    frm3.AddVec3( Vec3((double)iat, (double)iat, (double)iat) );
+
+  Frame frm4;
+  frm4.SetupFrame( 6 );
+  frm4.ClearAtoms();
+  for (int iat = 3; iat <= 8; iat++)
+    frm4.AddVec3( Vec3((double)iat, (double)iat, (double)iat) );
+
+  frm3.AppendFrame( frm4 );
+  printAtoms(frm3, "frm3 after append");
+  
+
   return 0;
 }
