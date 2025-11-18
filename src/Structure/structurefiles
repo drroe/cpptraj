@@ -13,10 +13,11 @@ STRUCTURE_SOURCES= \
   MetalCenterFinder.cpp \
   PdbCleaner.cpp \
   RingFinder.cpp \
+  Solvate.cpp \
   StructureEnum.cpp \
   StructureRoutines.cpp \
-  Sugar.cpp \
   SugarBuilder.cpp \
+  Sugar.cpp \
   SugarLinkAtoms.cpp \
   SugarToken.cpp \
   Zmatrix.cpp
