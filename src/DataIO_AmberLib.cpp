@@ -248,7 +248,9 @@ const
   std::vector<Vec3> positions;
   Frame frm;
   int ridx = 0;
-
+  // Boundbox will hold values from box entry: hasbox, angle, x, y, z
+  std::vector<double> boundbox;
+  boundbox.reserve(5);
   bool readUnit = true;
   while (readUnit) {
     const char* lineptr = infile.Line();
@@ -294,9 +296,18 @@ const
           return 1;
         }
         top.SetRes( ridx++ ).SetName( tmpArg[0] );
+      } else if (currentSection == BOUNDBOX) {
+        // hasbox, angle, x, y, z
+        double bval = 0;
+        sscanf( Line.c_str(), "%lf", &bval );
+        boundbox.push_back( bval );
       }
+      // else {
+      //  mprintf("Warning: Unhandled section for %s: %s\n", unitName.c_str(), sectionStr_[currentSection]);
+      //}
     }
   }
+    
   // Set up topology; determine molecules, but no residue renumber or bond parm determination
   top.CommonSetup(true, false, false);
   if (debug_ > 1) top.Summary();
@@ -304,6 +315,53 @@ const
   frm.ClearAtoms();
   for (std::vector<Vec3>::const_iterator it = positions.begin(); it != positions.end(); ++it)
     frm.AddVec3( *it );
+
+  // Set up box if needed
+  if (!boundbox.empty()) {
+    if (boundbox.size() != 5) {
+      mprinterr("Error: Expected 5 values for boundbox entry for %s, got %zu\n", unitName.c_str(), boundbox.size());
+      return 1;
+    }
+    // hasbox, angle, x, y, z
+    if (boundbox[0] > 0) {
+      double boxcrd[6];
+      boxcrd[0] = boundbox[2];
+      boxcrd[1] = boundbox[3];
+      boxcrd[2] = boundbox[4];
+      // determine angles
+      double beta = boundbox[1];
+      if (beta < 3.15) {
+        // Assume the angle is given in radians
+        beta = beta * Constants::RADDEG;
+        //mprintf("DEBUG: Converted beta: %f\n", beta);
+        // Fix imperfectly converted orthorhombic
+        double deltaBeta = 90.0 - beta;
+        if (deltaBeta < 0) deltaBeta = -deltaBeta;
+        if (deltaBeta < 0.0001) {
+          beta = 90.0;
+          //mprintf("DEBUG: Fixed beta.\n");
+        }
+      }
+      boxcrd[3] = beta;
+      boxcrd[4] = beta;
+      boxcrd[5] = beta;
+      //if ( Box::IsTruncOct( beta ) ) {
+      // Use trunc oct angle from Box; higher precision
+      //xyzabg[Box::BETA ] = Box::TruncatedOctAngle();
+      //xyzabg[Box::ALPHA] = xyzabg[Box::BETA];
+      //xyzabg[Box::GAMMA] = xyzabg[Box::BETA];
+      // Special case - rhombic dodecahedron
+      if (beta == 60.0) {
+        boxcrd[3] = 60.0;
+        boxcrd[4] = 90.0;
+        boxcrd[5] = 60.0;
+      }
+      frm.ModifyBox().SetupFromXyzAbg( boxcrd );
+      frm.BoxCrd().PrintInfo(); // DEBUG
+    } else {
+      frm.ModifyBox().SetNoBox();
+    }
+  }
 
   crd->CoordsSetup(top, frm.CoordsInfo());
   crd->AddFrame( frm );
