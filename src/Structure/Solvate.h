@@ -19,6 +19,10 @@ class Solvate {
     int SolvateBox(Topology&, Frame&, Cpptraj::Parm::ParameterSet const&); 
   private:
     int debug_;
+    double bufferX_;
+    double bufferY_;
+    double bufferZ_;
+    bool isotropic_;
     static const double ATOM_DEFAULT_RADIUS_; ///< Atom default radius from LEaP
 };
 }

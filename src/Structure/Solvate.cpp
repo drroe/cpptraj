@@ -4,18 +4,39 @@
 #include "../Frame.h"
 #include "../Topology.h"
 #include "../Parm/ParameterSet.h"
+#include <algorithm> //std::max
 
 using namespace Cpptraj::Structure;
 
 /** CONSTRUCTOR */
 Solvate::Solvate() :
-  debug_(0)
+  debug_(0),
+  bufferX_(0),
+  bufferY_(0),
+  bufferZ_(0),
+  isotropic_(false)
 {
 }
 
 /** Initialize arguments. */
 int Solvate::InitSolvate(ArgList& argIn, int debugIn) {
   debug_ = debugIn;
+
+  if (argIn.Contains("buffer")) {
+    bufferX_ = argIn.getKeyDouble("buffer", -1.0);
+    bufferY_ = bufferX_;
+    bufferZ_ = bufferX_;
+  } else {
+    bufferX_ = argIn.getKeyDouble("bufx", -1.0);
+    bufferY_ = argIn.getKeyDouble("bufy", -1.0);
+    bufferZ_ = argIn.getKeyDouble("bufz", -1.0);
+  }
+  if (bufferX_ < 0 || bufferY_ < 0 || bufferZ_ < 0) {
+    mprinterr("Error: Either 'buffer' or 'bufx/bufy/bufx' must be specified and >= 0\n");
+    return 1;
+  }
+
+  isotropic_ = argIn.hasKey("iso");
 
   return 0;
 }
@@ -92,7 +113,7 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
   double boxX = Xmax - Xmin;
   double boxY = Ymax - Ymin;
   double boxZ = Zmax - Zmin;
-  mprintf("  Solute vdw bounding box:              %-5.3lf %-5.3lf %-5.3lf\n", boxX, boxY, boxZ);
+  mprintf("  Solute vdw bounding box:              %-5.3f %-5.3f %-5.3f\n", boxX, boxY, boxZ);
 
   // Define center
   Vec3 toCenter( -(Xmin + 0.5 * boxX),
@@ -101,7 +122,32 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
   // Translate to origin
   frameOut.Translate(toCenter);
 
-  
+  double dXWidth = boxX + bufferX_ * 2;
+  double dYWidth = boxY + bufferY_ * 2;
+  double dZWidth = boxZ + bufferZ_ * 2;
+
+  if (isotropic_) {
+    double dTemp = dXWidth * dYWidth * dZWidth;
+
+    double dMax = std::max(dXWidth, dYWidth);
+    dMax = std::max(dMax, dZWidth);
+    dXWidth = dYWidth = dZWidth = dMax;
+
+    dTemp = (dMax * dMax * dMax - dTemp ) / dTemp;
+
+    mprintf("  Total bounding box for atom centers:  %5.3f %5.3f %5.3f\n", 
+            dXWidth, dYWidth, dZWidth );
+    mprintf("      (box expansion for 'iso' is %5.1lf%%)\n", dTemp * 100.0 );
+
+     // To make the actual clip right, 'iso' the solute box
+    dTemp = std::max(boxX, boxY);
+    dTemp = std::max(dTemp, boxZ);
+    //dXBox = dYBox = dZBox = dTemp;
+    boxX = boxY = boxZ = dTemp;
+  } else
+    mprintf("  Total bounding box for atom centers:  %5.3lf %5.3lf %5.3lf\n", 
+            dXWidth, dYWidth, dZWidth );
+
 
   return 0;
 }
