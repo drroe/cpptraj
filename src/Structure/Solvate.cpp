@@ -251,6 +251,56 @@ const
   }
   mprintf("  Solvent unit box:                     %5.3f %5.3f %5.3f\n", solventX, solventY, solventZ);
 
+  // See how many solvent boxes required in each dimension
+
+  int iX = (int)( dXWidth / solventX ) + 1;
+  int iY = (int)( dYWidth / solventY ) + 1;
+  int iZ = (int)( dZWidth / solventZ ) + 1;
+
+  //  Calculate the center of the first solvent box 
+  //  (the one that goes in the max XYZ corner), given
+  //  that the solute is centered at 0,0,0
+  double dXStart = 0.5 * solventX * (double) (iX-1);
+  double dYStart = 0.5 * solventY * (double) (iY-1);
+  double dZStart = 0.5 * solventZ * (double) (iZ-1);
+
+             /* If the caller wants a solvent shell then */
+             /* make sure that the box used to find interesting solute */
+             /* spheres takes into account the dFarness parameter */
+             /* so that there are at least some solute spheres in */
+             /* the interesting list to check against solvent */
+
+ //if ( bShell ) 
+ //    dBuffer = dFarness;
+ //else 
+ //    dBuffer = 0.0;
+
+  addSolventUnits(iX, iY, iZ, dXStart, dYStart, dZStart, solventX, solventY, solventZ);
+
   return 0;
 }
 
+int Solvate::addSolventUnits(int numX, int numY, int numZ,
+                             double dXStart, double dYStart, double dZStart,
+                             double dXSolvent, double dYSolvent, double dZSolvent)
+const
+{
+
+  printf( "The number of boxes:  x=%2d  y=%2d  z=%2d\n", numX, numY, numZ );
+
+  double dX = dXStart;
+  for ( int ix=0; ix < numX; ix++, dX -= dXSolvent ) {
+    double dY = dYStart;
+    for ( int iy=0; iy < numY; iy++, dY -= dYSolvent ) {
+      double dZ = dZStart;
+      for ( int iz=0; iz < numZ; iz++, dZ -= dZSolvent ) {
+        printf( "Adding box at: x=%d  y=%d  z=%d\n", ix, iy, iz);
+
+        printf( "Center of solvent box is: %lf, %lf, %lf\n",
+                                dX, dY, dZ );
+      } // END loop over Z
+    } // END loop over Y
+  } // END loop over X
+
+  return 0;
+}

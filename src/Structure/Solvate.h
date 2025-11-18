@@ -28,6 +28,8 @@ class Solvate {
     // Set vdW bounding box
     int setVdwBoundingBox(double&, double&, double&, Topology const&, Frame&,
                           Cpptraj::Parm::ParameterSet const&) const;
+    // Add solvent unit boxes
+    int addSolventUnits(int, int, int, double, double, double, double, double, double) const;
 
     int debug_;
     double bufferX_;
