@@ -44,19 +44,13 @@ int Solvate::InitSolvate(ArgList& argIn, int debugIn) {
 /** Atom default radius in Angstroms from LEaP */
 const double Solvate::ATOM_DEFAULT_RADIUS_ = 1.5;
 
-/** Create box, fill with solvent */
-int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::ParameterSet const& set0) {
+/** Set VDW bounding box. */
+int Solvate::setVdwBoundingBox(double& boxX, double& boxY, double& boxZ,
+                               Topology const& topOut, Frame& frameOut,
+                               Cpptraj::Parm::ParameterSet const& set0)
+const
+{
   using namespace Cpptraj::Parm;
-  // Sanity check
-  if (topOut.Natom() != frameOut.Natom()) {
-    mprinterr("Internal Error: Solvate::SolvateBox(): Topology %s #atoms %i != frame #atoms %i\n",
-              topOut.c_str(), topOut.Natom(), frameOut.Natom());
-    return 1;
-  }
-  // TODO Remove any existing box info?
-  //if (frameOut.BoxCrd.HasBox())
-  // TODO principal align
-
   // Set vdw bounding box
   double Xmin = 0;
   double Ymin = 0;
@@ -110,9 +104,9 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
   }
 
   // Define box
-  double boxX = Xmax - Xmin;
-  double boxY = Ymax - Ymin;
-  double boxZ = Zmax - Zmin;
+  boxX = Xmax - Xmin;
+  boxY = Ymax - Ymin;
+  boxZ = Zmax - Zmin;
   mprintf("  Solute vdw bounding box:              %-5.3f %-5.3f %-5.3f\n", boxX, boxY, boxZ);
 
   // Define center
@@ -121,6 +115,28 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
                  -(Zmin + 0.5 * boxZ) );
   // Translate to origin
   frameOut.Translate(toCenter);
+
+  return 0;
+}
+
+/** Create box, fill with solvent */
+int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::ParameterSet const& set0) {
+  // Sanity check
+  if (topOut.Natom() != frameOut.Natom()) {
+    mprinterr("Internal Error: Solvate::SolvateBox(): Topology %s #atoms %i != frame #atoms %i\n",
+              topOut.c_str(), topOut.Natom(), frameOut.Natom());
+    return 1;
+  }
+  // TODO Remove any existing box info?
+  //if (frameOut.BoxCrd.HasBox())
+  // TODO principal align
+
+  // Set vdw box
+  double boxX, boxY, boxZ;
+  if (setVdwBoundingBox(boxX, boxY, boxZ, topOut, frameOut, set0)) {
+    mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
+    return 1;
+  }
 
   double dXWidth = boxX + bufferX_ * 2;
   double dYWidth = boxY + bufferY_ * 2;

@@ -18,6 +18,10 @@ class Solvate {
     /// Solvate with box
     int SolvateBox(Topology&, Frame&, Cpptraj::Parm::ParameterSet const&); 
   private:
+    // Set vdW bounding box
+    int setVdwBoundingBox(double&, double&, double&, Topology const&, Frame&,
+                          Cpptraj::Parm::ParameterSet const&) const;
+
     int debug_;
     double bufferX_;
     double bufferY_;
