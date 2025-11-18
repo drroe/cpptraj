@@ -1,6 +1,9 @@
 #ifndef INC_SOLVATE_H
 #define INC_SOLVATE_H
+#include <string>
 class ArgList;
+class DataSet_Coords;
+class DataSetList;
 class Frame;
 class Topology;
 namespace Cpptraj {
@@ -16,7 +19,11 @@ class Solvate {
     /// Initialize
     int InitSolvate(ArgList&, int);
     /// Solvate with box
-    int SolvateBox(Topology&, Frame&, Cpptraj::Parm::ParameterSet const&); 
+    int SolvateBox(Topology&, Frame&, Cpptraj::Parm::ParameterSet const&, DataSet_Coords&) const;
+
+    /// \return Solvent unit selected from given DataSetList
+    DataSet_Coords* GetSolventUnit(DataSetList const&) const;
+    //std::string const& SolventBoxName() const { return solventBoxName_; }
   private:
     // Set vdW bounding box
     int setVdwBoundingBox(double&, double&, double&, Topology const&, Frame&,
@@ -27,6 +34,8 @@ class Solvate {
     double bufferY_;
     double bufferZ_;
     bool isotropic_;
+    bool clip_;
+    std::string solventBoxName_;
     static const double ATOM_DEFAULT_RADIUS_; ///< Atom default radius from LEaP
 };
 }

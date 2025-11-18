@@ -1,6 +1,8 @@
 #include "Solvate.h"
 #include "../ArgList.h"
 #include "../CpptrajStdio.h"
+#include "../DataSet_Coords.h"
+#include "../DataSetList.h"
 #include "../Frame.h"
 #include "../Topology.h"
 #include "../Parm/ParameterSet.h"
@@ -14,7 +16,8 @@ Solvate::Solvate() :
   bufferX_(0),
   bufferY_(0),
   bufferZ_(0),
-  isotropic_(false)
+  isotropic_(false),
+  clip_(true)
 {
 }
 
@@ -38,7 +41,52 @@ int Solvate::InitSolvate(ArgList& argIn, int debugIn) {
 
   isotropic_ = argIn.hasKey("iso");
 
+  solventBoxName_ = argIn.GetStringKey("solventbox");
+  if (solventBoxName_.empty()) {
+    mprinterr("Error: Specify solvent box unit name with 'solventbox'\n");
+    return 1;
+  }
+
   return 0;
+}
+
+/** Get solvent unit box from DataSetList */
+DataSet_Coords* Solvate::GetSolventUnit(DataSetList const& DSL) const {
+  if (solventBoxName_.empty()) {
+    mprinterr("Internal Error: Solvate::GetSolventUnit() called before solventBoxName_ set.\n");
+    return 0;
+  }
+  DataSetList sets = DSL.SelectGroupSets( "*", DataSet::COORDINATES ); // TODO specific set type for units?
+  // First try to match aspect, then match name
+  DataSet_Coords* solventUnit = 0;
+  // Aspect
+  for (DataSetList::const_iterator it = sets.begin(); it != sets.end(); ++it)
+  {
+    DataSet_Coords* ds = static_cast<DataSet_Coords*>( *it );
+    if (!ds->Meta().Aspect().empty()) {
+      if (solventBoxName_ == ds->Meta().Aspect()) {
+        solventUnit = ds;
+        break;
+      }
+    }
+  }
+  // Name
+  if (solventUnit == 0) {
+    for (DataSetList::const_iterator it = sets.begin(); it != sets.end(); ++it)
+    {
+      DataSet_Coords* ds = static_cast<DataSet_Coords*>( *it );
+      if (solventBoxName_ == ds->Meta().Name()) {
+        solventUnit = ds;
+        break;
+      }
+    }
+  }
+  if (solventUnit != 0)
+    mprintf("\tSolvent unit: %s\n", solventUnit->legend());
+  else
+    mprinterr("Error: Could not get solvent unit named %s\n", solventBoxName_.c_str());
+
+  return solventUnit;
 }
 
 /** Atom default radius in Angstroms from LEaP */
@@ -63,12 +111,12 @@ const
   {
     // Get radius
     double atom_radius = 0.0;
-    //bool has_vdw = false;
+    bool has_vdw = false;
     if (topOut[at].HasType()) {
       ParmHolder<AtomType>::const_iterator it = set0.AT().GetParam( TypeNameHolder(topOut[at].Type()) );
       if (it != set0.AT().end() && it->second.HasLJ()) {
         atom_radius = it->second.LJ().Radius();
-        //has_vdw = true;
+        has_vdw = true;
       }
     }
     if (atom_radius < 0.1) {
@@ -80,6 +128,7 @@ const
     //mprintf("DEBUG: Atom %s has_vdw= %i VDW=%f\n", topOut.AtomMaskName(at).c_str(), (int)has_vdw, atom_radius);
 
     const double* XYZ = frameOut.XYZ(at);
+    //mprintf("DBG: %12.4f %12.4f %12.4f %12.4f\n", XYZ[0], XYZ[1], XYZ[2], atom_radius);
     double dXp = XYZ[0] + atom_radius;
     double dYp = XYZ[1] + atom_radius;
     double dZp = XYZ[2] + atom_radius;
@@ -102,12 +151,11 @@ const
       if (dZp > Zmax) Zmax = dZp;
     }
   }
-
+  mprintf("Min= %f %f %f  Max= %f %f %f\n", Xmin, Ymin, Zmin, Xmax, Ymax, Zmax);
   // Define box
   boxX = Xmax - Xmin;
   boxY = Ymax - Ymin;
   boxZ = Zmax - Zmin;
-  mprintf("  Solute vdw bounding box:              %-5.3f %-5.3f %-5.3f\n", boxX, boxY, boxZ);
 
   // Define center
   Vec3 toCenter( -(Xmin + 0.5 * boxX),
@@ -120,7 +168,10 @@ const
 }
 
 /** Create box, fill with solvent */
-int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::ParameterSet const& set0) {
+int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::ParameterSet const& set0,
+                        DataSet_Coords& SOLVENTBOX)
+const
+{
   // Sanity check
   if (topOut.Natom() != frameOut.Natom()) {
     mprinterr("Internal Error: Solvate::SolvateBox(): Topology %s #atoms %i != frame #atoms %i\n",
@@ -137,6 +188,7 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
     mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
     return 1;
   }
+  mprintf("  Solute vdw bounding box:              %-5.3f %-5.3f %-5.3f\n", boxX, boxY, boxZ);
 
   double dXWidth = boxX + bufferX_ * 2;
   double dYWidth = boxY + bufferY_ * 2;
@@ -161,9 +213,43 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
     //dXBox = dYBox = dZBox = dTemp;
     boxX = boxY = boxZ = dTemp;
   } else
-    mprintf("  Total bounding box for atom centers:  %5.3lf %5.3lf %5.3lf\n", 
+    mprintf("  Total bounding box for atom centers:  %5.3f %5.3f %5.3f\n", 
             dXWidth, dYWidth, dZWidth );
 
+  /*if ( bClip ) {
+        //  If the solvated system should be clipped to the exact
+        //      size the user specified then note the criterion
+        //      & dimensions (for 0,0,0-centered system)
+        iCriteria |= TOOLOUTSIDEOFBOX;
+        cCriteria.dX = 0.5 * dXBox + dXW;
+        cCriteria.dY = 0.5 * dYBox + dYW;
+        cCriteria.dZ = 0.5 * dZBox + dZW;
+    }
+    if ( bOct ) {
+        // maybe allow oct clip on integer boxes someday.. but for now:
+        if ( !bClip )
+                DFATAL(( "oct but no clip\n" ));
+        iCriteria |= TOOLOUTSIDEOFOCTBOX;
+    }
+*/
+  // TODO check COORDS size
+  Frame solventFrame = SOLVENTBOX.AllocateFrame();
+  SOLVENTBOX.GetFrame(0, solventFrame);
+
+  // Set vdw box for solvent
+  double solventX, solventY, solventZ;
+  if (solventFrame.BoxCrd().HasBox()) {
+    // TODO check ortho?
+    solventX = solventFrame.BoxCrd().Param(Box::X);
+    solventY = solventFrame.BoxCrd().Param(Box::Y);
+    solventZ = solventFrame.BoxCrd().Param(Box::Z);
+  } else {
+    if (setVdwBoundingBox(solventX, solventY, solventZ, SOLVENTBOX.Top(), solventFrame, set0)) {
+      mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
+      return 1;
+    }
+  }
+  mprintf("  Solvent unit box:                     %5.3f %5.3f %5.3f\n", solventX, solventY, solventZ);
 
   return 0;
 }

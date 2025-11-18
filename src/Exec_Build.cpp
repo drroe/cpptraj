@@ -1098,7 +1098,13 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   }
 
   if (add_solvent) {
-    if (solvator.SolvateBox( topOut, frameOut, *(creator.MainParmSetPtr()) )) {
+    // Get solvent unit box
+    DataSet_Coords* solventUnitBox = solvator.GetSolventUnit( DSL );
+    if (solventUnitBox == 0) {
+      mprinterr("Error: Getting solvent unit failed.\n");
+      return CpptrajState::ERR;
+    }
+    if (solvator.SolvateBox( topOut, frameOut, *(creator.MainParmSetPtr()), *solventUnitBox )) {
       mprinterr("Error: Adding solvent failed.\n");
       return CpptrajState::ERR;
     }
