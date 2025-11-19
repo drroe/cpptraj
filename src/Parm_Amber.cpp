@@ -693,7 +693,10 @@ int Parm_Amber::SetupBuffer(FlagType ftype, int nvals, FortranData const& FMT) {
   if (nvals > 0) {
     if (debug_>0) mprintf("DEBUG: Set up buffer for '%s', %i vals.\n", FLAGS_[ftype].Flag, nvals);
     file_.SetupFrameBuffer( nvals, FMT.Width(), FMT.Ncols() );
-    if (file_.ReadFrame()) return 1;
+    if (file_.ReadFrame()) {
+      mprinterr("Error: Read values for Flag '%s' failed.\n", FLAGS_[ftype].Flag);
+      return 1;
+    }
     if (debug_ > 5) {
       mprintf("DEBUG: '%s':\n", FLAGS_[ftype].Flag);
       if (debug_ > 6) mprintf("FileBuffer=[%s]", file_.Buffer());
@@ -1211,7 +1214,10 @@ int Parm_Amber::ReadPdbBfactor(Topology& TopIn, FortranData const& FMT) {
 
 int Parm_Amber::ReadPdbOccupancy(Topology& TopIn, FortranData const& FMT) {
   TopIn.AllocOccupancy();
-  if (SetupBuffer(F_PDB_OCC, values_[NATOM], FMT)) return 1;
+  if (SetupBuffer(F_PDB_OCC, values_[NATOM], FMT)) {
+    //mprintf("DEBUG: ReadPdbOccupancy buffer:\n%s\n", file_.Buffer());
+    return 1;
+  }
   for (int idx = 0; idx != values_[NATOM]; idx++)
     TopIn.SetOccupancy(idx, atof(file_.NextElement()) );
   return 0;
@@ -1794,6 +1800,28 @@ int Parm_Amber::WriteExtra(Topology const& topOut, int natom) {
     }
   } else {
     if (WriteIrotat( topOut.RotateArray() )) return 1;
+  }
+  return 0;
+}
+
+/// Used to check if the size of "extra" arrays (PDB atom occupancy, bfactor, etc) match expected size.
+/** The size of these arrays might be less than what is expected if e.g. solvent
+  * was added with the 'build' command. In that case, blank values can be used
+  * without requiring the memory be allocated.
+  * \return 1 if actual size > expected size (error)
+  * \return -1 if actual size < expected size (fill with blank)
+  * \return 0 if actual size == expected size.
+  */
+static inline int check_array_size(unsigned int expectedSize, unsigned int actualSize, const char* desc)
+{
+  if (actualSize > expectedSize) {
+    mprinterr("Internal Error: Size of %s (%u) is greater than expected size (%u)\n",
+              desc, actualSize, expectedSize);
+    return 1;
+  } else if (actualSize < expectedSize) {
+    mprintf("Warning: Size of %s (%u) is less than expected size (%u); will fill missing values with blanks.\n",
+              desc, actualSize, expectedSize);
+    return -1;
   }
   return 0;
 }
@@ -2554,26 +2582,44 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   }
   if (hasOcc) {
     // PDB atomic occupancy
+    int astat = check_array_size(TopOut.Natom(), TopOut.Occupancy().size(), "PDB occupancy array");
+    if (astat == 1) return 1;
     if (BufferAlloc(F_PDB_OCC, TopOut.Natom())) return 1;
     for (std::vector<float>::const_iterator it = TopOut.Occupancy().begin();
                                             it != TopOut.Occupancy().end(); ++it)
       file_.DblToBuffer( *it );
+    if (astat == -1) {
+      for (unsigned int idx = TopOut.Occupancy().size(); idx < (unsigned int)TopOut.Natom(); idx++)
+        file_.DblToBuffer( 1 );
+    }
     file_.FlushBuffer();
   }
   if (hasBfac) {
     // PDB atomic B-factors
+    int astat = check_array_size(TopOut.Natom(), TopOut.Bfactor().size(), "PDB B-factor array");
+    if (astat == 1) return 1;
     if (BufferAlloc(F_PDB_BFAC, TopOut.Natom())) return 1;
     for (std::vector<float>::const_iterator it = TopOut.Bfactor().begin();
                                             it != TopOut.Bfactor().end(); ++it)
       file_.DblToBuffer( *it );
+    if (astat == -1) {
+      for (unsigned int idx = TopOut.Bfactor().size(); idx < (unsigned int)TopOut.Natom(); idx++)
+        file_.DblToBuffer( 0 );
+    }
     file_.FlushBuffer();
   }
   if (hasNum) {
     // PDB original serial numbers
+    int astat = check_array_size(TopOut.Natom(), TopOut.PdbSerialNum().size(), "PDB serial number array");
+    if (astat == 1) return 1;
     if (BufferAlloc(F_PDB_NUM, TopOut.Natom())) return 1;
     for (std::vector<int>::const_iterator it = TopOut.PdbSerialNum().begin();
                                           it != TopOut.PdbSerialNum().end(); ++it)
       file_.IntToBuffer( *it );
+    if (astat == -1) {
+      for (unsigned int idx = TopOut.PdbSerialNum().size(); idx < (unsigned int)TopOut.Natom(); idx++)
+        file_.IntToBuffer( (int)idx+1 );
+    }
     file_.FlushBuffer();
   }
 
