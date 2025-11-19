@@ -345,19 +345,20 @@ const
       boxcrd[3] = beta;
       boxcrd[4] = beta;
       boxcrd[5] = beta;
-      //if ( Box::IsTruncOct( beta ) ) {
-      // Use trunc oct angle from Box; higher precision
-      //xyzabg[Box::BETA ] = Box::TruncatedOctAngle();
-      //xyzabg[Box::ALPHA] = xyzabg[Box::BETA];
-      //xyzabg[Box::GAMMA] = xyzabg[Box::BETA];
-      // Special case - rhombic dodecahedron
-      if (beta == 60.0) {
+      if ( Box::IsTruncOct( beta ) ) {
+        // Use trunc oct angle from Box; higher precision
+        boxcrd[3] = Box::TruncatedOctAngle();
+        boxcrd[4] = boxcrd[3];
+        boxcrd[5] = boxcrd[3];
+      } else if (beta == 60.0) {
+        // Special case - rhombic dodecahedron
         boxcrd[3] = 60.0;
         boxcrd[4] = 90.0;
         boxcrd[5] = 60.0;
       }
       frm.ModifyBox().SetupFromXyzAbg( boxcrd );
-      frm.BoxCrd().PrintInfo(); // DEBUG
+      if (debug_ > 0)
+        frm.BoxCrd().PrintInfo(); // DEBUG
     } else {
       frm.ModifyBox().SetNoBox();
     }
