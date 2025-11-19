@@ -16,6 +16,7 @@ Solvate::Solvate() :
   bufferX_(0),
   bufferY_(0),
   bufferZ_(0),
+  closeness_(0.8),
   isotropic_(false),
   clip_(true)
 {
@@ -46,6 +47,8 @@ int Solvate::InitSolvate(ArgList& argIn, int debugIn) {
     mprinterr("Error: Specify solvent box unit name with 'solventbox'\n");
     return 1;
   }
+
+  closeness_ = argIn.getKeyDouble("closeness", 0.8);
 
   return 0;
 }
@@ -94,12 +97,13 @@ const double Solvate::ATOM_DEFAULT_RADIUS_ = 1.5;
 
 /** Set VDW bounding box. */
 int Solvate::setVdwBoundingBox(double& boxX, double& boxY, double& boxZ,
-                               double& maxR,
+                               double& maxR, std::vector<double>& Radii,
                                Topology const& topOut, Frame& frameOut,
                                Cpptraj::Parm::ParameterSet const& set0)
 const
 {
   using namespace Cpptraj::Parm;
+  Radii.clear();
   // Set vdw bounding box
   double Xmin = 0;
   double Ymin = 0;
@@ -127,6 +131,7 @@ const
       else
         atom_radius = ATOM_DEFAULT_RADIUS_;
     }
+    Radii.push_back( atom_radius );
     maxR = std::max(maxR, atom_radius);
     //mprintf("DEBUG: Atom %s has_vdw= %i VDW=%f\n", topOut.AtomMaskName(at).c_str(), (int)has_vdw, atom_radius);
 
@@ -186,8 +191,10 @@ const
   // TODO principal align
 
   // Set vdw box
+  std::vector<double> soluteRadii;
+  soluteRadii.reserve( topOut.Natom() );
   double boxX, boxY, boxZ, soluteMaxR;
-  if (setVdwBoundingBox(boxX, boxY, boxZ, soluteMaxR, topOut, frameOut, set0)) {
+  if (setVdwBoundingBox(boxX, boxY, boxZ, soluteMaxR, soluteRadii, topOut, frameOut, set0)) {
     mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
     return 1;
   }
@@ -241,17 +248,20 @@ const
 
   // Set vdw box for solvent
   double solventX, solventY, solventZ;
+  // Set the box even if box info is present so that solvent radii get set
+  std::vector<double> solventRadii;
+  solventRadii.reserve( SOLVENTBOX.Top().Natom() );
+  double solventMaxR;
+  if (setVdwBoundingBox(solventX, solventY, solventZ, solventMaxR, solventRadii, SOLVENTBOX.Top(), solventFrame, set0)) {
+    mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
+    return 1;
+  }
   if (solventFrame.BoxCrd().HasBox()) {
+    // Overwrite VDW box lengths with input box lengths
     // TODO check ortho?
     solventX = solventFrame.BoxCrd().Param(Box::X);
     solventY = solventFrame.BoxCrd().Param(Box::Y);
     solventZ = solventFrame.BoxCrd().Param(Box::Z);
-  } else {
-    double solventMaxR;
-    if (setVdwBoundingBox(solventX, solventY, solventZ, solventMaxR, SOLVENTBOX.Top(), solventFrame, set0)) {
-      mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
-      return 1;
-    }
   }
   mprintf("  Solvent unit box:                     %5.3f %5.3f %5.3f\n", solventX, solventY, solventZ);
 
@@ -285,6 +295,52 @@ const
   return 0;
 }
 
+/** \return a list of solute atoms that might clash with solvent. */
+int Solvate::findCloseSoluteAtoms(std::vector<int>& closeSoluteAtoms, double soluteMaxR,
+                                  int firstSolventAtom, Frame const& frameOut, Vec3 const& vCenter,
+                                  double dXWidth, double dYWidth, double dZWidth)
+const
+{
+  closeSoluteAtoms.clear();
+  // Determine clearance from the box for testing whether
+  // a solute atom might contact an atom in the box. Assumes
+  // solvent box includes vdw.
+  double dTemp = soluteMaxR * 2.5 * closeness_;
+
+  // FIXME do buffer zone?
+  // when building a shell, solute atoms within the
+  // shell distance are also of interest
+  //  dTemp += dBufferZone;
+
+  double dXmin = vCenter[0] - dXWidth/2.0 - dTemp;
+  double dXmax = vCenter[0] + dXWidth/2.0 + dTemp;
+  double dYmin = vCenter[1] - dYWidth/2.0 - dTemp;
+  double dYmax = vCenter[1] + dYWidth/2.0 + dTemp;
+  double dZmin = vCenter[2] - dZWidth/2.0 - dTemp;
+  double dZmax = vCenter[2] + dZWidth/2.0 + dTemp;
+
+  // Loop over solute atoms
+  for (int at = 0; at < firstSolventAtom; at++)
+  {
+    const double* XYZ = frameOut.XYZ(at);
+    if ( XYZ[0] < dXmin ) continue;
+    if ( XYZ[0] > dXmax ) continue;
+    if ( XYZ[1] < dYmin ) continue;
+    if ( XYZ[1] > dYmax ) continue;
+    if ( XYZ[2] < dZmin ) continue;
+    if ( XYZ[2] > dZmax ) continue;
+
+    // all atom.coords inside solvent limit, so add to list
+    //    MESSAGE(( "Found an interesting sphere\n" ));
+    closeSoluteAtoms.push_back( at );
+  }
+  return 0;
+}
+
+/** Determine which solvent residues will not clash with existing solute atoms. */
+//int determineValidSolventResidues
+
+/** Add as many solvent units as needed to complete solvation. */
 int Solvate::addSolventUnits(int numX, int numY, int numZ, double soluteMaxR,
                              double dXStart, double dYStart, double dZStart,
                              double dXSolvent, double dYSolvent, double dZSolvent,
@@ -308,6 +364,9 @@ const
   std::vector<int> bondedAtoms;
   bondedAtoms.reserve(12); // Reserve for 6 bonds
 
+  std::vector<int> closeSoluteAtoms;
+  std::vector<int> validSolventResidues;
+
   double dX = dXStart;
   for ( int ix=0; ix < numX; ix++, dX -= dXSolvent ) {
     double dY = dYStart;
@@ -315,6 +374,10 @@ const
       double dZ = dZStart;
       for ( int iz=0; iz < numZ; iz++, dZ -= dZSolvent ) {
         mprintf( "Adding box at: x=%d  y=%d  z=%d\n", ix, iy, iz);
+        Vec3 vPos(dX, dY, dZ);
+
+        findCloseSoluteAtoms(closeSoluteAtoms, soluteMaxR, firstSolventAtom, frameOut, vPos,
+                             dXSolvent, dYSolvent, dZSolvent);
 
         mprintf( "Center of solvent box is: %lf, %lf, %lf\n",
                                 dX, dY, dZ );
@@ -322,12 +385,17 @@ const
                     dY - currentSolventCenter[1],
                     dZ - currentSolventCenter[2] );
         solventFrame.Translate(trans);
-        Vec3 debugVec = solventFrame.VGeometricCenter();
-        debugVec.Print("DEBUG: check solvent center");
+        //Vec3 debugVec = solventFrame.VGeometricCenter();
+        //debugVec.Print("DEBUG: check solvent center");
+
+        //determineValidSolventResidues(validSolventResidues, 
+
+        // Update the current solvent center
         currentSolventCenter[0] = dX;
         currentSolventCenter[1] = dY;
         currentSolventCenter[2] = dZ;
-        // Add solvent unit to output topology for this cube
+
+        // Add valid residues from solvent unit to output topology for this cube
         int atomOffset = topOut.Natom();
         int currentResNum = topOut.Nres();
         for (int ires = 0; ires != solventTop.Nres(); ires++) {

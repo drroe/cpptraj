@@ -1,11 +1,13 @@
 #ifndef INC_SOLVATE_H
 #define INC_SOLVATE_H
 #include <string>
+#include <vector>
 class ArgList;
 class DataSet_Coords;
 class DataSetList;
 class Frame;
 class Topology;
+class Vec3;
 namespace Cpptraj {
 namespace Parm {
 class ParameterSet;
@@ -26,8 +28,11 @@ class Solvate {
     //std::string const& SolventBoxName() const { return solventBoxName_; }
   private:
     // Set vdW bounding box
-    int setVdwBoundingBox(double&, double&, double&, double&, Topology const&, Frame&,
+    int setVdwBoundingBox(double&, double&, double&, double&, std::vector<double>&,
+                          Topology const&, Frame&,
                           Cpptraj::Parm::ParameterSet const&) const;
+    // Find solute atoms within a solvent box at given center
+    int findCloseSoluteAtoms(std::vector<int>&, double, int, Frame const&, Vec3 const&, double, double, double) const;
     // Add solvent unit boxes
     int addSolventUnits(int, int, int, double, double, double, double, double, double, double,
                         Frame&, Topology const&, Frame&, Topology&) const;
@@ -36,6 +41,7 @@ class Solvate {
     double bufferX_;
     double bufferY_;
     double bufferZ_;
+    double closeness_;
     bool isotropic_;
     bool clip_;
     std::string solventBoxName_;
