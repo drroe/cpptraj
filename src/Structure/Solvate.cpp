@@ -94,6 +94,7 @@ const double Solvate::ATOM_DEFAULT_RADIUS_ = 1.5;
 
 /** Set VDW bounding box. */
 int Solvate::setVdwBoundingBox(double& boxX, double& boxY, double& boxZ,
+                               double& maxR,
                                Topology const& topOut, Frame& frameOut,
                                Cpptraj::Parm::ParameterSet const& set0)
 const
@@ -106,17 +107,18 @@ const
   double Xmax = 0;
   double Ymax = 0;
   double Zmax = 0;
+  maxR = 0;
 
   for (int at = 0; at < topOut.Natom(); at++)
   {
     // Get radius
     double atom_radius = 0.0;
-    bool has_vdw = false;
+    //bool has_vdw = false;
     if (topOut[at].HasType()) {
       ParmHolder<AtomType>::const_iterator it = set0.AT().GetParam( TypeNameHolder(topOut[at].Type()) );
       if (it != set0.AT().end() && it->second.HasLJ()) {
         atom_radius = it->second.LJ().Radius();
-        has_vdw = true;
+        //has_vdw = true;
       }
     }
     if (atom_radius < 0.1) {
@@ -125,6 +127,7 @@ const
       else
         atom_radius = ATOM_DEFAULT_RADIUS_;
     }
+    maxR = std::max(maxR, atom_radius);
     //mprintf("DEBUG: Atom %s has_vdw= %i VDW=%f\n", topOut.AtomMaskName(at).c_str(), (int)has_vdw, atom_radius);
 
     const double* XYZ = frameOut.XYZ(at);
@@ -183,8 +186,8 @@ const
   // TODO principal align
 
   // Set vdw box
-  double boxX, boxY, boxZ;
-  if (setVdwBoundingBox(boxX, boxY, boxZ, topOut, frameOut, set0)) {
+  double boxX, boxY, boxZ, soluteMaxR;
+  if (setVdwBoundingBox(boxX, boxY, boxZ, soluteMaxR, topOut, frameOut, set0)) {
     mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
     return 1;
   }
@@ -244,7 +247,8 @@ const
     solventY = solventFrame.BoxCrd().Param(Box::Y);
     solventZ = solventFrame.BoxCrd().Param(Box::Z);
   } else {
-    if (setVdwBoundingBox(solventX, solventY, solventZ, SOLVENTBOX.Top(), solventFrame, set0)) {
+    double solventMaxR;
+    if (setVdwBoundingBox(solventX, solventY, solventZ, solventMaxR, SOLVENTBOX.Top(), solventFrame, set0)) {
       mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
       return 1;
     }
@@ -275,20 +279,20 @@ const
  //else 
  //    dBuffer = 0.0;
 
-  addSolventUnits(iX, iY, iZ, dXStart, dYStart, dZStart, solventX, solventY, solventZ,
+  addSolventUnits(iX, iY, iZ, soluteMaxR, dXStart, dYStart, dZStart, solventX, solventY, solventZ,
                   solventFrame, SOLVENTBOX.Top(), frameOut, topOut);
 
   return 0;
 }
 
-int Solvate::addSolventUnits(int numX, int numY, int numZ,
+int Solvate::addSolventUnits(int numX, int numY, int numZ, double soluteMaxR,
                              double dXStart, double dYStart, double dZStart,
                              double dXSolvent, double dYSolvent, double dZSolvent,
                              Frame& solventFrame, Topology const& solventTop,
                              Frame& frameOut, Topology& topOut)
 const
 {
-
+  mprintf( "Max R = %f\n", soluteMaxR);
   mprintf( "The number of boxes:  x=%2d  y=%2d  z=%2d\n", numX, numY, numZ );
   int NboxesToAdd = numX * numY * numZ;
   int NatomsToAdd = NboxesToAdd * solventTop.Natom();

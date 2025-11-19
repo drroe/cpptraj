@@ -740,7 +740,6 @@ void Frame::AppendFrame(Frame const& frameIn) {
     std::copy( frameIn.F_, frameIn.F_ + ncoordIn, F_ + natom3 );
   natom_ = newNatom;
   ncoord_ = natom_ * 3;
-  mprintf("DEBUG natom is %i\n", natom_);
 }
 
 /** Zero force array. */

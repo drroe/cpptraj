@@ -26,10 +26,10 @@ class Solvate {
     //std::string const& SolventBoxName() const { return solventBoxName_; }
   private:
     // Set vdW bounding box
-    int setVdwBoundingBox(double&, double&, double&, Topology const&, Frame&,
+    int setVdwBoundingBox(double&, double&, double&, double&, Topology const&, Frame&,
                           Cpptraj::Parm::ParameterSet const&) const;
     // Add solvent unit boxes
-    int addSolventUnits(int, int, int, double, double, double, double, double, double,
+    int addSolventUnits(int, int, int, double, double, double, double, double, double, double,
                         Frame&, Topology const&, Frame&, Topology&) const;
 
     int debug_;
