@@ -1,5 +1,6 @@
 #include <cmath> // sqrt
 #include <cstring> // memcpy, memset
+#include <algorithm> // std::max
 #include "Frame.h"
 #include "Constants.h" // SMALL
 #include "CpptrajStdio.h"
@@ -343,12 +344,17 @@ void Frame::ClearAtoms() {
   ncoord_ = 0;
 }
 
+/// Used to calculate how much natom_ should increase if a reallocation is needed.
+static inline int calc_natom_increase(int natomIn) {
+  return std::max(500, 2*natomIn);
+}
+
 // Frame::AddXYZ()
 /** Append the given XYZ coord to this frame. */
 void Frame::AddXYZ(const double *XYZin) {
   if (XYZin == 0) return;
   if (natom_ >= maxnatom_) 
-    IncreaseX( 500 ); // TODO different offset?
+    IncreaseX( calc_natom_increase(natom_) );
   memcpy(X_ + ncoord_, XYZin, COORDSIZE_);
   ++natom_;
   ncoord_ += 3;
@@ -357,7 +363,7 @@ void Frame::AddXYZ(const double *XYZin) {
 // Frame::AddVec3()
 void Frame::AddVec3(Vec3 const& vIn) {
   if (natom_ >= maxnatom_) 
-    IncreaseX( 500 ); // TODO different offset?
+    IncreaseX( calc_natom_increase(natom_) );
   memcpy(X_ + ncoord_, vIn.Dptr(), COORDSIZE_);
   ++natom_;
   ncoord_ += 3;
