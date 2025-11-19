@@ -290,7 +290,8 @@ const
  //    dBuffer = 0.0;
 
   addSolventUnits(iX, iY, iZ, soluteMaxR, dXStart, dYStart, dZStart, solventX, solventY, solventZ,
-                  solventFrame, SOLVENTBOX.Top(), frameOut, topOut);
+                  solventFrame, SOLVENTBOX.Top(), frameOut, topOut,
+                  soluteRadii, solventRadii);
 
   return 0;
 }
@@ -337,15 +338,61 @@ const
   return 0;
 }
 
+/** LEaP's closeness modifier. Was just set to 1. Included here just in case. */
+const double Solvate::CLOSENESSMODIFIER_ = 1.0;
+
 /** Determine which solvent residues will not clash with existing solute atoms. */
-//int determineValidSolventResidues
+int Solvate::determineValidSolventResidues(std::vector<int>& validSolventResidues,
+                                           std::vector<int> const& closeSoluteAtoms,
+                                           Frame const& solventFrame, Topology const& solventTop,
+                                           Frame const& frameOut,
+                                           std::vector<double> const& soluteRadii,
+                                           std::vector<double> const& solventRadii)
+const
+{
+  validSolventResidues.clear();
+  for (int vres = 0; vres < solventTop.Nres(); vres++)
+  {
+    Residue const& solventRes = solventTop.Res(vres);
+    bool collision = false;
+    // Check each atom in the solvent residue against list of close solute atoms
+    for (int vat = solventRes.FirstAtom(); vat != solventRes.LastAtom(); vat++)
+    {
+      const double* VXYZ = solventFrame.XYZ(vat);
+      double dR = solventRadii[vat] * closeness_ * CLOSENESSMODIFIER_;
+      // Loop over close solute atoms
+      for (std::vector<int>::const_iterator uat = closeSoluteAtoms.begin(); uat != closeSoluteAtoms.end(); ++uat)
+      {
+        const double* UXYZ = frameOut.XYZ(*uat);
+        double dX = VXYZ[0] - UXYZ[0];
+        double dY = VXYZ[1] - UXYZ[1];
+        double dZ = VXYZ[2] - UXYZ[2];
+
+        double dist2 = dX*dX + dY*dY + dZ*dZ;
+        double dRadii = dR + soluteRadii[*uat];
+        dRadii *= dRadii;
+
+        if (dist2 < dRadii) {
+          collision = true;
+          break;
+        }
+      } // END loop over close solute atoms
+      if (collision) break;
+    } // END loop over solvent residue atoms
+    if (!collision)
+      validSolventResidues.push_back( vres );
+  } // END loop over solvent residues
+  return 0;
+}
 
 /** Add as many solvent units as needed to complete solvation. */
 int Solvate::addSolventUnits(int numX, int numY, int numZ, double soluteMaxR,
                              double dXStart, double dYStart, double dZStart,
                              double dXSolvent, double dYSolvent, double dZSolvent,
                              Frame& solventFrame, Topology const& solventTop,
-                             Frame& frameOut, Topology& topOut)
+                             Frame& frameOut, Topology& topOut,
+                             std::vector<double> const& soluteRadii,
+                             std::vector<double> const& solventRadii)
 const
 {
   mprintf( "Max R = %f\n", soluteMaxR);
@@ -388,7 +435,8 @@ const
         //Vec3 debugVec = solventFrame.VGeometricCenter();
         //debugVec.Print("DEBUG: check solvent center");
 
-        //determineValidSolventResidues(validSolventResidues, 
+        determineValidSolventResidues(validSolventResidues, closeSoluteAtoms, solventFrame, solventTop,
+                                      frameOut, soluteRadii, solventRadii); 
 
         // Update the current solvent center
         currentSolventCenter[0] = dX;
@@ -396,11 +444,14 @@ const
         currentSolventCenter[2] = dZ;
 
         // Add valid residues from solvent unit to output topology for this cube
-        int atomOffset = topOut.Natom();
         int currentResNum = topOut.Nres();
-        for (int ires = 0; ires != solventTop.Nres(); ires++) {
-          Residue solventRes = solventTop.Res(ires);
-          solventRes.SetOriginalNum( currentResNum + ires );
+        //for (int ires = 0; ires != solventTop.Nres(); ires++)
+        for (std::vector<int>::const_iterator ires = validSolventResidues.begin();
+                                              ires != validSolventResidues.end(); ++ires)
+        {
+          int atomOffset = topOut.Natom();
+          Residue solventRes = solventTop.Res(*ires);
+          solventRes.SetOriginalNum( currentResNum++ );
           bondedAtoms.clear();
           for (int iat = solventRes.FirstAtom(); iat != solventRes.LastAtom(); iat++)
           {
@@ -408,12 +459,14 @@ const
             // Save solvent bonds
             for (Atom::bond_iterator bat = solventAtom.bondbegin(); bat != solventAtom.bondend(); ++bat) {
               if (*bat > iat) {
-                bondedAtoms.push_back(  iat + atomOffset );
-                bondedAtoms.push_back( *bat + atomOffset );
+                bondedAtoms.push_back(  iat + atomOffset - solventRes.FirstAtom() );
+                bondedAtoms.push_back( *bat + atomOffset - solventRes.FirstAtom() );
               }
             }
             solventAtom.ClearBonds(); // FIXME AddTopAtom should clear
             topOut.AddTopAtom( solventAtom, solventRes );
+            const double* VXYZ = solventFrame.XYZ(iat);
+            frameOut.AddXYZ( VXYZ );
           } // END loop over solvent atoms
           // Add bonds
           for (std::vector<int>::const_iterator it = bondedAtoms.begin(); it != bondedAtoms.end(); ++it) {
@@ -423,7 +476,7 @@ const
           }
         } // END loop over solvent unit residues
         // Append solvent frame
-        frameOut.AppendFrame( solventFrame );
+        //frameOut.AppendFrame( solventFrame );
       } // END loop over Z
     } // END loop over Y
   } // END loop over X
