@@ -260,11 +260,9 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
   SOLVENTBOX.GetFrame(0, solventFrame);
 
   // Set vdw box for solvent
-  double solventX, solventY, solventZ;
-  // Set the box even if box info is present so that solvent radii get set
   double solventMaxR;
   std::vector<double> solventRadii = getAtomRadii(solventMaxR, SOLVENTBOX.Top(), set0);
-
+  double solventX, solventY, solventZ;
   if (solventFrame.BoxCrd().HasBox()) {
     // Use input box lengths
     // TODO check ortho?
@@ -306,6 +304,13 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
   addSolventUnits(iX, iY, iZ, soluteMaxR, dXStart, dYStart, dZStart, solventX, solventY, solventZ,
                   solventFrame, SOLVENTBOX.Top(), frameOut, topOut,
                   soluteRadii, solventRadii);
+
+  // Define the size of the new solvent/solute system
+  soluteRadii = getAtomRadii(soluteMaxR, topOut, set0) ;
+  if (setVdwBoundingBox(boxX, boxY, boxZ, soluteRadii, frameOut)) {
+    mprinterr("Error: Setting vdw bounding box for solute/solvent system failed.\n", topOut.c_str());
+    return 1;
+  }
 
   return 0;
 }
