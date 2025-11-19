@@ -158,6 +158,8 @@ class Frame {
     int SetupFrameFromMask(AtomMask const&, std::vector<Atom> const&, CoordinateInfo const&);
     /// Allocate frame for selected # atoms
     int SetupFrameFromMask(AtomMask const&);
+    /// Increase the maximum number of atoms the Frame can hold by given offset
+    int IncreaseX(int);
     // ----- Add/remove components from Frame ----
     int AddVelocities(Darray const&);
     void RemoveVelocities();
@@ -178,6 +180,8 @@ class Frame {
     void SetFrame(Frame const&, AtomMask const&);
     /// Copy entire input frame
     void SetFrame(Frame const&);
+    /// Append given frame to this one, reallocating if necessary
+    void AppendFrame(Frame const&);
     /// Zero the force array
     void ZeroForces();
     /// Zero the velocity array
@@ -223,6 +227,8 @@ class Frame {
     inline Vec3 VCenterOfMass(Unit const&) const;
     /// \return Geometric center of atoms in Unit
     inline Vec3 VGeometricCenter(Unit const&) const;
+    /// \return Geometric center of all atoms in Frame
+    inline Vec3 VGeometricCenter() const;
     /// Translate atoms in mask by Vec
     inline void Translate(Vec3 const&, AtomMask const&);
     /// Translate atoms in range by Vec
@@ -306,7 +312,6 @@ class Frame {
     bool memIsExternal_; ///< True if Frame is not responsible for freeing memory.
 
     void swap(Frame&, Frame&);
-    void IncreaseX();
     inline bool ReallocateX(int);
     /// Allocate coords/velo/force based on given num atoms and coordinate info.
     bool setupFrame(unsigned int, CoordinateInfo const&);
@@ -414,6 +419,10 @@ Vec3 Frame::VGeometricCenter(int startAtom, int stopAtom) const {
   double sumMass = (double)(stopAtom - startAtom);
   if (sumMass == 0) return Vec3(0,0,0);
   return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
+}
+
+Vec3 Frame::VGeometricCenter() const {
+  return VGeometricCenter(0, natom_);
 }
 
 /** Calculate the Geometric center of a Unit. */
