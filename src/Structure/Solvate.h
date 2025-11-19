@@ -27,10 +27,11 @@ class Solvate {
     DataSet_Coords* GetSolventUnit(DataSetList const&) const;
     //std::string const& SolventBoxName() const { return solventBoxName_; }
   private:
+    /// Get radii for atoms in topology
+    std::vector<double> getAtomRadii(double&, Topology const&,
+                                     Cpptraj::Parm::ParameterSet const&) const;
     /// Set vdW bounding box
-    int setVdwBoundingBox(double&, double&, double&, double&, std::vector<double>&,
-                          Topology const&, Frame&,
-                          Cpptraj::Parm::ParameterSet const&) const;
+    int setVdwBoundingBox(double&, double&, double&, std::vector<double> const&, Frame&) const;
     /// Find solute atoms within a solvent box at given center
     int findCloseSoluteAtoms(std::vector<int>&, double, int, Frame const&, Vec3 const&, double, double, double) const;
     /// Determine which solvent residues do not clash with given solute atoms

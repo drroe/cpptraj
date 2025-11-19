@@ -95,23 +95,15 @@ DataSet_Coords* Solvate::GetSolventUnit(DataSetList const& DSL) const {
 /** Atom default radius in Angstroms from LEaP */
 const double Solvate::ATOM_DEFAULT_RADIUS_ = 1.5;
 
-/** Set VDW bounding box. */
-int Solvate::setVdwBoundingBox(double& boxX, double& boxY, double& boxZ,
-                               double& maxR, std::vector<double>& Radii,
-                               Topology const& topOut, Frame& frameOut,
-                               Cpptraj::Parm::ParameterSet const& set0)
+/** Get radii for atoms in topology */
+std::vector<double> Solvate::getAtomRadii(double& maxR, Topology const& topOut,
+                                          Cpptraj::Parm::ParameterSet const& set0)
 const
 {
   using namespace Cpptraj::Parm;
-  // Set vdw bounding box
-  double Xmin = 0;
-  double Ymin = 0;
-  double Zmin = 0;
-  double Xmax = 0;
-  double Ymax = 0;
-  double Zmax = 0;
   maxR = 0;
-
+  std::vector<double> Radii;
+  Radii.reserve( topOut.Natom() );
   for (int at = 0; at < topOut.Natom(); at++)
   {
     // Get radius
@@ -130,9 +122,30 @@ const
       else
         atom_radius = ATOM_DEFAULT_RADIUS_;
     }
-    if (!Radii.empty()) Radii[at] = atom_radius;
+    Radii.push_back( atom_radius );
     maxR = std::max(maxR, atom_radius);
-    //mprintf("DEBUG: Atom %s has_vdw= %i VDW=%f\n", topOut.AtomMaskName(at).c_str(), (int)has_vdw, atom_radius);
+  }
+  return Radii;
+}
+
+/** Set VDW bounding box. */
+int Solvate::setVdwBoundingBox(double& boxX, double& boxY, double& boxZ,
+                               std::vector<double> const& Radii,
+                               Frame& frameOut)
+const
+{
+  // Set vdw bounding box
+  double Xmin = 0;
+  double Ymin = 0;
+  double Zmin = 0;
+  double Xmax = 0;
+  double Ymax = 0;
+  double Zmax = 0;
+
+  for (int at = 0; at < frameOut.Natom(); at++)
+  {
+    // Get radius
+    double atom_radius = Radii[at];
 
     const double* XYZ = frameOut.XYZ(at);
     //mprintf("DBG: %12.4f %12.4f %12.4f %12.4f\n", XYZ[0], XYZ[1], XYZ[2], atom_radius);
@@ -189,10 +202,10 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
   // TODO principal align
 
   // Set vdw box
-  std::vector<double> soluteRadii;
-  soluteRadii.resize( topOut.Natom() );
-  double boxX, boxY, boxZ, soluteMaxR;
-  if (setVdwBoundingBox(boxX, boxY, boxZ, soluteMaxR, soluteRadii, topOut, frameOut, set0)) {
+  double soluteMaxR;
+  std::vector<double> soluteRadii = getAtomRadii(soluteMaxR, topOut, set0) ;
+  double boxX, boxY, boxZ;
+  if (setVdwBoundingBox(boxX, boxY, boxZ, soluteRadii, frameOut)) {
     mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
     return 1;
   }
@@ -249,19 +262,20 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
   // Set vdw box for solvent
   double solventX, solventY, solventZ;
   // Set the box even if box info is present so that solvent radii get set
-  std::vector<double> solventRadii;
-  solventRadii.resize( SOLVENTBOX.Top().Natom() );
   double solventMaxR;
-  if (setVdwBoundingBox(solventX, solventY, solventZ, solventMaxR, solventRadii, SOLVENTBOX.Top(), solventFrame, set0)) {
-    mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
-    return 1;
-  }
+  std::vector<double> solventRadii = getAtomRadii(solventMaxR, SOLVENTBOX.Top(), set0);
+
   if (solventFrame.BoxCrd().HasBox()) {
-    // Overwrite VDW box lengths with input box lengths
+    // Use input box lengths
     // TODO check ortho?
     solventX = solventFrame.BoxCrd().Param(Box::X);
     solventY = solventFrame.BoxCrd().Param(Box::Y);
     solventZ = solventFrame.BoxCrd().Param(Box::Z);
+  } else {
+    if (setVdwBoundingBox(solventX, solventY, solventZ, solventRadii, solventFrame)) {
+      mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
+      return 1;
+    }
   }
   mprintf("  Solvent unit box:                     %5.3f %5.3f %5.3f\n", solventX, solventY, solventZ);
 
