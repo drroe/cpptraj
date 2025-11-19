@@ -103,7 +103,6 @@ int Solvate::setVdwBoundingBox(double& boxX, double& boxY, double& boxZ,
 const
 {
   using namespace Cpptraj::Parm;
-  Radii.clear();
   // Set vdw bounding box
   double Xmin = 0;
   double Ymin = 0;
@@ -131,7 +130,7 @@ const
       else
         atom_radius = ATOM_DEFAULT_RADIUS_;
     }
-    Radii.push_back( atom_radius );
+    if (!Radii.empty()) Radii[at] = atom_radius;
     maxR = std::max(maxR, atom_radius);
     //mprintf("DEBUG: Atom %s has_vdw= %i VDW=%f\n", topOut.AtomMaskName(at).c_str(), (int)has_vdw, atom_radius);
 
@@ -191,7 +190,7 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
 
   // Set vdw box
   std::vector<double> soluteRadii;
-  soluteRadii.reserve( topOut.Natom() );
+  soluteRadii.resize( topOut.Natom() );
   double boxX, boxY, boxZ, soluteMaxR;
   if (setVdwBoundingBox(boxX, boxY, boxZ, soluteMaxR, soluteRadii, topOut, frameOut, set0)) {
     mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
@@ -251,7 +250,7 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
   double solventX, solventY, solventZ;
   // Set the box even if box info is present so that solvent radii get set
   std::vector<double> solventRadii;
-  solventRadii.reserve( SOLVENTBOX.Top().Natom() );
+  solventRadii.resize( SOLVENTBOX.Top().Natom() );
   double solventMaxR;
   if (setVdwBoundingBox(solventX, solventY, solventZ, solventMaxR, solventRadii, SOLVENTBOX.Top(), solventFrame, set0)) {
     mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
