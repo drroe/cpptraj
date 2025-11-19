@@ -7,6 +7,9 @@ test: test.all
 unit.NameType:
 	@-cd NameType && ./UnitTest.sh $(OPT)
 
+unit.Frame:
+	@-cd Frame && ./UnitTest.sh $(OPT)
+
 unit.ArgList:
 	@-cd ArgList && ./UnitTest.sh $(OPT)
 
@@ -28,6 +31,7 @@ unit.ImproperParmHolder:
 # ----- Every unit test should go here -----------
 COMPLETETESTS= \
   unit.NameType \
+  unit.Frame \
   unit.ArgList \
   unit.GistEntropyUtils \
   unit.StringRoutines \

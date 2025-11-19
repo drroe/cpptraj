@@ -1,6 +1,6 @@
 // Unit test for ImproperParmHolder class
 #include <cstdio>
-#include "ParameterHolders.h"
+#include "Parm/ImproperParmHolder.h"
 
 static const int Err(const char* msg) {
   fprintf(stderr, "Error: %s\n", msg);
@@ -12,6 +12,7 @@ static const int Err(const char* msg) {
 }*/
 
 int main() {
+  using namespace Cpptraj::Parm;
   TypeNameHolder ip0(4);
   ip0.AddName("N*");
   ip0.AddName("CX");
@@ -32,8 +33,8 @@ int main() {
   ip1a.AddName("HO");
 
   ImproperParmHolder IP0;
-  ParameterHolders::RetType ret = IP0.AddParm( ip1, DihedralParmType( 3.0, 1.0, 0.0 ), false );
-  if (ret == ParameterHolders::ERR) return Err("Could not add improper parameter");
+  Cpptraj::Parm::RetType ret = IP0.AddParm( ip1, DihedralParmType( 3.0, 1.0, 0.0 ), false );
+  if (ret == Cpptraj::Parm::ERR) return Err("Could not add improper parameter");
   bool found;
   DihedralParmArray impropers = IP0.FindParam( ip1a, found );
   if (!found) return Err("Could not find improper parameter (no wildcards).");
@@ -46,7 +47,7 @@ int main() {
 
   ImproperParmHolder IP;
   ret = IP.AddParm( ip2, DihedralParmType( 2.0, 1.0, 3.14159/2.0 ), false );
-  if (ret == ParameterHolders::ERR) return Err("Could not add improper parameter");
+  if (ret == Cpptraj::Parm::ERR) return Err("Could not add improper parameter");
   //ip2.SortImproperByAlpha("X");
   
   impropers = IP.FindParam( ip1, found);
