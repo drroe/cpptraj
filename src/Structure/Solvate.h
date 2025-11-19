@@ -21,7 +21,7 @@ class Solvate {
     /// Initialize
     int InitSolvate(ArgList&, int);
     /// Solvate with box
-    int SolvateBox(Topology&, Frame&, Cpptraj::Parm::ParameterSet const&, DataSet_Coords&) const;
+    int SolvateBox(Topology&, Frame&, Cpptraj::Parm::ParameterSet const&, DataSet_Coords&);
 
     /// \return Solvent unit selected from given DataSetList
     DataSet_Coords* GetSolventUnit(DataSetList const&) const;
@@ -48,6 +48,9 @@ class Solvate {
     double bufferY_;
     double bufferZ_;
     double closeness_;
+    double clipX_;
+    double clipY_;
+    double clipZ_;
     bool isotropic_;
     bool clip_;
     std::string solventBoxName_;

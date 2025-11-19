@@ -178,7 +178,6 @@ const
 /** Create box, fill with solvent */
 int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::ParameterSet const& set0,
                         DataSet_Coords& SOLVENTBOX)
-const
 {
   // Sanity check
   if (topOut.Natom() != frameOut.Natom()) {
@@ -226,15 +225,17 @@ const
     mprintf("  Total bounding box for atom centers:  %5.3f %5.3f %5.3f\n", 
             dXWidth, dYWidth, dZWidth );
 
-  /*if ( bClip ) {
-        //  If the solvated system should be clipped to the exact
-        //      size the user specified then note the criterion
-        //      & dimensions (for 0,0,0-centered system)
-        iCriteria |= TOOLOUTSIDEOFBOX;
-        cCriteria.dX = 0.5 * dXBox + dXW;
-        cCriteria.dY = 0.5 * dYBox + dYW;
-        cCriteria.dZ = 0.5 * dZBox + dZW;
-    }
+  if (clip_) {
+    //  If the solvated system should be clipped to the exact
+    //      size the user specified then note the criterion
+    //      & dimensions (for 0,0,0-centered system)
+    //iCriteria |= TOOLOUTSIDEOFBOX;
+    clipX_ = 0.5 * boxX + bufferX_;
+    clipY_ = 0.5 * boxY + bufferY_;
+    clipZ_ = 0.5 * boxZ + bufferZ_;
+    printf("cCriteria: %f %f %f\n", clipX_, clipY_, clipZ_);
+  }
+/*
     if ( bOct ) {
         // maybe allow oct clip on integer boxes someday.. but for now:
         if ( !bClip )
@@ -359,8 +360,14 @@ const
     for (int vat = solventRes.FirstAtom(); vat != solventRes.LastAtom(); vat++)
     {
       const double* VXYZ = solventFrame.XYZ(vat);
+      // First check for clipping
+      if (clip_) {
+        if ( fabs(VXYZ[0]) >= clipX_ ) { collision = true; break; }
+        if ( fabs(VXYZ[1]) >= clipY_ ) { collision = true; break; }
+        if ( fabs(VXYZ[2]) >= clipZ_ ) { collision = true; break; }
+      }
       double dR = solventRadii[vat] * closeness_ * CLOSENESSMODIFIER_;
-      // Loop over close solute atoms
+      // Loop over close solute atoms, check fir ckasg
       for (std::vector<int>::const_iterator uat = closeSoluteAtoms.begin(); uat != closeSoluteAtoms.end(); ++uat)
       {
         const double* UXYZ = frameOut.XYZ(*uat);
