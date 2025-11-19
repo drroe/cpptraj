@@ -275,18 +275,34 @@ const
  //else 
  //    dBuffer = 0.0;
 
-  addSolventUnits(iX, iY, iZ, dXStart, dYStart, dZStart, solventX, solventY, solventZ);
+  addSolventUnits(iX, iY, iZ, dXStart, dYStart, dZStart, solventX, solventY, solventZ,
+                  solventFrame, SOLVENTBOX.Top(), frameOut, topOut);
 
   return 0;
 }
 
 int Solvate::addSolventUnits(int numX, int numY, int numZ,
                              double dXStart, double dYStart, double dZStart,
-                             double dXSolvent, double dYSolvent, double dZSolvent)
+                             double dXSolvent, double dYSolvent, double dZSolvent,
+                             Frame& solventFrame, Topology const& solventTop,
+                             Frame& frameOut, Topology& topOut)
 const
 {
 
-  printf( "The number of boxes:  x=%2d  y=%2d  z=%2d\n", numX, numY, numZ );
+  mprintf( "The number of boxes:  x=%2d  y=%2d  z=%2d\n", numX, numY, numZ );
+  int NboxesToAdd = numX * numY * numZ;
+  int NatomsToAdd = NboxesToAdd * solventTop.Natom();
+  mprintf("Will add %i boxes, %i atoms.\n", NboxesToAdd, NatomsToAdd);
+  frameOut.IncreaseX( NatomsToAdd );
+
+  // Current solvent unit center
+  Vec3 currentSolventCenter = solventFrame.VGeometricCenter();
+
+  int firstSolventAtom = topOut.Natom();
+  mprintf("DEBUG: First solvent atom is %i\n", firstSolventAtom+1);
+
+  std::vector<int> bondedAtoms;
+  bondedAtoms.reserve(12); // Reserve for 6 bonds
 
   double dX = dXStart;
   for ( int ix=0; ix < numX; ix++, dX -= dXSolvent ) {
@@ -294,10 +310,48 @@ const
     for ( int iy=0; iy < numY; iy++, dY -= dYSolvent ) {
       double dZ = dZStart;
       for ( int iz=0; iz < numZ; iz++, dZ -= dZSolvent ) {
-        printf( "Adding box at: x=%d  y=%d  z=%d\n", ix, iy, iz);
+        mprintf( "Adding box at: x=%d  y=%d  z=%d\n", ix, iy, iz);
 
-        printf( "Center of solvent box is: %lf, %lf, %lf\n",
+        mprintf( "Center of solvent box is: %lf, %lf, %lf\n",
                                 dX, dY, dZ );
+        Vec3 trans( dX - currentSolventCenter[0],
+                    dY - currentSolventCenter[1],
+                    dZ - currentSolventCenter[2] );
+        solventFrame.Translate(trans);
+        Vec3 debugVec = solventFrame.VGeometricCenter();
+        debugVec.Print("DEBUG: check solvent center");
+        currentSolventCenter[0] = dX;
+        currentSolventCenter[1] = dY;
+        currentSolventCenter[2] = dZ;
+        // Add solvent unit to output topology for this cube
+        int atomOffset = topOut.Natom();
+        int currentResNum = topOut.Nres();
+        for (int ires = 0; ires != solventTop.Nres(); ires++) {
+          Residue solventRes = solventTop.Res(ires);
+          solventRes.SetOriginalNum( currentResNum + ires );
+          bondedAtoms.clear();
+          for (int iat = solventRes.FirstAtom(); iat != solventRes.LastAtom(); iat++)
+          {
+            Atom solventAtom = solventTop[iat];
+            // Save solvent bonds
+            for (Atom::bond_iterator bat = solventAtom.bondbegin(); bat != solventAtom.bondend(); ++bat) {
+              if (*bat > iat) {
+                bondedAtoms.push_back(  iat + atomOffset );
+                bondedAtoms.push_back( *bat + atomOffset );
+              }
+            }
+            solventAtom.ClearBonds(); // FIXME AddTopAtom should clear
+            topOut.AddTopAtom( solventAtom, solventRes );
+          } // END loop over solvent atoms
+          // Add bonds
+          for (std::vector<int>::const_iterator it = bondedAtoms.begin(); it != bondedAtoms.end(); ++it) {
+            int at0 = *it;
+            ++it;
+            topOut.AddBond( at0, *it );
+          }
+        } // END loop over solvent unit residues
+        // Append solvent frame
+        frameOut.AppendFrame( solventFrame );
       } // END loop over Z
     } // END loop over Y
   } // END loop over X
