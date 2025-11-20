@@ -1133,7 +1133,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   t_assign_.Stop();
 
   // Update coords 
-  if (crdout.CoordsSetup( topOut, CoordinateInfo() )) { // FIXME better coordinate info
+  if (crdout.CoordsSetup( topOut, frameOut.CoordsInfo() )) { // FIXME better coordinate info
     mprinterr("Error: Could not set up output COORDS.\n");
     return CpptrajState::ERR;
   }
