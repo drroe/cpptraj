@@ -380,9 +380,9 @@ const
       const double* VXYZ = solventFrame.XYZ(vat);
       // First check for clipping
       if (clip_) {
-        if ( fabs(VXYZ[0]) >= clipX_ ) { collision = true; break; }
-        if ( fabs(VXYZ[1]) >= clipY_ ) { collision = true; break; }
-        if ( fabs(VXYZ[2]) >= clipZ_ ) { collision = true; break; }
+        if ( fabs(VXYZ[0]) >= clipX_ ) { collision = true; printf("CLIP %12.4f %12.4f %12.4f\n",VXYZ[0],VXYZ[1],VXYZ[2]); break; }
+        if ( fabs(VXYZ[1]) >= clipY_ ) { collision = true; printf("CLIP %12.4f %12.4f %12.4f\n",VXYZ[0],VXYZ[1],VXYZ[2]); break; }
+        if ( fabs(VXYZ[2]) >= clipZ_ ) { collision = true; printf("CLIP %12.4f %12.4f %12.4f\n",VXYZ[0],VXYZ[1],VXYZ[2]); break; }
       }
       double dR = solventRadii[vat] * closeness_ * CLOSENESSMODIFIER_;
       // Loop over close solute atoms, check fir ckasg
@@ -399,6 +399,7 @@ const
 
         if (dist2 < dRadii) {
           collision = true;
+          printf("OVERLAP %12.4f %12.4f %12.4f %12.4f %12.4f\n", VXYZ[0],VXYZ[1],VXYZ[2], dist2, dRadii);
           break;
         }
       } // END loop over close solute atoms
