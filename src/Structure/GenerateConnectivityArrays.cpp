@@ -56,7 +56,13 @@ BondArray Cpptraj::Structure::GenerateBondArray(std::vector<Residue> const& resi
   for (std::vector<Residue>::const_iterator res = residues.begin(); res != residues.end(); ++res)
   {
     int start, end, offset;
-    set_indices(start, end, offset, res->FirstAtom(), res->LastAtom());
+     // FIXME - this is a hack to get cpptraj to spit out solvent bonds the same way leap does. Leap lib/mol2 files get forwards direction.
+    if (res->NameIsSolvent()) {
+      start = res->FirstAtom();
+      end = res->LastAtom();
+      offset = 1;
+    } else
+      set_indices(start, end, offset, res->FirstAtom(), res->LastAtom());
     for (int iat = start; iat != end; iat += offset)
     //for (int iat = res->LastAtom()-1; iat >= res->FirstAtom(); iat--)
     {
