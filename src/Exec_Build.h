@@ -60,5 +60,6 @@ class Exec_Build : public Exec {
     Timer t_fill_;
     Timer t_assign_;
     Timer t_check_;
+    Timer t_solvate_;
 };
 #endif

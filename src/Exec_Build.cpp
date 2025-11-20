@@ -1094,6 +1094,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   }
 
   if (add_solvent) {
+    t_solvate_.Start();
     // Get solvent unit box
     DataSet_Coords* solventUnitBox = solvator.GetSolventUnit( DSL );
     if (solventUnitBox == 0) {
@@ -1104,6 +1105,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
       mprinterr("Error: Adding solvent failed.\n");
       return CpptrajState::ERR;
     }
+    t_solvate_.Stop();
   }
 
   // Assign parameters. This will create the bond/angle/dihedral/improper
@@ -1238,6 +1240,8 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   t_disulfide_.WriteTiming    (2, "Disulfide detection :", t_total_.Total());
   t_sugar_.WriteTiming        (2, "Sugar preparation   :", t_total_.Total());
   t_fill_.WriteTiming         (2, "Fill missing atoms  :", t_total_.Total());
+  if (add_solvent)
+    t_solvate_.WriteTiming    (2, "Solvate             :", t_total_.Total());
   t_check_.WriteTiming        (2, "Structure check     :", t_total_.Total());
   t_assign_.WriteTiming       (2, "Param./Top. gen.    :", t_total_.Total());
   AP.WriteAssignTiming(3, t_assign_.Total());
