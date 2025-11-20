@@ -16,7 +16,7 @@ Solvate::Solvate() :
   bufferX_(0),
   bufferY_(0),
   bufferZ_(0),
-  closeness_(0.8),
+  closeness_(1.0),
   isotropic_(false),
   clip_(true)
 {
@@ -48,7 +48,7 @@ int Solvate::InitSolvate(ArgList& argIn, int debugIn) {
     return 1;
   }
 
-  closeness_ = argIn.getKeyDouble("closeness", 0.8);
+  closeness_ = argIn.getKeyDouble("closeness", 1.0);
 
   return 0;
 }
@@ -181,6 +181,7 @@ const
   Vec3 toCenter( -(Xmin + 0.5 * boxX),
                  -(Ymin + 0.5 * boxY),
                  -(Zmin + 0.5 * boxZ) );
+  mprintf("ToolCenterUnitByRadii translate vector is %f %f %f\n", toCenter[0], toCenter[1], toCenter[2]);
   // Translate to origin
   frameOut.Translate(toCenter);
 
@@ -311,6 +312,30 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
     mprinterr("Error: Setting vdw bounding box for solute/solvent system failed.\n", topOut.c_str());
     return 1;
   }
+  // Setup box
+  frameOut.ModifyBox().SetupFromXyzAbg(boxX, boxY, boxZ, 90.0, 90.0, 90.0);
+  frameOut.BoxCrd().PrintInfo();
+  topOut.SetParmBox( frameOut.BoxCrd() );
+  mprintf("  Total vdw box size:%s%5.3f %5.3f %5.3f angstroms.\n", "                   ",
+          frameOut.BoxCrd().Param(Box::X),
+          frameOut.BoxCrd().Param(Box::Y),
+          frameOut.BoxCrd().Param(Box::Z));
+  mprintf("  Volume: %5.3lf A^3\n", frameOut.BoxCrd().CellVolume());
+  // Sum mass
+  double sumMass = 0.0;
+  for (int at = 0; at < topOut.Natom(); at++) {
+    if (topOut[at].HasType()) {
+      Cpptraj::Parm::ParmHolder<AtomType>::const_iterator it = set0.AT().GetParam( TypeNameHolder(topOut[at].Type()) );
+      if (it != set0.AT().end()) {
+        sumMass += it->second.Mass();
+      }
+    }
+  }
+  if (sumMass > 0.0) {
+    mprintf("  Total mass %5.3f amu,  Density %5.3lf g/cc\n", sumMass, sumMass / (frameOut.BoxCrd().CellVolume() * 0.602204));
+  } else {
+    mprintf("Warning: Mass could not be determined, so density unknown (i.e. type of all atoms could not be found)\n");
+  }
 
   return 0;
 }
@@ -322,6 +347,7 @@ int Solvate::findCloseSoluteAtoms(std::vector<int>& closeSoluteAtoms, double sol
 const
 {
   closeSoluteAtoms.clear();
+  mprintf( "Searching for close solute atoms, buffer zone %f solute max %f closeness %f\n", 0.0, soluteMaxR, closeness_);
   // Determine clearance from the box for testing whether
   // a solute atom might contact an atom in the box. Assumes
   // solvent box includes vdw.
@@ -338,6 +364,7 @@ const
   double dYmax = vCenter[1] + dYWidth/2.0 + dTemp;
   double dZmin = vCenter[2] - dZWidth/2.0 - dTemp;
   double dZmax = vCenter[2] + dZWidth/2.0 + dTemp;
+  mprintf("Search clearances %f Min= %f %f %f Max= %f %f %f\n", dTemp, dXmin, dYmin, dZmin, dXmax, dYmax, dZmax);
 
   // Loop over solute atoms
   for (int at = 0; at < firstSolventAtom; at++)
@@ -351,7 +378,7 @@ const
     if ( XYZ[2] > dZmax ) continue;
 
     // all atom.coords inside solvent limit, so add to list
-    //    MESSAGE(( "Found an interesting sphere\n" ));
+    mprintf("Found an interesting sphere %f %f %f\n", XYZ[0], XYZ[1], XYZ[2] );
     closeSoluteAtoms.push_back( at );
   }
   return 0;
@@ -380,9 +407,9 @@ const
       const double* VXYZ = solventFrame.XYZ(vat);
       // First check for clipping
       if (clip_) {
-        if ( fabs(VXYZ[0]) >= clipX_ ) { collision = true; printf("CLIP %12.4f %12.4f %12.4f\n",VXYZ[0],VXYZ[1],VXYZ[2]); break; }
-        if ( fabs(VXYZ[1]) >= clipY_ ) { collision = true; printf("CLIP %12.4f %12.4f %12.4f\n",VXYZ[0],VXYZ[1],VXYZ[2]); break; }
-        if ( fabs(VXYZ[2]) >= clipZ_ ) { collision = true; printf("CLIP %12.4f %12.4f %12.4f\n",VXYZ[0],VXYZ[1],VXYZ[2]); break; }
+        if ( fabs(VXYZ[0]) >= clipX_ ) { collision = true; mprintf("CLIP %12.4f %12.4f %12.4f\n",VXYZ[0],VXYZ[1],VXYZ[2]); break; }
+        if ( fabs(VXYZ[1]) >= clipY_ ) { collision = true; mprintf("CLIP %12.4f %12.4f %12.4f\n",VXYZ[0],VXYZ[1],VXYZ[2]); break; }
+        if ( fabs(VXYZ[2]) >= clipZ_ ) { collision = true; mprintf("CLIP %12.4f %12.4f %12.4f\n",VXYZ[0],VXYZ[1],VXYZ[2]); break; }
       }
       double dR = solventRadii[vat] * closeness_ * CLOSENESSMODIFIER_;
       // Loop over close solute atoms, check fir ckasg
@@ -394,12 +421,13 @@ const
         double dZ = VXYZ[2] - UXYZ[2];
 
         double dist2 = dX*dX + dY*dY + dZ*dZ;
+        mprintf("RADIUS %f\n", soluteRadii[*uat]);
         double dRadii = dR + soluteRadii[*uat];
         dRadii *= dRadii;
 
         if (dist2 < dRadii) {
           collision = true;
-          printf("OVERLAP %12.4f %12.4f %12.4f %12.4f %12.4f\n", VXYZ[0],VXYZ[1],VXYZ[2], dist2, dRadii);
+          mprintf("OVERLAP %12.4f %12.4f %12.4f %12.4f %12.4f\n", VXYZ[0],VXYZ[1],VXYZ[2], dist2, dRadii);
           break;
         }
       } // END loop over close solute atoms
