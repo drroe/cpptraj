@@ -138,9 +138,10 @@ const
       if ( topOut[ang->A1()].Element() == Atom::EXTRAPT ||
            topOut[ang->A3()].Element() == Atom::EXTRAPT)
       {
-        mprintf("DEBUG: Skipping angle with extra point: %4i %4i %4i (%2s %2s %2s)\n",
-                ang->A1()+1, ang->A2()+1, ang->A3()+1,
-                *types[0], *types[1], *types[2]);
+        if (debug_ > 0)
+          mprintf("DEBUG: Skipping angle with extra point: %4i %4i %4i (%2s %2s %2s)\n",
+                  ang->A1()+1, ang->A2()+1, ang->A3()+1,
+                  *types[0], *types[1], *types[2]);
         continue;
       }
     }
@@ -149,10 +150,11 @@ const
         topOut[ang->A2()].Element() == Atom::HYDROGEN &&
         topOut[ang->A3()].Element() == Atom::HYDROGEN)
     {
-      mprintf("DEBUG: O-H-H angle. Assuming rigid water, skipping angle: "
-              "%4i %4i %4i (%2s %2s %2s)\n",
-              ang->A1()+1, ang->A2()+1, ang->A3()+1,
-              *types[0], *types[1], *types[2]);
+      if (debug_ > 0)
+        mprintf("DEBUG: O-H-H angle. Assuming rigid water, skipping angle: "
+                "%4i %4i %4i (%2s %2s %2s)\n",
+                ang->A1()+1, ang->A2()+1, ang->A3()+1,
+                *types[0], *types[1], *types[2]);
       continue;
     }
     // Skip water angles
@@ -163,10 +165,11 @@ const
       {
         // H-O-H Angle. If there is an H-H bond assume this is a rigid water model.
         if (topOut[ang->A1()].IsBondedTo( ang->A3() )) {
-          mprintf("DEBUG: H-O-H angle, H-H bond detected. Assuming rigid water, skipping angle: "
-                  "%4i %4i %4i (%2s %2s %2s)\n",
-                  ang->A1()+1, ang->A2()+1, ang->A3()+1,
-                  *types[0], *types[1], *types[2]);
+          if (debug_ > 0)
+            mprintf("DEBUG: H-O-H angle, H-H bond detected. Assuming rigid water, skipping angle: "
+                    "%4i %4i %4i (%2s %2s %2s)\n",
+                    ang->A1()+1, ang->A2()+1, ang->A3()+1,
+                    *types[0], *types[1], *types[2]);
           continue;
         }
       }
