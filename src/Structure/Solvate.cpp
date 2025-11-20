@@ -18,7 +18,8 @@ Solvate::Solvate() :
   bufferZ_(0),
   closeness_(1.0),
   isotropic_(false),
-  clip_(true)
+  clip_(true),
+  center_(true)
 {
 }
 
@@ -49,6 +50,7 @@ int Solvate::InitSolvate(ArgList& argIn, int debugIn) {
   }
 
   closeness_ = argIn.getKeyDouble("closeness", 1.0);
+  center_ = !argIn.hasKey("nocenter");
 
   return 0;
 }
@@ -335,6 +337,19 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
     mprintf("  Total mass %5.3f amu,  Density %5.3lf g/cc\n", sumMass, sumMass / (frameOut.BoxCrd().CellVolume() * 0.602204));
   } else {
     mprintf("Warning: Mass could not be determined, so density unknown (i.e. type of all atoms could not be found)\n");
+  }
+  // Center if needed
+  if (center_) {
+    double dX2 = boxX * 0.5;
+    double dY2 = boxY * 0.5;
+    double dZ2 = boxZ * 0.5;
+    double* xptr = frameOut.xAddress();
+    for (int at = 0; at < frameOut.Natom(); at++, xptr += 3)
+    {
+      xptr[0] += dX2;
+      xptr[1] += dY2;
+      xptr[2] += dZ2;
+    }
   }
 
   return 0;

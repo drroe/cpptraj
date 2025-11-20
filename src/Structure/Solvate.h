@@ -54,6 +54,7 @@ class Solvate {
     double clipZ_;
     bool isotropic_;
     bool clip_;
+    bool center_;
     std::string solventBoxName_;
     static const double ATOM_DEFAULT_RADIUS_; ///< Atom default radius from LEaP
     static const double CLOSENESSMODIFIER_;   ///< Overlap closeness modifier from LEaP
