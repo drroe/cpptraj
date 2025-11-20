@@ -536,6 +536,10 @@ const
             }
             solventAtom.ClearBonds(); // FIXME AddTopAtom should clear
             topOut.AddTopAtom( solventAtom, solventRes );
+            // Add PDB info if the topology already has it.
+            if (!topOut.Bfactor().empty()) topOut.AddBfactor( 0 );
+            if (!topOut.Occupancy().empty()) topOut.AddOccupancy( 1 );
+            if (!topOut.PdbSerialNum().empty()) topOut.AddPdbSerialNum( topOut.Natom() );
             const double* VXYZ = solventFrame.XYZ(iat);
             frameOut.AddXYZ( VXYZ );
           } // END loop over solvent atoms

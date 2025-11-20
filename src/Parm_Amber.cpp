@@ -1814,14 +1814,10 @@ int Parm_Amber::WriteExtra(Topology const& topOut, int natom) {
   */
 static inline int check_array_size(unsigned int expectedSize, unsigned int actualSize, const char* desc)
 {
-  if (actualSize > expectedSize) {
-    mprinterr("Internal Error: Size of %s (%u) is greater than expected size (%u)\n",
+  if (actualSize != expectedSize) {
+    mprinterr("Internal Error: Size of %s (%u) is != expected size (%u)\n",
               desc, actualSize, expectedSize);
     return 1;
-  } else if (actualSize < expectedSize) {
-    mprintf("Warning: Size of %s (%u) is less than expected size (%u); will fill missing values with blanks.\n",
-              desc, actualSize, expectedSize);
-    return -1;
   }
   return 0;
 }
@@ -2582,44 +2578,29 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   }
   if (hasOcc) {
     // PDB atomic occupancy
-    int astat = check_array_size(TopOut.Natom(), TopOut.Occupancy().size(), "PDB occupancy array");
-    if (astat == 1) return 1;
+    if (check_array_size(TopOut.Natom(), TopOut.Occupancy().size(), "PDB occupancy array")) return 1;
     if (BufferAlloc(F_PDB_OCC, TopOut.Natom())) return 1;
     for (std::vector<float>::const_iterator it = TopOut.Occupancy().begin();
                                             it != TopOut.Occupancy().end(); ++it)
       file_.DblToBuffer( *it );
-    if (astat == -1) {
-      for (unsigned int idx = TopOut.Occupancy().size(); idx < (unsigned int)TopOut.Natom(); idx++)
-        file_.DblToBuffer( 1 );
-    }
     file_.FlushBuffer();
   }
   if (hasBfac) {
     // PDB atomic B-factors
-    int astat = check_array_size(TopOut.Natom(), TopOut.Bfactor().size(), "PDB B-factor array");
-    if (astat == 1) return 1;
+    if (check_array_size(TopOut.Natom(), TopOut.Bfactor().size(), "PDB B-factor array")) return 1;
     if (BufferAlloc(F_PDB_BFAC, TopOut.Natom())) return 1;
     for (std::vector<float>::const_iterator it = TopOut.Bfactor().begin();
                                             it != TopOut.Bfactor().end(); ++it)
       file_.DblToBuffer( *it );
-    if (astat == -1) {
-      for (unsigned int idx = TopOut.Bfactor().size(); idx < (unsigned int)TopOut.Natom(); idx++)
-        file_.DblToBuffer( 0 );
-    }
     file_.FlushBuffer();
   }
   if (hasNum) {
     // PDB original serial numbers
-    int astat = check_array_size(TopOut.Natom(), TopOut.PdbSerialNum().size(), "PDB serial number array");
-    if (astat == 1) return 1;
+    if (check_array_size(TopOut.Natom(), TopOut.PdbSerialNum().size(), "PDB serial number array")) return 1;
     if (BufferAlloc(F_PDB_NUM, TopOut.Natom())) return 1;
     for (std::vector<int>::const_iterator it = TopOut.PdbSerialNum().begin();
                                           it != TopOut.PdbSerialNum().end(); ++it)
       file_.IntToBuffer( *it );
-    if (astat == -1) {
-      for (unsigned int idx = TopOut.PdbSerialNum().size(); idx < (unsigned int)TopOut.Natom(); idx++)
-        file_.IntToBuffer( (int)idx+1 );
-    }
     file_.FlushBuffer();
   }
 

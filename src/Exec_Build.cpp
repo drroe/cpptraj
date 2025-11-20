@@ -744,10 +744,6 @@ const
     }
   }
 
-  // Finalize topology - determine molecules, dont renumber residues, dont assign default bond params
-  topOut.CommonSetup(true, false, false);
-  topOut.Summary();
-
   if (buildFailed) return 1;
   return 0;
 }
@@ -1130,6 +1126,9 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   topOut.AllocTreeChainClassification( );
   topOut.AllocJoinArray();
   topOut.AllocRotateArray();
+    // Finalize topology - determine molecules, dont renumber residues, dont assign default bond params
+  topOut.CommonSetup(true, false, false);
+  topOut.Summary();
   t_assign_.Stop();
 
   // Update coords 
