@@ -61,20 +61,31 @@ BondArray Cpptraj::Structure::GenerateBondArray(std::vector<Residue> const& resi
       start = res->FirstAtom();
       end = res->LastAtom();
       offset = 1;
-    } else
-      set_indices(start, end, offset, res->FirstAtom(), res->LastAtom());
-    for (int iat = start; iat != end; iat += offset)
-    //for (int iat = res->LastAtom()-1; iat >= res->FirstAtom(); iat--)
-    {
-      Atom const& At = atoms[iat];
-      for (Atom::bond_iterator bat = At.bondbegin(); bat != At.bondend(); ++bat)
+      for (int iat = start; iat != end; iat += offset)
       {
-        if (iat < *bat) {
-          //mprintf("DEBUG: BOND  i= %i  %i - %i (%i %i)\n",  bidx++, iat+1, *bat+1, iat*3, *bat*3);
-          out.push_back( BondType(iat, *bat, -1) );
+        Atom const& At = atoms[iat];
+        for (Atom::bond_iterator bat = At.bondbegin(); bat != At.bondend(); ++bat)
+        {
+          if (iat < *bat) {
+            out.push_back( BondType(*bat, iat, -1) );
+          }
         }
-        //else
-        //  mprintf("DEBUG: X    i= %i  %i - %i (%i %i)\n",   bidx++, iat+1, *bat+1, iat*3, *bat*3);
+      }
+    } else {
+      set_indices(start, end, offset, res->FirstAtom(), res->LastAtom());
+      for (int iat = start; iat != end; iat += offset)
+      //for (int iat = res->LastAtom()-1; iat >= res->FirstAtom(); iat--)
+      {
+        Atom const& At = atoms[iat];
+        for (Atom::bond_iterator bat = At.bondbegin(); bat != At.bondend(); ++bat)
+        {
+          if (iat < *bat) {
+            //mprintf("DEBUG: BOND  i= %i  %i - %i (%i %i)\n",  bidx++, iat+1, *bat+1, iat*3, *bat*3);
+            out.push_back( BondType(iat, *bat, -1) );
+          }
+          //else
+          //  mprintf("DEBUG: X    i= %i  %i - %i (%i %i)\n",   bidx++, iat+1, *bat+1, iat*3, *bat*3);
+        }
       }
     }
   }
