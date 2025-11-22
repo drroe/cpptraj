@@ -1150,7 +1150,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
                           debug_, // debug
                           "*", // mask 1
                           "", // mask 2
-                          0.8, // nonbond cut
+                          0.8, // nonbond cut. NOTE: leap check cut is 1.5
                           1.15, // bond long offset
                           0.5, // bond short offset
                           -1, // pairlist cut (-1 for heuristic)
