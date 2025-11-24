@@ -333,9 +333,10 @@ const
       if ( topOut[dih->A1()].Element() == Atom::EXTRAPT ||
            topOut[dih->A4()].Element() == Atom::EXTRAPT)
       {
-        mprintf("DEBUG: Skipping dihedral with extra point: %4i %4i %4i %4i (%2s %2s %2s %2s)\n",
-                dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1,
-                *types[0], *types[1], *types[2], *types[3]);
+        if (debug_ > 1)
+          mprintf("DEBUG: Skipping dihedral with extra point: %4i %4i %4i %4i (%2s %2s %2s %2s)\n",
+                  dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1,
+                  *types[0], *types[1], *types[2], *types[3]);
         continue;
       }
     }
