@@ -457,7 +457,7 @@ const
     if (ds == 0) return 1;
   }
   DataSet_NameMap& namemap = static_cast<DataSet_NameMap&>( *ds );
-//  if (debug_ > 0)
+  if (debug_ > 0)
     mprintf("DEBUG: Name map set: %s\n", namemap.legend());
   int bracketCount = 0;
   // First line should contain the command

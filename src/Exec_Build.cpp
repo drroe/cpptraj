@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_Parameters.h" // For casting DataSet_Parameters to ParameterSet
 #include "ParmFile.h"
+#include "StringRoutines.h" // integerToString
 #include "Trajout_Single.h"
 #include "Parm/AssignParams.h"
 #include "Structure/Builder.h"
@@ -1093,8 +1094,12 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     return CpptrajState::ERR;
   }
 
+  std::string checkMaskString("*");
   if (add_solvent) {
     t_solvate_.Start();
+    // Record initial number of atoms and residues
+    int initial_natom = topOut.Natom();
+    int initial_nres = topOut.Nres();
     // Get solvent unit box
     DataSet_Coords* solventUnitBox = solvator.GetSolventUnit( DSL );
     if (solventUnitBox == 0) {
@@ -1105,6 +1110,10 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
       mprinterr("Error: Adding solvent failed.\n");
       return CpptrajState::ERR;
     }
+    mprintf("\tAdded %i residues.\n", topOut.Nres() - initial_nres);
+    // Since by design the SolvateBox routine ensures solvent does not
+    // clash with solute, just check the solute.
+    checkMaskString.assign( "@1-" + integerToString(initial_natom) );
     t_solvate_.Stop();
   }
 
@@ -1148,7 +1157,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
                           true, // check bonds
                           true,  // save problems
                           debug_, // debug
-                          "*", // mask 1
+                          checkMaskString, // mask 1
                           "", // mask 2
                           0.8, // nonbond cut. NOTE: leap check cut is 1.5
                           1.15, // bond long offset
