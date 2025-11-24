@@ -102,14 +102,14 @@ const double Atom::PaulingElectroNeg_[NUMELEMENTS_] = { -1.0,
 };
 
 // CONSTRUCTOR
-Atom::Atom() : charge_(0.0), polar_(0.0), mass_(1.0), gb_radius_(0.0),
+Atom::Atom() : charge_(0.0), polar_(0.0), mass_(0.0), gb_radius_(0.0),
                gb_screen_(0.0), aname_(""), atype_(""), atype_index_(0),
                element_(UNKNOWN_ELEMENT), resnum_(0), mol_(0)
 {}
 
 /** If no 2 char element name provided, try to guess from name. */ 
 Atom::Atom(NameType const& aname, const char* elt) :
-  charge_(0.0), polar_(0.0), mass_(1.0), gb_radius_(0.0), gb_screen_(0.0),
+  charge_(0.0), polar_(0.0), mass_(0.0), gb_radius_(0.0), gb_screen_(0.0),
   aname_(aname), atype_(""), atype_index_(0), element_(UNKNOWN_ELEMENT),
   resnum_(0), mol_(0)
 {
@@ -122,7 +122,7 @@ Atom::Atom(NameType const& aname, const char* elt) :
 
 /** Attempt to guess element from atom name. */ 
 Atom::Atom( NameType const& aname, NameType const& atype, double q ) :
-  charge_(q), polar_(0.0), mass_(1.0), gb_radius_(0.0), gb_screen_(0.0),
+  charge_(q), polar_(0.0), mass_(0.0), gb_radius_(0.0), gb_screen_(0.0),
   aname_(aname), atype_(atype), atype_index_(0), element_(UNKNOWN_ELEMENT),
   resnum_(0), mol_(0)
 {
@@ -132,7 +132,7 @@ Atom::Atom( NameType const& aname, NameType const& atype, double q ) :
 
 /** Set type and type index. Attempt to guess element from atom name. */
 Atom::Atom( NameType const& aname, NameType const& atype, int atidx ) :
-  charge_(0.0), polar_(0.0), mass_(1.0), gb_radius_(0.0), gb_screen_(0.0),
+  charge_(0.0), polar_(0.0), mass_(0.0), gb_radius_(0.0), gb_screen_(0.0),
   aname_(aname), atype_(atype), atype_index_(atidx), element_(UNKNOWN_ELEMENT),
   resnum_(0), mol_(0)
 {
