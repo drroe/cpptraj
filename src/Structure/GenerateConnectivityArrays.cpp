@@ -66,8 +66,8 @@ BondArray Cpptraj::Structure::GenerateBondArray(std::vector<Residue> const& resi
         Atom const& At = atoms[iat];
         for (Atom::bond_iterator bat = At.bondbegin(); bat != At.bondend(); ++bat)
         {
-          if (iat < *bat) {
-            out.push_back( BondType(*bat, iat, -1) );
+          if (iat > *bat) {
+            out.push_back( BondType(iat, *bat, -1) );
           }
         }
       }
