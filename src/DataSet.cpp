@@ -62,6 +62,7 @@ DataSet::DataSet() : dType_(UNKNOWN_DATA), dGroup_(GENERIC)
 DataSet::DataSet(DataType typeIn, DataGroup groupIn, TextFormat const& fmtIn, int dimIn) :
   format_(fmtIn),
   dim_(dimIn, Dimension(1.0, 1.0)), // default min=1.0, step=1.0
+  indexSet_(dimIn, 0),
   dType_(typeIn),
   dGroup_(groupIn)
 # ifdef MPI
@@ -73,6 +74,7 @@ DataSet::DataSet(DataType typeIn, DataGroup groupIn, TextFormat const& fmtIn, in
 DataSet::DataSet(const DataSet& rhs) :
   format_(rhs.format_),
   dim_(rhs.dim_),
+  indexSet_(rhs.indexSet_),
   dType_(rhs.dType_),
   dGroup_(rhs.dGroup_),
   meta_(rhs.meta_)
@@ -107,6 +109,7 @@ DataSet& DataSet::operator=(const DataSet& rhs) {
   if (this != &rhs) {
     format_ = rhs.format_;
     dim_ = rhs.dim_;
+    indexSet_ = rhs.indexSet_;
     dType_ = rhs.dType_;
     dGroup_ = rhs.dGroup_;
     meta_ = rhs.meta_;
