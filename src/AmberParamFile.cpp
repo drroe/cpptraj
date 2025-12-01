@@ -33,7 +33,7 @@ int AmberParamFile::read_symbols(const char* ptrIn, std::vector<std::string>& sy
     if (*ptr == '-') {
       isymbol++;
       char_has_been_read = false;
-    } else if (*ptr == ' ' && isymbol + 1 == nsymbols && char_has_been_read) {
+    } else if ((*ptr == ' ' || *ptr == '\t') && isymbol + 1 == nsymbols && char_has_been_read) {
       return (ptr - ptrIn);
     } else {
       symbols[isymbol] += *ptr;
