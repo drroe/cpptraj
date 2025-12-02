@@ -67,6 +67,38 @@ class AmberParamFile::OffdiagNB {
     LJparmType LJ2_;
 };
 
+/// Check return status from adding a parameter and report
+static inline int checkParmRet(Cpptraj::Parm::ParameterSet const& prm, TypeNameHolder const& types, Cpptraj::Parm::RetType const& ret, std::string const& desc, double PN) {
+  if (ret == Cpptraj::Parm::ADDED)
+    return 0;
+
+  std::string OUT(desc);
+  switch (types.Size()) {
+    case 1 : OUT.append(" type " + types[0].Truncated()); break;
+    case 2 : OUT.append(" type " + types[0].Truncated() + " - " + types[1].Truncated()); break;
+    case 3 : OUT.append(" type " + types[0].Truncated() + " - " + types[1].Truncated() + " - " + types[2].Truncated()); break;
+    case 4 :
+      OUT.append(" type " + types[0].Truncated() + " - " + types[1].Truncated() + " - " + types[2].Truncated() + " - " + types[3].Truncated());
+      if (desc[0] == 'd')
+        OUT.append(" (PN=" + doubleToString(PN) + ")" );
+      break;
+  }
+
+  if (ret == Cpptraj::Parm::SAME)
+    mprintf("Warning: Duplicated %s\n", OUT.c_str());
+  else if (ret == Cpptraj::Parm::UPDATED)
+    mprintf("Warning: Redefining %s\n", OUT.c_str());
+  else if (ret == Cpptraj::Parm::ERR) {
+    mprinterr("Error: Reading %s\n", OUT.c_str());
+    return 1;
+  }
+  return 0;
+} 
+
+static inline int checkParmRet(Cpptraj::Parm::ParameterSet const& prm, TypeNameHolder const& types, Cpptraj::Parm::RetType const& ret, std::string const& desc) {
+  return checkParmRet(prm, types, ret, desc, 0);
+}
+
 /** Read input for atom symbols and masses. */
 int AmberParamFile::read_atype(ParameterSet& prm, const char* ptr)
 const
@@ -77,22 +109,24 @@ const
   double amass = 0;
   double atpol = 0;
   int nscan = sscanf(ptr, "%s %lf %lf", kndsym, &amass, &atpol);
+  TypeNameHolder types(kndsym);
   Cpptraj::Parm::RetType ret;
   if (nscan == 3) {
-    ret = prm.AT().AddParm( TypeNameHolder(kndsym),
+    ret = prm.AT().AddParm( types,
                             AtomType(amass, atpol),
                             true );
   } else if (nscan == 2) {
     // Only mass
-    ret = prm.AT().AddParm( TypeNameHolder(kndsym),
+    ret = prm.AT().AddParm( types,
                             AtomType(amass),
                             true );
   } else {
     mprinterr("Error: Expected atom type, mass, polarizability, got only %i columns.\n", nscan);
     return 1;
   }
-  if (ret == Cpptraj::Parm::UPDATED)
-    mprintf("Warning: Redefining atom type %s\n", kndsym);
+  checkParmRet( prm, types, ret, "atom" );
+  //if (ret == Cpptraj::Parm::UPDATED)
+  //  mprintf("Warning: Redefining atom type %s\n", kndsym);
   return 0;
 }
 
@@ -121,8 +155,9 @@ const
   types.AddName( symbols[0] );
   types.AddName( symbols[1] );
   Cpptraj::Parm::RetType ret = prm.BP().AddParm(types, BondParmType(RK, REQ), true);
-  if (ret == Cpptraj::Parm::UPDATED)
-    mprintf("Warning: Redefining bond type %s - %s\n", *(types[0]), *(types[1]));
+  checkParmRet( prm, types, ret, "bond" );
+  //if (ret == Cpptraj::Parm::UPDATED)
+  //  mprintf("Warning: Redefining bond type %s - %s\n", *(types[0]), *(types[1]));
 
   return 0;
 }
@@ -153,8 +188,9 @@ const
   types.AddName( symbols[1] );
   types.AddName( symbols[2] );
   Cpptraj::Parm::RetType ret = prm.AP().AddParm(types, AngleParmType(TK, TEQ*Constants::DEGRAD), true);
-  if (ret == Cpptraj::Parm::UPDATED)
-    mprintf("Warning: Redefining angle type %s - %s - %s\n", *(types[0]), *(types[1]), *(types[2]));
+  checkParmRet( prm, types, ret, "angle" );
+  //if (ret == Cpptraj::Parm::UPDATED)
+  //  mprintf("Warning: Redefining angle type %s - %s - %s\n", *(types[0]), *(types[1]), *(types[2]));
 
   return 0;
 }
@@ -230,11 +266,12 @@ const
   types.AddName( symbols[3] );
   Cpptraj::Parm::RetType ret =
     prm.DP().AddParm(types, DihedralParmType(PK / (double)IDIVF, PN, PHASE*Constants::DEGRAD, scee, scnb), true);
-  if (ret == Cpptraj::Parm::UPDATED) {
-    mprintf("Warning: Redefining dihedral type %s - %s - %s - %s (PN=%g)\n",
-            *(types[0]), *(types[1]), *(types[2]), *(types[3]), PN);
+  checkParmRet( prm, types, ret, "dihedral", PN );
+  //if (ret == Cpptraj::Parm::UPDATED) {
+  //  mprintf("Warning: Redefining dihedral type %s - %s - %s - %s (PN=%g)\n",
+  //          *(types[0]), *(types[1]), *(types[2]), *(types[3]), PN);
     //mprintf("DEBUG: %s\n", ptr);
-  }
+  //}
   last_symbols = symbols;
   return 0;
 }
@@ -273,9 +310,10 @@ const
   //types.SortImproperByAlpha("X"); // FIXME wildcard should be a static var
   Cpptraj::Parm::RetType ret =
     prm.IP().AddParm(types, DihedralParmType(PK, PN, PHASE*Constants::DEGRAD), true);
-  if (ret == Cpptraj::Parm::UPDATED)
-    mprintf("Warning: Redefining improper type %s - %s - %s - %s\n",
-            *(types[0]), *(types[1]), *(types[2]), *(types[3]));
+  checkParmRet( prm, types, ret, "improper" );
+  //if (ret == Cpptraj::Parm::UPDATED)
+  //  mprintf("Warning: Redefining improper type %s - %s - %s - %s\n",
+  //          *(types[0]), *(types[1]), *(types[2]), *(types[3]));
 
   return 0;
 }
@@ -305,8 +343,9 @@ const
   types.AddName( KT1 );
   types.AddName( KT2 );
   Cpptraj::Parm::RetType ret = prm.HB().AddParm(types, HB_ParmType(A, B, HCUT), true);
-  if (ret == Cpptraj::Parm::UPDATED)
-    mprintf("Warning: Redefining LJ 10-12 hbond type %s %s\n", *(types[0]), *(types[1]));
+  checkParmRet( prm, types, ret, "LJ 10-12 hbond" );
+  //if (ret == Cpptraj::Parm::UPDATED)
+  //  mprintf("Warning: Redefining LJ 10-12 hbond type %s %s\n", *(types[0]), *(types[1]));
   return 0;
 }
 
@@ -338,8 +377,13 @@ const
   double EDEP = convertToDouble( nbargs[2] );
   TypeNameHolder types( nbargs[0] );
   Cpptraj::Parm::RetType ret = nbset.LJ_.AddParm( types, LJparmType(R, EDEP), true );
+  //checkParmRet( prm, types, ret, "LJ 6-12" );
   if (ret == Cpptraj::Parm::UPDATED)
     mprintf("Warning: Redefining LJ 6-12 type %s\n", *(types[0]));
+  else if (ret == Cpptraj::Parm::SAME)
+    mprintf("Warning: Duplicated LJ 6-12 type %s\n", *(types[0]));
+  else if (ret == Cpptraj::Parm::ERR)
+    mprinterr("Error: Adding LJ 6-12 type %s\n", *(types[0]));
   return 0;
 }
 
