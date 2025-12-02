@@ -156,8 +156,11 @@ const
   types.AddName( symbols[1] );
   Cpptraj::Parm::RetType ret = prm.BP().AddParm(types, BondParmType(RK, REQ), true);
   checkParmRet( prm, types, ret, "bond" );
-  //if (ret == Cpptraj::Parm::UPDATED)
+  if (ret == Cpptraj::Parm::UPDATED) {
+    BondParmType const& BP = prm.BP().PreviousParm();
+    mprintf("Warning: Previous RK= %f REQ= %f, new RK= %f REQ= %f\n", BP.Rk(), BP.Req(), RK, REQ);
   //  mprintf("Warning: Redefining bond type %s - %s\n", *(types[0]), *(types[1]));
+  }
 
   return 0;
 }

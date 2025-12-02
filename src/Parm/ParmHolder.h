@@ -21,6 +21,8 @@ template <class T> class ParmHolder {
     size_t size()       const { return bpmap_.size(); }
     /// \return true if no parameters
     bool empty()        const { return bpmap_.empty(); }
+    /// \return Last parameter to be overwritten from AddParm()
+    T const& PreviousParm() const { return previousParm_; }
     /// Set wildcard character
     //void SetWildcard(char wc) { wc_ = NameType(std::string(1, wc)); }
     /// Add (or update if allowed) given parameter to holder.
@@ -43,6 +45,7 @@ template <class T> class ParmHolder {
           //  mprintf(" '%s'", *(*it));
           //mprintf("\n");
           if (allowUpdate) {
+            previousParm_ = it->second;
             it->second = bp;
             return UPDATED;
           } else {
@@ -113,6 +116,7 @@ template <class T> class ParmHolder {
     }
   private:
     Bmap bpmap_;
+    T previousParm_; ///< When parameter is updated, store previous value.
     //NameType wc_; ///< Wildcard character
 };
 } // END namespace Parm
