@@ -67,38 +67,6 @@ class AmberParamFile::OffdiagNB {
     LJparmType LJ2_;
 };
 
-/// Check return status from adding a parameter and report
-static inline int checkParmRet(Cpptraj::Parm::ParameterSet const& prm, TypeNameHolder const& types, Cpptraj::Parm::RetType const& ret, std::string const& desc, double PN) {
-  if (ret == Cpptraj::Parm::ADDED)
-    return 0;
-
-  std::string OUT(desc);
-  switch (types.Size()) {
-    case 1 : OUT.append(" type " + types[0].Truncated()); break;
-    case 2 : OUT.append(" type " + types[0].Truncated() + " - " + types[1].Truncated()); break;
-    case 3 : OUT.append(" type " + types[0].Truncated() + " - " + types[1].Truncated() + " - " + types[2].Truncated()); break;
-    case 4 :
-      OUT.append(" type " + types[0].Truncated() + " - " + types[1].Truncated() + " - " + types[2].Truncated() + " - " + types[3].Truncated());
-      if (desc[0] == 'd')
-        OUT.append(" (PN=" + doubleToString(PN) + ")" );
-      break;
-  }
-
-  if (ret == Cpptraj::Parm::SAME)
-    mprintf("Warning: Duplicated %s\n", OUT.c_str());
-  else if (ret == Cpptraj::Parm::UPDATED)
-    mprintf("Warning: Redefining %s\n", OUT.c_str());
-  else if (ret == Cpptraj::Parm::ERR) {
-    mprinterr("Error: Reading %s\n", OUT.c_str());
-    return 1;
-  }
-  return 0;
-} 
-
-static inline int checkParmRet(Cpptraj::Parm::ParameterSet const& prm, TypeNameHolder const& types, Cpptraj::Parm::RetType const& ret, std::string const& desc) {
-  return checkParmRet(prm, types, ret, desc, 0);
-}
-
 /*static inline void printTypes(TypeNameHolder const& types) {
   switch (types.Size()) {
     case 1 : mprintf("%s", *(types[0])); break;
@@ -412,7 +380,18 @@ const
   types.AddName( KT1 );
   types.AddName( KT2 );
   Cpptraj::Parm::RetType ret = prm.HB().AddParm(types, HB_ParmType(A, B, HCUT), true);
-  checkParmRet( prm, types, ret, "LJ 10-12 hbond" );
+  if (ret == Cpptraj::Parm::SAME)
+    mprintf("Warning: Duplicated %s\n", typeNameStr(types, "LJ 10-12 hbond").c_str());
+  else if (ret == Cpptraj::Parm::UPDATED) {
+    mprintf("Warning: Redefining %s from Asol= %g Bsol= %g Cut= %g to Asol= %g Bsol= %g Cut=%g\n",
+            typeNameStr(types, "LJ 10-12 hbond").c_str(),
+            prm.HB().PreviousParm().Asol(), prm.HB().PreviousParm().Bsol(), prm.HB().PreviousParm().HBcut(),
+            A, B, HCUT);
+  } else if (ret == Cpptraj::Parm::ERR) {
+    mprinterr("Error: Reading %s\n", typeNameStr(types, "LJ 10-12 hbond").c_str());
+    return 1;
+  }
+
   //if (ret == Cpptraj::Parm::UPDATED)
   //  mprintf("Warning: Redefining LJ 10-12 hbond type %s %s\n", *(types[0]), *(types[1]));
   return 0;
@@ -446,7 +425,6 @@ const
   double EDEP = convertToDouble( nbargs[2] );
   TypeNameHolder types( nbargs[0] );
   Cpptraj::Parm::RetType ret = nbset.LJ_.AddParm( types, LJparmType(R, EDEP), true );
-  //checkParmRet( prm, types, ret, "LJ 6-12" );
   if (ret == Cpptraj::Parm::UPDATED)
     mprintf("Warning: Redefining LJ 6-12 type %s\n", *(types[0]));
   else if (ret == Cpptraj::Parm::SAME)
