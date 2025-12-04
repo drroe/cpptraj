@@ -311,7 +311,16 @@ const
   types.AddName( symbols[3] );
   Cpptraj::Parm::RetType ret =
     prm.DP().AddParm(types, DihedralParmType(PK / (double)IDIVF, PN, PHASE*Constants::DEGRAD, scee, scnb), true);
-  checkParmRet( prm, types, ret, "dihedral", PN );
+  if (ret == Cpptraj::Parm::SAME)
+    mprintf("Warning: Duplicated %s\n", typeNameStr(types, "dihedral").c_str());
+  else if (ret == Cpptraj::Parm::UPDATED) // TODO SCEE/SCNB?
+    mprintf("Warning: Redefining %s (PN=%g) from PK= %g Phase= %g to PK= %g Phase= %g\n",
+             typeNameStr(types, "dihedral").c_str(), PN,
+             prm.DP().PreviousParm().Pk(), prm.DP().PreviousParm().Phase()*Constants::RADDEG, PK/(double)IDIVF, PHASE);
+  else if (ret == Cpptraj::Parm::ERR) {
+    mprinterr("Error: Reading %s\n", typeNameStr(types, "dihedral").c_str());
+    return 1;
+  }
   //if (ret == Cpptraj::Parm::UPDATED) {
   //  mprintf("Warning: Redefining dihedral type %s - %s - %s - %s (PN=%g)\n",
   //          *(types[0]), *(types[1]), *(types[2]), *(types[3]), PN);

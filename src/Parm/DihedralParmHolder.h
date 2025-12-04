@@ -29,6 +29,8 @@ class DihedralParmHolder {
     size_t size()       const { return bpmap_.size();  }
     /// \return true if no dihedral parameters
     bool empty()        const { return bpmap_.empty(); }
+    /// \return Last parameter to be overwritten from AddParm()
+    DihedralParmType const& PreviousParm() const { return previousParm_; }
     /// Set wildcard character
     void SetWildcard(char wc) { wc_ = NameType(std::string(1, wc)); }
     /// Add (or update) a single dihedral parameter for given atom types.
@@ -81,6 +83,7 @@ class DihedralParmHolder {
             //mprintf("DEBUG: Attempt dihedral update mult (allow=%i): %s %s %s %s pk=%6.2f pn=%3.1f pp=%6.3f (orig pk=%6.2f pn=%3.1f pp=%6.3f )\n",
             //        (int)allowUpdate, *types[0], *types[1], *types[2], *types[3], dp.Pk(), dp.Pn(), dp.Phase(), it1->Pk(), it1->Pn(), it1->Phase());
             if (allowUpdate) {
+              previousParm_ = *it1;
               *it1 = dp;
               return UPDATED;
             } else {
@@ -168,6 +171,7 @@ class DihedralParmHolder {
     NameType wc_; ///< Wildcard character
   private:
     Bmap bpmap_;
+    DihedralParmType previousParm_; ///< When parameter is updated, store previous value.
 };
 } // END namespace Parm
 } // END namespace Cpptraj
