@@ -224,7 +224,16 @@ const
   types.AddName( symbols[1] );
   types.AddName( symbols[2] );
   Cpptraj::Parm::RetType ret = prm.AP().AddParm(types, AngleParmType(TK, TEQ*Constants::DEGRAD), true);
-  checkParmRet( prm, types, ret, "angle" );
+  if (ret == Cpptraj::Parm::SAME)
+    mprintf("Warning: Duplicated %s\n", typeNameStr(types, "angle").c_str());
+  else if (ret == Cpptraj::Parm::UPDATED)
+    mprintf("Warning: Redefining %s from TK= %g TEQ= %g to RK= %g REQ= %g\n",
+             typeNameStr(types, "angle").c_str(),
+             prm.AP().PreviousParm().Tk(), prm.AP().PreviousParm().Teq()*Constants::RADDEG, TK, TEQ);
+  else if (ret == Cpptraj::Parm::ERR) {
+    mprinterr("Error: Reading %s\n", typeNameStr(types, "angle").c_str());
+    return 1;
+  }
   //if (ret == Cpptraj::Parm::UPDATED)
   //  mprintf("Warning: Redefining angle type %s - %s - %s\n", *(types[0]), *(types[1]), *(types[2]));
 
