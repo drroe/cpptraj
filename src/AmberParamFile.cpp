@@ -425,10 +425,11 @@ const
   double EDEP = convertToDouble( nbargs[2] );
   TypeNameHolder types( nbargs[0] );
   Cpptraj::Parm::RetType ret = nbset.LJ_.AddParm( types, LJparmType(R, EDEP), true );
-  if (ret == Cpptraj::Parm::UPDATED)
-    mprintf("Warning: Redefining LJ 6-12 type %s\n", *(types[0]));
-  else if (ret == Cpptraj::Parm::SAME)
+  if (ret == Cpptraj::Parm::SAME)
     mprintf("Warning: Duplicated LJ 6-12 type %s\n", *(types[0]));
+  else if (ret == Cpptraj::Parm::UPDATED)
+    mprintf("Warning: Redefining LJ 6-12 type %s from R= %g depth= %g to R= %g depth= %g\n", *(types[0]),
+            nbset.LJ_.PreviousParm().Radius(), nbset.LJ_.PreviousParm().Depth(), R, EDEP);
   else if (ret == Cpptraj::Parm::ERR)
     mprinterr("Error: Adding LJ 6-12 type %s\n", *(types[0]));
   return 0;
