@@ -99,6 +99,26 @@ static inline int checkParmRet(Cpptraj::Parm::ParameterSet const& prm, TypeNameH
   return checkParmRet(prm, types, ret, desc, 0);
 }
 
+/*static inline void printTypes(TypeNameHolder const& types) {
+  switch (types.Size()) {
+    case 1 : mprintf("%s", *(types[0])); break;
+    case 2 : mprintf("%s - %s", *(types[0]), *(types[1])); break;
+    case 3 : mprintf("%s - %s - %s", *(types[0]), *(types[1]), *(types[2])); break;
+    case 4 : mprintf("%s - %s - %s - %s", *(types[0]), *(types[1]), *(types[2]), *(types[3])); break;
+  }
+}*/
+
+static inline std::string typeNameStr(TypeNameHolder const& types, std::string const& desc) {
+  std::string OUT(desc);
+  switch (types.Size()) {
+    case 1 : OUT.append(" type " + types[0].Truncated()); break;
+    case 2 : OUT.append(" type " + types[0].Truncated() + " - " + types[1].Truncated()); break;
+    case 3 : OUT.append(" type " + types[0].Truncated() + " - " + types[1].Truncated() + " - " + types[2].Truncated()); break;
+    case 4 : OUT.append(" type " + types[0].Truncated() + " - " + types[1].Truncated() + " - " + types[2].Truncated() + " - " + types[3].Truncated());
+  }
+  return OUT;
+}
+
 /** Read input for atom symbols and masses. */
 int AmberParamFile::read_atype(ParameterSet& prm, const char* ptr)
 const
@@ -124,7 +144,15 @@ const
     mprinterr("Error: Expected atom type, mass, polarizability, got only %i columns.\n", nscan);
     return 1;
   }
-  checkParmRet( prm, types, ret, "atom" );
+  if (ret == Cpptraj::Parm::SAME)
+    mprintf("Warning: Duplicated %s\n", typeNameStr(types, "atom").c_str());
+  else if (ret == Cpptraj::Parm::UPDATED)
+    mprintf("Warning: Redefining %s\n", typeNameStr(types, "atom").c_str());
+  else if (ret == Cpptraj::Parm::ERR) {
+    mprinterr("Error: Reading %s\n", typeNameStr(types, "atom").c_str());
+    return 1;
+  }
+
   //if (ret == Cpptraj::Parm::UPDATED)
   //  mprintf("Warning: Redefining atom type %s\n", kndsym);
   return 0;
@@ -155,11 +183,16 @@ const
   types.AddName( symbols[0] );
   types.AddName( symbols[1] );
   Cpptraj::Parm::RetType ret = prm.BP().AddParm(types, BondParmType(RK, REQ), true);
-  checkParmRet( prm, types, ret, "bond" );
-  if (ret == Cpptraj::Parm::UPDATED) {
-    BondParmType const& BP = prm.BP().PreviousParm();
-    mprintf("Warning: Previous RK= %f REQ= %f, new RK= %f REQ= %f\n", BP.Rk(), BP.Req(), RK, REQ);
-  //  mprintf("Warning: Redefining bond type %s - %s\n", *(types[0]), *(types[1]));
+
+  if (ret == Cpptraj::Parm::SAME)
+    mprintf("Warning: Duplicated %s\n", typeNameStr(types, "bond").c_str());
+  else if (ret == Cpptraj::Parm::UPDATED)
+    mprintf("Warning: Redefining %s from RK= %g REQ= %g to RK= %g REQ= %g\n",
+            typeNameStr(types, "bond").c_str(),
+            prm.BP().PreviousParm().Rk(), prm.BP().PreviousParm().Req(), RK, REQ);
+  else if (ret == Cpptraj::Parm::ERR) {
+    mprinterr("Error: Reading %s\n", typeNameStr(types, "bond").c_str());
+    return 1;
   }
 
   return 0;
