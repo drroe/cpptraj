@@ -364,7 +364,17 @@ const
   //types.SortImproperByAlpha("X"); // FIXME wildcard should be a static var
   Cpptraj::Parm::RetType ret =
     prm.IP().AddParm(types, DihedralParmType(PK, PN, PHASE*Constants::DEGRAD), true);
-  checkParmRet( prm, types, ret, "improper" );
+  if (ret == Cpptraj::Parm::SAME)
+    mprintf("Warning: Duplicated %s\n", typeNameStr(types, "improper").c_str());
+  else if (ret == Cpptraj::Parm::UPDATED)
+    mprintf("Warning: Redefining %s from PK= %g Phase= %g to PK= %g Phase= %g\n",
+             typeNameStr(types, "improper").c_str(),
+             prm.IP().PreviousParm().Pk(), prm.IP().PreviousParm().Phase()*Constants::RADDEG, PK, PHASE);
+  else if (ret == Cpptraj::Parm::ERR) {
+    mprinterr("Error: Reading %s\n", typeNameStr(types, "improper").c_str());
+    return 1;
+  }
+
   //if (ret == Cpptraj::Parm::UPDATED)
   //  mprintf("Warning: Redefining improper type %s - %s - %s - %s\n",
   //          *(types[0]), *(types[1]), *(types[2]), *(types[3]));
