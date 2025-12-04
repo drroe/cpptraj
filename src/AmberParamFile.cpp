@@ -146,9 +146,14 @@ const
   }
   if (ret == Cpptraj::Parm::SAME)
     mprintf("Warning: Duplicated %s\n", typeNameStr(types, "atom").c_str());
-  else if (ret == Cpptraj::Parm::UPDATED)
-    mprintf("Warning: Redefining %s\n", typeNameStr(types, "atom").c_str());
-  else if (ret == Cpptraj::Parm::ERR) {
+  else if (ret == Cpptraj::Parm::UPDATED) {
+    mprintf("Warning: Redefining %s from mass= %g pol= %g to", typeNameStr(types, "atom").c_str(),
+            prm.AT().PreviousParm().Mass(), prm.AT().PreviousParm().Polarizability());
+    if (nscan==3)
+      mprintf(" mass= %g pol= %g\n", amass, atpol);
+    else
+      mprintf(" mass= %g\n", amass);
+  } else if (ret == Cpptraj::Parm::ERR) {
     mprinterr("Error: Reading %s\n", typeNameStr(types, "atom").c_str());
     return 1;
   }
