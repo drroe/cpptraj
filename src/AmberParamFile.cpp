@@ -880,11 +880,12 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
       for (; typeName != equivAts->end(); ++typeName) {
         ParmHolder<AtomType>::iterator at1 = prm.AT().GetParam( *typeName );
         if (at1 == prm.AT().end()) {
-          mprinterr("Error: Equivalent atom type '%s' (base '%s') not found.\n", *(*typeName), *(at0->first[0]));
-          return 1;
+          mprintf("Warning: Equivalent atom type '%s' (base type '%s') not found.\n", *(*typeName), *(at0->first[0]));
+          //return 1;
+        } else {
+          if (debug_ > 1) mprintf("DEBUG: Equiv '%s' => '%s'\n", *(at0->first[0]), *(*typeName));
+          at1->second.SetLJ( at0->second.LJ() );
         }
-        if (debug_ > 1) mprintf("DEBUG: Equiv '%s' => '%s'\n", *(at0->first[0]), *(*typeName));
-        at1->second.SetLJ( at0->second.LJ() );
       }
     } // END loop over EquivalentNames
   } // END nonbond parameters
