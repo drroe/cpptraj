@@ -790,7 +790,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
         ArgList nb_args(ptr);
         //nb_args.PrintDebug();
         if (nb_args.Nargs() != 2) {
-          mprintf("Warning: Expected 2 elements, nonbond label and kind, got %i elements: %s\n", nb_args.Nargs(), ptr);
+          mprintf("Warning: Line %i: Expected 2 elements, nonbond label and kind, got %i elements: %s\n", infile.LineNumber(), nb_args.Nargs(), ptr);
           section = UNKNOWN;
         } else {
           if (debug_ > 0) mprintf("DEBUG: NB label= %s  NB kind = %s\n", nb_args[0].c_str(), nb_args[1].c_str());
