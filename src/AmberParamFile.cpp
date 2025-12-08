@@ -765,14 +765,19 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
       }
       // Special cases
       if (section == HYDROPHILIC) {
-        // Special case: hydrophilic atom types. One line.
+        // Special case: hydrophilic atom types. Could be multiple lines.
         // FORMAT(20(A2,2X))
-        ptr = infile.Line();
-        if (debug_ > 1) mprintf("DEBUG: Hydrophilic: %s\n", ptr);
-        // Take advantage of the fact that we expect whitespace-delimiters
-        ArgList hsymbols( ptr, " " );
-        for (int iarg = 0; iarg != hsymbols.Nargs(); ++iarg)
-          prm.AddHydrophilicAtomType( NameType( hsymbols[iarg] ) );
+        bool read_hydrophilic = true;
+        while (read_hydrophilic) {
+          ptr = infile.Line();
+          if (debug_ > 1) mprintf("DEBUG: Hydrophilic: %s\n", ptr);
+          // Take advantage of the fact that we expect whitespace-delimiters
+          ArgList hsymbols( ptr, " " );
+          for (int iarg = 0; iarg != hsymbols.Nargs(); ++iarg)
+            prm.AddHydrophilicAtomType( NameType( hsymbols[iarg] ) );
+          read_hydrophilic = (hsymbols.Nargs() > 19);
+        }
+        if (debug_ > 0) mprintf("DEBUG: Read %u hydrophilic atom types.\n", prm.NhydrophilicAtomTypes());
         section = (SectionType)((int)section + 1);
         // Look ahead. Older parm files have the hydrophilic section delimited
         // with a newline.

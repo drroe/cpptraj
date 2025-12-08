@@ -89,6 +89,8 @@ class ParameterSet {
     void SetNbParamName(std::string const&);
     /// \return Size in memory in bytes
     size_t DataSize() const;
+    /// \return Number of hydrophilic atom types
+    unsigned int NhydrophilicAtomTypes() const { return hydrophilicAtomTypes_.size(); }
   private:
     typedef std::vector<NameType> NsetType;
     typedef std::vector<std::string> Sarray;
