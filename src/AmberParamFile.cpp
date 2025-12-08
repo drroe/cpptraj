@@ -865,7 +865,13 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
       for (int iarg = 0; iarg != equiv_line.Nargs(); iarg++)
         EquivalentNames.back().push_back( equiv_line[iarg] );
     } else if (section == NONBOND) {
-      if (readNbType == 0)
+      /// Check for a badly formatted END
+      if (ptr[0] != '\0' && ptr[1] != '\0' && ptr[2] != '\0' &&
+          ptr[0] == 'E'  && ptr[1] == 'N'  && ptr[2] == 'D')
+      {
+        mprintf("Warning: 'END' encountered before blank line in NONBOND section.\n");
+        section = UNKNOWN;
+      } else if (readNbType == 0)
         // ***** ONLY IF KINDNB .EQ. 'RE' *****
         read_err = read_nb_RE(NBsets.back(), ptr);
       else if (readNbType == 1)
