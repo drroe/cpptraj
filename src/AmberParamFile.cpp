@@ -748,6 +748,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
           // It will either be another set, END, or LJEDIT
           ptr = infile.Line();
           while (*ptr == ' ' && *ptr != '\0') ++ptr;
+          //mprintf("DEBUG: NONBOND First char: %c (%i)\n", *ptr, (int)*ptr);
           std::string nbline(ptr);
           if (nbline == "END") {
             if (debug_ > 0) mprintf("END\n");
@@ -756,6 +757,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
             section = LJEDIT;
             prm.SetHasLJparams( true );
           } // Otherwise assume another nonbond section
+            //else mprintf("DEBUG: Assuming another nonbond section.\n");
         } else {
           if (debug_ > 0) mprintf("SECTION %i change to %i\n", (int)section, (int)section + 1);
           section = (SectionType)((int)section + 1);
@@ -779,23 +781,26 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
         if (*ptr != '\0') continue;
       } else if (section == NONBOND) {
         prm.SetHasLJparams( true );
+        if (debug_ > 1) mprintf("DEBUG: Begin nonbond section.\n");
         // Special case: first read the line.
         // LABEL , KINDNB
         // FORMAT(A4,6X,A2)
         if (NBsets.empty())
           ptr = infile.Line();
-        char nb_label[MAXSYMLEN], nb_kind[MAXSYMLEN];
-        int nscan = sscanf(ptr, "%s %s", nb_label, nb_kind);
-        if (nscan != 2) {
-          mprinterr("Error: Expected nonbond label, nonbond kind, got %i elements.\n", nscan);
-          return 1;
+        ArgList nb_args(ptr);
+        //nb_args.PrintDebug();
+        if (nb_args.Nargs() != 2) {
+          mprintf("Warning: Expected 2 elements, nonbond label and kind, got %i elements: %s\n", nb_args.Nargs(), ptr);
+          section = UNKNOWN;
+        } else {
+          if (debug_ > 0) mprintf("DEBUG: NB label= %s  NB kind = %s\n", nb_args[0].c_str(), nb_args[1].c_str());
+          std::string const& nb_kind = nb_args[1];
+          if (nb_kind[0] != 'R' || nb_kind[1] != 'E') {
+            mprinterr("Error: Nonbond parameters are not of type 'RE' (Rmin, Epsilon).\n");
+            return 1;
+          }
+          NBsets.push_back( NonbondSet( nb_args[0] ) );
         }
-        if (debug_ > 0) mprintf("DEBUG: NB label= %s  NB kind = %s\n", nb_label, nb_kind);
-        if (nb_kind[0] != 'R' || nb_kind[1] != 'E') {
-          mprinterr("Error: Nonbond parameters are not of type 'RE' (Rmin, Epsilon).\n");
-          return 1;
-        }
-        NBsets.push_back( NonbondSet( std::string(nb_label) ) );
       }
     } else if (section == ATYPE) {
       read_err = read_atype(prm, ptr);
@@ -837,12 +842,12 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
     if (NBsets.size() > 1 || !nbsetnameIn.empty()) {
       // Choose from multiple nbsets
       if (nbsetnameIn.empty()) {
-        mprinterr("Error: Parm set in file '%s' contains %zu nonbonded parameter sets\n"
-                  "Error:  but no set has been specified.\n", fname.full(), NBsets.size());
-        mprinterr("Error: Need to specify one of");
+        mprintf("Warning: Parm set in file '%s' contains %zu nonbonded parameter sets\n"
+                "Warning:  but no specific set has been specified. First set will be used.\n", fname.full(), NBsets.size());
+        mprintf("Warning: Nonbonded sets:");
         for (NbSetArrayType::const_iterator it = NBsets.begin(); it != NBsets.end(); ++it)
-          mprinterr(" %s", it->name_.c_str());
-        mprinterr("\n");
+          mprintf(" %s", it->name_.c_str());
+        mprintf("\n");
       } else {
         nbsetidx = -1;
         for (NbSetArrayType::const_iterator it = NBsets.begin(); it != NBsets.end(); ++it) {
