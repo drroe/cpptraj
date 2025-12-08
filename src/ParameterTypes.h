@@ -630,8 +630,8 @@ class NonbondType {
         return false;
     }
   private:
-    double A_;
-    double B_;
+    double A_; ///< The coefficient for the r^12 term
+    double B_; ///< The coefficient for the r^6 term
 #   undef tol_
 };
 typedef std::vector<NonbondType> NonbondArray;

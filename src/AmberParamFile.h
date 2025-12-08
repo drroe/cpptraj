@@ -49,6 +49,8 @@ class AmberParamFile {
     int read_lj1012(ParameterSet&, const char*) const;
     /// Read LJ 6-12 R/depth line
     int read_nb_RE(NonbondSet&, const char*) const;
+    /// Read LJ 6-12 A/C coefficient line
+    int read_nb_AC(NonbondSet&, const char*) const;
     /// Read LJ 6-12 off-diagonal modifications
     int read_ljedit(Oarray&, const char*) const;
     /// Check for issues in CMAP section

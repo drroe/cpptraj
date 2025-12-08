@@ -432,6 +432,37 @@ const
   return 0;
 }
 
+/** Read A/C coefficient input for LJ 6-12 nonbond. */
+int AmberParamFile::read_nb_AC(NonbondSet& nbset, const char* ptr)
+const
+{
+  // ***** ONLY IF KINDNB .EQ. 'AC' *****
+  // LTYNB , A , C
+  if (debug_ > 1) mprintf("DEBUG: Nonbond: %s\n", ptr);
+
+  ArgList nbargs( ptr, " " );
+  if (nbargs.Nargs() < 3) {
+    mprinterr("Error: Expected at least TYPE, A, C, got %i elements.\n", nbargs.Nargs());
+    return 1;
+  }
+
+  double A = convertToDouble( nbargs[1] );
+  double C = convertToDouble( nbargs[2] );
+  TypeNameHolder types( nbargs[0] );
+
+  NonbondType nbt(A, C);
+
+  Cpptraj::Parm::RetType ret = nbset.LJ_.AddParm( types, LJparmType(nbt.Radius(), nbt.Depth()), true );
+  if (ret == Cpptraj::Parm::SAME)
+    mprintf("Warning: Duplicated AC LJ 6-12 type %s\n", *(types[0]));
+  else if (ret == Cpptraj::Parm::UPDATED)
+    mprintf("Warning: Redefining AC LJ 6-12 type %s from R= %g depth= %g to R= %g depth= %g\n", *(types[0]),
+            nbset.LJ_.PreviousParm().Radius(), nbset.LJ_.PreviousParm().Depth(), nbt.Radius(), nbt.Depth());
+  else if (ret == Cpptraj::Parm::ERR)
+    mprinterr("Error: Adding AC LJ 6-12 type %s\n", *(types[0]));
+  return 0;
+}
+
 /** Read LJ off-diagonal modifications */
 int AmberParamFile::read_ljedit(Oarray& Offdiag, const char* ptr)
 const
@@ -732,6 +763,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
   std::vector<std::string> last_symbols;
   last_symbols.reserve(4);
   // Read file
+  int readNbType = 0;
   SectionType section = ATYPE;
   ptr = infile.Line();
   while (ptr != 0) {
@@ -800,8 +832,12 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
         } else {
           if (debug_ > 0) mprintf("DEBUG: NB label= %s  NB kind = %s\n", nb_args[0].c_str(), nb_args[1].c_str());
           std::string const& nb_kind = nb_args[1];
-          if (nb_kind[0] != 'R' || nb_kind[1] != 'E') {
-            mprinterr("Error: Nonbond parameters are not of type 'RE' (Rmin, Epsilon).\n");
+          if (nb_kind[0] == 'R' && nb_kind[1] == 'E')
+            readNbType = 0;
+          else if (nb_kind[0] == 'A' && nb_kind[1] == 'C')
+            readNbType = 1;
+          else {
+            mprinterr("Error: Nonbond parameters are not of type 'RE' (Rmin, Epsilon) or 'AC' (A, C coefficients).\n");
             return 1;
           }
           NBsets.push_back( NonbondSet( nb_args[0] ) );
@@ -829,8 +865,11 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
       for (int iarg = 0; iarg != equiv_line.Nargs(); iarg++)
         EquivalentNames.back().push_back( equiv_line[iarg] );
     } else if (section == NONBOND) {
-      // ***** ONLY IF KINDNB .EQ. 'RE' *****
-      read_err = read_nb_RE(NBsets.back(), ptr);
+      if (readNbType == 0)
+        // ***** ONLY IF KINDNB .EQ. 'RE' *****
+        read_err = read_nb_RE(NBsets.back(), ptr);
+      else if (readNbType == 1)
+        read_err = read_nb_AC(NBsets.back(), ptr);
     } else if (section == LJEDIT) {
       read_err = read_ljedit(Offdiag, ptr);
     }
