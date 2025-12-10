@@ -489,8 +489,12 @@ const
   double sig1, eps1, sig2, eps2;
   int nscan = sscanf(ptr, "%s %s %lf %lf %lf %lf", AT1, AT2, &sig1, &eps1, &sig2, &eps2);
   if (nscan != 6) {
-    mprinterr("Error: Expected AT1, AT2, SIG1, EPS1, SIG2, EPS2, got %i elements.\n", nscan);
-    return 1;
+    //mprinterr("Error: Expected AT1, AT2, SIG1, EPS1, SIG2, EPS2, got %i elements.\n", nscan);
+    //return 1;
+    // NOTE: Change to a warning to match LEAP behavior
+    mprintf("Warning: Expected AT1, AT2, SIG1, EPS1, SIG2, EPS2, got %i elements. Skipping.\n", nscan);
+    mprintf("Warning: Incomplete LJEDIT line: %s\n", ptr);
+    return 0;
   }
   Offdiag.push_back( OffdiagNB(AT1, AT2, sig1, eps1, sig2, eps2) );
   return 0;
