@@ -96,10 +96,24 @@ const
   char kndsym[MAXSYMLEN];
   double amass = 0;
   double atpol = 0;
+  // FIXME Atom class needs to be redone to make reading in elements easier.
   int nscan = sscanf(ptr, "%s %lf %lf", kndsym, &amass, &atpol);
   TypeNameHolder types(kndsym);
   Cpptraj::Parm::RetType ret;
-  if (nscan == 3) {
+  if (nscan > 3)
+    mprintf("Warning: CPPTRAJ currently only reads atomic symbol, mass, and polarizability.\n"
+            "Warning: Ignoring information after the third column: %s\n", ptr);
+  if (nscan >= 3) {
+    // Mass and polarization. Check polarization.
+    if (atpol < 0.0) {
+      bool pol_is_neg_one = (atpol < -0.99 && atpol > -1.01); // NOTE: To be consistent with LEAP behavior
+      if (!pol_is_neg_one) {
+        mprintf("Warning: %s negative polarization %g - omitting.\n", *(types[0]), atpol);
+        return 0;
+      }
+    } else if (atpol > 15.0) {
+      mprintf("Warning: %s polarization is large (%g).\n", *(types[0]), atpol);
+    }
     ret = prm.AT().AddParm( types,
                             AtomType(amass, atpol),
                             true );
