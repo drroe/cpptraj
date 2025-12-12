@@ -835,6 +835,51 @@ int DataIO_LeapRC::ReadData(FileName const& fname, DataSetList& dsl, std::string
   return 0;
 }
 
+/** Copy rhs to lhs */
+int DataIO_LeapRC::unitAlias(std::string const& lhs, std::string const& rhs,
+                             DataSetList& dsl, std::string const& dsname)
+const
+{
+  if (debug_ > 0)
+    mprintf("DEBUG: %s = %s\n", lhs.c_str(), rhs.c_str());
+  // Find the unit to make a copy of
+  DataSet* ds0 = dsl.CheckForSet( MetaData(dsname, rhs) );
+  if (ds0 == 0) {
+    // Its possible the unit in question is loaded by a previous command.
+    ds0 = dsl.GetDataSet( "*[" + rhs + "]" );
+    if (ds0 != 0) {
+      mprintf("Info: Using unit '%s' from previously loaded set '%s'\n",
+              rhs.c_str(), ds0->Meta().Name().c_str());
+    }
+  }
+  if (ds0 == 0) {
+    mprinterr("Error: Could not find unit '%s' to copy to '%s'\n", rhs.c_str(), lhs.c_str());
+    return 1;
+  }
+  DataSet_Coords& crd0 = static_cast<DataSet_Coords&>( *ds0 );
+  // Allocate copy
+  DataSet* ds1 = dsl.AddSet( DataSet::COORDS, MetaData(dsname, lhs) );
+  if (ds1 == 0) {
+    mprinterr("Error: Could not allocate unit '%s' for '%s'\n", lhs.c_str(), rhs.c_str());
+    return 1;
+  }
+  DataSet_Coords& crd1 = static_cast<DataSet_Coords&>( *ds1 );
+  if (crd1.CoordsSetup( crd0.Top(), crd0.CoordsInfo() )) {
+    mprinterr("Error: Could not set up unit '%s' for '%s'\n", lhs.c_str(), rhs.c_str());
+    return 1;
+  }
+  crd1.Allocate( DataSet::SizeArray(1, 1) );
+  // Copy
+  Frame tmpFrm = crd0.AllocateFrame();
+  crd0.GetFrame(0, tmpFrm);
+  crd1.SetCRD(0, tmpFrm );
+  // Copy associated data
+  crd1.CopyAssociatedDataFrom( crd0 );
+  if (debug_ > 0)
+    mprintf("DEBUG: Created unit set %s\n", crd1.legend());
+  return 0;
+}
+
 /** Execute leap source command */
 int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
@@ -934,46 +979,8 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
         err = LeapSet(line, dsl);
       } else {
         // Unrecognized so far. See if this is a unit alias (interpret as 'alias = unit')
-        if (has_equals) {
-          if (line.Nargs() == 2) {
-            if (debug_ > 0)
-              mprintf("DEBUG: %s = %s\n", line[0].c_str(), line[1].c_str());
-            // Find the unit to make a copy of
-            DataSet* ds0 = dsl.CheckForSet( MetaData(dsname, line[1]) );
-            if (ds0 == 0) {
-              // Its possible the unit in question is loaded by a previous command.
-              ds0 = dsl.GetDataSet( "*[" + line[1] + "]" );
-              if (ds0 != 0) {
-                mprintf("Info: Using unit '%s' from previously loaded set '%s'\n",
-                        line[1].c_str(), ds0->Meta().Name().c_str());
-              }
-            }
-            if (ds0 == 0) {
-              mprinterr("Error: Could not find unit '%s' to copy to '%s'\n", line[1].c_str(), line[0].c_str());
-              return 1;
-            }
-            DataSet_Coords& crd0 = static_cast<DataSet_Coords&>( *ds0 );
-            // Allocate copy
-            DataSet* ds1 = dsl.AddSet( DataSet::COORDS, MetaData(dsname, line[0]) );
-            if (ds1 == 0) {
-              mprinterr("Error: Could not allocate unit '%s' for '%s'\n", line[0].c_str(), line[1].c_str());
-              return 1;
-            }
-            DataSet_Coords& crd1 = static_cast<DataSet_Coords&>( *ds1 );
-            if (crd1.CoordsSetup( crd0.Top(), crd0.CoordsInfo() )) {
-              mprinterr("Error: Could not set up unit '%s' for '%s'\n", line[0].c_str(), line[1].c_str());
-              return 1;
-            }
-            crd1.Allocate( DataSet::SizeArray(1, 1) );
-            // Copy
-            Frame tmpFrm = crd0.AllocateFrame();
-            crd0.GetFrame(0, tmpFrm);
-            crd1.SetCRD(0, tmpFrm );
-            // Copy associated data
-            crd1.CopyAssociatedDataFrom( crd0 );
-            if (debug_ > 0)
-              mprintf("DEBUG: Created unit set %s\n", crd1.legend());
-          }
+        if (has_equals && line.Nargs() == 2) {
+          err = unitAlias( line[0], line[1], dsl, dsname );
         } else {
           mprintf("Warning: Skipping unhandled LEaP command line: %s\n", ptr);
         }

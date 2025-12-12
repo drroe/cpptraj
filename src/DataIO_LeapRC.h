@@ -61,6 +61,7 @@ class DataIO_LeapRC : public DataIO {
     int LeapSet(ArgList const&, DataSetList&) const;
     DataSet* getUnit(std::string const&, DataSetList const&) const;
     int SaveAmberParm(std::string const&, ArgList&, DataSetList& dsl) const;
+    int unitAlias(std::string const&, std::string const&, DataSetList&, std::string const&) const;
     int Source(FileName const&, DataSetList&, std::string const&);
 
     /// Used to check if a parm/lib file was already loaded.
