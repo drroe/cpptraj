@@ -853,8 +853,11 @@ const
     }
   }
   if (ds0 == 0) {
-    mprinterr("Error: Could not find unit '%s' to copy to '%s'\n", rhs.c_str(), lhs.c_str());
-    return 1;
+    //mprinterr("Error: Could not find unit '%s' to copy to '%s'\n", rhs.c_str(), lhs.c_str());
+    //return 1;
+    // NOTE: Make only a warning to replicate LEAP behavior
+    mprintf("Warning: Could not find unit '%s' to copy to '%s' - skipping.\n", rhs.c_str(), lhs.c_str());
+    return 0;
   }
   DataSet_Coords& crd0 = static_cast<DataSet_Coords&>( *ds0 );
   // Allocate copy
