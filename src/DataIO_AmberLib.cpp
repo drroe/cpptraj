@@ -144,7 +144,7 @@ const char* DataIO_AmberLib::sectionStr_[] = {
 DataIO_AmberLib::SectionType DataIO_AmberLib::id_section(std::string const& line,
                                                          std::string const& unitName)
 {
-  mprintf("DEBUG: id_section %s : %s\n", unitName.c_str(), line.c_str());
+  //mprintf("DEBUG: id_section %s : %s\n", unitName.c_str(), line.c_str());
   std::string entry = "!entry." + unitName + ".unit.";
   for (int idx = 0; idx < (int)UNKNOWN_SECTION; idx++) {
     std::string sectionName = entry + std::string(sectionStr_[idx]);
@@ -380,7 +380,7 @@ const
         // See if we are at another unit
         ArgList tmparg( Line, ". " );
         if (tmparg[1] != unitName) {
-          mprintf("DEBUG: New entry %s detected.\n", tmparg[1].c_str());
+          //mprintf("DEBUG: New entry %s detected.\n", tmparg[1].c_str());
           readUnit = false;
           break;
         }
