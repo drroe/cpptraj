@@ -104,21 +104,23 @@ int DataIO_AmberLib::ReadData(FileName const& fname, DataSetList& dsl, std::stri
     }
 
     DataSet_Coords* ds = 0;
-    MetaData meta(dsname, currentName);
-    DataSet* set = dsl.CheckForSet( meta );
-    if (set == 0) {
-      ds = (DataSet_Coords*)dsl.AddSet( DataSet::COORDS, meta );
-    } else if (allowOverwrite_) {
-      mprintf("Warning: Overwriting existing set %s\n", set->legend());
-      dsl.RemoveSet( set );
-      ds = (DataSet_Coords*)dsl.AddSet( DataSet::COORDS, meta );
-    } else {
-      mprinterr("Error: Set %s already exists and 'allowoverwrite' not specified.\n");
-      return 1;
-    }
-    if (ds == 0) {
-      mprinterr("Error: Could not create data set for unit %s\n", currentName.c_str());
-      return 1;
+    if (is_unit == 1) {
+      MetaData meta(dsname, currentName);
+      DataSet* set = dsl.CheckForSet( meta );
+      if (set == 0) {
+        ds = (DataSet_Coords*)dsl.AddSet( DataSet::COORDS, meta );
+      } else if (allowOverwrite_) {
+        mprintf("Warning: Overwriting existing set %s\n", set->legend());
+        dsl.RemoveSet( set );
+        ds = (DataSet_Coords*)dsl.AddSet( DataSet::COORDS, meta );
+      } else {
+        mprinterr("Error: Set %s already exists and 'allowoverwrite' not specified.\n");
+        return 1;
+      }
+      if (ds == 0) {
+        mprinterr("Error: Could not create data set for unit %s\n", currentName.c_str());
+        return 1;
+      }
     }
     if (read_unit( ds, infile, line, currentName, (is_unit==1) )) {
       mprinterr("Error: Reading unit '%s'\n", currentName.c_str());
