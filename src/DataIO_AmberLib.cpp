@@ -258,9 +258,15 @@ const
       readUnit = false;
       break;
     }
-    Line.assign(lineptr);
+    // Advance past any leading whitespace
+    while (*lineptr != 0 && (*lineptr == ' ' || *lineptr == '\t'))
+      ++lineptr;
+    if (*lineptr == 0)
+      Line.clear();
+    else
+      Line.assign(lineptr);
     if (!Line.empty()) {
-      if (debug_ > 2) mprintf("DEBUG: Line: %s\n", Line.c_str());
+      if (debug_ > 2) mprintf("DEBUG: Line: '%s'\n", Line.c_str());
       //ArgList cols( Line, " \t\n" );
       if (Line[0] == '!') {
         // See if we are at another unit
