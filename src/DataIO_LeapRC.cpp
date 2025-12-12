@@ -896,6 +896,8 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
   const char* ptr = infile.Line();
   // FIXME need to convert to all lowercase for matching commands; leap allows
   //       mixed case
+  typedef std::vector<std::string> Sarray;
+  Sarray aliasPairs;
   while (ptr != 0) {
     // Use lineBuf to store all non-comment characters
     std::string lineBuf;
@@ -980,7 +982,9 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
       } else {
         // Unrecognized so far. See if this is a unit alias (interpret as 'alias = unit')
         if (has_equals && line.Nargs() == 2) {
-          err = unitAlias( line[0], line[1], dsl, dsname );
+          //err = unitAlias( line[0], line[1], dsl, dsname );
+          aliasPairs.push_back( line[0] );
+          aliasPairs.push_back( line[1] );
         } else {
           mprintf("Warning: Skipping unhandled LEaP command line: %s\n", ptr);
         }
@@ -990,6 +994,15 @@ int DataIO_LeapRC::Source(FileName const& fname, DataSetList& dsl, std::string c
     ptr = infile.Line();
   }
   infile.CloseFile();
+
+  // Do any unit aliases
+  for (unsigned int idx = 0; idx < aliasPairs.size(); idx += 2)
+  {
+    if ( unitAlias( aliasPairs[idx], aliasPairs[idx+1], dsl, dsname ) ) {
+      mprinterr("Error: Creating unit alias %s = %s\n", aliasPairs[idx].c_str(), aliasPairs[idx+1].c_str());
+      err++;
+    }
+  }
 
   // Add data sets to the main data set list
   //if (addSetsToList(dsl, paramDSL)) return err+1;
