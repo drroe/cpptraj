@@ -15,6 +15,7 @@
 #include "StringRoutines.h" // ToLower
 #include "Trajout_Single.h"
 #include <cstdlib> //getenv
+#include <cstring> // strncmp
 
 // -----------------------------------------------------------------------------
 // LeapEltHybrid class
@@ -173,6 +174,42 @@ int DataIO_LeapRC::AddPath(std::string const& path) {
   return 0;
 }
 
+/** Detect whether a file is an Amber main FF file or frcmod.
+  * \return 1 if frcmod, 0 if FF, -1 if an error occurred.
+  */
+int DataIO_LeapRC::is_frcmod(std::string const& filename, bool& hasMass, bool& hasNonBond) {
+  hasMass = false;
+  hasNonBond = false;
+  BufferedLine infile;
+  if (infile.OpenFileRead( filename )) {
+    mprinterr("Error: Could not open '%s' to determine if Amber FF/frcmod.\n", filename.c_str());
+    return -1;
+  }
+  int stat = 0;
+  const char* ptr = infile.Line();
+  while (ptr != 0) {
+    if ( strncmp( ptr, "MASS", 4 ) == 0 ) {
+        stat = 1;
+        hasMass = true;
+    } else if ( strncmp( ptr, "BOND", 4 ) == 0 ) {
+      stat = 1;
+    } else if ( strncmp( ptr, "ANGL", 4 ) == 0 ) {
+      stat = 1;
+    } else if ( strncmp( ptr, "DIHE", 4 ) == 0 ) {
+      stat = 1;
+    } else if ( strncmp( ptr, "IMPR", 4 ) == 0 ) {
+      stat = 1;
+    } else if ( strncmp( ptr, "HBON", 4 ) == 0 ) {
+      stat = 1;
+    } else if ( strncmp( ptr, "NONB", 4 ) == 0 ) {
+        stat = 1;
+        hasNonBond = true;
+    }
+    ptr = infile.Line();
+  }
+  return stat;
+}
+
 /** LEaP loadAmberParams command. */
 int DataIO_LeapRC::LoadAmberParams(std::string const& filename, DataSetList& dsl,
                                    std::string const& dsname,
@@ -180,13 +217,22 @@ int DataIO_LeapRC::LoadAmberParams(std::string const& filename, DataSetList& dsl
 const
 {
   DataSet* paramSet = 0;
-  // TODO detect this better
-  ArgList fargs( filename, "." );
-  if (fargs.hasKey("frcmod")) {
+  // Detect whether we have a frcmod file or not. Need to scan entire file.
+  bool hasMass = false;
+  bool hasNonBond = false;
+  std::string full_path = find_path( filename, "parm/" );
+  int stat = is_frcmod( full_path, hasMass, hasNonBond );
+  if (stat == 1) {
+    // Amber frcmod file
     mprintf("\tLoading force field modifications from '%s'\n", filename.c_str());
+    if ( hasMass != hasNonBond ) {
+      mprinterr("Error: Modified force field files must have both MASS and NONBOND entries or neither.\n"
+                "Error: Could not load parameter set from %s.\n", filename.c_str());
+      return 1;
+    }
     DataIO_AmberFrcmod infile;
     infile.SetDebug( debug_ );
-    if (infile.ReadData( find_path(filename, "parm/"), dsl, dsname)) {
+    if (infile.ReadData( full_path, dsl, dsname)) {
       mprinterr("Error: Could not load force field modifications from '%s'\n", filename.c_str());
       return 1;
     }
@@ -195,14 +241,15 @@ const
       return 1;
     }
     paramSet = infile.added_back();
-  } else {
+  } else if (stat == 0) {
+    // Amber FF file
     if (check_already_loaded(paramFiles_, filename)) {
       mprintf("Warning: Force field %s has already been loaded, skipping.\n", filename.c_str());
       return 0;
     } else {
       mprintf("\tLoading force field from '%s'\n", filename.c_str());
       DataIO_AmberFF infile;
-      if (infile.ReadData( find_path(filename, "parm/"), dsl, dsname)) {
+      if (infile.ReadData( full_path, dsl, dsname)) {
         mprinterr("Error: Could not load force field from '%s'\n", filename.c_str());
         return 1;
       }
@@ -213,6 +260,9 @@ const
       }
       paramSet = infile.added_back();
     }
+  } else {
+    mprinterr("Error: loadamberparams failed for '%s'\n", filename.c_str());
+    return 1;
   }
   if (paramSet == 0) {
     mprinterr("Internal Error: DataIO_LeapRC::LoadAmberParams(): Parameter set is null.\n");

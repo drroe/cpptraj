@@ -49,6 +49,7 @@ class DataIO_LeapRC : public DataIO {
     typedef std::vector<DataSet*> DSarray;
 
     int AddPath(std::string const&);
+    static int is_frcmod(std::string const&, bool&, bool&);
     int LoadAmberParams(std::string const&, DataSetList&, std::string const&, AtypeEltHybridPairMap const&) const;
     int LoadOFF(std::string const&, DataSetList&, std::string const&, DSarray&) const;
     int LoadAmberPrep(std::string const&, DataSetList&, std::string const&, DSarray&) const;
