@@ -1,7 +1,6 @@
-#include <cmath>
-#include <algorithm> // sort
-#include "Constants.h" // PI
+#include <cmath> //sqrt
 #include "Action_Vector.h"
+#include "CharMask.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h" // MinImagedVec, includes Matrix_3x3 for principal
 #include "DataSet_Vector.h"
@@ -12,14 +11,20 @@ Action_Vector::Action_Vector() :
   Vec_(0),
   Magnitude_(0),
   gridSet_(0),
-  vcorr_(0),
   ptrajoutput_(false),
   needBoxInfo_(false),
   useMass_(true),
   dipole_in_debye_(false),
   CurrentParm_(0),
-  outfile_(0)
+  outfile_(0),
+  cmask_(0),
+  debug_(0)
 {}
+
+// DESTRUCTOR
+Action_Vector::~Action_Vector() {
+  if (cmask_ != 0) delete cmask_;
+}
 
 // Action_Vector::Help()
 void Action_Vector::Help() const {
@@ -46,23 +51,20 @@ void Action_Vector::Help() const {
           "  If 'debye' is specified, report 'dipole' vector in Debye instead of e-*Ang.\n");
 }
 
-// DESTRUCTOR
-Action_Vector::~Action_Vector() {
-  if (vcorr_!=0) delete[] vcorr_;
-}
-
 const char* Action_Vector::ModeString_[] = {
   "NO_OP", "Principal X", "Principal Y", "Principal Z",
   "Dipole", "Box", "Mask",
   "CorrPlane", "Center", "Unit cell X", "Unit cell Y", "Unit cell Z",
-  "Box Center", "MinImage", "Momentum", "Velocity", "Force"
+  "Box Center", "MinImage", "Momentum", "Velocity", "Force",
+  "Bond Dipole"
 };
 
 const bool Action_Vector::NeedsOrigin_[] = {
   false, true, true, true,
   true, false, true,
   true, false, true, true, true,
-  false, true, false, false, false
+  false, true, false, false, false,
+  true
 };
 
 static Action::RetType WarnDeprecated() {
@@ -82,6 +84,7 @@ static inline Action::RetType DeprecatedErr(const char* key) {
 // Action_Vector::Init()
 Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  debug_ = debugIn;
   DataFile* df = 0;
   std::string filename = actionArgs.GetStringKey("out");
   if (actionArgs.hasKey("trajout")) return DeprecatedErr( "trajout" );
@@ -120,6 +123,8 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
     mode_ = FORCE;
   else if (actionArgs.hasKey("dipole"))
     mode_ = DIPOLE;
+  else if (actionArgs.hasKey("bonddipole"))
+    mode_ = BONDDIPOLE;
   else if (actionArgs.hasKey("box"))
     mode_ = BOX;
   else if (actionArgs.hasKey("corrplane"))
@@ -176,6 +181,9 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
     }
     if (mask2_.SetMaskString( maskexpr )) return Action::ERR;
   }
+  // Allocate Char mask for bond dipole
+  if (mode_ == BONDDIPOLE)
+    cmask_ = new CharMask();
   // Set up vector dataset and IRED status
   MetaData md(actionArgs.GetStringNext(), MetaData::M_VECTOR);
   if (isIred) md.SetScalarType( MetaData::IREDVEC );
@@ -215,7 +223,9 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
   mprintf("\n");
   if (gridSet_ != 0)
     mprintf("\tExtracting box vectors from grid set '%s'\n", gridSet_->legend());
-  if (mode_ == DIPOLE) {
+  if (mode_ == DIPOLE || mode_ == BONDDIPOLE) {
+    if (mode_ == BONDDIPOLE) //TODO remove when no longer testing
+      mprintf("Warning: 'bonddipole' mode is still experimental. Use with caution.\n");
     if (dipole_in_debye_)
       mprintf("\tDipole vector units will be Debye.\n");
     else
@@ -252,12 +262,10 @@ Action::RetType Action_Vector::Setup(ActionSetup& setup) {
       mprinterr("Error: First vector mask is empty.\n");
       return Action::ERR;
     }
-  }
-
-  // Allocate space for CORRPLANE. 
-  if (mode_ == CORRPLANE) {
-    if (vcorr_!=0) delete[] vcorr_;
-    vcorr_ = new double[ 3 * mask_.Nselected() ];
+    // Set up char mask if needed
+    if (cmask_ != 0) {
+      *cmask_ = CharMask( mask_.ConvertToCharMask(), mask_.Nselected() );
+    }
   }
 
   // Setup mask 2
@@ -279,115 +287,6 @@ Action::RetType Action_Vector::Setup(ActionSetup& setup) {
 }
 
 // -----------------------------------------------------------------------------
-// Action_Vector::solve_cubic_eq()
-/** Solves a cubic equation: ax^3 + bx^2 + cx + d = 0 using "Cardan's formula" 
-  * (see: Bronstein, S.131f)
-  */
-double Action_Vector::solve_cubic_eq(double a, double b, double c, double d) {
-  const double one3 = 1.0 / 3.0;
-  const double one27 = 1.0 / 27.0;
-  double droot = 0;
-
-  double r, s, t;
-  double p, q, rho, phi;
-  double D, u, v;
-  std::vector<double> dtmp(3);
-
-  /* Coeff. for normal form x^3 + rx^2 + sx + t = 0 */
-  r = b / a;
-  s = c / a;
-  t = d / a;
-
-  /* Coeff. for red. eq. y^3 + py + q = 0 with y = x + r/3 bzw. (x = y - r/3) */
-  p = s - r * r * one3;
-  q = 2.0 * r * r * r * one27 - r * s * one3 + t;
-
-  /* Dummy variables */
-  rho = sqrt(-p * p * p * one27);
-  phi = acos(-q / (2.0 * rho));
-
-  /* Discriminante(?) */
-  D = pow((p * one3),3) + q * q * 0.25;
-
-  if(D > 0){ /* x real -> one real solution */
-    u = pow(-q * 0.5 + sqrt(D), one3);
-    v = -p / u * one3;
-    droot = (u + v) - r * one3;
-  } else { // D <= 0
-  /* three real solutions (d < 0) | one real solution + one real double solution or 
-                                                     one real triple solution (d = 0) */
-    dtmp[0] = 2.0 * pow(rho, one3) * cos(phi * one3) - r * one3;
-    dtmp[1] = 2.0 * pow(rho, one3) * cos((phi + Constants::TWOPI ) * one3) - r * one3;
-    dtmp[2] = 2.0 * pow(rho, one3) * cos((phi + Constants::FOURPI) * one3) - r * one3;
-
-    sort(dtmp.begin(), dtmp.end());
-
-    //qsort((void *) dtmp, (size_t) 3, sizeof(double), cmpdouble);
-    droot = dtmp[0];
-  }
-  return droot;
-}
-
-// Action_Vector::leastSquaresPlane()
-/** Calcs (least-squares best) plane through a series of points
-  * relative to their center of geom. (the latter has to be done outside this routine), 
-  * returns (normalized) coeff. for plane eq. ax + by + cz = 0
-  * following: Crystal Structure Analysis for Chem. and Biol.,
-  * Glusker, Lewis, Rossi, S. 460ff
-  */
-Vec3 Action_Vector::leastSquaresPlane(int n, const double* vcorr) {
-  double Xout, Yout, Zout;
-  if (n == 9) {  // Special case, only 3 coords
-    double x1 = vcorr[3] - vcorr[0];
-    double y1 = vcorr[4] - vcorr[1];
-    double z1 = vcorr[5] - vcorr[2];
-    double x2 = vcorr[6] - vcorr[3];
-    double y2 = vcorr[7] - vcorr[4];
-    double z2 = vcorr[8] - vcorr[5];
-
-    Xout = y1 * z2 - z1 * y2;
-    Yout = z1 * x2 - x1 * z2;
-    Zout = x1 * y2 - y1 * x2;
-  } else { // General case
-    // Calc Var.
-    double dSumXX = 0.0;
-    double dSumYY = 0.0;
-    double dSumZZ = 0.0;
-    double dSumXY = 0.0;
-    double dSumXZ = 0.0;
-    double dSumYZ = 0.0;
-
-    for (int i = 0; i < n; i+=3) {
-      dSumXX += vcorr[i  ] * vcorr[i  ];
-      dSumYY += vcorr[i+1] * vcorr[i+1];
-      dSumZZ += vcorr[i+2] * vcorr[i+2];
-
-      dSumXY += vcorr[i  ] * vcorr[i+1];
-      dSumXZ += vcorr[i  ] * vcorr[i+2];
-      dSumYZ += vcorr[i+1] * vcorr[i+2];
-    }
-
-    // Calc coeff. for -l^3 + o * l^2 + p * l + q = 0
-    double o = dSumXX + dSumYY + dSumZZ;
-    double p = pow(dSumXY,2) + pow(dSumXZ,2) + pow(dSumYZ,2) -
-               (dSumXX * dSumYY + dSumXX * dSumZZ + dSumYY * dSumZZ);
-    double q = dSumXX * dSumYY * dSumZZ + 2.0 * dSumXY * dSumXZ * dSumYZ -
-               (dSumXX * dSumYZ * dSumYZ + dSumYY * dSumXZ * dSumXZ + dSumZZ * dSumXY * dSumXY);
-
-    // Solve cubic eq.
-    double root = Action_Vector::solve_cubic_eq(-1.0, o, p, q);
-
-    // Calc determinents
-    Xout = (dSumYY - root) * dSumXZ - dSumXY * dSumYZ;
-    Yout = (dSumXX - root) * dSumYZ - dSumXY * dSumXZ;
-    Zout =  dSumXY         * dSumXY - (dSumYY - root) * (dSumXX - root);
-  }
-  // Normalize
-  double dnorm = 1.0 / sqrt((Xout * Xout) + (Yout * Yout) + (Zout * Zout));
-  return Vec3(Xout * dnorm, Yout * dnorm, Zout * dnorm);
-}
-
-// -----------------------------------------------------------------------------
 Vec3 Action_Vector::GetVec(Frame const& currentFrame, AtomMask const& maskIn)
 const
 {
@@ -403,6 +302,187 @@ void Action_Vector::Mask(Frame const& currentFrame) {
   Vec3 VXYZ = GetVec(currentFrame, mask2_);
   VXYZ -= CXYZ;
   Vec_->AddVxyzo(VXYZ, CXYZ);
+}
+
+/** Calculate dipole */
+bool Action_Vector::calcBondDipole(Vec3& vBond, Vec3& vDipole, Vec3& vOrigin, double q0, Vec3 const& XYZ0, Vec3 const& XYZ1)
+{
+  bool hasCharge = true;
+  if (q0 < 0.0) {
+    vBond = XYZ0 - XYZ1;
+    vDipole = vBond * (-q0);
+    vOrigin = XYZ1;
+  } else if (q0 > 0.0) {
+    vBond = XYZ1 - XYZ0;
+    vDipole = vBond * q0;
+    vOrigin = XYZ0;
+  } else
+    hasCharge = false;
+  return hasCharge;
+}
+
+/// \return true if all atoms bonded to atomIn (ignoring ignoreIdx) have only the one bond back to atomIn
+static inline bool bondedAtomsHave1bond(Topology const& topIn, Atom const& atomIn, int ignoreIdx)
+{
+  for (int ii=0; ii < atomIn.Nbonds(); ii++) {
+    int bondedAtomIdx = atomIn.Bond(ii);
+    if (bondedAtomIdx != ignoreIdx) {
+      if (topIn[bondedAtomIdx].Nbonds() != 1) return false;
+    }
+  }
+  return true;
+}
+
+static inline double bondedAtomsCharge(Topology const& topIn, Atom const& atomIn, int ignoreIdx)
+{
+  double sumQ = 0.0;
+  for (int ii=0; ii < atomIn.Nbonds(); ii++) {
+    int bondedAtomIdx = atomIn.Bond(ii);
+    if (bondedAtomIdx != ignoreIdx) {
+      if (topIn[bondedAtomIdx].Nbonds() == 1)
+        sumQ += topIn[bondedAtomIdx].Charge();
+    }
+  }
+  return sumQ;
+}
+
+/** Calculate net dipole from individual bond dipoles. */
+void Action_Vector::BondDipole_individualBonds(Frame const& currentFrame) {
+  Vec3 VXYZ(0.0, 0.0, 0.0); // Negative, head
+  Vec3 OXYZ(0.0, 0.0, 0.0); // Positive, tail
+  Topology const& currentTop = *CurrentParm_;
+
+  unsigned int Nbonds = 0;
+  for (AtomMask::const_iterator iat = mask_.begin(); iat != mask_.end(); ++iat)
+  {
+    Atom const& atom0 = currentTop[*iat];
+    Vec3 XYZ0( currentFrame.XYZ(*iat) );
+    double q0 = atom0.Charge();
+    for (Atom::bond_iterator bit = atom0.bondbegin(); bit != atom0.bondend(); ++bit)
+    {
+      if (*bit > *iat && cmask_->AtomInCharMask( *bit )) {
+        // Both atoms in the bond are selected.
+        Atom const& atom1 = currentTop[*bit];
+        Vec3 XYZ1( currentFrame.XYZ(*bit) );
+        double q1 = atom1.Charge();
+        Vec3 vDipole(0.0, 0.0, 0.0);
+        Vec3 vBond(0.0, 0.0, 0.0);
+        Vec3 vOrigin(0.0, 0.0, 0.0);
+        bool hasCharge = false;
+        if (atom0.Element() != atom1.Element()) {
+          if (atom0.Element()==Atom::HYDROGEN || atom0.Nbonds() == 1) {
+            hasCharge = calcBondDipole( vBond, vDipole, vOrigin, q0, XYZ0, XYZ1 );
+          } else if (atom1.Element()==Atom::HYDROGEN || atom1.Nbonds() == 1) {
+            hasCharge = calcBondDipole( vBond, vDipole, vOrigin, q1, XYZ1, XYZ0 );
+          } else if (atom0.Nbonds() > 1 && bondedAtomsHave1bond(currentTop, atom0, *bit)) {
+            // atom0 is bonded to a single other atom, X-atom0-atom1. Sum up X and atom0 charge
+            double q0X = q0 + bondedAtomsCharge(currentTop, atom0, *bit);
+            if (debug_ > 1)
+              mprintf("DEBUG: Total charge on %s is %f\n", currentTop.AtomMaskName(*iat).c_str(), q0X);
+            hasCharge = calcBondDipole( vBond, vDipole, vOrigin, q0X, XYZ0, XYZ1 );
+          } else if (atom1.Nbonds() > 1 && bondedAtomsHave1bond(currentTop, atom1, *iat)) {
+            // atom1 is bonded to a single other atom, X-atom1-atom0. Sum up X and atom1 charge
+            double q1X = q1 + bondedAtomsCharge(currentTop, atom1, *iat);
+            if (debug_ > 1)
+            mprintf("DEBUG: Total charge on %s is %f\n", currentTop.AtomMaskName(*bit).c_str(), q1X);
+            hasCharge = calcBondDipole( vBond, vDipole, vOrigin, q1X, XYZ1, XYZ0 );
+          } else {
+            mprintf("Warning: Unhandled number of bonds: %s=%i, %s=%i\n",
+                     currentTop.AtomMaskName(*iat).c_str(), atom0.Nbonds(),
+                     currentTop.AtomMaskName(*bit).c_str(), atom1.Nbonds());
+          }
+        }
+
+        if (hasCharge) {
+          // Subtract half the dipole from the bond center to get the dipole origin
+          //Vec3 vBondCtr = vBond / 2.0;
+          //Vec3 vDipoleHalf = vDipole / 2.0;
+          //Vec3 vOrigin = vOrigin + vBondCtr - vDipoleHalf;
+          // DEBUG
+          if (debug_ > 1) {
+            mprintf("DEBUG: Bond %s(%f) -- %s(%f) bxyz={%f %f %f} oxyz={%f %f %f} vxyz={%f %f %f} mag=%f\n",
+                    currentTop.AtomMaskName(*iat).c_str(), q0,
+                    currentTop.AtomMaskName(*bit).c_str(), q1,
+                    vBond[0], vBond[1], vBond[2],
+                    vOrigin[0], vOrigin[1], vOrigin[2],
+                    vDipole[0], vDipole[1], vDipole[2],
+                    sqrt(vDipole.Magnitude2()));
+          }
+          // Sum
+          VXYZ += vDipole;
+          OXYZ += vOrigin;
+          Nbonds++;
+        }
+      }
+    } // END loop over bonded atoms
+  } // END loop over mask atoms
+  if (dipole_in_debye_)
+    VXYZ /= Constants::DEBYE_EA;
+  OXYZ /= (double)Nbonds;
+  Vec_->AddVxyzo( VXYZ, OXYZ );
+}
+
+/** Calculate net dipole from atoms, origin from individual bond dipoles. */
+void Action_Vector::BondDipole_net_bondOrigin(Frame const& currentFrame) {
+  Vec3 VXYZ(0.0, 0.0, 0.0); // Negative, head
+  Vec3 OXYZ(0.0, 0.0, 0.0); // Positive, tail
+  Topology const& currentTop = *CurrentParm_;
+
+  unsigned int Nbonds = 0;
+  for (AtomMask::const_iterator iat = mask_.begin(); iat != mask_.end(); ++iat)
+  {
+    Atom const& atom0 = currentTop[*iat];
+    Vec3 XYZ0( currentFrame.XYZ(*iat) );
+    double q0 = atom0.Charge();
+    double en0 = atom0.PaulingElectroNeg();
+    // Note that negative charge will decrease the vector (towards the origin)
+    // but by convention we want to point towards the negative charge, so at
+    // the end the vector will have to be negated.
+    VXYZ += ( XYZ0 * q0 );
+    // Store bond origins according to electronegativity.
+    for (Atom::bond_iterator bit = atom0.bondbegin(); bit != atom0.bondend(); ++bit)
+    {
+      if (*bit > *iat && cmask_->AtomInCharMask( *bit )) {
+        // Both atoms in the bond are selected.
+        Atom const& atom1 = currentTop[*bit];
+        Vec3 XYZ1( currentFrame.XYZ(*bit) );
+        double en1 = atom1.PaulingElectroNeg();
+        Vec3 vOrigin(0.0, 0.0, 0.0);
+        bool en_is_different = true;
+        if (en0 > en1) {
+          // atom0 is more negative
+          //vBond = XYZ0 - XYZ1;
+          vOrigin = XYZ1;
+        } else if (en1 > en0) {
+          // atom1 is more negative
+          //vBond = XYZ1 - XYZ0;
+          vOrigin = XYZ0;
+        } else
+          en_is_different = false;
+
+        if (en_is_different) {
+          // DEBUG
+          if (debug_ > 1) {
+            double q1 = atom1.Charge(); // DEBUG
+            mprintf("DEBUG: Bond %s(%f) -- %s(%f) oxyz={%f %f %f}\n",
+                    currentTop.AtomMaskName(*iat).c_str(), q0,
+                    currentTop.AtomMaskName(*bit).c_str(), q1,
+                    vOrigin[0], vOrigin[1], vOrigin[2]);
+          }
+          // Sum
+          OXYZ += vOrigin;
+          Nbonds++;
+        }
+      }
+    } // END loop over bonded atoms
+  } // END loop over mask atoms
+  if (dipole_in_debye_)
+    VXYZ /= Constants::DEBYE_EA;
+  OXYZ /= (double)Nbonds;
+  VXYZ.Neg();
+  // Shift it so the center of VXYZ will end up at the origin.
+  OXYZ -= (VXYZ / 2.0);
+  Vec_->AddVxyzo( VXYZ, OXYZ );
 }
 
 // Action_Vector::Dipole()
@@ -449,19 +529,8 @@ void Action_Vector::Principal(Frame const& currentFrame) {
 
 // Action_Vector::CorrPlane()
 void Action_Vector::CorrPlane(Frame const& currentFrame) {
-  Vec3 CXYZ = GetVec(currentFrame, mask_);
-  int idx = 0;
-  for (AtomMask::const_iterator atom = mask_.begin();
-                              atom != mask_.end(); ++atom)
-  {
-    Vec3 XYZ = currentFrame.XYZ( *atom );
-    XYZ -= CXYZ;
-    vcorr_[idx++] = XYZ[0];
-    vcorr_[idx++] = XYZ[1];
-    vcorr_[idx++] = XYZ[2];
-  }
-  Vec3 VXYZ = leastSquaresPlane(idx, vcorr_);
-  Vec_->AddVxyzo(VXYZ, CXYZ);
+  vcorr_.CalcLeastSquaresPlane( currentFrame, mask_, useMass_ );
+  Vec_->AddVxyzo( vcorr_.Nxyz(), vcorr_.Cxyz() );
 }
 
 //  Action_Vector::UnitCell()
@@ -509,6 +578,8 @@ Action::RetType Action_Vector::DoAction(int frameNum, ActionFrame& frm) {
     case VELOCITY    : Vec_->AddVxyz( CalcCenter(frm.Frm().vAddress(), mask_) ); break;
     case FORCE       : Vec_->AddVxyz( CalcCenter(frm.Frm().fAddress(), mask_) ); break; 
     case DIPOLE      : Dipole(frm.Frm()); break;
+//    case BONDDIPOLE  : BondDipole_individualBonds(frm.Frm()); break;
+    case BONDDIPOLE  : BondDipole_net_bondOrigin(frm.Frm()); break;
     case PRINCIPAL_X :
     case PRINCIPAL_Y :
     case PRINCIPAL_Z : Principal(frm.Frm()); break;

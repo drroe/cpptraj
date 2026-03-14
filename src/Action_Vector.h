@@ -1,8 +1,10 @@
 #ifndef INC_ACTION_VECTOR_H
 #define INC_ACTION_VECTOR_H
 #include "Action.h"
+#include "Structure/LeastSquaresPlane.h" // For CORRPLANE
 class DataSet_Vector;
 class DataSet_3D;
+class CharMask;
 class Action_Vector : public Action {
   public:
     Action_Vector();
@@ -14,7 +16,8 @@ class Action_Vector : public Action {
       NO_OP=0,   PRINCIPAL_X, PRINCIPAL_Y, PRINCIPAL_Z,
       DIPOLE,    BOX,         MASK,
       CORRPLANE, CENTER,      BOX_X,       BOX_Y,       BOX_Z,
-      BOX_CTR,   MINIMAGE,    MOMENTUM,    VELOCITY,    FORCE
+      BOX_CTR,   MINIMAGE,    MOMENTUM,    VELOCITY,    FORCE,
+      BONDDIPOLE
     };
     static const char* ModeString_[];
     static const bool NeedsOrigin_[];
@@ -24,11 +27,12 @@ class Action_Vector : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
 
-    static double solve_cubic_eq(double,double,double,double);
-    static Vec3 leastSquaresPlane(int,const double*);
     /// \return Center of mass or geometric center of atoms in given mask
     inline Vec3 GetVec(Frame const&, AtomMask const&) const;
     void Mask(Frame const&);
+    static inline bool calcBondDipole(Vec3&, Vec3&, Vec3&, double, Vec3 const&, Vec3 const&);
+    void BondDipole_individualBonds(Frame const&);
+    void BondDipole_net_bondOrigin(Frame const&);
     void Dipole(Frame const&);
     void Principal(Frame const&);
     void CorrPlane(Frame const&);
@@ -39,7 +43,7 @@ class Action_Vector : public Action {
     DataSet_Vector* Vec_;   ///< Hold vector values
     DataSet* Magnitude_;    ///< Hold vector magnitudes if requested
     DataSet_3D* gridSet_;   ///< Hold grid set for getting box vectors from grid.
-    double* vcorr_;         ///< Temp. space for calculating CorrPlane
+    Cpptraj::Structure::LeastSquaresPlane vcorr_; ///< Temp. space for calculating CorrPlane
     vectorMode mode_;       ///< Vector calculation mode
     bool ptrajoutput_;      ///< If true output in ptraj format
     bool needBoxInfo_;      ///< If true box info required.
@@ -49,5 +53,7 @@ class Action_Vector : public Action {
     AtomMask mask_;
     AtomMask mask2_;
     CpptrajFile* outfile_;
+    CharMask* cmask_;
+    int debug_;
 };
 #endif

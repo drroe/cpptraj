@@ -29,7 +29,7 @@ class DataSet {
       COORDS, VECTOR, MODES, GRID_FLT, GRID_DBL, REMLOG, XYMESH, TRAJ, REF_FRAME,
       MAT3X3, TOPOLOGY, PH, PH_EXPL, PH_IMPL,
       PARAMETERS, PMATRIX_MEM, PMATRIX_NC, TENSOR, STRINGVAR, VECTOR_SCALAR, UNSIGNED_INTEGER,
-      FRAMES, ZMATRIX,
+      FRAMES, ZMATRIX, NAMEMAP, LEAPOPTS, PDBRESMAP,
       UNKNOWN_DATA
     };
     /// Group DataSet belongs to.
@@ -86,6 +86,8 @@ class DataSet {
     // -----------------------------------------------------
     /// Associate additional data with this set.
     void AssociateData(AssociatedData const* a) { associatedData_.push_back( a->Copy() ); }
+    /// Copy associated data from given set to this set.
+    void CopyAssociatedDataFrom(DataSet const&);
     /// Set DataSet MetaData
     int SetMeta(MetaData const&);
     /// Set DataSet ensemble number.
@@ -96,6 +98,9 @@ class DataSet {
     TextFormat& SetupFormat() { return format_; }
     /// Set specified DataSet dimension.
     void SetDim(Dimension::DimIdxType i, Dimension const& d) { dim_[(int)i] = d; }
+    /// Set dimension and index data set
+    void SetDim(Dimension::DimIdxType i, Dimension const& d, DataSet const* iset) { dim_[(int)i] = d; indexSet_[(int)i] = iset; }
+    /// Set specified dimension # 
     void SetDim(int i, Dimension const& d)                   { dim_[i] = d;      }
 #   ifdef MPI
     void SetNeedsSync(bool b) { needsSync_ = b;  }
@@ -125,6 +130,8 @@ class DataSet {
     /// \return specified DataSet dimension. // TODO consolidate
     Dimension& ModifyDim(Dimension::DimIdxType i) { return dim_[(int)i]; }
     Dimension const& Dim(int i)             const { return dim_[i];      }
+    /// \return specified dimension index set
+    DataSet const* DimIndexSet(int i)       const { return indexSet_[i]; }
 
     /// Comparison for sorting, name/aspect/idx
     inline bool operator<(const DataSet& rhs) const { return meta_ < rhs.meta_; }
@@ -156,6 +163,7 @@ class DataSet {
     //       depending on the set type. For example, dim_ doesnt really work
     //       for non-orthogonal grids.
     DimArray dim_;              ///< Holds info for each dimension in the DataSet.
+    std::vector<DataSet const*> indexSet_; ///< Optional index set for each dimension
     AdataArray associatedData_; ///< Holds any additonal data associated with this DataSet
     DataType dType_;            ///< The DataSet type
     DataGroup dGroup_;          ///< The DataSet group

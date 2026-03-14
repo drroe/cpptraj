@@ -3,7 +3,7 @@
 #include "StructureEnum.h"
 namespace Cpptraj {
 namespace Structure {
-/// Hold information for an atom used when building/modelling new coordinates.
+/// Old (<v7) class for holding information for an atom used when building/modelling new coordinates. TODO for modXNA
 class BuildAtom {
   public:
     BuildAtom() : ctype_(IS_UNKNOWN_CHIRALITY) {}

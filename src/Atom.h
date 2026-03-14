@@ -73,6 +73,7 @@ class Atom {
     void SetTypeIndex(int tin)               { atype_index_ = tin;  }
     void SetName(NameType const& nin)        { aname_ = nin;        }
     void SetTypeName(NameType const& tin)    { atype_ = tin;        }
+    void SetElementFromSymbol(char,char);
     // Internal vars -----------------------------
     inline bool NoMol()                const { return ( mol_ < 0 ); }
     inline const char *c_str()         const { return *aname_; }
@@ -81,8 +82,10 @@ class Atom {
     inline int AtomicNumber()          const { return AtomicElementNum_[element_];  }
     inline const char* ElementName()   const { return AtomicElementName_[element_]; }
     inline double ElementRadius()      const { return AtomicElementRadius_[element_]; }
+    double PaulingElectroNeg()         const { return PaulingElectroNeg_[element_]; }
     inline const NameType& Name()      const { return aname_; }
     inline const NameType& Type()      const { return atype_; }
+    inline bool HasType()              const { return (atype_.len() > 0); }
     inline int TypeIndex()             const { return atype_index_; }
     inline int MolNum()                const { return mol_; }
     inline int Nbonds()                const { return (int)bonds_.size(); }
@@ -108,6 +111,7 @@ class Atom {
     static CPPTRAJ_EXPORT const char* AtomicElementName_[];
     static CPPTRAJ_EXPORT const double AtomicElementMass_[];
     static CPPTRAJ_EXPORT const double AtomicElementRadius_[];
+    static CPPTRAJ_EXPORT const double PaulingElectroNeg_[];
     double charge_;    ///< Charge in e-
     double polar_;     ///< Atomic polarizability in Ang^3
     double mass_;      ///< mass in amu
@@ -123,7 +127,6 @@ class Atom {
 
     static void WarnBondLengthDefault(AtomicElementType, AtomicElementType, double);
     void SetElementFromName();
-    void SetElementFromSymbol(char,char);
     void SetElementFromMass();
 };
 #endif

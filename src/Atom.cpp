@@ -75,15 +75,41 @@ const double Atom::AtomicElementRadius_[NUMELEMENTS_] = { 1.0,
   0.000, 0.0 /* extra point/Drude has no radius */
 };
 
+/** Pauling electronegativity values from:
+  * A.L. Allred,
+  * Electronegativity values from thermochemical data,
+  * Journal of Inorganic and Nuclear Chemistry,
+  * Volume 17, Issues 3–4, 1961, Pages 215-221,
+  * https://doi.org/10.1016/0022-1902(61)80142-5.
+  * https://www.sciencedirect.com/science/article/pii/0022190261801425
+  * Atoms with no electronegativity value are assigned -1.0.
+  */
+const double Atom::PaulingElectroNeg_[NUMELEMENTS_] = { -1.0,
+  2.20, 2.04, 2.55, 3.04, 3.44, 3.98,
+  2.19, 2.58, 3.16, 2.96, 1.83, 1.00,
+  2.66, 1.31, 1.90, 0.98, 0.82, 0.82,
+  0.79, 1.65, 0.93, 1.61, -1.0, 2.18,
+  1.93, 2.54, 2.20, 1.57, 0.89, 2.02,
+  1.66, 1.88, 1.69, 0.70, 1.81, 2.01,
+  -1.0, 1.30, 2.00, 1.78, 2.20, 3.00,
+  1.55, 2.16, -1.0, 1.91, 1.60, 2.20,
+  2.20, 2.28, 2.33, 2.00, 2.20, 2.28,
+  1.90, -1.0, 0.90, 1.90, 1.36, 2.55,
+  0.95, 1.96, 2.05, 1.54, 1.90, 2.10,
+  1.50, 1.62, 1.63, 2.36, 2.60, 1.33,
+  1.22, 1.27, 1.17,
+  -1.0, -1.0 /* extra point/Drude has no EN value. TODO should that change? */
+};
+
 // CONSTRUCTOR
-Atom::Atom() : charge_(0.0), polar_(0.0), mass_(1.0), gb_radius_(0.0),
+Atom::Atom() : charge_(0.0), polar_(0.0), mass_(0.0), gb_radius_(0.0),
                gb_screen_(0.0), aname_(""), atype_(""), atype_index_(0),
                element_(UNKNOWN_ELEMENT), resnum_(0), mol_(0)
 {}
 
 /** If no 2 char element name provided, try to guess from name. */ 
 Atom::Atom(NameType const& aname, const char* elt) :
-  charge_(0.0), polar_(0.0), mass_(1.0), gb_radius_(0.0), gb_screen_(0.0),
+  charge_(0.0), polar_(0.0), mass_(0.0), gb_radius_(0.0), gb_screen_(0.0),
   aname_(aname), atype_(""), atype_index_(0), element_(UNKNOWN_ELEMENT),
   resnum_(0), mol_(0)
 {
@@ -96,7 +122,7 @@ Atom::Atom(NameType const& aname, const char* elt) :
 
 /** Attempt to guess element from atom name. */ 
 Atom::Atom( NameType const& aname, NameType const& atype, double q ) :
-  charge_(q), polar_(0.0), mass_(1.0), gb_radius_(0.0), gb_screen_(0.0),
+  charge_(q), polar_(0.0), mass_(0.0), gb_radius_(0.0), gb_screen_(0.0),
   aname_(aname), atype_(atype), atype_index_(0), element_(UNKNOWN_ELEMENT),
   resnum_(0), mol_(0)
 {
@@ -106,7 +132,7 @@ Atom::Atom( NameType const& aname, NameType const& atype, double q ) :
 
 /** Set type and type index. Attempt to guess element from atom name. */
 Atom::Atom( NameType const& aname, NameType const& atype, int atidx ) :
-  charge_(0.0), polar_(0.0), mass_(1.0), gb_radius_(0.0), gb_screen_(0.0),
+  charge_(0.0), polar_(0.0), mass_(0.0), gb_radius_(0.0), gb_screen_(0.0),
   aname_(aname), atype_(atype), atype_index_(atidx), element_(UNKNOWN_ELEMENT),
   resnum_(0), mol_(0)
 {
@@ -290,6 +316,11 @@ void Atom::SetElementFromName() {
     case 'R' :
       if (c2=='b') element_ = RUBIDIUM;
       break;
+    // Check for extra points
+    case 'E' :
+      if (c2=='P') {element_ = EXTRAPT; break;}
+    case 'X' :
+      if (c2=='P') {element_ = EXTRAPT; break;}
     default:
       SetElementFromSymbol(c1, c2);
       if (element_ == UNKNOWN_ELEMENT)
@@ -299,7 +330,7 @@ void Atom::SetElementFromName() {
 
 // Atom::SetElementFromSymbol()
 void Atom::SetElementFromSymbol(char c1, char c2) {
-  if (element_ != UNKNOWN_ELEMENT) return;
+  //if (element_ != UNKNOWN_ELEMENT) return;
   // Attempt to match up 1 or 2 char element name
   char en[2];
   bool oneChar = true;

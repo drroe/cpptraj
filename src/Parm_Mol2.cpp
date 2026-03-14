@@ -2,6 +2,8 @@
 #include "Mol2File.h"
 #include "BondSearch.h"
 #include "CpptrajStdio.h"
+#include "ModXNA_Info.h"
+#include "Parm/Bond_Params.h"
 
 // Parm_Mol2::ID_ParmFormat() 
 bool Parm_Mol2::ID_ParmFormat(CpptrajFile& fileIn) {
@@ -16,6 +18,11 @@ int Parm_Mol2::ReadParm(FileName const& fname, Topology &parmOut) {
   mprintf("    Reading Mol2 file %s as topology file.\n",infile.Filename().base());
   // Get @<TRIPOS>MOLECULE information
   if (infile.ReadMolecule()) return 1;
+  ModXNA_Info* modxna = infile.CheckForModxna();
+  if (modxna != 0) {
+    parmOut.SetModxna( *modxna );
+    delete modxna;
+  }
   parmOut.SetParmName( infile.Mol2Title(), infile.Filename() );
 
   // Get @<TRIPOS>ATOM information
@@ -44,6 +51,9 @@ int Parm_Mol2::ReadParm(FileName const& fname, Topology &parmOut) {
     BondSearch bondSearch;
     bondSearch.FindBonds( parmOut, searchType_, Coords, Offset_, debug_ );
   }
+
+  // For modXNA backwards-compatibility, generate bond parameters TODO remove
+  Cpptraj::Parm::GenerateBondParameters(parmOut);
 
   // No box
   parmOut.SetParmBox( Box() );

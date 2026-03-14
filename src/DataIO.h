@@ -31,13 +31,31 @@ class DataIO : public BaseIOtype {
     int XcolWidth()               const { return xcol_width_; }
     /// \return Current x column precision
     int XcolPrec()                const { return xcol_prec_;  }
+
+    typedef std::vector<DataSet*>::const_iterator set_iterator;
+    /// \return iterator to beginning of sets added by last ReadData() call
+    set_iterator added_begin() const { return mySets_.begin(); }
+    /// \return iterator to end of sets added by last ReadData() call
+    set_iterator added_end()   const { return mySets_.end(); }
+    /// \return the last set added by last ReadData() call
+    DataSet* added_back()      const { return mySets_.back(); }
+    /// \return Number of sets added by last ReadData() call
+    unsigned int Nadded()      const { return mySets_.size(); }
   protected:
+    /// Note a set that has been added to a DataSetList by this DataIO
+    void AddedByMe(DataSet*);
+    /// Clear list of sets added by this DataIO
+    void ClearAddedByMe();
     /// Indicate this DataIO is valid for given DataSet type
     void SetValid(DataSet::DataType t) { valid_.push_back( t ); }
     /// Check that all sets in given list have given dimension.
     static int CheckAllDims(DataSetList const&, unsigned int);
+    /// \return True if the X coordinates for both sets match exactly
+    static bool xDimMatch(DataSet const&, DataSet const&);
+    /// Typedef for an array of DataSetLists
+    typedef std::vector<DataSetList> DSLarray;
     /// Check that X dim for all sets in given list match; all must be 1D.
-    static int CheckXDimension(DataSetList const&);
+    static DSLarray CheckXDimension(DataSetList const&);
     /// \return max size of DataSets in given list.
     static size_t DetermineMax(DataSetList const&);
     /// Convert flattened matrix array to matrix in DataSetList.
@@ -48,6 +66,7 @@ class DataIO : public BaseIOtype {
     int debug_;
   private:
     std::vector<DataSet::DataType> valid_; ///< Data sets for which DataIO is valid writer.
+    std::vector<DataSet*> mySets_; ///< Can be used by child class to note sets that have been added
     TextFormat::FmtType xcol_fmt_; ///< X column format type
     int xcol_width_;               ///< X column width
     int xcol_prec_;                ///< X column precision
