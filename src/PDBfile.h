@@ -12,8 +12,16 @@ class PDBfile : public CpptrajFile {
     // NOTE: PDB_RECNAME_ must correspond with this.
     enum PDB_RECTYPE {ATOM=0, HETATM, CRYST1, TER, END, ANISOU, END_OF_FILE, 
                       CONECT, LINK, MISSING_RES, MISSING_ATOM, MISSING_HET, UNKNOWN};
+    /// Determine how to handle out of range residue/atom numbers. Correspond to NumWrapTypeStr_
+    enum NumWrapType { RESET = 0, HYBRID36 };
     /// CONSTRUCTOR
     PDBfile();
+
+    /// Set out of range atom/residue number wrap type
+    void SetWrapType(NumWrapType);
+    /// Set out of range atom/residue number wrap type (silent)
+    void SetWrapTypeSilent(NumWrapType);
+
     /// Check if either of the first two lines contain valid PDB records.
     static bool ID_PDB(CpptrajFile&);
     /// \return the type of the next PDB record read.
@@ -30,6 +38,8 @@ class PDBfile : public CpptrajFile {
     Atom pdb_Atom() { char al; int n; return pdb_Atom(al,n); }
     /// \return Residue info with name, number, icode, and chainID for ATOM/HETATM.
     Residue pdb_Residue();
+    /// Warn if large chainIDs detected
+    void WarnLargeChainID();
     /// Set given XYZ array with coords from ATOM/HETATM record.
     void pdb_XYZ(double*);
     /// Get occupancy and B-factor from ATOM/HETATM record.
@@ -46,6 +56,8 @@ class PDBfile : public CpptrajFile {
     Link pdb_Link();
     /// \return current record type.
     PDB_RECTYPE RecType()         const { return recType_; }
+    /// \return true if hybrid36 detected
+    bool HasHybrid36() const { return wrapType_ == HYBRID36; }
     // -------------------------------------------
     /// Set whether column 21 can be used for 4-letter residue names.
     void SetUseCol21(bool b) { useCol21_ = b; }
@@ -53,7 +65,7 @@ class PDBfile : public CpptrajFile {
     bool UseCol21() const { return useCol21_; }
     /// Write PDB record header.
     void WriteRecordHeader(PDB_RECTYPE, int, NameType const&, char,
-                           NameType const&, char, int, char, const char*);
+                           NameType const&, std::string const&, int, char, const char*);
     /// Write HETATM record using internal atom numbering
     void WriteHET(int, double, double, double);
     /// Write no-name ATOM record using internal atom numbering
@@ -61,18 +73,18 @@ class PDBfile : public CpptrajFile {
     /// Write ATOM record with given name using internal atom numbering
     void WriteATOM(const char*, int, double, double, double, const char*, double);
     /// Write PDB ATOM/HETATM record, no B-factor, occ, elt, or charge.
-    void WriteCoord(PDB_RECTYPE, int, NameType const&, NameType const&, char, int,
+    void WriteCoord(PDB_RECTYPE, int, NameType const&, NameType const&, std::string const&, int,
                     double, double, double);
     /// Write PDB ATOM/HETATM record, no alt loc, chain ID, icode.
     void WriteCoord(PDB_RECTYPE, int, NameType const&, NameType const&, int,
                          double, double, double, float, float, const char*, int);
     /// Write complete PDB ATOM/HETATM record
-    void WriteCoord(PDB_RECTYPE, int, NameType const&, char, NameType const&, char, int,
+    void WriteCoord(PDB_RECTYPE, int, NameType const&, char, NameType const&, std::string const&, int,
                     char, double, double, double, float, float, const char *, int, bool);
     /// \return True if coordinate write has overflowed; reset overflow status.
     bool CoordOverflow() { bool stat = coordOverflow_; coordOverflow_ = false; return stat; }
     /// Write ANISOU record.
-    void WriteANISOU(int, NameType const&, NameType const&, char, int,
+    void WriteANISOU(int, NameType const&, NameType const&, std::string const&, int,
                      const double*, const char *, int);
     /// Write TITLE
     void WriteTITLE(std::string const&);
@@ -97,14 +109,27 @@ class PDBfile : public CpptrajFile {
     void readCRYST1(double*);
     /// Parse a MISSING residue line
     Residue missing_res() const;
+    /// Decode atom number field
+    inline int decodeAtomNum(const char*);
+    /// Decode residue number field
+    inline int decodeResNum(const char*);
+    /// Wrap atom number
+    inline void atomNumber(int, char*) const;
+    /// Wrap residue number
+    inline void resNumber(int, char*) const;
 
     int anum_;               ///< Atom number for writing.
     PDB_RECTYPE recType_;    ///< Current record type.
+    NumWrapType wrapType_;   ///< How to handle out of range numbers
     bool lineLengthWarning_; ///< True if any read line is shorter than 80 char
     bool coordOverflow_;     ///< True if coords on write exceed field width
     bool useCol21_;          ///< If true, use column 21 for 4-char res name
+    bool has_large_chainid_; ///< If true, large (>1 char) chain IDs detected
     /// Recognized PDB record types; corresponds to PDB_RECTYPE
     static const char* PDB_RECNAME_[];
+    /// Correspond to NumWrapType
+    static const char* NumWrapTypeStr_[];
+    static const unsigned int MAX_DIGIT_;
 };
 /// Hold information for an SSBOND record.
 class PDBfile::SSBOND {

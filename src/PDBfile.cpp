@@ -1,9 +1,11 @@
 #include <cstdio>  // sscanf
 #include <cstdlib> // atoi, atof
 #include <cstring> // strncmp
+#include <cctype>  // isalpha
 #include <algorithm> // std::copy
 #include "PDBfile.h"
 #include "CpptrajStdio.h"
+#include "Hybrid36.h"
 #include "StringRoutines.h" // integerToString
 
 // ----- SSBOND Class ---------------------------------------------------------- 
@@ -18,7 +20,7 @@ PDBfile::SSBOND::SSBOND() :
 PDBfile::SSBOND::SSBOND(int idx1, int idx2, Residue const& r1, Residue const& r2) :
   idx1_(  idx1),                idx2_(  idx2),
   rnum1_( r1.OriginalResNum()), rnum2_( r2.OriginalResNum()),
-  chain1_(r1.ChainID_1char()),        chain2_(r2.ChainID_1char()),
+  chain1_(r1.ChainID_Nchar(1)[0]),        chain2_(r2.ChainID_Nchar(1)[0]), // FIXME support >1 char chain ID?
   icode1_(r1.Icode()),          icode2_(r2.Icode())
 {
   std::copy(r1.c_str(), r1.c_str()+3, name1_);
@@ -119,7 +121,7 @@ PDBfile::Link::Link() : rnum1_(-1), rnum2_(-1), altloc1_(' '), altloc2_(' '),
 PDBfile::Link::Link(const char* a1, char alt1, const char* r1, char ch1, int rnum1, char code1,
                     const char* a2, char alt2, const char* r2, char ch2, int rnum2, char code2,
                     SymOp const& S1, SymOp const& S2) :
-  rnum1_(rnum1), rnum2_(rnum2), altloc1_(alt1), altloc2_(alt2), chain1_(ch1), chain2_(ch2),
+  rnum1_(rnum1), rnum2_(rnum2), altloc1_(alt1), altloc2_(alt2), chain1_(ch1), chain2_(ch2), // FIXME support > 1 char chain ID?
   icode1_(code1), icode2_(code2), sym1_(S1), sym2_(S2)
 {
   std::copy(a1, a1+4, aname1_); aname1_[4] = '\0'; 
@@ -163,20 +165,43 @@ PDBfile::Link& PDBfile::Link::operator=(Link const& rhs) {
 }
 
 // ===== PDBfile class =========================================================
-/// PDB record types
-// NOTE: Must correspond with PDB_RECTYPE
+/** PDB record types. NOTE: Must correspond with PDB_RECTYPE */
 const char* PDBfile::PDB_RECNAME_[] = { 
   "ATOM  ", "HETATM", "CRYST1", "TER   ", "END   ", "ANISOU", "EndRec",
   "CONECT", "LINK  ", "REMARK", "REMARK", "REMARK", 0 };
 
-/// CONSTRUCTOR
+/** Must correspond to NumWrapType */
+const char* PDBfile::NumWrapTypeStr_[] = {
+  "Reset to zero", ///< RESET
+  "Hybrid36"       ///< HYBRID36
+};
+
+/** Corresponds to max int digit width plus null: -2147483647 */
+const unsigned int PDBfile::MAX_DIGIT_ = 12;
+
+/** CONSTRUCTOR */
 PDBfile::PDBfile() :
   anum_(1),
   recType_(UNKNOWN),
+  wrapType_(HYBRID36),
   lineLengthWarning_(false),
   coordOverflow_(false),
-  useCol21_(false)
+  useCol21_(false),
+  has_large_chainid_(false)
 {}
+
+/** Set atom/residue number wrap type. Verbose, intended when setting up for writes. */
+void PDBfile::SetWrapType(NumWrapType typeIn)
+{
+  wrapType_ = typeIn;
+  mprintf("\tPDB atom/residue number out of range mode: %s\n", NumWrapTypeStr_[wrapType_]);
+}
+
+/** Set atom/residue number wrap type. Silent, intended when setting up for reads. */
+void PDBfile::SetWrapTypeSilent(NumWrapType typeIn)
+{
+  wrapType_ = typeIn;
+}
 
 // PDBfile::IsPDBkeyword()
 /** \return true if given string is a recognized PDB record keyword.
@@ -367,6 +392,29 @@ char PDBfile::pdb_AltLoc() const {
   return linebuffer_[16];
 }
 
+/** Decode atom number field. Automatically detect if hybrid36 encoding is present. */
+int PDBfile::decodeAtomNum(const char* ptrIn)
+{
+  int ival = 0;
+  bool isHy36 = false;
+  const char* ptr = ptrIn;
+  while (*ptr != '\0') {
+    if (isalpha(*ptr)) {
+      isHy36 = true;
+      break;
+    }
+    ++ptr;
+  }
+  //mprintf("DEBUG: decodeAtomNum '%s' isHy36=%i", ptrIn, (int)isHy36);
+  if (isHy36) {
+    wrapType_ = HYBRID36;
+    Cpptraj::Hybrid36::Decode(5, ptrIn, ival);
+  } else
+    ival = atoi(ptrIn);
+  //mprintf("  ival=%i\n", ival); // DEBUG
+  return ival;
+}
+
 /** \return Atom containing information from PDB ATOM/HETATM line. */
 Atom PDBfile::pdb_Atom(char& altLoc, int& atnum) {
   // ATOM or HETATM keyword.
@@ -375,7 +423,8 @@ Atom PDBfile::pdb_Atom(char& altLoc, int& atnum) {
   // Atom number (6-11)
   altLoc = linebuffer_[11];
   linebuffer_[11] = '\0';
-  atnum = atoi(linebuffer_+6);
+  //atnum = atoi(linebuffer_+6);
+  atnum = decodeAtomNum(linebuffer_+6);
   linebuffer_[11] = altLoc;
   // Atom name (12-16), alt location indicator (16)
   // Replace asterisks in name with single quotes.
@@ -398,19 +447,58 @@ Atom PDBfile::pdb_Atom(char& altLoc, int& atnum) {
   return Atom(aname, eltString);
 }
 
+/** Decode residue number field. Automatically detect if hybrid36 encoding is present. */
+int PDBfile::decodeResNum(const char* ptrIn)
+{
+  int ival = 0;
+  bool isHy36 = false;
+  const char* ptr = ptrIn;
+  while (*ptr != '\0') {
+    if (isalpha(*ptr)) {
+      isHy36 = true;
+      break;
+    }
+    ++ptr;
+  }
+  if (isHy36) {
+    wrapType_ = HYBRID36;
+    Cpptraj::Hybrid36::Decode(4, ptrIn, ival);
+  } else
+    ival = atoi(ptrIn);
+  return ival;
+}
+
+/** \return Residue containing residue info from ATOM/HETATM record. */
 Residue PDBfile::pdb_Residue() {
   // Res name (17-20), Replace asterisks with single quotes.
   char savechar = linebuffer_[20];
   linebuffer_[20] = '\0';
   NameType resName(linebuffer_+17);
   linebuffer_[20] = savechar;
-  // Chain ID (21)
+  // Chain ID (21) - extended is 20-21
+  std::string chainID;
+  if (linebuffer_[20] != ' ') {
+    chainID.reserve(2);
+    chainID += linebuffer_[20];
+    has_large_chainid_ = true;
+  } else
+    chainID.reserve(1);
+  chainID += linebuffer_[21];
   // Res num (22-26), insertion code (26)
   char icode = linebuffer_[26];
   linebuffer_[26] = '\0';
-  int resnum = atoi( linebuffer_+22 );
+  //int resnum = atoi( linebuffer_+22 );
+  int resnum = decodeResNum( linebuffer_+22 );
   linebuffer_[26] = icode;
-  return Residue( resName, resnum, icode, std::string(1, linebuffer_[21]) );
+  return Residue( resName, resnum, icode, chainID );
+}
+
+/** Print a warning if the large chain ID flag is set and reset the flag. */
+void PDBfile::WarnLargeChainID() {
+  if (has_large_chainid_) {
+    mprintf("Warning: PDB file has large (>1 char) chain IDs.\n");
+    has_large_chainid_ = false;
+  }
 }
 
 // PDBfile::pdb_XYZ()
@@ -526,7 +614,8 @@ int PDBfile::pdb_Bonds(int* bnd) {
     unsigned int end = lb + 5;
     char savechar = linebuffer_[end];
     linebuffer_[end] = '\0';
-    bnd[Nscan++] = atoi( linebuffer_ + lb );
+    //bnd[Nscan++] = atoi( linebuffer_ + lb );
+    bnd[Nscan++] = decodeAtomNum( linebuffer_ + lb );
     linebuffer_[end] = savechar;
   }
   if (Nscan < 2)
@@ -592,9 +681,11 @@ PDBfile::Link PDBfile::pdb_Link() {
     code2 = ' ';
   // Residue numbers TODO restore nulled chars?
   linebuffer_[26] = '\0';
-  rnum1 = atoi(linebuffer_+22);
+  //rnum1 = atoi(linebuffer_+22);
+  rnum1 = decodeResNum(linebuffer_+22);
   linebuffer_[56] = '\0';
-  rnum2 = atoi(linebuffer_+52);
+  //rnum2 = atoi(linebuffer_+52);
+  rnum2 = decodeResNum(linebuffer_+52);
 /*
   NOTE: sscanf may not reliable when width absolutely matters.
   int nscan = sscanf(linebuffer_+12, "%4s%c%3s%c%4i%c%4s%c%3s%c%4i%c",
@@ -618,17 +709,35 @@ PDBfile::Link PDBfile::pdb_Link() {
 // -----------------------------------------------------------------------------
 // PDBfile::WriteRecordHeader()
 void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& name,
-                                char altLoc, NameType const& resnameIn, char chain, 
+                                char altLoc, NameType const& resnameIn, std::string const& chain, 
                                 int resnum, char icode, const char* Elt)
 {
-  char resName[6], atomName[5];
+  char resName[7], atomName[5];
+  char resNum[5], atomNum[6];
 
-  resName[5]='\0';
+  resName[6]='\0';
   atomName[4]='\0';
   // Residue number in PDB format can only be 4 digits wide
-  if (resnum > 9999) resnum = resnum % 10000;
   // Atom number in PDB format can only be 5 digits wide
-  if (anum > 99999) anum = anum % 100000;
+  resNum[4]='\0';
+  atomNum[5]='\0';
+  if (wrapType_ == RESET) {
+    // Reset the residue/atom numbering if out of range
+    if (resnum > 9999)
+      resnum = resnum % 10000;
+    else if (resnum < -999)
+      resnum = resnum % -1000;
+    snprintf(resNum, 5, "%4i", resnum);
+    if (anum > 99999)
+      anum = anum % 100000;
+    else if (anum < -9999)
+      anum = anum % -10000;
+    snprintf(atomNum, 6, "%5i", anum);
+  } else {
+    // Hybrid36 numbering
+    Cpptraj::Hybrid36::Encode(4, resnum, resNum);
+    Cpptraj::Hybrid36::Encode(5, anum, atomNum);
+  }
   // Residue names in PDB format are 3 chars long, right-justified, starting
   // at column 18, while the alternate location indicator is column 17.
   // In theory, 4 character residue names are not supported. In practice, there
@@ -653,6 +762,21 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
     rn_idx = 3;
   for (int i = rn_size - 1; i > -1; i--, rn_idx--)
     resName[rn_idx] = resnameIn[i];
+  // Chain ID
+  // The chain ID normally is a single character in column 22.
+  // We can support chain IDs of 2 characters (for e.g. hybrid36 PDBs)
+  // by making use of column 21 as well, even though this is not
+  // PDB-format compliant.
+  resName[5] = ' ';
+  if (!chain.empty()) {
+    if (chain.size() == 1)
+      resName[5] = chain[0];
+    else if (!useCol21_) {
+      resName[4] = chain[0];
+      resName[5] = chain[1];
+      has_large_chainid_ = true;
+    }
+  }
   // Determine size in characters of element name if given.
   int eNameChars = 0;
   if (Elt != 0) eNameChars = strlen( Elt );
@@ -680,14 +804,14 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
       atomName[i+1] = name[i];
   }
   // TODO if REMARK, which #?
-  Printf("%-6s%5i %-4s%5s%c%4i%c",PDB_RECNAME_[Record], anum, atomName,
-               resName, chain, resnum, icode);
+  Printf("%-6s%5s %-4s%6s%4s%c",PDB_RECNAME_[Record], atomNum, atomName,
+               resName, resNum, icode);
   if (Record == TER) Printf("\n");
 }
 
 // PDBfile::WriteHET()
 void PDBfile::WriteHET(int res, double x, double y, double z) {
-  WriteCoord(HETATM, anum_++, "XX", ' ', "XXX", ' ', 
+  WriteCoord(HETATM, anum_++, "XX", ' ', "XXX", "", 
              res, ' ', x, y, z, 0.0, 0.0, "", 0, false);
 }
 
@@ -695,7 +819,7 @@ void PDBfile::WriteHET(int res, double x, double y, double z) {
 void PDBfile::WriteATOM(int res, double x, double y, double z, 
                         const char* resnameIn, double Occ)
 {
-  WriteCoord(ATOM, anum_++, "XX", ' ', resnameIn, ' ',
+  WriteCoord(ATOM, anum_++, "XX", ' ', resnameIn, "",
              res, ' ', x, y, z, (float)Occ, 0.0, "", 0, false);
 }
 
@@ -703,13 +827,13 @@ void PDBfile::WriteATOM(int res, double x, double y, double z,
 void PDBfile::WriteATOM(const char* anameIn, int res, double x, double y, double z, 
                         const char* resnameIn, double Occ)
 {
-  WriteCoord(ATOM, anum_++, anameIn, ' ', resnameIn, ' ',
+  WriteCoord(ATOM, anum_++, anameIn, ' ', resnameIn, "",
              res, ' ', x, y, z, (float)Occ, 0.0, "", 0, false);
 }
 
 // PDBfile::WriteCoord()
 void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
-                         NameType const& resnameIn, char chain, int resnum,
+                         NameType const& resnameIn, std::string const& chain, int resnum,
                          double X, double Y, double Z)
 {
   WriteCoord(Record, anum, name, ' ', resnameIn, chain, 
@@ -721,7 +845,7 @@ void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& aname,
                          double X, double Y, double Z,
                          float Occ, float Bfac, const char* Elt, int charge)
 {
-  WriteCoord(Record, anum, aname, ' ', rname, ' ', resnum, ' ', X, Y, Z, 
+  WriteCoord(Record, anum, aname, ' ', rname, "", resnum, ' ', X, Y, Z, 
              Occ, Bfac, Elt, charge, false);
 }
 
@@ -760,7 +884,7 @@ static inline void SetChargeString(char* charge_buf, int charge) {
 // PDBfile::WriteCoord()
 void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
                          char altLoc,
-                         NameType const& resnameIn, char chain, int resnum,
+                         NameType const& resnameIn, std::string const& chain, int resnum,
                          char icode,
                          double X, double Y, double Z, float Occ, float B, 
                          const char* Elt, int charge, bool highPrecision) 
@@ -782,7 +906,7 @@ void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
 
 // PDBfile::WriteANISOU()
 void PDBfile::WriteANISOU(int anum, NameType const& name, 
-                          NameType const& resnameIn, char chain, int resnum,
+                          NameType const& resnameIn, std::string const& chain, int resnum,
                           const double* anisou,
                           const char* Elt, int charge)
 { // TODO icode, altLoc
@@ -828,7 +952,7 @@ void PDBfile::WriteTITLE(std::string const& titleIn) {
 /** Expect x, y, z, alpha, beta, gamma */
 void PDBfile::WriteCRYST1(const double* box, const char* space_group) {
   if (box==0) return;
-  // RECROD A B C ALPHA BETA GAMMA SGROUP Z
+  // RECORD A B C ALPHA BETA GAMMA SGROUP Z
   Printf("CRYST1%9.3f%9.3f%9.3f%7.2f%7.2f%7.2f %-11s%4i\n",
          box[0], box[1], box[2], box[3], box[4], box[5], space_group, 1);
 }
@@ -839,17 +963,44 @@ void PDBfile::WriteMODEL(int model) {
   Printf("MODEL     %i\n", model);
 }
 
+/** Wrap atom number. */
+void PDBfile::atomNumber(int anum, char* atomNum)
+const
+{
+  //if (wrapType_ == RESET) {
+  //  // Reset the atom numbering if out of range
+  //  if (anum > 99999)
+  //    anum = anum % 100000;
+  //  else if (anum < -9999)
+  //    anum = anum % -10000;
+  //  snprintf(atomNum, 6, "%5i", anum);
+  //} else {
+  if (wrapType_ == HYBRID36) {
+    // Hybrid36 numbering
+    Cpptraj::Hybrid36::Encode(5, anum, atomNum);
+  } else {
+    // For backwards compat, allow overflow
+    snprintf(atomNum, MAX_DIGIT_, "%5i", anum);
+  }
+}
+
 /** Write CONECT record: 1-6 CONECT, 7-11 serial #, 12-16 serial # ... */
 void PDBfile::WriteCONECT(int atnum, std::vector<int> const& atrec, Atom const& atomIn) {
   if (atomIn.Nbonds() < 1) return;
+  // Atom number in PDB format can only be 5 digits wide
+  char atomNum[MAX_DIGIT_];
+  atomNum[5]='\0';
   // PDB V3.3 spec: target-atom serial #s carried on these records also occur in increasing order.
   Atom atom(atomIn);
   atom.SortBonds();
   int nbond = 0;
   while (nbond < atom.Nbonds()) {
-    if ((nbond % 4) == 0)
-      Printf("CONECT%5i", atnum);
-    Printf("%5i", atrec[atom.Bond(nbond++)]);
+    if ((nbond % 4) == 0) {
+      atomNumber(atnum, atomNum);
+      Printf("CONECT%5s", atomNum);
+    }
+    atomNumber( atrec[atom.Bond(nbond++)], atomNum );
+    Printf("%5s", atomNum);
     if ((nbond % 4) == 0 || nbond == atom.Nbonds())
       Printf("\n");
   }
@@ -857,15 +1008,48 @@ void PDBfile::WriteCONECT(int atnum, std::vector<int> const& atrec, Atom const& 
 
 /** This version is primarily intended for writing CONECT for disulfides. */
 void PDBfile::WriteCONECT(int atnum1, int atnum2) {
-  Printf("CONECT%5i%5i\n", atnum1, atnum2);
+  char atomNum1[6];
+  atomNum1[5]='\0';
+  char atomNum2[6];
+  atomNum2[5]='\0';
+  atomNumber(atnum1, atomNum1);
+  atomNumber(atnum2, atomNum2);
+  Printf("CONECT%5s%5s\n", atomNum1, atomNum2);
+}
+
+/** Wrap residue number */
+void PDBfile::resNumber(int resnum, char* resNum)
+const
+{
+//  if (wrapType_ == RESET) {
+//    // Reset the residue/atom numbering if out of range
+//    if (resnum > 9999)
+//      resnum = resnum % 10000;
+//    else if (resnum < -999)
+//      resnum = resnum % -1000;
+//    snprintf(resNum, 5, "%4i", resnum);
+//  } else {
+  if (wrapType_ == HYBRID36) {
+    // Hybrid36 numbering
+    Cpptraj::Hybrid36::Encode(4, resnum, resNum);
+  } else {
+    // For backwards compat, allow overflow
+    snprintf(resNum, MAX_DIGIT_, "%4i", resnum);
+  }
 }
 
 void PDBfile::WriteSSBOND(int num, SSBOND const& ss, float distIn) {
   // TODO: SymOp
+  char resNum1[5];
+  resNum1[4] = '\0';
+  char resNum2[5];
+  resNum2[3] = '\0';
+  resNumber(ss.Rnum1(), resNum1);
+  resNumber(ss.Rnum2(), resNum2);
   //Printf("SSBOND %3i %3s %c %4i%c   %3s %c %4i%c                       %6i %6i %5.2f\n", num,
-  Printf("SSBOND %3i %3s %c %4i%c   %3s %c %4i%c                       %6s %6s %5.2f\n", num,
-         ss.name1(), ss.Chain1(), ss.Rnum1(), ss.Icode1(),
-         ss.name2(), ss.Chain2(), ss.Rnum2(), ss.Icode2(), "", "", distIn);
+  Printf("SSBOND %3i %3s %c %4s%c   %3s %c %4s%c                       %6s %6s %5.2f\n", num,
+         ss.name1(), ss.Chain1(), resNum1, ss.Icode1(),
+         ss.name2(), ss.Chain2(), resNum2, ss.Icode2(), "", "", distIn);
 }
 
 void PDBfile::WriteENDMDL() { Printf("ENDMDL\n"); }
