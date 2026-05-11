@@ -5,7 +5,7 @@
 DataSet_LeapOpts::DataSet_LeapOpts() :
   // 0 dim indicates DataSet-specific write
   DataSet(LEAPOPTS, GENERIC, TextFormat(TextFormat::STRING, 12, 0), 0),
-  pbradii_(Cpptraj::Parm::MBONDI),
+  pbradii_(Cpptraj::Parm::UNKNOWN_GB),
   scee_(1.2), // AMBER default
   scnb_(2.0), // AMBER default
   dipoleDampFactor_(0),
@@ -14,6 +14,18 @@ DataSet_LeapOpts::DataSet_LeapOpts() :
   deleteExtraPointAngles_(true)
 {
 
+}
+
+/** Memory usage in bytes */
+size_t DataSet_LeapOpts::MemUsageInBytes() const {
+  return 
+    sizeof(Cpptraj::Parm::GB_RadiiType) +
+    sizeof(double) +
+    sizeof(double) +
+    sizeof(double) +
+    sizeof(int) +
+    sizeof(bool) +
+    sizeof(bool);
 }
 
 /** Set default GB radii from keyword. */
