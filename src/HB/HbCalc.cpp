@@ -238,16 +238,22 @@ int HbCalc::SetupHbCalc(Topology const& topIn, Box const& boxIn) {
       mprinterr("Error: Could not create donor, acceptor, and donor H arrays.\n");
       return 1;
     }
-    mprintf("DEBUG: Both:\n");
-    for (unsigned int idx = 0; idx != hb_Both_.size(); idx++) {
-      mprintf("\t  %20s %8i", topIn.TruncResAtomName(hb_Both_[idx]).c_str(), hb_Both_[idx]+1);
-      for (Iarray::const_iterator ht = hb_DonorH_[idx].begin(); ht != hb_DonorH_[idx].end(); ht++)
-        mprintf(" (%4s %8i)", topIn[*ht].c_str(), *ht + 1);
-      mprintf("\n");
-    }
-    mprintf("DEBUG: Acceptor only:\n");
-    for (unsigned int idx = 0; idx != hb_Acceptor_.size(); idx++) {
-      mprintf("\t  %20s %8i\n", topIn.TruncResAtomName(hb_Acceptor_[idx]).c_str(), hb_Acceptor_[idx]+1);
+    // Determine output
+    if (hbdata_.Debug() > 0 || hbdata_.Verbose() > 0) {
+      const char* dprefix = "";
+      if (hbdata_.Debug() > 0)
+        dprefix = "DEBUG:";
+      mprintf("%s\tDonor/Acceptor:\n", dprefix);
+      for (unsigned int idx = 0; idx != hb_Both_.size(); idx++) {
+        mprintf("\t  %20s %8i", topIn.TruncResAtomName(hb_Both_[idx]).c_str(), hb_Both_[idx]+1);
+        for (Iarray::const_iterator ht = hb_DonorH_[idx].begin(); ht != hb_DonorH_[idx].end(); ht++)
+          mprintf(" (%4s %8i)", topIn[*ht].c_str(), *ht + 1);
+        mprintf("\n");
+      }
+      mprintf("%s\tAcceptor Only:\n");
+      for (unsigned int idx = 0; idx != hb_Acceptor_.size(); idx++) {
+        mprintf("\t  %20s %8i\n", topIn.TruncResAtomName(hb_Acceptor_[idx]).c_str(), hb_Acceptor_[idx]+1);
+      }
     }
   }
 

@@ -50,6 +50,8 @@ class HbData {
     bool InteractionMatrix() const { return (UU_matrix_byRes_ != 0); }
     /// \return Debug level
     int Debug() const { return debug_; }
+    /// \return Verbosity level
+    int Verbose() const { return verbose_; }
     /// \return Pointer to current topology
     Topology const* CurrentParmPtr() const { return CurrentParm_; }
     /// \return String containing estimated memory usage
@@ -140,6 +142,7 @@ class HbData {
     unsigned int Nframes_;    ///< Total # of frames going into the calculation
     MatrixNormType UUmatByRes_norm_;
     int debug_;               ///< Debug level
+    int verbose_;             ///< Verbosity
     int nuuhb_;               ///< Number of UU hydrogen bonds for the current frame.
     int nuvhb_;               ///< Number of UV hydrogen bonds for the current frame.
 //    int nbridge_;             ///< Number of UV bridges for the current frame.

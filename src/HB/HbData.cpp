@@ -33,6 +33,7 @@ HbData::HbData() :
   Nframes_(0),
   UUmatByRes_norm_(NORM_FRAMES),
   debug_(0),
+  verbose_(0),
   nuuhb_(0),
   nuvhb_(0),
 //  nbridge_(0),
@@ -61,6 +62,7 @@ void HbData::SetDebug(int debugIn) {
 
 /** Process data-related args */
 int HbData::ProcessArgs(ArgList& actionArgs, DataFileList& DFL, bool needToCalcSolvent) {
+  verbose_ = actionArgs.getKeyInt("verbose", 0);
   nhbout_ = DFL.AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   series_ = actionArgs.hasKey("series");
   if (series_) {
@@ -147,6 +149,8 @@ int HbData::ProcessArgs(ArgList& actionArgs, DataFileList& DFL, bool needToCalcS
   * and InitHbData().
   */
 void HbData::PrintHbDataOpts() const {
+  if (verbose_ > 0)
+    mprintf("\tVerbosity set to %i\n", verbose_);
   if (calcSolvent_)
     mprintf("\tWill look for solvent-solute hydrogen bonds.\n");
   else
