@@ -371,8 +371,8 @@ void Command::Init() {
   Command::AddCmd( new Action_GIST(),          Cmd::ACT, 1, "gist" );
   Command::AddCmd( new Action_GridFreeEnergy(),Cmd::ACT, 1, "gfe" ); // hidden
   Command::AddCmd( new Action_Grid(),          Cmd::ACT, 1, "grid" );
-  Command::AddCmd( new Action_HB(),            Cmd::ACT, 1, "hb" ); // FIXME
-  Command::AddCmd( new Action_HydrogenBond(),  Cmd::ACT, 1, "hbond" );
+  Command::AddCmd( new Action_HB(),            Cmd::ACT, 1, "hbond" );
+  Command::AddCmd( new Action_HydrogenBond(),  Cmd::ACT, 1, "oldhbond" ); // FIXME deprecate
   Command::AddCmd( new Action_Image(),         Cmd::ACT, 1, "image" );
   Command::AddCmd( new Action_InfraredSpectrum(),Cmd::ACT,2,"irspec","infraredspec"); // hidden
   Command::AddCmd( new Action_Jcoupling(),     Cmd::ACT, 1, "jcoupling" );
