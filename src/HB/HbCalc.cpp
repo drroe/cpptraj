@@ -41,8 +41,13 @@ int HbCalc::InitHbCalc(ArgList& argIn, DataSetList* masterDslPtr, DataFileList& 
   acut_ *= Constants::DEGRAD;
   plcut_ = argIn.getKeyDouble("plcut", 8.0);
   calcIons_ = argIn.hasKey("ions");
-  if (argIn.hasKey("image"))
-    mprintf("Info: Imaging is always on for pair list hbond calc; no need to specify 'image'.\n");
+  if (argIn.hasKey("image")) {
+    if (disable_pl_) {
+      mprinterr("Error: 'image' cannot be specified with 'disablepl' or 'noimage'.\n");
+      return 1;
+    } else
+      mprintf("Info: Imaging is always on for pair list hbond calc; no need to specify 'image'.\n");
+  }
 
   bool needToCalcSolvent = false;
   // Determine if we have solvent-specific masks
