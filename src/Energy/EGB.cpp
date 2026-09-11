@@ -3,4 +3,6 @@
 using namespace Cpptraj::Energy;
 
 /** CONSTRUCTOR */
-EGB::EGB() { }
+EGB::EGB() :
+  gbtype_(NGBTYPES)
+{ }
