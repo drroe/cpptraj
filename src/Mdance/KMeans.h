@@ -1,16 +1,18 @@
-#pragma once
+#ifndef CPPTRAJ_MDANCE_KMEANS_H
+#define CPPTRAJ_MDANCE_KMEANS_H
+#ifdef HAS_EIGEN
 
-#include <iostream>
-#include <stdexcept>
-#include <limits>
+//#include <iostream>
+//#include <stdexcept>
+//#include <limits>
 
+#include "bts.h"
+#include "types.h"
+#include "scores.h"
+#include "../Random.h"
 
-#include "../../tools/bts.h"
-#include "../../tools/types.h"
-#include "../../tools/scores.h"
-
-
-
+namespace Cpptraj {
+namespace Mdance {
 class KmeansNANI{
     Mat data;
     Mat centers;
@@ -23,6 +25,7 @@ class KmeansNANI{
     int nAtoms;
     int percentage;
     int vectorizationThreshold;
+    Random_Number RNG_;
 
     void set_seed();
     void set_vectorization_threshold(int threshold);
@@ -46,4 +49,7 @@ public:
     Veci getLabels();
     Mat getCenters();
 };
-
+} /** END namespace Mdance */
+} /* END namespace Cpptraj */
+#endif /* HAS_EIGEN */
+#endif

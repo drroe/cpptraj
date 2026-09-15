@@ -30,11 +30,13 @@ Date:   2 April 2013
 
 
 #include "KMeans.h"
-#include "mersenneTwister2002.h"
-
+#ifdef HAS_EIGEN
+//#include "mersenneTwister2002.h"
+using namespace Cpptraj::Mdance;
 // ====================================================== Utility Functions
 void KmeansNANI::set_seed() {
-    init_genrand( seed );
+    //init_genrand( seed );
+  RNG_.rn_set( seed, Random_Number::MERSENNE_TWISTER ); // Specify Mersenne for backwards compat.
 }
 
 void KmeansNANI::set_vectorization_threshold(int threshold){
@@ -49,7 +51,7 @@ void KmeansNANI::set_vectorization_threshold(int threshold){
 * Return random integers from `low` (inclusive) to `high` (exclusive).
 */
 int KmeansNANI::randint(int low, int high) {
-    double r = ((high - low)) * genrand_double();
+    double r = ((high - low)) * RNG_.rn_gen();
     int rint = (int) r; // [0,1) -> 0, [1,2) -> 1, etc
     return rint + low;
 }
@@ -58,7 +60,7 @@ int KmeansNANI::discrete_rand( Vec &p ) {
     double total = p.sum();
     int K = (int) p.size();
     
-    double r = total*genrand_double();
+    double r = total*RNG_.rn_gen();
     double cursum = p(0);
     int newk = 0;
     while ( r >= cursum && newk < K-1) {
@@ -304,3 +306,4 @@ Veci KmeansNANI::getLabels() {
 Mat KmeansNANI::getCenters() {
     return centers;
 }
+#endif /* HAS_EIGEN */
