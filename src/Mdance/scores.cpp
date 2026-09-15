@@ -11,7 +11,7 @@ using namespace Cpptraj::Mdance;
  * 
  * Reference: This code does not include any of the parameter checking: https://github.com/scikit-learn/scikit-learn/blob/c5497b7f7eacfaff061cf68e09bcd48aa93d4d6b/sklearn/metrics/cluster/_unsupervised.py#L325
 */
-double calinskiHarabaszScore(const ArrayXXd& data, const VectorXi& labels) {
+double Cpptraj::Mdance::calinskiHarabaszScore(const ArrayXXd& data, const VectorXi& labels) {
     std::map<int, vector<int>> clusters;
 
     for (int i=0; i<labels.size(); ++i) {
@@ -60,7 +60,7 @@ double calinskiHarabaszScore(const ArrayXXd& data, const VectorXi& labels) {
  * 
  * Reference: This code does not include any of the parameter checking: https://github.com/scikit-learn/scikit-learn/blob/c5497b7f7eacfaff061cf68e09bcd48aa93d4d6b/sklearn/metrics/cluster/_unsupervised.py#L396
 */
-double daviesBouldinScore(const ArrayXXd& data, const VectorXi& labels) {
+double Cpptraj::Mdance::daviesBouldinScore(const ArrayXXd& data, const VectorXi& labels) {
     std::map<int, vector<int>> clusters;
 
     for (int i=0; i<labels.size(); ++i) {
