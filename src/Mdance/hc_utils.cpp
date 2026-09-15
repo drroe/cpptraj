@@ -1,4 +1,5 @@
 #include "hc_utils.h"
+#ifdef HAS_EIGEN
 using namespace Cpptraj::Mdance;
 /**
  * @brief Constructor for the HCTreeNode class.
@@ -242,3 +243,4 @@ void HCTree::mergeTree(HCTree other_tree, int new_z_ind){
     // update root
     setRoot(new_root);
 }
+#endif /* HAS_EIGEN */
