@@ -1,6 +1,6 @@
 #include "bts.h"
-
-
+#ifdef HAS_EIGEN
+using namespace Cpptraj::Mdance;
 /* O(N) Mean square deviation(MSD) calculation for n-ary objects.
  *  
  * Parameters:
@@ -11,7 +11,7 @@
  * 
  * Reference: https://github.com/mqcomplab/MDANCE/blob/9a895e72d71fee1d1a4fad1700a806473dff2f71/src/mdance/tools/bts.py#L14
 */ 
-double meanSqDev(const ArrayXXd& data, int nAtoms){
+double Cpptraj::Mdance::meanSqDev(const ArrayXXd& data, int nAtoms){
     Index N = data.rows();
     if (N == 1)
         return 0;
@@ -32,7 +32,7 @@ double meanSqDev(const ArrayXXd& data, int nAtoms){
  * 
  * Reference: https://github.com/mqcomplab/MDANCE/blob/9a895e72d71fee1d1a4fad1700a806473dff2f71/src/mdance/tools/bts.py#L54
 */
-double msdCondensed(const ArrayXd& cSum, const ArrayXd& sqSum, Index N, int nAtoms){
+double Cpptraj::Mdance::msdCondensed(const ArrayXd& cSum, const ArrayXd& sqSum, Index N, int nAtoms){
     if (N == 1)
         return 0;
     // The following is a step-by-step explanation of what we are returning. May need to use this instead if we run into overflow issues?
@@ -73,7 +73,7 @@ double msdCondensed(const ArrayXd& cSum, const ArrayXd& sqSum, Index N, int nAto
  * 
  * Reference: https://github.com/mqcomplab/MDANCE/blob/main/src/mdance/tools/bts.py#L96
 */
-double extendedComparison(const ArrayXXd& data, Index N, int nAtoms, bool isCondensed, MD::Metric mt, MD::Threshold cThreshold, int wPower) {
+double Cpptraj::Mdance::extendedComparison(const ArrayXXd& data, Index N, int nAtoms, bool isCondensed, MD::Metric mt, MD::Threshold cThreshold, int wPower) {
     // Handle default initialization of MD::Threshold
     if (cThreshold.type == MD::ThresholdType::None)
         cThreshold.value = N % 2;
@@ -113,7 +113,7 @@ double extendedComparison(const ArrayXXd& data, Index N, int nAtoms, bool isCond
  * 
  * Reference: https://github.com/mqcomplab/MDANCE/blob/main/src/mdance/tools/bts.py#L190
 */
-ArrayXd calculateCompSim(const ArrayXXd& data, int nAtoms, MD::Metric mt) {
+ArrayXd Cpptraj::Mdance::calculateCompSim(const ArrayXXd& data, int nAtoms, MD::Metric mt) {
     Index N = data.rows();
 
     ArrayXXd sqData = data.square();
@@ -150,11 +150,11 @@ ArrayXd calculateCompSim(const ArrayXXd& data, int nAtoms, MD::Metric mt) {
  * 
  * Reference: https://github.com/mqcomplab/MDANCE/blob/main/src/mdance/tools/bts.py#L241
 */
-Index calculateMedoid(const ArrayXXd& data, int nAtoms, MD::Metric mt) {
+Index Cpptraj::Mdance::calculateMedoid(const ArrayXXd& data, int nAtoms, MD::Metric mt) {
     ArrayXd compSims = calculateCompSim(data, nAtoms, mt);
     return calculateMedoid(compSims);
 }
-Index calculateMedoid(const ArrayXd& data) {
+Index Cpptraj::Mdance::calculateMedoid(const ArrayXd& data) {
     Index maxIdx;
     data.maxCoeff(&maxIdx);
     return maxIdx;
@@ -172,11 +172,11 @@ Index calculateMedoid(const ArrayXd& data) {
  * 
  * Reference: https://github.com/mqcomplab/MDANCE/blob/main/src/mdance/tools/bts.py#L271
 */
-Index calculateOutlier(const ArrayXXd& data, int nAtoms, MD::Metric mt) {
+Index Cpptraj::Mdance::calculateOutlier(const ArrayXXd& data, int nAtoms, MD::Metric mt) {
     ArrayXd compSims = calculateCompSim(data, nAtoms, mt);
     return calculateOutlier(compSims);
 }
-Index calculateOutlier(const ArrayXd& data) {
+Index Cpptraj::Mdance::calculateOutlier(const ArrayXd& data) {
     Index minIdx;
     data.minCoeff(&minIdx);
     return minIdx;
@@ -196,7 +196,7 @@ Index calculateOutlier(const ArrayXd& data) {
  * 
  *  Reference: https://github.com/mqcomplab/MDANCE/blob/main/src/mdance/tools/bts.py#L301
 */
-ArrayXXd trimOutliers(const ArrayXXd& data, int nTrimmed, int nAtoms, bool isMedoid, MD::Metric mt) {
+ArrayXXd Cpptraj::Mdance::trimOutliers(const ArrayXXd& data, int nTrimmed, int nAtoms, bool isMedoid, MD::Metric mt) {
     Index N = data.rows();
     if (nTrimmed <= 0) {
         return data;
@@ -264,7 +264,7 @@ ArrayXXd trimOutliers(const ArrayXXd& data, int nTrimmed, int nAtoms, bool isMed
     }
     return data(indices, Eigen::all);
 }
-ArrayXXd trimOutliers(const ArrayXXd& data, float nTrimmed, int nAtoms, bool isMedoid, MD::Metric mt) {
+ArrayXXd Cpptraj::Mdance::trimOutliers(const ArrayXXd& data, float nTrimmed, int nAtoms, bool isMedoid, MD::Metric mt) {
     int num = std::floor(data.rows() * nTrimmed);
     if (num == 0)
         return data;
@@ -288,7 +288,7 @@ ArrayXXd trimOutliers(const ArrayXXd& data, float nTrimmed, int nAtoms, bool isM
  * 
  * Reference: https://github.com/mqcomplab/MDANCE/blob/016bd9aff30d1c2add26b36bfcf64aa665a34a1d/src/mdance/tools/bts.py#L376
 */
-vector<Index> diversitySelection(const ArrayXXd& data, int percentage, MD::Metric mt, int nAtoms, bool isCompSim, MD::StartSeed start){
+vector<Index> Cpptraj::Mdance::diversitySelection(const ArrayXXd& data, int percentage, MD::Metric mt, int nAtoms, bool isCompSim, MD::StartSeed start){
     if (isCompSim) {
         vector<Index> seed;
         switch(start) {
@@ -326,7 +326,7 @@ vector<Index> diversitySelection(const ArrayXXd& data, int percentage, MD::Metri
     return indices;
 
 }
-vector<Index> diversitySelection(const ArrayXXd& data, int percentage, MD::Metric mt, int nAtoms, vector<Index>& indices){
+vector<Index> Cpptraj::Mdance::diversitySelection(const ArrayXXd& data, int percentage, MD::Metric mt, int nAtoms, vector<Index>& indices){
     ArrayXXd selection = data(indices, Eigen::all);
     ArrayXXd selected (mt == MD::Metric::MSD ? 2 : 1, data.row(0).cols());
     selected.row(0) = selection.colwise().sum();
@@ -379,7 +379,7 @@ vector<Index> diversitySelection(const ArrayXXd& data, int percentage, MD::Metri
  * 
  * Reference: https://github.com/mqcomplab/MDANCE/blob/016bd9aff30d1c2add26b36bfcf64aa665a34a1d/src/mdance/tools/bts.py#L489
 */
-Index getNewIndexN(const ArrayXXd& data, MD::Metric mt, ArrayXXd& selectedCondensed, int N, set<Index>& selectFromN, int nAtoms) {
+Index Cpptraj::Mdance::getNewIndexN(const ArrayXXd& data, MD::Metric mt, ArrayXXd& selectedCondensed, int N, set<Index>& selectFromN, int nAtoms) {
     // Number of fingerprints already selected and the new one to add
     int nTotal = N + 1;
 
@@ -420,14 +420,14 @@ Index getNewIndexN(const ArrayXXd& data, MD::Metric mt, ArrayXXd& selectedConden
  * 
  * Reference: https://github.com/mqcomplab/MDANCE/blob/016bd9aff30d1c2add26b36bfcf64aa665a34a1d/src/mdance/tools/bts.py#L652
 */
-ArrayXi repSample(const ArrayXXd& data, MD::Metric mt, int nAtoms, int nBins, double nSamples, bool hardCap) {
+ArrayXi Cpptraj::Mdance::repSample(const ArrayXXd& data, MD::Metric mt, int nAtoms, int nBins, double nSamples, bool hardCap) {
     // nSamples in (0,1) is a fraction of the data; anything >= 1 is a count.
     if (nSamples < 1) {
         return repSample(data, mt, nAtoms, nBins, (int)(data.rows() * nSamples), hardCap);
     }
     return repSample(data, mt, nAtoms, nBins, (int)nSamples, hardCap);
 }
-ArrayXi repSample(const ArrayXXd& data, MD::Metric mt, int nAtoms, int nBins, int nSamples, bool hardCap) {
+ArrayXi Cpptraj::Mdance::repSample(const ArrayXXd& data, MD::Metric mt, int nAtoms, int nBins, int nSamples, bool hardCap) {
     Index N = data.rows();
     if (nSamples <= 0 || N == 0) {
         return ArrayXi();
@@ -492,7 +492,7 @@ ArrayXi repSample(const ArrayXXd& data, MD::Metric mt, int nAtoms, int nBins, in
  * 
  * Reference: https://github.com/mqcomplab/MDANCE/blob/016bd9aff30d1c2add26b36bfcf64aa665a34a1d/src/mdance/tools/bts.py#L720
 */
-ArrayXXd refineDisMatrix(const ArrayXXd& data) {
+ArrayXXd Cpptraj::Mdance::refineDisMatrix(const ArrayXXd& data) {
     if (data.rows() == 1 || data.cols() == 1) {
         throw std::invalid_argument("Matrix must be 2D.");
     }
@@ -510,7 +510,7 @@ ArrayXXd refineDisMatrix(const ArrayXXd& data) {
 
 
 //not finished
-ArrayXXd alignTraj(const ArrayXXd& data, int nAtoms, MD::AlignMethod alignMeth){
+ArrayXXd Cpptraj::Mdance::alignTraj(const ArrayXXd& data, int nAtoms, MD::AlignMethod alignMeth){
     /*
         Aligns trajectory using uniforms or kronecker alignment
 
@@ -542,3 +542,4 @@ ArrayXXd alignTraj(const ArrayXXd& data, int nAtoms, MD::AlignMethod alignMeth){
 
     return data;
 }
+#endif /* HAS_EIGEN */
