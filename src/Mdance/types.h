@@ -14,7 +14,18 @@
 namespace Cpptraj {
 namespace Mdance {
 
-using Eigen::ArrayXXd, Eigen::ArrayXd, Eigen::ArrayXi, Eigen::VectorXi, Eigen::Index, std::vector, std::pair, std::set, std::map, std::string;
+//using Eigen::ArrayXXd, Eigen::ArrayXd, Eigen::ArrayXi, Eigen::VectorXi, Eigen::Index, std::vector, std::pair, std::set, std::map, std::string;
+// One list requires C++17 standard
+using Eigen::ArrayXXd;
+using Eigen::ArrayXd;
+using Eigen::ArrayXi;
+using Eigen::VectorXi;
+using Eigen::Index;
+using std::vector;
+using std::pair;
+using std::set;
+using std::map;
+using std::string;
 
 typedef ArrayXXd Mat;
 typedef ArrayXd Vec;
