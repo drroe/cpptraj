@@ -1,12 +1,13 @@
-#ifndef HC_UTILS_H
-#define HC_UTILS_H
-
+#ifndef CPPTRAJ_MDANCE_HC_UTILS_H
+#define CPPTRAJ_MDANCE_HC_UTILS_H
+#ifdef HAS_EIGEN
 #include <Eigen/Dense>
 #include <list>
 #include <memory>
 
 #include "types.h"
-
+namespace Cpptraj {
+namespace Mdance {
 class HCTreeNode{
     // Class for the hierarchical clustering tree node
     // each node stores:
@@ -86,5 +87,7 @@ class HCTree{
 
         void mergeTree(HCTree other_tree, int new_z_ind);
 };
-
+} /** END namespace Mdance */
+} /** END namespace Cpptraj */
+#endif /* HAS_EIGEN */
 #endif

@@ -1,5 +1,5 @@
 #include "hc_utils.h"
-
+using namespace Cpptraj::Mdance;
 /**
  * @brief Constructor for the HCTreeNode class.
  * @param clusterIdx list of cluster identifiers corresponding to the initial clustering (before running HELM). Each value represents an original cluster label contained in this tree node. These are cluster labels, not frame indices.
