@@ -1,5 +1,6 @@
 #include "scores.h"
-
+#ifdef HAS_EIGEN
+using namespace Cpptraj::Mdance;
 /* Returns the Calinski-Harabasz score for a given cluster array.
  * 
  * Parameters:
@@ -103,3 +104,4 @@ double daviesBouldinScore(const ArrayXXd& data, const VectorXi& labels) {
     
     return maxScores.sum() / maxScores.size();
 }
+#endif /* HAS_EIGEN */
