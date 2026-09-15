@@ -1,8 +1,10 @@
 //this cluster h file is to help define clusterDict object in helm.cpp
-#pragma once
-
+#ifndef INC_CPPTRAJ_MDANCE_CLUSTER_H
+#define INC_CPPTRAJ_MDANCE_CLUSTER_H
+#ifdef HAS_EIGEN
 #include "types.h"
-
+namespace Cpptraj {
+namespace Mdance {
 class Cluster{
     private:
         /*
@@ -28,3 +30,7 @@ class Cluster{
         int getN();
         Mat getCluster();
 };
+}
+}
+#endif
+#endif

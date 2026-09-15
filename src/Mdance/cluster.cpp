@@ -1,5 +1,6 @@
 #include "cluster.h"
-
+#ifdef HAS_EIGEN
+using namespace Cpptraj::Mdance;
 Cluster::Cluster() : n(0) {
 }
 Cluster::Cluster(Veci indices, Vec cSum, Vec sqSum, int n){
@@ -32,3 +33,4 @@ int Cluster::getN(){
 Mat Cluster::getCluster(){
     return cluster;
 }
+#endif
