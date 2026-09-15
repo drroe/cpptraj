@@ -97,6 +97,13 @@ int Random_Number::rn_set(int seedIn) {
   return rng_->Set_Seed( seedIn );
 }
 
+/** Allocate specific RNG, initialize with given seed. */
+int Random_Number::rn_set(int seedIn, RngType typeIn) {
+  currentType_ = typeIn;
+  allocateRng();
+  return rng_->Set_Seed( seedIn );
+}
+
 /** Initialize with default seed. */
 //void Random_Number::rn_set() {
 //  rng_->Set_Seed();
