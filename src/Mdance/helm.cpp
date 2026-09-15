@@ -1,8 +1,11 @@
+#ifdef HAS_EIGEN
 #include <stdexcept>
 
 #include "helm.h"
-#include "../tools/bts.h"
-#include "../tools/scores.h"
+#include "bts.h"
+#include "scores.h"
+
+using namespace Cpptraj::Mdance;
 
 Mat Helm::makeDataByRow(Vec a, Vec b){
     //a and b need to be same length
@@ -431,4 +434,4 @@ Mat Helm::getZMatrix(){
     }
     return zMatrix;
 }
-
+#endif /* HAS_EIGEN */

@@ -1,6 +1,10 @@
-#include "../tools/types.h"
-#include "../tools/hc_utils.h"
-
+#ifndef INC_CPPTRAJ_MDANCE_HELM_H
+#define INC_CPPTRAJ_MDANCE_HELM_H
+#ifdef HAS_EIGEN
+#include "types.h"
+#include "hc_utils.h"
+namespace Cpptraj {
+namespace Mdance {
 class Helm{
     public:
         Helm(vector<HCTree> clusterTree, int nAtoms, MD::Metric mt = MD::Metric::MSD, 
@@ -40,3 +44,7 @@ class Helm{
         void genClusterDists(vector<HCTree>& previousClusters);
         void updateZMatrix(int idxA, int idxB, int mergedClusts);
 };
+} /* END namespace Mdance */
+} /* END namespace Cpptraj */
+#endif /* HAS_EIGEN */
+#endif
