@@ -1,5 +1,6 @@
-#pragma once
-
+#ifndef INC_CPPTRAJ_MDANCE_TYPES_H
+#define INC_CPPTRAJ_MDANCE_TYPES_H
+#ifdef HAS_EIGEN
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -10,6 +11,8 @@
 #include <vector>
 
 #include <Eigen/Dense>
+namespace Cpptraj {
+namespace Mdance {
 
 using Eigen::ArrayXXd, Eigen::ArrayXd, Eigen::ArrayXi, Eigen::VectorXi, Eigen::Index, std::vector, std::pair, std::set, std::map, std::string;
 
@@ -142,4 +145,7 @@ namespace MD {
     constexpr double EPSILON_DIV = 1e-100;
 
 }
-
+} /* END namespace Mdance */
+} /* END namespace Cpptraj */
+#endif /* HAS_EIGEN */
+#endif
