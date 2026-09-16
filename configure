@@ -53,6 +53,7 @@ UsageFull() {
   echo "    -makenetcdf        : Have cpptraj build its own NetCDF."
   echo "    -makeblas          : Have cpptraj build its own LAPACK/BLAS."
   echo "    --libdir=<dir>     : Look for libraries in <dir> (useful to point to e.g. a previous CPPTRAJ install."
+  echo "    --with-eigen=<dir> : Look for Eigen headers in <dir> (required for MDANCE)."
   echo "    Libraries: netcdf pnetcdf zlib bzlib blas lapack arpack fftw3 readline sanderlib xdrfile tng openmm"
   echo "    Note: pnetcdf is needed for writing NetCDF trajectories with MPI."
   echo "  LINKING OPTIONS"
@@ -2896,6 +2897,7 @@ while [ ! -z "$1" ] ; do
     '--buildlibs'       ) BUILD_LIBS=1 ;;
     '--nobuildlibs'     ) BUILD_LIBS=0 ; BUILDTESTOPT='' ;;
     '--libdir'          ) SPECIFIED_LIB_DIR=$VALUE ;;
+    '--with-eigen'      ) EIGEN_DIR=$VALUE ;;
     # Install options
     '--compile-verbose' ) COMPILE_VERBOSE=1 ;;
     '-noclean'          ) CLEAN='no' ;;
@@ -3101,6 +3103,11 @@ elif [ $USE_STATIC -eq 2 ] ; then
 fi
 if [ $USE_LEAP_PI -eq 1 ] ; then
   echo "  Using LEaP's value of PI for converting radians/degrees."
+fi
+if [ $USE_EIGEN -eq 1 ] ; then
+  echo "  Using Eigen from $EIGEN_DIR. MDANCE enabled."
+else
+  echo "  Eigen not found. Disabling MDANCE."
 fi
 #echo DIRECTIVES $DIRECTIVES
 #echo CFLAGS $CFLAGS
