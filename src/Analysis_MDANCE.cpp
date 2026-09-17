@@ -189,6 +189,23 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
   }
   // Initialize Kmeans
   KmeansNANI kmeans(data, kClusters_, mt, kinit_, CRD.Top().Natom(), percentage_, vthresh_);
+  // Results
+  // First check the clustering assignments.
+  // MDANCE labels each frame with the cluster number
+  Veci cluster_of_frame = kmeans.getLabels();
+  for (int i = 0; i < cluster_of_frame.size(); i++) {
+    if (cluster_of_frame[i] < 0 || cluster_of_frame[i] >= kClusters_) {
+      mprinterr("Error: Cluster of frame %i is out of bounds: %i\n", i+1, cluster_of_frame[i]);
+    }
+    mprintf("DEBUG: Frame %8i Cluster %8i\n", i+1, cluster_of_frame[i]);
+  }
+  // Get the pseudo-F (Calinski-Harabasz) and DBI scores
+  std::pair<double,double> scores = kmeans.computeScores();
+  mprintf("\tDBI      : %f\n", scores.second);
+  mprintf("\tpseudo-F : %f\n", scores.first);
+  // Get centers
+  Mat centers = kmeans.getCenters();
+  mprintf("DEBUG: centers rows %zd, cols %zd\n", centers.rows(), centers.cols());
 
   return Analysis::OK; // DEBUG
 # else /* HAS_EIGEN */
