@@ -1,11 +1,17 @@
 #include "Analysis_MDANCE.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords.h"
+#ifdef HAS_EIGEN
+# include "Mdance/KMeans.h"
+# include "Mdance/helm.h"
+#endif
 
 /** CONSTRUCTOR */
 Analysis_MDANCE::Analysis_MDANCE() :
   debug_(0),
-  coords_(0)
+  coords_(0),
+  kClusters_(0),
+  metric_(ExtendedSimilarity::NO_METRIC)
 {}
 
 // Analysis_MDANCE::Help()
@@ -31,7 +37,27 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
     Help();
     return Analysis::ERR;
   }
-  
+  kClusters_ = analyzeArgs.getKeyInt("clusters", 0);
+  // Metric
+  std::string mstr = analyzeArgs.GetStringKey("metric");
+  metric_ = ExtendedSimilarity::NO_METRIC;
+  if (!mstr.empty()) {
+    metric_ = ExtendedSimilarity::TypeFromKeyword( mstr );
+    if (metric_ == ExtendedSimilarity::NO_METRIC) {
+      mprinterr("Error: Metric '%s' not recognized.\n", mstr.c_str());
+      return Analysis::ERR;
+    }
+  } else {
+    metric_ = ExtendedSimilarity::MSD;
+  }
+
+  // Check input
+  if (kClusters_ < 1) {
+    mprinterr("Error: 'clusters' must be > 0.\n");
+    return Analysis::ERR;
+  }
+
+  // Info
   mprintf("    MDANCE:\n");
   mprintf("\tCOORDS set: %s\n", coords_->legend());
 
