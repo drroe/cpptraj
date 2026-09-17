@@ -14,6 +14,7 @@ class Results_Coords : public Results {
     static void Help();
     // ----- Results functions -------------------
     int GetOptions(ArgList&, DataSetList const&, MetricArray const&);
+    int GetOptions_NoAssignRefs(ArgList&);
     void Info() const;
     int DoOutput(List const&) const;
     int CalcResults(List&) const;

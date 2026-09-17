@@ -2,6 +2,7 @@
 #define INC_ANALYSIS_MDANCE_H
 #include "Analysis.h"
 #include "ExtendedSimilarity.h" // Has the same metrics
+#include "TrajectoryFile.h"
 #ifdef HAS_EIGEN
 #include "Mdance/types.h"
 #endif 
@@ -12,6 +13,7 @@ class DataSet_Coords;
 class Analysis_MDANCE : public Analysis {
   public:
     Analysis_MDANCE();
+    ~Analysis_MDANCE();
     DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_MDANCE(); }
     void Help() const;
 
@@ -21,6 +23,11 @@ class Analysis_MDANCE : public Analysis {
     static const char* kinitKeys_[];
     static const char* kinitStr_[];
     static const Cpptraj::Mdance::MD::KinitType kinitTypes_[];
+
+    void getClusterTrajArgs(ArgList&, const char*, const char*, std::string&,
+                            TrajectoryFile::TrajFormatType&) const;
+    void writeClusterTraj() const;
+
 
     int debug_;
     DataSet_Coords* coords_;
@@ -32,5 +39,7 @@ class Analysis_MDANCE : public Analysis {
     AtomMask mask_;
 
     DataSet* cnumvtime_; ///< Hold cluster number for each frame
+    std::string clusterfile_;   ///< Cluster trajectory base filename.
+    TrajectoryFile::TrajFormatType clusterfmt_;   ///< Cluster trajectory format.
 };
 #endif

@@ -49,6 +49,17 @@ void Cpptraj::Cluster::Results_Coords::GetClusterTrajArgs(ArgList& argIn,
     fmt = TrajectoryFile::WriteFormatFromFname( trajName, DEF_TRAJ_FMT_ );
 }
 
+/** Get user specified options. No assignrefs. */
+int Cpptraj::Cluster::Results_Coords::GetOptions_NoAssignRefs(ArgList& analyzeArgs)
+{
+  writeRepFrameNum_ = analyzeArgs.hasKey("repframe");
+  GetClusterTrajArgs(analyzeArgs, "clusterout",   "clusterfmt",   clusterfile_,   clusterfmt_);
+  GetClusterTrajArgs(analyzeArgs, "singlerepout", "singlerepfmt", singlerepfile_, singlerepfmt_);
+  GetClusterTrajArgs(analyzeArgs, "repout",       "repfmt",       reptrajfile_,   reptrajfmt_);
+  GetClusterTrajArgs(analyzeArgs, "avgout",       "avgfmt",       avgfile_,       avgfmt_);
+  return 0;
+}
+
 /** Get user specified options. */
 int Cpptraj::Cluster::Results_Coords::GetOptions(ArgList& analyzeArgs, DataSetList const& DSL,
                                                  MetricArray const& metricIn)

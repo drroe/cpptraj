@@ -20,6 +20,10 @@ Analysis_MDANCE::Analysis_MDANCE() :
   cnumvtime_(0)
 {}
 
+/** DESTRUCTOR */
+Analysis_MDANCE::~Analysis_MDANCE() {
+}
+
 const char* Analysis_MDANCE::kinitKeys_[] = {
   "all",
   "reduced",
@@ -58,6 +62,7 @@ void Analysis_MDANCE::Help() const {
           "\t[metric <metric>] [vthresh <vectthreshold>]\n"
           "\t[kinit <init>] [pct <percentage>]\n"
           "\t[<set name>] [out <cnumvtime file>]\n"
+          "\t[clusterout <trajfileprefix> [clusterfmt <trajformat>]]\n");
   mprintf("  <metric> = %s\n", ExtendedSimilarity::MetricKeys().c_str());
   mprintf("  <init>   =");
   for (int i = 0; kinitKeys_[i] != 0; i++)
@@ -66,6 +71,22 @@ void Analysis_MDANCE::Help() const {
 # else
   mprintf("CPPTRAJ was compiled without Eigen - MDANCE is disabled.\n");
 # endif
+}
+
+
+/** Get arguments related to writing cluster data to trajectories.
+  * Copied from Cluster/Results_Coords.
+  */
+void Analysis_MDANCE::getClusterTrajArgs(ArgList& argIn,
+                                         const char* trajKey, const char* fmtKey,
+                                         std::string& trajName,
+                                         TrajectoryFile::TrajFormatType& fmt) const
+{
+  trajName = argIn.GetStringKey( trajKey );
+  fmt = TrajectoryFile::WriteFormatFromString( argIn.GetStringKey(fmtKey), fmt );
+  // If file name specified but not format, try to guess from name
+  if (!trajName.empty() && fmt == TrajectoryFile::UNKNOWN_TRAJ)
+    fmt = TrajectoryFile::WriteFormatFromFname( trajName, TrajectoryFile::AMBERTRAJ );
 }
 
 
@@ -127,6 +148,8 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
     mprinterr("Error: Could not set mask string '%s'\n", maskstr.c_str());
     return Analysis::ERR;
   }
+  // Set up results that depend on COORDS DataSet
+  getClusterTrajArgs(analyzeArgs, "clusterout",   "clusterfmt",   clusterfile_,  clusterfmt_);
   // Output files/data
   DataFile* cnumvtimefile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   // Overall set name extracted here. All other arguments should already be processed. 
@@ -159,12 +182,53 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   mprintf("\tCluster # vs time set  : %s\n", cnumvtime_->legend());
   if (cnumvtimefile != 0)
     mprintf("\tCluster # vs time file : %s\n", cnumvtimefile->DataFilename().full());
+  if (!clusterfile_.empty())
+    mprintf("\tCluster trajectories will be written to %s, format %s\n",
+            clusterfile_.c_str(), TrajectoryFile::FormatString(clusterfmt_));
 
   return Analysis::OK;
 # else /* HAS_EIGEN */
   mprintf("CPPTRAJ was compiled without Eigen - MDANCE is disabled.\n");
   return Analysis::ERR;
 # endif /* HAS_EIGEN */
+}
+
+/** Write frames in each cluster to a trajectory file.  */
+void Analysis_MDANCE::writeClusterTraj() const {
+  Topology* clusterparm = coords_->TopPtr();
+  // Create set containing frames for each cluster
+  typedef std::vector<int> Iarray;
+  typedef std::vector<Iarray> IIarray;
+  IIarray Clusters;
+  // Loop over all clusters
+/*  for (List::cluster_iterator C = CList.begincluster();
+                                     C != CList.endcluster(); ++C)
+  {
+    // Create filename based on cluster number.
+    int cnum = C->Num();
+    std::string cfilename =  clusterfile_ + ".c" + integerToString( cnum );
+    // Set up trajectory file 
+    Trajout_Single clusterout;
+    if (clusterout.PrepareTrajWrite(cfilename, ArgList(), DataSetList(), clusterparm,
+                                    coords_->CoordsInfo(), C->Nframes(),
+                                    clusterfmt_))
+    {
+      mprinterr("Error: Could not set up cluster trajectory %s for write.\n",
+                cfilename.c_str());  
+      return;
+    } 
+    // Loop over all frames in cluster
+    int set = 0;
+    Frame clusterframe = coords_->AllocateFrame();
+    for (Node::frame_iterator fnum = C->beginframe();
+                                     fnum != C->endframe(); ++fnum)
+    {
+      coords_->GetFrame( *fnum, clusterframe );
+      clusterout.WriteSingle(set++, clusterframe);
+    }
+    // Close traj
+    clusterout.EndTraj();
+  }*/
 }
 
 // Analysis_MDANCE::Analyze()
