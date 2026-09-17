@@ -16,7 +16,8 @@ Analysis_MDANCE::Analysis_MDANCE() :
   percentage_(0),
   vthresh_(0),
   metric_(ExtendedSimilarity::NO_METRIC),
-  kinit_(MD::KinitType::StratAll)
+  kinit_(MD::KinitType::StratAll),
+  cnumvtime_(0)
 {}
 
 const char* Analysis_MDANCE::kinitKeys_[] = {
@@ -117,6 +118,18 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
     kinit_ = MD::KinitType::StratAll;
     iKinit = 0;
   }
+  // Output files/data
+  DataFile* cnumvtimefile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  // Overall set name extracted here. All other arguments should already be processed. 
+  std::string dsname = analyzeArgs.GetStringNext();
+  if (dsname.empty())
+    dsname = setup.DSL().GenerateDefaultName("MDANCE");
+  // ---------------------------------------------
+    
+  // Cluster number vs time data set
+  cnumvtime_ = setup.DSL().AddSet(DataSet::INTEGER, dsname, "Cnum");
+  if (cnumvtime_ == 0) return Analysis::ERR;
+  if (cnumvtimefile != 0) cnumvtimefile->AddDataSet( cnumvtime_ );
 
   // Check input
   if (kClusters_ < 1) {
@@ -132,6 +145,10 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   mprintf("\tInit. Strat.     : %s\n", kinitStr_[iKinit]);
   mprintf("\tPercentage       : %i%%\n", percentage_);
   mprintf("\tVect. threshhold : %i\n", vthresh_);
+  mprintf("\tData set name          : %s\n", dsname.c_str());
+  mprintf("\tCluster # vs time set  : %s\n", cnumvtime_->legend());
+  if (cnumvtimefile != 0)
+    mprintf("\tCluster # vs time file : %s\n", cnumvtimefile->DataFilename().full());
 
   return Analysis::OK;
 # else /* HAS_EIGEN */
@@ -193,11 +210,14 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
   // First check the clustering assignments.
   // MDANCE labels each frame with the cluster number
   Veci cluster_of_frame = kmeans.getLabels();
+  cnumvtime_->Allocate(DataSet::SizeArray(1, cluster_of_frame.size()));
   for (int i = 0; i < cluster_of_frame.size(); i++) {
-    if (cluster_of_frame[i] < 0 || cluster_of_frame[i] >= kClusters_) {
-      mprinterr("Error: Cluster of frame %i is out of bounds: %i\n", i+1, cluster_of_frame[i]);
+    int cnum = cluster_of_frame[i];
+    if (cnum < 0 || cnum >= kClusters_) {
+      mprinterr("Error: Cluster of frame %i is out of bounds: %i\n", i+1, cnum);
     }
-    mprintf("DEBUG: Frame %8i Cluster %8i\n", i+1, cluster_of_frame[i]);
+    cnumvtime_->Add(i, &cnum);
+    mprintf("DEBUG: Frame %8i Cluster %8i\n", i+1, cnum);
   }
   // Get the pseudo-F (Calinski-Harabasz) and DBI scores
   std::pair<double,double> scores = kmeans.computeScores();
