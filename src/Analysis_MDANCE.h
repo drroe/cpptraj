@@ -29,6 +29,7 @@ class Analysis_MDANCE : public Analysis {
     int vthresh_;
     ExtendedSimilarity::MetricType metric_;
     Cpptraj::Mdance::MD::KinitType kinit_;
+    AtomMask mask_;
 
     DataSet* cnumvtime_; ///< Hold cluster number for each frame
 };

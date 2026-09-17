@@ -54,9 +54,10 @@ const Cpptraj::Mdance::MD::KinitType Analysis_MDANCE::kinitTypes_[] = {
 // Analysis_MDANCE::Help()
 void Analysis_MDANCE::Help() const {
 # ifdef HAS_EIGEN
-  mprintf("\tcrdset <COORDS set> clusters <#>\n"
-          "\t[metric <metric>] [out <file>] [vthresh <vectthreshold>]\n"
-          "\t[kinit <init>] [pct <percentage>]\n");
+  mprintf("\tcrdset <COORDS set> clusters <#> [mask <mask>]\n"
+          "\t[metric <metric>] [vthresh <vectthreshold>]\n"
+          "\t[kinit <init>] [pct <percentage>]\n"
+          "\t[<set name>] [out <cnumvtime file>]\n"
   mprintf("  <metric> = %s\n", ExtendedSimilarity::MetricKeys().c_str());
   mprintf("  <init>   =");
   for (int i = 0; kinitKeys_[i] != 0; i++)
@@ -118,6 +119,14 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
     kinit_ = MD::KinitType::StratAll;
     iKinit = 0;
   }
+  // Atom mask
+  std::string maskstr = analyzeArgs.GetStringKey("mask");
+  if (maskstr.empty())
+    maskstr = "*";
+  if (mask_.SetMaskString(maskstr)) {
+    mprinterr("Error: Could not set mask string '%s'\n", maskstr.c_str());
+    return Analysis::ERR;
+  }
   // Output files/data
   DataFile* cnumvtimefile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   // Overall set name extracted here. All other arguments should already be processed. 
@@ -145,6 +154,7 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   mprintf("\tInit. Strat.     : %s\n", kinitStr_[iKinit]);
   mprintf("\tPercentage       : %i%%\n", percentage_);
   mprintf("\tVect. threshhold : %i\n", vthresh_);
+  mprintf("\tAtom selection   : %s\n", mask_.MaskString());
   mprintf("\tData set name          : %s\n", dsname.c_str());
   mprintf("\tCluster # vs time set  : %s\n", cnumvtime_->legend());
   if (cnumvtimefile != 0)
@@ -166,8 +176,20 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
     return Analysis::ERR;
   }
   DataSet_Coords& CRD = static_cast<DataSet_Coords&>( *coords_ );
+  // Get the atom selection
+  if (CRD.Top().SetupIntegerMask( mask_ )) {
+    mprinterr("Error: Could not set up atom mask.\n");
+    return Analysis::ERR;
+  }
+  mask_.MaskInfo();
+  if (mask_.None()) {
+    mprinterr("Error: No atoms selected.\n");
+    return Analysis::ERR;
+  }
   // This is an Eigen matrix. Each row is a frame, each column is a coordinate.
-  ArrayXXd data( CRD.Size(), CRD.Top().Natom()*3 );
+  unsigned int nSelectedAtoms = mask_.Nselected();
+  unsigned int ncoords = nSelectedAtoms * 3;
+  ArrayXXd data( CRD.Size(), ncoords );
   mprintf("\tSaving Eigen matrix (%zd rows/frames, %zd cols/coords).\n", data.rows(), data.cols());
   ProgressBar progress(CRD.Size());
   Frame frmIn = CRD.AllocateFrame();
@@ -176,9 +198,9 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
     progress.Update(idx);
     CRD.GetFrame(idx, frmIn);
     unsigned int icrd = 0;
-    for (int iat = 0; iat < CRD.Top().Natom(); iat++)
+    for (unsigned int iat = 0; iat < nSelectedAtoms; iat++)
     {
-      const double* XYZ = frmIn.XYZ(iat);
+      const double* XYZ = frmIn.XYZ(mask_[iat]);
       data( idx, icrd   ) = XYZ[0];
       data( idx, icrd+1 ) = XYZ[1];
       data( idx, icrd+2 ) = XYZ[2];
@@ -205,7 +227,7 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
       return Analysis::ERR;
   }
   // Initialize Kmeans
-  KmeansNANI kmeans(data, kClusters_, mt, kinit_, CRD.Top().Natom(), percentage_, vthresh_);
+  KmeansNANI kmeans(data, kClusters_, mt, kinit_, nSelectedAtoms, percentage_, vthresh_);
   // Results
   // First check the clustering assignments.
   // MDANCE labels each frame with the cluster number
