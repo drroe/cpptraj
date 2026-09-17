@@ -45,7 +45,7 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
 // Analysis_MDANCE::Analyze()
 Analysis::RetType Analysis_MDANCE::Analyze() {
   using namespace Cpptraj::Mdance;
-  if (coords_ != 0) {
+  if (coords_ == 0) {
     mprinterr("Error: COORDS are null.\n");
     return Analysis::ERR;
   }
