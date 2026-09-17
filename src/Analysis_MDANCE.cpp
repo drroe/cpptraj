@@ -168,7 +168,27 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
       icrd += 3;
     }
   }
-  
+
+  // Convert metric to internal MDANCE
+  MD::Metric mt = MD::Metric::MSD;
+  switch(metric_) {
+    case ExtendedSimilarity::MSD : mt = MD::Metric::MSD; break;
+    case ExtendedSimilarity::BUB : mt = MD::Metric::BUB; break;
+    case ExtendedSimilarity::FAI : mt = MD::Metric::Fai; break;
+    case ExtendedSimilarity::GLE : mt = MD::Metric::Gle; break;
+    case ExtendedSimilarity::JA  : mt = MD::Metric::Ja; break;
+    case ExtendedSimilarity::JT  : mt = MD::Metric::JT; break;
+    case ExtendedSimilarity::RT  : mt = MD::Metric::RT; break;
+    case ExtendedSimilarity::RR  : mt = MD::Metric::RR; break;
+    case ExtendedSimilarity::SM  : mt = MD::Metric::SM; break;
+    case ExtendedSimilarity::SS1 : mt = MD::Metric::SS1; break;
+    case ExtendedSimilarity::SS2 : mt = MD::Metric::SS2; break;
+    case ExtendedSimilarity::NO_METRIC :
+      mprinterr("Internal Error: Analysis_MDANCE::Analyze(): No metric.\n");
+      return Analysis::ERR;
+  }
+  // Initialize Kmeans
+  KmeansNANI kmeans(data, kClusters_, mt, kinit_, CRD.Top().Natom(), percentage_, vthresh_);
 
   return Analysis::OK; // DEBUG
 # else /* HAS_EIGEN */
