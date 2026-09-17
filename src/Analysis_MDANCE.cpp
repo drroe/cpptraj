@@ -12,7 +12,10 @@ Analysis_MDANCE::Analysis_MDANCE() :
   debug_(0),
   coords_(0),
   kClusters_(0),
-  metric_(ExtendedSimilarity::NO_METRIC)
+  percentage_(0),
+  vthresh_(0),
+  metric_(ExtendedSimilarity::NO_METRIC),
+  kinit_(MD::KinitType::StratAll)
 {}
 
 const char* Analysis_MDANCE::kinitKeys_[] = {
@@ -50,8 +53,13 @@ const Cpptraj::Mdance::MD::KinitType Analysis_MDANCE::kinitTypes_[] = {
 void Analysis_MDANCE::Help() const {
 # ifdef HAS_EIGEN
   mprintf("\tcrdset <COORDS set> clusters <#>\n"
-          "\t[metric <metric>] [out <file>]\n");
+          "\t[metric <metric>] [out <file>] [vthresh <vectthreshold>]\n"
+          "\t[kinit <init>] [pct <percentage>]\n");
   mprintf("  <metric> = %s\n", ExtendedSimilarity::MetricKeys().c_str());
+  mprintf("  <init>   =");
+  for (int i = 0; kinitKeys_[i] != 0; i++)
+    mprintf(" %s", kinitKeys_[i]);
+  mprintf("\n");
 # else
   mprintf("CPPTRAJ was compiled without Eigen - MDANCE is disabled.\n");
 # endif
@@ -72,8 +80,10 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
     Help();
     return Analysis::ERR;
   }
-  // Target # of clusters
+  // Target # of clusters, percentage, threshold
   kClusters_ = analyzeArgs.getKeyInt("clusters", 0);
+  percentage_ = analyzeArgs.getKeyInt("pct", 10);
+  vthresh_ = analyzeArgs.getKeyInt("vthresh", 16);
   // Metric
   std::string mstr = analyzeArgs.GetStringKey("metric");
   metric_ = ExtendedSimilarity::NO_METRIC;
@@ -115,10 +125,12 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
 
   // Info
   mprintf("    MDANCE:\n");
-  mprintf("\tCOORDS set   : %s\n", coords_->legend());
-  mprintf("\t# clusters   : %i\n", kClusters_);
-  mprintf("\tMetric       : %s\n", ExtendedSimilarity::metricStr(metric_));
-  mprintf("\tInit. Strat. : %s\n", kinitStr_[iKinit]);
+  mprintf("\tCOORDS set       : %s\n", coords_->legend());
+  mprintf("\t# clusters       : %i\n", kClusters_);
+  mprintf("\tMetric           : %s\n", ExtendedSimilarity::metricStr(metric_));
+  mprintf("\tInit. Strat.     : %s\n", kinitStr_[iKinit]);
+  mprintf("\tPercentage       : %i%%\n", percentage_);
+  mprintf("\tVect. threshhold : %i\n", vthresh_);
 
   return Analysis::OK;
 # else /* HAS_EIGEN */

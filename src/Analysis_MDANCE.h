@@ -25,6 +25,8 @@ class Analysis_MDANCE : public Analysis {
     int debug_;
     DataSet_Coords* coords_;
     int kClusters_;
+    int percentage_;
+    int vthresh_;
     ExtendedSimilarity::MetricType metric_;
     Cpptraj::Mdance::MD::KinitType kinit_;
 };
