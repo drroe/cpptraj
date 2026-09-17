@@ -4,6 +4,7 @@
 #ifdef HAS_EIGEN
 # include "Mdance/KMeans.h"
 # include "Mdance/helm.h"
+using namespace Cpptraj::Mdance;
 #endif
 
 /** CONSTRUCTOR */
@@ -17,11 +18,34 @@ Analysis_MDANCE::Analysis_MDANCE() :
 // Analysis_MDANCE::Help()
 void Analysis_MDANCE::Help() const {
 # ifdef HAS_EIGEN
-  mprintf("\tcrdset <COORDS set>\n");
+  mprintf("\tcrdset <COORDS set> clusters <#>\n"
+          "\t[metric <metric>] [out <file>]\n");
+  mprintf("  <metric> = %s\n", ExtendedSimilarity::MetricKeys().c_str());
 # else
   mprintf("CPPTRAJ was compiled without Eigen - MDANCE is disabled.\n");
 # endif
 }
+
+const char* Analysis_MDANCE::kinitKeys_[] = {
+  "all",
+  "reduced",
+  "compsim",
+  "divselect",
+  "kmeanspp",
+  "random",
+  "vanillakmpp",
+  0
+};
+
+const Cpptraj::Mdance::MD::KinitType Analysis_MDANCE::kinitTypes_[] = {
+  MD::KinitType::StratAll,
+  MD::KinitType::StratReduced,
+  MD::KinitType::CompSim,
+  MD::KinitType::DivSelect,
+  MD::KinitType::KmeansPP,
+  MD::KinitType::Random,
+  MD::KinitType::VanillaKmeansPP
+};
 
 // Analysis_MDANCE::Setup()
 Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
@@ -37,6 +61,7 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
     Help();
     return Analysis::ERR;
   }
+  // Target # of clusters
   kClusters_ = analyzeArgs.getKeyInt("clusters", 0);
   // Metric
   std::string mstr = analyzeArgs.GetStringKey("metric");
@@ -50,6 +75,24 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   } else {
     metric_ = ExtendedSimilarity::MSD;
   }
+  // Init strategy
+  std::string kstr = analyzeArgs.GetStringKey("kinit");
+  if (!kstr.empty()) {
+    int iKinit = -1;
+    for (int i = 0; kinitKeys_[i] != 0; i++) {
+      const char* key = kinitKeys_[i];
+      if (key != 0 && kstr == std::string(key)) {
+        iKinit = i;
+        break;
+      }
+    }
+    if (iKinit < 0) {
+      mprinterr("Error: Unrecognized keyword for 'kinit': %s\n", kstr.c_str());
+      return Analysis::ERR;
+    }
+    kinit_ = kinitTypes_[iKinit];
+  } else
+    kinit_ = MD::KinitType::StratAll;
 
   // Check input
   if (kClusters_ < 1) {
@@ -70,7 +113,7 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
 
 // Analysis_MDANCE::Analyze()
 Analysis::RetType Analysis_MDANCE::Analyze() {
-  using namespace Cpptraj::Mdance;
+# ifdef HAS_EIGEN
   if (coords_ == 0) {
     mprinterr("Error: COORDS are null.\n");
     return Analysis::ERR;
@@ -81,4 +124,7 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
 
 
   return Analysis::OK; // DEBUG
+# else /* HAS_EIGEN */
+  return Anlysis::ERR;
+# endif /* HAS_EIGEN */
 }
