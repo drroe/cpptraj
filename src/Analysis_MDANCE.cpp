@@ -1,6 +1,7 @@
 #include "Analysis_MDANCE.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords.h"
+#include "ProgressBar.h"
 #ifdef HAS_EIGEN
 # include "Mdance/KMeans.h"
 # include "Mdance/helm.h"
@@ -142,6 +143,7 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
 // Analysis_MDANCE::Analyze()
 Analysis::RetType Analysis_MDANCE::Analyze() {
 # ifdef HAS_EIGEN
+  mprintf("    MDANCE: Starting MDANCE.\n");
   if (coords_ == 0) {
     mprinterr("Error: COORDS are null.\n");
     return Analysis::ERR;
@@ -149,7 +151,24 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
   DataSet_Coords& CRD = static_cast<DataSet_Coords&>( *coords_ );
   // This is an Eigen matrix. Each row is a frame, each column is a coordinate.
   ArrayXXd data( CRD.Size(), CRD.Top().Natom()*3 );
-
+  mprintf("\tSaving Eigen matrix (%zd rows/frames, %zd cols/coords).\n", data.rows(), data.cols());
+  ProgressBar progress(CRD.Size());
+  Frame frmIn = CRD.AllocateFrame();
+  for (unsigned int idx = 0; idx != CRD.Size(); idx++)
+  {
+    progress.Update(idx);
+    CRD.GetFrame(idx, frmIn);
+    unsigned int icrd = 0;
+    for (int iat = 0; iat < CRD.Top().Natom(); iat++)
+    {
+      const double* XYZ = frmIn.XYZ(iat);
+      data( idx, icrd   ) = XYZ[0];
+      data( idx, icrd+1 ) = XYZ[1];
+      data( idx, icrd+2 ) = XYZ[2];
+      icrd += 3;
+    }
+  }
+  
 
   return Analysis::OK; // DEBUG
 # else /* HAS_EIGEN */
