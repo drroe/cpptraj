@@ -32,6 +32,8 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
     return Analysis::ERR;
   }
   
+  mprintf("    MDANCE:\n");
+  mprintf("\tCOORDS set: %s\n", coords_->legend());
 
   return Analysis::OK;
 # else /* HAS_EIGEN */
@@ -42,5 +44,15 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
 
 // Analysis_MDANCE::Analyze()
 Analysis::RetType Analysis_MDANCE::Analyze() {
-  return Analysis::ERR; // DEBUG
+  using namespace Cpptraj::Mdance;
+  if (coords_ != 0) {
+    mprinterr("Error: COORDS are null.\n");
+    return Analysis::ERR;
+  }
+  DataSet_Coords& CRD = static_cast<DataSet_Coords&>( *coords_ );
+  // This is an Eigen matrix. Each row is a frame, each column is a coordinate.
+  ArrayXXd data( CRD.Size(), CRD.Top().Natom()*3 );
+
+
+  return Analysis::OK; // DEBUG
 }
