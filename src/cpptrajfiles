@@ -125,6 +125,7 @@ COMMON_SOURCES= \
         Analysis_Lifetime.cpp \
         Analysis_LowestCurve.cpp \
         Analysis_Matrix.cpp \
+        Analysis_MDANCE.cpp \
         Analysis_MeltCurve.cpp \
         Analysis_Modes.cpp \
         Analysis_Multicurve.cpp \
