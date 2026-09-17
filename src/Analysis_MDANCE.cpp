@@ -15,17 +15,6 @@ Analysis_MDANCE::Analysis_MDANCE() :
   metric_(ExtendedSimilarity::NO_METRIC)
 {}
 
-// Analysis_MDANCE::Help()
-void Analysis_MDANCE::Help() const {
-# ifdef HAS_EIGEN
-  mprintf("\tcrdset <COORDS set> clusters <#>\n"
-          "\t[metric <metric>] [out <file>]\n");
-  mprintf("  <metric> = %s\n", ExtendedSimilarity::MetricKeys().c_str());
-# else
-  mprintf("CPPTRAJ was compiled without Eigen - MDANCE is disabled.\n");
-# endif
-}
-
 const char* Analysis_MDANCE::kinitKeys_[] = {
   "all",
   "reduced",
@@ -37,6 +26,16 @@ const char* Analysis_MDANCE::kinitKeys_[] = {
   0
 };
 
+const char* Analysis_MDANCE::kinitStr_[] = {
+  "All",
+  "Reduced",
+  "CompSim",
+  "DivSelect",
+  "Kmeans++",
+  "Random",
+  "Vanilla Kmeans++"
+};
+
 const Cpptraj::Mdance::MD::KinitType Analysis_MDANCE::kinitTypes_[] = {
   MD::KinitType::StratAll,
   MD::KinitType::StratReduced,
@@ -46,6 +45,18 @@ const Cpptraj::Mdance::MD::KinitType Analysis_MDANCE::kinitTypes_[] = {
   MD::KinitType::Random,
   MD::KinitType::VanillaKmeansPP
 };
+
+// Analysis_MDANCE::Help()
+void Analysis_MDANCE::Help() const {
+# ifdef HAS_EIGEN
+  mprintf("\tcrdset <COORDS set> clusters <#>\n"
+          "\t[metric <metric>] [out <file>]\n");
+  mprintf("  <metric> = %s\n", ExtendedSimilarity::MetricKeys().c_str());
+# else
+  mprintf("CPPTRAJ was compiled without Eigen - MDANCE is disabled.\n");
+# endif
+}
+
 
 // Analysis_MDANCE::Setup()
 Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
@@ -77,8 +88,8 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   }
   // Init strategy
   std::string kstr = analyzeArgs.GetStringKey("kinit");
+  int iKinit = -1;
   if (!kstr.empty()) {
-    int iKinit = -1;
     for (int i = 0; kinitKeys_[i] != 0; i++) {
       const char* key = kinitKeys_[i];
       if (key != 0 && kstr == std::string(key)) {
@@ -91,8 +102,10 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
       return Analysis::ERR;
     }
     kinit_ = kinitTypes_[iKinit];
-  } else
+  } else {
     kinit_ = MD::KinitType::StratAll;
+    iKinit = 0;
+  }
 
   // Check input
   if (kClusters_ < 1) {
@@ -102,7 +115,10 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
 
   // Info
   mprintf("    MDANCE:\n");
-  mprintf("\tCOORDS set: %s\n", coords_->legend());
+  mprintf("\tCOORDS set   : %s\n", coords_->legend());
+  mprintf("\t# clusters   : %i\n", kClusters_);
+  mprintf("\tMetric       : %s\n", ExtendedSimilarity::metricStr(metric_));
+  mprintf("\tInit. Strat. : %s\n", kinitStr_[iKinit]);
 
   return Analysis::OK;
 # else /* HAS_EIGEN */

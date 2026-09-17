@@ -19,6 +19,7 @@ class Analysis_MDANCE : public Analysis {
     Analysis::RetType Analyze();
   private:
     static const char* kinitKeys_[];
+    static const char* kinitStr_[];
     static const Cpptraj::Mdance::MD::KinitType kinitTypes_[];
 
     int debug_;
