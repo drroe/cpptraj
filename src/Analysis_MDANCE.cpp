@@ -20,7 +20,9 @@ Analysis_MDANCE::Analysis_MDANCE() :
   metric_(ExtendedSimilarity::NO_METRIC),
   kinit_(MD::KinitType::StratAll),
   cnumvtime_(0),
-  clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ)
+  centers_(0),
+  clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
+  centerfmt_(TrajectoryFile::UNKNOWN_TRAJ)
 {}
 
 /** DESTRUCTOR */
@@ -65,7 +67,8 @@ void Analysis_MDANCE::Help() const {
           "\t[metric <metric>] [vthresh <vectthreshold>]\n"
           "\t[kinit <init>] [pct <percentage>]\n"
           "\t[name <set name>] [out <cnumvtime file>]\n"
-          "\t[clusterout <trajfileprefix> [clusterfmt <trajformat>]]\n");
+          "\t[clusterout <trajfileprefix> [clusterfmt <trajformat>]]\n"
+          "\t[centerout <trajfilename> [centerfmt <trajformat>]]\n");
   mprintf("  <metric> = %s\n", ExtendedSimilarity::MetricKeys().c_str());
   mprintf("  <init>   =");
   for (int i = 0; kinitKeys_[i] != 0; i++)
@@ -153,6 +156,7 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   }
   // Set up results that depend on COORDS DataSet
   getClusterTrajArgs(analyzeArgs, "clusterout",   "clusterfmt",   clusterfile_,  clusterfmt_);
+  getClusterTrajArgs(analyzeArgs, "centerout",    "centerfmt",    centerfile_,   centerfmt_);
   // Output files/data
   DataFile* cnumvtimefile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   // Overall set name extracted here. All other arguments should already be processed. 
@@ -165,6 +169,8 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   cnumvtime_ = setup.DSL().AddSet(DataSet::INTEGER, dsname, "Cnum");
   if (cnumvtime_ == 0) return Analysis::ERR;
   if (cnumvtimefile != 0) cnumvtimefile->AddDataSet( cnumvtime_ );
+  // Cluster centers data set
+  centers_ = (DataSet_Coords*)setup.DSL().AddSet(DataSet::COORDS, MetaData(dsname, "centers"));
 
   // Check input
   if (kClusters_ < 1) {
@@ -181,13 +187,17 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   mprintf("\tPercentage       : %i%%\n", percentage_);
   mprintf("\tVect. threshhold : %i\n", vthresh_);
   mprintf("\tAtom selection   : %s\n", mask_.MaskString());
-  mprintf("\tData set name          : %s\n", dsname.c_str());
-  mprintf("\tCluster # vs time set  : %s\n", cnumvtime_->legend());
+  //mprintf("\tData set name          : %s\n", dsname.c_str());
+  mprintf("\tCluster # vs time set  : %s\n", cnumvtime_->Meta().PrintName().c_str());
+  mprintf("\tCluster centers set    : %s\n", centers_->Meta().PrintName().c_str());
   if (cnumvtimefile != 0)
     mprintf("\tCluster # vs time file : %s\n", cnumvtimefile->DataFilename().full());
   if (!clusterfile_.empty())
     mprintf("\tCluster trajectories will be written to %s.cX, format %s\n",
             clusterfile_.c_str(), TrajectoryFile::FormatString(clusterfmt_));
+  if (!centerfile_.empty())
+    mprintf("\tCluster centers will be written to %s, format %s\n",
+            centerfile_.c_str(), TrajectoryFile::FormatString(centerfmt_));
 
   return Analysis::OK;
 # else /* HAS_EIGEN */
@@ -228,6 +238,29 @@ void Analysis_MDANCE::writeClusterTraj(ClusterArray const& Clusters) const {
   }
 }
 
+/** Write cluster centers to a trajectory file.  */
+void Analysis_MDANCE::writeCenterTraj() const {
+  // Set up trajectory file 
+  Trajout_Single clusterout;
+  if (clusterout.PrepareTrajWrite(centerfile_, ArgList(), DataSetList(), centers_->TopPtr(),
+                                  centers_->CoordsInfo(), centers_->Size(),
+                                  centerfmt_))
+  {
+    mprinterr("Error: Could not set up cluster centers trajectory %s for write.\n",
+              centerfile_.c_str());  
+    return;
+  } 
+  // Loop over all centers 
+  Frame centerframe = centers_->AllocateFrame();
+  for (unsigned int cidx = 0; cidx != centers_->Size(); cidx++)
+  {
+    centers_->GetFrame(cidx, centerframe);
+    clusterout.WriteSingle(cidx, centerframe);
+  }
+  // Close traj
+  clusterout.EndTraj();
+}
+
 // Analysis_MDANCE::Analyze()
 Analysis::RetType Analysis_MDANCE::Analyze() {
 # ifdef HAS_EIGEN
@@ -247,6 +280,28 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
     mprinterr("Error: No atoms selected.\n");
     return Analysis::ERR;
   }
+  // Set the topology/COORDS set for centers
+  CoordinateInfo ctrInfo; // Coordinates only
+  if (mask_.Nselected() < CRD.Top().Natom()) {
+    // Strip top to match clustered coords
+    Topology* clusterTop = CRD.Top().modifyStateByMask( mask_ );
+    if (clusterTop == 0) {
+      mprinterr("Error: Could not create topology for cluster centers.\n");
+      return Analysis::ERR;
+    }
+    clusterTop->Brief("Topology for cluster centers");
+    if (centers_->CoordsSetup( *clusterTop, ctrInfo )) {
+      mprinterr("Error: Could not set up COORDS set for cluster centers.\n");
+      return Analysis::ERR;
+    }
+    delete clusterTop;
+  } else {
+    if (centers_->CoordsSetup( CRD.Top(), ctrInfo )) {
+      mprinterr("Error: Could not set up COORDS set for cluster centers.\n");
+      return Analysis::ERR;
+    }
+  }
+  centers_->Allocate(DataSet::SizeArray(1, kClusters_));
   // This is an Eigen matrix. Each row is a frame, each column is a coordinate.
   unsigned int nSelectedAtoms = mask_.Nselected();
   unsigned int ncoords = nSelectedAtoms * 3;
@@ -287,8 +342,9 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
       mprinterr("Internal Error: Analysis_MDANCE::Analyze(): No metric.\n");
       return Analysis::ERR;
   }
-  // Initialize Kmeans
+  // Initialize and run Kmeans
   KmeansNANI kmeans(data, kClusters_, mt, kinit_, nSelectedAtoms, percentage_, vthresh_);
+
   // Results
   // First check the clustering assignments.
   // MDANCE labels each frame with the cluster number
@@ -310,11 +366,27 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
   mprintf("\tDBI      : %f\n", scores.second);
   mprintf("\tpseudo-F : %f\n", scores.first);
   // Get centers
-  Mat centers = kmeans.getCenters();
-  mprintf("DEBUG: centers rows %zd, cols %zd\n", centers.rows(), centers.cols());
+  Frame ctrFrame = centers_->AllocateFrame();
+  Mat clusterCenters = kmeans.getCenters();
+  mprintf("DEBUG: centers rows %zd, cols %zd\n", clusterCenters.rows(), clusterCenters.cols());
+  for (int iclust = 0; iclust != kClusters_; iclust++) {
+    unsigned int icrd = 0;
+    ctrFrame.ClearAtoms();
+    for (unsigned int iat = 0; iat < nSelectedAtoms; iat++) {
+      double XYZ[3];
+      XYZ[0] = clusterCenters( iclust, icrd   );
+      XYZ[1] = clusterCenters( iclust, icrd+1 );
+      XYZ[2] = clusterCenters( iclust, icrd+2 );
+      ctrFrame.AddXYZ( XYZ );
+      icrd += 3;
+    }
+    centers_->AddFrame( ctrFrame );
+  }
   // Write cluster trajectories
   if (!clusterfile_.empty())
     writeClusterTraj( Clusters );
+  if (!centerfile_.empty())
+    writeCenterTraj();
 
   return Analysis::OK; // DEBUG
 # else /* HAS_EIGEN */

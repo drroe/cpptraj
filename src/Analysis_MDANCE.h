@@ -30,6 +30,7 @@ class Analysis_MDANCE : public Analysis {
     void getClusterTrajArgs(ArgList&, const char*, const char*, std::string&,
                             TrajectoryFile::TrajFormatType&) const;
     void writeClusterTraj(ClusterArray const&) const;
+    void writeCenterTraj() const;
 
 
     int debug_;
@@ -41,8 +42,11 @@ class Analysis_MDANCE : public Analysis {
     Cpptraj::Mdance::MD::KinitType kinit_;
     AtomMask mask_;
 
-    DataSet* cnumvtime_; ///< Hold cluster number for each frame
-    std::string clusterfile_;   ///< Cluster trajectory base filename.
-    TrajectoryFile::TrajFormatType clusterfmt_;   ///< Cluster trajectory format.
+    DataSet* cnumvtime_;                        ///< Hold cluster number for each frame
+    DataSet_Coords* centers_;                   ///< Hold cluster centers
+    std::string clusterfile_;                   ///< Cluster trajectory base filename.
+    std::string centerfile_;
+    TrajectoryFile::TrajFormatType clusterfmt_; ///< Cluster trajectory format.
+    TrajectoryFile::TrajFormatType centerfmt_;
 };
 #endif
