@@ -17,7 +17,7 @@ align first
 trajout tz2.aligned.nc
 createcrd MyCrd
 
-mdance crdset MyCrd clusters 5 out cnumvtime.dat
+mdance crdset MyCrd clusters 5 out cnumvtime.dat kseed 1
 EOF
 RunCpptraj "$UNITNAME"
 DoTest cnumvtime.dat.save cnumvtime.dat
@@ -30,7 +30,7 @@ align first
 trajout tz2.aligned.nc
 createcrd MyCrd
 
-mdance crdset MyCrd clusters 5 out noh.cnumvtime.dat mask !@H=
+mdance crdset MyCrd clusters 5 out noh.cnumvtime.dat mask !@H= kseed 1
 EOF
 RunCpptraj "$UNITNAME"
 DoTest noh.cnumvtime.dat.save noh.cnumvtime.dat
