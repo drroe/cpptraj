@@ -36,7 +36,11 @@ using namespace Cpptraj::Mdance;
 // ====================================================== Utility Functions
 void KmeansNANI::set_seed() {
     //init_genrand( seed );
+# ifdef C11_SUPPORT
   RNG_.rn_set( seed, Random_Number::MERSENNE_TWISTER ); // Specify Mersenne for backwards compat.
+# else
+  RNG_.rn_set( seed ); // No Mersenne support, fallback to default
+# endif 
 }
 
 void KmeansNANI::set_vectorization_threshold(int threshold){
