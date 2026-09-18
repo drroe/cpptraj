@@ -22,8 +22,9 @@ class Analysis_MDANCE : public Analysis {
   private:
     static const char* kinitKeys_[];
     static const char* kinitStr_[];
+#   ifdef HAS_EIGEN
     static const Cpptraj::Mdance::MD::KinitType kinitTypes_[];
-
+#   endif
     typedef std::vector<int> Iarray;
     typedef std::vector<Iarray> ClusterArray;
 
@@ -31,7 +32,7 @@ class Analysis_MDANCE : public Analysis {
                             TrajectoryFile::TrajFormatType&) const;
     void writeClusterTraj(ClusterArray const&) const;
     void writeCenterTraj() const;
-
+    void writeSummary(CpptrajFile&, ClusterArray const&, unsigned int) const;
 
     int debug_;
     DataSet_Coords* coords_;
@@ -39,7 +40,9 @@ class Analysis_MDANCE : public Analysis {
     int percentage_;
     int vthresh_;
     ExtendedSimilarity::MetricType metric_;
+#   ifdef HAS_EIGEN
     Cpptraj::Mdance::MD::KinitType kinit_;
+#   endif
     AtomMask mask_;
 
     DataSet* cnumvtime_;                        ///< Hold cluster number for each frame
@@ -48,5 +51,6 @@ class Analysis_MDANCE : public Analysis {
     std::string centerfile_;
     TrajectoryFile::TrajFormatType clusterfmt_; ///< Cluster trajectory format.
     TrajectoryFile::TrajFormatType centerfmt_;
+    CpptrajFile* outfile_;
 };
 #endif

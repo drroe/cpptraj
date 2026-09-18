@@ -68,7 +68,8 @@ void Analysis_MDANCE::Help() const {
           "\t[kinit <init>] [pct <percentage>]\n"
           "\t[name <set name>] [out <cnumvtime file>]\n"
           "\t[clusterout <trajfileprefix> [clusterfmt <trajformat>]]\n"
-          "\t[centerout <trajfilename> [centerfmt <trajformat>]]\n");
+          "\t[centerout <trajfilename> [centerfmt <trajformat>]]\n"
+          "\t[summaryfile <outfile>]\n");
   mprintf("  <metric> = %s\n", ExtendedSimilarity::MetricKeys().c_str());
   mprintf("  <init>   =");
   for (int i = 0; kinitKeys_[i] != 0; i++)
@@ -159,6 +160,12 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   getClusterTrajArgs(analyzeArgs, "centerout",    "centerfmt",    centerfile_,   centerfmt_);
   // Output files/data
   DataFile* cnumvtimefile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  outfile_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("summaryfile"), "MDANCE cluster summary",
+                                                                 DataFileList::TEXT, true);
+  if (outfile_ == 0) {
+    mprinterr("Error: Could not allocate cluster summary file.\n");
+    return Analysis::ERR;
+  }
   // Overall set name extracted here. All other arguments should already be processed. 
   std::string dsname = analyzeArgs.GetStringKey("name");
   if (dsname.empty())
@@ -190,6 +197,7 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   //mprintf("\tData set name          : %s\n", dsname.c_str());
   mprintf("\tCluster # vs time set  : %s\n", cnumvtime_->Meta().PrintName().c_str());
   mprintf("\tCluster centers set    : %s\n", centers_->Meta().PrintName().c_str());
+  mprintf("\tSummary output file    : %s\n", outfile_->Filename().full());
   if (cnumvtimefile != 0)
     mprintf("\tCluster # vs time file : %s\n", cnumvtimefile->DataFilename().full());
   if (!clusterfile_.empty())
@@ -259,6 +267,16 @@ void Analysis_MDANCE::writeCenterTraj() const {
   }
   // Close traj
   clusterout.EndTraj();
+}
+
+/** Write summary to given file */
+void Analysis_MDANCE::writeSummary(CpptrajFile& outfile, ClusterArray const& Clusters, unsigned int nframes) const {
+  outfile.Printf("%-8s %8s %8s\n","#Cluster","Frames","Frac");
+  for (ClusterArray::const_iterator clust = Clusters.begin(); clust != Clusters.end(); ++clust)
+  {
+    double frac = (double)clust->size() / (double)nframes;
+    outfile.Printf("%8li %8zu %8.3f\n", clust-Clusters.begin(), clust->size(), frac);
+  }
 }
 
 // Analysis_MDANCE::Analyze()
@@ -365,6 +383,8 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
   std::pair<double,double> scores = kmeans.computeScores();
   mprintf("\tDBI      : %f\n", scores.second);
   mprintf("\tpseudo-F : %f\n", scores.first);
+  // Write summary
+  writeSummary(*outfile_, Clusters, coords_->Size());
   // Get centers
   Frame ctrFrame = centers_->AllocateFrame();
   Mat clusterCenters = kmeans.getCenters();
