@@ -19,7 +19,8 @@ Analysis_MDANCE::Analysis_MDANCE() :
   vthresh_(0),
   metric_(ExtendedSimilarity::NO_METRIC),
   kinit_(MD::KinitType::StratAll),
-  cnumvtime_(0)
+  cnumvtime_(0),
+  clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ)
 {}
 
 /** DESTRUCTOR */
@@ -63,7 +64,7 @@ void Analysis_MDANCE::Help() const {
   mprintf("\tcrdset <COORDS set> clusters <#> [mask <mask>]\n"
           "\t[metric <metric>] [vthresh <vectthreshold>]\n"
           "\t[kinit <init>] [pct <percentage>]\n"
-          "\t[<set name>] [out <cnumvtime file>]\n"
+          "\t[name <set name>] [out <cnumvtime file>]\n"
           "\t[clusterout <trajfileprefix> [clusterfmt <trajformat>]]\n");
   mprintf("  <metric> = %s\n", ExtendedSimilarity::MetricKeys().c_str());
   mprintf("  <init>   =");
@@ -155,7 +156,7 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   // Output files/data
   DataFile* cnumvtimefile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   // Overall set name extracted here. All other arguments should already be processed. 
-  std::string dsname = analyzeArgs.GetStringNext();
+  std::string dsname = analyzeArgs.GetStringKey("name");
   if (dsname.empty())
     dsname = setup.DSL().GenerateDefaultName("MDANCE");
   // ---------------------------------------------
@@ -185,7 +186,7 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   if (cnumvtimefile != 0)
     mprintf("\tCluster # vs time file : %s\n", cnumvtimefile->DataFilename().full());
   if (!clusterfile_.empty())
-    mprintf("\tCluster trajectories will be written to %s, format %s\n",
+    mprintf("\tCluster trajectories will be written to %s.cX, format %s\n",
             clusterfile_.c_str(), TrajectoryFile::FormatString(clusterfmt_));
 
   return Analysis::OK;
@@ -311,6 +312,9 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
   // Get centers
   Mat centers = kmeans.getCenters();
   mprintf("DEBUG: centers rows %zd, cols %zd\n", centers.rows(), centers.cols());
+  // Write cluster trajectories
+  if (!clusterfile_.empty())
+    writeClusterTraj( Clusters );
 
   return Analysis::OK; // DEBUG
 # else /* HAS_EIGEN */
