@@ -16,6 +16,7 @@ Analysis_MDANCE::Analysis_MDANCE() :
   debug_(0),
   coords_(0),
   kClusters_(0),
+  kSeed_(0),
   percentage_(0),
   vthresh_(0),
   metric_(ExtendedSimilarity::NO_METRIC),
@@ -69,7 +70,7 @@ void Analysis_MDANCE::Help() const {
 # ifdef HAS_EIGEN
   mprintf("\tcrdset <COORDS set> clusters <#> [mask <mask>]\n"
           "\t[metric <metric>] [vthresh <vectthreshold>]\n"
-          "\t[kinit <init>] [pct <percentage>]\n"
+          "\t[kinit <init>] [pct <percentage>] [kseed <#>]\n"
           "\t[name <set name>] [out <cnumvtime file>]\n"
           "\t[clusterout <trajfileprefix> [clusterfmt <trajformat>]]\n"
           "\t[centerout <trajfilename> [centerfmt <trajformat>]]\n"
@@ -118,6 +119,7 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   }
   // Target # of clusters, percentage, threshold
   kClusters_ = analyzeArgs.getKeyInt("clusters", 0);
+  kSeed_ = analyzeArgs.getKeyInt("kseed", 0);
   percentage_ = analyzeArgs.getKeyInt("pct", 10);
   vthresh_ = analyzeArgs.getKeyInt("vthresh", 16);
   // Metric
@@ -197,6 +199,7 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   mprintf("\t----==== Clustering Options ====----\n");
   mprintf("\t  COORDS set       : %s\n", coords_->legend());
   mprintf("\t  # clusters       : %i\n", kClusters_);
+  mprintf("\t  KMeans seed      : %i\n", kSeed_);
   mprintf("\t  Metric           : %s\n", ExtendedSimilarity::metricStr(metric_));
   mprintf("\t  Init. Strat.     : %s\n", kinitStr_[iKinit]);
   mprintf("\t  Percentage       : %i%%\n", percentage_);
@@ -415,7 +418,7 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
       return Analysis::ERR;
   }
   // Initialize and run Kmeans
-  KmeansNANI kmeans(data, kClusters_, mt, kinit_, nSelectedAtoms, percentage_, vthresh_);
+  KmeansNANI kmeans(data, kClusters_, mt, kinit_, nSelectedAtoms, percentage_, vthresh_, kSeed_);
 
   // Results
   // First check the clustering assignments.

@@ -260,7 +260,7 @@ void KmeansNANI::run_lloyd(int Niter )  {
 }
 
 
-KmeansNANI::KmeansNANI(ArrayXXd data, int kClusters, MD::Metric mt, MD::KinitType kinit, int nAtoms, int percentage, int vectThreshold) : data(data), kinit(kinit), seed(0), kClusters(kClusters), mt(mt), nAtoms(nAtoms), percentage(percentage) {
+KmeansNANI::KmeansNANI(ArrayXXd data, int kClusters, MD::Metric mt, MD::KinitType kinit, int nAtoms, int percentage, int vectThreshold, int seedIn) : data(data), kinit(kinit), seed(seedIn), kClusters(kClusters), mt(mt), nAtoms(nAtoms), percentage(percentage) {
     if (kClusters < 1 || kClusters > this->data.rows()) {
         throw std::invalid_argument("kClusters must be between 1 and the number of data points.");
     }
@@ -272,7 +272,7 @@ KmeansNANI::KmeansNANI(ArrayXXd data, int kClusters, MD::Metric mt, MD::KinitTyp
     init_Mu();
     run_lloyd(300);
 }
-KmeansNANI::KmeansNANI(ArrayXXd data, int kClusters, MD::Metric mt, Mat centers, int nAtoms, int percentage, int vectThreshold) : data(data), centers(centers), kinit(MD::KinitType::StratAll), seed(0), kClusters(kClusters), mt(mt), nAtoms(nAtoms), percentage(percentage) {
+KmeansNANI::KmeansNANI(ArrayXXd data, int kClusters, MD::Metric mt, Mat centers, int nAtoms, int percentage, int vectThreshold, int seedIn) : data(data), centers(centers), kinit(MD::KinitType::StratAll), seed(seedIn), kClusters(kClusters), mt(mt), nAtoms(nAtoms), percentage(percentage) {
     if (kClusters < 1 || kClusters > this->data.rows()) {
         throw std::invalid_argument("kClusters must be between 1 and the number of data points.");
     }
