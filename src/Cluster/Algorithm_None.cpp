@@ -1,4 +1,5 @@
 #include "Algorithm_None.h"
+#include "../CpptrajStdio.h"
 
 using namespace Cpptraj::Cluster;
 
