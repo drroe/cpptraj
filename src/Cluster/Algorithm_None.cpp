@@ -1,5 +1,6 @@
 #include "Algorithm_None.h"
 #include "../CpptrajStdio.h"
+#include "../CpptrajFile.h"
 
 using namespace Cpptraj::Cluster;
 
@@ -9,7 +10,7 @@ void Algorithm_None::Help() {
 
 /** CONSTRUCTOR */
 Algorithm_None::Algorithm_None() :
-  Algorithm(NONE)
+  Algorithm(NOCLUSTER)
 {}
 
 int Algorithm_None::Setup(ArgList& analyzeArgs) {
@@ -27,4 +28,6 @@ int Algorithm_None::DoClustering(List& clusters,
   return 0;
 }
 
-
+void Algorithm_None::Results(CpptrajFile& outfile) const {
+  outfile.Printf("#Algorithm: No clustering\n");
+}
