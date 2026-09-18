@@ -2,6 +2,8 @@
 #include "CpptrajStdio.h"
 #include "DataSet_Coords.h"
 #include "ProgressBar.h"
+#include "StringRoutines.h" // integerToString
+#include "Trajout_Single.h"
 #ifdef HAS_EIGEN
 # include "Mdance/KMeans.h"
 # include "Mdance/helm.h"
@@ -194,23 +196,18 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
 }
 
 /** Write frames in each cluster to a trajectory file.  */
-void Analysis_MDANCE::writeClusterTraj() const {
+void Analysis_MDANCE::writeClusterTraj(ClusterArray const& Clusters) const {
   Topology* clusterparm = coords_->TopPtr();
-  // Create set containing frames for each cluster
-  typedef std::vector<int> Iarray;
-  typedef std::vector<Iarray> IIarray;
-  IIarray Clusters;
   // Loop over all clusters
-/*  for (List::cluster_iterator C = CList.begincluster();
-                                     C != CList.endcluster(); ++C)
+  for (unsigned int cidx = 0; cidx != Clusters.size(); cidx++)
   {
+    Iarray const& cluster = Clusters[cidx];
     // Create filename based on cluster number.
-    int cnum = C->Num();
-    std::string cfilename =  clusterfile_ + ".c" + integerToString( cnum );
+    std::string cfilename =  clusterfile_ + ".c" + integerToString( cidx );
     // Set up trajectory file 
     Trajout_Single clusterout;
     if (clusterout.PrepareTrajWrite(cfilename, ArgList(), DataSetList(), clusterparm,
-                                    coords_->CoordsInfo(), C->Nframes(),
+                                    coords_->CoordsInfo(), cluster.size(),
                                     clusterfmt_))
     {
       mprinterr("Error: Could not set up cluster trajectory %s for write.\n",
@@ -218,17 +215,16 @@ void Analysis_MDANCE::writeClusterTraj() const {
       return;
     } 
     // Loop over all frames in cluster
-    int set = 0;
+    unsigned int set = 0;
     Frame clusterframe = coords_->AllocateFrame();
-    for (Node::frame_iterator fnum = C->beginframe();
-                                     fnum != C->endframe(); ++fnum)
+    for (Iarray::const_iterator fnum = cluster.begin(); fnum != cluster.end(); ++fnum)
     {
       coords_->GetFrame( *fnum, clusterframe );
       clusterout.WriteSingle(set++, clusterframe);
     }
     // Close traj
     clusterout.EndTraj();
-  }*/
+  }
 }
 
 // Analysis_MDANCE::Analyze()
@@ -295,15 +291,18 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
   // Results
   // First check the clustering assignments.
   // MDANCE labels each frame with the cluster number
+  ClusterArray Clusters;
+  Clusters.resize( kClusters_ );
   Veci cluster_of_frame = kmeans.getLabels();
   cnumvtime_->Allocate(DataSet::SizeArray(1, cluster_of_frame.size()));
-  for (int i = 0; i < cluster_of_frame.size(); i++) {
-    int cnum = cluster_of_frame[i];
+  for (int ifrm = 0; ifrm < cluster_of_frame.size(); ifrm++) {
+    int cnum = cluster_of_frame[ifrm];
     if (cnum < 0 || cnum >= kClusters_) {
-      mprinterr("Error: Cluster of frame %i is out of bounds: %i\n", i+1, cnum);
+      mprinterr("Error: Cluster of frame %i is out of bounds: %i\n", ifrm+1, cnum);
     }
-    cnumvtime_->Add(i, &cnum);
-    mprintf("DEBUG: Frame %8i Cluster %8i\n", i+1, cnum);
+    Clusters[cnum].push_back( ifrm );
+    cnumvtime_->Add(ifrm, &cnum);
+    mprintf("DEBUG: Frame %8i Cluster %8i\n", ifrm+1, cnum);
   }
   // Get the pseudo-F (Calinski-Harabasz) and DBI scores
   std::pair<double,double> scores = kmeans.computeScores();

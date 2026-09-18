@@ -24,9 +24,12 @@ class Analysis_MDANCE : public Analysis {
     static const char* kinitStr_[];
     static const Cpptraj::Mdance::MD::KinitType kinitTypes_[];
 
+    typedef std::vector<int> Iarray;
+    typedef std::vector<Iarray> ClusterArray;
+
     void getClusterTrajArgs(ArgList&, const char*, const char*, std::string&,
                             TrajectoryFile::TrajFormatType&) const;
-    void writeClusterTraj() const;
+    void writeClusterTraj(ClusterArray const&) const;
 
 
     int debug_;
