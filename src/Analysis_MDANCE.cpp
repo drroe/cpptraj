@@ -222,6 +222,11 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   if (!centerfile_.empty())
     mprintf("\tCluster centers will be written to %s, format %s\n",
             centerfile_.c_str(), TrajectoryFile::FormatString(centerfmt_));
+  mprintf("# Citation: Lexin Chen, Daniel R. Roe, Matthew Kochert, Carlos Simmerling,\n"
+          "#           Ramón Alain Miranda-Quintana;\n"
+          "#           k‑Means NANI: An Improved Clustering Algorithm for Molecular Dynamics Simulations.\n"
+          "#           J. Chem. Theory Comput. 9 July 2024; 20 (13): 5583–5597.\n"
+          "#            https://doi.org/10.1021/acs.jctc.4c00308\n");
 
   return Analysis::OK;
 # else /* HAS_EIGEN */
