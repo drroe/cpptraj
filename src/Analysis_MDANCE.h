@@ -53,6 +53,7 @@ class Analysis_MDANCE : public Analysis {
     void writeClusterTraj(ClusterArray const&) const;
     void writeCenterTraj(ClusterArray const&) const;
     void writeSummary(CpptrajFile&, ClusterArray const&, unsigned int) const;
+    void writeInfo(CpptrajFile&, ClusterArray const&, unsigned int, double, double) const;
 
     int debug_;
     DataSet_Coords* coords_;
@@ -71,7 +72,8 @@ class Analysis_MDANCE : public Analysis {
     std::string centerfile_;
     TrajectoryFile::TrajFormatType clusterfmt_; ///< Cluster trajectory format.
     TrajectoryFile::TrajFormatType centerfmt_;
-    CpptrajFile* outfile_;
+    CpptrajFile* infofile_;
+    CpptrajFile* summaryfile_;
     bool sort_; ///< If true, sort by cluster population (default)
 };
 #endif

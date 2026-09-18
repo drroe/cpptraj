@@ -24,6 +24,8 @@ Analysis_MDANCE::Analysis_MDANCE() :
   centers_(0),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   centerfmt_(TrajectoryFile::UNKNOWN_TRAJ),
+  infofile_(0),
+  summaryfile_(0),
   sort_(true)
 {}
 
@@ -71,7 +73,7 @@ void Analysis_MDANCE::Help() const {
           "\t[name <set name>] [out <cnumvtime file>]\n"
           "\t[clusterout <trajfileprefix> [clusterfmt <trajformat>]]\n"
           "\t[centerout <trajfilename> [centerfmt <trajformat>]]\n"
-          "\t[summaryfile <outfile>] [nosort]\n");
+          "\t[info <infofile>] [summary <summaryfile>] [nosort]\n");
   mprintf("  <metric> = %s\n", ExtendedSimilarity::MetricKeys().c_str());
   mprintf("  <init>   =");
   for (int i = 0; kinitKeys_[i] != 0; i++)
@@ -163,10 +165,12 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   getClusterTrajArgs(analyzeArgs, "centerout",    "centerfmt",    centerfile_,   centerfmt_);
   // Output files/data
   DataFile* cnumvtimefile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
-  outfile_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("summaryfile"), "MDANCE cluster summary",
-                                                                 DataFileList::TEXT, true);
-  if (outfile_ == 0) {
-    mprinterr("Error: Could not allocate cluster summary file.\n");
+  infofile_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("info"), "MDANCE cluster info",
+                                         DataFileList::TEXT, true);
+  summaryfile_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("summary"), "MDANCE cluster summary",
+                                        DataFileList::TEXT, true);
+  if (infofile_ == 0 || summaryfile_ == 0) {
+    mprinterr("Error: Could not allocate cluster info/summary file.\n");
     return Analysis::ERR;
   }
   // Overall set name extracted here. All other arguments should already be processed. 
@@ -204,7 +208,8 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
     mprintf("\tWill sort clusters by population.\n");
   else
     mprintf("\tNot sorting clusters by population.\n");
-  mprintf("\tSummary output file    : %s\n", outfile_->Filename().full());
+  mprintf("\tInfo file              : %s\n", infofile_->Filename().full());
+  mprintf("\tSummary output file    : %s\n", summaryfile_->Filename().full());
   if (cnumvtimefile != 0)
     mprintf("\tCluster # vs time file : %s\n", cnumvtimefile->DataFilename().full());
   if (!clusterfile_.empty())
@@ -282,6 +287,40 @@ void Analysis_MDANCE::writeSummary(CpptrajFile& outfile, ClusterArray const& Clu
   {
     double frac = (double)clust->size() / (double)nframes;
     outfile.Printf("%8li %8u %8.3f\n", clust-Clusters.begin(), clust->size(), frac);
+  }
+}
+
+/** Write info to given file */
+void Analysis_MDANCE::writeInfo(CpptrajFile& outfile, ClusterArray const& Clusters, unsigned int nframes,
+                                double DBI, double PSF)
+const
+{
+  std::string buffer;
+  
+  outfile.Printf("#Clustering: %zu clusters %u frames\n",
+                 Clusters.size(), nframes);
+  // DBI
+  outfile.Printf("#DBI: %f\n", DBI);
+  // Pseudo-F
+  if (Clusters.size() > 1) {
+    //double SSRSST = 0.0;
+    //double pseudof = clusters.ComputePseudoF( SSRSST, metricIn );
+    outfile.Printf("#pSF: %f\n", PSF);
+    //outfile.Printf("#SSR/SST: %f\n", SSRSST);
+  } else
+    mprintf("Warning: Fewer than 2 clusters. Not calculating pseudo-F.\n");
+
+  // Do not print trajectory stuff if no filename given (i.e. STDOUT output)
+  if (!outfile.IsStream()) {
+    for (ClusterArray::const_iterator C1 = Clusters.begin(); C1 != Clusters.end(); ++C1)
+    {
+      buffer.clear();
+      buffer.resize(nframes, '.');
+      for (Iarray::const_iterator f1 = C1->Frames().begin(); f1 != C1->Frames().end(); ++f1)
+        buffer[ *f1 ] = 'X';
+      buffer += '\n';
+      outfile.Write((void*)buffer.c_str(), buffer.size());
+    }
   }
 }
 
@@ -387,8 +426,8 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
   }
   // Get the pseudo-F (Calinski-Harabasz) and DBI scores
   std::pair<double,double> scores = kmeans.computeScores();
-  mprintf("\tDBI      : %f\n", scores.second);
-  mprintf("\tpseudo-F : %f\n", scores.first);
+  //mprintf("\tDBI      : %f\n", scores.second);
+  //mprintf("\tpseudo-F : %f\n", scores.first);
 
   // Get centers
   Frame ctrFrame = centers_->AllocateFrame();
@@ -417,8 +456,10 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
   for (int iclust = 0; iclust != kClusters_; iclust++)
     centers_->AddFrame( Clusters[iclust].Ctr() );
 
+  // Write info
+  writeInfo(*infofile_, Clusters, coords_->Size(), scores.second, scores.first);
   // Write summary
-  writeSummary(*outfile_, Clusters, coords_->Size());
+  writeSummary(*summaryfile_, Clusters, coords_->Size());
   // Write cluster trajectories
   if (!clusterfile_.empty())
     writeClusterTraj( Clusters );
