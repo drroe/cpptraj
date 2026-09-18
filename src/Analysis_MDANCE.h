@@ -26,12 +26,25 @@ class Analysis_MDANCE : public Analysis {
     static const Cpptraj::Mdance::MD::KinitType kinitTypes_[];
 #   endif
     typedef std::vector<int> Iarray;
-    typedef std::vector<Iarray> ClusterArray;
+    /// Hold frames/center for MDANCE clustering
+    class MdCluster {
+      public:
+        MdCluster() {}
+        Iarray const& Frames() const { return frames_; }
+        Frame const& Ctr() const { return ctr_; }
+        unsigned int size() const { return frames_.size(); }
+        void push_back(int i) { frames_.push_back( i ); }
+        void SetCtr( Frame const& f ) { ctr_ = f; }
+      private:
+        Iarray frames_;
+        Frame ctr_;
+    };
+    typedef std::vector<MdCluster> ClusterArray;
 
     void getClusterTrajArgs(ArgList&, const char*, const char*, std::string&,
                             TrajectoryFile::TrajFormatType&) const;
     void writeClusterTraj(ClusterArray const&) const;
-    void writeCenterTraj() const;
+    void writeCenterTraj(ClusterArray const&) const;
     void writeSummary(CpptrajFile&, ClusterArray const&, unsigned int) const;
 
     int debug_;

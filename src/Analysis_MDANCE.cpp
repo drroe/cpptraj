@@ -220,7 +220,7 @@ void Analysis_MDANCE::writeClusterTraj(ClusterArray const& Clusters) const {
   // Loop over all clusters
   for (unsigned int cidx = 0; cidx != Clusters.size(); cidx++)
   {
-    Iarray const& cluster = Clusters[cidx];
+    Iarray const& cluster = Clusters[cidx].Frames();
     // Create filename based on cluster number.
     std::string cfilename =  clusterfile_ + ".c" + integerToString( cidx );
     // Set up trajectory file 
@@ -247,7 +247,7 @@ void Analysis_MDANCE::writeClusterTraj(ClusterArray const& Clusters) const {
 }
 
 /** Write cluster centers to a trajectory file.  */
-void Analysis_MDANCE::writeCenterTraj() const {
+void Analysis_MDANCE::writeCenterTraj(ClusterArray const& Clusters) const {
   // Set up trajectory file 
   Trajout_Single clusterout;
   if (clusterout.PrepareTrajWrite(centerfile_, ArgList(), DataSetList(), centers_->TopPtr(),
@@ -257,12 +257,11 @@ void Analysis_MDANCE::writeCenterTraj() const {
     mprinterr("Error: Could not set up cluster centers trajectory %s for write.\n",
               centerfile_.c_str());  
     return;
-  } 
-  // Loop over all centers 
-  Frame centerframe = centers_->AllocateFrame();
-  for (unsigned int cidx = 0; cidx != centers_->Size(); cidx++)
+  }
+  // Loop over all clusters
+  for (unsigned int cidx = 0; cidx != Clusters.size(); cidx++)
   {
-    centers_->GetFrame(cidx, centerframe);
+    Frame const& centerframe = Clusters[cidx].Ctr();
     clusterout.WriteSingle(cidx, centerframe);
   }
   // Close traj
@@ -275,7 +274,7 @@ void Analysis_MDANCE::writeSummary(CpptrajFile& outfile, ClusterArray const& Clu
   for (ClusterArray::const_iterator clust = Clusters.begin(); clust != Clusters.end(); ++clust)
   {
     double frac = (double)clust->size() / (double)nframes;
-    outfile.Printf("%8li %8zu %8.3f\n", clust-Clusters.begin(), clust->size(), frac);
+    outfile.Printf("%8li %8u %8.3f\n", clust-Clusters.begin(), clust->size(), frac);
   }
 }
 
@@ -383,8 +382,7 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
   std::pair<double,double> scores = kmeans.computeScores();
   mprintf("\tDBI      : %f\n", scores.second);
   mprintf("\tpseudo-F : %f\n", scores.first);
-  // Write summary
-  writeSummary(*outfile_, Clusters, coords_->Size());
+
   // Get centers
   Frame ctrFrame = centers_->AllocateFrame();
   Mat clusterCenters = kmeans.getCenters();
@@ -400,13 +398,21 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
       ctrFrame.AddXYZ( XYZ );
       icrd += 3;
     }
-    centers_->AddFrame( ctrFrame );
+    //centers_->AddFrame( ctrFrame );
+    Clusters[iclust].SetCtr( ctrFrame );
   }
+
+  // Add centers to the centers DataSet
+  for (int iclust = 0; iclust != kClusters_; iclust++)
+    centers_->AddFrame( Clusters[iclust].Ctr() );
+
+  // Write summary
+  writeSummary(*outfile_, Clusters, coords_->Size());
   // Write cluster trajectories
   if (!clusterfile_.empty())
     writeClusterTraj( Clusters );
   if (!centerfile_.empty())
-    writeCenterTraj();
+    writeCenterTraj( Clusters );
 
   return Analysis::OK; // DEBUG
 # else /* HAS_EIGEN */
