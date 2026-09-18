@@ -194,13 +194,17 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
 
   // Info
   mprintf("    MDANCE:\n");
-  mprintf("\tCOORDS set       : %s\n", coords_->legend());
-  mprintf("\t# clusters       : %i\n", kClusters_);
-  mprintf("\tMetric           : %s\n", ExtendedSimilarity::metricStr(metric_));
-  mprintf("\tInit. Strat.     : %s\n", kinitStr_[iKinit]);
-  mprintf("\tPercentage       : %i%%\n", percentage_);
-  mprintf("\tVect. threshhold : %i\n", vthresh_);
-  mprintf("\tAtom selection   : %s\n", mask_.MaskString());
+  mprintf("\t----==== Clustering Options ====----\n");
+  mprintf("\t  COORDS set       : %s\n", coords_->legend());
+  mprintf("\t  # clusters       : %i\n", kClusters_);
+  mprintf("\t  Metric           : %s\n", ExtendedSimilarity::metricStr(metric_));
+  mprintf("\t  Init. Strat.     : %s\n", kinitStr_[iKinit]);
+  mprintf("\t  Percentage       : %i%%\n", percentage_);
+  mprintf("\t  Vect. threshhold : %i\n", vthresh_);
+  mprintf("\t  Atom selection   : %s\n", mask_.MaskString());
+
+  mprintf("\n");
+  mprintf("\t----==== Output Options ====----\n");
   //mprintf("\tData set name          : %s\n", dsname.c_str());
   mprintf("\tCluster # vs time set  : %s\n", cnumvtime_->Meta().PrintName().c_str());
   mprintf("\tCluster centers set    : %s\n", centers_->Meta().PrintName().c_str());
@@ -369,7 +373,7 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
   unsigned int nSelectedAtoms = mask_.Nselected();
   unsigned int ncoords = nSelectedAtoms * 3;
   ArrayXXd data( CRD.Size(), ncoords );
-  mprintf("\tSaving Eigen matrix (%zd rows/frames, %zd cols/coords).\n", data.rows(), data.cols());
+  mprintf("\tSaving internal Eigen matrix (%zd rows/frames, %zd cols/coords).\n", data.rows(), data.cols());
   ProgressBar progress(CRD.Size());
   Frame frmIn = CRD.AllocateFrame();
   for (unsigned int idx = 0; idx != CRD.Size(); idx++)
@@ -422,7 +426,7 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
     }
     Clusters[cnum].push_back( ifrm );
     cnumvtime_->Add(ifrm, &cnum);
-    mprintf("DEBUG: Frame %8i Cluster %8i\n", ifrm+1, cnum);
+    if (debug_ > 1) mprintf("DEBUG: Frame %8i Cluster %8i\n", ifrm+1, cnum);
   }
   // Get the pseudo-F (Calinski-Harabasz) and DBI scores
   std::pair<double,double> scores = kmeans.computeScores();
@@ -432,7 +436,7 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
   // Get centers
   Frame ctrFrame = centers_->AllocateFrame();
   Mat clusterCenters = kmeans.getCenters();
-  mprintf("DEBUG: centers rows %zd, cols %zd\n", clusterCenters.rows(), clusterCenters.cols());
+  if (debug_ > 0) mprintf("DEBUG: centers rows %zd, cols %zd\n", clusterCenters.rows(), clusterCenters.cols());
   for (int iclust = 0; iclust != kClusters_; iclust++) {
     unsigned int icrd = 0;
     ctrFrame.ClearAtoms();
