@@ -4,6 +4,7 @@
 #include "ProgressBar.h"
 #include "StringRoutines.h" // integerToString
 #include "Trajout_Single.h"
+#include <algorithm> // std::sort
 #ifdef HAS_EIGEN
 # include "Mdance/KMeans.h"
 # include "Mdance/helm.h"
@@ -22,7 +23,8 @@ Analysis_MDANCE::Analysis_MDANCE() :
   cnumvtime_(0),
   centers_(0),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
-  centerfmt_(TrajectoryFile::UNKNOWN_TRAJ)
+  centerfmt_(TrajectoryFile::UNKNOWN_TRAJ),
+  sort_(true)
 {}
 
 /** DESTRUCTOR */
@@ -69,7 +71,7 @@ void Analysis_MDANCE::Help() const {
           "\t[name <set name>] [out <cnumvtime file>]\n"
           "\t[clusterout <trajfileprefix> [clusterfmt <trajformat>]]\n"
           "\t[centerout <trajfilename> [centerfmt <trajformat>]]\n"
-          "\t[summaryfile <outfile>]\n");
+          "\t[summaryfile <outfile>] [nosort]\n");
   mprintf("  <metric> = %s\n", ExtendedSimilarity::MetricKeys().c_str());
   mprintf("  <init>   =");
   for (int i = 0; kinitKeys_[i] != 0; i++)
@@ -102,6 +104,7 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
 {
 # ifdef HAS_EIGEN
   debug_ = debugIn;
+  sort_ = !analyzeArgs.hasKey("nosort");
   // Attempt to get coords dataset from datasetlist
   std::string setname = analyzeArgs.GetStringKey("crdset");
   coords_ = (DataSet_Coords*)setup.DSL().FindCoordsSet( setname );
@@ -197,6 +200,10 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   //mprintf("\tData set name          : %s\n", dsname.c_str());
   mprintf("\tCluster # vs time set  : %s\n", cnumvtime_->Meta().PrintName().c_str());
   mprintf("\tCluster centers set    : %s\n", centers_->Meta().PrintName().c_str());
+  if (sort_)
+    mprintf("\tWill sort clusters by population.\n");
+  else
+    mprintf("\tNot sorting clusters by population.\n");
   mprintf("\tSummary output file    : %s\n", outfile_->Filename().full());
   if (cnumvtimefile != 0)
     mprintf("\tCluster # vs time file : %s\n", cnumvtimefile->DataFilename().full());
@@ -401,6 +408,10 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
     //centers_->AddFrame( ctrFrame );
     Clusters[iclust].SetCtr( ctrFrame );
   }
+
+  // Sort if needed
+  if (sort_)
+    std::sort(Clusters.begin(), Clusters.end());
 
   // Add centers to the centers DataSet
   for (int iclust = 0; iclust != kClusters_; iclust++)

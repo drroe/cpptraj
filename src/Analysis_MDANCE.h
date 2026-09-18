@@ -35,6 +35,13 @@ class Analysis_MDANCE : public Analysis {
         unsigned int size() const { return frames_.size(); }
         void push_back(int i) { frames_.push_back( i ); }
         void SetCtr( Frame const& f ) { ctr_ = f; }
+
+        bool operator<(MdCluster const& rhs) const {
+          if (frames_.size() > rhs.frames_.size())
+            return true; // TODO absolute cluster number
+          else
+            return false;
+        }
       private:
         Iarray frames_;
         Frame ctr_;
@@ -65,5 +72,6 @@ class Analysis_MDANCE : public Analysis {
     TrajectoryFile::TrajFormatType clusterfmt_; ///< Cluster trajectory format.
     TrajectoryFile::TrajFormatType centerfmt_;
     CpptrajFile* outfile_;
+    bool sort_; ///< If true, sort by cluster population (default)
 };
 #endif
