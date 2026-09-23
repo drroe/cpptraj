@@ -115,6 +115,7 @@ class Analysis_MDANCE : public Analysis {
     TrajectoryFile::TrajFormatType centerfmt_;
     CpptrajFile* infofile_;
     CpptrajFile* summaryfile_;
+    CpptrajFile* jsonfile_;
     bool sort_; ///< If true, sort by cluster population (default)
 };
 #endif

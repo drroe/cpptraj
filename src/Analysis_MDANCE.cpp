@@ -1,6 +1,7 @@
 #include "Analysis_MDANCE.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords.h"
+#include "DataSet_integer.h" // for JSON output
 #include "ProgressBar.h"
 #include "StringRoutines.h" // integerToString
 #include "Trajout_Single.h"
@@ -27,6 +28,7 @@ Analysis_MDANCE::Analysis_MDANCE() :
   centerfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   infofile_(0),
   summaryfile_(0),
+  jsonfile_(0),
   sort_(true)
 {}
 
@@ -74,7 +76,9 @@ void Analysis_MDANCE::Help() const {
           "\t[name <set name>] [out <cnumvtime file>]\n"
           "\t[clusterout <trajfileprefix> [clusterfmt <trajformat>]]\n"
           "\t[centerout <trajfilename> [centerfmt <trajformat>]]\n"
-          "\t[info <infofile>] [summary <summaryfile>] [nosort]\n");
+          "\t[info <infofile>] [summary <summaryfile>] [nosort]\n"
+          "\t[json <jsonfile>]\n"
+         );
   mprintf("  <metric> = %s\n", ExtendedSimilarity::MetricKeys().c_str());
   mprintf("  <init>   =");
   for (int i = 0; kinitKeys_[i] != 0; i++)
@@ -175,6 +179,8 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
     mprinterr("Error: Could not allocate cluster info/summary file.\n");
     return Analysis::ERR;
   }
+  jsonfile_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("json"), "MDANCE JSON file",
+                                         DataFileList::TEXT, false);
   // Overall set name extracted here. All other arguments should already be processed. 
   std::string dsname = analyzeArgs.GetStringKey("name");
   if (dsname.empty())
@@ -219,12 +225,15 @@ Analysis::RetType Analysis_MDANCE::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   mprintf("\tSummary output file    : %s\n", summaryfile_->Filename().full());
   if (cnumvtimefile != 0)
     mprintf("\tCluster # vs time file : %s\n", cnumvtimefile->DataFilename().full());
+  if (jsonfile_ != 0)
+    mprintf("\tMDANCE JSON file       : %s\n", jsonfile_->Filename().full());
   if (!clusterfile_.empty())
     mprintf("\tCluster trajectories will be written to %s.cX, format %s\n",
             clusterfile_.c_str(), TrajectoryFile::FormatString(clusterfmt_));
   if (!centerfile_.empty())
     mprintf("\tCluster centers will be written to %s, format %s\n",
             centerfile_.c_str(), TrajectoryFile::FormatString(centerfmt_));
+
   mprintf("# Citation: Lexin Chen, Daniel R. Roe, Matthew Kochert, Carlos Simmerling,\n"
           "#           Ramón Alain Miranda-Quintana;\n"
           "#           k‑Means NANI: An Improved Clustering Algorithm for Molecular Dynamics Simulations.\n"
@@ -333,6 +342,41 @@ const
       outfile.Write((void*)buffer.c_str(), buffer.size());
     }
   }
+}
+
+/** Write cluster results in MDANCE Json format */
+void Analysis_MDANCE::writeJson(CpptrajFile& outfile, ClusterArray const& Clusters)
+const
+{
+  outfile.Printf("{\n");
+  outfile.Printf("  \"algorithm\": \"kmeans\",\n"); // FIXME
+  outfile.Printf("  \"nFrames\": %u,\n", Clusters.Nframes());
+  outfile.Printf("  \"nClusters\": %u,\n", Clusters.size());
+  outfile.Printf("  \"labels\": [");
+  std::string buffer;
+  DataSet_integer const& CVT = static_cast<DataSet_integer const&>( *cnumvtime_ );
+  for (unsigned int idx = 0; idx != CVT.Size(); idx++) {
+    if (idx > 0)
+      buffer.append(", " + integerToString(CVT[idx]));
+    else
+      buffer.append(integerToString(CVT[idx]));
+  }
+  outfile.Write((void*)buffer.c_str(), buffer.size());
+  outfile.Printf("],\n");
+  outfile.Printf("  \"clusterSizes\": [");
+  for (unsigned int cnum = 0; cnum != Clusters.size(); cnum++) {
+    if (cnum > 0)
+      outfile.Printf(", %u", Clusters[cnum].size());
+    else
+      outfile.Printf("%u", Clusters[cnum].size());
+  }
+  outfile.Printf("],\n");
+  //TODO representatives, clusterMSD
+  outfile.Printf("  \"scores\": {\n");
+  outfile.Printf("    \"calinskiHarabasz\": %.10g,\n", Clusters.PSF());
+  outfile.Printf("    \"daviesBouldin\": %.10g\n", Clusters.DBI());
+  outfile.Printf("  }\n");
+  outfile.Printf("}\n");
 }
 
 // Analysis_MDANCE::Analyze()
@@ -460,6 +504,10 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
     //centers_->AddFrame( ctrFrame );
     Clusters[iclust].SetCtr( ctrFrame );
   }
+
+  // Write JSON before sorting since MDANCE does not sort
+  if (jsonfile_ != 0)
+    writeJson(*jsonfile_, Clusters);
 
   // Sort if needed
   if (sort_)
