@@ -1,5 +1,6 @@
 #ifndef INC_CPPTRAJ_MDANCE_RESULT_UTILS_H
 #define INC_CPPTRAJ_MDANCE_RESULT_UTILS_H
+#ifdef HAS_EIGEN
 #include <vector>
 #include "types.h"
 #include "bts.h"
@@ -24,4 +25,5 @@ std::vector<double> computeClusterMSD(const ArrayXXd& data, const std::vector<in
                                        int nClusters, int nAtoms);
 }
 }
+#endif /* HAS_EIGEN */
 #endif

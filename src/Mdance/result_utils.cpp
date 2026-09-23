@@ -1,3 +1,4 @@
+#ifdef HAS_EIGEN
 #include "result_utils.h"
 #include "scores.h"
 
@@ -136,3 +137,4 @@ std::vector<double> Cpptraj::Mdance::computeClusterMSD(const ArrayXXd& data, con
     }
     return msds;
 }
+#endif /* HAS_EIGEN */

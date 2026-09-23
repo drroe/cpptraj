@@ -1,7 +1,7 @@
 #include "Analysis_MDANCE.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords.h"
-#include "DataSet_integer.h" // for JSON output
+#include "DataSet_integer_mem.h" // for JSON output and MDANCE results
 #include "ProgressBar.h"
 #include "StringRoutines.h" // integerToString
 #include "Trajout_Single.h"
@@ -9,6 +9,7 @@
 #ifdef HAS_EIGEN
 # include "Mdance/KMeans.h"
 # include "Mdance/helm.h"
+# include "Mdance/result_utils.h"
 using namespace Cpptraj::Mdance;
 #endif
 
@@ -371,6 +372,14 @@ const
       outfile.Printf("%u", Clusters[cnum].size());
   }
   outfile.Printf("],\n");
+  outfile.Printf("  \"representatives\": [");
+  for (unsigned int cnum = 0; cnum != Clusters.size(); cnum++) {
+    if (cnum > 0)
+      outfile.Printf(", %i", Clusters[cnum].Rep());
+    else
+      outfile.Printf("%i", Clusters[cnum].Rep());
+  }
+  outfile.Printf("],\n");
   //TODO representatives, clusterMSD
   outfile.Printf("  \"scores\": {\n");
   outfile.Printf("    \"calinskiHarabasz\": %.10g,\n", Clusters.PSF());
@@ -485,6 +494,13 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
   Clusters.SetPSF( scores.first );
   //mprintf("\tDBI      : %f\n", scores.second);
   //mprintf("\tpseudo-F : %f\n", scores.first);
+  std::vector<int> reps = Cpptraj::Mdance::computeRepresentatives( data,
+                                                                   (((DataSet_integer_mem*)cnumvtime_)->Array()),
+                                                                   Clusters.size(),
+                                                                   nSelectedAtoms,
+                                                                   mt );
+  for (std::vector<int>::const_iterator it = reps.begin(); it != reps.end(); ++it)
+    Clusters[it-reps.begin()].SetRep( *it );
 
   // Get centers
   Frame ctrFrame = centers_->AllocateFrame();
