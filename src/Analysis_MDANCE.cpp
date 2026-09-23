@@ -304,11 +304,11 @@ void Analysis_MDANCE::writeCenterTraj(ClusterArray const& Clusters) const {
 
 /** Write summary to given file */
 void Analysis_MDANCE::writeSummary(CpptrajFile& outfile, ClusterArray const& Clusters) const {
-  outfile.Printf("%-8s %8s %8s\n","#Cluster","Frames","Frac");
+  outfile.Printf("%-8s %8s %8s %8s %8s\n","#Cluster","Frames","Frac","MSD","Rep");
   for (ClusterArray::const_iterator clust = Clusters.begin(); clust != Clusters.end(); ++clust)
   {
     double frac = (double)clust->size() / (double)Clusters.Nframes();
-    outfile.Printf("%8li %8u %8.3f\n", clust-Clusters.begin(), clust->size(), frac);
+    outfile.Printf("%8li %8u %8.3f %8.3f %8i\n", clust-Clusters.begin(), clust->size(), frac, clust->MSD(), clust->Rep()+1);
   }
 }
 
