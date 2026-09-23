@@ -6,5 +6,6 @@ target_sources(cpptraj_common_obj PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}/hc_utils.cpp
   ${CMAKE_CURRENT_LIST_DIR}/helm.cpp
   ${CMAKE_CURRENT_LIST_DIR}/KMeans.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/result_utils.cpp
   ${CMAKE_CURRENT_LIST_DIR}/scores.cpp
 )

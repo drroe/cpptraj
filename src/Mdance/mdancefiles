@@ -6,4 +6,5 @@ MDANCE_SOURCES= \
   hc_utils.cpp \
   helm.cpp \
   KMeans.cpp \
+  result_utils.cpp \
   scores.cpp
