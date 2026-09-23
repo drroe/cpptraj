@@ -69,6 +69,12 @@ class Analysis_MDANCE : public Analysis {
         unsigned int size() const { return clusters_.size(); }
         /// \return const reference to specified cluster
         MdCluster const& operator[](int cnum) const { return clusters_[cnum]; }
+        /// \return DBI score
+        double DBI() const { return dbi_; }
+        /// \return pseudo-F (Calinkski-Harabasz) score
+        double PSF() const { return psf_; }
+        /// \return Number of frames clustered
+        unsigned int Nframes() const { return nframes_; }
 
         typedef std::vector<MdCluster>::const_iterator const_iterator;
         const_iterator begin() const { return clusters_.begin(); }
@@ -85,9 +91,9 @@ class Analysis_MDANCE : public Analysis {
                             TrajectoryFile::TrajFormatType&) const;
     void writeClusterTraj(ClusterArray const&) const;
     void writeCenterTraj(ClusterArray const&) const;
-    void writeSummary(CpptrajFile&, ClusterArray const&, unsigned int) const;
-    void writeInfo(CpptrajFile&, ClusterArray const&, unsigned int, double, double) const;
-    void writeJson(CpptrajFile&, ClusterArray const&, unsigned int, double, double) const;
+    void writeSummary(CpptrajFile&, ClusterArray const&) const;
+    void writeInfo(CpptrajFile&, ClusterArray const&) const;
+    void writeJson(CpptrajFile&, ClusterArray const&) const;
 
     int debug_;
     DataSet_Coords* coords_;

@@ -293,31 +293,30 @@ void Analysis_MDANCE::writeCenterTraj(ClusterArray const& Clusters) const {
 }
 
 /** Write summary to given file */
-void Analysis_MDANCE::writeSummary(CpptrajFile& outfile, ClusterArray const& Clusters, unsigned int nframes) const {
+void Analysis_MDANCE::writeSummary(CpptrajFile& outfile, ClusterArray const& Clusters) const {
   outfile.Printf("%-8s %8s %8s\n","#Cluster","Frames","Frac");
   for (ClusterArray::const_iterator clust = Clusters.begin(); clust != Clusters.end(); ++clust)
   {
-    double frac = (double)clust->size() / (double)nframes;
+    double frac = (double)clust->size() / (double)Clusters.Nframes();
     outfile.Printf("%8li %8u %8.3f\n", clust-Clusters.begin(), clust->size(), frac);
   }
 }
 
 /** Write info to given file */
-void Analysis_MDANCE::writeInfo(CpptrajFile& outfile, ClusterArray const& Clusters, unsigned int nframes,
-                                double DBI, double PSF)
+void Analysis_MDANCE::writeInfo(CpptrajFile& outfile, ClusterArray const& Clusters)
 const
 {
   std::string buffer;
   
   outfile.Printf("#Clustering: %zu clusters %u frames\n",
-                 Clusters.size(), nframes);
+                 Clusters.size(), Clusters.Nframes());
   // DBI
-  outfile.Printf("#DBI: %f\n", DBI);
+  outfile.Printf("#DBI: %f\n", Clusters.DBI());
   // Pseudo-F
   if (Clusters.size() > 1) {
     //double SSRSST = 0.0;
     //double pseudof = clusters.ComputePseudoF( SSRSST, metricIn );
-    outfile.Printf("#pSF: %f\n", PSF);
+    outfile.Printf("#pSF: %f\n", Clusters.PSF());
     //outfile.Printf("#SSR/SST: %f\n", SSRSST);
   } else
     mprintf("Warning: Fewer than 2 clusters. Not calculating pseudo-F.\n");
@@ -327,7 +326,7 @@ const
     for (ClusterArray::const_iterator C1 = Clusters.begin(); C1 != Clusters.end(); ++C1)
     {
       buffer.clear();
-      buffer.resize(nframes, '.');
+      buffer.resize(Clusters.Nframes(), '.');
       for (Iarray::const_iterator f1 = C1->Frames().begin(); f1 != C1->Frames().end(); ++f1)
         buffer[ *f1 ] = 'X';
       buffer += '\n';
@@ -438,6 +437,8 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
   }
   // Get the pseudo-F (Calinski-Harabasz) and DBI scores
   std::pair<double,double> scores = kmeans.computeScores();
+  Clusters.SetDBI( scores.second );
+  Clusters.SetPSF( scores.first );
   //mprintf("\tDBI      : %f\n", scores.second);
   //mprintf("\tpseudo-F : %f\n", scores.first);
 
@@ -469,9 +470,9 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
     centers_->AddFrame( Clusters[iclust].Ctr() );
 
   // Write info
-  writeInfo(*infofile_, Clusters, coords_->Size(), scores.second, scores.first);
+  writeInfo(*infofile_, Clusters);
   // Write summary
-  writeSummary(*summaryfile_, Clusters, coords_->Size());
+  writeSummary(*summaryfile_, Clusters);
   // Write cluster trajectories
   if (!clusterfile_.empty())
     writeClusterTraj( Clusters );
