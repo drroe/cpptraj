@@ -29,14 +29,17 @@ class Analysis_MDANCE : public Analysis {
     /// Hold frames/center for MDANCE clustering
     class MdCluster {
       public:
-        MdCluster() : rep_(-1) {}
+        MdCluster() : msd_(-1), rep_(-1) {}
         Iarray const& Frames() const { return frames_; }
         Frame const& Ctr() const { return ctr_; }
         unsigned int size() const { return frames_.size(); }
         int Rep() const { return rep_; }
+        double MSD() const { return msd_; }
+
         void push_back(int i) { frames_.push_back( i ); }
         void SetCtr( Frame const& f ) { ctr_ = f; }
         void SetRep(int r) { rep_ = r; }
+        void SetMSD(double m) { msd_ = m; }
 
         bool operator<(MdCluster const& rhs) const {
           if (frames_.size() > rhs.frames_.size())
@@ -47,6 +50,7 @@ class Analysis_MDANCE : public Analysis {
       private:
         Iarray frames_;
         Frame ctr_;
+        double msd_;
         int rep_;
     };
     /// Hold MDANCE cluster results

@@ -380,7 +380,14 @@ const
       outfile.Printf("%i", Clusters[cnum].Rep());
   }
   outfile.Printf("],\n");
-  //TODO representatives, clusterMSD
+  outfile.Printf("  \"clusterMSD\": [");
+  for (unsigned int cnum = 0; cnum != Clusters.size(); cnum++) {
+    if (cnum > 0)
+      outfile.Printf(", %.10g", Clusters[cnum].MSD());
+    else
+      outfile.Printf("%.10g", Clusters[cnum].MSD());
+  }
+  outfile.Printf("],\n");
   outfile.Printf("  \"scores\": {\n");
   outfile.Printf("    \"calinskiHarabasz\": %.10g,\n", Clusters.PSF());
   outfile.Printf("    \"daviesBouldin\": %.10g\n", Clusters.DBI());
@@ -501,6 +508,12 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
                                                                    mt );
   for (std::vector<int>::const_iterator it = reps.begin(); it != reps.end(); ++it)
     Clusters[it-reps.begin()].SetRep( *it );
+  std::vector<double> MSDS = Cpptraj::Mdance::computeClusterMSD( data,
+                                                                 (((DataSet_integer_mem*)cnumvtime_)->Array()),
+                                                                  Clusters.size(),
+                                                                  nSelectedAtoms );
+  for (std::vector<double>::const_iterator it = MSDS.begin(); it != MSDS.end(); ++it)
+    Clusters[it-MSDS.begin()].SetMSD( *it );
 
   // Get centers
   Frame ctrFrame = centers_->AllocateFrame();
