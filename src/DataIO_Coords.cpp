@@ -1,4 +1,5 @@
 #include "DataIO_Coords.h"
+#include "BufferedLine.h"
 #include "CpptrajStdio.h"
 #include "ParmFile.h"
 #include "TrajectoryFile.h"
@@ -43,11 +44,53 @@ static inline bool can_append(DataSet::DataType typeIn) {
   return (typeIn == DataSet::COORDS ||
           typeIn == DataSet::FRAMES);
 }
+/** Special case: read in coordinates as CSV format. Assumes no topology,
+  * creates a fake one. Intended to test against MDANCE.
+  */
+int DataIO_Coords::readAsCSV(DataSet* dsetIn,
+                             FileName const& fname, DataSetList& dsl, std::string const& dsname)
+{
+  DataSet* dset = dsetIn;
+  // First open the file and make sure there are commas
+  BufferedLine infile;
+  if (infile.OpenFileRead(fname)) {
+    return 1;
+  }
+  std::string firstLine = infile.GetLine();
+  if (firstLine.empty()) {
+    mprinterr("Error: No lines in CSV file '%s'\n", fname.full());
+    return 1;
+  }
+  ArgList line(firstLine, ",");
+  // Number of arguments is number of coords
+  int ncoords = line.Nargs();
+  if (ncoords < 3) {
+    mprinterr("Error: Less than 3 coordinates in CSV file (%i)\n", ncoords);
+    return 1;
+  }
+  if ( (ncoords%3) != 0 ) {
+    mprinterr("Error: Number of coords (%i) is not a multiple of 3\n", ncoords);
+    return 1;
+  }
+  int natoms = ncoords / 3;
+  mprintf("\t%i atoms, %i coords.\n", natoms, ncoords);
+
+  // Develop the pseudo-topology
+  Topology top;
+  for (int iat = 0; iat != natoms; iat++)
+    top.addTopAtom( Atom("C", "C"),
+                    Residue("MOL", iat, ' ', ""), iat, false );
+  top.CommonSetup(false, false);
+  top.Summary();
+
+  return 0;
+}
 
 // DataIO_Coords::ReadData()
 int DataIO_Coords::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
   ClearAddedByMe();
+  bool read_as_csv = false;
   DataSet::DataType setType = DataSet::COORDS; // FIXME make user option
   //if (!is_parm_fmt_ && !is_traj_fmt_) {
     bool is_parm_fmt_ = false;
@@ -65,8 +108,15 @@ int DataIO_Coords::ReadData(FileName const& fname, DataSetList& dsl, std::string
     is_parm_fmt_ = (parm_format != ParmFile::UNKNOWN_PARM);
     is_traj_fmt_ = (traj_format != TrajectoryFile::UNKNOWN_TRAJ);
     if (!is_parm_fmt_ && !is_traj_fmt_) {
-      mprinterr("Error: '%s' does not have parm/coords info.\n", fname.full());
-      return 1;
+      // Special cases.
+      // Check for .csv extension
+      if (fname.Ext() == ".csv") {
+        mprintf("\tAssuming coordinates stored in CSV format.\n");
+        read_as_csv = true;
+      } else {
+        mprinterr("Error: '%s' does not have parm/coords info.\n", fname.full());
+        return 1;
+      }
     }
   //}
 
@@ -86,6 +136,10 @@ int DataIO_Coords::ReadData(FileName const& fname, DataSetList& dsl, std::string
       } else
         mprintf("\tAppending to set '%s'\n", dset->legend());
     }
+  }
+
+  if (read_as_csv) {
+    return readAsCSV(dset, fname, dsl, dsname);
   }
 
   // Topology read/setup
