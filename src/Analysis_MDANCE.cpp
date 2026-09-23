@@ -423,7 +423,7 @@ Analysis::RetType Analysis_MDANCE::Analyze() {
   // Results
   // First check the clustering assignments.
   // MDANCE labels each frame with the cluster number
-  ClusterArray Clusters;
+  ClusterArray Clusters( coords_->Size() );
   Clusters.resize( kClusters_ );
   Veci cluster_of_frame = kmeans.getLabels();
   cnumvtime_->Allocate(DataSet::SizeArray(1, cluster_of_frame.size()));

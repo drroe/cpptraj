@@ -46,7 +46,40 @@ class Analysis_MDANCE : public Analysis {
         Iarray frames_;
         Frame ctr_;
     };
-    typedef std::vector<MdCluster> ClusterArray;
+    /// Hold MDANCE cluster results
+    class ClusterArray {
+      public:
+        /// CONSTRUCTOR - take total # of things being clustered
+        ClusterArray(unsigned int nframes) : nframes_(nframes) {}
+        /// Reserve space for # of clusters
+        void resize(unsigned int nclusters) { clusters_.resize(nclusters); }
+
+        /// \return reference to specified cluster
+        MdCluster& operator[](int cnum) { return clusters_[cnum]; }
+        /// Set the DBI score
+        void SetDBI(double d) { dbi_ = d; }
+        /// Set the pseudo-F (Calinski-Harabasz) score
+        void SetPSF(double p) { psf_ = p; }
+
+        typedef std::vector<MdCluster>::iterator iterator;
+        iterator begin() { return clusters_.begin(); }
+        iterator end() { return clusters_.end(); }
+
+        /// \return number of clusters
+        unsigned int size() const { return clusters_.size(); }
+        /// \return const reference to specified cluster
+        MdCluster const& operator[](int cnum) const { return clusters_[cnum]; }
+
+        typedef std::vector<MdCluster>::const_iterator const_iterator;
+        const_iterator begin() const { return clusters_.begin(); }
+        const_iterator end() const { return clusters_.end(); }
+
+      private:
+        std::vector<MdCluster> clusters_;
+        double dbi_;
+        double psf_;
+        unsigned int nframes_;
+    };
 
     void getClusterTrajArgs(ArgList&, const char*, const char*, std::string&,
                             TrajectoryFile::TrajFormatType&) const;
@@ -54,6 +87,7 @@ class Analysis_MDANCE : public Analysis {
     void writeCenterTraj(ClusterArray const&) const;
     void writeSummary(CpptrajFile&, ClusterArray const&, unsigned int) const;
     void writeInfo(CpptrajFile&, ClusterArray const&, unsigned int, double, double) const;
+    void writeJson(CpptrajFile&, ClusterArray const&, unsigned int, double, double) const;
 
     int debug_;
     DataSet_Coords* coords_;
