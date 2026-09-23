@@ -343,6 +343,11 @@ const
       outfile.Write((void*)buffer.c_str(), buffer.size());
     }
   }
+  // Print representative frame numbers
+  outfile.Printf("#Representative frames:");
+  for (ClusterArray::const_iterator C1 = Clusters.begin(); C1 != Clusters.end(); ++C1)
+    outfile.Printf(" %i", C1->Rep()+1);
+  outfile.Printf("\n");
 }
 
 /** Write cluster results in MDANCE Json format */
