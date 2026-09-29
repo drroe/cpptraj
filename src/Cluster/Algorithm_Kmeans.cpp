@@ -16,7 +16,8 @@ Cpptraj::Cluster::Algorithm_Kmeans::Algorithm_Kmeans() :
   kseed_(-1),
   maxIt_(100),
   mode_(SEQUENTIAL),
-  clusterToClusterCentroid_(false)
+  clusterToClusterCentroid_(false),
+  init_(INIT_SPREAD)
 {}
 
 /** Print help to stdout. */
@@ -36,6 +37,19 @@ int Cpptraj::Cluster::Algorithm_Kmeans::Setup(ArgList& analyzeArgs) {
     mode_ = RANDOM;
   else
     mode_ = SEQUENTIAL;
+  std::string initstr = analyzeArgs.GetStringKey("init");
+  if (initstr.empty())
+    init_ = INIT_SPREAD;
+  else {
+    if (initstr == "spread")
+      init_ = INIT_SPREAD;
+    else if (initstr == "kmpp")
+      init_ = INIT_KMPP;
+    else {
+      mprinterr("Error: Unrecognized keyword for 'init': %s\n", initstr.c_str());
+      return 1;
+    }
+  }
   kseed_ = analyzeArgs.getKeyInt("kseed", -1);
   maxIt_ = analyzeArgs.getKeyInt("maxit", 100);
   return 0;
@@ -49,6 +63,10 @@ void Cpptraj::Cluster::Algorithm_Kmeans::Info() const {
     mprintf("\t\tSequentially modify each point.\n");
   else
     mprintf("\t\tRandomly pick points for modification.\n");
+  if (init_ == INIT_SPREAD)
+    mprintf("\t\tInitial clusters will be chosen to maximize the total distance between initial clusters.\n");
+  else if (init_ == INIT_KMPP)
+    mprintf("\t\tInitial clusters will be chosen using the Kmeans++ algorithm.\n");
   if (kseed_ != -1 && mode_ == RANDOM)
     mprintf("\t\tSeed for random number generator: %i\n", kseed_);
   mprintf("\tCluster to cluster distance will be based on");
