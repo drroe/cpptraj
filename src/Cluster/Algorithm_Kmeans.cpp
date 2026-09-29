@@ -88,7 +88,7 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
                                                      Cframes const& framesToCluster,
                                                      MetricArray& pmatrix)
 {
-  if (mode_ == RANDOM)
+  if (mode_ == RANDOM || init_ == INIT_KMPP)
     RN_.rn_set( kseed_ );
 
   int pointCount = (int)framesToCluster.size();
@@ -279,6 +279,18 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
   // Remove any empty clusters
   clusters.RemoveEmptyClusters();
   // NOTE in PTRAJ here align all frames to best rep 
+  return 0;
+}
+
+/* Kmeans++ init algorithm */
+int Cpptraj::Cluster::Algorithm_Kmeans::init_kmeanspp(List& clusters,
+                                                      Cframes const& framesToCluster,
+                                                      MetricArray& pmatrix)
+{
+  // If empty, randomly select a cluster.
+  if (clusters.empty()) {
+    int c0idx = RN_.rn_num_interval(0, framesToCluster.size());
+  }
   return 0;
 }
 

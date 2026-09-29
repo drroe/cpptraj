@@ -23,7 +23,7 @@ class Algorithm_Kmeans : public Algorithm {
     Iarray FindSeedsFromClusters(List&, MetricArray&) const;
     int FindKmeansSeeds(Cframes const&, MetricArray&);
     /// Kmeans++ initialization
-    int init_kmeanspp(Cframes const&, MetricArray&);
+    int init_kmeanspp(List&, Cframes const&, MetricArray&);
 
     Random_Number RN_;
     int nclusters_; ///< Target number of clusters.
