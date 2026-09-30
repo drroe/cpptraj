@@ -102,20 +102,28 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
     PointIndices.push_back( processIdx );
 
   int startIteration = 0;
+  // ----- Init --------------
   if (clusters.empty()) {
-    // Determine seeds TODO have FindKmeansSeeds return Iarray with frame #s?
-    FindKmeansSeeds( framesToCluster, pmatrix );
-    // Add the seed clusters
-    for (Iarray::const_iterator seedIdx = SeedIndices_.begin();
-                                seedIdx != SeedIndices_.end(); ++seedIdx)
-    {
-      int seedFrame = framesToCluster[ *seedIdx ];
-      // A centroid is created for new clusters.
-      clusters.AddCluster( Node(pmatrix, Cframes(1, seedFrame), clusters.Nclusters()) );
-      // NOTE: No need to calc best rep frame, only 1 frame.
-      if (debug_ > 0)
-        mprintf("Put frame %i in cluster %i (seed index=%i).\n", 
-                seedFrame, clusters.back().Num(), *seedIdx);
+    if (init_ == INIT_KMPP) {
+      if (init_kmeanspp(clusters, framesToCluster, pmatrix)) {
+        mprinterr("Error: Kmeans++ init failed.\n");
+        return 1;
+      }
+    } else { // INIT_SPREAD
+      // Determine seeds TODO have FindKmeansSeeds return Iarray with frame #s?
+      FindKmeansSeeds( framesToCluster, pmatrix );
+      // Add the seed clusters
+      for (Iarray::const_iterator seedIdx = SeedIndices_.begin();
+                                  seedIdx != SeedIndices_.end(); ++seedIdx)
+      {
+        int seedFrame = framesToCluster[ *seedIdx ];
+        // A centroid is created for new clusters.
+        clusters.AddCluster( Node(pmatrix, Cframes(1, seedFrame), clusters.Nclusters()) );
+        // NOTE: No need to calc best rep frame, only 1 frame.
+        if (debug_ > 0)
+          mprintf("Put frame %i in cluster %i (seed index=%i).\n", 
+                  seedFrame, clusters.back().Num(), *seedIdx);
+      }
     }
   } else {
     // Clusters already exist.
@@ -135,23 +143,30 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
       mprintf("\tNow %i existing clusters.\n", clusters.Nclusters());
     } else if (clusters.Nclusters() < nclusters_) {
       // We have fewer clusters than target clusters.
-      // Try to find new seeds to make up the difference.
-      mprintf("\tNumber of input clusters %i smaller than target number of clusters %i.\n",
-              clusters.Nclusters(), nclusters_);
-      mprintf("\tWill attempt to find seeds from existing clusters.\n");
-      Iarray Seeds = FindSeedsFromClusters(clusters, pmatrix);
-      if (Seeds.empty()) {
-        mprinterr("Error: Finding seeds from existing clusters failed.\n");
-        return 1;
-      }
-      // Add the seed clusters
-      for (Iarray::const_iterator seed = Seeds.begin(); seed != Seeds.end(); ++seed)
-      {
-        // A centroid is created for new clusters.
-        clusters.AddCluster( Node(pmatrix, Cframes(1, *seed), clusters.Nclusters()) );
-        // NOTE: No need to calc best rep frame, only 1 frame.
-        if (debug_ > 0)
-          mprintf("Put frame %i in cluster %i.\n", *seed, clusters.back().Num());
+      if (init_ == INIT_KMPP) {
+        if (init_kmeanspp(clusters, framesToCluster, pmatrix)) {
+          mprinterr("Error: Kmeans++ init with existing clusters failed.\n");
+          return 1;
+        }
+      } else { // INIT_SPREAD
+        // Try to find new seeds to make up the difference.
+        mprintf("\tNumber of input clusters %i smaller than target number of clusters %i.\n",
+                clusters.Nclusters(), nclusters_);
+        mprintf("\tWill attempt to find seeds from existing clusters.\n");
+        Iarray Seeds = FindSeedsFromClusters(clusters, pmatrix);
+        if (Seeds.empty()) {
+          mprinterr("Error: Finding seeds from existing clusters failed.\n");
+          return 1;
+        }
+        // Add the seed clusters
+        for (Iarray::const_iterator seed = Seeds.begin(); seed != Seeds.end(); ++seed)
+        {
+          // A centroid is created for new clusters.
+          clusters.AddCluster( Node(pmatrix, Cframes(1, *seed), clusters.Nclusters()) );
+          // NOTE: No need to calc best rep frame, only 1 frame.
+          if (debug_ > 0)
+            mprintf("Put frame %i in cluster %i.\n", *seed, clusters.back().Num());
+        }
       }
     }
 
@@ -160,6 +175,7 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
     // Since clusters already exist, go beyond the initial pass.
     startIteration = 1;
   }
+  // -------------------------
 
   // Assign points in 3 passes. If a point looked like it belonged to cluster A
   // at first, but then we added many other points and altered our cluster 
@@ -287,9 +303,46 @@ int Cpptraj::Cluster::Algorithm_Kmeans::init_kmeanspp(List& clusters,
                                                       Cframes const& framesToCluster,
                                                       MetricArray& pmatrix)
 {
+  mprintf("\tStarting Kmeans++ init.\n");
   // If empty, randomly select a cluster.
   if (clusters.empty()) {
     int c0idx = RN_.rn_num_interval(0, framesToCluster.size());
+    mprintf("DEBUG: Randomly selected frame %i\n", framesToCluster[c0idx]+1);
+    clusters.AddCluster( Node(pmatrix, Cframes(1, framesToCluster[c0idx]), clusters.Nclusters()) );
+  }
+
+  std::vector<double> distancesSquared;
+  distancesSquared.reserve( framesToCluster.size() );
+  double sumD2 = 0.0;
+  // Add remaining clusters.
+  while (clusters.Nclusters() < nclusters_) {
+    distancesSquared.clear();
+    // Compute dist^2 for each frame to cluster to the current cluster centroids.
+    for (unsigned int idx = 0; idx < framesToCluster.size(); idx++) {
+      int point = framesToCluster[idx];
+      List::cluster_iterator C0 = clusters.begincluster();
+      double minDistance = pmatrix.FrameCentroidDist(point, C0->Cent());
+      // Loop over remaining clusters
+      for (; C0 != clusters.endcluster(); ++C0) {
+        double dist = pmatrix.FrameCentroidDist(point, C0->Cent());
+        if (dist < minDistance)
+          minDistance = dist;
+      } // END loop over remaining clusters
+      distancesSquared.push_back( minDistance * minDistance );
+      sumD2 += distancesSquared.back();
+    } // END loop over frames to cluster
+    // Choose next centroid with probability proportional to D(x)^2
+    double threshold = RN_.rn_gen() * sumD2;
+    mprintf("DEBUG: Iter %i  sum(D^2)=%f  RN=%f\n", clusters.Nclusters(), sumD2, threshold);
+    double cumulative = 0.0;
+    for (unsigned int idx = 0; idx < distancesSquared.size(); idx++) {
+      cumulative += distancesSquared[idx];
+      if (cumulative >= threshold) {
+        mprintf("DEBUG: Selected frame %i based on threshold.\n", framesToCluster[idx]+1);
+        clusters.AddCluster( Node(pmatrix, Cframes(1, framesToCluster[idx]), clusters.Nclusters()) );
+        break;
+      }
+    } // END loop over distances^2
   }
   return 0;
 }
