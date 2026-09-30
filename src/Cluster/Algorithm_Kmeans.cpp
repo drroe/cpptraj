@@ -319,11 +319,12 @@ int Cpptraj::Cluster::Algorithm_Kmeans::init_kmeanspp(List& clusters,
   }
 
   std::vector<double> distancesSquared;
-  distancesSquared.reserve( framesToCluster.size() );
+  //distancesSquared.reserve( framesToCluster.size() );
   double sumD2 = 0.0;
   // Add remaining clusters.
   while (clusters.Nclusters() < nclusters_) {
-    distancesSquared.clear();
+    //distancesSquared.clear();
+    distancesSquared.assign( framesToCluster.size(), 0.0 );
     // Compute dist^2 for each frame to cluster to the current cluster centroids.
     for (unsigned int idx = 0; idx < framesToCluster.size(); idx++) {
       int point = framesToCluster[idx];
@@ -336,8 +337,10 @@ int Cpptraj::Cluster::Algorithm_Kmeans::init_kmeanspp(List& clusters,
           if (dist < minDistance)
             minDistance = dist;
         } // END loop over remaining clusters
-        distancesSquared.push_back( minDistance * minDistance );
-        sumD2 += distancesSquared.back();
+        //distancesSquared.push_back( minDistance * minDistance );
+        distancesSquared[idx] = minDistance * minDistance;
+        //sumD2 += distancesSquared.back();
+        sumD2 += distancesSquared[idx];
       }
     } // END loop over frames to cluster
     // Choose next centroid with probability proportional to D(x)^2
@@ -345,7 +348,9 @@ int Cpptraj::Cluster::Algorithm_Kmeans::init_kmeanspp(List& clusters,
     if (debug_ > 0)
       mprintf("DEBUG: Iter %i  sum(D^2)=%f  RN=%f\n", clusters.Nclusters(), sumD2, threshold);
     double cumulative = 0.0;
-    for (unsigned int idx = 0; idx < distancesSquared.size(); idx++) {
+    // Sum up min dist^2 for each point not yet chosen. Once the cumulative
+    // distance^2 is greater than the random threshold, choose that point.
+    for (unsigned int idx = 0; idx < framesToCluster.size(); idx++) {
       int point = framesToCluster[idx];
       if (!frameChosen[point]) {
         cumulative += distancesSquared[idx];
