@@ -305,25 +305,34 @@ int Cpptraj::Cluster::Algorithm_Kmeans::init_kmeanspp(List& clusters,
 {
   mprintf("\tStarting Kmeans++ init.\n");
   std::vector<bool> frameChosen( pmatrix.Ntotal(), false );
+  unsigned int nFramesChosen = 0;
   // If empty, randomly select a cluster.
   if (clusters.empty()) {
     int c0idx = RN_.rn_num_interval(0, framesToCluster.size());
     mprintf("\t  Randomly selected frame %i\n", framesToCluster[c0idx]+1);
     clusters.AddCluster( Node(pmatrix, Cframes(1, framesToCluster[c0idx]), clusters.Nclusters()) );
     frameChosen[framesToCluster[c0idx]] = true;
+    nFramesChosen++;
   } else {
     // Mark all frames already in a cluster
-    for (List::cluster_iterator C0 = clusters.begincluster(); C0 != clusters.endcluster(); ++C0)
-      for (Node::frame_iterator f0 = C0->beginframe(); f0 != C0->endframe(); ++f0)
+    for (List::cluster_iterator C0 = clusters.begincluster(); C0 != clusters.endcluster(); ++C0) {
+      for (Node::frame_iterator f0 = C0->beginframe(); f0 != C0->endframe(); ++f0) {
         frameChosen[*f0] = true;
+        nFramesChosen++;
+      }
+    }
+  }
+  if (nFramesChosen >= framesToCluster.size()) {
+    mprinterr("Error: Not enough frames left to choose from.\n");
+    return 1;
   }
 
   std::vector<double> distancesSquared;
   //distancesSquared.reserve( framesToCluster.size() );
-  double sumD2 = 0.0;
   // Add remaining clusters.
   while (clusters.Nclusters() < nclusters_) {
     //distancesSquared.clear();
+    double sumD2 = 0.0;
     distancesSquared.assign( framesToCluster.size(), 0.0 );
     // Compute dist^2 for each frame to cluster to the current cluster centroids.
     for (unsigned int idx = 0; idx < framesToCluster.size(); idx++) {
@@ -354,14 +363,20 @@ int Cpptraj::Cluster::Algorithm_Kmeans::init_kmeanspp(List& clusters,
       int point = framesToCluster[idx];
       if (!frameChosen[point]) {
         cumulative += distancesSquared[idx];
+        //mprintf("\t\t%8i %12.4f %12.4f\n", point+1, distancesSquared[idx], cumulative); // DEBUG
         if (cumulative >= threshold) {
           mprintf("\t  Selected frame %i based on threshold.\n", point+1);
           clusters.AddCluster( Node(pmatrix, Cframes(1, point), clusters.Nclusters()) );
           frameChosen[point] = true;
+          nFramesChosen++;
           break;
         }
       }
     } // END loop over distances^2
+    if (nFramesChosen >= framesToCluster.size()) {
+      mprinterr("Error: Not enough frames left to choose from.\n");
+      return 1;
+    }
   }
   return 0;
 }
