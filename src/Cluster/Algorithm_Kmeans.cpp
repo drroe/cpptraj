@@ -304,11 +304,18 @@ int Cpptraj::Cluster::Algorithm_Kmeans::init_kmeanspp(List& clusters,
                                                       MetricArray& pmatrix)
 {
   mprintf("\tStarting Kmeans++ init.\n");
+  std::vector<bool> frameChosen( pmatrix.Ntotal(), false );
   // If empty, randomly select a cluster.
   if (clusters.empty()) {
     int c0idx = RN_.rn_num_interval(0, framesToCluster.size());
     mprintf("\t  Randomly selected frame %i\n", framesToCluster[c0idx]+1);
     clusters.AddCluster( Node(pmatrix, Cframes(1, framesToCluster[c0idx]), clusters.Nclusters()) );
+    frameChosen[framesToCluster[c0idx]] = true;
+  } else {
+    // Mark all frames already in a cluster
+    for (List::cluster_iterator C0 = clusters.begincluster(); C0 != clusters.endcluster(); ++C0)
+      for (Node::frame_iterator f0 = C0->beginframe(); f0 != C0->endframe(); ++f0)
+        frameChosen[*f0] = true;
   }
 
   std::vector<double> distancesSquared;
@@ -320,16 +327,18 @@ int Cpptraj::Cluster::Algorithm_Kmeans::init_kmeanspp(List& clusters,
     // Compute dist^2 for each frame to cluster to the current cluster centroids.
     for (unsigned int idx = 0; idx < framesToCluster.size(); idx++) {
       int point = framesToCluster[idx];
-      List::cluster_iterator C0 = clusters.begincluster();
-      double minDistance = pmatrix.FrameCentroidDist(point, C0->Cent());
-      // Loop over remaining clusters
-      for (; C0 != clusters.endcluster(); ++C0) {
-        double dist = pmatrix.FrameCentroidDist(point, C0->Cent());
-        if (dist < minDistance)
-          minDistance = dist;
-      } // END loop over remaining clusters
-      distancesSquared.push_back( minDistance * minDistance );
-      sumD2 += distancesSquared.back();
+      if (!frameChosen[point]) {
+        List::cluster_iterator C0 = clusters.begincluster();
+        double minDistance = pmatrix.FrameCentroidDist(point, C0->Cent());
+        // Loop over remaining clusters
+        for (; C0 != clusters.endcluster(); ++C0) {
+          double dist = pmatrix.FrameCentroidDist(point, C0->Cent());
+          if (dist < minDistance)
+            minDistance = dist;
+        } // END loop over remaining clusters
+        distancesSquared.push_back( minDistance * minDistance );
+        sumD2 += distancesSquared.back();
+      }
     } // END loop over frames to cluster
     // Choose next centroid with probability proportional to D(x)^2
     double threshold = RN_.rn_gen() * sumD2;
@@ -337,11 +346,15 @@ int Cpptraj::Cluster::Algorithm_Kmeans::init_kmeanspp(List& clusters,
       mprintf("DEBUG: Iter %i  sum(D^2)=%f  RN=%f\n", clusters.Nclusters(), sumD2, threshold);
     double cumulative = 0.0;
     for (unsigned int idx = 0; idx < distancesSquared.size(); idx++) {
-      cumulative += distancesSquared[idx];
-      if (cumulative >= threshold) {
-        mprintf("\t  Selected frame %i based on threshold.\n", framesToCluster[idx]+1);
-        clusters.AddCluster( Node(pmatrix, Cframes(1, framesToCluster[idx]), clusters.Nclusters()) );
-        break;
+      int point = framesToCluster[idx];
+      if (!frameChosen[point]) {
+        cumulative += distancesSquared[idx];
+        if (cumulative >= threshold) {
+          mprintf("\t  Selected frame %i based on threshold.\n", point+1);
+          clusters.AddCluster( Node(pmatrix, Cframes(1, point), clusters.Nclusters()) );
+          frameChosen[point] = true;
+          break;
+        }
       }
     } // END loop over distances^2
   }
