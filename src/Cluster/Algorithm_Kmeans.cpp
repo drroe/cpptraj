@@ -307,7 +307,7 @@ int Cpptraj::Cluster::Algorithm_Kmeans::init_kmeanspp(List& clusters,
   // If empty, randomly select a cluster.
   if (clusters.empty()) {
     int c0idx = RN_.rn_num_interval(0, framesToCluster.size());
-    mprintf("DEBUG: Randomly selected frame %i\n", framesToCluster[c0idx]+1);
+    mprintf("\t  Randomly selected frame %i\n", framesToCluster[c0idx]+1);
     clusters.AddCluster( Node(pmatrix, Cframes(1, framesToCluster[c0idx]), clusters.Nclusters()) );
   }
 
@@ -333,12 +333,13 @@ int Cpptraj::Cluster::Algorithm_Kmeans::init_kmeanspp(List& clusters,
     } // END loop over frames to cluster
     // Choose next centroid with probability proportional to D(x)^2
     double threshold = RN_.rn_gen() * sumD2;
-    mprintf("DEBUG: Iter %i  sum(D^2)=%f  RN=%f\n", clusters.Nclusters(), sumD2, threshold);
+    if (debug_ > 0)
+      mprintf("DEBUG: Iter %i  sum(D^2)=%f  RN=%f\n", clusters.Nclusters(), sumD2, threshold);
     double cumulative = 0.0;
     for (unsigned int idx = 0; idx < distancesSquared.size(); idx++) {
       cumulative += distancesSquared[idx];
       if (cumulative >= threshold) {
-        mprintf("DEBUG: Selected frame %i based on threshold.\n", framesToCluster[idx]+1);
+        mprintf("\t  Selected frame %i based on threshold.\n", framesToCluster[idx]+1);
         clusters.AddCluster( Node(pmatrix, Cframes(1, framesToCluster[idx]), clusters.Nclusters()) );
         break;
       }
