@@ -306,6 +306,8 @@ int Cpptraj::Cluster::Algorithm_Kmeans::init_kmeanspp(List& clusters,
   mprintf("\tStarting Kmeans++ init.\n");
   std::vector<bool> frameChosen( pmatrix.Ntotal(), false );
   unsigned int nFramesChosen = 0;
+  std::vector<double> distancesSquared;
+  distancesSquared.assign( framesToCluster.size(), 0.0 );
   // If empty, randomly select a cluster.
   if (clusters.empty()) {
     int c0idx = RN_.rn_num_interval(0, framesToCluster.size());
@@ -327,14 +329,32 @@ int Cpptraj::Cluster::Algorithm_Kmeans::init_kmeanspp(List& clusters,
     return 1;
   }
 
-  std::vector<double> distancesSquared;
+  // Calculate the minimum distance^2 of each frame to current cluster centroids
+  for (unsigned int idx = 0; idx < framesToCluster.size(); idx++) {
+    int point = framesToCluster[idx];
+    if (!frameChosen[point]) {
+      List::cluster_iterator C0 = clusters.begincluster();
+      double minDistance = pmatrix.FrameCentroidDist(point, C0->Cent());
+      // Loop over remaining clusters
+      for (; C0 != clusters.endcluster(); ++C0) {
+        double dist = pmatrix.FrameCentroidDist(point, C0->Cent());
+        if (dist < minDistance)
+          minDistance = dist;
+      } // END loop over remaining clusters
+      //distancesSquared.push_back( minDistance * minDistance );
+      distancesSquared[idx] = minDistance * minDistance;
+      //sumD2 += distancesSquared.back();
+      //sumD2 += distancesSquared[idx];
+    }
+  } // END loop over frames to cluster
+
   //distancesSquared.reserve( framesToCluster.size() );
   // Add remaining clusters.
   while (clusters.Nclusters() < nclusters_) {
     //distancesSquared.clear();
-    double sumD2 = 0.0;
-    distancesSquared.assign( framesToCluster.size(), 0.0 );
-    // Compute dist^2 for each frame to cluster to the current cluster centroids.
+    //double sumD2 = 0.0;
+    //distancesSquared.assign( framesToCluster.size(), 0.0 );
+/*    // Compute dist^2 for each frame to cluster to the current cluster centroids.
     for (unsigned int idx = 0; idx < framesToCluster.size(); idx++) {
       int point = framesToCluster[idx];
       if (!frameChosen[point]) {
@@ -351,7 +371,15 @@ int Cpptraj::Cluster::Algorithm_Kmeans::init_kmeanspp(List& clusters,
         //sumD2 += distancesSquared.back();
         sumD2 += distancesSquared[idx];
       }
-    } // END loop over frames to cluster
+    } // END loop over frames to cluster*/
+    // Calculate sum of the distances^2
+    double sumD2 = 0.0;
+    for (unsigned int idx = 0; idx < framesToCluster.size(); idx++) {
+      int point = framesToCluster[idx];
+      if (!frameChosen[point]) {
+        sumD2 += distancesSquared[idx];
+      }
+    }
     // Choose next centroid with probability proportional to D(x)^2
     double threshold = RN_.rn_gen() * sumD2;
     if (debug_ > 0)
@@ -369,14 +397,27 @@ int Cpptraj::Cluster::Algorithm_Kmeans::init_kmeanspp(List& clusters,
           clusters.AddCluster( Node(pmatrix, Cframes(1, point), clusters.Nclusters()) );
           frameChosen[point] = true;
           nFramesChosen++;
+          if (clusters.Nclusters() < nclusters_) {
+            if (nFramesChosen >= framesToCluster.size()) {
+              mprinterr("Error: Not enough frames left to choose from.\n");
+              return 1;
+            }
+            // There will be another pass. Update the distances^2 in distancesSquared
+            // for the new cluster.
+            Node const& lastCluster = clusters.back();
+            for (unsigned int idx = 0; idx < framesToCluster.size(); idx++) {
+              int point = framesToCluster[idx];
+              if (!frameChosen[point]) {
+                double dist = pmatrix.FrameCentroidDist(point, lastCluster.Cent());
+                double dist2 = dist*dist;
+                distancesSquared[idx] = std::min(dist2, distancesSquared[idx]);
+              } // END loop over remaining clusters
+            } // END loop over frames to cluster
+          }
           break;
         }
       }
-    } // END loop over distances^2
-    if (nFramesChosen >= framesToCluster.size()) {
-      mprinterr("Error: Not enough frames left to choose from.\n");
-      return 1;
-    }
+    } // END loop over frame min distances^2
   }
   return 0;
 }
