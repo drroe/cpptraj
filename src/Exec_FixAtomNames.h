@@ -56,7 +56,15 @@ class Exec_FixAtomNames : public Exec {
     /// Hold info for a duplicated atom
     class DupAtom {
       public:
-        DupAtom() {}
+        DupAtom(int i, int s) : idx_(i), sum_(s) {}
+        int Idx() const { return idx_; }
+        int Sum() const { return sum_; }
+        bool operator<(const DupAtom& rhs) const {
+          if (sum_ == rhs.sum_)
+            return (idx_ < rhs.idx_);
+          else
+            return (sum_ > rhs.sum_);
+        }
       private:
         int idx_; ///< Atom index in topology
         int sum_; ///< Used to prioritize duplicated atoms; sum of atomic #s of bonded atoms

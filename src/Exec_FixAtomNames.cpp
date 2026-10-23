@@ -266,11 +266,23 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
 int Exec_FixAtomNames::fixDuplicateSet(Topology& topIn, Iarray const& Indexes)
 const
 {
-  // Look at the bonded atoms of each duplicated atom
+  // Try to prioritize one atom as the "true" atom
+  std::vector<DupAtom> atoms;
   for (Iarray::const_iterator it = Indexes.begin(); it != Indexes.end(); ++it)
   {
-    mprintf("\tAtom %s\n", topIn.AtomMaskName(*it).c_str());
+    // Calculate the weight of all bonded atoms
+    int wt = 0;
     for (Atom::bond_iterator bat = topIn[*it].bondbegin(); bat != topIn[*it].bondend(); ++bat)
+      wt += topIn[*bat].AtomicNumber();
+    atoms.push_back( DupAtom(*it, wt) );
+  }
+  std::sort( atoms.begin(), atoms.end() );
+
+  // Look at the bonded atoms of each duplicated atom
+  for (std::vector<DupAtom>::const_iterator it = atoms.begin(); it != atoms.end(); ++it)
+  {
+    mprintf("\tAtom %s (priority=%i)\n", topIn.AtomMaskName(it->Idx()).c_str(), it->Sum());
+    for (Atom::bond_iterator bat = topIn[it->Idx()].bondbegin(); bat != topIn[it->Idx()].bondend(); ++bat)
     {
       mprintf("\t\tbonded to %s\n", topIn.AtomMaskName(*bat).c_str());
     }
