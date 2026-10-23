@@ -198,24 +198,45 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
   }
   mask.MaskInfo();
 
-  std::vector<int> resnums = currentTop.ResnumsSelectedBy( mask );
+  typedef std::vector<int> Iarray;
+  Iarray resnums = currentTop.ResnumsSelectedBy( mask );
 
-  for (std::vector<int>::const_iterator rnum = resnums.begin(); rnum != resnums.end(); ++rnum)
+  typedef std::pair<NameType, Iarray> DuplicatePair;
+  typedef std::map<NameType, Iarray> DuplicateMap;
+  // Hold atom name and list of duplicated indices
+  DuplicateMap duplicateMap;
+
+  for (Iarray::const_iterator rnum = resnums.begin(); rnum != resnums.end(); ++rnum)
   {
     Residue const& res = currentTop.Res(*rnum);
-    std::set<NameType> anames;
     for (int iat = res.FirstAtom(); iat != res.LastAtom(); iat++)
     {
-      std::pair<std::set<NameType>::iterator, bool> ret = anames.insert( currentTop[iat].Name() );
-      if (!ret.second) {
+      DuplicateMap::iterator it = duplicateMap.find( currentTop[iat].Name() );
+      if (it == duplicateMap.end()) {
+        // New name
+        duplicateMap.insert( DuplicatePair(currentTop[iat].Name(), Iarray(1, iat)) );
+      } else {
+        // Duplicated name
         mprintf("Warning: '%s': In residue %s duplicate atom name detected: %s\n",
                 currentTop.c_str(), currentTop.TruncResNameNum(*rnum).c_str(), *(currentTop[iat].Name()) );
-        if (fixDuplicate(*parm, iat, *rnum)) {
-          mprinterr("Error: Could not fix duplicated name %s\n", *(*(ret.first)));
-          return CpptrajState::ERR;
-        }
+        it->second.push_back( iat );
+        //if (fixDuplicate(*parm, iat, *rnum)) {
+        //  mprinterr("Error: Could not fix duplicated name %s\n", *(*(ret.first)));
+        //  return CpptrajState::ERR;
+        //}
         // Add the fixed (not duplicated) name
-        anames.insert( currentTop[iat].Name() );
+        //anames.insert( currentTop[iat].Name() );
+      }
+    }
+    // DEBUG - print all duplicates
+    for (DuplicateMap::const_iterator it = duplicateMap.begin(); it != duplicateMap.end(); ++it)
+    {
+      if (it->second.size() > 1) {
+        mprintf("\tDuplicated name: %s @%s, indices", currentTop.TruncResNameNum(*rnum).c_str(), *(it->first));
+        for (Iarray::const_iterator jt = it->second.begin(); jt != it->second.end(); ++jt)
+          mprintf(" %i", *jt + 1);
+          //mprintf(" %s", currentTop.AtomMaskName(*jt).c_str());
+        mprintf("\n");
       }
     }
     // DEBUG TEST dissect all names
