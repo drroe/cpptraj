@@ -260,6 +260,10 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
   return CpptrajState::OK;
 }
 
+/** Given an array of atom indices that share an atom name in a single
+  * residue, determine one which is the "true" name and rename the
+  * remaining ones with unique names.
+  */
 int Exec_FixAtomNames::fixDuplicateSet(Topology& topIn, Iarray const& Indexes)
 const
 {
