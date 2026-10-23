@@ -284,6 +284,22 @@ const
   bool have_trueAtom = (atoms[0].Sum() > atoms[1].Sum());
   if (have_trueAtom)
     keepName[0] = true;
+  else {
+    // If only bonded to one other atom, see if one of the atoms number
+    // prefix (if present) matches its bonded atoms prefix.
+    int numMatchIdx = -1;
+    for (std::vector<DupAtom>::const_iterator it = atoms.begin(); it != atoms.end(); ++it)
+    {
+      Atom const& currentAtom = topIn[it->Idx()];
+      if (currentAtom.Nbonds() == 1) {
+        AtomName currentName, bondedName;
+        if (currentName.DissectName( currentAtom.Name() )) return 1;
+        if (bondedName.DissectName( topIn[currentAtom.Bond(0)].Name() )) return 1;
+        currentName.PrintName();
+        bondedName.PrintName();
+      }
+    }
+  }
 
   // Look at the bonded atoms of each duplicated atom
   unsigned int idx = 0;
