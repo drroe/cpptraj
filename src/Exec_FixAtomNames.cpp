@@ -279,10 +279,17 @@ const
   }
   std::sort( atoms.begin(), atoms.end() );
 
+  // Do we have a "true" atom?
+  std::vector<bool> keepName(atoms.size(), false);
+  bool have_trueAtom = (atoms[0].Sum() > atoms[1].Sum());
+  if (have_trueAtom)
+    keepName[0] = true;
+
   // Look at the bonded atoms of each duplicated atom
-  for (std::vector<DupAtom>::const_iterator it = atoms.begin(); it != atoms.end(); ++it)
+  unsigned int idx = 0;
+  for (std::vector<DupAtom>::const_iterator it = atoms.begin(); it != atoms.end(); ++it, idx++)
   {
-    mprintf("\tAtom %s (priority=%i)\n", topIn.AtomMaskName(it->Idx()).c_str(), it->Sum());
+    mprintf("\tAtom %s (priority=%i) (keepName=%i)\n", topIn.AtomMaskName(it->Idx()).c_str(), it->Sum(), (int)keepName[idx]);
     for (Atom::bond_iterator bat = topIn[it->Idx()].bondbegin(); bat != topIn[it->Idx()].bondend(); ++bat)
     {
       mprintf("\t\tbonded to %s\n", topIn.AtomMaskName(*bat).c_str());
