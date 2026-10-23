@@ -201,20 +201,17 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
 
   Iarray resnums = currentTop.ResnumsSelectedBy( mask );
 
-  typedef std::pair<NameType, Iarray> DuplicatePair;
-  typedef std::map<NameType, Iarray> DuplicateMap;
-  // Hold atom name and list of duplicated indices
-  DuplicateMap duplicateMap;
-
   for (Iarray::const_iterator rnum = resnums.begin(); rnum != resnums.end(); ++rnum)
   {
+    // Hold atom name and list of duplicated indices
+    duplicateMap_.clear();
     Residue const& res = currentTop.Res(*rnum);
     for (int iat = res.FirstAtom(); iat != res.LastAtom(); iat++)
     {
-      DuplicateMap::iterator it = duplicateMap.find( currentTop[iat].Name() );
-      if (it == duplicateMap.end()) {
+      DuplicateMap::iterator it = duplicateMap_.find( currentTop[iat].Name() );
+      if (it == duplicateMap_.end()) {
         // New name
-        duplicateMap.insert( DuplicatePair(currentTop[iat].Name(), Iarray(1, iat)) );
+        duplicateMap_.insert( DuplicatePair(currentTop[iat].Name(), Iarray(1, iat)) );
       } else {
         // Duplicated name
         mprintf("Warning: '%s': In residue %s duplicate atom name detected: %s\n",
@@ -230,7 +227,7 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
     }
     // Sort by priority
     std::vector<DupName> duplicates;
-    for (DuplicateMap::const_iterator it = duplicateMap.begin(); it != duplicateMap.end(); ++it)
+    for (DuplicateMap::const_iterator it = duplicateMap_.begin(); it != duplicateMap_.end(); ++it)
     {
       if (it->second.size() > 1) {
         int wt;

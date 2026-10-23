@@ -17,6 +17,9 @@ class Exec_FixAtomNames : public Exec {
 
     ResMap resMap_; ///< Hold a map of residues that have had their atom names changed*/
     typedef std::vector<int> Iarray;
+    typedef std::pair<NameType, Iarray> DuplicatePair;
+    typedef std::map<NameType, Iarray> DuplicateMap;
+
     /// Hold a part of an atom name
     class NameToken {
       public:
@@ -96,5 +99,7 @@ class Exec_FixAtomNames : public Exec {
     int fixDuplicate(Topology&, int) const;
 
     int fixDuplicateSet(Topology&, Iarray const&) const;
+
+    DuplicateMap duplicateMap_; ///< Hold atom names and indices for the current residue being fixed
 };
 #endif
