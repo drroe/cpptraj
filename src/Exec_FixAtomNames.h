@@ -16,6 +16,7 @@ class Exec_FixAtomNames : public Exec {
     typedef std::map<NameType, NameMap> ResMap;
 
     ResMap resMap_; ///< Hold a map of residues that have had their atom names changed*/
+    typedef std::vector<int> Iarray;
     /// Hold a part of an atom name
     class NameToken {
       public:
@@ -52,10 +53,40 @@ class Exec_FixAtomNames : public Exec {
         typedef std::vector<NameToken> NameTokenArray;
         NameTokenArray tokens_;
     };
+    /// Hold info for a duplicated atom
+    class DupAtom {
+      public:
+        DupAtom() {}
+      private:
+        int idx_; ///< Atom index in topology
+        int sum_; ///< Used to prioritize duplicated atoms; sum of atomic #s of bonded atoms
+    };
+    /// Used for sorting the duplicated name map
+    class DupName {
+      public:
+        DupName(NameType const& n, Iarray const& i, int w) : weight_(w), aname_(n), idxs_(i) {}
+        int weight_; ///< 9999 for C, atomic number for others
+        NameType aname_;
+        Iarray idxs_; ///< Atom indices in topology
+
+        bool operator<(const DupName& rhs) const {
+          if (weight_ == rhs.weight_) {
+            if (aname_ == rhs.aname_) {
+              return (idxs_.front() < rhs.idxs_.front());
+            } else {
+              return (aname_ < rhs.aname_);
+            }
+          } else {
+            return (weight_ > rhs.weight_);
+          }
+        }
+    };
+        
 
     static inline NameToken::Type get_type(char);
 
     int fixDuplicate(Topology&, int, int) const;
 
+    int fixDuplicateSet(Topology&, Iarray const&) const;
 };
 #endif

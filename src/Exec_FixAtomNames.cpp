@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // convertToInteger
 #include <cctype> // isalpha, isdigit
+#include <algorithm> // sort
 
 // -----------------------------------------------------------------------------
 /** \return name width in characters */
@@ -198,7 +199,6 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
   }
   mask.MaskInfo();
 
-  typedef std::vector<int> Iarray;
   Iarray resnums = currentTop.ResnumsSelectedBy( mask );
 
   typedef std::pair<NameType, Iarray> DuplicatePair;
@@ -228,16 +228,29 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
         //anames.insert( currentTop[iat].Name() );
       }
     }
-    // DEBUG - print all duplicates
+    // Sort by priority
+    std::vector<DupName> duplicates;
     for (DuplicateMap::const_iterator it = duplicateMap.begin(); it != duplicateMap.end(); ++it)
     {
       if (it->second.size() > 1) {
-        mprintf("\tDuplicated name: %s @%s, indices", currentTop.TruncResNameNum(*rnum).c_str(), *(it->first));
-        for (Iarray::const_iterator jt = it->second.begin(); jt != it->second.end(); ++jt)
-          mprintf(" %i", *jt + 1);
-          //mprintf(" %s", currentTop.AtomMaskName(*jt).c_str());
-        mprintf("\n");
+        int wt;
+        if (currentTop[it->second.front()].Element() == Atom::CARBON)
+          wt = 9999;
+        else
+          wt = currentTop[it->second.front()].AtomicNumber();
+        duplicates.push_back( DupName(it->first, it->second, wt) );
       }
+    }
+    std::sort( duplicates.begin(), duplicates.end() );
+    // print all duplicates
+    for (std::vector<DupName>::const_iterator it = duplicates.begin(); it != duplicates.end(); ++it)
+    {
+      mprintf("\tDuplicated name: %s @%s, indices", currentTop.TruncResNameNum(*rnum).c_str(), *(it->aname_));
+      for (Iarray::const_iterator jt = it->idxs_.begin(); jt != it->idxs_.end(); ++jt)
+        mprintf(" %i", *jt + 1);
+        //mprintf(" %s", currentTop.AtomMaskName(*jt).c_str());
+      mprintf("\n");
+      if (fixDuplicateSet(*parm, it->idxs_)) return CpptrajState::ERR;
     }
     // DEBUG TEST dissect all names
 //    for (std::set<NameType>::const_iterator it = anames.begin(); it != anames.end(); ++it) {
@@ -248,6 +261,21 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   return CpptrajState::OK;
+}
+
+int Exec_FixAtomNames::fixDuplicateSet(Topology& topIn, Iarray const& Indexes)
+const
+{
+  // Look at the bonded atoms of each duplicated atom
+  for (Iarray::const_iterator it = Indexes.begin(); it != Indexes.end(); ++it)
+  {
+    mprintf("\tAtom %s\n", topIn.AtomMaskName(*it).c_str());
+    for (Atom::bond_iterator bat = topIn[*it].bondbegin(); bat != topIn[*it].bondend(); ++bat)
+    {
+      mprintf("\t\tbonded to %s\n", topIn.AtomMaskName(*bat).c_str());
+    }
+  }
+  return 0;
 }
 
 /** Given the index of an atom that has a duplicated name in a reside, change
