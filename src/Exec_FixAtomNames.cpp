@@ -293,9 +293,10 @@ const
 /** Given the index of an atom that has a duplicated name in a reside, change
   * it to a unique name in that residue.
   */
-int Exec_FixAtomNames::fixDuplicate(Topology& topIn, int duplicateIdx, int rnum)
+int Exec_FixAtomNames::fixDuplicate(Topology& topIn, int duplicateIdx)
 const
 {
+  int rnum = topIn[duplicateIdx].ResNum();
   Residue const& res = topIn.Res(rnum);
   // Dissect this name.
   AtomName duplicateName;

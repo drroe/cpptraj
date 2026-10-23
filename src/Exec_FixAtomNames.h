@@ -93,7 +93,7 @@ class Exec_FixAtomNames : public Exec {
 
     static inline NameToken::Type get_type(char);
 
-    int fixDuplicate(Topology&, int, int) const;
+    int fixDuplicate(Topology&, int) const;
 
     int fixDuplicateSet(Topology&, Iarray const&) const;
 };
