@@ -296,20 +296,22 @@ const
   bool have_trueAtom = (atoms[0].Sum() > atoms[1].Sum());
   if (have_trueAtom)
     keepName[0] = true;
-  else {
-    // If only bonded to one other atom, see if one of the atoms number
-    // prefix (if present) matches its bonded atoms prefix.
-    long int numMatchIdx = -1;
-    for (std::vector<DupAtom>::const_iterator it = atoms.begin(); it != atoms.end(); ++it)
-    {
-      Atom const& currentAtom = topIn[it->Idx()];
-      if (currentAtom.Nbonds() == 1) {
-        AtomName currentName, bondedName;
-        if (currentName.DissectName( currentAtom.Name() )) return 1;
-        if (bondedName.DissectName( topIn[currentAtom.Bond(0)].Name() )) return 1;
-        currentName.PrintName();
-        bondedName.PrintName();
-        if (currentName.TerminalNumbersMatch( bondedName )) {
+
+  // If only bonded to one other atom, see if one of the atoms number
+  // prefix (if present) matches its bonded atoms prefix.
+  long int numMatchIdx = -1;
+  for (std::vector<DupAtom>::const_iterator it = atoms.begin(); it != atoms.end(); ++it)
+  {
+    Atom const& currentAtom = topIn[it->Idx()];
+    if (currentAtom.Nbonds() == 1) {
+      AtomName currentName, bondedName;
+      if (currentName.DissectName( currentAtom.Name() )) return 1;
+      if (bondedName.DissectName( topIn[currentAtom.Bond(0)].Name() )) return 1;
+      currentName.PrintName("Current Name");
+      bondedName.PrintName("Bonded Name");
+      if (currentName.TerminalNumbersMatch( bondedName )) {
+        // Only need to do this if we do not already have a "true" atom
+        if (!have_trueAtom) {
           mprintf("DEBUG: Terminal numbers match.\n");
           if (numMatchIdx != -1) {
             // Both atoms have terminal numbers that match their bonded partners.
@@ -318,27 +320,28 @@ const
           } else {
             numMatchIdx = (it - atoms.begin());
           }
-        } else {
-          // Can we resolve the clash by making this number match the bonded atom number?
-          if (currentName.MakeTerminalNumbersMatch( bondedName )) {
-            currentName.PrintName("Proposed name");
-            NameType proposedName( currentName.NameString() );
-            std::set<NameType>::const_iterator jt = anames.find( proposedName );
-            if (jt == anames.end()) {
-              // The proposed name is free.
-              mprintf("\t  Changing %s to match bonded atom number.\n", topIn.AtomMaskName(it->Idx()).c_str());
-              topIn.SetAtom(it->Idx()).SetName( proposedName );
-              keepName[it - atoms.begin()] = true;
-            }
+        }
+      } else {
+        // Can we resolve the clash by making this number match the bonded atom number?
+        if (currentName.MakeTerminalNumbersMatch( bondedName )) {
+          currentName.PrintName("Proposed name");
+          NameType proposedName( currentName.NameString() );
+          std::set<NameType>::const_iterator jt = anames.find( proposedName );
+          if (jt == anames.end()) {
+            // The proposed name is free.
+            mprintf("\t  Changing %s to match bonded atom number.\n", topIn.AtomMaskName(it->Idx()).c_str());
+            topIn.SetAtom(it->Idx()).SetName( proposedName );
+            keepName[it - atoms.begin()] = true;
           }
         }
       }
-    } // END loop over duplicated atoms
-    if (numMatchIdx != -1) {
-      keepName[numMatchIdx] = true;
-      have_trueAtom = true;
     }
+  } // END loop over duplicated atoms
+  if (numMatchIdx != -1) {
+    keepName[numMatchIdx] = true;
+    have_trueAtom = true;
   }
+
   // If we still do not have a "true" atom, just use the first one in the array
   if (!have_trueAtom)
     keepName[0] = true;
@@ -372,7 +375,7 @@ const
   AtomName duplicateName;
   if (duplicateName.DissectName( topIn[duplicateIdx].Name() )) return 1;
   // DEBUG
-  duplicateName.PrintName();
+  duplicateName.PrintName("Name to increment");
 
   // Try to increment the name until we do not get a clash
   bool tryNewNames = true;
@@ -385,7 +388,7 @@ const
     std::set<NameType>::iterator it = anames.find( newName );
     if (it == anames.end()) {
       // Name is no longer duplicated!
-      mprintf("\tNew name: %s\n", *newName);
+      mprintf("\t New name: %s\n", *newName);
       topIn.SetAtom(duplicateIdx).SetName( newName );
       tryNewNames = false;
     } else
