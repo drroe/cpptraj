@@ -287,7 +287,7 @@ const
   else {
     // If only bonded to one other atom, see if one of the atoms number
     // prefix (if present) matches its bonded atoms prefix.
-    int numMatchIdx = -1;
+    long int numMatchIdx = -1;
     for (std::vector<DupAtom>::const_iterator it = atoms.begin(); it != atoms.end(); ++it)
     {
       Atom const& currentAtom = topIn[it->Idx()];
@@ -299,8 +299,19 @@ const
         bondedName.PrintName();
         if (currentName.TerminalNumbersMatch( bondedName )) {
           mprintf("DEBUG: Terminal numbers match.\n");
+          if (numMatchIdx != -1) {
+            // Both atoms have terminal numbers that match their bonded partners.
+            numMatchIdx = -1;
+            break;
+          } else {
+            numMatchIdx = (it - atoms.begin());
+          }
         }
       }
+    } // END loop over duplicated atoms
+    if (numMatchIdx != -1) {
+      keepName[numMatchIdx] = true;
+      have_trueAtom = true;
     }
   }
 
@@ -320,7 +331,7 @@ const
 /** Given the index of an atom that has a duplicated name in a reside, change
   * it to a unique name in that residue.
   */
-int Exec_FixAtomNames::fixDuplicate(Topology& topIn, int duplicateIdx)
+int Exec_FixAtomNames::fixDuplicateByIncrement(Topology& topIn, int duplicateIdx)
 const
 {
   int rnum = topIn[duplicateIdx].ResNum();
