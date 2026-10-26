@@ -48,6 +48,7 @@ class Exec_FixAtomNames : public Exec {
         AtomName() {}
         //void AddToken(NameToken const& n) { tokens_.push_back( n ); }
         void PrintName() const;
+        void PrintName(const char*) const;
         std::string NameString() const;
         int DissectName(NameType const&);
         int NameWidth() const;
@@ -69,6 +70,24 @@ class Exec_FixAtomNames : public Exec {
           if (rit2 == rhs.tokens_.rend()) return false;
           // At this point we know both names have a terminal digit.
           return (rit1->Ival() == rit2->Ival());
+        }
+        /// If both atoms have a terminal number, make this number match the given number
+        bool MakeTerminalNumbersMatch(AtomName const& rhs) {
+          NameTokenArray::reverse_iterator rit1 = tokens_.rbegin();
+          while (rit1 != tokens_.rend()) {
+            if (rit1->TokenType() == NameToken::INT) break;
+            ++rit1;
+          }
+          if (rit1 == tokens_.rend()) return false;
+          NameTokenArray::const_reverse_iterator rit2 = rhs.tokens_.rbegin();
+          while (rit2 != rhs.tokens_.rend()) {
+            if (rit2->TokenType() == NameToken::INT) break;
+            ++rit2;
+          }
+          if (rit2 == rhs.tokens_.rend()) return false;
+          // At this point we know both names have a terminal digit.
+          rit1->SetIval( rit2->Ival() );
+          return true;
         }
       private:
         NameTokenArray tokens_;
@@ -113,9 +132,9 @@ class Exec_FixAtomNames : public Exec {
 
     static inline NameToken::Type get_type(char);
 
-    int fixDuplicateByIncrement(Topology&, int) const;
+    int fixDuplicateByIncrement(Topology&, int, std::set<NameType> const&) const;
 
-    int fixDuplicateSet(Topology&, Iarray const&) const;
+    int fixDuplicateSet(Topology&, Iarray const&, int) const;
 
     DuplicateMap duplicateMap_; ///< Hold atom names and indices for the current residue being fixed
 };

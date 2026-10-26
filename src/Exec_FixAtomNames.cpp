@@ -19,8 +19,8 @@ int Exec_FixAtomNames::AtomName::NameWidth() const {
 }
 
 /** Print name to stdout */
-void Exec_FixAtomNames::AtomName::PrintName() const {
-  mprintf("\t Current Name: ");
+void Exec_FixAtomNames::AtomName::PrintName(const char* desc) const {
+  mprintf("\t %s: ", desc);
   for (NameTokenArray::const_iterator it = tokens_.begin(); it != tokens_.end(); ++it) {
     if (it->TokenType() == NameToken::INT)
       mprintf("%i", it->Ival());
@@ -37,6 +37,10 @@ void Exec_FixAtomNames::AtomName::PrintName() const {
       default: break;
     }
   }
+}
+
+void Exec_FixAtomNames::AtomName::PrintName() const {
+  PrintName("Current Name");
 }
 
 /** Convert to a string */
@@ -247,7 +251,7 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
         mprintf(" %i", *jt + 1);
         //mprintf(" %s", currentTop.AtomMaskName(*jt).c_str());
       mprintf("\n");
-      if (fixDuplicateSet(*parm, it->idxs_)) return CpptrajState::ERR;
+      if (fixDuplicateSet(*parm, it->idxs_, *rnum)) return CpptrajState::ERR;
     }
     // DEBUG TEST dissect all names
 //    for (std::set<NameType>::const_iterator it = anames.begin(); it != anames.end(); ++it) {
@@ -264,11 +268,18 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
   * residue, determine one which is the "true" name and rename the
   * remaining ones with unique names.
   */
-int Exec_FixAtomNames::fixDuplicateSet(Topology& topIn, Iarray const& Indexes)
+int Exec_FixAtomNames::fixDuplicateSet(Topology& topIn, Iarray const& Indexes, int rnum)
 const
 {
-  // Try to prioritize one atom as the "true" atom
+  // Create a set of current atom names in the residue. They will all be unique.
+  Residue const& res = topIn.Res(rnum);
+  std::set<NameType> anames;
+  for (int iat = res.FirstAtom(); iat != res.LastAtom(); iat++)
+    anames.insert( topIn[iat].Name() );
+  // Try to prioritize one atom as the "true" atom, i.e. the atom
+  // whose name should not be changed.
   std::vector<DupAtom> atoms;
+  // Loop over all atoms with the same name
   for (Iarray::const_iterator it = Indexes.begin(); it != Indexes.end(); ++it)
   {
     // Calculate the weight of all bonded atoms
@@ -277,6 +288,7 @@ const
       wt += topIn[*bat].AtomicNumber();
     atoms.push_back( DupAtom(*it, wt) );
   }
+  // Sort by 1) weight of all bonded atoms 2) topology index
   std::sort( atoms.begin(), atoms.end() );
 
   // Do we have a "true" atom?
@@ -306,6 +318,19 @@ const
           } else {
             numMatchIdx = (it - atoms.begin());
           }
+        } else {
+          // Can we resolve the clash by making this number match the bonded atom number?
+          if (currentName.MakeTerminalNumbersMatch( bondedName )) {
+            currentName.PrintName("Proposed name");
+            NameType proposedName( currentName.NameString() );
+            std::set<NameType>::const_iterator jt = anames.find( proposedName );
+            if (jt == anames.end()) {
+              // The proposed name is free.
+              mprintf("\t  Changing %s to match bonded atom number.\n", topIn.AtomMaskName(it->Idx()).c_str());
+              topIn.SetAtom(it->Idx()).SetName( proposedName );
+              keepName[it - atoms.begin()] = true;
+            }
+          }
         }
       }
     } // END loop over duplicated atoms
@@ -314,15 +339,24 @@ const
       have_trueAtom = true;
     }
   }
+  // If we still do not have a "true" atom, just use the first one in the array
+  if (!have_trueAtom)
+    keepName[0] = true;
 
-  // Look at the bonded atoms of each duplicated atom
+  // Increment the name of each non-"true" atom
   unsigned int idx = 0;
   for (std::vector<DupAtom>::const_iterator it = atoms.begin(); it != atoms.end(); ++it, idx++)
   {
-    mprintf("\tAtom %s (priority=%i) (keepName=%i)\n", topIn.AtomMaskName(it->Idx()).c_str(), it->Sum(), (int)keepName[idx]);
-    for (Atom::bond_iterator bat = topIn[it->Idx()].bondbegin(); bat != topIn[it->Idx()].bondend(); ++bat)
-    {
-      mprintf("\t\tbonded to %s\n", topIn.AtomMaskName(*bat).c_str());
+    mprintf("\t  Atom %s (priority=%i) (keepName=%i)\n", topIn.AtomMaskName(it->Idx()).c_str(), it->Sum(), (int)keepName[idx]);
+    //for (Atom::bond_iterator bat = topIn[it->Idx()].bondbegin(); bat != topIn[it->Idx()].bondend(); ++bat)
+    //{
+    //  mprintf("\t\tbonded to %s\n", topIn.AtomMaskName(*bat).c_str());
+    //}
+    if (!keepName[idx]) {
+      if (fixDuplicateByIncrement(topIn, it->Idx(), anames)) {
+        mprinterr("Error: Could not fix atom %s by name increment.\n", topIn.AtomMaskName(it->Idx()).c_str());
+        return 1;
+      }
     }
   }
   return 0;
@@ -331,20 +365,15 @@ const
 /** Given the index of an atom that has a duplicated name in a reside, change
   * it to a unique name in that residue.
   */
-int Exec_FixAtomNames::fixDuplicateByIncrement(Topology& topIn, int duplicateIdx)
+int Exec_FixAtomNames::fixDuplicateByIncrement(Topology& topIn, int duplicateIdx, std::set<NameType> const& anames)
 const
 {
-  int rnum = topIn[duplicateIdx].ResNum();
-  Residue const& res = topIn.Res(rnum);
   // Dissect this name.
   AtomName duplicateName;
   if (duplicateName.DissectName( topIn[duplicateIdx].Name() )) return 1;
   // DEBUG
   duplicateName.PrintName();
-  // Create a set of current atom names in the residue. They will all be unique.
-  std::set<NameType> anames;
-  for (int iat = res.FirstAtom(); iat != res.LastAtom(); iat++)
-    anames.insert( topIn[iat].Name() );
+
   // Try to increment the name until we do not get a clash
   bool tryNewNames = true;
   while (tryNewNames) {
