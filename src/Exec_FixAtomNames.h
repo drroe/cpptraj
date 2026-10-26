@@ -54,6 +54,20 @@ class Exec_FixAtomNames : public Exec {
         int NameWidth() const;
         /// Naively increment the name
         int IncrementName(int);
+        /// \return Terminal number, or -1 if no terminal number
+        int TerminalNumber() const {
+          NameTokenArray::const_reverse_iterator rit1 = tokens_.rbegin();
+          while (rit1 != tokens_.rend()) {
+            if (rit1->TokenType() == NameToken::INT) break;
+            ++rit1;
+          }
+          if (rit1 == tokens_.rend()) return -1;
+          return rit1->Ival();
+        }
+        /// Remove any leading digits
+        int RemoveLeadingDigit();
+        /// Set or add a terminal number
+        int SetTerminalNumber(int, int);
         /// \return True if both atoms have a terminal number and the numbers match
         bool TerminalNumbersMatch(AtomName const& rhs) const {
           NameTokenArray::const_reverse_iterator rit1 = tokens_.rbegin();
@@ -136,6 +150,9 @@ class Exec_FixAtomNames : public Exec {
 
     int fixDuplicateSet(Topology&, Iarray const&, int) const;
 
+    int fixChainedAtoms(Topology&, int, int, std::set<NameType> const&) const;
+
+    static const int maxNameWidth_;
     DuplicateMap duplicateMap_; ///< Hold atom names and indices for the current residue being fixed
 };
 #endif

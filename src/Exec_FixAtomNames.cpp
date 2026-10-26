@@ -105,6 +105,76 @@ int Exec_FixAtomNames::AtomName::DissectName(NameType const& anameIn)
   return 0;
 }
 
+/** Remove any leading digits */
+int Exec_FixAtomNames::AtomName::RemoveLeadingDigit() {
+  std::vector<bool> toRemove(tokens_.size(), false);
+  unsigned int nToRemove = 0;
+  unsigned int idx = 0;
+  for (NameTokenArray::const_iterator it = tokens_.begin(); it != tokens_.end(); ++it, idx++)
+  {
+    if (it->TokenType() != NameToken::INT) break;
+    toRemove[idx] = true;
+    nToRemove++;
+  }
+  if (nToRemove == tokens_.size()) {
+    mprintf("Warning: Would remove all tokens. Not removing leading digit.\n");
+    return 0;
+  }
+  NameTokenArray newTokens;
+  for (idx = 0; idx < toRemove.size(); idx++)
+  {
+    if (!toRemove[idx])
+      newTokens.push_back( tokens_[idx] );
+  }
+  tokens_ = newTokens;
+  return 0;
+}
+
+/** Set or add terminal number */
+int Exec_FixAtomNames::AtomName::SetTerminalNumber(int newDigit, int maxWidth)
+{
+  int currentWidth = NameWidth();
+  // If we have no integer token, add one before any OTHER tokens.
+  bool has_int = false;
+  for (NameTokenArray::const_iterator it = tokens_.begin(); it != tokens_.end(); ++it) {
+    if (it->TokenType() == NameToken::INT) {
+      has_int = true;
+      break;
+    }
+  }
+  if (!has_int) {
+    //FIXME shouldnt put this after a prime
+    if (currentWidth == maxWidth) {
+      mprinterr("Error: Name %s is already at max width (%i), cannot add digit.\n", NameString().c_str(), maxWidth);
+      return 1;
+    }
+    tokens_.push_back( NameToken(1) );
+    return 0;
+  }
+  // Start at the last token and work up
+  for (NameTokenArray::reverse_iterator rit = tokens_.rbegin(); rit != tokens_.rend(); ++rit)
+  {
+    if ( rit->TokenType() == NameToken::INT) {
+      // What is the max digit width we can accomodate?
+      int digitWidth = DigitWidth( rit->Ival() );
+      int otherWidth = currentWidth - digitWidth;
+      int availableWidth = maxWidth - otherWidth;
+      int maxDigit = pow(10, availableWidth) - 1;
+      //mprintf("DEBUG: digit=%i MaxDigit = %i\n", rit->Ival(), maxDigit);
+      if (newDigit <= maxDigit) {
+        // Digit should be ok. Can bail out now.
+        rit->SetIval( newDigit );
+        //errval = 0;
+        break;
+      } else {
+        mprintf("Warning: Terminal digit %i too large.\n", newDigit);
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
 /** Naively increment the atom name. */
 int Exec_FixAtomNames::AtomName::IncrementName(int maxWidth) {
   int currentWidth = NameWidth();
@@ -154,6 +224,8 @@ int Exec_FixAtomNames::AtomName::IncrementName(int maxWidth) {
 }
 
 // -----------------------------------------------------------------------------
+
+const int Exec_FixAtomNames::maxNameWidth_ = 4;
 
 static inline void WARNING() {
   mprintf("WARNING: THIS COMMAND IS STILL EXPERIMENTAL. USE AT YOUR OWN RISK.\n");
@@ -264,6 +336,89 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
   return CpptrajState::OK;
 }
 
+static inline void trace_chain(Topology const& topIn, std::vector<int>& chainAtoms, int currentIdx, unsigned int idx, unsigned int max)
+{
+  if (idx >= max) return;
+
+  chainAtoms.push_back( currentIdx );
+  if (topIn[currentIdx].Nbonds() < 3) {
+    for (Atom::bond_iterator bat = topIn[currentIdx].bondbegin(); bat != topIn[currentIdx].bondend(); ++bat)
+    {
+      bool in_chain = false;
+      for (std::vector<int>::const_iterator it = chainAtoms.begin(); it != chainAtoms.end(); ++it)
+      {
+        if (*it == *bat) {
+          in_chain = true;
+          break;
+        }
+      }
+      if (!in_chain) {
+        trace_chain( topIn, chainAtoms, *bat, idx+1, max );
+      }
+    }
+  }
+}
+  
+
+/** Given the index of an atom with a duplicated name and the index of the
+  * only other atom it is bonded to, trace the bonds back to the first atom
+  * that has multiple bonds. Try to rename the entire chain based on that
+  * original atom.
+  * \return 1 if the chain was renamed, false otherwise
+  */
+int Exec_FixAtomNames::fixChainedAtoms(Topology& topIn, int duplicateIdx, int bondedIdx, std::set<NameType> const& anames)
+const
+{
+  Iarray chainAtoms;
+  chainAtoms.push_back( duplicateIdx );
+  //chainAtoms.push_back( bondedIdx );
+  unsigned int idx = 0;
+  Residue const& res = topIn.Res( topIn[duplicateIdx].ResNum() );
+  trace_chain( topIn, chainAtoms, bondedIdx, idx, res.NumAtoms() );
+  mprintf("DEBUG: Bond chain:");
+  for (Iarray::const_iterator it = chainAtoms.begin(); it != chainAtoms.end(); it++)
+    mprintf(" %s", topIn.AtomMaskName(*it).c_str());
+  mprintf("\n");
+  // Use last atom in this chain as the "origin". See if we can make the chain numbering consistent.
+  Iarray::const_reverse_iterator rit = chainAtoms.rbegin();
+  AtomName originName;
+  originName.DissectName( topIn[*rit].Name() );
+  originName.PrintName("Origin name");
+  int terminalNumber = originName.TerminalNumber();
+  bool allNamesValid = false;
+  if (terminalNumber > -1) {
+    typedef std::vector< std::pair<int,NameType> > IdxNamePairArray;
+    IdxNamePairArray idxName;
+    ++rit;
+    allNamesValid = true;
+    for (; rit != chainAtoms.rend(); ++rit) {
+      AtomName chainName;
+      chainName.DissectName( topIn[*rit].Name() );
+      chainName.RemoveLeadingDigit();
+      chainName.SetTerminalNumber( terminalNumber, maxNameWidth_ );
+      chainName.PrintName("Proposed name");
+      NameType proposedName(chainName.NameString());
+      std::set<NameType>::const_iterator jt = anames.find( proposedName );
+      if (jt != anames.end()) {
+        mprintf("Warning: Proposed name already in use.\n");
+        allNamesValid = false;
+        break;
+      }
+      idxName.push_back( std::pair<int,NameType>(*rit, proposedName) );
+    }
+    // Actually change the names
+    if (allNamesValid) {
+      for (IdxNamePairArray::const_iterator kt = idxName.begin(); kt != idxName.end(); ++kt)
+        topIn.SetAtom(kt->first).SetName(kt->second);
+    }
+  }
+
+  if (allNamesValid)
+    return 1;
+
+  return 0;
+}
+
 /** Given an array of atom indices that share an atom name in a single
   * residue, determine one which is the "true" name and rename the
   * remaining ones with unique names.
@@ -276,10 +431,9 @@ const
   std::set<NameType> anames;
   for (int iat = res.FirstAtom(); iat != res.LastAtom(); iat++)
     anames.insert( topIn[iat].Name() );
-  // Try to prioritize one atom as the "true" atom, i.e. the atom
-  // whose name should not be changed.
-  std::vector<DupAtom> atoms;
+
   // Loop over all atoms with the same name
+  std::vector<DupAtom> atoms;
   for (Iarray::const_iterator it = Indexes.begin(); it != Indexes.end(); ++it)
   {
     // Calculate the weight of all bonded atoms
@@ -288,6 +442,41 @@ const
       wt += topIn[*bat].AtomicNumber();
     atoms.push_back( DupAtom(*it, wt) );
   }
+
+  // If only bonded to one other atom, see if one of the atoms number
+  // prefix (if present) matches its bonded atoms prefix.
+  int nChainsRenamed = 0;
+  for (std::vector<DupAtom>::const_iterator it = atoms.begin(); it != atoms.end(); ++it)
+  {
+    Atom const& currentAtom = topIn[it->Idx()];
+    if (currentAtom.Nbonds() == 1) {
+      if (fixChainedAtoms(topIn, it->Idx(), currentAtom.Bond(0), anames))
+        nChainsRenamed++;
+    }
+  }
+  if (nChainsRenamed > 0) {
+    mprintf("\t%i atom chains were renamed.\n", nChainsRenamed);
+    // Do we still have name clashes?
+    std::vector<DupAtom> newAtoms;
+    for (std::vector<DupAtom>::const_iterator it = atoms.begin(); it != atoms.end(); ++it)
+    {
+      std::set<NameType>::const_iterator jt = anames.find( topIn[it->Idx()].Name() );
+      if (jt != anames.end())
+        // Still duplicated
+        newAtoms.push_back( *it );
+      else
+        // Not duplicated
+        anames.insert( topIn[it->Idx()].Name() );
+    }
+    atoms = newAtoms;
+  }
+  if (atoms.empty()) {
+    mprintf("\tAll name clashes resolved.\n");
+    return 0;
+  }
+
+  // Try to prioritize one atom as the "true" atom, i.e. the atom
+  // whose name should not be changed.
   // Sort by 1) weight of all bonded atoms 2) topology index
   std::sort( atoms.begin(), atoms.end() );
 
@@ -325,13 +514,20 @@ const
         // Can we resolve the clash by making this number match the bonded atom number?
         if (currentName.MakeTerminalNumbersMatch( bondedName )) {
           currentName.PrintName("Proposed name");
-          NameType proposedName( currentName.NameString() );
-          std::set<NameType>::const_iterator jt = anames.find( proposedName );
-          if (jt == anames.end()) {
-            // The proposed name is free.
-            mprintf("\t  Changing %s to match bonded atom number.\n", topIn.AtomMaskName(it->Idx()).c_str());
-            topIn.SetAtom(it->Idx()).SetName( proposedName );
-            keepName[it - atoms.begin()] = true;
+          std::string currentNameStr = currentName.NameString();
+          if (currentNameStr.size() > (unsigned int)maxNameWidth_) {
+            mprintf("Warning: Proposed name '%s' is larger than max name width %i\n", currentNameStr.c_str(), maxNameWidth_);
+            //fixChainedAtoms(topIn, it->Idx(), currentAtom.Bond(0), anames);
+          } else {
+            NameType proposedName( currentName.NameString() );
+            std::set<NameType>::const_iterator jt = anames.find( proposedName );
+            if (jt == anames.end()) {
+              // The proposed name is free.
+              mprintf("\t  Changing %s to match bonded atom number.\n", topIn.AtomMaskName(it->Idx()).c_str());
+              topIn.SetAtom(it->Idx()).SetName( proposedName );
+              keepName[it - atoms.begin()] = true;
+            } else
+              mprintf("Warning: Proposed name '%s' is already in use.\n", currentNameStr.c_str());
           }
         }
       }
@@ -380,7 +576,7 @@ const
   // Try to increment the name until we do not get a clash
   bool tryNewNames = true;
   while (tryNewNames) {
-    if (duplicateName.IncrementName(4) != 0) {
+    if (duplicateName.IncrementName(maxNameWidth_) != 0) {
       mprinterr("Error: Ran out of names to increment for %s.\n", topIn.AtomMaskName(duplicateIdx).c_str());
       return 1;
     }
