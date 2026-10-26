@@ -43,6 +43,7 @@ class Exec_FixAtomNames : public Exec {
     };
     /// Hold all parts that make up an atom name
     class AtomName {
+        typedef std::vector<NameToken> NameTokenArray;
       public:
         AtomName() {}
         //void AddToken(NameToken const& n) { tokens_.push_back( n ); }
@@ -52,8 +53,24 @@ class Exec_FixAtomNames : public Exec {
         int NameWidth() const;
         /// Naively increment the name
         int IncrementName(int);
+        /// \return True if both atoms have a terminal number and the numbers match
+        bool TerminalNumbersMatch(AtomName const& rhs) const {
+          NameTokenArray::const_reverse_iterator rit1 = tokens_.rbegin();
+          while (rit1 != tokens_.rend()) {
+            if (rit1->TokenType() == NameToken::INT) break;
+            ++rit1;
+          }
+          if (rit1 == tokens_.rend()) return false;
+          NameTokenArray::const_reverse_iterator rit2 = rhs.tokens_.rbegin();
+          while (rit2 != rhs.tokens_.rend()) {
+            if (rit2->TokenType() == NameToken::INT) break;
+            ++rit2;
+          }
+          if (rit2 == rhs.tokens_.rend()) return false;
+          // At this point we know both names have a terminal digit.
+          return (rit1->Ival() == rit2->Ival());
+        }
       private:
-        typedef std::vector<NameToken> NameTokenArray;
         NameTokenArray tokens_;
     };
     /// Hold info for a duplicated atom

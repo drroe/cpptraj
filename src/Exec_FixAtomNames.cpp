@@ -297,6 +297,9 @@ const
         if (bondedName.DissectName( topIn[currentAtom.Bond(0)].Name() )) return 1;
         currentName.PrintName();
         bondedName.PrintName();
+        if (currentName.TerminalNumbersMatch( bondedName )) {
+          mprintf("DEBUG: Terminal numbers match.\n");
+        }
       }
     }
   }
