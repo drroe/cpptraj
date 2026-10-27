@@ -351,6 +351,50 @@ int Exec_FixAtomNames::findDuplicatesInResidue(Topology const& currentTop, int r
   return 0;
 }
 
+/** Given the index of an atom with a duplicated name and the index of
+  * an atom it is bonded to, see if we can resolve the clash by
+  * making the terminal number match. This will only work if the atom
+  * is the only one of its kind bonded to the bond atom.
+  */
+int Exec_FixAtomNames::MakeTerminalNumberMatch(Topology& topIn, int atomIdx, int bondedIdx, std::set<NameType>& anames,
+                                               AtomName& currentName, AtomName const& bondedName)
+const
+{
+  Atom const& currentAtom = topIn[atomIdx];
+  Atom const& bondedAtom = topIn[bondedIdx];
+
+  mprintf("\tDuplicated Atom %s, bonded atom %s\n", topIn.AtomMaskName(atomIdx).c_str(), topIn.AtomMaskName(bondedIdx).c_str());
+  int eltCount = 0;
+  for (Atom::bond_iterator bat = bondedAtom.bondbegin(); bat != bondedAtom.bondend(); ++bat)
+    if (topIn[*bat].Element() == currentAtom.Element())
+      eltCount++;
+  mprintf("\tElt count: %i\n", eltCount);
+  if (eltCount > 1) return 0;
+
+  int nameChanged = 0;
+  if (currentName.MakeTerminalNumbersMatch( bondedName )) {
+    currentName.PrintName("Proposed name");
+    std::string currentNameStr = currentName.NameString();
+    if (currentNameStr.size() > (unsigned int)maxNameWidth_) {
+      mprintf("Warning: Proposed name '%s' is larger than max name width %i\n", currentNameStr.c_str(), maxNameWidth_);
+      //fixChainedAtoms(topIn, it->Idx(), currentAtom.Bond(0), anames);
+    } else {
+      NameType proposedName( currentName.NameString() );
+      std::set<NameType>::const_iterator jt = anames.find( proposedName );
+      if (jt == anames.end()) {
+        // The proposed name is free.
+        mprintf("\t  Changing %s to match bonded atom number.\n", topIn.AtomMaskName(atomIdx).c_str());
+        topIn.SetAtom(atomIdx).SetName( proposedName );
+        //keepName[it - atoms.begin()] = true;
+        nameChanged = 1;
+        anames.insert( proposedName );
+      } else
+        mprintf("Warning: Proposed name '%s' is already in use.\n", currentNameStr.c_str());
+    }
+  }
+  return nameChanged;
+}
+
 /** Given the index of an atom with hydrogens bonded to it, 
   * rename based off the current atom name. 
   */
@@ -587,7 +631,7 @@ const
   }
 
   // ---------------------------------------------
-  // Special case - see if these are hydrogens that need to be renamed.
+  // Special case - see if these are hydrogens bonded to a common atom.
   if ( topIn[atoms.front().Idx()].Element() == Atom::HYDROGEN ) {
     int bondedIdx = -1;
     for (std::vector<DupAtom>::const_iterator it = atoms.begin(); it != atoms.end(); ++it)
@@ -642,7 +686,8 @@ const
       currentName.PrintName("Current Name");
       bondedName.PrintName("Bonded Name");
       if (currentName.TerminalNumbersMatch( bondedName )) {
-        // Only need to do this if we do not already have a "true" atom
+        // Terminal numbers match. If we do not already have a "true" atom,
+        // make it this one.
         if (!have_trueAtom) {
           mprintf("DEBUG: Terminal numbers match.\n");
           if (numMatchIdx != -1) {
@@ -655,26 +700,11 @@ const
         }
       } else {
         // Can we resolve the clash by making this number match the bonded atom number?
-        if (currentName.MakeTerminalNumbersMatch( bondedName )) {
-          currentName.PrintName("Proposed name");
-          std::string currentNameStr = currentName.NameString();
-          if (currentNameStr.size() > (unsigned int)maxNameWidth_) {
-            mprintf("Warning: Proposed name '%s' is larger than max name width %i\n", currentNameStr.c_str(), maxNameWidth_);
-            //fixChainedAtoms(topIn, it->Idx(), currentAtom.Bond(0), anames);
-          } else {
-            NameType proposedName( currentName.NameString() );
-            std::set<NameType>::const_iterator jt = anames.find( proposedName );
-            if (jt == anames.end()) {
-              // The proposed name is free.
-              mprintf("\t  Changing %s to match bonded atom number.\n", topIn.AtomMaskName(it->Idx()).c_str());
-              topIn.SetAtom(it->Idx()).SetName( proposedName );
-              keepName[it - atoms.begin()] = true;
-            } else
-              mprintf("Warning: Proposed name '%s' is already in use.\n", currentNameStr.c_str());
-          }
+        if (MakeTerminalNumberMatch(topIn, it->Idx(), currentAtom.Bond(0), anames, currentName, bondedName)) {
+          keepName[it - atoms.begin()] = true;
         }
       }
-    }
+    } // END atom has one bond
   } // END loop over duplicated atoms
   if (numMatchIdx != -1) {
     keepName[numMatchIdx] = true;
@@ -699,7 +729,7 @@ const
         mprinterr("Error: Could not fix atom %s by name increment.\n", topIn.AtomMaskName(it->Idx()).c_str());
         return 1;
       }
-      // Was this a methyl? If so, rename.
+      // If this was not a hydrogen, it may have bonded hydrogens that need to be renamed.
       if (topIn[it->Idx()].Element() != Atom::HYDROGEN) {
         RenameBondedHydrogens(topIn, it->Idx(), anames);
       }
@@ -708,8 +738,8 @@ const
   return 0;
 }
 
-/** Given the index of an atom that has a duplicated name in a reside, change
-  * it to a unique name in that residue.
+/** Given the index of an atom that has a duplicated name in a residue, change
+  * it to a unique name in that residue by incrementing any terminal number.
   */
 int Exec_FixAtomNames::fixDuplicateByIncrement(Topology& topIn, int duplicateIdx, std::set<NameType>& anames)
 const
