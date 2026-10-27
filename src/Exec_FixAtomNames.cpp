@@ -339,7 +339,7 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
 /** Given the index of an atom with hydrogens bonded to it, 
   * rename based off the current atom name. 
   */
-int Exec_FixAtomNames::RenameBondedHydrogens(Topology& topIn, int heavyIdx, std::set<NameType> const& anames)
+int Exec_FixAtomNames::RenameBondedHydrogens(Topology& topIn, int heavyIdx, std::set<NameType>& anames)
 const
 {
   Iarray hydrogenAtoms;
@@ -392,8 +392,10 @@ const
   }
   // Actually change the names
   if (allNamesValid) {
-    for (IdxNamePairArray::const_iterator kt = idxName.begin(); kt != idxName.end(); ++kt)
+    for (IdxNamePairArray::const_iterator kt = idxName.begin(); kt != idxName.end(); ++kt) {
       topIn.SetAtom(kt->first).SetName(kt->second);
+      anames.insert( kt->second );
+    }
   }
   
   if (allNamesValid)
@@ -682,7 +684,7 @@ const
         return 1;
       }
       // Was this a methyl? If so, rename.
-      if (topIn[it->Idx()].Nbonds() == 4) {
+      if (topIn[it->Idx()].Element() != Atom::HYDROGEN) {
         RenameBondedHydrogens(topIn, it->Idx(), anames);
       }
     }
@@ -693,7 +695,7 @@ const
 /** Given the index of an atom that has a duplicated name in a reside, change
   * it to a unique name in that residue.
   */
-int Exec_FixAtomNames::fixDuplicateByIncrement(Topology& topIn, int duplicateIdx, std::set<NameType> const& anames)
+int Exec_FixAtomNames::fixDuplicateByIncrement(Topology& topIn, int duplicateIdx, std::set<NameType>& anames)
 const
 {
   // Dissect this name.
@@ -716,6 +718,7 @@ const
       mprintf("\t New name: %s\n", *newName);
       topIn.SetAtom(duplicateIdx).SetName( newName );
       tryNewNames = false;
+      anames.insert( newName );
     } else
       mprintf("\tName %s already exists.\n", *newName);
   }

@@ -152,13 +152,13 @@ class Exec_FixAtomNames : public Exec {
 
     static inline NameToken::Type get_type(char);
 
-    int fixDuplicateByIncrement(Topology&, int, std::set<NameType> const&) const;
+    int fixDuplicateByIncrement(Topology&, int, std::set<NameType>&) const;
 
     int fixDuplicateSet(Topology&, Iarray const&, int) const;
 
     int fixChainedAtoms(Topology&, int, int, std::set<NameType> const&) const;
 
-    int RenameBondedHydrogens(Topology&, int, std::set<NameType> const&) const;
+    int RenameBondedHydrogens(Topology&, int, std::set<NameType>&) const;
 
     static const int maxNameWidth_;
     DuplicateMap duplicateMap_; ///< Hold atom names and indices for the current residue being fixed
