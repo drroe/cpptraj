@@ -336,27 +336,25 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
   return CpptrajState::OK;
 }
 
-/** Given the index of an atom with a duplicated name and the index of
-  * another atom it is bonded to that has 4 bonds (likely methyl),
-  * determine if all atoms bonded to the potential methyl are hydrogen
-  * and rename accordingly.
+/** Given the index of an atom with hydrogens bonded to it, 
+  * rename based off the current atom name. 
   */
-int Exec_FixAtomNames::fixMethylNaming(Topology& topIn, int methylIdx, std::set<NameType> const& anames)
+int Exec_FixAtomNames::RenameBondedHydrogens(Topology& topIn, int heavyIdx, std::set<NameType> const& anames)
 const
 {
-  Iarray methylAtoms;
-  Atom const& methylAtom = topIn[methylIdx];
-  for (Atom::bond_iterator bat = methylAtom.bondbegin(); bat != methylAtom.bondend(); ++bat)
+  Iarray hydrogenAtoms;
+  Atom const& heavyAtom = topIn[heavyIdx];
+  for (Atom::bond_iterator bat = heavyAtom.bondbegin(); bat != heavyAtom.bondend(); ++bat)
   {
     if (topIn[*bat].Element() == Atom::HYDROGEN)
-      methylAtoms.push_back( *bat );
+      hydrogenAtoms.push_back( *bat );
   }
-  AtomName methylName;
-  methylName.DissectName( methylAtom.Name() );
-  methylName.PrintName("Methyl name");
-  int terminalNumber = methylName.TerminalNumber();
+  AtomName heavyName;
+  heavyName.DissectName( heavyAtom.Name() );
+  heavyName.PrintName("Heavy atom name");
+  int terminalNumber = heavyName.TerminalNumber();
   std::string prime("");
-  if (methylName.HasPrime())
+  if (heavyName.HasPrime())
     prime.assign("'");
   bool allNamesValid = false;
   if (terminalNumber > -1) {
@@ -366,14 +364,14 @@ const
     int idx = 1;
     // PDB V2 convention is to put the index first, e.g. 1H5
     // PDB V3 convention is to put the index last, e.g. H51
-    for (Iarray::const_iterator it = methylAtoms.begin(); it != methylAtoms.end(); ++it, idx++) {
+    for (Iarray::const_iterator it = hydrogenAtoms.begin(); it != hydrogenAtoms.end(); ++it, idx++) {
       std::string newNameStr( "H" + integerToString(terminalNumber) + prime + integerToString(idx) );
       if (newNameStr.size() > (unsigned int)maxNameWidth_) {
         allNamesValid = false;
         break;
       } else {
         NameType proposedName(newNameStr);
-        mprintf("\tProposed methyl H name %s\n", *proposedName);
+        mprintf("\tProposed bonded H name %s\n", *proposedName);
         std::set<NameType>::const_iterator jt = anames.find( proposedName );
         if (jt != anames.end()) {
           mprintf("Warning: Proposed name already in use.\n");
@@ -677,7 +675,7 @@ const
       }
       // Was this a methyl? If so, rename.
       if (topIn[it->Idx()].Nbonds() == 4) {
-        fixMethylNaming(topIn, it->Idx(), anames);
+        RenameBondedHydrogens(topIn, it->Idx(), anames);
       }
     }
   }

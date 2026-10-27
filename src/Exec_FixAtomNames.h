@@ -158,7 +158,7 @@ class Exec_FixAtomNames : public Exec {
 
     int fixChainedAtoms(Topology&, int, int, std::set<NameType> const&) const;
 
-    int fixMethylNaming(Topology&, int, std::set<NameType> const&) const;
+    int RenameBondedHydrogens(Topology&, int, std::set<NameType> const&) const;
 
     static const int maxNameWidth_;
     DuplicateMap duplicateMap_; ///< Hold atom names and indices for the current residue being fixed
