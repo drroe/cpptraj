@@ -336,29 +336,6 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
   return CpptrajState::OK;
 }
 
-static inline void trace_chain(Topology const& topIn, std::vector<int>& chainAtoms, int currentIdx, unsigned int idx, unsigned int max)
-{
-  if (idx >= max) return;
-
-  chainAtoms.push_back( currentIdx );
-  if (topIn[currentIdx].Nbonds() < 3) {
-    for (Atom::bond_iterator bat = topIn[currentIdx].bondbegin(); bat != topIn[currentIdx].bondend(); ++bat)
-    {
-      bool in_chain = false;
-      for (std::vector<int>::const_iterator it = chainAtoms.begin(); it != chainAtoms.end(); ++it)
-      {
-        if (*it == *bat) {
-          in_chain = true;
-          break;
-        }
-      }
-      if (!in_chain) {
-        trace_chain( topIn, chainAtoms, *bat, idx+1, max );
-      }
-    }
-  }
-}
-
 /** Given the index of an atom with a duplicated name and the index of
   * another atom it is bonded to that has 4 bonds (likely methyl),
   * determine if all atoms bonded to the potential methyl are hydrogen
@@ -378,14 +355,19 @@ const
   methylName.DissectName( methylAtom.Name() );
   methylName.PrintName("Methyl name");
   int terminalNumber = methylName.TerminalNumber();
+  std::string prime("");
+  if (methylName.HasPrime())
+    prime.assign("'");
   bool allNamesValid = false;
   if (terminalNumber > -1) {
     typedef std::vector< std::pair<int,NameType> > IdxNamePairArray;
     IdxNamePairArray idxName;
     allNamesValid = true;
     int idx = 1;
+    // PDB V2 convention is to put the index first, e.g. 1H5
+    // PDB V3 convention is to put the index last, e.g. H51
     for (Iarray::const_iterator it = methylAtoms.begin(); it != methylAtoms.end(); ++it, idx++) {
-      std::string newNameStr( integerToString(idx) + "H" + integerToString(terminalNumber) );
+      std::string newNameStr( "H" + integerToString(terminalNumber) + prime + integerToString(idx) );
       if (newNameStr.size() > (unsigned int)maxNameWidth_) {
         allNamesValid = false;
         break;
@@ -411,6 +393,30 @@ const
   if (allNamesValid)
     return 1;
   return 0;
+}
+
+/// Recursive function to trace an atom back through single bonds to a branched atom
+static inline void trace_chain(Topology const& topIn, std::vector<int>& chainAtoms, int currentIdx, unsigned int idx, unsigned int max)
+{
+  if (idx >= max) return;
+
+  chainAtoms.push_back( currentIdx );
+  if (topIn[currentIdx].Nbonds() < 3) {
+    for (Atom::bond_iterator bat = topIn[currentIdx].bondbegin(); bat != topIn[currentIdx].bondend(); ++bat)
+    {
+      bool in_chain = false;
+      for (std::vector<int>::const_iterator it = chainAtoms.begin(); it != chainAtoms.end(); ++it)
+      {
+        if (*it == *bat) {
+          in_chain = true;
+          break;
+        }
+      }
+      if (!in_chain) {
+        trace_chain( topIn, chainAtoms, *bat, idx+1, max );
+      }
+    }
+  }
 }
 
 /** Given the index of an atom with a duplicated name and the index of the
@@ -500,13 +506,21 @@ const
   std::vector<DupAtom> atoms;
   for (Iarray::const_iterator it = Indexes.begin(); it != Indexes.end(); ++it)
   {
-    // Calculate the weight of all bonded atoms
-    int wt = 0;
-    for (Atom::bond_iterator bat = topIn[*it].bondbegin(); bat != topIn[*it].bondend(); ++bat)
-      wt += topIn[*bat].AtomicNumber();
-    atoms.push_back( DupAtom(*it, wt) );
+    Atom const& currentAtom = topIn[*it];
+    std::map<NameType, int>::const_iterator jt = nameCount.find( currentAtom.Name() );
+    mprintf("Potential duplicate: %s (%i times)\n", topIn.AtomMaskName(*it).c_str(), jt->second);
+    if (jt->second < 2)
+      mprintf("\tAtom %s no longer has a duplicated name.\n", topIn.AtomMaskName(*it).c_str());
+    else {
+      // Calculate the weight of all bonded atoms
+      int wt = 0;
+      for (Atom::bond_iterator bat = currentAtom.bondbegin(); bat != currentAtom.bondend(); ++bat)
+        wt += topIn[*bat].AtomicNumber();
+      atoms.push_back( DupAtom(*it, wt) );
+    }
   }
-
+  if (atoms.size() < 2)
+    mprintf("\tNo more duplicates.\n");
 /*
   // If only bonded to one other atom, see if this is a methyl group and
   // try to rename accordingly.

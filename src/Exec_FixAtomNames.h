@@ -64,6 +64,12 @@ class Exec_FixAtomNames : public Exec {
           if (rit1 == tokens_.rend()) return -1;
           return rit1->Ival();
         }
+        /// \return true if name contains a prime (')
+        bool HasPrime() const {
+          for (NameTokenArray::const_iterator it1 = tokens_.begin(); it1 != tokens_.end(); ++it1)
+            if (it1->TokenType() == NameToken::OTHER && it1->Sval() == "'") return true;
+          return false;
+        }
         /// Remove any leading digits
         int RemoveLeadingDigit();
         /// Set or add a terminal number
