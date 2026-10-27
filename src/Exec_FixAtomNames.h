@@ -152,6 +152,8 @@ class Exec_FixAtomNames : public Exec {
 
     static inline NameToken::Type get_type(char);
 
+    int findDuplicatesInResidue(Topology const&, int);
+
     int fixDuplicateByIncrement(Topology&, int, std::set<NameType>&) const;
 
     int fixDuplicateSet(Topology&, Iarray const&, int) const;
