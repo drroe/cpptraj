@@ -358,7 +358,60 @@ static inline void trace_chain(Topology const& topIn, std::vector<int>& chainAto
     }
   }
 }
-  
+
+/** Given the index of an atom with a duplicated name and the index of
+  * another atom it is bonded to that has 4 bonds (likely methyl),
+  * determine if all atoms bonded to the potential methyl are hydrogen
+  * and rename accordingly.
+  */
+int Exec_FixAtomNames::fixMethylNaming(Topology& topIn, int methylIdx, std::set<NameType> const& anames)
+const
+{
+  Iarray methylAtoms;
+  Atom const& methylAtom = topIn[methylIdx];
+  for (Atom::bond_iterator bat = methylAtom.bondbegin(); bat != methylAtom.bondend(); ++bat)
+  {
+    if (topIn[*bat].Element() == Atom::HYDROGEN)
+      methylAtoms.push_back( *bat );
+  }
+  AtomName methylName;
+  methylName.DissectName( methylAtom.Name() );
+  methylName.PrintName("Methyl name");
+  int terminalNumber = methylName.TerminalNumber();
+  bool allNamesValid = false;
+  if (terminalNumber > -1) {
+    typedef std::vector< std::pair<int,NameType> > IdxNamePairArray;
+    IdxNamePairArray idxName;
+    allNamesValid = true;
+    int idx = 1;
+    for (Iarray::const_iterator it = methylAtoms.begin(); it != methylAtoms.end(); ++it, idx++) {
+      std::string newNameStr( integerToString(idx) + "H" + integerToString(terminalNumber) );
+      if (newNameStr.size() > (unsigned int)maxNameWidth_) {
+        allNamesValid = false;
+        break;
+      } else {
+        NameType proposedName(newNameStr);
+        mprintf("\tProposed methyl H name %s\n", *proposedName);
+        std::set<NameType>::const_iterator jt = anames.find( proposedName );
+        if (jt != anames.end()) {
+          mprintf("Warning: Proposed name already in use.\n");
+          allNamesValid = false;
+          break;
+        }
+        idxName.push_back( std::pair<int,NameType>(*it, proposedName) );
+      }
+    }
+    // Actually change the names
+    if (allNamesValid) {
+      for (IdxNamePairArray::const_iterator kt = idxName.begin(); kt != idxName.end(); ++kt)
+        topIn.SetAtom(kt->first).SetName(kt->second);
+    }
+  }
+
+  if (allNamesValid)
+    return 1;
+  return 0;
+}
 
 /** Given the index of an atom with a duplicated name and the index of the
   * only other atom it is bonded to, trace the bonds back to the first atom
@@ -432,6 +485,17 @@ const
   for (int iat = res.FirstAtom(); iat != res.LastAtom(); iat++)
     anames.insert( topIn[iat].Name() );
 
+  // It is possible that a previous iteration has resolved some name clashes. Check here.
+  std::map<NameType, int> nameCount;
+  for (Iarray::const_iterator it = Indexes.begin(); it != Indexes.end(); ++it)
+  {
+    std::map<NameType, int>::iterator jt = nameCount.find( topIn[*it].Name() );
+    if (jt == nameCount.end())
+      nameCount.insert( std::pair<NameType, int>(topIn[*it].Name(), 1) );
+    else
+      jt->second++;
+  }
+
   // Loop over all atoms with the same name
   std::vector<DupAtom> atoms;
   for (Iarray::const_iterator it = Indexes.begin(); it != Indexes.end(); ++it)
@@ -443,6 +507,43 @@ const
     atoms.push_back( DupAtom(*it, wt) );
   }
 
+/*
+  // If only bonded to one other atom, see if this is a methyl group and
+  // try to rename accordingly.
+  int nMethylsRenamed = 0;
+  for (std::vector<DupAtom>::const_iterator it = atoms.begin(); it != atoms.end(); ++it)
+  {
+    Atom const& currentAtom = topIn[it->Idx()];
+    if (currentAtom.Nbonds() == 1) {
+      Atom const& bondedAtom = topIn[currentAtom.Bond(0)];
+      if (bondedAtom.Nbonds() == 4) {
+        if (fixMethylNaming(topIn, currentAtom.Bond(0), anames))
+          nMethylsRenamed++;
+      }
+    }
+  }
+  if (nMethylsRenamed > 0) {
+    mprintf("\t%i methyl groups were renamed.\n", nMethylsRenamed);
+    // Do we still have name clashes?
+    std::vector<DupAtom> newAtoms = getDuplicatedAtoms(atoms, topIn, anames);
+//    for (std::vector<DupAtom>::const_iterator it = atoms.begin(); it != atoms.end(); ++it)
+//    {
+//      std::set<NameType>::const_iterator jt = anames.find( topIn[it->Idx()].Name() );
+//      if (jt != anames.end())
+//        // Still duplicated
+//        newAtoms.push_back( *it );
+//      else
+//        // Not duplicated
+//        anames.insert( topIn[it->Idx()].Name() );
+//    }
+    atoms = newAtoms;
+  }
+  if (atoms.empty()) {
+    mprintf("\tAll name clashes resolved.\n");
+    return 0;
+  }
+*/
+
   // If only bonded to one other atom, see if one of the atoms number
   // prefix (if present) matches its bonded atoms prefix.
   int nChainsRenamed = 0;
@@ -450,13 +551,17 @@ const
   {
     Atom const& currentAtom = topIn[it->Idx()];
     if (currentAtom.Nbonds() == 1) {
-      if (fixChainedAtoms(topIn, it->Idx(), currentAtom.Bond(0), anames))
-        nChainsRenamed++;
+      Atom const& bondedAtom = topIn[currentAtom.Bond(0)];
+      if (bondedAtom.Nbonds() < 3) {
+        if (fixChainedAtoms(topIn, it->Idx(), currentAtom.Bond(0), anames))
+          nChainsRenamed++;
+      }
     }
   }
   if (nChainsRenamed > 0) {
     mprintf("\t%i atom chains were renamed.\n", nChainsRenamed);
     // Do we still have name clashes?
+//    std::vector<DupAtom> newAtoms = getDuplicatedAtoms(atoms, topIn, anames);
     std::vector<DupAtom> newAtoms;
     for (std::vector<DupAtom>::const_iterator it = atoms.begin(); it != atoms.end(); ++it)
     {
@@ -470,7 +575,7 @@ const
     }
     atoms = newAtoms;
   }
-  if (atoms.empty()) {
+  if (atoms.size() < 2) {
     mprintf("\tAll name clashes resolved.\n");
     return 0;
   }
@@ -555,6 +660,10 @@ const
       if (fixDuplicateByIncrement(topIn, it->Idx(), anames)) {
         mprinterr("Error: Could not fix atom %s by name increment.\n", topIn.AtomMaskName(it->Idx()).c_str());
         return 1;
+      }
+      // Was this a methyl? If so, rename.
+      if (topIn[it->Idx()].Nbonds() == 4) {
+        fixMethylNaming(topIn, it->Idx(), anames);
       }
     }
   }
