@@ -349,45 +349,53 @@ const
     if (topIn[*bat].Element() == Atom::HYDROGEN)
       hydrogenAtoms.push_back( *bat );
   }
+  if (hydrogenAtoms.empty()) return 0;
+  // Dissect the heavy atom name, determine if it has a prime
   AtomName heavyName;
   heavyName.DissectName( heavyAtom.Name() );
   heavyName.PrintName("Heavy atom name");
+  std::string suffix("");
   int terminalNumber = heavyName.TerminalNumber();
-  std::string prime("");
+  if (terminalNumber > -1)
+    suffix = integerToString(terminalNumber);
   if (heavyName.HasPrime())
-    prime.assign("'");
+    suffix.append("'");
+  // Loop over all bonded hydrogens and rename them
   bool allNamesValid = false;
-  if (terminalNumber > -1) {
-    typedef std::vector< std::pair<int,NameType> > IdxNamePairArray;
-    IdxNamePairArray idxName;
-    allNamesValid = true;
-    int idx = 1;
-    // PDB V2 convention is to put the index first, e.g. 1H5
-    // PDB V3 convention is to put the index last, e.g. H51
-    for (Iarray::const_iterator it = hydrogenAtoms.begin(); it != hydrogenAtoms.end(); ++it, idx++) {
-      std::string newNameStr( "H" + integerToString(terminalNumber) + prime + integerToString(idx) );
-      if (newNameStr.size() > (unsigned int)maxNameWidth_) {
+  typedef std::vector< std::pair<int,NameType> > IdxNamePairArray;
+  IdxNamePairArray idxName;
+  allNamesValid = true;
+  int idx = 1;
+  // PDB V2 convention is to put the index first, e.g. 1H5
+  // PDB V3 convention is to put the index last, e.g. H51
+  for (Iarray::const_iterator it = hydrogenAtoms.begin(); it != hydrogenAtoms.end(); ++it, idx++) {
+    std::string newNameStr;
+    if (hydrogenAtoms.size() == 1)
+      newNameStr.assign( "H" + suffix );
+    else
+      newNameStr.assign( "H" + suffix + integerToString(idx) );
+    if (newNameStr.size() > (unsigned int)maxNameWidth_) {
+      mprintf("Warning: New hydrogen name %s is too big.\n", newNameStr.c_str());
+      allNamesValid = false;
+      break;
+    } else {
+      NameType proposedName(newNameStr);
+      mprintf("\tProposed bonded H name %s\n", *proposedName);
+      std::set<NameType>::const_iterator jt = anames.find( proposedName );
+      if (jt != anames.end()) {
+        mprintf("Warning: Proposed name already in use.\n");
         allNamesValid = false;
         break;
-      } else {
-        NameType proposedName(newNameStr);
-        mprintf("\tProposed bonded H name %s\n", *proposedName);
-        std::set<NameType>::const_iterator jt = anames.find( proposedName );
-        if (jt != anames.end()) {
-          mprintf("Warning: Proposed name already in use.\n");
-          allNamesValid = false;
-          break;
-        }
-        idxName.push_back( std::pair<int,NameType>(*it, proposedName) );
       }
-    }
-    // Actually change the names
-    if (allNamesValid) {
-      for (IdxNamePairArray::const_iterator kt = idxName.begin(); kt != idxName.end(); ++kt)
-        topIn.SetAtom(kt->first).SetName(kt->second);
+      idxName.push_back( std::pair<int,NameType>(*it, proposedName) );
     }
   }
-
+  // Actually change the names
+  if (allNamesValid) {
+    for (IdxNamePairArray::const_iterator kt = idxName.begin(); kt != idxName.end(); ++kt)
+      topIn.SetAtom(kt->first).SetName(kt->second);
+  }
+  
   if (allNamesValid)
     return 1;
   return 0;
