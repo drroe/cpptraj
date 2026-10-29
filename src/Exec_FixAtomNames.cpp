@@ -471,7 +471,8 @@ const
   int terminalNumber = heavyName.TerminalNumber();
   if (terminalNumber > -1)
     suffix = integerToString(terminalNumber);
-  if (heavyName.HasPrime())
+  bool has_prime = heavyName.HasPrime();
+  if (has_prime)
     suffix.append("'");
   // Loop over all bonded hydrogens and rename them
   bool allNamesValid = false;
@@ -485,7 +486,10 @@ const
     std::string newNameStr;
     if (hydrogenAtoms.size() == 1)
       newNameStr.assign( "H" + suffix );
-    else
+    else if (hydrogenAtoms.size() == 2 && has_prime) {
+      newNameStr.assign( "H" + suffix );
+      suffix.append("'");
+    } else
       newNameStr.assign( "H" + suffix + integerToString(idx) );
     if (newNameStr.size() > (unsigned int)maxNameWidth_) {
       mprintf("Warning: New hydrogen name %s is too big.\n", newNameStr.c_str());
