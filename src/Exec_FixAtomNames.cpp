@@ -280,43 +280,42 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
   for (Iarray::const_iterator rnum = resnums.begin(); rnum != resnums.end(); ++rnum)
   {
     // Hold atom name and list of duplicated indices
-    findDuplicatesInResidue(currentTop, *rnum);
-
-    // Sort by priority
-    std::vector<DupName> duplicates;
-    for (DuplicateMap::const_iterator it = duplicateMap_.begin(); it != duplicateMap_.end(); ++it)
-    {
-      if (it->second.size() > 1) {
-        int wt;
-        if (currentTop[it->second.front()].Element() == Atom::CARBON)
-          wt = 9999;
-        else
-          wt = currentTop[it->second.front()].AtomicNumber();
-        duplicates.push_back( DupName(it->first, it->second, wt) );
+    if (findDuplicatesInResidue(currentTop, *rnum)) {
+      // Sort by priority
+      std::vector<DupName> duplicates;
+      for (DuplicateMap::const_iterator it = duplicateMap_.begin(); it != duplicateMap_.end(); ++it)
+      {
+        if (it->second.size() > 1) {
+          int wt;
+          if (currentTop[it->second.front()].Element() == Atom::CARBON)
+            wt = 9999;
+          else
+            wt = currentTop[it->second.front()].AtomicNumber();
+          duplicates.push_back( DupName(it->first, it->second, wt) );
+        }
       }
-    }
-    std::sort( duplicates.begin(), duplicates.end() );
-    // print all duplicates
-    for (std::vector<DupName>::const_iterator it = duplicates.begin(); it != duplicates.end(); ++it)
-    {
-      mprintf("\tDuplicated name: %s @%s, indices", currentTop.TruncResNameNum(*rnum).c_str(), *(it->aname_));
-      for (Iarray::const_iterator jt = it->idxs_.begin(); jt != it->idxs_.end(); ++jt)
-        mprintf(" %i", *jt + 1);
-        //mprintf(" %s", currentTop.AtomMaskName(*jt).c_str());
-      mprintf("\n");
-      if (fixDuplicateSet(*parm, it->idxs_, *rnum)) return CpptrajState::ERR;
-    }
-    // Sanity check
-    findDuplicatesInResidue(currentTop, *rnum);
-    bool duplicatesRemain = false;
-    for (DuplicateMap::const_iterator it = duplicateMap_.begin(); it != duplicateMap_.end(); ++it)
-    {
-      if (it->second.size() > 1) {
-        mprinterr("Error: %s is still duplicated (%i times)\n", *(it->first), it->second.size());
-        duplicatesRemain = true;
+      std::sort( duplicates.begin(), duplicates.end() );
+      // print all duplicates
+      for (std::vector<DupName>::const_iterator it = duplicates.begin(); it != duplicates.end(); ++it)
+      {
+        mprintf("\tDuplicated name: %s @%s, indices", currentTop.TruncResNameNum(*rnum).c_str(), *(it->aname_));
+        for (Iarray::const_iterator jt = it->idxs_.begin(); jt != it->idxs_.end(); ++jt)
+          mprintf(" %i", *jt + 1);
+          //mprintf(" %s", currentTop.AtomMaskName(*jt).c_str());
+        mprintf("\n");
+        if (fixDuplicateSet(*parm, it->idxs_, *rnum)) return CpptrajState::ERR;
       }
-    }
-    if (duplicatesRemain) return CpptrajState::ERR;
+      // Sanity check
+      if (findDuplicatesInResidue(currentTop, *rnum)) {
+        for (DuplicateMap::const_iterator it = duplicateMap_.begin(); it != duplicateMap_.end(); ++it)
+        {
+          if (it->second.size() > 1) {
+            mprinterr("Error: %s is still duplicated (%i times)\n", *(it->first), it->second.size());
+          }
+        }
+        return CpptrajState::ERR;
+      }
+    } // END residue has duplicates
     // DEBUG TEST dissect all names
 //    for (std::set<NameType>::const_iterator it = anames.begin(); it != anames.end(); ++it) {
 //      AtomName atomName;
@@ -332,6 +331,7 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
   */
 int Exec_FixAtomNames::findDuplicatesInResidue(Topology const& currentTop, int rnum)
 {
+  bool has_duplicates = false;
   // Hold atom name and list of duplicated indices
   duplicateMap_.clear();
   Residue const& res = currentTop.Res(rnum);
@@ -346,8 +346,10 @@ int Exec_FixAtomNames::findDuplicatesInResidue(Topology const& currentTop, int r
       mprintf("Warning: '%s': In residue %s duplicate atom name detected: %s\n",
               currentTop.c_str(), currentTop.TruncResNameNum(rnum).c_str(), *(currentTop[iat].Name()) );
       it->second.push_back( iat );
+      has_duplicates = true;
     }
   }
+  if (has_duplicates) return 1;
   return 0;
 }
 
