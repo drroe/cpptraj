@@ -164,6 +164,7 @@ class Exec_FixAtomNames : public Exec {
 
     int MakeTerminalNumberMatch(Topology&, int, int, std::set<NameType>&, AtomName&, AtomName const&) const;
 
+    int RenameAllHydrogens(Topology&, int);
 
     static const int maxNameWidth_;
     DuplicateMap duplicateMap_; ///< Hold atom names and indices for the current residue being fixed

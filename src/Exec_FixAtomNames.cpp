@@ -275,6 +275,11 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
   }
   mask.MaskInfo();
 
+  // Do we want to rename hydrogens
+  bool rename_hydrogens = argIn.hasKey("renameh");
+  if (rename_hydrogens)
+    mprintf("\tWill rename hydrogens after duplicates are resolved.\n");
+
   Iarray resnums = currentTop.ResnumsSelectedBy( mask );
 
   for (Iarray::const_iterator rnum = resnums.begin(); rnum != resnums.end(); ++rnum)
@@ -316,6 +321,12 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
         return CpptrajState::ERR;
       }
     } // END residue has duplicates
+    if (rename_hydrogens) {
+      if (RenameAllHydrogens(*parm, *rnum)) {
+        mprinterr("Error: Could not rename hydrogens in residue %s\n", currentTop.TruncResNameNum(*rnum).c_str());
+        return CpptrajState::ERR;
+      }
+    }
     // DEBUG TEST dissect all names
 //    for (std::set<NameType>::const_iterator it = anames.begin(); it != anames.end(); ++it) {
 //      AtomName atomName;
@@ -350,6 +361,47 @@ int Exec_FixAtomNames::findDuplicatesInResidue(Topology const& currentTop, int r
     }
   }
   if (has_duplicates) return 1;
+  return 0;
+}
+
+/** Try to rename all hydrogens in the specifed resdidue to the PDBV3 standard. */
+int Exec_FixAtomNames::RenameAllHydrogens(Topology& topIn, int rnum) {
+  // Create a set of current atom names in the residue. They will all be unique.
+  Residue const& res = topIn.Res(rnum);
+  std::set<NameType> anames;
+  for (int iat = res.FirstAtom(); iat != res.LastAtom(); iat++)
+    anames.insert( topIn[iat].Name() );
+
+  for (int iat = res.FirstAtom(); iat != res.LastAtom(); iat++)
+  {
+    Atom const& currentAtom = topIn[iat];
+    if (currentAtom.Element() != Atom::HYDROGEN) {
+      // Is this atom bonded to hydrogens?
+      bool has_h = false;
+      for (Atom::bond_iterator bat = currentAtom.bondbegin(); bat != currentAtom.bondend(); ++bat)
+      {
+        if (topIn[*bat].Element() == Atom::HYDROGEN) {
+          has_h = true;
+          break;
+        }
+      }
+      if (has_h) {
+        mprintf("\tRenaming hydrogens bonded to %s\n", topIn.AtomMaskName(iat).c_str());
+        if (RenameBondedHydrogens( topIn, iat, anames )) {
+          // We are not just adding hydrogen names, we may have taken some away.
+          // Just regenerate the atom name list.
+          anames.clear();
+          for (int iat = res.FirstAtom(); iat != res.LastAtom(); iat++)
+            anames.insert( topIn[iat].Name() );
+        }
+      }
+    } // END current element is not hydrogen
+  } // END loop over residue atoms
+  // Sanity check
+  if (findDuplicatesInResidue(topIn, rnum)) {
+    mprinterr("Error: Hydrogen renaming resulted in duplicate atoms.\n");
+    return 1;
+  }
   return 0;
 }
 
