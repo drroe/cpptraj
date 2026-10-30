@@ -11,6 +11,7 @@ ModXNA_Info::ModXNA_Info() {}
 ModXNA_Info::Sarray ModXNA_Info::atomNameList(std::string const& mheader, int& errval)
 {
   Sarray ListOut;
+  if (mheader.empty()) return ListOut;
   ArgList anames( mheader, "@," );
   for (int iarg = 0; iarg < anames.Nargs(); iarg++)
     ListOut.push_back( anames[iarg] );
@@ -25,6 +26,7 @@ ModXNA_Info::Sarray ModXNA_Info::atomNameList(std::string const& mheader, int& e
 ModXNA_Info::StatType ModXNA_Info::ParseModxnaStr(std::string const& line) {
   if (line.empty()) return NOT_MODXNA;
   ArgList args(line, ":");
+  //args.PrintDebug(); // DEBUG
 
   if (args.GetStringNext() != "modXNA-fragment") return NOT_MODXNA;
 
@@ -36,12 +38,12 @@ ModXNA_Info::StatType ModXNA_Info::ParseModxnaStr(std::string const& line) {
   fragmentName_ = args[1];
 
   int errval = 0;
-  if (args.Nargs() >= 4) head_ = atomNameList(args[3], errval);
-  if (args.Nargs() >= 6) headStrip_ = atomNameList(args[5], errval);
-  if (args.Nargs() >= 8) tail_ = atomNameList(args[7], errval);
-  if (args.Nargs() >= 10) tailStrip_ = atomNameList(args[9], errval);
-  if (args.Nargs() >= 12) anchor_ = atomNameList(args[11], errval);
-  if (args.Nargs() >= 14) anchorStrip_ = atomNameList(args[13], errval);
+  if (args.Nargs() >= 4) head_ = atomNameList(args.GetStringKey("HEAD01"), errval);
+  if (args.Nargs() >= 6) headStrip_ = atomNameList(args.GetStringKey("HEAD01STRIP"), errval);
+  if (args.Nargs() >= 8) tail_ = atomNameList(args.GetStringKey("TAIL01"), errval);
+  if (args.Nargs() >= 10) tailStrip_ = atomNameList(args.GetStringKey("TAIL01STRIP"), errval);
+  if (args.Nargs() >= 12) anchor_ = atomNameList(args.GetStringKey("HEAD03"), errval);
+  if (args.Nargs() >= 14) anchorStrip_ = atomNameList(args.GetStringKey("HEAD03STRIP"), errval);
 
   if (errval > 0) return ERR;
   return OK;
