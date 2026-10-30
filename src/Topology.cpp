@@ -761,11 +761,13 @@ int Topology::CommonSetup(bool molsearch, bool renumberResidues)
           SetupIntegerMask( tmpMask );
           if (debug_ > 0) tmpMask.MaskInfo(); // DEBUG
           if (tmpMask.Nselected() < 1) {
-            mprinterr("Error: ModXNA mask '%s' selects no atoms.\n",
-                      modxna_.AtomMaskString( (ModXNA_Info::MaskType)idx ).c_str());
+            mprintf("Warning: In ModXNA mask [%s], [%s] selects no atoms.\n",
+                      modxna_.AtomMaskString( (ModXNA_Info::MaskType)idx ).c_str(),
+                      tmpMask.MaskString());
           } else if (tmpMask.Nselected() > 1) {
-            mprinterr("Error: ModXNA mask '%s' selects more than one atom:\n",
-                       modxna_.AtomMaskString( (ModXNA_Info::MaskType)idx ).c_str());
+            mprinterr("Error: In ModXNA mask [%s], [%s] selects more than one atom:\n",
+                       modxna_.AtomMaskString( (ModXNA_Info::MaskType)idx ).c_str(),
+                       tmpMask.MaskString());
             for (AtomMask::const_iterator at = tmpMask.begin(); at != tmpMask.end(); ++at)
               mprintf("\t%s\n", AtomMaskName(*at).c_str());
           }
