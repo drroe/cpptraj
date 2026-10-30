@@ -405,6 +405,15 @@ int Exec_FixAtomNames::RenameAllHydrogens(Topology& topIn, int rnum) {
   return 0;
 }
 
+/** Change atom name to another atom name.
+  * If modxna info is present ensure the modxna header is changed as well.
+  */
+int Exec_FixAtomNames::change_aname(Topology& topIn, int atomIdx, NameType const& newName)
+{
+  topIn.SetAtom(atomIdx).SetName( newName );
+  return 0;
+}
+
 /** Given the index of an atom with a duplicated name and the index of
   * an atom it is bonded to, see if we can resolve the clash by
   * making the terminal number match. This will only work if the atom
@@ -438,7 +447,7 @@ const
       if (jt == anames.end()) {
         // The proposed name is free.
         mprintf("\t  Changing %s to match bonded atom number.\n", topIn.AtomMaskName(atomIdx).c_str());
-        topIn.SetAtom(atomIdx).SetName( proposedName );
+        change_aname( topIn, atomIdx, proposedName );
         //keepName[it - atoms.begin()] = true;
         nameChanged = 1;
         anames.insert( proposedName );
@@ -524,7 +533,7 @@ const
   // Actually change the names
   if (allNamesValid) {
     for (IdxNamePairArray::const_iterator kt = idxName.begin(); kt != idxName.end(); ++kt) {
-      topIn.SetAtom(kt->first).SetName(kt->second);
+      change_aname(topIn, kt->first, kt->second);
       anames.insert( kt->second );
     }
   }
@@ -607,7 +616,7 @@ const
     // Actually change the names
     if (allNamesValid) {
       for (IdxNamePairArray::const_iterator kt = idxName.begin(); kt != idxName.end(); ++kt)
-        topIn.SetAtom(kt->first).SetName(kt->second);
+        change_aname(topIn, kt->first, kt->second);
     }
   }
 
@@ -830,7 +839,7 @@ const
     if (it == anames.end()) {
       // Name is no longer duplicated!
       mprintf("\t New name: %s\n", *newName);
-      topIn.SetAtom(duplicateIdx).SetName( newName );
+      change_aname(topIn, duplicateIdx, newName);
       tryNewNames = false;
       anames.insert( newName );
     } else

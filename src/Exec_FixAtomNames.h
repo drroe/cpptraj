@@ -149,6 +149,7 @@ class Exec_FixAtomNames : public Exec {
         }
     };
         
+    static inline int change_aname(Topology&, int, NameType const&);
 
     static inline NameToken::Type get_type(char);
 
