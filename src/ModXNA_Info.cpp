@@ -38,12 +38,12 @@ ModXNA_Info::StatType ModXNA_Info::ParseModxnaStr(std::string const& line) {
   fragmentName_ = args[1];
 
   int errval = 0;
-  if (args.Nargs() >= 4) head_ = atomNameList(args.GetStringKey("HEAD01"), errval);
-  if (args.Nargs() >= 6) headStrip_ = atomNameList(args.GetStringKey("HEAD01STRIP"), errval);
-  if (args.Nargs() >= 8) tail_ = atomNameList(args.GetStringKey("TAIL01"), errval);
-  if (args.Nargs() >= 10) tailStrip_ = atomNameList(args.GetStringKey("TAIL01STRIP"), errval);
-  if (args.Nargs() >= 12) anchor_ = atomNameList(args.GetStringKey("HEAD03"), errval);
-  if (args.Nargs() >= 14) anchorStrip_ = atomNameList(args.GetStringKey("HEAD03STRIP"), errval);
+  head_ = atomNameList(args.GetStringKey("HEAD01"), errval);
+  headStrip_ = atomNameList(args.GetStringKey("HEAD01STRIP"), errval);
+  tail_ = atomNameList(args.GetStringKey("TAIL01"), errval);
+  tailStrip_ = atomNameList(args.GetStringKey("TAIL01STRIP"), errval);
+  anchor_ = atomNameList(args.GetStringKey("HEAD03"), errval);
+  anchorStrip_ = atomNameList(args.GetStringKey("HEAD03STRIP"), errval);
 
   if (errval > 0) return ERR;
   return OK;
