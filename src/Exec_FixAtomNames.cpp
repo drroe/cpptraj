@@ -338,6 +338,7 @@ Exec::RetType Exec_FixAtomNames::Execute(CpptrajState& State, ArgList& argIn)
   return CpptrajState::OK;
 }
 
+// ---------------------------------------------------------
 /** Create a count of atom names in a residue, look for duplicated names.
   */
 int Exec_FixAtomNames::findDuplicatesInResidue(Topology const& currentTop, int rnum)
@@ -410,6 +411,15 @@ int Exec_FixAtomNames::RenameAllHydrogens(Topology& topIn, int rnum) {
   */
 int Exec_FixAtomNames::change_aname(Topology& topIn, int atomIdx, NameType const& newName)
 {
+  // Check if the current name corresponds to a ModXNA mask.
+  if (topIn.Modxna().HasModxna()) {
+    int mtype = topIn.Modxna().FindMaskWithAtom( topIn[atomIdx].Name().Truncated() );
+    if (mtype > -1)
+      mprintf("Warning: Old atom name '%s' is in ModXNA mask %s %s ; may need to update ModXNA header.\n",
+              *(topIn[atomIdx].Name()),
+              topIn.Modxna().maskTypeStr( (ModXNA_Info::MaskType)mtype ),
+              topIn.Modxna().AtomMaskString( (ModXNA_Info::MaskType)mtype ).c_str());
+  }
   topIn.SetAtom(atomIdx).SetName( newName );
   return 0;
 }

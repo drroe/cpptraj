@@ -761,15 +761,17 @@ int Topology::CommonSetup(bool molsearch, bool renumberResidues)
           SetupIntegerMask( tmpMask );
           if (debug_ > 0) tmpMask.MaskInfo(); // DEBUG
           if (tmpMask.Nselected() < 1) {
-            mprintf("Warning: In ModXNA mask [%s], [%s] selects no atoms.\n",
-                      modxna_.AtomMaskString( (ModXNA_Info::MaskType)idx ).c_str(),
-                      tmpMask.MaskString());
+            mprintf("Warning: In ModXNA mask %s [%s], [%s] selects no atoms.\n",
+                     ModXNA_Info::maskTypeStr( (ModXNA_Info::MaskType)idx ),
+                     modxna_.AtomMaskString( (ModXNA_Info::MaskType)idx ).c_str(),
+                     tmpMask.MaskString());
           } else if (tmpMask.Nselected() > 1) {
-            mprinterr("Error: In ModXNA mask [%s], [%s] selects more than one atom:\n",
+            mprinterr("Error: In ModXNA mask %s [%s], [%s] selects more than one atom:\n",
+                       ModXNA_Info::maskTypeStr( (ModXNA_Info::MaskType)idx ),
                        modxna_.AtomMaskString( (ModXNA_Info::MaskType)idx ).c_str(),
                        tmpMask.MaskString());
             for (AtomMask::const_iterator at = tmpMask.begin(); at != tmpMask.end(); ++at)
-              mprintf("\t%s\n", AtomMaskName(*at).c_str());
+              mprinterr("Error:\tModXNA mask atom %8i %s\n", *at + 1, AtomMaskName(*at).c_str());
           }
         } // END loop over modxna atom names for this mask
       }

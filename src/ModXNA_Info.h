@@ -11,7 +11,7 @@ class ModXNA_Info {
     ModXNA_Info();
 
     enum StatType { OK = 0, NOT_MODXNA, ERR };
-
+    /// NOTE: Keep in sync with MaskTypeStr_
     enum MaskType { HEAD = 0, HEADSTRIP, TAIL, TAILSTRIP, ANCHOR, ANCHORSTRIP };
 
     typedef std::vector<std::string> Sarray;
@@ -31,9 +31,17 @@ class ModXNA_Info {
     /// \return The atom mask string for specified mask type.
     std::string AtomMaskString(MaskType) const;
 
+    /// \return ModXNA mask type containing the given atom name, -1 if not present.
+    int FindMaskWithAtom(std::string const&) const;
+
+    /// \return ModXNA mask name foe mask type
+    static const char* maskTypeStr(MaskType t) { return MaskTypeStr_[t]; }
+
     std::string const& FragmentName() const { return fragmentName_; }
 
   private:
+    /// NOTE: Keep in sync with MaskType
+    static const char* MaskTypeStr_[];
     /// \return an array of atom names from the given modxna header
     static Sarray atomNameList(std::string const&, int&);
 

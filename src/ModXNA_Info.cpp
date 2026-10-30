@@ -5,6 +5,11 @@
 /** CONSTRUCTOR */
 ModXNA_Info::ModXNA_Info() {}
 
+/** Array of modxna mask types for the header */
+const char* ModXNA_Info::MaskTypeStr_[] = {
+  "HEAD01", "HEAD01STRIP", "TAIL01", "TAIL01STRIP", "HEAD03", "HEAD03STRIP"
+};
+
 /** Given a ModXNA metadata string, return an array of just the
   * atom names.
   */
@@ -103,6 +108,18 @@ std::string ModXNA_Info::AtomMaskString(MaskType typeIn) const {
     case ANCHORSTRIP : return atomMaskStr(anchorStrip_);
   }
   return std::string("");
+}
+
+/**  \return ModXNA mask type containing the given atom name, -1 if not present.
+  */
+int ModXNA_Info::FindMaskWithAtom(std::string const& nameIn) const {
+  for (int idx = 0; idx <= (int)ANCHORSTRIP; idx++) {
+    Sarray const& anames = AtomNames( (MaskType)idx );
+    for (Sarray::const_iterator it = anames.begin(); it != anames.end(); ++it) {
+      if (*it == nameIn) return idx;
+    }
+  }
+  return -1;
 }
 
 /** Generate ModXNA metadata string */
