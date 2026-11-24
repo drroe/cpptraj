@@ -355,6 +355,7 @@ COMMON_SOURCES= \
         ForLoop_mask.cpp \
         ForLoop_overSets.cpp \
         Frame.cpp \
+        FrameDist_RMSD.cpp \
         GistEntropyUtils.cpp \
         GIST_PME.cpp \
         Gpu.cpp \
