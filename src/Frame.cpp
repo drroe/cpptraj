@@ -1179,7 +1179,7 @@ double Frame::RMSD_CenteredRef( Frame const& Ref, Matrix_3x3& U, Vec3& Trans, bo
   Trans[0] /= total_mass;
   Trans[1] /= total_mass;
   Trans[2] /= total_mass;
-  //mprintf("  FRAME COM: %f %f %f\n",Trans[0],Trans[1],Trans[2]); //DEBUG
+  //mprintf("  FRAME COM0: %f %f %f\n",Trans[0],Trans[1],Trans[2]); //DEBUG
 
   // Shift to common COM
   Trans.Neg();
@@ -1223,7 +1223,7 @@ double Frame::RMSD_CenteredRef( Frame const& Ref, Matrix_3x3& U, Vec3& Trans, bo
   }
   mwss *= 0.5;    // E0 = 0.5*Sum(xn^2+yn^2) 
   //DEBUG
-  //mprinterr("ROT:\n%lf %lf %lf\n%lf %lf %lf\n%lf %lf %lf\n",
+  //mprintf("ROT0:\n%lf %lf %lf\n%lf %lf %lf\n%lf %lf %lf\n",
   //          rot[0],rot[1],rot[2],rot[3],rot[4],rot[5],rot[6],rot[7],rot[8]);
   //mprinterr("MWSS: %lf\n",mwss);
   // calculate Kabsch matrix multiplied by its transpose: RtR
@@ -1231,6 +1231,8 @@ double Frame::RMSD_CenteredRef( Frame const& Ref, Matrix_3x3& U, Vec3& Trans, bo
   // Diagonalize
   Vec3 Eigenvalue;
   if (Evector.Diagonalize_Sort( Eigenvalue )) return 0;
+  //Evector.Print("Evector0");
+  //Eigenvalue.Print("Evalue0");
   // a3 = a1 x a2
   Evector[6] = (Evector[1]*Evector[5]) - (Evector[2]*Evector[4]); 
   Evector[7] = (Evector[2]*Evector[3]) - (Evector[0]*Evector[5]); 

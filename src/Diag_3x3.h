@@ -65,9 +65,9 @@ void Diag_3x3(Real* mat, Real* val) {
                   .real();
 
     // Eigenvectors
-    Complex v0denom = (three * cbrtTerm * cbrtTwo *
-                 (cbrtTerm2 * m02 + cbrtTerm * cbrtTwo * (m00 * m02 - 2 * m02 * m11 + 3 * m01 * m12 + m02 * m22) -
-                  cbrtFour * m02 * squares));
+//    Complex v0denom = (three * cbrtTerm * cbrtTwo *
+//                 (cbrtTerm2 * m02 + cbrtTerm * cbrtTwo * (m00 * m02 - 2 * m02 * m11 + 3 * m01 * m12 + m02 * m22) -
+//                  cbrtFour * m02 * squares));
     Real v00 =
         Complex((cbrtTerm4 + cbrtTerm3 * cbrtTwo * (2 * m00 - m11 - m22) +
                  cbrtFour * cbrtTerm2 *
@@ -144,8 +144,8 @@ void Diag_3x3(Real* mat, Real* val) {
     val[2] = e2;
     // Store output eigenvectors in columns to be consistent with existing
     // diagonalizers used by cpptraj.
-    printf("cbrtTerm= %g+%gi  squares= %g  N0= %g  v0denom= %g+%gi v00= %g  v01= %g  N1= %g  v10= %g  v11= %g  N2= %g  v20= %g  v21= %g\n",
-            cbrtTerm.real(), cbrtTerm.imag(), squares, N0, v0denom.real(), v0denom.imag(), v00, v01, N1, v10, v11, N2, v20, v21);
+    //printf("cbrtTerm= %g+%gi  squares= %g  N0= %g  v0denom= %g+%gi v00= %g  v01= %g  N1= %g  v10= %g  v11= %g  N2= %g  v20= %g  v21= %g\n",
+    //        cbrtTerm.real(), cbrtTerm.imag(), squares, N0, v0denom.real(), v0denom.imag(), v00, v01, N1, v10, v11, N2, v20, v21);
     mat[0] = N0 * v00;
     mat[3] = N0 * v01;
     mat[6] = N0;
@@ -204,8 +204,10 @@ void Diag_3x3_Sort(Real* M_, Real* Eval) {
   EvalOut[0] = Eval[i1_];
   EvalOut[1] = Eval[i2_];
   EvalOut[2] = Eval[i3_];
-  for (unsigned int i = 0; i < 3; i++)
+  for (unsigned int i = 0; i < 3; i++) {
     Eval[i] = EvalOut[i];
+    //printf("EVAL %f\n", Eval[i]);
+  }
 }
   
 /// Determine only eigenvalues from diagonalizing input 3x3 symmetric matrix.
