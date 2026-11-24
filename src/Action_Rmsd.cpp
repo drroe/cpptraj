@@ -48,6 +48,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
       mode_ = NONE;
   }
   useMass_ = actionArgs.hasKey("mass");
+  RMScalc_.SetUseMass( useMass_ );
   DataFile* outfile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   DataFile* matricesOut = 0;
   DataFile* vecsOut = 0;
@@ -359,17 +360,28 @@ Action::RetType Action_Rmsd::Setup(ActionSetup& setup) {
 
 // Action_Rmsd::DoAction()
 Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
+  // DEBUG - Copy frame
+  Frame frameCopy = frm.Frm();
   // Perform any needed reference actions
   REF_.ActionRef( frm.TrajoutNum(), frm.Frm() );
   // Calculate RMSD
   double rmsdval;
   Action::RetType err = Action::OK;
   // Set selected frame atoms. Masses have already been set.
+  t_oldrms_.Start();
   tgtFrame_.SetCoordinates(frm.Frm(), tgtMask_);
+  t_oldrms_.Stop();
   if (!fit_)
     rmsdval = tgtFrame_.RMSD_NoFit(REF_.SelectedRef(), useMass_);
   else {
+    t_oldrms_.Start();
     rmsdval = tgtFrame_.RMSD_CenteredRef(REF_.SelectedRef(), rot_, tgtTrans_, useMass_);
+    t_oldrms_.Stop();
+    Matrix_3x3 R2; Vec3 T2;
+    t_newrms_.Start();
+    double rms2 = RMScalc_.RMSD_Fit( frameCopy, tgtMask_, REF_.SelectedRef(), R2, T2);
+    t_newrms_.Stop();
+    mprintf("DEBUG: RMS %12.4f %12.4f\n", rmsdval, rms2);
     if (rmatrices_ != 0) rmatrices_->Add(frameNum, rot_.Dptr());
     if (tvecType_ == COMBINED)
       tvecs_->AddVxyz( tgtTrans_ + REF_.RefTrans() );
@@ -377,7 +389,9 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
       tvecs_->AddVxyzo( tgtTrans_, REF_.RefTrans() );
     switch (mode_) {
       case ROT_AND_TRANS:
+        t_oldrms_.Start();
         frm.ModifyFrm().Trans_Rot_Trans(tgtTrans_, rot_, REF_.RefTrans());
+        t_oldrms_.Stop();
         frm.ModifyFrm().ModifyBox().RotateUcell( rot_ );
         err = Action::MODIFY_COORDS;
         break;
@@ -421,6 +435,8 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
   * file options. Calculate averages if requested.
   */
 void Action_Rmsd::Print() {
+  t_oldrms_.WriteTiming(1,"Old RMS");
+  t_newrms_.WriteTiming(1,"New RMS");
   if (!perres_ || ResidueRMS_.empty()) return;
   // Per-residue output file
   if (perresout_ != 0) {

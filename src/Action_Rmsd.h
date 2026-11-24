@@ -3,6 +3,8 @@
 #include "Action.h"
 #include "Range.h"
 #include "ReferenceAction.h"
+#include "FrameDist_RMSD.h"
+#include "Timer.h"
 class DataSet_1D;
 class DataSet_Vector;
 /// Action to calculate the RMSD between frame and a reference frame.
@@ -57,5 +59,8 @@ class Action_Rmsd: public Action {
     DataSet* rmsd_;
     DataSet* rmatrices_;
     DataSet_Vector* tvecs_;
+    Cpptraj::FrameDist_RMSD RMScalc_;
+    Timer t_oldrms_;
+    Timer t_newrms_;
 };
 #endif
