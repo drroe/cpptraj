@@ -4,6 +4,7 @@
 #include "AtomMask.h"
 #include "Box.h"
 #include "CoordinateInfo.h"
+#include "Timer.h"
 // Forward declarations
 class Atom;
 /// Hold coordinates, perform various operations/transformations on them.
@@ -295,6 +296,7 @@ class Frame {
     int BcastFrame(Parallel::Comm const&);
     int SumToMaster(Parallel::Comm const&);
 #   endif
+    static void PrintTiming() ;
   private:
     static const size_t COORDSIZE_;
     static const size_t BOXSIZE_;
@@ -316,6 +318,13 @@ class Frame {
     int crdidx_;    ///< overall coordinate index.
     Darray Mass_;   ///< Masses.
     bool memIsExternal_; ///< True if Frame is not responsible for freeing memory.
+
+    static Timer t_total_;
+    static Timer t_trans_;
+    static Timer t_covar_;
+    static Timer t_matmult_;
+    static Timer t_diag_;
+    static Timer t_findrot_;
 
     void swap(Frame&, Frame&);
     inline bool ReallocateX(int);

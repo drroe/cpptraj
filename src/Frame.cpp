@@ -1151,8 +1151,10 @@ static inline void normalize(double* vIn) {
   */ 
 double Frame::RMSD_CenteredRef( Frame const& Ref, Matrix_3x3& U, Vec3& Trans, bool useMassIn)
 {
+  t_total_.Start();
   double total_mass, cp[3], sig3, b[9];
   // Rotation will occur around geometric center/center of mass
+  t_trans_.Start();
   Trans.Zero();
   if (useMassIn) {
     Darray::iterator mass = Mass_.begin();
@@ -1184,11 +1186,12 @@ double Frame::RMSD_CenteredRef( Frame const& Ref, Matrix_3x3& U, Vec3& Trans, bo
   // Shift to common COM
   Trans.Neg();
   Translate(Trans);
+  t_trans_.Stop();
   //for (int i = 0; i < natom_; i++) {
   //  mprinterr("\tSHIFTED FRAME %i: %f %f %f\n",i,X_[i*3],X_[i*3+1],X_[i*3+2]); //DEBUG
   //  mprinterr("\tSHIFTED REF %i  : %f %f %f\n",i,Ref.X_[i*3],Ref.X_[i*3+1],Ref.X_[i*3+2]); //DEBUG
   //}
-
+  t_covar_.Start();
   // Use Kabsch algorithm to calculate optimum rotation matrix.
   // U = [(RtR)^.5][R^-1]
   double mwss = 0.0;
@@ -1226,11 +1229,17 @@ double Frame::RMSD_CenteredRef( Frame const& Ref, Matrix_3x3& U, Vec3& Trans, bo
   //mprintf("ROT0:\n%lf %lf %lf\n%lf %lf %lf\n%lf %lf %lf\n",
   //          rot[0],rot[1],rot[2],rot[3],rot[4],rot[5],rot[6],rot[7],rot[8]);
   //mprinterr("MWSS: %lf\n",mwss);
+  t_covar_.Stop();
   // calculate Kabsch matrix multiplied by its transpose: RtR
+  t_matmult_.Start();
   Matrix_3x3 Evector = rot.TransposeMult(rot); 
+  t_matmult_.Stop();
+  t_diag_.Start();
   // Diagonalize
   Vec3 Eigenvalue;
   if (Evector.Diagonalize_Sort( Eigenvalue )) return 0;
+  t_diag_.Stop();
+  t_findrot_.Start();
   //Evector.Print("Evector0");
   //Eigenvalue.Print("Evalue0");
   // a3 = a1 x a2
@@ -1283,10 +1292,28 @@ double Frame::RMSD_CenteredRef( Frame const& Ref, Matrix_3x3& U, Vec3& Trans, bo
     rms_return = 0.0;
   } else
     rms_return = sqrt((2.0*rms_return)/total_mass);
+  t_findrot_.Stop();
   //DEBUG
   //printRotTransInfo(U,Trans);
   //fprintf(stdout,"RMS is %lf\n",rms_return);
+  t_total_.Stop();
   return rms_return;
+}
+
+Timer Frame::t_total_ = Timer();
+Timer Frame::t_trans_ = Timer();
+Timer Frame::t_covar_ = Timer();
+Timer Frame::t_matmult_ = Timer();
+Timer Frame::t_diag_ = Timer();
+Timer Frame::t_findrot_ = Timer();
+
+void Frame::PrintTiming() {
+  t_total_.WriteTiming(1, "Old RMS total");
+  t_trans_.WriteTiming(2, "Trans  ", t_total_.Total());
+  t_covar_.WriteTiming(2, "Covar  ", t_total_.Total());
+  t_matmult_.WriteTiming(2, "MatMult", t_total_.Total());
+  t_diag_.WriteTiming(2, "Diag   ", t_total_.Total());
+  t_findrot_.WriteTiming(2, "FindRot", t_total_.Total());
 }
 
 // Frame::RMSD()

@@ -61,6 +61,5 @@ class Action_Rmsd: public Action {
     DataSet_Vector* tvecs_;
     Cpptraj::FrameDist_RMSD RMScalc_;
     Timer t_oldrms_;
-    Timer t_newrms_;
 };
 #endif
