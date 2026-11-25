@@ -23,36 +23,38 @@ static inline void normalize(double* vIn) {
 } 
 
 /** Calculate best-fit RMSD */
-double FrameDist_RMSD::RMSD_Fit(Frame& Tgt, AtomMask const& maskIn,
+double FrameDist_RMSD::RMSD_Fit(Frame& Tgt,
                                 Frame const& Ref_,
                                 Matrix_3x3& Rot, Vec3& Trans)
-const
+//const
 {
+  t_total_.Start();
   // Sanity check
-  if (maskIn.Nselected() != Ref_.Natom()) {
+  if (Tgt.Natom() != Ref_.Natom()) {
     mprinterr("Internal Error: FrameDist_RMSD::RMSD_Fit(): Tgt #atom (%i) != Ref #atom (%i)\n",
-              maskIn.Nselected(), Ref_.Natom());
+              Tgt.Natom(), Ref_.Natom());
     return -1;
   }
 
+  t_trans_.Start();
   double total_mass = 0.0; //, cp[3], sig3, b[9];
   // Rotation will occur around geometric center/center of mass
   Trans.Zero();
   if (useMass_) {
-    for (AtomMask::const_iterator at = maskIn.begin(); at != maskIn.end(); ++at)
+    for (int iat = 0; iat != Tgt.Natom(); iat++)
     {
-      const double* XYZ = Tgt.XYZ(*at);
-      double mass = Tgt.Mass(*at);
+      const double* XYZ = Tgt.XYZ(iat);
+      double mass = Tgt.Mass(iat);
       total_mass += mass;
       Trans[0] += (XYZ[0] * mass);
       Trans[1] += (XYZ[1] * mass);
       Trans[2] += (XYZ[2] * mass);
     }
   } else {
-    total_mass = (double)maskIn.Nselected();
-    for (AtomMask::const_iterator at = maskIn.begin(); at != maskIn.end(); ++at)
+    total_mass = (double)Tgt.Natom();
+    for (int iat = 0; iat != Tgt.Natom(); iat++)
     {
-      const double* XYZ = Tgt.XYZ(*at);
+      const double* XYZ = Tgt.XYZ(iat);
       Trans[0] += XYZ[0];
       Trans[1] += XYZ[1];
       Trans[2] += XYZ[2];
@@ -69,60 +71,91 @@ const
 
   // Shift to common COM
   Trans.Neg();
-  Tgt.Translate(Trans);
+//  Tgt.Translate(Trans);
   //for (int i = 0; i < natom_; i++) {
   //  mprinterr("\tSHIFTED FRAME %i: %f %f %f\n",i,X_[i*3],X_[i*3+1],X_[i*3+2]); //DEBUG
   //  mprinterr("\tSHIFTED REF %i  : %f %f %f\n",i,Ref.X_[i*3],Ref.X_[i*3+1],Ref.X_[i*3+2]); //DEBUG
   //}
-
+  t_trans_.Stop();
+  t_covar_.Start();
   // Use Kabsch algorithm to calculate optimum rotation matrix.
   // U = [(RtR)^.5][R^-1]
   double mwss = 0.0;
   Matrix_3x3 rot(0.0);
   // Calculate covariance matrix of Coords and Reference (R = Xt * Ref)
-  double atom_mass = 1.0;
-  for (int idx = 0; idx < maskIn.Nselected(); idx++)
-  {
-    int at = maskIn[idx];
+  if (useMass_) {
+    for (int iat = 0; iat != Tgt.Natom(); iat++)
+    {
+      const double* txyz = Tgt.XYZ(iat);
+      const double* rxyz = Ref_.XYZ(iat);
+      double xt = txyz[0] + Trans[0];
+      double yt = txyz[1] + Trans[1];
+      double zt = txyz[2] + Trans[2];
+      double xr = rxyz[0];
+      double yr = rxyz[1];
+      double zr = rxyz[2];
 
-    const double* txyz = Tgt.XYZ(at);
-    const double* rxyz = Ref_.XYZ(idx);
-    double xt = txyz[0];
-    double yt = txyz[1];
-    double zt = txyz[2];
-    double xr = rxyz[0];
-    double yr = rxyz[1];
-    double zr = rxyz[2];
+      // Use atom_mass to hold mass for this atom if specified
+      double atom_mass = Tgt.Mass(iat);
 
-    // Use atom_mass to hold mass for this atom if specified
-    if (useMass_)
-      atom_mass = Tgt.Mass(at);
+      mwss += atom_mass * ( (xt*xt)+(yt*yt)+(zt*zt)+(xr*xr)+(yr*yr)+(zr*zr) );
+      // Calculate the Kabsch matrix: R = (rij) = Sum(yni*xnj)
+      rot[0] += atom_mass*xt*xr;
+      rot[1] += atom_mass*xt*yr;
+      rot[2] += atom_mass*xt*zr;
 
-    mwss += atom_mass * ( (xt*xt)+(yt*yt)+(zt*zt)+(xr*xr)+(yr*yr)+(zr*zr) );
-    // Calculate the Kabsch matrix: R = (rij) = Sum(yni*xnj)
-    rot[0] += atom_mass*xt*xr;
-    rot[1] += atom_mass*xt*yr;
-    rot[2] += atom_mass*xt*zr;
+      rot[3] += atom_mass*yt*xr;
+      rot[4] += atom_mass*yt*yr;
+      rot[5] += atom_mass*yt*zr;
 
-    rot[3] += atom_mass*yt*xr;
-    rot[4] += atom_mass*yt*yr;
-    rot[5] += atom_mass*yt*zr;
+      rot[6] += atom_mass*zt*xr;
+      rot[7] += atom_mass*zt*yr;
+      rot[8] += atom_mass*zt*zr;
+    }
+  } else {
+    for (int iat = 0; iat != Tgt.Natom(); iat++)
+    {
+      const double* txyz = Tgt.XYZ(iat);
+      const double* rxyz = Ref_.XYZ(iat);
+      double xt = txyz[0] + Trans[0];
+      double yt = txyz[1] + Trans[1];
+      double zt = txyz[2] + Trans[2];
+      double xr = rxyz[0];
+      double yr = rxyz[1];
+      double zr = rxyz[2];
 
-    rot[6] += atom_mass*zt*xr;
-    rot[7] += atom_mass*zt*yr;
-    rot[8] += atom_mass*zt*zr;
+      mwss += ( (xt*xt)+(yt*yt)+(zt*zt)+(xr*xr)+(yr*yr)+(zr*zr) );
+      // Calculate the Kabsch matrix: R = (rij) = Sum(yni*xnj)
+      rot[0] += xt*xr;
+      rot[1] += xt*yr;
+      rot[2] += xt*zr;
+
+      rot[3] += yt*xr;
+      rot[4] += yt*yr;
+      rot[5] += yt*zr;
+
+      rot[6] += zt*xr;
+      rot[7] += zt*yr;
+      rot[8] += zt*zr;
+    }
   }
   mwss *= 0.5;    // E0 = 0.5*Sum(xn^2+yn^2) 
   //DEBUG
   //mprintf("ROT1:\n%lf %lf %lf\n%lf %lf %lf\n%lf %lf %lf\n",
   //          rot[0],rot[1],rot[2],rot[3],rot[4],rot[5],rot[6],rot[7],rot[8]);
   //mprinterr("MWSS: %lf\n",mwss);
+  t_covar_.Stop();
   // calculate Kabsch matrix multiplied by its transpose: RtR
+  t_matmult_.Start();
   Matrix_3x3 Evector = rot.TransposeMult(rot); 
+  t_matmult_.Stop();
+  t_diag_.Start();
   // Diagonalize
   Vec3 Eigenvalue;
   //if (Evector.Diagonalize_Sort( Eigenvalue )) return 0;
   Diag_3x3_Sort<double>( Evector.Dptr(), Eigenvalue.Dptr() );
+  t_diag_.Stop();
+  t_findrot_.Start();
   //Evector.Print("Evector1");
   //Eigenvalue.Print("Evalue1");
   // a3 = a1 x a2
@@ -178,21 +211,32 @@ const
     rms_return = 0.0;
   } else
     rms_return = sqrt((2.0*rms_return)/total_mass);
+  t_findrot_.Stop();
   //DEBUG
   //printRotTransInfo(U,Trans);
   //fprintf(stdout,"RMS is %lf\n",rms_return);
-
+/*  t_move_.Start();
   // Tgt is already the origin. Rotate and translate it.
   for (int i = 0; i < Tgt.size(); i+=3) {
     double* XYZ = Tgt.xAddress() + i;
-    double x = XYZ[0];
-    double y = XYZ[1];
-    double z = XYZ[2];
+    double x = XYZ[0] + Trans[0];
+    double y = XYZ[1] + Trans[1];
+    double z = XYZ[2] + Trans[2];
     XYZ[0] = x*Rot[0] + y*Rot[1] + z*Rot[2] + refTrans_[0];
     XYZ[1] = x*Rot[3] + y*Rot[4] + z*Rot[5] + refTrans_[1];
     XYZ[2] = x*Rot[6] + y*Rot[7] + z*Rot[8] + refTrans_[2];
   }
-  
+  t_move_.Stop();*/
+  t_total_.Stop();
   return rms_return;
 }
 
+void FrameDist_RMSD::PrintTiming() const {
+  t_total_.WriteTiming(1, "New RMS total");
+  t_trans_.WriteTiming(2, "Trans  ", t_total_.Total());
+  t_covar_.WriteTiming(2, "Covar  ", t_total_.Total());
+  t_matmult_.WriteTiming(2, "MatMult", t_total_.Total());
+  t_diag_.WriteTiming(2, "Diag   ", t_total_.Total());
+  t_findrot_.WriteTiming(2, "FindRot", t_total_.Total());
+  //t_move_.WriteTiming(2, "Move   ", t_total_.Total());
+}
