@@ -3,6 +3,7 @@
 #include "StringRoutines.h" // integerToString
 #include "DataSet_Mesh.h"
 #include "DataSet_Vector.h"
+#include <cmath> // DEBUG
 
 // CONSTRUCTOR
 Action_Rmsd::Action_Rmsd() :
@@ -358,6 +359,17 @@ Action::RetType Action_Rmsd::Setup(ActionSetup& setup) {
   return Action::OK;
 }
 
+static inline void compare_rms(double rold, double rnew)
+{
+  const double TOL = 0.0000000000001;
+  double diff = fabs(rold - rnew);
+  //double pcte = diff / rold;
+  if (diff > TOL) {
+    //mprinterr("RMSD differs: Rold= %g  Rnew= %g  AbsDelta= %g  PctE= %g\n", rold, rnew, diff, pcte);
+    mprinterr("RMSD differs: Rold= %g  Rnew= %g  AbsDelta= %g\n", rold, rnew, diff);
+  }
+}
+
 // Action_Rmsd::DoAction()
 Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
   // DEBUG - Copy frame
@@ -381,7 +393,7 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
     t_newrms_.Start();
     double rms2 = RMScalc_.RMSD_Fit( frameCopy, tgtMask_, REF_.SelectedRef(), R2, T2);
     t_newrms_.Stop();
-    mprintf("DEBUG: RMS %12.4f %12.4f\n", rmsdval, rms2);
+    compare_rms(rmsdval, rms2);
     if (rmatrices_ != 0) rmatrices_->Add(frameNum, rot_.Dptr());
     if (tvecType_ == COMBINED)
       tvecs_->AddVxyz( tgtTrans_ + REF_.RefTrans() );
